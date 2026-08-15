@@ -5,7 +5,7 @@
              UseLayoutRounding="True"
              SnapsToDevicePixels="True">
     <Grid>
-        <StackPanel Margin="0,62,0,0"
+        <StackPanel Margin="0,62,24,0"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Top"
                     Orientation="Horizontal">
@@ -24,7 +24,7 @@
                      Fill="{DynamicResource AccentPrimary}" />
         </StackPanel>
 
-        <Button Margin="0,129,0,0"
+        <Button Margin="0,129,24,0"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Top"
                 AutomationProperties.Name="{DynamicResource HomeStartFocus}"
@@ -38,21 +38,37 @@
             </Button.Effect>
             <StackPanel HorizontalAlignment="Center">
                 <TextBlock HorizontalAlignment="Center"
+                           RenderTransformOrigin="0.5,0.5"
                            FontFamily="Segoe MDL2 Assets"
-                           FontSize="48"
+                           FontSize="56"
                            Foreground="{DynamicResource WhiteText}"
-                           Text="&#xE7E8;" />
+                           Text="&#xE7E8;">
+                    <TextBlock.RenderTransform>
+                        <TransformGroup>
+                            <ScaleTransform ScaleY="0.88" />
+                            <TranslateTransform Y="-1" />
+                        </TransformGroup>
+                    </TextBlock.RenderTransform>
+                </TextBlock>
                 <TextBlock Margin="0,14,0,0"
                            HorizontalAlignment="Center"
-                           FontSize="{DynamicResource PrimaryActionFontSize}"
+                           FontSize="28"
                            FontWeight="SemiBold"
                            Foreground="{DynamicResource WhiteText}"
-                           Text="{DynamicResource HomeStartFocus}" />
+                           RenderTransformOrigin="0.5,0.5"
+                           Text="{DynamicResource HomeStartFocus}">
+                    <TextBlock.RenderTransform>
+                        <TransformGroup>
+                            <ScaleTransform ScaleX="1.045" />
+                            <TranslateTransform Y="-5" />
+                        </TransformGroup>
+                    </TextBlock.RenderTransform>
+                </TextBlock>
             </StackPanel>
         </Button>
 
         <Button Width="190"
-                Margin="0,377,0,0"
+                Margin="0,375,36,0"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Top"
                 AutomationProperties.Name="{DynamicResource HomeFocusTarget}"
@@ -76,25 +92,35 @@
             </StackPanel>
         </Button>
 
-        <ItemsControl Width="560"
+        <ItemsControl Width="550"
                       Height="44"
-                      Margin="0,448,0,0"
+                      Margin="0,446,4,0"
                       HorizontalAlignment="Center"
                       VerticalAlignment="Top"
                       ItemsSource="{Binding DurationOptions}">
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
-                    <UniformGrid Rows="1" />
+                    <StackPanel Orientation="Horizontal" />
                 </ItemsPanelTemplate>
             </ItemsControl.ItemsPanel>
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                    <RadioButton Margin="8,0"
-                                 AutomationProperties.Name="{Binding Label}"
+                    <RadioButton AutomationProperties.Name="{Binding Label}"
                                  Command="{Binding DataContext.SelectDurationCommand, RelativeSource={RelativeSource AncestorType={x:Type ItemsControl}}}"
                                  CommandParameter="{Binding}"
-                                 IsChecked="{Binding IsSelected, Mode=OneWay}"
-                                 Style="{StaticResource HomeDurationButtonStyle}">
+                                 IsChecked="{Binding IsSelected, Mode=OneWay}">
+                        <RadioButton.Style>
+                            <Style TargetType="{x:Type RadioButton}" BasedOn="{StaticResource HomeDurationButtonStyle}">
+                                <Setter Property="Width" Value="92" />
+                                <Setter Property="Margin" Value="0,0,20,0" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Icon}" Value="&#xE823;">
+                                        <Setter Property="Width" Value="102" />
+                                        <Setter Property="Margin" Value="0" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </RadioButton.Style>
                         <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
                             <TextBlock Margin="0,0,6,0"
                                        VerticalAlignment="Center"
@@ -123,14 +149,14 @@
             </ItemsControl.ItemTemplate>
         </ItemsControl>
 
-        <Border Height="84"
-                Margin="52,537,52,0"
+        <Border Height="82"
+                Margin="50,535,50,0"
                 HorizontalAlignment="Stretch"
                 VerticalAlignment="Top"
                 Background="{DynamicResource SurfacePrimary}"
                 BorderBrush="{DynamicResource OverlayBorder}"
                 BorderThickness="1"
-                CornerRadius="16">
+                CornerRadius="12">
             <Border.Effect>
                 <DropShadowEffect BlurRadius="18"
                                   Direction="270"
@@ -147,7 +173,7 @@
                 <TextBlock Grid.Column="0"
                            VerticalAlignment="Center"
                            FontFamily="Segoe MDL2 Assets"
-                           FontSize="30"
+                           FontSize="32"
                            Foreground="{DynamicResource TextSecondary}"
                            Text="&#xEA18;" />
 

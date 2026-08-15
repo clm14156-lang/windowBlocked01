@@ -27,4 +27,15 @@ public partial class MainWindow : Window
     {
         Close();
     }
+
+    private void AuthScrim_MouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (ReferenceEquals(e.OriginalSource, sender))
+        {
+            if (DataContext is ViewModels.MainWindowViewModel viewModel)
+            {
+                viewModel.AuthModal.CloseCommand.Execute(null);
+            }
+        }
+    }
 }

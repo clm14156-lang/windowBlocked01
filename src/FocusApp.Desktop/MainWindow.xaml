@@ -23,7 +23,7 @@
             </Grid.ColumnDefinitions>
 
             <Border Grid.Column="0"
-                    Background="{DynamicResource SurfacePrimary}"
+                    Background="{DynamicResource BackgroundPrimary}"
                     BorderBrush="{DynamicResource OverlayBorder}"
                     BorderThickness="0,0,1,0">
                 <Grid>
@@ -34,24 +34,24 @@
                     </Grid.RowDefinitions>
 
                     <Grid Grid.Row="0">
-                        <Border Width="40"
-                                Height="40"
+                        <Border Width="32"
+                                Height="32"
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Top"
-                                Margin="0,28,0,0"
+                                Margin="0,32,0,0"
                                 BorderBrush="{DynamicResource AccentPrimary}"
                                 BorderThickness="2"
                                 CornerRadius="12">
                             <TextBlock HorizontalAlignment="Center"
                                        VerticalAlignment="Center"
                                        FontFamily="Segoe MDL2 Assets"
-                                       FontSize="20"
+                                       FontSize="17"
                                        Foreground="{DynamicResource AccentPrimary}"
                                        Text="&#xE77B;" />
                         </Border>
                         <Border Width="30"
                                 Height="2"
-                                Margin="0,72,0,0"
+                                Margin="0,62,0,0"
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Top"
                                 Background="{DynamicResource AccentPrimary}"
@@ -70,31 +70,85 @@
                                              IsChecked="{Binding IsSelected, Mode=OneWay}"
                                              Style="{StaticResource NavigationButtonStyle}"
                                              ToolTip="{Binding Title}">
-                                    <TextBlock FontFamily="Segoe MDL2 Assets"
-                                               FontSize="20"
-                                               Text="{Binding Icon}" />
+                                    <Grid Width="20" Height="20">
+                                        <TextBlock x:Name="NavigationGlyph"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center"
+                                                   FontFamily="Segoe MDL2 Assets"
+                                                   FontSize="20"
+                                                   Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type RadioButton}}}"
+                                                   Text="{Binding Icon}" />
+                                        <TextBlock x:Name="BlockingCheckGlyph"
+                                                   Margin="0,2,0,0"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center"
+                                                   FontFamily="{DynamicResource FontFamilyPrimary}"
+                                                   FontSize="8"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type RadioButton}}}"
+                                                   Text="✓"
+                                                   Visibility="Collapsed" />
+                                        <Grid x:Name="StatisticsPieGlyph" Visibility="Collapsed">
+                                            <Ellipse Margin="1"
+                                                     Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type RadioButton}}}"
+                                                     StrokeThickness="1.6" />
+                                            <Path Data="M 10,1.2 L 10,10 L 18.8,10"
+                                                  Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type RadioButton}}}"
+                                                  StrokeEndLineCap="Round"
+                                                  StrokeLineJoin="Round"
+                                                  StrokeStartLineCap="Round"
+                                                  StrokeThickness="1.6" />
+                                        </Grid>
+                                    </Grid>
                                 </RadioButton>
+                                <DataTemplate.Triggers>
+                                    <DataTrigger Binding="{Binding Page}" Value="{x:Static vm:NavigationPage.Blocking}">
+                                        <Setter TargetName="BlockingCheckGlyph" Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Page}" Value="{x:Static vm:NavigationPage.Statistics}">
+                                        <Setter TargetName="NavigationGlyph" Property="Visibility" Value="Collapsed" />
+                                        <Setter TargetName="StatisticsPieGlyph" Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </DataTemplate.Triggers>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
 
                     <Grid Grid.Row="2">
                         <Border Height="1"
-                                Margin="18,0"
+                                Margin="18,7,18,0"
                                 VerticalAlignment="Top"
                                 Background="{DynamicResource BorderPrimary}" />
                         <RadioButton Margin="0,14,0,24"
                                      HorizontalAlignment="Center"
                                      VerticalAlignment="Center"
                                      AutomationProperties.Name="{Binding AccountNavigationItem.Title}"
-                                     Command="{Binding NavigateCommand}"
-                                     CommandParameter="{Binding AccountNavigationItem}"
+                                     Command="{Binding OpenAuthCommand}"
                                      IsChecked="{Binding AccountNavigationItem.IsSelected, Mode=OneWay}"
                                      Style="{StaticResource NavigationButtonStyle}"
                                      ToolTip="{Binding AccountNavigationItem.Title}">
-                            <TextBlock FontFamily="Segoe MDL2 Assets"
-                                       FontSize="20"
-                                       Text="{Binding AccountNavigationItem.Icon}" />
+                            <Grid Width="40" Height="40">
+                                <Ellipse Fill="{DynamicResource BackgroundSecondary}" />
+                                <TextBlock HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="20"
+                                           Foreground="{DynamicResource TextSecondary}"
+                                           Text="{Binding AccountNavigationItem.Icon}" />
+                                <Border Width="12"
+                                        Height="12"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Bottom"
+                                        Background="{DynamicResource AccentPrimary}"
+                                        CornerRadius="6">
+                                    <TextBlock HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"
+                                               FontFamily="Segoe MDL2 Assets"
+                                               FontSize="8"
+                                               Foreground="{DynamicResource WhiteText}"
+                                               Text="&#xE710;" />
+                                </Border>
+                            </Grid>
                         </RadioButton>
                         <TextBlock Margin="0,0,0,8"
                                    HorizontalAlignment="Center"
@@ -123,6 +177,7 @@
                                 ToolTip="{DynamicResource HomeThemeButton}">
                             <TextBlock FontFamily="Segoe MDL2 Assets"
                                        FontSize="17"
+                                       Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
                                        Text="&#xE790;" />
                         </Button>
                         <Button AutomationProperties.Name="{DynamicResource HomeMinimizeButton}"
@@ -131,6 +186,7 @@
                                 ToolTip="{DynamicResource HomeMinimizeButton}">
                             <TextBlock FontFamily="Segoe MDL2 Assets"
                                        FontSize="14"
+                                       Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
                                        Text="&#xE921;" />
                         </Button>
                         <Button AutomationProperties.Name="{DynamicResource HomeCloseButton}"
@@ -139,6 +195,7 @@
                                 ToolTip="{DynamicResource HomeCloseButton}">
                             <TextBlock FontFamily="Segoe MDL2 Assets"
                                        FontSize="14"
+                                       Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
                                        Text="&#xE8BB;" />
                         </Button>
                     </StackPanel>
@@ -177,6 +234,24 @@
                         </TextBlock.Style>
                     </TextBlock>
                 </Grid>
+            </Grid>
+
+            <Grid Grid.ColumnSpan="2"
+                  Panel.ZIndex="100">
+                <Grid.Style>
+                    <Style TargetType="{x:Type Grid}">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding AuthModal.IsOpen}" Value="True">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
+                <Border Background="{DynamicResource ModalScrim}"
+                        MouseDown="AuthScrim_MouseDown">
+                    <views:AuthModal DataContext="{Binding AuthModal}" />
+                </Border>
             </Grid>
         </Grid>
     </Border>

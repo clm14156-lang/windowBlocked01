@@ -18,7 +18,7 @@
     <Style x:Key="NavigationButtonStyle" TargetType="{x:Type RadioButton}">
         <Setter Property="Width" Value="40" />
         <Setter Property="Height" Value="40" />
-        <Setter Property="Margin" Value="0,4" />
+        <Setter Property="Margin" Value="0,8" />
         <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
         <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
         <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
@@ -50,7 +50,7 @@
                         </Trigger>
                         <Trigger Property="IsChecked" Value="True">
                             <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}" />
-                            <Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource AccentTint}" />
+                            <Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource TransparentBrush}" />
                         </Trigger>
                         <Trigger Property="IsKeyboardFocused" Value="True">
                             <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
@@ -146,8 +146,8 @@
     </Style>
 
     <Style x:Key="HomeFocusButtonStyle" TargetType="{x:Type Button}">
-        <Setter Property="Width" Value="216" />
-        <Setter Property="Height" Value="216" />
+        <Setter Property="Width" Value="218" />
+        <Setter Property="Height" Value="218" />
         <Setter Property="Background" Value="{DynamicResource FocusButtonBackground}" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="Foreground" Value="{DynamicResource WhiteText}" />
@@ -159,7 +159,7 @@
                             Width="{TemplateBinding Width}"
                             Height="{TemplateBinding Height}"
                             Background="{TemplateBinding Background}"
-                            CornerRadius="108">
+                            CornerRadius="109">
                         <ContentPresenter HorizontalAlignment="Center"
                                           VerticalAlignment="Center" />
                     </Border>
@@ -219,7 +219,7 @@
 
     <Style x:Key="HomeLinkButtonStyle" TargetType="{x:Type Button}">
         <Setter Property="MinHeight" Value="36" />
-        <Setter Property="Padding" Value="12,0" />
+        <Setter Property="Padding" Value="0" />
         <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
         <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
         <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}" />
@@ -245,6 +245,105 @@
                         </Trigger>
                         <Trigger Property="IsKeyboardFocused" Value="True">
                             <Setter TargetName="LinkBorder" Property="Background" Value="{DynamicResource AccentTint}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="AuthTabButtonStyle" TargetType="{x:Type Button}">
+        <Setter Property="Height" Value="34" />
+        <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
+        <Setter Property="BorderThickness" Value="0,0,0,2" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+        <Setter Property="FontSize" Value="{DynamicResource SectionTitleFontSize}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type Button}">
+                    <Border x:Name="TabBorder"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}">
+                        <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="TabBorder" Property="Background" Value="{DynamicResource TransparentBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="TabBorder" Property="Background" Value="{DynamicResource ControlPressedBackground}" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="TabBorder" Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="AuthPrimaryButtonStyle" TargetType="{x:Type Button}">
+        <Setter Property="Height" Value="40" />
+        <Setter Property="Background" Value="{DynamicResource FocusButtonBackground}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Foreground" Value="{DynamicResource WhiteText}" />
+        <Setter Property="FontSize" Value="{DynamicResource PrimaryActionFontSize}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type Button}">
+                    <Border x:Name="AuthActionBorder"
+                            Background="{TemplateBinding Background}"
+                            CornerRadius="12">
+                        <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="AuthActionBorder" Property="Background" Value="{DynamicResource FocusButtonHoverBackground}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="AuthActionBorder" Property="Background" Value="{DynamicResource FocusButtonPressedBackground}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="AuthCloseButtonStyle" TargetType="{x:Type Button}">
+        <Setter Property="Width" Value="32" />
+        <Setter Property="Height" Value="32" />
+        <Setter Property="Background" Value="{DynamicResource BackgroundSecondary}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderPrimary}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+        <Setter Property="FontFamily" Value="Segoe MDL2 Assets" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type Button}">
+                    <Border x:Name="CloseBorder"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="16">
+                        <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="CloseBorder" Property="Background" Value="{DynamicResource ControlHoverBackground}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="CloseBorder" Property="Background" Value="{DynamicResource ControlPressedBackground}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

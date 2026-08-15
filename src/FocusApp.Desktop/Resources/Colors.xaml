@@ -2,7 +2,7 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Color x:Key="AccentShadowColor">#FF8A18</Color>
     <SolidColorBrush x:Key="TransparentBrush" Color="Transparent" />
-    <SolidColorBrush x:Key="BackgroundPrimary" Color="#F7F7F8" />
+    <SolidColorBrush x:Key="BackgroundPrimary" Color="#F9F9FA" />
     <SolidColorBrush x:Key="BackgroundSecondary" Color="#F2F2F4" />
     <SolidColorBrush x:Key="SurfacePrimary" Color="#FFFFFF" />
     <SolidColorBrush x:Key="TextPrimary" Color="#1D1D1F" />
@@ -27,6 +27,9 @@
     <SolidColorBrush x:Key="ControlPressedBackground" Color="#EAEAED" />
     <SolidColorBrush x:Key="OverlayBorder" Color="#EFEFF1" />
     <SolidColorBrush x:Key="WhiteText" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="ModalScrim" Color="#99000000" />
+    <SolidColorBrush x:Key="AuthInputPlaceholder" Color="#8A8A8F" />
+    <SolidColorBrush x:Key="AuthError" Color="#FF6A00" />
     <SolidColorBrush x:Key="Success" Color="#2E9B62" />
     <SolidColorBrush x:Key="Warning" Color="#C47A00" />
     <SolidColorBrush x:Key="Danger" Color="#D83B3B" />
