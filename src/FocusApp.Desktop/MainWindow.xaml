@@ -1,86 +1,183 @@
 <Window x:Class="FocusApp.Desktop.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:FocusApp.Desktop.ViewModels"
+        xmlns:views="clr-namespace:FocusApp.Desktop.Views"
         Title="{DynamicResource ApplicationName}"
         Width="800"
         Height="710"
         MinWidth="800"
         MinHeight="710"
-        WindowStartupLocation="CenterScreen">
-    <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="80" />
-            <ColumnDefinition Width="*" />
-        </Grid.ColumnDefinitions>
+        MaxWidth="800"
+        MaxHeight="710"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None">
+    <Border BorderBrush="{DynamicResource BorderPrimary}"
+            BorderThickness="1"
+            Background="{DynamicResource BackgroundPrimary}">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="80" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
 
-        <Border Grid.Column="0"
-                Background="{DynamicResource SurfacePrimary}"
-                BorderBrush="{DynamicResource BorderPrimary}"
-                BorderThickness="0,0,1,0">
-            <Grid>
+            <Border Grid.Column="0"
+                    Background="{DynamicResource SurfacePrimary}"
+                    BorderBrush="{DynamicResource OverlayBorder}"
+                    BorderThickness="0,0,1,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="124" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="104" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0">
+                        <Border Width="40"
+                                Height="40"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Top"
+                                Margin="0,28,0,0"
+                                BorderBrush="{DynamicResource AccentPrimary}"
+                                BorderThickness="2"
+                                CornerRadius="12">
+                            <TextBlock HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       FontFamily="Segoe MDL2 Assets"
+                                       FontSize="20"
+                                       Foreground="{DynamicResource AccentPrimary}"
+                                       Text="&#xE77B;" />
+                        </Border>
+                        <Border Width="30"
+                                Height="2"
+                                Margin="0,72,0,0"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Top"
+                                Background="{DynamicResource AccentPrimary}"
+                                CornerRadius="1" />
+                    </Grid>
+
+                    <ItemsControl Grid.Row="1"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Top"
+                                  ItemsSource="{Binding PrimaryNavigationItems}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <RadioButton AutomationProperties.Name="{Binding Title}"
+                                             Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType={x:Type Window}}}"
+                                             CommandParameter="{Binding}"
+                                             IsChecked="{Binding IsSelected, Mode=OneWay}"
+                                             Style="{StaticResource NavigationButtonStyle}"
+                                             ToolTip="{Binding Title}">
+                                    <TextBlock FontFamily="Segoe MDL2 Assets"
+                                               FontSize="20"
+                                               Text="{Binding Icon}" />
+                                </RadioButton>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <Grid Grid.Row="2">
+                        <Border Height="1"
+                                Margin="18,0"
+                                VerticalAlignment="Top"
+                                Background="{DynamicResource BorderPrimary}" />
+                        <RadioButton Margin="0,14,0,24"
+                                     HorizontalAlignment="Center"
+                                     VerticalAlignment="Center"
+                                     AutomationProperties.Name="{Binding AccountNavigationItem.Title}"
+                                     Command="{Binding NavigateCommand}"
+                                     CommandParameter="{Binding AccountNavigationItem}"
+                                     IsChecked="{Binding AccountNavigationItem.IsSelected, Mode=OneWay}"
+                                     Style="{StaticResource NavigationButtonStyle}"
+                                     ToolTip="{Binding AccountNavigationItem.Title}">
+                            <TextBlock FontFamily="Segoe MDL2 Assets"
+                                       FontSize="20"
+                                       Text="{Binding AccountNavigationItem.Icon}" />
+                        </RadioButton>
+                        <TextBlock Margin="0,0,0,8"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Bottom"
+                                   FontSize="{DynamicResource SecondaryFontSize}"
+                                   Foreground="{DynamicResource TextSecondary}"
+                                   Text="{DynamicResource HomeGuestAccount}" />
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <Grid Grid.Column="1">
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="96" />
+                    <RowDefinition Height="48" />
                     <RowDefinition Height="*" />
-                    <RowDefinition Height="80" />
                 </Grid.RowDefinitions>
 
-                <Border Grid.Row="0"
-                        Width="40"
-                        Height="40"
-                        HorizontalAlignment="Center"
-                        VerticalAlignment="Center"
-                        Background="{DynamicResource AccentTint}"
-                        CornerRadius="{DynamicResource NavigationCornerRadius}">
-                    <TextBlock HorizontalAlignment="Center"
-                               VerticalAlignment="Center"
-                               FontSize="20"
+                <Grid Grid.Row="0"
+                      Background="{DynamicResource BackgroundPrimary}"
+                      MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                    <StackPanel Margin="0,4,8,4"
+                                HorizontalAlignment="Right"
+                                Orientation="Horizontal">
+                        <Button AutomationProperties.Name="{DynamicResource HomeThemeButton}"
+                                Style="{StaticResource WindowChromeButtonStyle}"
+                                ToolTip="{DynamicResource HomeThemeButton}">
+                            <TextBlock FontFamily="Segoe MDL2 Assets"
+                                       FontSize="17"
+                                       Text="&#xE790;" />
+                        </Button>
+                        <Button AutomationProperties.Name="{DynamicResource HomeMinimizeButton}"
+                                Click="MinimizeButton_Click"
+                                Style="{StaticResource WindowChromeButtonStyle}"
+                                ToolTip="{DynamicResource HomeMinimizeButton}">
+                            <TextBlock FontFamily="Segoe MDL2 Assets"
+                                       FontSize="14"
+                                       Text="&#xE921;" />
+                        </Button>
+                        <Button AutomationProperties.Name="{DynamicResource HomeCloseButton}"
+                                Click="CloseButton_Click"
+                                Style="{StaticResource WindowChromeButtonStyle}"
+                                ToolTip="{DynamicResource HomeCloseButton}">
+                            <TextBlock FontFamily="Segoe MDL2 Assets"
+                                       FontSize="14"
+                                       Text="&#xE8BB;" />
+                        </Button>
+                    </StackPanel>
+                </Grid>
+
+                <Grid Grid.Row="1">
+                    <views:HomePage DataContext="{Binding HomePage}">
+                        <views:HomePage.Style>
+                            <Style TargetType="{x:Type views:HomePage}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding DataContext.CurrentPage, RelativeSource={RelativeSource AncestorType={x:Type Window}}}"
+                                                 Value="{x:Static vm:NavigationPage.Home}">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </views:HomePage.Style>
+                    </views:HomePage>
+
+                    <TextBlock Margin="40,28,40,0"
+                               HorizontalAlignment="Left"
+                               VerticalAlignment="Top"
+                               FontSize="{DynamicResource PageTitleFontSize}"
                                FontWeight="SemiBold"
-                               Foreground="{DynamicResource AccentPrimary}"
-                               Text="{DynamicResource ApplicationMonogram}" />
-                </Border>
-
-                <ItemsControl Grid.Row="1"
-                              HorizontalAlignment="Center"
-                              VerticalAlignment="Top"
-                              ItemsSource="{Binding PrimaryNavigationItems}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <RadioButton AutomationProperties.Name="{Binding Title}"
-                                         Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType={x:Type Window}}}"
-                                         CommandParameter="{Binding}"
-                                         IsChecked="{Binding IsSelected, Mode=OneWay}"
-                                         Style="{StaticResource NavigationButtonStyle}"
-                                         ToolTip="{Binding Title}">
-                                <TextBlock FontFamily="Segoe MDL2 Assets"
-                                           FontSize="20"
-                                           Text="{Binding Icon}" />
-                            </RadioButton>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-
-                <RadioButton Grid.Row="2"
-                             HorizontalAlignment="Center"
-                             VerticalAlignment="Center"
-                             AutomationProperties.Name="{Binding AccountNavigationItem.Title}"
-                             Command="{Binding NavigateCommand}"
-                             CommandParameter="{Binding AccountNavigationItem}"
-                             IsChecked="{Binding AccountNavigationItem.IsSelected, Mode=OneWay}"
-                             Style="{StaticResource NavigationButtonStyle}"
-                             ToolTip="{Binding AccountNavigationItem.Title}">
-                    <TextBlock FontFamily="Segoe MDL2 Assets"
-                               FontSize="20"
-                               Text="{Binding AccountNavigationItem.Icon}" />
-                </RadioButton>
+                               Text="{Binding CurrentPageTitle}">
+                        <TextBlock.Style>
+                            <Style TargetType="{x:Type TextBlock}" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                <Setter Property="Visibility" Value="Visible" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CurrentPage}" Value="{x:Static vm:NavigationPage.Home}">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Grid>
             </Grid>
-        </Border>
-
-        <Grid Grid.Column="1" Margin="40,28,40,0">
-            <TextBlock HorizontalAlignment="Left"
-                       VerticalAlignment="Top"
-                       FontSize="{DynamicResource PageTitleFontSize}"
-                       FontWeight="SemiBold"
-                       Text="{Binding CurrentPageTitle}" />
         </Grid>
-    </Grid>
+    </Border>
 </Window>

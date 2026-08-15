@@ -23,9 +23,24 @@ public partial class App : Application
 
         MainWindow = new MainWindow
         {
-            DataContext = new MainWindowViewModel(primaryNavigationItems, accountNavigationItem)
+            DataContext = new MainWindowViewModel(
+                primaryNavigationItems,
+                accountNavigationItem,
+                CreateHomePageViewModel())
         };
         MainWindow.Show();
+    }
+
+    private HomePageViewModel CreateHomePageViewModel()
+    {
+        return new HomePageViewModel(
+        [
+            new HomeDurationOptionViewModel((string)FindResource("HomeDuration25"), string.Empty, true),
+            new HomeDurationOptionViewModel((string)FindResource("HomeDuration50"), string.Empty),
+            new HomeDurationOptionViewModel((string)FindResource("HomeDuration90"), string.Empty),
+            new HomeDurationOptionViewModel((string)FindResource("HomeDuration90Alternate"), string.Empty),
+            new HomeDurationOptionViewModel((string)FindResource("HomeDurationCustom"), "\uE823")
+        ]);
     }
 
     private NavigationItemViewModel CreateNavigationItem(

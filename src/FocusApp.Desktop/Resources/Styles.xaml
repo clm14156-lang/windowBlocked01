@@ -63,4 +63,192 @@
             </Setter.Value>
         </Setter>
     </Style>
+
+    <Style x:Key="WindowChromeButtonStyle" TargetType="{x:Type Button}">
+        <Setter Property="Width" Value="40" />
+        <Setter Property="Height" Value="40" />
+        <Setter Property="Margin" Value="2,0" />
+        <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+        <Setter Property="FontFamily" Value="Segoe MDL2 Assets" />
+        <Setter Property="FontSize" Value="16" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type Button}">
+                    <Border x:Name="ChromeBorder"
+                            Background="{TemplateBinding Background}"
+                            CornerRadius="8">
+                        <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="ChromeBorder" Property="Background" Value="{DynamicResource ControlHoverBackground}" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="ChromeBorder" Property="Background" Value="{DynamicResource ControlPressedBackground}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.4" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="HomeDurationButtonStyle" TargetType="{x:Type RadioButton}">
+        <Setter Property="Height" Value="44" />
+        <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderPrimary}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+        <Setter Property="FontSize" Value="{DynamicResource BodyFontSize}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type RadioButton}">
+                    <Border x:Name="DurationBorder"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="22">
+                        <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="DurationBorder" Property="Background" Value="{DynamicResource AccentTint}" />
+                            <Setter Property="BorderBrush" Value="{DynamicResource AccentHover}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="DurationBorder" Property="Background" Value="{DynamicResource ControlPressedBackground}" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}" />
+                            <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
+                            <Setter Property="BorderThickness" Value="1.5" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.4" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="HomeFocusButtonStyle" TargetType="{x:Type Button}">
+        <Setter Property="Width" Value="216" />
+        <Setter Property="Height" Value="216" />
+        <Setter Property="Background" Value="{DynamicResource FocusButtonBackground}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Foreground" Value="{DynamicResource WhiteText}" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type Button}">
+                    <Border x:Name="FocusBorder"
+                            Width="{TemplateBinding Width}"
+                            Height="{TemplateBinding Height}"
+                            Background="{TemplateBinding Background}"
+                            CornerRadius="108">
+                        <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="FocusBorder" Property="Background" Value="{DynamicResource FocusButtonHoverBackground}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="FocusBorder" Property="Background" Value="{DynamicResource FocusButtonPressedBackground}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.4" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="HomePillButtonStyle" TargetType="{x:Type Button}">
+        <Setter Property="Height" Value="40" />
+        <Setter Property="Padding" Value="16,0" />
+        <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderPrimary}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type Button}">
+                    <Border x:Name="PillBorder"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="20">
+                        <ContentPresenter Margin="{TemplateBinding Padding}"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="PillBorder" Property="Background" Value="{DynamicResource ControlHoverBackground}" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="PillBorder" Property="Background" Value="{DynamicResource ControlPressedBackground}" />
+                            <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="HomeLinkButtonStyle" TargetType="{x:Type Button}">
+        <Setter Property="MinHeight" Value="36" />
+        <Setter Property="Padding" Value="12,0" />
+        <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type Button}">
+                    <Border x:Name="LinkBorder"
+                            Background="{TemplateBinding Background}"
+                            CornerRadius="8">
+                        <ContentPresenter Margin="{TemplateBinding Padding}"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="LinkBorder" Property="Background" Value="{DynamicResource AccentTint}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="LinkBorder" Property="Background" Value="{DynamicResource ControlPressedBackground}" />
+                            <Setter Property="Foreground" Value="{DynamicResource AccentPressed}" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="LinkBorder" Property="Background" Value="{DynamicResource AccentTint}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
 </ResourceDictionary>

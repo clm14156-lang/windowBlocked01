@@ -11,12 +11,27 @@ public sealed class MainWindowViewModelTests
         var home = new NavigationItemViewModel(NavigationPage.Home, "Home", "H");
         var settings = new NavigationItemViewModel(NavigationPage.Settings, "Settings", "S");
         var account = new NavigationItemViewModel(NavigationPage.Account, "Account", "A");
-        var viewModel = new MainWindowViewModel([home, settings], account);
+        var homePage = new HomePageViewModel([new HomeDurationOptionViewModel("25 minutes", string.Empty)]);
+        var viewModel = new MainWindowViewModel([home, settings], account, homePage);
 
         viewModel.NavigateCommand.Execute(settings);
 
         Assert.False(home.IsSelected);
         Assert.True(settings.IsSelected);
         Assert.Equal("Settings", viewModel.CurrentPageTitle);
+        Assert.Equal(NavigationPage.Settings, viewModel.CurrentPage);
+    }
+
+    [Fact]
+    public void SelectDurationCommand_SelectsOnlyRequestedDuration()
+    {
+        var first = new HomeDurationOptionViewModel("25 minutes", string.Empty, true);
+        var second = new HomeDurationOptionViewModel("50 minutes", string.Empty);
+        var viewModel = new HomePageViewModel([first, second]);
+
+        viewModel.SelectDurationCommand.Execute(second);
+
+        Assert.False(first.IsSelected);
+        Assert.True(second.IsSelected);
     }
 }

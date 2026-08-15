@@ -1,5 +1,6 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Color x:Key="AccentShadowColor">#FF8A18</Color>
     <SolidColorBrush x:Key="TransparentBrush" Color="Transparent" />
     <SolidColorBrush x:Key="BackgroundPrimary" Color="#F7F7F8" />
     <SolidColorBrush x:Key="BackgroundSecondary" Color="#F2F2F4" />
@@ -9,6 +10,23 @@
     <SolidColorBrush x:Key="BorderPrimary" Color="#E5E5EA" />
     <SolidColorBrush x:Key="AccentPrimary" Color="#FF7A00" />
     <SolidColorBrush x:Key="AccentTint" Color="#FFF1E6" />
+    <SolidColorBrush x:Key="AccentHover" Color="#FF8B18" />
+    <SolidColorBrush x:Key="AccentPressed" Color="#E96800" />
+    <LinearGradientBrush x:Key="FocusButtonBackground" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Offset="0" Color="#FFB43A" />
+        <GradientStop Offset="0.52" Color="#FF8A18" />
+        <GradientStop Offset="1" Color="#FF6900" />
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="FocusButtonHoverBackground" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Offset="0" Color="#FFC04D" />
+        <GradientStop Offset="0.52" Color="#FF9528" />
+        <GradientStop Offset="1" Color="#FF7410" />
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="FocusButtonPressedBackground" Color="#EF6D00" />
+    <SolidColorBrush x:Key="ControlHoverBackground" Color="#F2F2F4" />
+    <SolidColorBrush x:Key="ControlPressedBackground" Color="#EAEAED" />
+    <SolidColorBrush x:Key="OverlayBorder" Color="#EFEFF1" />
+    <SolidColorBrush x:Key="WhiteText" Color="#FFFFFF" />
     <SolidColorBrush x:Key="Success" Color="#2E9B62" />
     <SolidColorBrush x:Key="Warning" Color="#C47A00" />
     <SolidColorBrush x:Key="Danger" Color="#D83B3B" />

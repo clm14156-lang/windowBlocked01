@@ -6,8 +6,11 @@
     <FontFamily x:Key="FontFamilyNumeric">Segoe UI Variable Display</FontFamily>
 
     <system:Double x:Key="PageTitleFontSize">20</system:Double>
+    <system:Double x:Key="SectionTitleFontSize">16</system:Double>
+    <system:Double x:Key="CardTitleFontSize">15</system:Double>
     <system:Double x:Key="BodyFontSize">14</system:Double>
     <system:Double x:Key="SecondaryFontSize">12</system:Double>
+    <system:Double x:Key="PrimaryActionFontSize">24</system:Double>
 
     <Thickness x:Key="PageHorizontalPadding">40,0</Thickness>
     <Thickness x:Key="PageTopPadding">0,28,0,0</Thickness>
