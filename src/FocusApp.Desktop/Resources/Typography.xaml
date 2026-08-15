@@ -1,0 +1,15 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:system="clr-namespace:System;assembly=System.Runtime">
+    <FontFamily x:Key="FontFamilyPrimary">Microsoft YaHei UI</FontFamily>
+    <FontFamily x:Key="FontFamilyEnglish">Segoe UI Variable Text</FontFamily>
+    <FontFamily x:Key="FontFamilyNumeric">Segoe UI Variable Display</FontFamily>
+
+    <system:Double x:Key="PageTitleFontSize">20</system:Double>
+    <system:Double x:Key="BodyFontSize">14</system:Double>
+    <system:Double x:Key="SecondaryFontSize">12</system:Double>
+
+    <Thickness x:Key="PageHorizontalPadding">40,0</Thickness>
+    <Thickness x:Key="PageTopPadding">0,28,0,0</Thickness>
+    <CornerRadius x:Key="NavigationCornerRadius">12</CornerRadius>
+</ResourceDictionary>

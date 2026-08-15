@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="8.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FocusApp.Contracts\FocusApp.Contracts.csproj" />
+    <ProjectReference Include="..\FocusApp.Core\FocusApp.Core.csproj" />
+    <ProjectReference Include="..\FocusApp.Infrastructure\FocusApp.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>
