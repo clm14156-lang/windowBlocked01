@@ -275,6 +275,26 @@
             </Grid>
 
             <Grid Grid.ColumnSpan="2"
+                  Panel.ZIndex="101">
+                <Grid.Style>
+                    <Style TargetType="{x:Type Grid}">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding SettingsPage.RuleModal.IsOpen}" Value="True">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
+                <Border Background="{DynamicResource ModalScrim}"
+                        MouseDown="RuleScrim_MouseDown">
+                    <views:AutomaticRuleModal HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              DataContext="{Binding SettingsPage.RuleModal}" />
+                </Border>
+            </Grid>
+
+            <Grid Grid.ColumnSpan="2"
                   Panel.ZIndex="90">
                 <Grid.Style>
                     <Style TargetType="{x:Type Grid}">

@@ -157,70 +157,140 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <Style x:Key="SettingsAddRuleButtonStyle" TargetType="{x:Type Button}">
+            <Setter Property="Width" Value="100" />
+            <Setter Property="Height" Value="34" />
+            <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border x:Name="ButtonBorder" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource AccentTint}" /></Trigger>
+                            <Trigger Property="IsPressed" Value="True"><Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource ControlPressedBackground}" /></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SettingsRuleIconButtonStyle" TargetType="{x:Type Button}">
+            <Setter Property="Width" Value="32" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border x:Name="IconBorder" Background="{TemplateBinding Background}" CornerRadius="7">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="IconBorder" Property="Background" Value="{DynamicResource ControlHoverBackground}" /><Setter Property="Foreground" Value="{DynamicResource TextPrimary}" /></Trigger>
+                            <Trigger Property="IsPressed" Value="True"><Setter TargetName="IconBorder" Property="Background" Value="{DynamicResource ControlPressedBackground}" /></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </UserControl.Resources>
 
-    <Canvas>
-        <TextBlock Canvas.Left="26"
-                   Canvas.Top="-14"
+    <Grid>
+        <TextBlock Margin="26,-14,0,0"
+                   HorizontalAlignment="Left"
+                   VerticalAlignment="Top"
+                   Panel.ZIndex="2"
                    FontSize="20"
                    FontWeight="SemiBold"
                    Text="{DynamicResource NavigationSettings}" />
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                      VerticalScrollBarVisibility="Hidden">
+            <StackPanel Width="646" Margin="26,47,0,24" HorizontalAlignment="Left">
+                <TextBlock Height="20" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource SettingsGeneralSection}" />
+                <Border Margin="0,6,0,0" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" CornerRadius="10">
+                    <StackPanel>
+                        <ItemsControl ItemsSource="{Binding GeneralToggleItems}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <ToggleButton AutomationProperties.Name="{Binding Title}" IsChecked="{Binding IsEnabled, Mode=TwoWay}" Style="{StaticResource SettingsToggleRowStyle}" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
 
-        <TextBlock Canvas.Left="26"
-                   Canvas.Top="47"
-                   FontSize="16"
-                   FontWeight="SemiBold"
-                   Foreground="{DynamicResource TextSecondary}"
-                   Text="{DynamicResource SettingsGeneralSection}" />
-        <Border Canvas.Left="26"
-                Canvas.Top="73"
-                Width="646"
-                Height="354"
-                Background="{DynamicResource SurfacePrimary}"
-                BorderBrush="{DynamicResource BorderPrimary}"
-                BorderThickness="1"
-                CornerRadius="10">
-            <Border.Clip>
-                <RectangleGeometry Rect="0,0,646,354" RadiusX="10" RadiusY="10" />
-            </Border.Clip>
-            <ItemsControl ItemsSource="{Binding ToggleItems}">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <ToggleButton AutomationProperties.Name="{Binding Title}"
-                                      IsChecked="{Binding IsEnabled, Mode=TwoWay}"
-                                      Style="{StaticResource SettingsToggleRowStyle}" />
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-        </Border>
+                        <Border Margin="14,0,14,12"
+                                Background="{DynamicResource SurfacePrimary}"
+                                BorderBrush="{DynamicResource BorderPrimary}"
+                                BorderThickness="1"
+                                CornerRadius="9">
+                            <Border.Style>
+                                <Style TargetType="{x:Type Border}">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding AutomaticBlockingItem.IsEnabled}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <StackPanel>
+                                <Grid Height="54">
+                                    <TextBlock Margin="22,0,0,0" VerticalAlignment="Center" FontSize="15" FontWeight="SemiBold" Text="{DynamicResource AutomaticRulesTitle}" />
+                                    <Button Margin="0,0,18,0" HorizontalAlignment="Right" AutomationProperties.Name="{DynamicResource AutomaticRuleAddButton}" Command="{Binding OpenRuleModalCommand}" Style="{StaticResource SettingsAddRuleButtonStyle}">
+                                        <StackPanel Orientation="Horizontal"><TextBlock Margin="0,0,7,0" FontSize="17" Text="+" /><TextBlock VerticalAlignment="Center" Text="{DynamicResource AutomaticRuleAddButton}" /></StackPanel>
+                                    </Button>
+                                </Grid>
+                                <TextBlock Height="36" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource AutomaticRulesEmpty}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="{x:Type TextBlock}" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers><DataTrigger Binding="{Binding AutomaticRules.Count}" Value="0"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <ItemsControl ItemsSource="{Binding AutomaticRules}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Height="44" Margin="22,0,14,0">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="18" /><ColumnDefinition Width="230" /><ColumnDefinition Width="*" /><ColumnDefinition Width="38" /><ColumnDefinition Width="38" />
+                                                </Grid.ColumnDefinitions>
+                                                <Border Grid.ColumnSpan="5" Height="1" VerticalAlignment="Top" Background="{DynamicResource BorderPrimary}" />
+                                                <Ellipse Grid.Column="0" Width="7" Height="7" HorizontalAlignment="Left" Fill="{DynamicResource AccentPrimary}" />
+                                                <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="13" Text="{Binding RepeatText}" />
+                                                <TextBlock Grid.Column="2" VerticalAlignment="Center" FontFamily="{DynamicResource FontFamilyNumeric}" FontSize="13" Text="{Binding TimeRangeText}" />
+                                                <Button Grid.Column="3" AutomationProperties.Name="{DynamicResource AutomaticRuleEdit}" Command="{Binding DataContext.EditRuleCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}" CommandParameter="{Binding}" Style="{StaticResource SettingsRuleIconButtonStyle}" ToolTip="{DynamicResource AutomaticRuleEdit}"><TextBlock FontFamily="Segoe MDL2 Assets" FontSize="16" Text="&#xE70F;" /></Button>
+                                                <Button Grid.Column="4" AutomationProperties.Name="{DynamicResource AutomaticRuleDelete}" Command="{Binding DataContext.DeleteRuleCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}" CommandParameter="{Binding}" Style="{StaticResource SettingsRuleIconButtonStyle}" ToolTip="{DynamicResource AutomaticRuleDelete}"><TextBlock FontFamily="Segoe MDL2 Assets" FontSize="16" Text="&#xE74D;" /></Button>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
 
-        <TextBlock Canvas.Left="26"
-                   Canvas.Top="452"
-                   FontSize="16"
-                   FontWeight="SemiBold"
-                   Foreground="{DynamicResource TextSecondary}"
-                   Text="{DynamicResource SettingsDataSection}" />
-        <Border Canvas.Left="26"
-                Canvas.Top="475"
-                Width="646"
-                Height="108"
-                Background="{DynamicResource SurfacePrimary}"
-                BorderBrush="{DynamicResource BorderPrimary}"
-                BorderThickness="1"
-                CornerRadius="10">
-            <Border.Clip>
-                <RectangleGeometry Rect="0,0,646,108" RadiusX="10" RadiusY="10" />
-            </Border.Clip>
-            <ItemsControl ItemsSource="{Binding EntryItems}">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <Button AutomationProperties.Name="{Binding Title}"
-                                Command="{Binding DataContext.ActivateEntryCommand, RelativeSource={RelativeSource AncestorType={x:Type ItemsControl}}}"
-                                CommandParameter="{Binding}"
-                                Style="{StaticResource SettingsEntryRowStyle}" />
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-        </Border>
-    </Canvas>
+                        <ToggleButton AutomationProperties.Name="{Binding ForcedModeItem.Title}" DataContext="{Binding ForcedModeItem}" IsChecked="{Binding IsEnabled, Mode=TwoWay}" Style="{StaticResource SettingsToggleRowStyle}" />
+                    </StackPanel>
+                </Border>
+
+                <TextBlock Height="20" Margin="0,25,0,0" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource SettingsDataSection}" />
+                <Border Margin="0,3,0,0" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" CornerRadius="10">
+                    <ItemsControl ItemsSource="{Binding EntryItems}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button AutomationProperties.Name="{Binding Title}" Command="{Binding DataContext.ActivateEntryCommand, RelativeSource={RelativeSource AncestorType={x:Type ItemsControl}}}" CommandParameter="{Binding}" Style="{StaticResource SettingsEntryRowStyle}" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
 </UserControl>

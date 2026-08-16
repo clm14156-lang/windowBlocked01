@@ -130,6 +130,15 @@ public partial class MainWindow : Window
         }
     }
 
+    private void RuleScrim_MouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (ReferenceEquals(e.OriginalSource, sender) &&
+            DataContext is ViewModels.MainWindowViewModel viewModel)
+        {
+            viewModel.SettingsPage.RuleModal.CloseCommand.Execute(null);
+        }
+    }
+
     private void Window_PreviewMouseDown(object sender, MouseButtonEventArgs e)
     {
         if (DataContext is not ViewModels.MainWindowViewModel viewModel)

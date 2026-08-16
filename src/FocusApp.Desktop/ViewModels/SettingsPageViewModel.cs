@@ -11,22 +11,71 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
 
     public SettingsPageViewModel(
         IEnumerable<SettingsToggleItemViewModel> toggleItems,
-        IEnumerable<SettingsEntryItemViewModel> entryItems)
+        IEnumerable<SettingsEntryItemViewModel> entryItems,
+        AutomaticRuleModalViewModel? ruleModal = null,
+        string dailyLabel = "Daily")
     {
         ToggleItems = new ReadOnlyCollection<SettingsToggleItemViewModel>(toggleItems.ToList());
         EntryItems = new ReadOnlyCollection<SettingsEntryItemViewModel>(entryItems.ToList());
+        GeneralToggleItems = new ReadOnlyCollection<SettingsToggleItemViewModel>(ToggleItems.Take(5).ToList());
+        AutomaticBlockingItem = ToggleItems.FirstOrDefault(item => item.Key == "AutomaticBlocking");
+        ForcedModeItem = ToggleItems.FirstOrDefault(item => item.Key == "ForcedMode");
+        RuleModal = ruleModal ?? AutomaticRuleModalViewModel.CreateDefault();
+        _dailyLabel = dailyLabel;
         ActivateEntryCommand = new RelayCommand<SettingsEntryItemViewModel>(ActivateEntry);
+        OpenRuleModalCommand = new RelayCommand<object>(_ => RuleModal.Open());
+        DeleteRuleCommand = new RelayCommand<AutomaticRuleItemViewModel>(DeleteRule);
+        EditRuleCommand = new RelayCommand<AutomaticRuleItemViewModel>(_ => { });
+        RuleModal.RuleCreated += RuleModal_RuleCreated;
     }
+
+    private readonly string _dailyLabel;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public ReadOnlyCollection<SettingsToggleItemViewModel> ToggleItems { get; }
 
+    public ReadOnlyCollection<SettingsToggleItemViewModel> GeneralToggleItems { get; }
+
     public ReadOnlyCollection<SettingsEntryItemViewModel> EntryItems { get; }
+
+    public SettingsToggleItemViewModel? AutomaticBlockingItem { get; }
+
+    public SettingsToggleItemViewModel? ForcedModeItem { get; }
+
+    public AutomaticRuleModalViewModel RuleModal { get; }
+
+    public ObservableCollection<AutomaticRuleItemViewModel> AutomaticRules { get; } = [];
 
     public ICommand ActivateEntryCommand { get; }
 
+    public ICommand OpenRuleModalCommand { get; }
+
+    public ICommand DeleteRuleCommand { get; }
+
+    public ICommand EditRuleCommand { get; }
+
     public string? LastActivatedEntryKey => _activeEntry?.Key;
+
+    private void RuleModal_RuleCreated(object? sender, AutomaticRuleDraft rule)
+    {
+        var repeatText = rule.IsCustom
+            ? string.Join(" / ", rule.SelectedDays.Select(day => day.DisplayName))
+            : _dailyLabel;
+
+        AutomaticRules.Add(new AutomaticRuleItemViewModel(
+            Guid.NewGuid(),
+            repeatText,
+            $"{rule.StartTime} – {rule.EndTime}"));
+    }
+
+    private void DeleteRule(AutomaticRuleItemViewModel? rule)
+    {
+        if (rule is not null)
+        {
+            AutomaticRules.Remove(rule);
+        }
+    }
 
     private void ActivateEntry(SettingsEntryItemViewModel? entry)
     {
@@ -49,6 +98,22 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
+}
+
+public sealed class AutomaticRuleItemViewModel
+{
+    public AutomaticRuleItemViewModel(Guid id, string repeatText, string timeRangeText)
+    {
+        Id = id;
+        RepeatText = repeatText;
+        TimeRangeText = timeRangeText;
+    }
+
+    public Guid Id { get; }
+
+    public string RepeatText { get; }
+
+    public string TimeRangeText { get; }
 }
 
 public sealed class SettingsToggleItemViewModel : INotifyPropertyChanged

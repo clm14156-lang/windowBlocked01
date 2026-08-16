@@ -58,7 +58,36 @@ public partial class App : Application
         [
             CreateSettingsEntryItem("ExportRecords", "SettingsExportRecords", "SettingsExportRecordsDescription", "\uE898"),
             CreateSettingsEntryItem("About", "SettingsAbout", "SettingsAboutDescription", "\uE946", false)
+        ],
+        CreateAutomaticRuleModalViewModel(),
+        (string)FindResource("AutomaticRuleDaily"));
+    }
+
+    private AutomaticRuleModalViewModel CreateAutomaticRuleModalViewModel()
+    {
+        return new AutomaticRuleModalViewModel(
+        [
+            CreateWeekday("Monday", "AutomaticRuleMonday", "AutomaticRuleMondayShort", true),
+            CreateWeekday("Tuesday", "AutomaticRuleTuesday", "AutomaticRuleTuesdayShort", false),
+            CreateWeekday("Wednesday", "AutomaticRuleWednesday", "AutomaticRuleWednesdayShort", true),
+            CreateWeekday("Thursday", "AutomaticRuleThursday", "AutomaticRuleThursdayShort", false),
+            CreateWeekday("Friday", "AutomaticRuleFriday", "AutomaticRuleFridayShort", true),
+            CreateWeekday("Saturday", "AutomaticRuleSaturday", "AutomaticRuleSaturdayShort", false),
+            CreateWeekday("Sunday", "AutomaticRuleSunday", "AutomaticRuleSundayShort", false)
         ]);
+    }
+
+    private WeekdayOptionViewModel CreateWeekday(
+        string key,
+        string displayNameResourceKey,
+        string shortNameResourceKey,
+        bool isSelected)
+    {
+        return new WeekdayOptionViewModel(
+            key,
+            (string)FindResource(displayNameResourceKey),
+            (string)FindResource(shortNameResourceKey),
+            isSelected);
     }
 
     private SettingsToggleItemViewModel CreateSettingsToggleItem(
