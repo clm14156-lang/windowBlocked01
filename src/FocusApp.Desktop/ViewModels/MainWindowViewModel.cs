@@ -28,6 +28,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         _currentNavigationItem.IsSelected = true;
         NavigateCommand = new RelayCommand<NavigationItemViewModel>(Navigate);
         OpenAuthCommand = new RelayCommand<object>(_ => AuthModal.OpenLogin());
+        ToggleThemePanelCommand = new RelayCommand<object>(_ => ThemePanel.Toggle());
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -40,7 +41,11 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     public ICommand OpenAuthCommand { get; }
 
+    public ICommand ToggleThemePanelCommand { get; }
+
     public AuthModalViewModel AuthModal { get; } = new();
+
+    public ThemePanelViewModel ThemePanel { get; } = new();
 
     public HomePageViewModel HomePage { get; }
 

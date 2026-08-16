@@ -173,7 +173,9 @@
                     <StackPanel Margin="0,4,8,4"
                                 HorizontalAlignment="Right"
                                 Orientation="Horizontal">
-                        <Button AutomationProperties.Name="{DynamicResource HomeThemeButton}"
+                        <Button x:Name="ThemeButton"
+                                AutomationProperties.Name="{DynamicResource HomeThemeButton}"
+                                Click="ThemeButton_Click"
                                 Style="{StaticResource WindowChromeButtonStyle}"
                                 ToolTip="{DynamicResource HomeThemeButton}">
                             <TextBlock FontFamily="Segoe MDL2 Assets"
@@ -272,6 +274,25 @@
                                        HorizontalAlignment="Right"
                                        VerticalAlignment="Top"
                                        DataContext="{Binding HomePage.CustomTimeModal}" />
+            </Grid>
+
+            <Grid Grid.ColumnSpan="2"
+                  Panel.ZIndex="91">
+                <Grid.Style>
+                    <Style TargetType="{x:Type Grid}">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding ThemePanel.IsOpen}" Value="True">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
+                <views:ThemePanel x:Name="ThemePanelControl"
+                                  Margin="0,54,0,0"
+                                  HorizontalAlignment="Right"
+                                  VerticalAlignment="Top"
+                                  DataContext="{Binding ThemePanel}" />
             </Grid>
         </Grid>
     </Border>
