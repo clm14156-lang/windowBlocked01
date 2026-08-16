@@ -11,6 +11,7 @@
         MaxWidth="800"
         MaxHeight="710"
         ResizeMode="NoResize"
+        PreviewMouseDown="Window_PreviewMouseDown"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None">
     <Border BorderBrush="{DynamicResource BorderPrimary}"
@@ -252,6 +253,25 @@
                         MouseDown="AuthScrim_MouseDown">
                     <views:AuthModal DataContext="{Binding AuthModal}" />
                 </Border>
+            </Grid>
+
+            <Grid Grid.ColumnSpan="2"
+                  Panel.ZIndex="90">
+                <Grid.Style>
+                    <Style TargetType="{x:Type Grid}">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HomePage.CustomTimeModal.IsOpen}" Value="True">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
+                <views:CustomTimeModal x:Name="CustomTimeModalControl"
+                                       Margin="0,120,22,0"
+                                       HorizontalAlignment="Right"
+                                       VerticalAlignment="Top"
+                                       DataContext="{Binding HomePage.CustomTimeModal}" />
             </Grid>
         </Grid>
     </Border>

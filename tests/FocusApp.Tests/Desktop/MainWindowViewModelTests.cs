@@ -34,4 +34,23 @@ public sealed class MainWindowViewModelTests
         Assert.False(first.IsSelected);
         Assert.True(second.IsSelected);
     }
+
+    [Fact]
+    public void CustomDuration_OpensModalAndConfirmRefillsSelection()
+    {
+        var first = new HomeDurationOptionViewModel("25 minutes", string.Empty, true);
+        var custom = new HomeDurationOptionViewModel("Custom", "clock");
+        var viewModel = new HomePageViewModel([first, custom]);
+
+        viewModel.SelectDurationCommand.Execute(custom);
+
+        Assert.True(viewModel.CustomTimeModal.IsOpen);
+
+        viewModel.CustomTimeModal.ConfirmCommand.Execute(null);
+
+        Assert.False(viewModel.CustomTimeModal.IsOpen);
+        Assert.False(first.IsSelected);
+        Assert.True(custom.IsSelected);
+        Assert.Equal("90 分钟", custom.Label);
+    }
 }

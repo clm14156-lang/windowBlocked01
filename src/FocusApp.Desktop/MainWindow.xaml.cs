@@ -38,4 +38,14 @@ public partial class MainWindow : Window
             }
         }
     }
+
+    private void Window_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (DataContext is ViewModels.MainWindowViewModel viewModel &&
+            viewModel.HomePage.CustomTimeModal.IsOpen &&
+            !CustomTimeModalControl.IsMouseOver)
+        {
+            viewModel.HomePage.CustomTimeModal.CancelCommand.Execute(null);
+        }
+    }
 }

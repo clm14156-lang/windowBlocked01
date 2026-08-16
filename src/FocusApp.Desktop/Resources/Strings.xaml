@@ -21,6 +21,13 @@
     <system:String x:Key="HomeDuration90">90 分钟</system:String>
     <system:String x:Key="HomeDuration90Alternate">90 分钟</system:String>
     <system:String x:Key="HomeDurationCustom">自定义</system:String>
+    <system:String x:Key="CustomTimeTitle">添加专注时间</system:String>
+    <system:String x:Key="CustomTimeDurationLabel">专注时长</system:String>
+    <system:String x:Key="CustomTimeUnit">分钟</system:String>
+    <system:String x:Key="CustomTimeCommonLabel">常用时间</system:String>
+    <system:String x:Key="CustomTimePreset15">15分钟</system:String>
+    <system:String x:Key="CustomTimeCancel">取消</system:String>
+    <system:String x:Key="CustomTimeConfirm">添加</system:String>
     <system:String x:Key="HomeBlockingTitle">当前屏蔽</system:String>
     <system:String x:Key="HomeBlockingEmpty">暂未添加屏蔽内容</system:String>
     <system:String x:Key="HomeAddBlockingRule">添加屏蔽规则</system:String>
@@ -37,6 +44,7 @@
     <system:String x:Key="AuthEmailPlaceholder">邮箱地址</system:String>
     <system:String x:Key="AuthEmailInputPlaceholder">请输入邮箱地址</system:String>
     <system:String x:Key="AuthPasswordPlaceholder">密码</system:String>
+    <system:String x:Key="AuthPasswordInputPlaceholder">请输入密码</system:String>
     <system:String x:Key="AuthCodePlaceholder">请输入验证码</system:String>
     <system:String x:Key="AuthConfirmPasswordPlaceholder">请再次输入密码</system:String>
     <system:String x:Key="AuthForgotPassword">忘记密码?</system:String>

@@ -16,7 +16,7 @@ public sealed class HomeDurationOptionViewModel : INotifyPropertyChanged
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
-    public string Label { get; }
+    public string Label { get; private set; }
 
     public string Icon { get; }
 
@@ -33,5 +33,16 @@ public sealed class HomeDurationOptionViewModel : INotifyPropertyChanged
             _isSelected = value;
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsSelected)));
         }
+    }
+
+    internal void UpdateLabel(string label)
+    {
+        if (Label == label)
+        {
+            return;
+        }
+
+        Label = label;
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Label)));
     }
 }

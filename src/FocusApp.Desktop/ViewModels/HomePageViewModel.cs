@@ -5,6 +5,8 @@ namespace FocusApp.Desktop.ViewModels;
 
 public sealed class HomePageViewModel
 {
+    private readonly HomeDurationOptionViewModel? _customDurationOption;
+
     public HomePageViewModel(IEnumerable<HomeDurationOptionViewModel> durationOptions)
     {
         DurationOptions = new ReadOnlyCollection<HomeDurationOptionViewModel>(durationOptions.ToList());
@@ -19,6 +21,8 @@ public sealed class HomePageViewModel
             DurationOptions[0].IsSelected = true;
         }
 
+        _customDurationOption = DurationOptions.FirstOrDefault(option => !string.IsNullOrEmpty(option.Icon));
+        CustomTimeModal = new CustomTimeModalViewModel(ConfirmCustomTime);
         SelectDurationCommand = new RelayCommand<HomeDurationOptionViewModel>(SelectDuration);
     }
 
@@ -26,9 +30,38 @@ public sealed class HomePageViewModel
 
     public ICommand SelectDurationCommand { get; }
 
+    public CustomTimeModalViewModel CustomTimeModal { get; }
+
     private void SelectDuration(HomeDurationOptionViewModel? option)
     {
-        if (option is null || option.IsSelected)
+        if (option is null)
+        {
+            return;
+        }
+
+        if (ReferenceEquals(option, _customDurationOption))
+        {
+            CustomTimeModal.Open();
+            return;
+        }
+
+        SelectOnly(option);
+    }
+
+    private void ConfirmCustomTime(int minutes)
+    {
+        if (_customDurationOption is null)
+        {
+            return;
+        }
+
+        _customDurationOption.UpdateLabel($"{minutes} 分钟");
+        SelectOnly(_customDurationOption);
+    }
+
+    private void SelectOnly(HomeDurationOptionViewModel option)
+    {
+        if (option.IsSelected)
         {
             return;
         }
