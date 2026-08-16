@@ -219,6 +219,20 @@
                         </views:HomePage.Style>
                     </views:HomePage>
 
+                    <views:SettingsPage DataContext="{Binding SettingsPage}">
+                        <views:SettingsPage.Style>
+                            <Style TargetType="{x:Type views:SettingsPage}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding DataContext.CurrentPage, RelativeSource={RelativeSource AncestorType={x:Type Window}}}"
+                                                 Value="{x:Static vm:NavigationPage.Settings}">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </views:SettingsPage.Style>
+                    </views:SettingsPage>
+
                     <TextBlock Margin="40,28,40,0"
                                HorizontalAlignment="Left"
                                VerticalAlignment="Top"
@@ -230,6 +244,9 @@
                                 <Setter Property="Visibility" Value="Visible" />
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding CurrentPage}" Value="{x:Static vm:NavigationPage.Home}">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding CurrentPage}" Value="{x:Static vm:NavigationPage.Settings}">
                                         <Setter Property="Visibility" Value="Collapsed" />
                                     </DataTrigger>
                                 </Style.Triggers>

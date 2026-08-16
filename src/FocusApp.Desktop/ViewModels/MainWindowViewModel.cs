@@ -12,7 +12,8 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     public MainWindowViewModel(
         IEnumerable<NavigationItemViewModel> primaryNavigationItems,
         NavigationItemViewModel accountNavigationItem,
-        HomePageViewModel homePage)
+        HomePageViewModel homePage,
+        SettingsPageViewModel? settingsPage = null)
     {
         PrimaryNavigationItems = new ReadOnlyCollection<NavigationItemViewModel>(
             primaryNavigationItems.ToList());
@@ -24,6 +25,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
         AccountNavigationItem = accountNavigationItem;
         HomePage = homePage;
+        SettingsPage = settingsPage ?? new SettingsPageViewModel([], []);
         _currentNavigationItem = PrimaryNavigationItems[0];
         _currentNavigationItem.IsSelected = true;
         NavigateCommand = new RelayCommand<NavigationItemViewModel>(Navigate);
@@ -48,6 +50,8 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     public ThemePanelViewModel ThemePanel { get; } = new();
 
     public HomePageViewModel HomePage { get; }
+
+    public SettingsPageViewModel SettingsPage { get; }
 
     public string CurrentPageTitle => _currentNavigationItem.Title;
 

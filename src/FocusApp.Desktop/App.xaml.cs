@@ -26,7 +26,8 @@ public partial class App : Application
             DataContext = new MainWindowViewModel(
                 primaryNavigationItems,
                 accountNavigationItem,
-                CreateHomePageViewModel())
+                CreateHomePageViewModel(),
+                CreateSettingsPageViewModel())
         };
         MainWindow.Show();
     }
@@ -41,6 +42,55 @@ public partial class App : Application
             new HomeDurationOptionViewModel((string)FindResource("HomeDuration90Alternate"), string.Empty),
             new HomeDurationOptionViewModel((string)FindResource("HomeDurationCustom"), "\uE823")
         ]);
+    }
+
+    private SettingsPageViewModel CreateSettingsPageViewModel()
+    {
+        return new SettingsPageViewModel(
+        [
+            CreateSettingsToggleItem("LaunchAtStartup", "SettingsLaunchAtStartup", "SettingsLaunchAtStartupDescription", "\uE7E8", false),
+            CreateSettingsToggleItem("FloatingWindow", "SettingsFloatingWindow", "SettingsFloatingWindowDescription", "\uE737", true),
+            CreateSettingsToggleItem("WindowsNotifications", "SettingsWindowsNotifications", "SettingsWindowsNotificationsDescription", "\uE7ED", false),
+            CreateSettingsToggleItem("FocusSound", "SettingsFocusSound", "SettingsFocusSoundDescription", "\uE8D6", true),
+            CreateSettingsToggleItem("AutomaticBlocking", "SettingsAutomaticBlocking", "SettingsAutomaticBlockingDescription", "\uEA39", false),
+            CreateSettingsToggleItem("ForcedMode", "SettingsForcedMode", "SettingsForcedModeDescription", "\uE83D", false, false)
+        ],
+        [
+            CreateSettingsEntryItem("ExportRecords", "SettingsExportRecords", "SettingsExportRecordsDescription", "\uE898"),
+            CreateSettingsEntryItem("About", "SettingsAbout", "SettingsAboutDescription", "\uE946", false)
+        ]);
+    }
+
+    private SettingsToggleItemViewModel CreateSettingsToggleItem(
+        string key,
+        string titleResourceKey,
+        string descriptionResourceKey,
+        string icon,
+        bool isEnabled,
+        bool hasSeparator = true)
+    {
+        return new SettingsToggleItemViewModel(
+            key,
+            (string)FindResource(titleResourceKey),
+            (string)FindResource(descriptionResourceKey),
+            icon,
+            isEnabled,
+            hasSeparator);
+    }
+
+    private SettingsEntryItemViewModel CreateSettingsEntryItem(
+        string key,
+        string titleResourceKey,
+        string descriptionResourceKey,
+        string icon,
+        bool hasSeparator = true)
+    {
+        return new SettingsEntryItemViewModel(
+            key,
+            (string)FindResource(titleResourceKey),
+            (string)FindResource(descriptionResourceKey),
+            icon,
+            hasSeparator);
     }
 
     private NavigationItemViewModel CreateNavigationItem(
