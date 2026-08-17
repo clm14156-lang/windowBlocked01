@@ -96,11 +96,32 @@
                                    FontSize="16"
                                    Foreground="{DynamicResource AuthInputPlaceholder}"
                                    Text="&#xE715;" />
+                        <TextBox x:Name="LoginAccountTextBox"
+                                 Grid.Column="1"
+                                 Padding="0"
+                                 VerticalContentAlignment="Center"
+                                 AutomationProperties.Name="{DynamicResource AuthAccountPlaceholder}"
+                                 Background="Transparent"
+                                 BorderThickness="0"
+                                 FontSize="16"
+                                 Text="{Binding LoginAccount, UpdateSourceTrigger=PropertyChanged}" />
                         <TextBlock Grid.Column="1"
                                    VerticalAlignment="Center"
+                                   IsHitTestVisible="False"
                                    FontSize="16"
                                    Foreground="{DynamicResource AuthInputPlaceholder}"
-                                   Text="{DynamicResource AuthEmailPlaceholder}" />
+                                   Text="{DynamicResource AuthAccountPlaceholder}">
+                            <TextBlock.Style>
+                                <Style TargetType="{x:Type TextBlock}">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding LoginAccount}" Value="">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
                     </Grid>
                 </Border>
 
@@ -121,11 +142,33 @@
                                    FontSize="16"
                                    Foreground="{DynamicResource AuthInputPlaceholder}"
                                    Text="&#xE72E;" />
+                        <PasswordBox x:Name="LoginPasswordBox"
+                                     Grid.Column="1"
+                                     Padding="0"
+                                     VerticalContentAlignment="Center"
+                                     AutomationProperties.Name="{DynamicResource AuthPasswordPlaceholder}"
+                                     Background="Transparent"
+                                     BorderThickness="0"
+                                     FontSize="16"
+                                     PasswordChanged="LoginPasswordBox_PasswordChanged"
+                                     PreviewKeyDown="LoginPasswordBox_PreviewKeyDown" />
                         <TextBlock Grid.Column="1"
                                    VerticalAlignment="Center"
+                                   IsHitTestVisible="False"
                                    FontSize="16"
                                    Foreground="{DynamicResource AuthInputPlaceholder}"
-                                   Text="{DynamicResource AuthPasswordPlaceholder}" />
+                                   Text="{DynamicResource AuthPasswordPlaceholder}">
+                            <TextBlock.Style>
+                                <Style TargetType="{x:Type TextBlock}">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding LoginPassword}" Value="">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
                         <TextBlock Grid.Column="2"
                                    HorizontalAlignment="Right"
                                    VerticalAlignment="Center"
@@ -147,10 +190,27 @@
                                FontSize="12"
                                Text="{DynamicResource AuthForgotPassword}" />
                 </Button>
+                <TextBlock Margin="3,249,100,0"
+                           VerticalAlignment="Top"
+                           FontSize="12"
+                           Foreground="{DynamicResource AuthError}"
+                           Text="{DynamicResource AuthLoginError}">
+                    <TextBlock.Style>
+                        <Style TargetType="{x:Type TextBlock}">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasLoginError}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
                 <Button Margin="0,279,0,0"
                         Height="38"
                         VerticalAlignment="Top"
                         AutomationProperties.Name="{DynamicResource AuthLoginAction}"
+                        Command="{Binding LoginCommand}"
                         Style="{StaticResource AuthPrimaryButtonStyle}">
                     <TextBlock Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
                                Text="{DynamicResource AuthLoginAction}" />
@@ -246,11 +306,31 @@
                                    FontSize="16"
                                    Foreground="{DynamicResource AuthInputPlaceholder}"
                                    Text="&#xE715;" />
+                        <TextBox Margin="24,0,0,0"
+                                 Padding="0"
+                                 VerticalContentAlignment="Center"
+                                 AutomationProperties.Name="{DynamicResource AuthEmailInputPlaceholder}"
+                                 Background="Transparent"
+                                 BorderThickness="0"
+                                 FontSize="14"
+                                 Text="{Binding RegisterEmail, UpdateSourceTrigger=PropertyChanged}" />
                         <TextBlock Margin="24,0,0,0"
                                    VerticalAlignment="Center"
+                                   IsHitTestVisible="False"
                                    FontSize="14"
                                    Foreground="{DynamicResource AuthInputPlaceholder}"
-                                   Text="{DynamicResource AuthEmailInputPlaceholder}" />
+                                   Text="{DynamicResource AuthEmailInputPlaceholder}">
+                            <TextBlock.Style>
+                                <Style TargetType="{x:Type TextBlock}">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding RegisterEmail}" Value="">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
                     </Grid>
                 </Border>
                 <StackPanel Margin="0,181,0,0"
@@ -284,11 +364,31 @@
                                    FontSize="16"
                                    Foreground="{DynamicResource AuthInputPlaceholder}"
                                    Text="&#xEA18;" />
+                        <TextBox Grid.Column="1"
+                                 Padding="0"
+                                 VerticalContentAlignment="Center"
+                                 AutomationProperties.Name="{DynamicResource AuthCodePlaceholder}"
+                                 Background="Transparent"
+                                 BorderThickness="0"
+                                 FontSize="14"
+                                 Text="{Binding RegisterCode, UpdateSourceTrigger=PropertyChanged}" />
                         <TextBlock Grid.Column="1"
                                    VerticalAlignment="Center"
+                                   IsHitTestVisible="False"
                                    FontSize="14"
                                    Foreground="{DynamicResource AuthInputPlaceholder}"
-                                   Text="{DynamicResource AuthCodePlaceholder}" />
+                                   Text="{DynamicResource AuthCodePlaceholder}">
+                            <TextBlock.Style>
+                                <Style TargetType="{x:Type TextBlock}">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding RegisterCode}" Value="">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
                         <Button Grid.Column="2"
                                 Width="56"
                                 HorizontalAlignment="Right"
@@ -312,11 +412,31 @@
                                    FontSize="16"
                                    Foreground="{DynamicResource AuthInputPlaceholder}"
                                    Text="&#xE72E;" />
-                        <TextBlock Margin="24,0,0,0"
+                        <PasswordBox Margin="24,0,28,0"
+                                     Padding="0"
+                                     VerticalContentAlignment="Center"
+                                     AutomationProperties.Name="{DynamicResource AuthPasswordInputPlaceholder}"
+                                     Background="Transparent"
+                                     BorderThickness="0"
+                                     FontSize="14"
+                                     PasswordChanged="RegisterPasswordBox_PasswordChanged" />
+                        <TextBlock Margin="24,0,28,0"
                                    VerticalAlignment="Center"
+                                   IsHitTestVisible="False"
                                    FontSize="14"
                                    Foreground="{DynamicResource AuthInputPlaceholder}"
-                                   Text="{DynamicResource AuthPasswordInputPlaceholder}" />
+                                   Text="{DynamicResource AuthPasswordInputPlaceholder}">
+                            <TextBlock.Style>
+                                <Style TargetType="{x:Type TextBlock}">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding RegisterPassword}" Value="">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
                         <TextBlock HorizontalAlignment="Right"
                                    VerticalAlignment="Center"
                                    FontFamily="Segoe MDL2 Assets"
@@ -337,11 +457,31 @@
                                    FontSize="16"
                                    Foreground="{DynamicResource AuthInputPlaceholder}"
                                    Text="&#xE72E;" />
-                        <TextBlock Margin="24,0,0,0"
+                        <PasswordBox Margin="24,0,28,0"
+                                     Padding="0"
+                                     VerticalContentAlignment="Center"
+                                     AutomationProperties.Name="{DynamicResource AuthConfirmPasswordPlaceholder}"
+                                     Background="Transparent"
+                                     BorderThickness="0"
+                                     FontSize="14"
+                                     PasswordChanged="RegisterConfirmPasswordBox_PasswordChanged" />
+                        <TextBlock Margin="24,0,28,0"
                                    VerticalAlignment="Center"
+                                   IsHitTestVisible="False"
                                    FontSize="14"
                                    Foreground="{DynamicResource AuthInputPlaceholder}"
-                                   Text="{DynamicResource AuthConfirmPasswordPlaceholder}" />
+                                   Text="{DynamicResource AuthConfirmPasswordPlaceholder}">
+                            <TextBlock.Style>
+                                <Style TargetType="{x:Type TextBlock}">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding RegisterConfirmPassword}" Value="">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
                         <TextBlock HorizontalAlignment="Right"
                                    VerticalAlignment="Center"
                                    FontFamily="Segoe MDL2 Assets"

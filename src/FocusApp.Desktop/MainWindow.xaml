@@ -134,14 +134,34 @@
                                            VerticalAlignment="Center"
                                            FontFamily="Segoe MDL2 Assets"
                                            FontSize="20"
-                                           Foreground="{DynamicResource TextSecondary}"
-                                           Text="{Binding AccountNavigationItem.Icon}" />
+                                           Foreground="{DynamicResource TextSecondary}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="{x:Type TextBlock}">
+                                            <Setter Property="Text" Value="{Binding AccountNavigationItem.Icon}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsLoggedIn}" Value="True">
+                                                    <Setter Property="Text" Value="&#xE77B;" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
                                 <Border Width="12"
                                         Height="12"
                                         HorizontalAlignment="Right"
                                         VerticalAlignment="Bottom"
                                         Background="{DynamicResource AccentPrimary}"
                                         CornerRadius="6">
+                                    <Border.Style>
+                                        <Style TargetType="{x:Type Border}">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsLoggedIn}" Value="True">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
                                     <TextBlock HorizontalAlignment="Center"
                                                VerticalAlignment="Center"
                                                FontFamily="Segoe MDL2 Assets"
@@ -156,7 +176,18 @@
                                    VerticalAlignment="Bottom"
                                    FontSize="{DynamicResource SecondaryFontSize}"
                                    Foreground="{DynamicResource TextSecondary}"
-                                   Text="{DynamicResource HomeGuestAccount}" />
+                                   Text="{DynamicResource HomeGuestAccount}">
+                            <TextBlock.Style>
+                                <Style TargetType="{x:Type TextBlock}">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsLoggedIn}" Value="True">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
                     </Grid>
                 </Grid>
             </Border>
@@ -361,6 +392,24 @@
                                   HorizontalAlignment="Right"
                                   VerticalAlignment="Top"
                                   DataContext="{Binding ThemePanel}" />
+            </Grid>
+
+            <Grid Grid.ColumnSpan="2" Panel.ZIndex="104">
+                <Grid.Style>
+                    <Style TargetType="{x:Type Grid}">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HomePage.FocusTargetModal.IsOpen}" Value="True">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
+                <Border Background="{DynamicResource ModalScrim}" MouseDown="FocusTargetScrim_MouseDown">
+                    <views:FocusTargetModal HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"
+                                            DataContext="{Binding HomePage.FocusTargetModal}" />
+                </Border>
             </Grid>
 
             <views:FocusFlowView Grid.ColumnSpan="2"

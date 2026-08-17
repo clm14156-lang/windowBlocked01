@@ -140,6 +140,7 @@
                 HorizontalAlignment="Center"
                 VerticalAlignment="Top"
                 AutomationProperties.Name="{DynamicResource HomeFocusTarget}"
+                Command="{Binding OpenFocusTargetCommand}"
                 IsHitTestVisible="{Binding FocusSession.IsHomeConfigurationEnabled}"
                 Style="{StaticResource HomePillButtonStyle}">
             <StackPanel Orientation="Horizontal">
@@ -151,7 +152,7 @@
                            Text="&#xE70F;" />
                 <TextBlock VerticalAlignment="Center"
                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
-                           Text="{DynamicResource HomeFocusTarget}" />
+                           Text="{Binding FocusTargetModal.SelectedTargetButtonText}" />
                 <TextBlock Margin="10,0,0,0"
                            VerticalAlignment="Center"
                            FontFamily="Segoe MDL2 Assets"

@@ -53,4 +53,25 @@ public sealed class MainWindowViewModelTests
         Assert.True(custom.IsSelected);
         Assert.Equal("90 分钟", custom.Label);
     }
+
+    [Fact]
+    public void SuccessfulLogin_UpdatesAccountStateAndPreventsModalFromReopening()
+    {
+        var home = new NavigationItemViewModel(NavigationPage.Home, "Home", "H");
+        var account = new NavigationItemViewModel(NavigationPage.Account, "Account", "A");
+        var homePage = new HomePageViewModel([new HomeDurationOptionViewModel("25 minutes", string.Empty)]);
+        var viewModel = new MainWindowViewModel([home], account, homePage);
+        viewModel.OpenAuthCommand.Execute(null);
+        viewModel.AuthModal.LoginAccount = "123";
+        viewModel.AuthModal.LoginPassword = "123";
+
+        viewModel.AuthModal.LoginCommand.Execute(null);
+
+        Assert.True(viewModel.IsLoggedIn);
+        Assert.False(viewModel.AuthModal.IsOpen);
+
+        viewModel.OpenAuthCommand.Execute(null);
+
+        Assert.False(viewModel.AuthModal.IsOpen);
+    }
 }

@@ -23,9 +23,11 @@ public sealed class HomePageViewModel
 
         _customDurationOption = DurationOptions.FirstOrDefault(option => !string.IsNullOrEmpty(option.Icon));
         CustomTimeModal = new CustomTimeModalViewModel(ConfirmCustomTime);
+        FocusTargetModal = new FocusTargetModalViewModel();
         FocusSession = new FocusSessionViewModel();
         SelectDurationCommand = new RelayCommand<HomeDurationOptionViewModel>(SelectDuration);
         StartFocusCommand = new RelayCommand<object>(_ => StartFocus());
+        OpenFocusTargetCommand = new RelayCommand<object>(_ => FocusTargetModal.Open());
     }
 
     public ReadOnlyCollection<HomeDurationOptionViewModel> DurationOptions { get; }
@@ -34,7 +36,11 @@ public sealed class HomePageViewModel
 
     public ICommand StartFocusCommand { get; }
 
+    public ICommand OpenFocusTargetCommand { get; }
+
     public CustomTimeModalViewModel CustomTimeModal { get; }
+
+    public FocusTargetModalViewModel FocusTargetModal { get; }
 
     public FocusSessionViewModel FocusSession { get; }
 

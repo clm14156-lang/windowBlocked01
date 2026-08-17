@@ -8,6 +8,7 @@ namespace FocusApp.Desktop.ViewModels;
 public sealed class MainWindowViewModel : INotifyPropertyChanged
 {
     private NavigationItemViewModel _currentNavigationItem;
+    private bool _isLoggedIn;
 
     public MainWindowViewModel(
         IEnumerable<NavigationItemViewModel> primaryNavigationItems,
@@ -28,10 +29,12 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         HomePage = homePage;
         SettingsPage = settingsPage ?? new SettingsPageViewModel([], []);
         BlockingPage = blockingPage ?? new BlockingPageViewModel([], [], "Added websites: {0}", "Added applications: {0}");
+        AuthModal = new AuthModalViewModel();
+        AuthModal.LoginSucceeded += AuthModal_LoginSucceeded;
         _currentNavigationItem = PrimaryNavigationItems[0];
         _currentNavigationItem.IsSelected = true;
         NavigateCommand = new RelayCommand<NavigationItemViewModel>(Navigate);
-        OpenAuthCommand = new RelayCommand<object>(_ => AuthModal.OpenLogin());
+        OpenAuthCommand = new RelayCommand<object>(_ => OpenAuth());
         ToggleThemePanelCommand = new RelayCommand<object>(_ => ThemePanel.Toggle());
     }
 
@@ -47,7 +50,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     public ICommand ToggleThemePanelCommand { get; }
 
-    public AuthModalViewModel AuthModal { get; } = new();
+    public AuthModalViewModel AuthModal { get; }
 
     public ThemePanelViewModel ThemePanel { get; } = new();
 
@@ -60,6 +63,34 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     public string CurrentPageTitle => _currentNavigationItem.Title;
 
     public NavigationPage CurrentPage => _currentNavigationItem.Page;
+
+    public bool IsLoggedIn
+    {
+        get => _isLoggedIn;
+        private set
+        {
+            if (_isLoggedIn == value)
+            {
+                return;
+            }
+
+            _isLoggedIn = value;
+            OnPropertyChanged();
+        }
+    }
+
+    private void OpenAuth()
+    {
+        if (!IsLoggedIn)
+        {
+            AuthModal.OpenLogin();
+        }
+    }
+
+    private void AuthModal_LoginSucceeded(object? sender, EventArgs e)
+    {
+        IsLoggedIn = true;
+    }
 
     private void Navigate(NavigationItemViewModel? destination)
     {

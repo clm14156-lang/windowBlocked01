@@ -8,21 +8,33 @@ public sealed class AuthModalViewModel : INotifyPropertyChanged
 {
     private bool _isOpen;
     private bool _isRegistration;
+    private string _loginAccount = string.Empty;
+    private string _loginPassword = string.Empty;
+    private string _registerEmail = string.Empty;
+    private string _registerCode = string.Empty;
+    private string _registerPassword = string.Empty;
+    private string _registerConfirmPassword = string.Empty;
+    private bool _hasLoginError;
 
     public AuthModalViewModel()
     {
         CloseCommand = new RelayCommand<object>(_ => Close());
         ShowLoginCommand = new RelayCommand<object>(_ => ShowLogin());
         ShowRegisterCommand = new RelayCommand<object>(_ => ShowRegister());
+        LoginCommand = new RelayCommand<object>(_ => Login());
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
+
+    public event EventHandler? LoginSucceeded;
 
     public ICommand CloseCommand { get; }
 
     public ICommand ShowLoginCommand { get; }
 
     public ICommand ShowRegisterCommand { get; }
+
+    public ICommand LoginCommand { get; }
 
     public bool IsOpen
     {
@@ -54,9 +66,64 @@ public sealed class AuthModalViewModel : INotifyPropertyChanged
         }
     }
 
+    public string LoginAccount
+    {
+        get => _loginAccount;
+        set
+        {
+            if (SetField(ref _loginAccount, value))
+            {
+                HasLoginError = false;
+            }
+        }
+    }
+
+    public string LoginPassword
+    {
+        get => _loginPassword;
+        set
+        {
+            if (SetField(ref _loginPassword, value))
+            {
+                HasLoginError = false;
+            }
+        }
+    }
+
+    public string RegisterEmail
+    {
+        get => _registerEmail;
+        set => SetField(ref _registerEmail, value);
+    }
+
+    public string RegisterCode
+    {
+        get => _registerCode;
+        set => SetField(ref _registerCode, value);
+    }
+
+    public string RegisterPassword
+    {
+        get => _registerPassword;
+        set => SetField(ref _registerPassword, value);
+    }
+
+    public string RegisterConfirmPassword
+    {
+        get => _registerConfirmPassword;
+        set => SetField(ref _registerConfirmPassword, value);
+    }
+
+    public bool HasLoginError
+    {
+        get => _hasLoginError;
+        private set => SetField(ref _hasLoginError, value);
+    }
+
     public void OpenLogin()
     {
         IsRegistration = false;
+        HasLoginError = false;
         IsOpen = true;
     }
 
@@ -73,6 +140,31 @@ public sealed class AuthModalViewModel : INotifyPropertyChanged
     private void ShowRegister()
     {
         IsRegistration = true;
+    }
+
+    private void Login()
+    {
+        if (LoginAccount.Trim() != "123" || LoginPassword != "123")
+        {
+            HasLoginError = true;
+            return;
+        }
+
+        HasLoginError = false;
+        IsOpen = false;
+        LoginSucceeded?.Invoke(this, EventArgs.Empty);
+    }
+
+    private bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
+    {
+        if (EqualityComparer<T>.Default.Equals(field, value))
+        {
+            return false;
+        }
+
+        field = value;
+        OnPropertyChanged(propertyName);
+        return true;
     }
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
