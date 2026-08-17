@@ -13,7 +13,8 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         IEnumerable<NavigationItemViewModel> primaryNavigationItems,
         NavigationItemViewModel accountNavigationItem,
         HomePageViewModel homePage,
-        SettingsPageViewModel? settingsPage = null)
+        SettingsPageViewModel? settingsPage = null,
+        BlockingPageViewModel? blockingPage = null)
     {
         PrimaryNavigationItems = new ReadOnlyCollection<NavigationItemViewModel>(
             primaryNavigationItems.ToList());
@@ -26,6 +27,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         AccountNavigationItem = accountNavigationItem;
         HomePage = homePage;
         SettingsPage = settingsPage ?? new SettingsPageViewModel([], []);
+        BlockingPage = blockingPage ?? new BlockingPageViewModel([], [], "Added websites: {0}", "Added applications: {0}");
         _currentNavigationItem = PrimaryNavigationItems[0];
         _currentNavigationItem.IsSelected = true;
         NavigateCommand = new RelayCommand<NavigationItemViewModel>(Navigate);
@@ -52,6 +54,8 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     public HomePageViewModel HomePage { get; }
 
     public SettingsPageViewModel SettingsPage { get; }
+
+    public BlockingPageViewModel BlockingPage { get; }
 
     public string CurrentPageTitle => _currentNavigationItem.Title;
 

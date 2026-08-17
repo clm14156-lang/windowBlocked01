@@ -233,6 +233,20 @@
                         </views:SettingsPage.Style>
                     </views:SettingsPage>
 
+                    <views:BlockingPage DataContext="{Binding BlockingPage}">
+                        <views:BlockingPage.Style>
+                            <Style TargetType="{x:Type views:BlockingPage}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding DataContext.CurrentPage, RelativeSource={RelativeSource AncestorType={x:Type Window}}}"
+                                                 Value="{x:Static vm:NavigationPage.Blocking}">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </views:BlockingPage.Style>
+                    </views:BlockingPage>
+
                     <TextBlock Margin="40,28,40,0"
                                HorizontalAlignment="Left"
                                VerticalAlignment="Top"
@@ -249,11 +263,28 @@
                                     <DataTrigger Binding="{Binding CurrentPage}" Value="{x:Static vm:NavigationPage.Settings}">
                                         <Setter Property="Visibility" Value="Collapsed" />
                                     </DataTrigger>
+                                    <DataTrigger Binding="{Binding CurrentPage}" Value="{x:Static vm:NavigationPage.Blocking}">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
                                 </Style.Triggers>
                             </Style>
                         </TextBlock.Style>
                     </TextBlock>
                 </Grid>
+            </Grid>
+
+            <Grid Grid.ColumnSpan="2" Panel.ZIndex="102">
+                <Grid.Style><Style TargetType="{x:Type Grid}"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding BlockingPage.WebsiteModal.IsOpen}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></Grid.Style>
+                <Border Background="{DynamicResource ModalScrim}" MouseDown="WebsiteScrim_MouseDown">
+                    <views:AddWebsiteModal DataContext="{Binding BlockingPage.WebsiteModal}" />
+                </Border>
+            </Grid>
+
+            <Grid Grid.ColumnSpan="2" Panel.ZIndex="103">
+                <Grid.Style><Style TargetType="{x:Type Grid}"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding BlockingPage.ProgramModal.IsOpen}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></Grid.Style>
+                <Border Background="{DynamicResource ModalScrim}" MouseDown="ProgramScrim_MouseDown">
+                    <views:AddProgramModal DataContext="{Binding BlockingPage.ProgramModal}" />
+                </Border>
             </Grid>
 
             <Grid Grid.ColumnSpan="2"

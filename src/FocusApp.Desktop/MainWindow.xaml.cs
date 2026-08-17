@@ -139,6 +139,24 @@ public partial class MainWindow : Window
         }
     }
 
+    private void WebsiteScrim_MouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (ReferenceEquals(e.OriginalSource, sender) &&
+            DataContext is ViewModels.MainWindowViewModel viewModel)
+        {
+            viewModel.BlockingPage.WebsiteModal.CloseCommand.Execute(null);
+        }
+    }
+
+    private void ProgramScrim_MouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (ReferenceEquals(e.OriginalSource, sender) &&
+            DataContext is ViewModels.MainWindowViewModel viewModel)
+        {
+            viewModel.BlockingPage.ProgramModal.CloseCommand.Execute(null);
+        }
+    }
+
     private void Window_PreviewMouseDown(object sender, MouseButtonEventArgs e)
     {
         if (DataContext is not ViewModels.MainWindowViewModel viewModel)

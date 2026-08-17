@@ -27,7 +27,8 @@ public partial class App : Application
                 primaryNavigationItems,
                 accountNavigationItem,
                 CreateHomePageViewModel(),
-                CreateSettingsPageViewModel())
+                CreateSettingsPageViewModel(),
+                CreateBlockingPageViewModel())
         };
         MainWindow.Show();
     }
@@ -42,6 +43,36 @@ public partial class App : Application
             new HomeDurationOptionViewModel((string)FindResource("HomeDuration90Alternate"), string.Empty),
             new HomeDurationOptionViewModel((string)FindResource("HomeDurationCustom"), "\uE823")
         ]);
+    }
+
+    private BlockingPageViewModel CreateBlockingPageViewModel()
+    {
+        var websiteData = new[]
+        {
+            ("百度", "baidu.com", true),
+            ("知乎", "zhihu.com", true),
+            ("微博", "weibo.com", false),
+            ("YouTube", "youtube.com", true),
+            ("豆瓣", "douban.com", false),
+            ("Bilibili", "bilibili.com", false),
+            ("腾讯新闻", "news.qq.com", true),
+            ("凤凰网", "ifeng.com", false)
+        };
+        var applicationData = new[]
+        {
+            ("Xmind.exe", @"E:\Xmind\Xmind.exe", true),
+            ("Xmind.exe", @"E:\Xmind\Xmind.exe", true),
+            ("Xmind.exe", @"E:\Xmind\Xmind.exe", false),
+            ("Xmind.exe", @"E:\Xmind\Xmind.exe", true),
+            ("Xmind.exe", @"E:\Xmind\Xmind.exe", false),
+            ("Xmind.exe", @"E:\Xmind\Xmind.exe", false)
+        };
+
+        return new BlockingPageViewModel(
+            websiteData.Select(item => new BlockingWebsiteItemViewModel(Guid.NewGuid(), item.Item1, item.Item2, item.Item3)),
+            applicationData.Select(item => new BlockingApplicationItemViewModel(Guid.NewGuid(), item.Item1, item.Item2, item.Item3)),
+            (string)FindResource("BlockingWebsiteCountTemplate"),
+            (string)FindResource("BlockingApplicationCountTemplate"));
     }
 
     private SettingsPageViewModel CreateSettingsPageViewModel()
