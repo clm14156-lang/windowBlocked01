@@ -362,6 +362,21 @@
                                   VerticalAlignment="Top"
                                   DataContext="{Binding ThemePanel}" />
             </Grid>
+
+            <views:FocusFlowView Grid.ColumnSpan="2"
+                                 Panel.ZIndex="200"
+                                 DataContext="{Binding HomePage.FocusSession}">
+                <views:FocusFlowView.Style>
+                    <Style TargetType="{x:Type views:FocusFlowView}">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsFullScreenVisible}" Value="True">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </views:FocusFlowView.Style>
+            </views:FocusFlowView>
         </Grid>
     </Border>
 </Window>

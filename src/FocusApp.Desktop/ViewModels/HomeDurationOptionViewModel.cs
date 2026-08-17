@@ -6,12 +6,14 @@ namespace FocusApp.Desktop.ViewModels;
 public sealed class HomeDurationOptionViewModel : INotifyPropertyChanged
 {
     private bool _isSelected;
+    private int _minutes;
 
-    public HomeDurationOptionViewModel(string label, string icon, bool isSelected = false)
+    public HomeDurationOptionViewModel(string label, string icon, bool isSelected = false, int minutes = 25)
     {
         Label = label;
         Icon = icon;
         _isSelected = isSelected;
+        _minutes = minutes;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -19,6 +21,8 @@ public sealed class HomeDurationOptionViewModel : INotifyPropertyChanged
     public string Label { get; private set; }
 
     public string Icon { get; }
+
+    public int Minutes => _minutes;
 
     public bool IsSelected
     {
@@ -35,14 +39,18 @@ public sealed class HomeDurationOptionViewModel : INotifyPropertyChanged
         }
     }
 
-    internal void UpdateLabel(string label)
+    internal void UpdateDuration(string label, int minutes)
     {
-        if (Label == label)
+        if (Label != label)
         {
-            return;
+            Label = label;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Label)));
         }
 
-        Label = label;
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Label)));
+        if (_minutes != minutes)
+        {
+            _minutes = minutes;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Minutes)));
+        }
     }
 }
