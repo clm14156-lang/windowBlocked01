@@ -1,0 +1,271 @@
+<UserControl x:Class="FocusApp.Desktop.Views.AccountPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Width="190"
+             Height="250"
+             UseLayoutRounding="True"
+             SnapsToDevicePixels="True">
+    <UserControl.Resources>
+        <Style x:Key="AccountPanelRowButton" TargetType="{x:Type Button}">
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border x:Name="Root"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="10">
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="{DynamicResource ControlHoverBackground}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="{DynamicResource ControlPressedBackground}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <Border Background="{DynamicResource SurfacePrimary}"
+            BorderBrush="{DynamicResource OverlayBorder}"
+            BorderThickness="1"
+            CornerRadius="16">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="24"
+                              Direction="315"
+                              Opacity="0.15"
+                              ShadowDepth="6" />
+        </Border.Effect>
+
+        <Grid Margin="12,10">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="66" />
+                <RowDefinition Height="1" />
+                <RowDefinition Height="48" />
+                <RowDefinition Height="62" />
+                <RowDefinition Height="1" />
+                <RowDefinition Height="52" />
+            </Grid.RowDefinitions>
+
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="50" />
+                    <ColumnDefinition />
+                </Grid.ColumnDefinitions>
+
+                <Grid Width="44"
+                      Height="44"
+                      HorizontalAlignment="Left"
+                      VerticalAlignment="Center">
+                    <Ellipse Fill="{DynamicResource BackgroundSecondary}" />
+                    <Ellipse Stroke="{DynamicResource AccentPrimary}" StrokeThickness="2">
+                        <Ellipse.Style>
+                            <Style TargetType="{x:Type Ellipse}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsVipMember}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Ellipse.Style>
+                    </Ellipse>
+                    <TextBlock HorizontalAlignment="Center"
+                               VerticalAlignment="Center"
+                               FontFamily="Segoe MDL2 Assets"
+                               FontSize="23"
+                               Foreground="{DynamicResource TextSecondary}"
+                               Text="&#xE77B;" />
+                    <Border Width="28"
+                            Height="14"
+                            Margin="0,0,0,-3"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Bottom"
+                            Background="{DynamicResource AccentPrimary}"
+                            CornerRadius="7">
+                        <Border.Style>
+                            <Style TargetType="{x:Type Border}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsVipMember}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <TextBlock HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   FontSize="10"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource WhiteText}"
+                                   Text="VIP" />
+                    </Border>
+                </Grid>
+
+                <StackPanel Grid.Column="1"
+                            Margin="7,0,0,0"
+                            VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock VerticalAlignment="Center"
+                                   FontSize="15"
+                                   FontWeight="SemiBold"
+                                   Text="{DynamicResource AccountPanelLoggedIn}" />
+                        <Ellipse Width="7"
+                                 Height="7"
+                                 Margin="8,1,0,0"
+                                 VerticalAlignment="Center"
+                                 Fill="{DynamicResource Success}" />
+                    </StackPanel>
+                    <TextBlock Margin="0,5,0,0"
+                               FontSize="11"
+                               Foreground="{DynamicResource TextSecondary}"
+                               Text="{Binding CurrentUserEmail}"
+                               TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+            </Grid>
+
+            <Border Grid.Row="1" Background="{DynamicResource BorderPrimary}" />
+
+            <Button Grid.Row="2"
+                    AutomationProperties.Name="{DynamicResource AccountPanelAccountSync}"
+                    Command="{Binding OpenAccountSyncCommand}"
+                    Style="{StaticResource AccountPanelRowButton}">
+                <Grid Margin="9,0,8,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="30" />
+                        <ColumnDefinition />
+                        <ColumnDefinition Width="18" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock VerticalAlignment="Center"
+                               FontFamily="Segoe MDL2 Assets"
+                               FontSize="18"
+                               Foreground="{DynamicResource TextSecondary}"
+                               Text="&#xE753;" />
+                    <TextBlock Grid.Column="1"
+                               VerticalAlignment="Center"
+                               FontSize="14"
+                               Text="{DynamicResource AccountPanelAccountSync}" />
+                    <TextBlock Grid.Column="2"
+                               HorizontalAlignment="Right"
+                               VerticalAlignment="Center"
+                               FontFamily="Segoe MDL2 Assets"
+                               FontSize="13"
+                               Foreground="{DynamicResource TextSecondary}"
+                               Text="&#xE76C;" />
+                </Grid>
+            </Button>
+
+            <Button Grid.Row="3"
+                    Margin="0,5"
+                    AutomationProperties.Name="{DynamicResource AccountPanelVip}"
+                    Command="{Binding OpenVipCommand}">
+                <Button.Style>
+                    <Style TargetType="{x:Type Button}" BasedOn="{StaticResource AccountPanelRowButton}">
+                        <Setter Property="Background" Value="{DynamicResource AccentTint}" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsVipMember}" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
+                <Grid Margin="9,0,8,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="30" />
+                        <ColumnDefinition />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="14" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock VerticalAlignment="Center"
+                               FontFamily="Segoe UI Symbol"
+                               FontSize="20"
+                               Foreground="{DynamicResource AccentPrimary}"
+                               Text="♕" />
+                    <TextBlock Grid.Column="1"
+                               VerticalAlignment="Center"
+                               FontSize="14"
+                               FontWeight="SemiBold">
+                        <TextBlock.Style>
+                            <Style TargetType="{x:Type TextBlock}">
+                                <Setter Property="Text" Value="{DynamicResource AccountPanelVip}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsVipMember}" Value="True">
+                                        <Setter Property="Text" Value="{DynamicResource AccountPanelMemberCenter}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <Border Grid.Column="2"
+                            Width="40"
+                            Height="25"
+                            Margin="4,0,4,0"
+                            Background="{DynamicResource SurfacePrimary}"
+                            CornerRadius="13">
+                        <Border.Style>
+                            <Style TargetType="{x:Type Border}">
+                                <Setter Property="Visibility" Value="Visible" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsVipMember}" Value="True">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <TextBlock HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   FontSize="11"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource AccentPrimary}"
+                                   Text="{DynamicResource AccountPanelUpgrade}" />
+                    </Border>
+                    <TextBlock Grid.Column="3"
+                               HorizontalAlignment="Right"
+                               VerticalAlignment="Center"
+                               FontFamily="Segoe MDL2 Assets"
+                               FontSize="13"
+                               Foreground="{DynamicResource AccentPrimary}"
+                               Text="&#xE76C;" />
+                </Grid>
+            </Button>
+
+            <Border Grid.Row="4" Background="{DynamicResource BorderPrimary}" />
+
+            <Button Grid.Row="5"
+                    AutomationProperties.Name="{DynamicResource AccountPanelLogout}"
+                    Command="{Binding LogoutCommand}"
+                    Style="{StaticResource AccountPanelRowButton}">
+                <Grid Margin="9,0,8,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="30" />
+                        <ColumnDefinition />
+                        <ColumnDefinition Width="18" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock VerticalAlignment="Center"
+                               FontFamily="Segoe MDL2 Assets"
+                               FontSize="18"
+                               Foreground="{DynamicResource TextSecondary}"
+                               Text="&#xE8AC;" />
+                    <TextBlock Grid.Column="1"
+                               VerticalAlignment="Center"
+                               FontSize="14"
+                               Text="{DynamicResource AccountPanelLogout}" />
+                    <TextBlock Grid.Column="2"
+                               HorizontalAlignment="Right"
+                               VerticalAlignment="Center"
+                               FontFamily="Segoe MDL2 Assets"
+                               FontSize="13"
+                               Foreground="{DynamicResource TextSecondary}"
+                               Text="&#xE76C;" />
+                </Grid>
+            </Button>
+        </Grid>
+    </Border>
+</UserControl>

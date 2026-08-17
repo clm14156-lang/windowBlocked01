@@ -9,6 +9,9 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 {
     private NavigationItemViewModel _currentNavigationItem;
     private bool _isLoggedIn;
+    private bool _isAccountPanelOpen;
+    private string _currentAccount = string.Empty;
+    private MembershipType _membershipType = MembershipType.Normal;
 
     public MainWindowViewModel(
         IEnumerable<NavigationItemViewModel> primaryNavigationItems,
@@ -35,6 +38,9 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         _currentNavigationItem.IsSelected = true;
         NavigateCommand = new RelayCommand<NavigationItemViewModel>(Navigate);
         OpenAuthCommand = new RelayCommand<object>(_ => OpenAuth());
+        OpenAccountSyncCommand = new RelayCommand<object>(_ => OpenAccountSync());
+        OpenVipCommand = new RelayCommand<object>(_ => OpenVip());
+        LogoutCommand = new RelayCommand<object>(_ => Logout());
         ToggleThemePanelCommand = new RelayCommand<object>(_ => ThemePanel.Toggle());
     }
 
@@ -48,9 +54,21 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     public ICommand OpenAuthCommand { get; }
 
+    public ICommand OpenAccountSyncCommand { get; }
+
+    public ICommand OpenVipCommand { get; }
+
+    public ICommand LogoutCommand { get; }
+
     public ICommand ToggleThemePanelCommand { get; }
 
     public AuthModalViewModel AuthModal { get; }
+
+    public AccountSyncModalViewModel AccountSyncModal { get; } = new();
+
+    public VipModalViewModel VipModal { get; } = new();
+
+    public MembershipCenterViewModel MembershipCenter { get; } = new();
 
     public ThemePanelViewModel ThemePanel { get; } = new();
 
@@ -79,17 +97,104 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         }
     }
 
+    public bool IsAccountPanelOpen
+    {
+        get => _isAccountPanelOpen;
+        private set
+        {
+            if (_isAccountPanelOpen == value)
+            {
+                return;
+            }
+
+            _isAccountPanelOpen = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public MembershipType MembershipType
+    {
+        get => _membershipType;
+        private set
+        {
+            if (_membershipType == value)
+            {
+                return;
+            }
+
+            _membershipType = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(IsVipMember));
+            OnPropertyChanged(nameof(IsAnnualMember));
+            OnPropertyChanged(nameof(IsLifetimeMember));
+        }
+    }
+
+    public bool IsVipMember => MembershipType != MembershipType.Normal;
+
+    public bool IsAnnualMember => MembershipType == MembershipType.Annual;
+
+    public bool IsLifetimeMember => MembershipType == MembershipType.Lifetime;
+
+    public string CurrentUserEmail => string.IsNullOrEmpty(_currentAccount)
+        ? string.Empty
+        : $"{_currentAccount}@focusapp.local";
+
     private void OpenAuth()
     {
-        if (!IsLoggedIn)
+        if (IsLoggedIn)
+        {
+            IsAccountPanelOpen = !IsAccountPanelOpen;
+        }
+        else
         {
             AuthModal.OpenLogin();
         }
     }
 
-    private void AuthModal_LoginSucceeded(object? sender, EventArgs e)
+    private void AuthModal_LoginSucceeded(object? sender, LoginSucceededEventArgs e)
     {
+        _currentAccount = e.Account;
+        MembershipType = e.MembershipType;
+        OnPropertyChanged(nameof(CurrentUserEmail));
         IsLoggedIn = true;
+        IsAccountPanelOpen = false;
+    }
+
+    public void CloseAccountPanel()
+    {
+        IsAccountPanelOpen = false;
+    }
+
+    private void OpenVip()
+    {
+        IsAccountPanelOpen = false;
+        if (IsVipMember)
+        {
+            MembershipCenter.Open(MembershipType);
+        }
+        else
+        {
+            VipModal.Open();
+        }
+    }
+
+    private void OpenAccountSync()
+    {
+        IsAccountPanelOpen = false;
+        AccountSyncModal.Open();
+    }
+
+    private void Logout()
+    {
+        IsAccountPanelOpen = false;
+        AccountSyncModal.CloseCommand.Execute(null);
+        VipModal.CloseCommand.Execute(null);
+        MembershipCenter.CloseCommand.Execute(null);
+        _currentAccount = string.Empty;
+        MembershipType = MembershipType.Normal;
+        OnPropertyChanged(nameof(CurrentUserEmail));
+        IsLoggedIn = false;
     }
 
     private void Navigate(NavigationItemViewModel? destination)

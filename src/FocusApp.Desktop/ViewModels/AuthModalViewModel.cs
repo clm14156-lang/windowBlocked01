@@ -26,7 +26,7 @@ public sealed class AuthModalViewModel : INotifyPropertyChanged
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
-    public event EventHandler? LoginSucceeded;
+    public event EventHandler<LoginSucceededEventArgs>? LoginSucceeded;
 
     public ICommand CloseCommand { get; }
 
@@ -144,7 +144,16 @@ public sealed class AuthModalViewModel : INotifyPropertyChanged
 
     private void Login()
     {
-        if (LoginAccount.Trim() != "123" || LoginPassword != "123")
+        var account = LoginAccount.Trim();
+        var membershipType = (account, LoginPassword) switch
+        {
+            ("123", "123") => MembershipType.Normal,
+            ("456", "456") => MembershipType.Annual,
+            ("789", "789") => MembershipType.Lifetime,
+            _ => (MembershipType?)null
+        };
+
+        if (membershipType is null)
         {
             HasLoginError = true;
             return;
@@ -152,7 +161,7 @@ public sealed class AuthModalViewModel : INotifyPropertyChanged
 
         HasLoginError = false;
         IsOpen = false;
-        LoginSucceeded?.Invoke(this, EventArgs.Empty);
+        LoginSucceeded?.Invoke(this, new LoginSucceededEventArgs(account, membershipType.Value));
     }
 
     private bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)

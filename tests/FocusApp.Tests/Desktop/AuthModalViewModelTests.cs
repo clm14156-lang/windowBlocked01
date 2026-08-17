@@ -42,6 +42,26 @@ public sealed class AuthModalViewModelTests
     }
 
     [Theory]
+    [InlineData("123", "123", MembershipType.Normal)]
+    [InlineData("456", "456", MembershipType.Annual)]
+    [InlineData("789", "789", MembershipType.Lifetime)]
+    public void Login_WithMembershipTestCredentials_ReturnsExpectedMembership(string account, string password, MembershipType expectedMembership)
+    {
+        var viewModel = new AuthModalViewModel();
+        LoginSucceededEventArgs? result = null;
+        viewModel.LoginSucceeded += (_, args) => result = args;
+        viewModel.OpenLogin();
+        viewModel.LoginAccount = account;
+        viewModel.LoginPassword = password;
+
+        viewModel.LoginCommand.Execute(null);
+
+        Assert.NotNull(result);
+        Assert.Equal(account, result!.Account);
+        Assert.Equal(expectedMembership, result.MembershipType);
+    }
+
+    [Theory]
     [InlineData("wrong", "123")]
     [InlineData("123", "wrong")]
     [InlineData("", "")]

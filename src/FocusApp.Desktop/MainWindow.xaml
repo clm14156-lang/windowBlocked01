@@ -120,7 +120,8 @@
                                 Margin="18,7,18,0"
                                 VerticalAlignment="Top"
                                 Background="{DynamicResource BorderPrimary}" />
-                        <RadioButton Margin="0,14,0,24"
+                        <RadioButton x:Name="AccountButton"
+                                     Margin="0,14,0,24"
                                      HorizontalAlignment="Center"
                                      VerticalAlignment="Center"
                                      AutomationProperties.Name="{Binding AccountNavigationItem.Title}"
@@ -130,6 +131,18 @@
                                      ToolTip="{Binding AccountNavigationItem.Title}">
                             <Grid Width="40" Height="40">
                                 <Ellipse Fill="{DynamicResource BackgroundSecondary}" />
+                                <Ellipse Stroke="{DynamicResource AccentPrimary}" StrokeThickness="2">
+                                    <Ellipse.Style>
+                                        <Style TargetType="{x:Type Ellipse}">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsVipMember}" Value="True">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Ellipse.Style>
+                                </Ellipse>
                                 <TextBlock HorizontalAlignment="Center"
                                            VerticalAlignment="Center"
                                            FontFamily="Segoe MDL2 Assets"
@@ -168,6 +181,30 @@
                                                FontSize="8"
                                                Foreground="{DynamicResource WhiteText}"
                                                Text="&#xE710;" />
+                                </Border>
+                                <Border Width="24"
+                                        Height="12"
+                                        Margin="0,0,0,-2"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Bottom"
+                                        Background="{DynamicResource AccentPrimary}"
+                                        CornerRadius="6">
+                                    <Border.Style>
+                                        <Style TargetType="{x:Type Border}">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsVipMember}" Value="True">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <TextBlock HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"
+                                               FontSize="8"
+                                               FontWeight="SemiBold"
+                                               Foreground="{DynamicResource WhiteText}"
+                                               Text="VIP" />
                                 </Border>
                             </Grid>
                         </RadioButton>
@@ -394,6 +431,26 @@
                                   DataContext="{Binding ThemePanel}" />
             </Grid>
 
+            <Grid Grid.ColumnSpan="2"
+                  Panel.ZIndex="95"
+                  IsHitTestVisible="True">
+                <Grid.Style>
+                    <Style TargetType="{x:Type Grid}">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsAccountPanelOpen}" Value="True">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
+                <views:AccountPanel x:Name="AccountPanelControl"
+                                    Margin="68,0,0,14"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Bottom"
+                                    DataContext="{Binding}" />
+            </Grid>
+
             <Grid Grid.ColumnSpan="2" Panel.ZIndex="104">
                 <Grid.Style>
                     <Style TargetType="{x:Type Grid}">
@@ -409,6 +466,62 @@
                     <views:FocusTargetModal HorizontalAlignment="Center"
                                             VerticalAlignment="Center"
                                             DataContext="{Binding HomePage.FocusTargetModal}" />
+                </Border>
+            </Grid>
+
+            <Grid Grid.ColumnSpan="2" Panel.ZIndex="150">
+                <Grid.Style>
+                    <Style TargetType="{x:Type Grid}">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding VipModal.IsOpen}" Value="True">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
+                <Border Background="{DynamicResource ModalScrim}"
+                        MouseDown="VipScrim_MouseDown">
+                    <views:VipModal HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    DataContext="{Binding VipModal}" />
+                </Border>
+            </Grid>
+
+            <Grid Grid.ColumnSpan="2" Panel.ZIndex="151">
+                <Grid.Style>
+                    <Style TargetType="{x:Type Grid}">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding AccountSyncModal.IsOpen}" Value="True">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
+                <Border Background="{DynamicResource ModalScrim}">
+                    <views:AccountSyncModal HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"
+                                            DataContext="{Binding AccountSyncModal}" />
+                </Border>
+            </Grid>
+
+            <Grid Grid.ColumnSpan="2" Panel.ZIndex="152">
+                <Grid.Style>
+                    <Style TargetType="{x:Type Grid}">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding MembershipCenter.IsOpen}" Value="True">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
+                <Border Background="{DynamicResource ModalScrim}"
+                        MouseDown="MembershipCenterScrim_MouseDown">
+                    <views:MembershipCenterModal HorizontalAlignment="Center"
+                                                 VerticalAlignment="Center"
+                                                 DataContext="{Binding MembershipCenter}" />
                 </Border>
             </Grid>
 
