@@ -2,15 +2,21 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using FocusApp.Desktop.ViewModels;
+using FocusApp.Desktop.Views;
 
 namespace FocusApp.Desktop;
 
 public partial class MainWindow : Window
 {
+    private FocusFloatingWindow? _focusFloatingWindow;
+    private FocusFloatingWindowViewModel? _focusFloatingViewModel;
+    private bool _isClosing;
+
     public MainWindow()
     {
         InitializeComponent();
         DataContextChanged += MainWindow_DataContextChanged;
+        Closed += MainWindow_Closed;
     }
 
     private void MainWindow_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
@@ -18,11 +24,13 @@ public partial class MainWindow : Window
         if (e.OldValue is MainWindowViewModel oldViewModel)
         {
             oldViewModel.ThemePanel.ThemeSelected -= ThemePanel_ThemeSelected;
+            oldViewModel.HomePage.FocusSession.PropertyChanged -= FocusSession_PropertyChanged;
         }
 
         if (e.NewValue is MainWindowViewModel newViewModel)
         {
             newViewModel.ThemePanel.ThemeSelected += ThemePanel_ThemeSelected;
+            newViewModel.HomePage.FocusSession.PropertyChanged += FocusSession_PropertyChanged;
         }
     }
 
@@ -111,12 +119,117 @@ public partial class MainWindow : Window
 
     private void MinimizeButton_Click(object sender, RoutedEventArgs e)
     {
+        HandleMinimizeRequest();
+    }
+
+    private void FocusFlowView_MinimizeRequested(object? sender, EventArgs e)
+    {
+        HandleMinimizeRequest();
+    }
+
+    private void HandleMinimizeRequest()
+    {
+        if (DataContext is MainWindowViewModel viewModel && viewModel.HomePage.FocusSession.IsFocusing)
+        {
+            ShowFocusFloatingWindow(viewModel.HomePage.FocusSession);
+            return;
+        }
+
         WindowState = WindowState.Minimized;
     }
 
     private void CloseButton_Click(object sender, RoutedEventArgs e)
     {
+        _isClosing = true;
         Close();
+    }
+
+    private void ShowFocusFloatingWindow(FocusSessionViewModel session)
+    {
+        if (_focusFloatingWindow is not null)
+        {
+            _focusFloatingWindow.Activate();
+            Hide();
+            return;
+        }
+
+        _focusFloatingViewModel = new FocusFloatingWindowViewModel(session);
+        _focusFloatingWindow = new FocusFloatingWindow
+        {
+            DataContext = _focusFloatingViewModel,
+            Left = SystemParameters.WorkArea.Right - 324,
+            Top = SystemParameters.WorkArea.Bottom - 244
+        };
+        _focusFloatingWindow.ExpandRequested += FocusFloatingWindow_ExpandRequested;
+        _focusFloatingWindow.Closed += FocusFloatingWindow_Closed;
+        Hide();
+        _focusFloatingWindow.Show();
+        _focusFloatingWindow.Activate();
+    }
+
+    private void FocusFloatingWindow_ExpandRequested(object? sender, EventArgs e)
+    {
+        RestoreFromFocusFloatingWindow();
+    }
+
+    private void FocusFloatingWindow_Closed(object? sender, EventArgs e)
+    {
+        if (!ReferenceEquals(sender, _focusFloatingWindow))
+        {
+            return;
+        }
+
+        _focusFloatingWindow = null;
+        _focusFloatingViewModel?.Dispose();
+        _focusFloatingViewModel = null;
+
+        if (!_isClosing && !IsVisible)
+        {
+            Show();
+            Activate();
+        }
+    }
+
+    private void RestoreFromFocusFloatingWindow()
+    {
+        var floatingWindow = _focusFloatingWindow;
+        _focusFloatingWindow = null;
+        _focusFloatingViewModel?.Dispose();
+        _focusFloatingViewModel = null;
+
+        if (floatingWindow is not null)
+        {
+            floatingWindow.ExpandRequested -= FocusFloatingWindow_ExpandRequested;
+            floatingWindow.Close();
+        }
+
+        if (!IsVisible)
+        {
+            Show();
+        }
+
+        Activate();
+    }
+
+    private void FocusSession_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(FocusSessionViewModel.Stage) &&
+            sender is FocusSessionViewModel session &&
+            !session.IsFocusing &&
+            _focusFloatingWindow is not null)
+        {
+            RestoreFromFocusFloatingWindow();
+        }
+    }
+
+    private void MainWindow_Closed(object? sender, EventArgs e)
+    {
+        _isClosing = true;
+        var floatingWindow = _focusFloatingWindow;
+        _focusFloatingWindow = null;
+        _focusFloatingViewModel?.Dispose();
+        _focusFloatingViewModel = null;
+        floatingWindow?.Close();
     }
 
     private void AuthScrim_MouseDown(object sender, MouseButtonEventArgs e)

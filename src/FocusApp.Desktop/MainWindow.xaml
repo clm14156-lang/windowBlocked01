@@ -534,6 +534,7 @@
 
             <views:FocusFlowView Grid.ColumnSpan="2"
                                  Panel.ZIndex="200"
+                                 MinimizeRequested="FocusFlowView_MinimizeRequested"
                                  DataContext="{Binding HomePage.FocusSession}">
                 <views:FocusFlowView.Style>
                     <Style TargetType="{x:Type views:FocusFlowView}">

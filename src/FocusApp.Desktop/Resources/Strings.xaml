@@ -144,6 +144,9 @@
     <system:String x:Key="ThemeSnow">雪山</system:String>
     <system:String x:Key="ThemeMoon">月光</system:String>
     <system:String x:Key="HomeMinimizeButton">最小化</system:String>
+    <system:String x:Key="FocusFloatingStatus">专注中</system:String>
+    <system:String x:Key="FocusFloatingExpandButton">展开专注窗口</system:String>
+    <system:String x:Key="FocusFloatingCompleteTask">完成当前任务</system:String>
     <system:String x:Key="HomeCloseButton">关闭</system:String>
     <system:String x:Key="HomeGuestAccount">未登录</system:String>
     <system:String x:Key="FocusPreparingTitle">准备开始专注</system:String>

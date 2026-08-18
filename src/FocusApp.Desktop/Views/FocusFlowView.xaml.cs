@@ -13,6 +13,8 @@ public partial class FocusFlowView : UserControl
         InitializeComponent();
     }
 
+    public event EventHandler? MinimizeRequested;
+
     private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         if (e.LeftButton != MouseButtonState.Pressed || IsWithinButton(e.OriginalSource as DependencyObject))
@@ -40,10 +42,7 @@ public partial class FocusFlowView : UserControl
 
     private void MinimizeButton_Click(object sender, RoutedEventArgs e)
     {
-        if (Window.GetWindow(this) is { } window)
-        {
-            window.WindowState = WindowState.Minimized;
-        }
+        MinimizeRequested?.Invoke(this, EventArgs.Empty);
     }
 
     private void CloseButton_Click(object sender, RoutedEventArgs e)
