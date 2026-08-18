@@ -315,6 +315,20 @@
                         </views:BlockingPage.Style>
                     </views:BlockingPage>
 
+                    <views:StatisticsPage DataContext="{Binding StatisticsPage}">
+                        <views:StatisticsPage.Style>
+                            <Style TargetType="{x:Type views:StatisticsPage}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding DataContext.CurrentPage, RelativeSource={RelativeSource AncestorType={x:Type Window}}}"
+                                                 Value="{x:Static vm:NavigationPage.Statistics}">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </views:StatisticsPage.Style>
+                    </views:StatisticsPage>
+
                     <TextBlock Margin="40,28,40,0"
                                HorizontalAlignment="Left"
                                VerticalAlignment="Top"
@@ -332,6 +346,9 @@
                                         <Setter Property="Visibility" Value="Collapsed" />
                                     </DataTrigger>
                                     <DataTrigger Binding="{Binding CurrentPage}" Value="{x:Static vm:NavigationPage.Blocking}">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding CurrentPage}" Value="{x:Static vm:NavigationPage.Statistics}">
                                         <Setter Property="Visibility" Value="Collapsed" />
                                     </DataTrigger>
                                 </Style.Triggers>

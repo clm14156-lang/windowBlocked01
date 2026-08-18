@@ -1,0 +1,83 @@
+<UserControl x:Class="FocusApp.Desktop.Views.TrendChart"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:FocusApp.Desktop.ViewModels"
+             Width="592"
+             Height="170"
+             UseLayoutRounding="True"
+             SnapsToDevicePixels="True">
+    <Grid ClipToBounds="False">
+        <Path Data="{Binding TrendAreaGeometry}"
+              Fill="{DynamicResource AccentTint}"
+              Opacity="0.52" />
+        <Path Data="{Binding TrendCurveGeometry}"
+              Stroke="{DynamicResource AccentPrimary}"
+              StrokeThickness="1.6"
+              StrokeLineJoin="Round"
+              StrokeStartLineCap="Round"
+              StrokeEndLineCap="Round" />
+
+        <ItemsControl Panel.ZIndex="1" ItemsSource="{Binding TrendPoints}">
+            <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+            <ItemsControl.ItemContainerStyle><Style TargetType="ContentPresenter"><Setter Property="Canvas.Left" Value="{Binding ChartX}" /><Setter Property="Canvas.Top" Value="{Binding ChartY}" /></Style></ItemsControl.ItemContainerStyle>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="{x:Type vm:TrendDataPointViewModel}">
+                    <Canvas Width="1" Height="1" ClipToBounds="False">
+                        <Line Canvas.Left="0"
+                              Canvas.Top="0"
+                              X1="0"
+                              Y1="-78"
+                              X2="0"
+                              Y2="0"
+                              Panel.ZIndex="0"
+                              Stroke="{DynamicResource BorderPrimary}"
+                              StrokeDashArray="2,2"
+                              StrokeThickness="1">
+                            <Line.Style><Style TargetType="Line"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding IsHovered}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></Line.Style>
+                        </Line>
+                        <TextBlock Canvas.Left="-26"
+                                   Canvas.Top="-29"
+                                   Width="52"
+                                   TextAlignment="Center"
+                                   FontSize="12"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextSecondary}"
+                                   Text="{Binding DurationLabel}">
+                            <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding IsValueLabelVisible}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                        </TextBlock>
+                        <Button Canvas.Left="-10"
+                                Canvas.Top="-10"
+                                Width="20"
+                                Height="20"
+                                Background="{DynamicResource TransparentBrush}"
+                                BorderThickness="0"
+                                ToolTip="{Binding TooltipText}"
+                                MouseEnter="TrendPoint_MouseEnter"
+                                MouseLeave="TrendPoint_MouseLeave">
+                            <Ellipse Width="12" Height="12" Fill="{DynamicResource AccentPrimary}" Stroke="{DynamicResource SurfacePrimary}" StrokeThickness="2">
+                                <Ellipse.Style><Style TargetType="Ellipse"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding IsMarkerVisible}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger><DataTrigger Binding="{Binding IsHovered}" Value="True"><Setter Property="Width" Value="18" /><Setter Property="Height" Value="18" /><Setter Property="StrokeThickness" Value="3" /></DataTrigger></Style.Triggers></Style></Ellipse.Style>
+                            </Ellipse>
+                        </Button>
+                    </Canvas>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <ItemsControl Panel.ZIndex="2" IsHitTestVisible="False" ItemsSource="{Binding TrendPoints}">
+            <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+            <ItemsControl.ItemContainerStyle><Style TargetType="ContentPresenter"><Setter Property="Canvas.Left" Value="{Binding ChartX}" /><Setter Property="Canvas.Top" Value="{Binding AxisLabelY}" /></Style></ItemsControl.ItemContainerStyle>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="{x:Type vm:TrendDataPointViewModel}">
+                    <TextBlock Width="58"
+                               Margin="-29,0,0,0"
+                               TextAlignment="Center"
+                               FontSize="12"
+                               Foreground="{DynamicResource TextSecondary}"
+                               Text="{Binding DateLabel}">
+                        <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding IsDateLabelVisible}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                    </TextBlock>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </Grid>
+</UserControl>

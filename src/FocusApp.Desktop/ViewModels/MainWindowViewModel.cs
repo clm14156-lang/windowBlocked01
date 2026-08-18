@@ -20,7 +20,8 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         NavigationItemViewModel accountNavigationItem,
         HomePageViewModel homePage,
         SettingsPageViewModel? settingsPage = null,
-        BlockingPageViewModel? blockingPage = null)
+        BlockingPageViewModel? blockingPage = null,
+        StatisticsOverviewViewModel? statisticsPage = null)
     {
         PrimaryNavigationItems = new ReadOnlyCollection<NavigationItemViewModel>(
             primaryNavigationItems.ToList());
@@ -32,6 +33,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
         AccountNavigationItem = accountNavigationItem;
         HomePage = homePage;
+        StatisticsPage = statisticsPage ?? new StatisticsOverviewViewModel();
         SettingsPage = settingsPage ?? new SettingsPageViewModel([], []);
         HomePage.SetForcedModeEnabled(SettingsPage.ForcedModeItem?.IsEnabled == true);
         if (SettingsPage.ForcedModeItem is not null)
@@ -111,6 +113,8 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     public ThemePanelViewModel ThemePanel { get; } = new();
 
     public HomePageViewModel HomePage { get; }
+
+    public StatisticsOverviewViewModel StatisticsPage { get; }
 
     public SettingsPageViewModel SettingsPage { get; }
 

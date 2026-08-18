@@ -28,7 +28,8 @@ public partial class App : Application
                 accountNavigationItem,
                 CreateHomePageViewModel(),
                 CreateSettingsPageViewModel(),
-                CreateBlockingPageViewModel())
+                CreateBlockingPageViewModel(),
+                new StatisticsOverviewViewModel())
         };
         MainWindow.Show();
     }
