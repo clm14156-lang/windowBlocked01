@@ -27,6 +27,10 @@ public sealed class FocusFloatingWindowViewModel : INotifyPropertyChanged, IDisp
 
     public string RemainingTimeDisplay => _session.RemainingTimeDisplay;
 
+    public string VerticalRemainingDisplay => _session.RemainingFocusSeconds >= 60
+        ? (_session.RemainingFocusSeconds / 60).ToString()
+        : _session.RemainingFocusSeconds.ToString();
+
     public double RemainingProgress => _session.RemainingProgress;
 
     public bool IsFocusing => _session.IsFocusing;
@@ -59,6 +63,10 @@ public sealed class FocusFloatingWindowViewModel : INotifyPropertyChanged, IDisp
             or nameof(FocusSessionViewModel.IsFocusing))
         {
             OnPropertyChanged(e.PropertyName);
+            if (e.PropertyName == nameof(FocusSessionViewModel.RemainingTimeDisplay))
+            {
+                OnPropertyChanged(nameof(VerticalRemainingDisplay));
+            }
         }
     }
 
