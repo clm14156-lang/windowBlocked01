@@ -33,6 +33,19 @@ public sealed class FocusTargetModalViewModelTests
     }
 
     [Fact]
+    public void SelectingInitialTarget_ExplicitlyEnablesTargetMode()
+    {
+        var viewModel = new FocusTargetModalViewModel();
+        var initialTarget = viewModel.VisibleTargets.Single(target => target.Name == "学习");
+
+        Assert.False(viewModel.HasSelectedTarget);
+        viewModel.SelectTargetCommand.Execute(initialTarget);
+
+        Assert.True(viewModel.HasSelectedTarget);
+        Assert.Equal("本次专注目标：学习", viewModel.SelectedTargetButtonText);
+    }
+
+    [Fact]
     public void CreatingTarget_AddsItToRecentTargetsAndSelectsIt()
     {
         var viewModel = new FocusTargetModalViewModel();

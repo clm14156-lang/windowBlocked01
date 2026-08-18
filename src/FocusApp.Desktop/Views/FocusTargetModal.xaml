@@ -6,6 +6,7 @@
              UseLayoutRounding="True"
              SnapsToDevicePixels="True">
     <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <Style x:Key="TargetPlainButton" TargetType="{x:Type Button}">
             <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
             <Setter Property="BorderThickness" Value="0" />
@@ -129,7 +130,7 @@
             <Grid Grid.Row="1" VerticalAlignment="Center">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition />
-                    <ColumnDefinition Width="30" />
+                    <ColumnDefinition Width="64" />
                 </Grid.ColumnDefinitions>
                 <ItemsControl ItemsSource="{Binding VisibleTargets}">
                     <ItemsControl.ItemsPanel>
@@ -147,24 +148,20 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-                <Button Grid.Column="1"
-                        Width="28"
-                        Height="36"
-                        HorizontalAlignment="Right"
-                        AutomationProperties.Name="{DynamicResource FocusTargetMore}"
-                        Command="{Binding ShowMoreTargetsCommand}">
-                    <Button.Style>
-                        <Style TargetType="{x:Type Button}" BasedOn="{StaticResource TargetPlainButton}">
-                            <Setter Property="Visibility" Value="Collapsed" />
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding HasMoreTargets}" Value="True">
-                                    <Setter Property="Visibility" Value="Visible" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Button.Style>
-                    <TextBlock FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="{DynamicResource TextSecondary}" Text="&#xE76C;" />
-                </Button>
+                <StackPanel Grid.Column="1" HorizontalAlignment="Right" Orientation="Horizontal">
+                    <Button Width="28" Height="36" AutomationProperties.Name="清除目标" Command="{Binding ClearTargetCommand}" Style="{StaticResource TargetPlainButton}" Visibility="{Binding HasSelectedTarget, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <TextBlock FontSize="16" Foreground="{DynamicResource TextSecondary}" Text="×" />
+                    </Button>
+                    <Button Width="28" Height="36" AutomationProperties.Name="{DynamicResource FocusTargetMore}" Command="{Binding ShowMoreTargetsCommand}">
+                        <Button.Style>
+                            <Style TargetType="{x:Type Button}" BasedOn="{StaticResource TargetPlainButton}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers><DataTrigger Binding="{Binding HasMoreTargets}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                        <TextBlock FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="{DynamicResource TextSecondary}" Text="&#xE76C;" />
+                    </Button>
+                </StackPanel>
             </Grid>
 
             <Grid Grid.Row="2">

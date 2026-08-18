@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
@@ -22,6 +23,9 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     private int _todayTotalSeconds;
     private DateTime _completedAt;
     private bool _isEndConfirmationOpen;
+    private FocusTargetViewModel? _activeTarget;
+    private bool _isCompletedTasksExpanded;
+    private readonly HashSet<FocusTaskViewModel> _sessionCompletedTaskSet = [];
 
     public FocusSessionViewModel(Func<DateTime>? nowProvider = null, bool runTimer = true)
     {
@@ -39,6 +43,14 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         ConfirmEndCommand = new RelayCommand<object>(_ => CompleteFocus());
         FocusAgainCommand = new RelayCommand<object>(_ => ReturnHome());
         ReturnHomeCommand = new RelayCommand<object>(_ => ReturnHome());
+        AddTaskCommand = new RelayCommand<object>(_ => AddTask());
+        ToggleTaskCompletedCommand = new RelayCommand<FocusTaskViewModel>(ToggleTaskCompleted);
+        ToggleTaskMenuCommand = new RelayCommand<FocusTaskViewModel>(ToggleTaskMenu);
+        BeginEditTaskCommand = new RelayCommand<FocusTaskViewModel>(BeginEditTask);
+        ConfirmEditTaskCommand = new RelayCommand<FocusTaskViewModel>(ConfirmEditTask);
+        DeleteTaskCommand = new RelayCommand<FocusTaskViewModel>(DeleteTask);
+        ToggleCompletedTasksCommand = new RelayCommand<object>(_ => IsCompletedTasksExpanded = !IsCompletedTasksExpanded);
+        DismissTaskMenusCommand = new RelayCommand<object>(_ => CloseTaskMenus());
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -54,6 +66,69 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     public ICommand FocusAgainCommand { get; }
 
     public ICommand ReturnHomeCommand { get; }
+
+    public ICommand AddTaskCommand { get; }
+    public ICommand ToggleTaskCompletedCommand { get; }
+    public ICommand ToggleTaskMenuCommand { get; }
+    public ICommand BeginEditTaskCommand { get; }
+    public ICommand ConfirmEditTaskCommand { get; }
+    public ICommand DeleteTaskCommand { get; }
+    public ICommand ToggleCompletedTasksCommand { get; }
+    public ICommand DismissTaskMenusCommand { get; }
+
+    public ObservableCollection<FocusTaskViewModel> PendingTasks { get; } = [];
+    public ObservableCollection<FocusTaskViewModel> CompletedTasks { get; } = [];
+
+    public ObservableCollection<FocusTaskViewModel> SessionCompletedTasks { get; } = [];
+
+    public int SessionCompletedTaskCount => SessionCompletedTasks.Count;
+
+    public string SessionCompletedTaskSummary => $"本次完成 {SessionCompletedTaskCount} 个任务";
+
+    public FocusTargetViewModel? ActiveTarget
+    {
+        get => _activeTarget;
+        private set
+        {
+            if (ReferenceEquals(_activeTarget, value))
+            {
+                return;
+            }
+
+            UnsubscribeTarget(_activeTarget);
+            _activeTarget = value;
+            SubscribeTarget(_activeTarget);
+            RefreshTaskGroups();
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(HasTarget));
+            OnPropertyChanged(nameof(TargetName));
+            OnPropertyChanged(nameof(PendingTaskCount));
+            OnPropertyChanged(nameof(PendingTaskSummary));
+        }
+    }
+
+    public bool HasTarget => ActiveTarget is not null;
+
+    public string TargetName => ActiveTarget?.Name ?? string.Empty;
+
+    public int PendingTaskCount => PendingTasks.Count;
+
+    public string PendingTaskSummary => $"{PendingTaskCount} 个未完成任务";
+
+    public bool IsCompletedTasksExpanded
+    {
+        get => _isCompletedTasksExpanded;
+        private set
+        {
+            if (_isCompletedTasksExpanded == value)
+            {
+                return;
+            }
+
+            _isCompletedTasksExpanded = value;
+            OnPropertyChanged();
+        }
+    }
 
     public FocusFlowStage Stage
     {
@@ -167,7 +242,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
 
     private bool RunTimer { get; }
 
-    public void Start(int minutes)
+    public void Start(int minutes, FocusTargetViewModel? target = null)
     {
         if (minutes <= 0)
         {
@@ -182,6 +257,13 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         _totalFocusSeconds = checked(minutes * 60);
         RemainingFocusSeconds = _totalFocusSeconds;
         IsEndConfirmationOpen = false;
+        ActiveTarget = target;
+        _sessionCompletedTaskSet.Clear();
+        SessionCompletedTasks.Clear();
+        OnPropertyChanged(nameof(SessionCompletedTaskCount));
+        OnPropertyChanged(nameof(SessionCompletedTaskSummary));
+        IsCompletedTasksExpanded = false;
+        CloseTaskMenus();
         Stage = FocusFlowStage.Preparing;
         if (RunTimer)
         {
@@ -329,6 +411,190 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         _timer.Stop();
         IsEndConfirmationOpen = false;
         Stage = FocusFlowStage.Idle;
+    }
+
+    private void AddTask()
+    {
+        if (!HasTarget)
+        {
+            return;
+        }
+
+        CloseTaskMenus();
+        var task = new FocusTaskViewModel("新任务", isNew: true);
+        ActiveTarget!.Tasks.Add(task);
+        task.BeginEdit();
+        RefreshTaskGroups();
+    }
+
+    private void ToggleTaskCompleted(FocusTaskViewModel? task)
+    {
+        if (task is null)
+        {
+            return;
+        }
+
+        task.IsCompleted = !task.IsCompleted;
+        CloseTaskMenus();
+        RefreshTaskGroups();
+    }
+
+    private void ToggleTaskMenu(FocusTaskViewModel? task)
+    {
+        if (task is null)
+        {
+            return;
+        }
+
+        foreach (var item in ActiveTarget?.Tasks ?? [])
+        {
+            item.IsFocusMenuOpen = ReferenceEquals(item, task) && !item.IsFocusMenuOpen;
+        }
+    }
+
+    private static void BeginEditTask(FocusTaskViewModel? task)
+    {
+        task?.BeginEdit();
+    }
+
+    private void ConfirmEditTask(FocusTaskViewModel? task)
+    {
+        if (task is null)
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(task.EditName))
+        {
+            if (task.IsNew)
+            {
+                ActiveTarget?.Tasks.Remove(task);
+            }
+            else
+            {
+                task.CancelEdit();
+            }
+
+            RefreshTaskGroups();
+            return;
+        }
+
+        task.CommitEdit();
+        RefreshTaskGroups();
+    }
+
+    private void DeleteTask(FocusTaskViewModel? task)
+    {
+        if (task is not null)
+        {
+            ActiveTarget?.Tasks.Remove(task);
+            _sessionCompletedTaskSet.Remove(task);
+            SessionCompletedTasks.Remove(task);
+            OnPropertyChanged(nameof(SessionCompletedTaskCount));
+            OnPropertyChanged(nameof(SessionCompletedTaskSummary));
+            RefreshTaskGroups();
+        }
+    }
+
+    private void SubscribeTarget(FocusTargetViewModel? target)
+    {
+        if (target is null)
+        {
+            return;
+        }
+
+        target.Tasks.CollectionChanged += Tasks_CollectionChanged;
+        foreach (var task in target.Tasks)
+        {
+            task.PropertyChanged += Task_PropertyChanged;
+        }
+    }
+
+    private void UnsubscribeTarget(FocusTargetViewModel? target)
+    {
+        if (target is null)
+        {
+            return;
+        }
+
+        target.Tasks.CollectionChanged -= Tasks_CollectionChanged;
+        foreach (var task in target.Tasks)
+        {
+            task.PropertyChanged -= Task_PropertyChanged;
+        }
+    }
+
+    private void Tasks_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+    {
+        if (e.OldItems is not null)
+        {
+            foreach (FocusTaskViewModel task in e.OldItems)
+            {
+                task.PropertyChanged -= Task_PropertyChanged;
+            }
+        }
+
+        if (e.NewItems is not null)
+        {
+            foreach (FocusTaskViewModel task in e.NewItems)
+            {
+                task.PropertyChanged += Task_PropertyChanged;
+            }
+        }
+
+        RefreshTaskGroups();
+    }
+
+    private void Task_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(FocusTaskViewModel.IsCompleted) && sender is FocusTaskViewModel changedTask)
+        {
+            if (Stage == FocusFlowStage.Focusing && changedTask.IsCompleted)
+            {
+                if (_sessionCompletedTaskSet.Add(changedTask))
+                {
+                    SessionCompletedTasks.Add(changedTask);
+                    OnPropertyChanged(nameof(SessionCompletedTaskCount));
+                    OnPropertyChanged(nameof(SessionCompletedTaskSummary));
+                }
+            }
+            else if (!changedTask.IsCompleted && _sessionCompletedTaskSet.Remove(changedTask))
+            {
+                SessionCompletedTasks.Remove(changedTask);
+                OnPropertyChanged(nameof(SessionCompletedTaskCount));
+                OnPropertyChanged(nameof(SessionCompletedTaskSummary));
+            }
+        }
+
+        if (e.PropertyName is nameof(FocusTaskViewModel.IsCompleted) or nameof(FocusTaskViewModel.Name) or nameof(FocusTaskViewModel.IsEditing))
+        {
+            RefreshTaskGroups();
+        }
+    }
+
+    private void RefreshTaskGroups()
+    {
+        PendingTasks.Clear();
+        CompletedTasks.Clear();
+        if (ActiveTarget is not null)
+        {
+            foreach (var task in ActiveTarget.Tasks)
+            {
+                (task.IsCompleted ? CompletedTasks : PendingTasks).Add(task);
+            }
+        }
+
+        OnPropertyChanged(nameof(PendingTaskCount));
+        OnPropertyChanged(nameof(PendingTaskSummary));
+    }
+
+    private void CloseTaskMenus()
+    {
+        foreach (var task in ActiveTarget?.Tasks ?? [])
+        {
+            task.IsMenuOpen = false;
+            task.IsFocusMenuOpen = false;
+        }
     }
 
     private void StartTimerIfEnabled()

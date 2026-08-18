@@ -25,13 +25,21 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
         ActivateEntryCommand = new RelayCommand<SettingsEntryItemViewModel>(ActivateEntry);
         OpenRuleModalCommand = new RelayCommand<object>(_ => RuleModal.Open());
         DeleteRuleCommand = new RelayCommand<AutomaticRuleItemViewModel>(DeleteRule);
+        ToggleRuleCommand = new RelayCommand<AutomaticRuleItemViewModel>(ToggleRule);
         EditRuleCommand = new RelayCommand<AutomaticRuleItemViewModel>(_ => { });
+        RuleModal.ValidateRule = ValidateRule;
         RuleModal.RuleCreated += RuleModal_RuleCreated;
+        if (AutomaticBlockingItem is not null)
+        {
+            AutomaticBlockingItem.PropertyChanged += AutomaticBlockingItem_PropertyChanged;
+        }
     }
 
     private readonly string _dailyLabel;
 
     public event PropertyChangedEventHandler? PropertyChanged;
+
+    public event EventHandler? RulesChanged;
 
     public ReadOnlyCollection<SettingsToggleItemViewModel> ToggleItems { get; }
 
@@ -40,6 +48,8 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
     public ReadOnlyCollection<SettingsEntryItemViewModel> EntryItems { get; }
 
     public SettingsToggleItemViewModel? AutomaticBlockingItem { get; }
+
+    public bool IsAutomaticBlockingEnabled => AutomaticBlockingItem?.IsEnabled == true;
 
     public SettingsToggleItemViewModel? ForcedModeItem { get; }
 
@@ -53,6 +63,8 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
 
     public ICommand DeleteRuleCommand { get; }
 
+    public ICommand ToggleRuleCommand { get; }
+
     public ICommand EditRuleCommand { get; }
 
     public string? LastActivatedEntryKey => _activeEntry?.Key;
@@ -63,18 +75,78 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
             ? string.Join(" / ", rule.SelectedDays.Select(day => day.DisplayName))
             : _dailyLabel;
 
-        AutomaticRules.Add(new AutomaticRuleItemViewModel(
+        var item = new AutomaticRuleItemViewModel(
             Guid.NewGuid(),
             repeatText,
-            $"{rule.StartTime} – {rule.EndTime}"));
+            $"{rule.StartTime} – {rule.EndTime}",
+            rule.SelectedDays.Select(day => day.Key),
+            rule.StartMinutes,
+            rule.EndMinutes);
+        item.PropertyChanged += AutomaticRule_PropertyChanged;
+        AutomaticRules.Add(item);
+        RulesChanged?.Invoke(this, EventArgs.Empty);
     }
 
     private void DeleteRule(AutomaticRuleItemViewModel? rule)
     {
         if (rule is not null)
         {
+            rule.PropertyChanged -= AutomaticRule_PropertyChanged;
             AutomaticRules.Remove(rule);
+            RulesChanged?.Invoke(this, EventArgs.Empty);
         }
+    }
+
+    private void AutomaticRule_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(AutomaticRuleItemViewModel.IsEnabled))
+        {
+            RulesChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    private void AutomaticBlockingItem_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(SettingsToggleItemViewModel.IsEnabled))
+        {
+            OnPropertyChanged(nameof(IsAutomaticBlockingEnabled));
+            RulesChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    private void ToggleRule(AutomaticRuleItemViewModel? rule)
+    {
+        if (rule is not null)
+        {
+            rule.IsEnabled = !rule.IsEnabled;
+            RulesChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    private string? ValidateRule(AutomaticRuleDraft draft)
+    {
+        var newDays = draft.SelectedDays.Select(day => day.Key).ToHashSet(StringComparer.Ordinal);
+        foreach (var existing in AutomaticRules)
+        {
+            if (!existing.IsEnabled || !existing.DayKeys.Any(newDays.Contains))
+            {
+                continue;
+            }
+
+            var sameDays = existing.DayKeys.SetEquals(newDays);
+            if (sameDays && existing.StartMinutes == draft.StartMinutes && existing.EndMinutes == draft.EndMinutes)
+            {
+                return "已存在相同的自动屏蔽规则";
+            }
+
+            if (existing.StartMinutes <= draft.StartMinutes && existing.EndMinutes >= draft.EndMinutes &&
+                existing.DayKeys.IsSupersetOf(newDays))
+            {
+                return "该时间段已被现有规则覆盖";
+            }
+        }
+
+        return null;
     }
 
     private void ActivateEntry(SettingsEntryItemViewModel? entry)
@@ -100,20 +172,49 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
     }
 }
 
-public sealed class AutomaticRuleItemViewModel
+public sealed class AutomaticRuleItemViewModel : INotifyPropertyChanged
 {
-    public AutomaticRuleItemViewModel(Guid id, string repeatText, string timeRangeText)
+    private bool _isEnabled = true;
+
+    public AutomaticRuleItemViewModel(Guid id, string repeatText, string timeRangeText,
+        IEnumerable<string>? dayKeys = null, double startMinutes = 0, double endMinutes = 0)
     {
         Id = id;
         RepeatText = repeatText;
         TimeRangeText = timeRangeText;
+        DayKeys = new HashSet<string>(dayKeys ?? [], StringComparer.Ordinal);
+        StartMinutes = startMinutes;
+        EndMinutes = endMinutes;
     }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
 
     public Guid Id { get; }
 
     public string RepeatText { get; }
 
     public string TimeRangeText { get; }
+
+    public HashSet<string> DayKeys { get; }
+
+    public double StartMinutes { get; }
+
+    public double EndMinutes { get; }
+
+    public bool IsEnabled
+    {
+        get => _isEnabled;
+        set
+        {
+            if (_isEnabled == value)
+            {
+                return;
+            }
+
+            _isEnabled = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsEnabled)));
+        }
+    }
 }
 
 public sealed class SettingsToggleItemViewModel : INotifyPropertyChanged

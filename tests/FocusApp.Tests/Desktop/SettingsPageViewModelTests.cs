@@ -90,6 +90,130 @@ public sealed class SettingsPageViewModelTests
         Assert.Equal("周一 / 周三 / 周五", viewModel.AutomaticRules[0].RepeatText);
     }
 
+    [Fact]
+    public void RuleValidation_RejectsDuplicateAndCoveredIntervalsButAllowsPartialOverlap()
+    {
+        var automatic = new SettingsToggleItemViewModel("AutomaticBlocking", "Automatic", "Description", "Icon", true);
+        var modal = CreateRuleModal();
+        var viewModel = new SettingsPageViewModel([automatic], [], modal, "每天");
+
+        modal.Open();
+        modal.ConfirmCommand.Execute(null);
+        Assert.Single(viewModel.AutomaticRules);
+
+        modal.Open();
+        modal.ConfirmCommand.Execute(null);
+        Assert.Equal("已存在相同的自动屏蔽规则", modal.ValidationMessage);
+        Assert.Single(viewModel.AutomaticRules);
+
+        modal.Open();
+        modal.EndTimeText = "10:00";
+        modal.ConfirmCommand.Execute(null);
+        Assert.Equal("该时间段已被现有规则覆盖", modal.ValidationMessage);
+        Assert.Single(viewModel.AutomaticRules);
+
+        modal.Open();
+        modal.StartTimeText = "10:00";
+        modal.EndTimeText = "14:00";
+        modal.ConfirmCommand.Execute(null);
+        Assert.Equal(2, viewModel.AutomaticRules.Count);
+    }
+
+    [Fact]
+    public void HomeRulePreview_SelectsNearestEnabledOccurrenceAndUpdatesAfterDelete()
+    {
+        var home = new HomePageViewModel([new HomeDurationOptionViewModel("25 分钟", "", true, 25)]);
+        var monday = new AutomaticRuleItemViewModel(Guid.NewGuid(), "每天", "22:00 – 00:00", ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"], 1320, 1440);
+        var earlier = new AutomaticRuleItemViewModel(Guid.NewGuid(), "每天", "09:00 – 10:00", ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"], 540, 600);
+
+        home.UpdateAutomaticRules([monday, earlier], new DateTime(2026, 8, 17, 12, 0, 0));
+
+        Assert.True(home.HasNextAutomaticRule);
+        Assert.Equal("自动屏蔽 · 22:00", home.NextAutomaticBlockingDisplay);
+        Assert.Contains("持续 2 小时", home.NextAutomaticBlockingToolTip);
+
+        monday.IsEnabled = false;
+        home.UpdateAutomaticRules([monday, earlier], new DateTime(2026, 8, 17, 12, 0, 0));
+        Assert.False(home.HasNextAutomaticRule);
+    }
+
+    [Fact]
+    public void HomeRulePreview_HidesWhenGlobalAutomaticBlockingIsDisabled()
+    {
+        var home = new HomePageViewModel([new HomeDurationOptionViewModel("25 分钟", "", true, 25)]);
+        var rule = new AutomaticRuleItemViewModel(
+            Guid.NewGuid(), "每天", "09:00 – 10:00",
+            ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"], 540, 600);
+        var now = new DateTime(2026, 8, 17, 8, 0, 0);
+
+        home.UpdateAutomaticRules([rule], false, now);
+        Assert.False(home.HasNextAutomaticRule);
+        Assert.Empty(home.NextAutomaticStartDisplay);
+
+        home.UpdateAutomaticRules([rule], true, now);
+        Assert.True(home.HasNextAutomaticRule);
+        Assert.Equal("09:00", home.NextAutomaticStartDisplay);
+    }
+
+    [Fact]
+    public void AutomaticBlocking_StartsFocusOnceForAnActiveRuleAndIgnoresOverlap()
+    {
+        var home = new HomePageViewModel([new HomeDurationOptionViewModel("25 分钟", "", true, 25)]);
+        var first = new AutomaticRuleItemViewModel(
+            Guid.NewGuid(), "每天", "09:00 – 11:00",
+            ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"], 540, 660);
+        var overlap = new AutomaticRuleItemViewModel(
+            Guid.NewGuid(), "每天", "10:00 – 12:00",
+            ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"], 600, 720);
+        var now = new DateTime(2026, 8, 17, 10, 30, 0);
+
+        home.EvaluateAutomaticBlocking([first, overlap], true, now);
+        home.EvaluateAutomaticBlocking([first, overlap], true, now.AddSeconds(1));
+
+        Assert.True(home.FocusSession.IsPreparing);
+        home.FocusSession.CancelPreparationCommand.Execute(null);
+        home.EvaluateAutomaticBlocking([first, overlap], true, now.AddMinutes(1));
+        Assert.False(home.FocusSession.IsActive);
+    }
+
+    [Fact]
+    public void AutomaticBlocking_StartsWhenApplicationOpensInsideRuleWindow()
+    {
+        var home = new HomePageViewModel([new HomeDurationOptionViewModel("25 分钟", "", true, 25)]);
+        var rule = new AutomaticRuleItemViewModel(
+            Guid.NewGuid(), "每天", "09:00 – 10:00",
+            ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"], 540, 600);
+
+        home.EvaluateAutomaticBlocking(
+            [rule], true, new DateTime(2026, 8, 17, 9, 30, 0));
+
+        Assert.True(home.FocusSession.IsPreparing);
+        home.FocusSession.CancelPreparationCommand.Execute(null);
+    }
+
+    [Fact]
+    public void AutomaticBlocking_HidesCompletedRuleForTheRestOfTheDay()
+    {
+        var home = new HomePageViewModel([new HomeDurationOptionViewModel("25 分钟", "", true, 25)]);
+        var rule = new AutomaticRuleItemViewModel(
+            Guid.NewGuid(), "每天", "08:41 – 08:42",
+            ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"], 521, 522);
+        var beforeStart = new DateTime(2026, 8, 17, 8, 40, 0);
+
+        home.UpdateAutomaticRules([rule], true, beforeStart);
+        Assert.Equal("08:41", home.NextAutomaticStartDisplay);
+
+        home.EvaluateAutomaticBlocking([rule], true, beforeStart.AddMinutes(1));
+        Assert.False(home.HasNextAutomaticRule);
+        home.FocusSession.CancelPreparationCommand.Execute(null);
+        home.EvaluateAutomaticBlocking([rule], true, beforeStart.AddMinutes(2));
+
+        Assert.False(home.HasNextAutomaticRule);
+
+        home.UpdateAutomaticRules([rule], true, beforeStart.Date.AddDays(1).AddHours(8).AddMinutes(40));
+        Assert.Equal("08:41", home.NextAutomaticStartDisplay);
+    }
+
     private static AutomaticRuleModalViewModel CreateRuleModal()
     {
         return new AutomaticRuleModalViewModel(

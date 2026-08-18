@@ -244,14 +244,27 @@
                 </views:TimeRangeSlider.Style>
             </views:TimeRangeSlider>
 
+            <TextBlock Canvas.Left="18" Width="234" FontSize="12" Foreground="{DynamicResource Danger}" Text="{Binding ValidationMessage}">
+                <TextBlock.Style>
+                    <Style TargetType="{x:Type TextBlock}">
+                        <Setter Property="Canvas.Top" Value="274" />
+                        <Setter Property="Visibility" Value="Visible" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsCustom}" Value="True"><Setter Property="Canvas.Top" Value="354" /></DataTrigger>
+                            <DataTrigger Binding="{Binding ValidationMessage}" Value=""><Setter Property="Visibility" Value="Collapsed" /></DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+
             <Border Canvas.Left="18" Width="234" Height="1" Background="{DynamicResource BorderPrimary}">
-                <Border.Style><Style TargetType="{x:Type Border}"><Setter Property="Canvas.Top" Value="296" /><Style.Triggers><DataTrigger Binding="{Binding IsCustom}" Value="True"><Setter Property="Canvas.Top" Value="376" /></DataTrigger></Style.Triggers></Style></Border.Style>
+                <Border.Style><Style TargetType="{x:Type Border}"><Setter Property="Canvas.Top" Value="306" /><Style.Triggers><DataTrigger Binding="{Binding IsCustom}" Value="True"><Setter Property="Canvas.Top" Value="386" /></DataTrigger></Style.Triggers></Style></Border.Style>
             </Border>
             <Button Canvas.Left="96" Content="{DynamicResource AutomaticRuleCancel}" Command="{Binding CloseCommand}">
-                <Button.Style><Style TargetType="{x:Type Button}" BasedOn="{StaticResource RuleSecondaryButtonStyle}"><Setter Property="Canvas.Top" Value="310" /><Style.Triggers><DataTrigger Binding="{Binding IsCustom}" Value="True"><Setter Property="Canvas.Top" Value="390" /></DataTrigger></Style.Triggers></Style></Button.Style>
+                <Button.Style><Style TargetType="{x:Type Button}" BasedOn="{StaticResource RuleSecondaryButtonStyle}"><Setter Property="Canvas.Top" Value="320" /><Style.Triggers><DataTrigger Binding="{Binding IsCustom}" Value="True"><Setter Property="Canvas.Top" Value="400" /></DataTrigger></Style.Triggers></Style></Button.Style>
             </Button>
             <Button Canvas.Left="180" Content="{DynamicResource AutomaticRuleAdd}" Command="{Binding ConfirmCommand}">
-                <Button.Style><Style TargetType="{x:Type Button}" BasedOn="{StaticResource RulePrimaryButtonStyle}"><Setter Property="Canvas.Top" Value="310" /><Style.Triggers><DataTrigger Binding="{Binding IsCustom}" Value="True"><Setter Property="Canvas.Top" Value="390" /></DataTrigger></Style.Triggers></Style></Button.Style>
+                <Button.Style><Style TargetType="{x:Type Button}" BasedOn="{StaticResource RulePrimaryButtonStyle}"><Setter Property="Canvas.Top" Value="320" /><Style.Triggers><DataTrigger Binding="{Binding IsCustom}" Value="True"><Setter Property="Canvas.Top" Value="400" /></DataTrigger></Style.Triggers></Style></Button.Style>
             </Button>
         </Canvas>
     </Border>

@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
+using System.Windows.Threading;
 
 namespace FocusApp.Desktop.ViewModels;
 
@@ -12,6 +13,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private bool _isAccountPanelOpen;
     private string _currentAccount = string.Empty;
     private MembershipType _membershipType = MembershipType.Normal;
+    private readonly DispatcherTimer _automaticBlockingTimer;
 
     public MainWindowViewModel(
         IEnumerable<NavigationItemViewModel> primaryNavigationItems,
@@ -31,6 +33,29 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         AccountNavigationItem = accountNavigationItem;
         HomePage = homePage;
         SettingsPage = settingsPage ?? new SettingsPageViewModel([], []);
+        SettingsPage.RulesChanged += (_, _) =>
+        {
+            HomePage.UpdateAutomaticRules(
+                SettingsPage.AutomaticRules,
+                SettingsPage.IsAutomaticBlockingEnabled);
+            HomePage.EvaluateAutomaticBlocking(
+                SettingsPage.AutomaticRules,
+                SettingsPage.IsAutomaticBlockingEnabled);
+        };
+        HomePage.UpdateAutomaticRules(
+            SettingsPage.AutomaticRules,
+            SettingsPage.IsAutomaticBlockingEnabled);
+        HomePage.EvaluateAutomaticBlocking(
+            SettingsPage.AutomaticRules,
+            SettingsPage.IsAutomaticBlockingEnabled);
+        _automaticBlockingTimer = new DispatcherTimer(DispatcherPriority.Normal)
+        {
+            Interval = TimeSpan.FromSeconds(1)
+        };
+        _automaticBlockingTimer.Tick += (_, _) => HomePage.EvaluateAutomaticBlocking(
+            SettingsPage.AutomaticRules,
+            SettingsPage.IsAutomaticBlockingEnabled);
+        _automaticBlockingTimer.Start();
         BlockingPage = blockingPage ?? new BlockingPageViewModel([], [], "Added websites: {0}", "Added applications: {0}");
         AuthModal = new AuthModalViewModel();
         AuthModal.LoginSucceeded += AuthModal_LoginSucceeded;

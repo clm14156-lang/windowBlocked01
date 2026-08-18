@@ -16,6 +16,7 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
     private string _newTargetName = string.Empty;
     private string _newTaskName = string.Empty;
     private int _visibleTargetStart;
+    private bool _hasSelectedTarget;
 
     public FocusTargetModalViewModel()
     {
@@ -45,7 +46,6 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
         ];
 
         _selectedTarget = _targets[1];
-        _selectedTarget.IsSelected = true;
         VisibleTargets = new ObservableCollection<FocusTargetViewModel>();
         RefreshVisibleTargets();
 
@@ -62,6 +62,7 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
         BeginEditTaskCommand = new RelayCommand<FocusTaskViewModel>(BeginEditTask);
         ConfirmEditTaskCommand = new RelayCommand<FocusTaskViewModel>(ConfirmEditTask);
         DeleteTaskCommand = new RelayCommand<FocusTaskViewModel>(DeleteTask);
+        ClearTargetCommand = new RelayCommand<object>(_ => ClearTarget());
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -96,6 +97,8 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
 
     public ICommand DeleteTaskCommand { get; }
 
+    public ICommand ClearTargetCommand { get; }
+
     public bool IsOpen
     {
         get => _isOpen;
@@ -116,7 +119,13 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
 
     public bool HasMoreTargets => _targets.Count > VisibleTargetCount;
 
-    public string SelectedTargetButtonText => $"本次专注目标：{SelectedTarget.Name}";
+    public bool HasSelectedTarget
+    {
+        get => _hasSelectedTarget;
+        private set => SetField(ref _hasSelectedTarget, value);
+    }
+
+    public string SelectedTargetButtonText => HasSelectedTarget ? $"本次专注目标：{SelectedTarget.Name}" : "本次专注目标（可选）";
 
     public FocusTargetViewModel SelectedTarget
     {
@@ -132,6 +141,7 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
             CloseTaskMenus();
             _selectedTarget = value;
             _selectedTarget.IsSelected = true;
+            HasSelectedTarget = true;
             IsAddingTask = false;
             NewTaskName = string.Empty;
             OnPropertyChanged();
@@ -182,8 +192,23 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
     {
         if (target is not null)
         {
+            if (ReferenceEquals(SelectedTarget, target))
+            {
+                HasSelectedTarget = true;
+                OnPropertyChanged(nameof(SelectedTargetButtonText));
+                return;
+            }
+
             SelectedTarget = target;
         }
+    }
+
+    private void ClearTarget()
+    {
+        HasSelectedTarget = false;
+        SelectedTarget.IsSelected = false;
+        CloseTaskMenus();
+        OnPropertyChanged(nameof(SelectedTargetButtonText));
     }
 
     private void ShowMoreTargets()

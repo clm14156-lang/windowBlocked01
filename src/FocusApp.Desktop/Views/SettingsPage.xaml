@@ -261,14 +261,15 @@
                                         <DataTemplate>
                                             <Grid Height="44" Margin="22,0,14,0">
                                                 <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="18" /><ColumnDefinition Width="230" /><ColumnDefinition Width="*" /><ColumnDefinition Width="38" /><ColumnDefinition Width="38" />
+                                                    <ColumnDefinition Width="18" /><ColumnDefinition Width="210" /><ColumnDefinition Width="*" /><ColumnDefinition Width="52" /><ColumnDefinition Width="38" /><ColumnDefinition Width="38" />
                                                 </Grid.ColumnDefinitions>
-                                                <Border Grid.ColumnSpan="5" Height="1" VerticalAlignment="Top" Background="{DynamicResource BorderPrimary}" />
+                                                <Border Grid.ColumnSpan="6" Height="1" VerticalAlignment="Top" Background="{DynamicResource BorderPrimary}" />
                                                 <Ellipse Grid.Column="0" Width="7" Height="7" HorizontalAlignment="Left" Fill="{DynamicResource AccentPrimary}" />
                                                 <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="13" Text="{Binding RepeatText}" />
                                                 <TextBlock Grid.Column="2" VerticalAlignment="Center" FontFamily="{DynamicResource FontFamilyNumeric}" FontSize="13" Text="{Binding TimeRangeText}" />
-                                                <Button Grid.Column="3" AutomationProperties.Name="{DynamicResource AutomaticRuleEdit}" Command="{Binding DataContext.EditRuleCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}" CommandParameter="{Binding}" Style="{StaticResource SettingsRuleIconButtonStyle}" ToolTip="{DynamicResource AutomaticRuleEdit}"><TextBlock FontFamily="Segoe MDL2 Assets" FontSize="16" Text="&#xE70F;" /></Button>
-                                                <Button Grid.Column="4" AutomationProperties.Name="{DynamicResource AutomaticRuleDelete}" Command="{Binding DataContext.DeleteRuleCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}" CommandParameter="{Binding}" Style="{StaticResource SettingsRuleIconButtonStyle}" ToolTip="{DynamicResource AutomaticRuleDelete}"><TextBlock FontFamily="Segoe MDL2 Assets" FontSize="16" Text="&#xE74D;" /></Button>
+                                                <CheckBox Grid.Column="3" HorizontalAlignment="Center" VerticalAlignment="Center" IsChecked="{Binding IsEnabled, Mode=TwoWay}" ToolTip="启用规则" />
+                                                <Button Grid.Column="4" AutomationProperties.Name="{DynamicResource AutomaticRuleEdit}" Command="{Binding DataContext.EditRuleCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}" CommandParameter="{Binding}" Style="{StaticResource SettingsRuleIconButtonStyle}" ToolTip="{DynamicResource AutomaticRuleEdit}"><TextBlock FontFamily="Segoe MDL2 Assets" FontSize="16" Text="&#xE70F;" /></Button>
+                                                <Button Grid.Column="5" AutomationProperties.Name="{DynamicResource AutomaticRuleDelete}" Command="{Binding DataContext.DeleteRuleCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}" CommandParameter="{Binding}" Style="{StaticResource SettingsRuleIconButtonStyle}" ToolTip="{DynamicResource AutomaticRuleDelete}"><TextBlock FontFamily="Segoe MDL2 Assets" FontSize="16" Text="&#xE74D;" /></Button>
                                             </Grid>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>

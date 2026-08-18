@@ -15,6 +15,7 @@ public sealed class AutomaticRuleModalViewModel : INotifyPropertyChanged
     private double _endValue = 12 * 60;
     private string _startTimeText = "09:00";
     private string _endTimeText = "12:00";
+    private string _validationMessage = string.Empty;
 
     public AutomaticRuleModalViewModel(IEnumerable<WeekdayOptionViewModel> weekdays)
     {
@@ -33,6 +34,8 @@ public sealed class AutomaticRuleModalViewModel : INotifyPropertyChanged
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public event EventHandler<AutomaticRuleDraft>? RuleCreated;
+
+    public Func<AutomaticRuleDraft, string?>? ValidateRule { get; set; }
 
     public ReadOnlyCollection<WeekdayOptionViewModel> Weekdays { get; }
 
@@ -128,9 +131,16 @@ public sealed class AutomaticRuleModalViewModel : INotifyPropertyChanged
 
     public string SelectedDaysText => string.Join("、", Weekdays.Where(day => day.IsSelected).Select(day => day.DisplayName));
 
+    public string ValidationMessage
+    {
+        get => _validationMessage;
+        private set => SetField(ref _validationMessage, value);
+    }
+
     public void Open()
     {
         IsCustom = false;
+        ValidationMessage = string.Empty;
         StartValue = 9 * 60;
         EndValue = 12 * 60;
         for (var index = 0; index < Weekdays.Count; index++)
@@ -157,12 +167,22 @@ public sealed class AutomaticRuleModalViewModel : INotifyPropertyChanged
 
     private void Confirm()
     {
-        var selectedDays = Weekdays.Where(day => day.IsSelected).ToArray();
-        RuleCreated?.Invoke(this, new AutomaticRuleDraft(
+        var selectedDays = (IsCustom ? Weekdays.Where(day => day.IsSelected) : Weekdays).ToArray();
+        var draft = new AutomaticRuleDraft(
             IsCustom,
             selectedDays,
             FormatTime(StartValue),
-            FormatTime(EndValue)));
+            FormatTime(EndValue),
+            StartValue,
+            EndValue);
+        var validationMessage = ValidateRule?.Invoke(draft);
+        if (!string.IsNullOrEmpty(validationMessage))
+        {
+            ValidationMessage = validationMessage;
+            return;
+        }
+
+        RuleCreated?.Invoke(this, draft);
         Close();
     }
 
@@ -277,4 +297,6 @@ public sealed record AutomaticRuleDraft(
     bool IsCustom,
     IReadOnlyList<WeekdayOptionViewModel> SelectedDays,
     string StartTime,
-    string EndTime);
+    string EndTime,
+    double StartMinutes,
+    double EndMinutes);

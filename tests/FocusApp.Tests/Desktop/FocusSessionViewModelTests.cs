@@ -143,6 +143,98 @@ public sealed class FocusSessionViewModelTests
         Assert.True(second.IsSelected);
     }
 
+    [Fact]
+    public void Start_WithTarget_ExposesTargetModeAndGroupsPendingTasks()
+    {
+        var target = new FocusTargetViewModel("学习 Blender", [
+            new FocusTaskViewModel("学习建模基础"),
+            new FocusTaskViewModel("完成材质练习")
+        ]);
+        var viewModel = CreateViewModel();
+
+        viewModel.Start(25, target);
+        Advance(viewModel, 5);
+
+        Assert.True(viewModel.HasTarget);
+        Assert.Equal("学习 Blender", viewModel.TargetName);
+        Assert.Equal(2, viewModel.PendingTaskCount);
+        Assert.Empty(viewModel.CompletedTasks);
+    }
+
+    [Fact]
+    public void TargetTasks_CanCompleteAddRenameAndDeleteInMemory()
+    {
+        var target = new FocusTargetViewModel("学习 Blender", [new FocusTaskViewModel("原任务")]);
+        var viewModel = CreateViewModel();
+        viewModel.Start(25, target);
+        Advance(viewModel, 5);
+
+        var task = viewModel.PendingTasks[0];
+        viewModel.ToggleTaskCompletedCommand.Execute(task);
+        Assert.Empty(viewModel.PendingTasks);
+        Assert.Single(viewModel.CompletedTasks);
+
+        viewModel.AddTaskCommand.Execute(null);
+        var newTask = viewModel.PendingTasks.Single();
+        newTask.EditName = "新任务名称";
+        viewModel.ConfirmEditTaskCommand.Execute(newTask);
+        Assert.Equal("新任务名称", newTask.Name);
+
+        viewModel.DeleteTaskCommand.Execute(newTask);
+        Assert.Empty(viewModel.PendingTasks);
+    }
+
+    [Fact]
+    public void StartWithoutTarget_UsesDefaultMode()
+    {
+        var viewModel = CreateViewModel();
+
+        viewModel.Start(25);
+        Advance(viewModel, 5);
+
+        Assert.False(viewModel.HasTarget);
+        Assert.Empty(viewModel.PendingTasks);
+    }
+
+    [Fact]
+    public void TargetCompletion_TracksOnlyTasksCompletedDuringCurrentSession()
+    {
+        var alreadyCompleted = new FocusTaskViewModel("已完成任务") { IsCompleted = true };
+        var target = new FocusTargetViewModel("学习 Blender", [
+            alreadyCompleted,
+            new FocusTaskViewModel("本次任务一"),
+            new FocusTaskViewModel("本次任务二")
+        ]);
+        var viewModel = CreateViewModel();
+        viewModel.Start(1, target);
+        Advance(viewModel, 5);
+
+        Assert.Empty(viewModel.SessionCompletedTasks);
+        viewModel.ToggleTaskCompletedCommand.Execute(viewModel.PendingTasks[0]);
+        viewModel.RequestEndCommand.Execute(null);
+        viewModel.ConfirmEndCommand.Execute(null);
+
+        Assert.True(viewModel.HasTarget);
+        Assert.Equal(1, viewModel.SessionCompletedTaskCount);
+        Assert.Equal("本次完成 1 个任务", viewModel.SessionCompletedTaskSummary);
+        Assert.Equal("本次任务一", viewModel.SessionCompletedTasks[0].Name);
+    }
+
+    [Fact]
+    public void TargetCompletion_WithZeroTasksStillUsesTargetCompletionState()
+    {
+        var target = new FocusTargetViewModel("学习 Blender", [new FocusTaskViewModel("待完成任务")]);
+        var viewModel = CreateViewModel();
+        viewModel.Start(1, target);
+        Advance(viewModel, 5);
+        viewModel.RequestEndCommand.Execute(null);
+        viewModel.ConfirmEndCommand.Execute(null);
+
+        Assert.True(viewModel.HasTarget);
+        Assert.Equal(0, viewModel.SessionCompletedTaskCount);
+        Assert.Empty(viewModel.SessionCompletedTasks);
+    }
+
     private static FocusSessionViewModel CreateFocusingViewModel()
     {
         var viewModel = CreateViewModel();

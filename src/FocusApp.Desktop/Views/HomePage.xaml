@@ -251,13 +251,38 @@
                 <StackPanel Grid.Column="1"
                             Margin="8,0,0,0"
                             VerticalAlignment="Center">
-                    <TextBlock FontSize="{DynamicResource CardTitleFontSize}"
-                               FontWeight="SemiBold"
-                               Text="{DynamicResource HomeBlockingTitle}" />
-                    <TextBlock Margin="0,5,0,0"
-                               FontSize="{DynamicResource SecondaryFontSize}"
-                               Foreground="{DynamicResource TextSecondary}"
-                               Text="{DynamicResource HomeBlockingEmpty}" />
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock FontSize="{DynamicResource CardTitleFontSize}"
+                                   FontWeight="SemiBold"
+                                   Text="{DynamicResource HomeBlockingTitle}" />
+                        <TextBlock Margin="8,0,0,0"
+                                   VerticalAlignment="Center"
+                                   FontSize="{DynamicResource CardTitleFontSize}"
+                                   Foreground="{DynamicResource TextSecondary}"
+                                   Text="·">
+                            <TextBlock.Style>
+                                <Style TargetType="{x:Type TextBlock}">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers><DataTrigger Binding="{Binding HasNextAutomaticRule}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                        <TextBlock Margin="12,0,0,0"
+                                   VerticalAlignment="Center"
+                                   FontFamily="{DynamicResource FontFamilyNumeric}"
+                                   FontSize="{DynamicResource CardTitleFontSize}"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource AccentPrimary}"
+                                   Text="{Binding NextAutomaticStartDisplay}"
+                                   ToolTip="{Binding NextAutomaticBlockingToolTip}">
+                            <TextBlock.Style>
+                                <Style TargetType="{x:Type TextBlock}">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers><DataTrigger Binding="{Binding HasNextAutomaticRule}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </StackPanel>
                 </StackPanel>
 
                 <Button Grid.Column="2"

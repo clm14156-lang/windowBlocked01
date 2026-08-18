@@ -46,12 +46,16 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
     private string _name;
     private string _editName;
     private bool _isMenuOpen;
+    private bool _isFocusMenuOpen;
     private bool _isEditing;
+    private bool _isCompleted;
+    private bool _isNew;
 
-    public FocusTaskViewModel(string name)
+    public FocusTaskViewModel(string name, bool isNew = false)
     {
         _name = name;
         _editName = name;
+        _isNew = isNew;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -101,6 +105,21 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
         }
     }
 
+    public bool IsFocusMenuOpen
+    {
+        get => _isFocusMenuOpen;
+        set
+        {
+            if (_isFocusMenuOpen == value)
+            {
+                return;
+            }
+
+            _isFocusMenuOpen = value;
+            OnPropertyChanged();
+        }
+    }
+
     public bool IsEditing
     {
         get => _isEditing;
@@ -116,10 +135,41 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
         }
     }
 
+    public bool IsCompleted
+    {
+        get => _isCompleted;
+        set
+        {
+            if (_isCompleted == value)
+            {
+                return;
+            }
+
+            _isCompleted = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool IsNew
+    {
+        get => _isNew;
+        private set
+        {
+            if (_isNew == value)
+            {
+                return;
+            }
+
+            _isNew = value;
+            OnPropertyChanged();
+        }
+    }
+
     public void BeginEdit()
     {
         EditName = Name;
         IsMenuOpen = false;
+        IsFocusMenuOpen = false;
         IsEditing = true;
     }
 
@@ -132,6 +182,13 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
         }
 
         Name = name;
+        IsEditing = false;
+        IsNew = false;
+    }
+
+    public void CancelEdit()
+    {
+        EditName = Name;
         IsEditing = false;
     }
 
