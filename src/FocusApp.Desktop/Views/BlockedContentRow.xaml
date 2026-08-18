@@ -1,0 +1,26 @@
+<UserControl x:Class="FocusApp.Desktop.Views.BlockedContentRow"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:views="clr-namespace:FocusApp.Desktop.Views"
+             Height="48">
+    <UserControl.Resources>
+        <Style x:Key="BlockedRowIconButtonStyle" TargetType="{x:Type Button}">
+            <Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" /><Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        </Style>
+    </UserControl.Resources>
+    <Grid Margin="0,0,4,0">
+        <Border Height="1" VerticalAlignment="Bottom" Background="{DynamicResource OverlayBorder}" />
+        <Grid Margin="8,0">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="38" /><ColumnDefinition /><ColumnDefinition Width="64" /><ColumnDefinition Width="30" /></Grid.ColumnDefinitions>
+            <Border Width="28" Height="28" Background="{DynamicResource AccentTint}" CornerRadius="7" VerticalAlignment="Center">
+                <Grid>
+                    <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="16" Foreground="{DynamicResource AccentPrimary}" Text="{Binding IconGlyph}" />
+                    <Image Width="23" Height="23" Source="{Binding Favicon}" Stretch="Uniform" />
+                </Grid>
+            </Border>
+            <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="14" FontWeight="SemiBold" Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+            <Border Grid.Column="2" Width="52" Height="25" HorizontalAlignment="Center" Background="{DynamicResource AccentTint}" CornerRadius="6"><TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource AccentPrimary}" Text="{Binding TypeText}" /></Border>
+            <Button Grid.Column="3" Width="28" Height="28" VerticalAlignment="Center" AutomationProperties.Name="{DynamicResource BlockedContentDisable}" Command="{Binding DataContext.DisableCommand, RelativeSource={RelativeSource AncestorType={x:Type views:BlockedContentModal}}}" CommandParameter="{Binding}" Foreground="{DynamicResource Danger}" Style="{StaticResource BlockedRowIconButtonStyle}" ToolTip="{DynamicResource BlockedContentDisable}"><TextBlock FontFamily="Segoe MDL2 Assets" FontSize="15" Text="&#xE74D;" /></Button>
+        </Grid>
+    </Grid>
+</UserControl>

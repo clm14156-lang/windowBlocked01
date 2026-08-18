@@ -12,6 +12,8 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
     private DateTime _nextAutomaticStart;
     private bool _automaticBlockingIntervalActive;
     private readonly HashSet<string> _automaticCompletedRuleKeys = [];
+    private int _enabledBlockingCount;
+    private bool _forcedModeEnabled;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -33,9 +35,11 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
         CustomTimeModal = new CustomTimeModalViewModel(ConfirmCustomTime);
         FocusTargetModal = new FocusTargetModalViewModel();
         FocusSession = new FocusSessionViewModel();
+        BlockedContentModal = new BlockedContentModalViewModel();
         SelectDurationCommand = new RelayCommand<HomeDurationOptionViewModel>(SelectDuration);
         StartFocusCommand = new RelayCommand<object>(_ => StartFocus());
         OpenFocusTargetCommand = new RelayCommand<object>(_ => FocusTargetModal.Open());
+        OpenBlockedContentCommand = new RelayCommand<object>(_ => OpenBlockedContent());
     }
 
     public ReadOnlyCollection<HomeDurationOptionViewModel> DurationOptions { get; }
@@ -46,11 +50,42 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
 
     public ICommand OpenFocusTargetCommand { get; }
 
+    public ICommand OpenBlockedContentCommand { get; }
+
     public CustomTimeModalViewModel CustomTimeModal { get; }
 
     public FocusTargetModalViewModel FocusTargetModal { get; }
 
     public FocusSessionViewModel FocusSession { get; }
+
+    public BlockedContentModalViewModel BlockedContentModal { get; }
+
+    public void SetForcedModeEnabled(bool enabled) => _forcedModeEnabled = enabled;
+
+    public ObservableCollection<BlockingContentItemViewModel> BlockingPreviewItems { get; } = [];
+
+    public int EnabledBlockingCount
+    {
+        get => _enabledBlockingCount;
+        private set
+        {
+            if (_enabledBlockingCount == value) return;
+            _enabledBlockingCount = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(HasBlockingContent));
+            OnPropertyChanged(nameof(AdditionalBlockingCount));
+            OnPropertyChanged(nameof(HasAdditionalBlockingItems));
+            OnPropertyChanged(nameof(BlockingCountText));
+        }
+    }
+
+    public bool HasBlockingContent => EnabledBlockingCount > 0;
+
+    public int AdditionalBlockingCount => Math.Max(0, EnabledBlockingCount - 3);
+
+    public bool HasAdditionalBlockingItems => AdditionalBlockingCount > 0;
+
+    public string BlockingCountText => $"已屏蔽 {EnabledBlockingCount} 个网站和应用";
 
     public bool HasNextAutomaticRule => _nextAutomaticRule is not null;
 
@@ -113,6 +148,26 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(NextAutomaticBlockingDisplay));
         OnPropertyChanged(nameof(NextAutomaticStartDisplay));
         OnPropertyChanged(nameof(NextAutomaticBlockingToolTip));
+    }
+
+    public void UpdateBlockingContent(
+        IEnumerable<BlockingWebsiteItemViewModel> websites,
+        IEnumerable<BlockingApplicationItemViewModel> applications)
+    {
+        var websiteList = websites.ToList();
+        var applicationList = applications.ToList();
+        var activeItems = websiteList.Where(item => item.IsEnabled).Select(item => new BlockingContentItemViewModel(item))
+            .Concat(applicationList.Where(item => item.IsEnabled).Select(item => new BlockingContentItemViewModel(item)))
+            .OrderByDescending(item => item.Favicon is not null)
+            .ToList();
+
+        foreach (var item in BlockingPreviewItems) item.Dispose();
+        BlockingPreviewItems.Clear();
+        foreach (var item in activeItems.Take(3)) BlockingPreviewItems.Add(item);
+        foreach (var item in activeItems.Skip(3)) item.Dispose();
+
+        EnabledBlockingCount = activeItems.Count;
+        BlockedContentModal.Update(websiteList, applicationList);
     }
 
     /// <summary>
@@ -188,6 +243,11 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
         SelectOnly(option);
     }
 
+    private void OpenBlockedContent()
+    {
+        if (HasBlockingContent) BlockedContentModal.Open();
+    }
+
     private void ConfirmCustomTime(int minutes)
     {
         if (_customDurationOption is null)
@@ -204,7 +264,8 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
         var selectedDuration = DurationOptions.First(option => option.IsSelected);
         FocusSession.Start(
             selectedDuration.Minutes,
-            FocusTargetModal.HasSelectedTarget ? FocusTargetModal.SelectedTarget : null);
+            FocusTargetModal.HasSelectedTarget ? FocusTargetModal.SelectedTarget : null,
+            _forcedModeEnabled);
     }
 
     private void SelectOnly(HomeDurationOptionViewModel option)

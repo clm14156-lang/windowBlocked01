@@ -234,7 +234,15 @@
                         </StackPanel>
                     </Border>
 
-                    <Button Width="112" Height="38" Margin="0,16,0,0" HorizontalAlignment="Center" Command="{Binding RequestEndCommand}" Content="{DynamicResource FocusEndAction}" FontSize="14" Style="{StaticResource FocusFlowOutlineButton}" />
+                    <Grid Width="286" Height="38" Margin="0,16,0,0" HorizontalAlignment="Center">
+                        <Button Width="112" Height="38" HorizontalAlignment="Center" Command="{Binding RequestEndCommand}" Content="{DynamicResource FocusEndAction}" FontSize="14">
+                            <Button.Style><Style TargetType="{x:Type Button}" BasedOn="{StaticResource FocusFlowOutlineButton}"><Setter Property="Visibility" Value="Visible" /><Style.Triggers><DataTrigger Binding="{Binding IsForcedModeActive}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers></Style></Button.Style>
+                        </Button>
+                        <Border Height="38" Padding="12,0" HorizontalAlignment="Center" VerticalAlignment="Center" Background="{DynamicResource ControlHoverBackground}" CornerRadius="8" IsHitTestVisible="False">
+                            <Border.Style><Style TargetType="{x:Type Border}"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding IsForcedModeActive}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></Border.Style>
+                            <StackPanel Orientation="Horizontal"><TextBlock Margin="0,0,8,0" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="16" Foreground="{DynamicResource TextSecondary}" Text="&#xE83D;" /><TextBlock VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource FocusForcedModeStatus}" /></StackPanel>
+                        </Border>
+                    </Grid>
                 </StackPanel>
             </Grid>
         </Grid>
@@ -289,17 +297,15 @@
                     </Grid>
                 </Grid>
 
-                <Button Width="137"
-                        Height="42"
-                        Margin="0,30,0,0"
-                        AutomationProperties.Name="{DynamicResource FocusEndAction}"
-                        Command="{Binding RequestEndCommand}"
-                        Content="{DynamicResource FocusEndAction}"
-                        FontSize="16"
-                        FontWeight="Normal"
-                        Foreground="{DynamicResource TextSecondary}"
-                        BorderBrush="{DynamicResource BorderPrimary}"
-                        Style="{StaticResource FocusFlowOutlineButton}" />
+                <Grid Width="290" Height="42" Margin="0,30,0,0">
+                    <Button Width="137" Height="42" HorizontalAlignment="Center" AutomationProperties.Name="{DynamicResource FocusEndAction}" Command="{Binding RequestEndCommand}" Content="{DynamicResource FocusEndAction}" FontSize="16" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" BorderBrush="{DynamicResource BorderPrimary}">
+                        <Button.Style><Style TargetType="{x:Type Button}" BasedOn="{StaticResource FocusFlowOutlineButton}"><Setter Property="Visibility" Value="Visible" /><Style.Triggers><DataTrigger Binding="{Binding IsForcedModeActive}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers></Style></Button.Style>
+                    </Button>
+                    <Border Height="42" Padding="12,0" HorizontalAlignment="Center" VerticalAlignment="Center" Background="{DynamicResource ControlHoverBackground}" CornerRadius="8" IsHitTestVisible="False">
+                        <Border.Style><Style TargetType="{x:Type Border}"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding IsForcedModeActive}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></Border.Style>
+                        <StackPanel Orientation="Horizontal"><TextBlock Margin="0,0,8,0" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="17" Foreground="{DynamicResource TextSecondary}" Text="&#xE83D;" /><TextBlock VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource FocusForcedModeStatus}" /></StackPanel>
+                    </Border>
+                </Grid>
             </StackPanel>
         </Grid>
 

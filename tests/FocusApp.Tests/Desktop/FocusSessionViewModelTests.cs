@@ -82,6 +82,22 @@ public sealed class FocusSessionViewModelTests
     }
 
     [Fact]
+    public void ForcedMode_HidesEarlyEndAndStillAdvancesCountdown()
+    {
+        var viewModel = CreateViewModel();
+        viewModel.Start(25, forcedMode: true);
+        Advance(viewModel, 5);
+
+        Assert.True(viewModel.IsForcedModeActive);
+        viewModel.RequestEndCommand.Execute(null);
+
+        Assert.False(viewModel.IsEndConfirmationOpen);
+        var remaining = viewModel.RemainingFocusSeconds;
+        viewModel.AdvanceOneSecond();
+        Assert.Equal(remaining - 1, viewModel.RemainingFocusSeconds);
+    }
+
+    [Fact]
     public void ConfirmEnd_CompletesWithActualElapsedTimeAndFixedCompletionTime()
     {
         var completedAt = new DateTime(2026, 8, 17, 14, 26, 0);

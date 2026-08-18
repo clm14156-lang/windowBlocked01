@@ -117,6 +117,12 @@
     <system:String x:Key="HomeBlockingTitle">当前屏蔽</system:String>
     <system:String x:Key="HomeBlockingEmpty">暂未添加屏蔽内容</system:String>
     <system:String x:Key="HomeAddBlockingRule">添加屏蔽规则</system:String>
+    <system:String x:Key="HomeViewAllBlocking">查看全部</system:String>
+    <system:String x:Key="BlockedContentTitle">已屏蔽内容</system:String>
+    <system:String x:Key="BlockedContentAll">全部</system:String>
+    <system:String x:Key="BlockedContentWebsites">网站</system:String>
+    <system:String x:Key="BlockedContentApplications">软件</system:String>
+    <system:String x:Key="BlockedContentDisable">取消屏蔽</system:String>
     <system:String x:Key="HomeThemeButton">主题</system:String>
     <system:String x:Key="ThemePanelTitle">皮肤主题</system:String>
     <system:String x:Key="ThemePanelSubtitle">选择你喜欢的界面风格</system:String>
@@ -145,6 +151,7 @@
     <system:String x:Key="FocusRemainingTime">剩余时间</system:String>
     <system:String x:Key="FocusInProgress">专注中</system:String>
     <system:String x:Key="FocusEndAction">结束专注</system:String>
+    <system:String x:Key="FocusForcedModeStatus">强制模式已开启，专注期间无法提前退出</system:String>
     <system:String x:Key="FocusAddTask">添加任务</system:String>
     <system:String x:Key="FocusRenameTask">重命名</system:String>
     <system:String x:Key="FocusDeleteTask">删除任务</system:String>

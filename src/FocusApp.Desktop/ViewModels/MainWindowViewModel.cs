@@ -33,6 +33,17 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         AccountNavigationItem = accountNavigationItem;
         HomePage = homePage;
         SettingsPage = settingsPage ?? new SettingsPageViewModel([], []);
+        HomePage.SetForcedModeEnabled(SettingsPage.ForcedModeItem?.IsEnabled == true);
+        if (SettingsPage.ForcedModeItem is not null)
+        {
+            SettingsPage.ForcedModeItem.PropertyChanged += (_, args) =>
+            {
+                if (args.PropertyName == nameof(SettingsToggleItemViewModel.IsEnabled))
+                {
+                    HomePage.SetForcedModeEnabled(SettingsPage.ForcedModeItem.IsEnabled);
+                }
+            };
+        }
         SettingsPage.RulesChanged += (_, _) =>
         {
             HomePage.UpdateAutomaticRules(
@@ -57,6 +68,8 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             SettingsPage.IsAutomaticBlockingEnabled);
         _automaticBlockingTimer.Start();
         BlockingPage = blockingPage ?? new BlockingPageViewModel([], [], "Added websites: {0}", "Added applications: {0}");
+        BlockingPage.BlockingChanged += (_, _) => RefreshBlockingContent();
+        RefreshBlockingContent();
         AuthModal = new AuthModalViewModel();
         AuthModal.LoginSucceeded += AuthModal_LoginSucceeded;
         _currentNavigationItem = PrimaryNavigationItems[0];
@@ -106,6 +119,9 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     public string CurrentPageTitle => _currentNavigationItem.Title;
 
     public NavigationPage CurrentPage => _currentNavigationItem.Page;
+
+    private void RefreshBlockingContent()
+        => HomePage.UpdateBlockingContent(BlockingPage.Websites, BlockingPage.Applications);
 
     public bool IsLoggedIn
     {

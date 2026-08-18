@@ -25,6 +25,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     private bool _isEndConfirmationOpen;
     private FocusTargetViewModel? _activeTarget;
     private bool _isCompletedTasksExpanded;
+    private bool _isForcedModeActive;
     private readonly HashSet<FocusTaskViewModel> _sessionCompletedTaskSet = [];
 
     public FocusSessionViewModel(Func<DateTime>? nowProvider = null, bool runTimer = true)
@@ -153,6 +154,17 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
 
     public bool IsActive => Stage != FocusFlowStage.Idle;
 
+    public bool IsForcedModeActive
+    {
+        get => _isForcedModeActive;
+        private set
+        {
+            if (_isForcedModeActive == value) return;
+            _isForcedModeActive = value;
+            OnPropertyChanged();
+        }
+    }
+
     public bool IsFullScreenVisible => Stage is FocusFlowStage.Focusing or FocusFlowStage.Completed;
 
     public bool IsPreparing => Stage == FocusFlowStage.Preparing;
@@ -242,7 +254,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
 
     private bool RunTimer { get; }
 
-    public void Start(int minutes, FocusTargetViewModel? target = null)
+    public void Start(int minutes, FocusTargetViewModel? target = null, bool forcedMode = false)
     {
         if (minutes <= 0)
         {
@@ -257,6 +269,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         _totalFocusSeconds = checked(minutes * 60);
         RemainingFocusSeconds = _totalFocusSeconds;
         IsEndConfirmationOpen = false;
+        IsForcedModeActive = forcedMode;
         ActiveTarget = target;
         _sessionCompletedTaskSet.Clear();
         SessionCompletedTasks.Clear();
@@ -362,12 +375,13 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
 
         _timer.Stop();
         _preparationStopwatch.Reset();
+        IsForcedModeActive = false;
         Stage = FocusFlowStage.Idle;
     }
 
     private void OpenEndConfirmation()
     {
-        if (Stage != FocusFlowStage.Focusing || IsEndConfirmationOpen)
+        if (Stage != FocusFlowStage.Focusing || IsEndConfirmationOpen || IsForcedModeActive)
         {
             return;
         }
@@ -410,6 +424,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     {
         _timer.Stop();
         IsEndConfirmationOpen = false;
+        IsForcedModeActive = false;
         Stage = FocusFlowStage.Idle;
     }
 

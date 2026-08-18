@@ -355,6 +355,13 @@
                 </Border>
             </Grid>
 
+            <Grid Grid.ColumnSpan="2" Panel.ZIndex="104">
+                <Grid.Style><Style TargetType="{x:Type Grid}"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding HomePage.BlockedContentModal.IsOpen}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></Grid.Style>
+                <Border Background="{DynamicResource ModalScrim}" MouseDown="BlockedContentScrim_MouseDown">
+                    <views:BlockedContentModal DataContext="{Binding HomePage.BlockedContentModal}" />
+                </Border>
+            </Grid>
+
             <Grid Grid.ColumnSpan="2"
                   Panel.ZIndex="100">
                 <Grid.Style>

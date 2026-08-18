@@ -157,6 +157,15 @@ public partial class MainWindow : Window
         }
     }
 
+    private void BlockedContentScrim_MouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (ReferenceEquals(e.OriginalSource, sender) &&
+            DataContext is ViewModels.MainWindowViewModel viewModel)
+        {
+            viewModel.HomePage.BlockedContentModal.CloseCommand.Execute(null);
+        }
+    }
+
     private void FocusTargetScrim_MouseDown(object sender, MouseButtonEventArgs e)
     {
         if (ReferenceEquals(e.OriginalSource, sender) &&
