@@ -1,12 +1,14 @@
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using FocusApp.Desktop.ViewModels;
 
 namespace FocusApp.Desktop.Views;
 
 public partial class StatisticsPage : UserControl
 {
+    private bool _suppressGoalProgressScrollSync;
     public StatisticsPage()
     {
         InitializeComponent();
@@ -57,5 +59,177 @@ public partial class StatisticsPage : UserControl
 
         y = Math.Clamp(y, 0, Math.Max(0, TrendCard.ActualHeight - tooltipHeight));
         viewModel.SetTooltipOffsets(x, y);
+    }
+
+    private void SelectCurrentGoalListButton_Click(object sender, RoutedEventArgs e) => ExecuteGoalListCommand("Current");
+
+    private void SelectArchivedGoalListButton_Click(object sender, RoutedEventArgs e) => ExecuteGoalListCommand("Archived");
+
+    private void GoalMenuButton_Click(object sender, RoutedEventArgs e) => e.Handled = true;
+
+    private void SaveGoalRenameButton_Click(object sender, RoutedEventArgs e)
+    {
+        ExecuteGoalCommand(sender, viewModel => viewModel.SaveGoalRenameCommand);
+        e.Handled = true;
+    }
+
+    private void GoalNameTextBox_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        if (sender is TextBox { IsVisible: true } textBox)
+        {
+            Dispatcher.BeginInvoke(() =>
+            {
+                textBox.Focus();
+                textBox.SelectAll();
+            });
+        }
+    }
+
+    private void GoalNameTextBox_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter)
+        {
+            return;
+        }
+
+        ExecuteGoalCommand(sender, viewModel => viewModel.SaveGoalRenameCommand);
+        Keyboard.ClearFocus();
+        e.Handled = true;
+    }
+
+    private void GoalNameTextBox_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e) =>
+        ExecuteGoalCommand(sender, viewModel => viewModel.SaveGoalRenameCommand);
+
+    private void RenameGoalButton_Click(object sender, RoutedEventArgs e) => ExecuteGoalCommand(sender, viewModel => viewModel.RenameGoalCommand);
+
+    private void ArchiveGoalButton_Click(object sender, RoutedEventArgs e) => ExecuteGoalCommand(sender, viewModel => viewModel.ArchiveGoalCommand);
+
+    private void RestoreGoalButton_Click(object sender, RoutedEventArgs e) => ExecuteGoalCommand(sender, viewModel => viewModel.RestoreGoalCommand);
+
+    private void DeleteGoalButton_Click(object sender, RoutedEventArgs e) => ExecuteGoalCommand(sender, viewModel => viewModel.DeleteGoalCommand);
+
+    private void GoalTrendBar_MouseEnter(object sender, System.Windows.Input.MouseEventArgs e)
+    {
+        if (sender is not Button { DataContext: GoalTrendPointViewModel point } button ||
+            DataContext is not StatisticsOverviewViewModel viewModel ||
+            button.Template.FindName("Bar", button) is not FrameworkElement bar ||
+            GoalTrendChartArea.ActualWidth <= 0)
+        {
+            return;
+        }
+
+        var barTopCenter = bar.TranslatePoint(new Point(bar.ActualWidth / 2, 0), GoalTrendChartArea);
+        const double tooltipWidth = 140;
+        const double tooltipHeight = 58;
+        const double tooltipGap = 8;
+        var x = Math.Clamp(
+            barTopCenter.X - tooltipWidth / 2,
+            0,
+            Math.Max(0, GoalTrendChartArea.ActualWidth - tooltipWidth));
+        var y = barTopCenter.Y - tooltipHeight - tooltipGap;
+
+        viewModel.SetGoalTrendTooltipOffsets(x, y);
+        viewModel.SetHoveredGoalTrendPoint(point);
+    }
+
+    private void GoalTrendBar_MouseLeave(object sender, System.Windows.Input.MouseEventArgs e)
+    {
+        if (sender is Button { DataContext: GoalTrendPointViewModel point } &&
+            DataContext is StatisticsOverviewViewModel viewModel &&
+            ReferenceEquals(viewModel.HoveredGoalTrendPoint, point))
+        {
+            viewModel.SetHoveredGoalTrendPoint(null);
+        }
+    }
+
+    private void GoalTrendBar_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { DataContext: GoalTrendPointViewModel point } ||
+            DataContext is not StatisticsOverviewViewModel viewModel)
+        {
+            return;
+        }
+
+        // The command expands the matching date group; the visual tree needs one layout pass
+        // before its generated container can be brought into the scroll viewport.
+        Dispatcher.BeginInvoke(() => BringGoalDateIntoView(point.Date.Date));
+        e.Handled = true;
+    }
+
+    private void GoalProgressScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)
+    {
+        if (_suppressGoalProgressScrollSync || e.VerticalChange == 0 ||
+            DataContext is not StatisticsOverviewViewModel viewModel ||
+            viewModel.GoalDateGroups.Count == 0)
+        {
+            return;
+        }
+
+        var viewport = GoalProgressScrollViewer.ViewportHeight;
+        if (viewport <= 0)
+        {
+            return;
+        }
+
+        GoalDateGroupViewModel? primaryGroup = null;
+        var primaryVisibleHeight = 0d;
+        foreach (var group in viewModel.GoalDateGroups)
+        {
+            if (GoalDateGroupsControl.ItemContainerGenerator.ContainerFromItem(group) is not FrameworkElement container)
+            {
+                continue;
+            }
+
+            var top = container.TranslatePoint(new Point(0, 0), GoalProgressScrollViewer).Y;
+            var bottom = top + container.ActualHeight;
+            var visibleHeight = Math.Max(0, Math.Min(bottom, viewport) - Math.Max(top, 0));
+            if (visibleHeight > primaryVisibleHeight)
+            {
+                primaryVisibleHeight = visibleHeight;
+                primaryGroup = group;
+            }
+        }
+
+        if (primaryGroup is null || primaryVisibleHeight <= 0)
+        {
+            return;
+        }
+
+        var month = new DateTime(primaryGroup.Date.Year, primaryGroup.Date.Month, 1);
+        var monthOption = viewModel.GoalMonths.FirstOrDefault(option => option.Date == month);
+        if (monthOption is not null && !ReferenceEquals(viewModel.SelectedGoalMonth, monthOption))
+        {
+            viewModel.SelectGoalMonthCommand.Execute(monthOption);
+        }
+    }
+
+    private void BringGoalDateIntoView(DateTime date)
+    {
+        if (DataContext is not StatisticsOverviewViewModel viewModel ||
+            viewModel.GoalDateGroups.FirstOrDefault(group => group.Date.Date == date) is not { } group ||
+            GoalDateGroupsControl.ItemContainerGenerator.ContainerFromItem(group) is not FrameworkElement container)
+        {
+            return;
+        }
+
+        _suppressGoalProgressScrollSync = true;
+        container.BringIntoView();
+        Dispatcher.BeginInvoke(() => _suppressGoalProgressScrollSync = false);
+    }
+
+    private void ExecuteGoalListCommand(string list)
+    {
+        if (DataContext is StatisticsOverviewViewModel viewModel)
+        {
+            viewModel.SelectGoalListCommand.Execute(list);
+        }
+    }
+
+    private void ExecuteGoalCommand(object sender, Func<StatisticsOverviewViewModel, System.Windows.Input.ICommand> commandSelector)
+    {
+        if (sender is FrameworkElement { DataContext: GoalOverviewItemViewModel goal } && DataContext is StatisticsOverviewViewModel viewModel)
+        {
+            commandSelector(viewModel).Execute(goal);
+        }
     }
 }
