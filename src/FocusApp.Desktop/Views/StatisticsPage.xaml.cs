@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Controls.Primitives;
 using FocusApp.Desktop.ViewModels;
 
 namespace FocusApp.Desktop.Views;
@@ -9,9 +10,11 @@ namespace FocusApp.Desktop.Views;
 public partial class StatisticsPage : UserControl
 {
     private bool _suppressGoalProgressScrollSync;
+    private bool _monthlyFocusTargetPopupWasOpenOnAnchorPress;
     public StatisticsPage()
     {
         InitializeComponent();
+        MonthlyFocusTargetPopup.CustomPopupPlacementCallback = PlaceMonthlyFocusTargetPopup;
         DataContextChanged += StatisticsPage_DataContextChanged;
         Loaded += (_, _) => UpdateTooltipPlacement();
         TrendCard.SizeChanged += (_, _) => UpdateTooltipPlacement();
@@ -99,6 +102,59 @@ public partial class StatisticsPage : UserControl
 
     private void GoalNameTextBox_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e) =>
         ExecuteGoalCommand(sender, viewModel => viewModel.SaveGoalRenameCommand);
+
+    private void MonthlyFocusTargetPopup_Opened(object? sender, EventArgs e)
+    {
+        Dispatcher.BeginInvoke(() =>
+        {
+            MonthlyFocusTargetInputBox.Focus();
+            MonthlyFocusTargetInputBox.SelectAll();
+        });
+    }
+
+    private void MonthlyFocusTargetAnchor_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        _monthlyFocusTargetPopupWasOpenOnAnchorPress =
+            MonthlyFocusTargetPopup.IsOpen && ReferenceEquals(MonthlyFocusTargetPopup.PlacementTarget, sender);
+    }
+
+    private void SetMonthlyFocusTargetButton_Click(object sender, RoutedEventArgs e) =>
+        ToggleMonthlyFocusTargetPopup(sender, viewModel => viewModel.OpenMonthlyFocusTargetCommand);
+
+    private void EditMonthlyFocusTargetButton_Click(object sender, RoutedEventArgs e) =>
+        ToggleMonthlyFocusTargetPopup(sender, viewModel => viewModel.EditMonthlyFocusTargetCommand);
+
+    private void ToggleMonthlyFocusTargetPopup(object sender, Func<StatisticsOverviewViewModel, ICommand> commandSelector)
+    {
+        if (sender is not FrameworkElement anchor || DataContext is not StatisticsOverviewViewModel viewModel)
+        {
+            return;
+        }
+
+        if (_monthlyFocusTargetPopupWasOpenOnAnchorPress)
+        {
+            viewModel.IsMonthlyFocusTargetPopupOpen = false;
+            _monthlyFocusTargetPopupWasOpenOnAnchorPress = false;
+            return;
+        }
+
+        MonthlyFocusTargetPopup.PlacementTarget = anchor;
+        commandSelector(viewModel).Execute(null);
+    }
+
+    private static CustomPopupPlacement[] PlaceMonthlyFocusTargetPopup(
+        Size popupSize,
+        Size targetSize,
+        Point offset)
+    {
+        const double gap = 8;
+        return
+        [
+            new CustomPopupPlacement(
+                new Point((targetSize.Width - popupSize.Width) / 2, -popupSize.Height - gap),
+                PopupPrimaryAxis.Horizontal)
+        ];
+    }
 
     private void RenameGoalButton_Click(object sender, RoutedEventArgs e) => ExecuteGoalCommand(sender, viewModel => viewModel.RenameGoalCommand);
 

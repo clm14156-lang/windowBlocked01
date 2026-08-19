@@ -27,6 +27,9 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     private GoalTrendPointViewModel? _selectedGoalTrendPoint;
     private GoalTrendPointViewModel? _hoveredGoalTrendPoint;
     private readonly HashSet<FocusSessionRecordViewModel> _subscribedFocusSessionRecords = [];
+    private int? _monthlyFocusTargetHours;
+    private bool _isMonthlyFocusTargetPopupOpen;
+    private string _monthlyFocusTargetInput = string.Empty;
 
     public StatisticsOverviewViewModel()
     {
@@ -54,6 +57,11 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         SelectGoalMonthCommand = new RelayCommand<GoalMonthOptionViewModel>(SelectGoalMonth);
         SelectGoalTrendPointCommand = new RelayCommand<GoalTrendPointViewModel>(SelectGoalTrendPoint);
         ToggleGoalDateCommand = new RelayCommand<GoalDateGroupViewModel>(ToggleGoalDate);
+        OpenMonthlyFocusTargetCommand = new RelayCommand<object>(_ => OpenMonthlyFocusTarget(false));
+        EditMonthlyFocusTargetCommand = new RelayCommand<object>(_ => OpenMonthlyFocusTarget(true));
+        SaveMonthlyFocusTargetCommand = new RelayCommand<object>(_ => SaveMonthlyFocusTarget());
+        CancelMonthlyFocusTargetCommand = new RelayCommand<object>(_ => IsMonthlyFocusTargetPopupOpen = false);
+        DeleteMonthlyFocusTargetCommand = new RelayCommand<object>(_ => DeleteMonthlyFocusTarget());
         AddGoalCommand = new RelayCommand<object>(_ => AddGoal());
         RefreshTrend();
         RefreshGoals();
@@ -104,6 +112,12 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     public ICommand SelectGoalMonthCommand { get; }
     public ICommand SelectGoalTrendPointCommand { get; }
     public ICommand ToggleGoalDateCommand { get; }
+
+    public ICommand OpenMonthlyFocusTargetCommand { get; }
+    public ICommand EditMonthlyFocusTargetCommand { get; }
+    public ICommand SaveMonthlyFocusTargetCommand { get; }
+    public ICommand CancelMonthlyFocusTargetCommand { get; }
+    public ICommand DeleteMonthlyFocusTargetCommand { get; }
 
     public ObservableCollection<CalendarDayViewModel> CalendarDays { get; } = [];
 
@@ -274,6 +288,42 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     public int MonthlyTotalMinutes => GoalDistributions.Sum(item => item.Minutes);
 
     public int MonthlyCompletedTasks => GetRecordsForMonth(_calendarMonth).Sum(record => record.CompletedTaskCount);
+
+    public bool HasMonthlyFocusTarget => _monthlyFocusTargetHours is > 0;
+    public int MonthlyFocusTargetHours => _monthlyFocusTargetHours ?? 0;
+    public string MonthlyFocusTargetInput
+    {
+        get => _monthlyFocusTargetInput;
+        set
+        {
+            if (_monthlyFocusTargetInput == value) return;
+            _monthlyFocusTargetInput = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool IsMonthlyFocusTargetPopupOpen
+    {
+        get => _isMonthlyFocusTargetPopupOpen;
+        set
+        {
+            if (_isMonthlyFocusTargetPopupOpen == value) return;
+            _isMonthlyFocusTargetPopupOpen = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public string MonthlyFocusTargetPopupTitle => HasMonthlyFocusTarget ? "编辑本月目标" : "设置本月目标";
+    public int MonthlyFocusCompletedMinutes => MonthlyTotalMinutes;
+    public string MonthlyFocusCompletedDisplay => FormatDuration(MonthlyFocusCompletedMinutes);
+    public int MonthlyFocusProgressPercent => !HasMonthlyFocusTarget
+        ? 0
+        : Math.Min(100, (int)Math.Round(MonthlyFocusCompletedMinutes / (MonthlyFocusTargetHours * 60d) * 100));
+    public string MonthlyFocusTargetDisplay => $"{MonthlyFocusTargetHours} 小时";
+    public string MonthlyFocusRemainingDisplay => FormatHours(Math.Max(0, MonthlyFocusTargetHours * 60 - MonthlyFocusCompletedMinutes));
+    public double MonthlyFocusProgressRatio => !HasMonthlyFocusTarget
+        ? 0
+        : Math.Min(1, MonthlyFocusCompletedMinutes / (MonthlyFocusTargetHours * 60d));
 
     public StatisticsTab SelectedTab
     {
@@ -556,6 +606,53 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         RefreshGoalSummaries();
         RefreshSelectedGoalProgressData();
         RefreshCalendar(_selectedCalendarDay?.Date);
+        NotifyMonthlyFocusTargetChanged();
+    }
+
+    private void OpenMonthlyFocusTarget(bool editing)
+    {
+        if (IsMonthlyFocusTargetPopupOpen)
+        {
+            IsMonthlyFocusTargetPopupOpen = false;
+            return;
+        }
+
+        MonthlyFocusTargetInput = editing && HasMonthlyFocusTarget
+            ? MonthlyFocusTargetHours.ToString()
+            : string.Empty;
+        IsMonthlyFocusTargetPopupOpen = true;
+    }
+
+    private void SaveMonthlyFocusTarget()
+    {
+        if (!int.TryParse(MonthlyFocusTargetInput, out var hours) || hours <= 0)
+        {
+            return;
+        }
+
+        _monthlyFocusTargetHours = Math.Min(hours, 10000);
+        IsMonthlyFocusTargetPopupOpen = false;
+        NotifyMonthlyFocusTargetChanged();
+    }
+
+    private void DeleteMonthlyFocusTarget()
+    {
+        _monthlyFocusTargetHours = null;
+        IsMonthlyFocusTargetPopupOpen = false;
+        NotifyMonthlyFocusTargetChanged();
+    }
+
+    private void NotifyMonthlyFocusTargetChanged()
+    {
+        OnPropertyChanged(nameof(HasMonthlyFocusTarget));
+        OnPropertyChanged(nameof(MonthlyFocusTargetHours));
+        OnPropertyChanged(nameof(MonthlyFocusTargetPopupTitle));
+        OnPropertyChanged(nameof(MonthlyFocusCompletedMinutes));
+        OnPropertyChanged(nameof(MonthlyFocusCompletedDisplay));
+        OnPropertyChanged(nameof(MonthlyFocusProgressPercent));
+        OnPropertyChanged(nameof(MonthlyFocusTargetDisplay));
+        OnPropertyChanged(nameof(MonthlyFocusRemainingDisplay));
+        OnPropertyChanged(nameof(MonthlyFocusProgressRatio));
     }
 
     private void RefreshGoalSummaries()
@@ -937,6 +1034,10 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     }
 
     internal static string FormatDurationForDisplay(int totalMinutes) => FormatDuration(totalMinutes);
+
+    private static string FormatHours(int totalMinutes) => totalMinutes % 60 == 0
+        ? $"{totalMinutes / 60} 小时"
+        : $"{totalMinutes / 60} 小时 {totalMinutes % 60} 分钟";
 
     private static readonly TrendMockData[] SevenDayData =
     [

@@ -213,6 +213,58 @@ public sealed class StatisticsOverviewViewModelTests
     }
 
     [Fact]
+    public void MonthlyFocusTargetCanBeCreatedEditedAndDeletedFromSharedMonthlyRecords()
+    {
+        var viewModel = new StatisticsOverviewViewModel();
+        var completedMinutes = viewModel.MonthlyTotalMinutes;
+
+        Assert.False(viewModel.HasMonthlyFocusTarget);
+        viewModel.OpenMonthlyFocusTargetCommand.Execute(null);
+        Assert.True(viewModel.IsMonthlyFocusTargetPopupOpen);
+        viewModel.OpenMonthlyFocusTargetCommand.Execute(null);
+        Assert.False(viewModel.IsMonthlyFocusTargetPopupOpen);
+        viewModel.OpenMonthlyFocusTargetCommand.Execute(null);
+        viewModel.MonthlyFocusTargetInput = "60";
+        viewModel.SaveMonthlyFocusTargetCommand.Execute(null);
+
+        Assert.True(viewModel.HasMonthlyFocusTarget);
+        Assert.Equal(60, viewModel.MonthlyFocusTargetHours);
+        Assert.Equal(completedMinutes, viewModel.MonthlyFocusCompletedMinutes);
+        Assert.Equal(Math.Min(100, (int)Math.Round(completedMinutes / 3600d * 100)), viewModel.MonthlyFocusProgressPercent);
+        Assert.Equal(Math.Min(1, completedMinutes / 3600d), viewModel.MonthlyFocusProgressRatio);
+
+        viewModel.EditMonthlyFocusTargetCommand.Execute(null);
+        Assert.Equal("60", viewModel.MonthlyFocusTargetInput);
+        viewModel.MonthlyFocusTargetInput = "4";
+        viewModel.SaveMonthlyFocusTargetCommand.Execute(null);
+        Assert.Equal(4, viewModel.MonthlyFocusTargetHours);
+        Assert.Equal(100, viewModel.MonthlyFocusProgressPercent);
+        Assert.Equal("0 小时", viewModel.MonthlyFocusRemainingDisplay);
+
+        viewModel.DeleteMonthlyFocusTargetCommand.Execute(null);
+        Assert.False(viewModel.HasMonthlyFocusTarget);
+        Assert.Equal(0, viewModel.MonthlyFocusProgressPercent);
+    }
+
+    [Fact]
+    public void MonthlyFocusTargetRefreshesWhenSharedRecordChanges()
+    {
+        var viewModel = new StatisticsOverviewViewModel();
+        viewModel.MonthlyFocusTargetInput = "10";
+        viewModel.SaveMonthlyFocusTargetCommand.Execute(null);
+        var before = viewModel.MonthlyFocusCompletedMinutes;
+        var record = new FocusSessionRecordViewModel(
+            new DateTime(2026, 2, 20, 22, 0, 0),
+            new DateTime(2026, 2, 20, 23, 0, 0),
+            "goal-reading", "读书", "目标测试", 1);
+
+        viewModel.FocusSessionRecords.Add(record);
+        Assert.Equal(before + 60, viewModel.MonthlyFocusCompletedMinutes);
+        viewModel.FocusSessionRecords.Remove(record);
+        Assert.Equal(before, viewModel.MonthlyFocusCompletedMinutes);
+    }
+
+    [Fact]
     public void DeletingGoalOnlyRemovesArchivedGoals()
     {
         var viewModel = new StatisticsOverviewViewModel();
