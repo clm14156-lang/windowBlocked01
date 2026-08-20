@@ -300,6 +300,25 @@ public sealed class StatisticsOverviewViewModelTests
     }
 
     [Fact]
+    public void MonthlyFocusTargetStepButtonsStaySynchronizedWithManualInput()
+    {
+        var viewModel = new StatisticsOverviewViewModel
+        {
+            MonthlyFocusTargetInput = "50"
+        };
+
+        viewModel.IncreaseMonthlyFocusTargetCommand.Execute(null);
+        Assert.Equal("51", viewModel.MonthlyFocusTargetInput);
+
+        viewModel.DecreaseMonthlyFocusTargetCommand.Execute(null);
+        Assert.Equal("50", viewModel.MonthlyFocusTargetInput);
+
+        viewModel.MonthlyFocusTargetInput = string.Empty;
+        viewModel.DecreaseMonthlyFocusTargetCommand.Execute(null);
+        Assert.Equal("1", viewModel.MonthlyFocusTargetInput);
+    }
+
+    [Fact]
     public void DeletingGoalOnlyRemovesArchivedGoals()
     {
         var viewModel = new StatisticsOverviewViewModel();

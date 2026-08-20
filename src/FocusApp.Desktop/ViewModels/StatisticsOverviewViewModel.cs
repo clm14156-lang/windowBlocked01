@@ -73,6 +73,8 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         SaveMonthlyFocusTargetCommand = new RelayCommand<object>(_ => SaveMonthlyFocusTarget());
         CancelMonthlyFocusTargetCommand = new RelayCommand<object>(_ => IsMonthlyFocusTargetPopupOpen = false);
         DeleteMonthlyFocusTargetCommand = new RelayCommand<object>(_ => DeleteMonthlyFocusTarget());
+        IncreaseMonthlyFocusTargetCommand = new RelayCommand<object>(_ => AdjustMonthlyFocusTarget(1));
+        DecreaseMonthlyFocusTargetCommand = new RelayCommand<object>(_ => AdjustMonthlyFocusTarget(-1));
         AddGoalCommand = new RelayCommand<object>(_ => AddGoal());
         RefreshTrend();
         RefreshGoals();
@@ -129,6 +131,8 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     public ICommand SaveMonthlyFocusTargetCommand { get; }
     public ICommand CancelMonthlyFocusTargetCommand { get; }
     public ICommand DeleteMonthlyFocusTargetCommand { get; }
+    public ICommand IncreaseMonthlyFocusTargetCommand { get; }
+    public ICommand DecreaseMonthlyFocusTargetCommand { get; }
 
     public ObservableCollection<CalendarDayViewModel> CalendarDays { get; } = [];
 
@@ -677,6 +681,12 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         _monthlyFocusTargetHours = Math.Min(hours, 10000);
         IsMonthlyFocusTargetPopupOpen = false;
         NotifyMonthlyFocusTargetChanged();
+    }
+
+    private void AdjustMonthlyFocusTarget(int delta)
+    {
+        _ = int.TryParse(MonthlyFocusTargetInput, out var currentHours);
+        MonthlyFocusTargetInput = Math.Clamp(currentHours + delta, 1, 10000).ToString();
     }
 
     private void DeleteMonthlyFocusTarget()

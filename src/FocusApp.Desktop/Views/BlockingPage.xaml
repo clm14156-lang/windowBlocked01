@@ -57,6 +57,30 @@
             </Setter>
         </Style>
 
+        <Style x:Key="BlockingAddWebsiteButtonStyle" TargetType="{x:Type Button}">
+            <Setter Property="Padding" Value="12,0" />
+            <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderPrimary}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border x:Name="ButtonBorder" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="12">
+                            <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource ControlHoverBackground}" /></Trigger>
+                            <Trigger Property="IsPressed" Value="True"><Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource ControlPressedBackground}" /></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="BlockingToggleStyle" TargetType="{x:Type ToggleButton}">
             <Setter Property="Width" Value="38" />
             <Setter Property="Height" Value="22" />
@@ -174,8 +198,8 @@
                         <TextBlock FontSize="15" FontWeight="Medium" Text="{DynamicResource BlockingWebsiteSummaryTitle}" />
                         <TextBlock Margin="0,5,0,0" FontSize="12" Foreground="{DynamicResource TextSecondary}"><Run Text="{Binding Websites.Count, Mode=OneWay}" /><Run Text="{DynamicResource BlockingWebsiteManagedSuffix}" /></TextBlock>
                     </StackPanel>
-                    <Button Grid.Column="2" Width="108" Height="38" HorizontalAlignment="Right" AutomationProperties.Name="{DynamicResource BlockingAddWebsite}" Command="{Binding OpenWebsiteModalCommand}" Style="{StaticResource BlockingOutlineButtonStyle}">
-                        <StackPanel Orientation="Horizontal"><TextBlock Margin="0,-1,8,0" VerticalAlignment="Center" FontSize="21" FontWeight="Normal" Text="+" /><TextBlock VerticalAlignment="Center" Text="{DynamicResource BlockingAddWebsite}" /></StackPanel>
+                    <Button Grid.Column="2" Width="108" Height="38" HorizontalAlignment="Right" AutomationProperties.Name="{DynamicResource BlockingAddWebsite}" Command="{Binding OpenWebsiteModalCommand}" Style="{StaticResource BlockingAddWebsiteButtonStyle}">
+                        <StackPanel Orientation="Horizontal"><TextBlock Margin="0,-1,6,0" VerticalAlignment="Center" FontSize="21" FontWeight="Normal" Foreground="{DynamicResource AccentPrimary}" Text="+" /><TextBlock VerticalAlignment="Center" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource BlockingAddWebsite}" /></StackPanel>
                     </Button>
                 </Grid>
             </Border>
