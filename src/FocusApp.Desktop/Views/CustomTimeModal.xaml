@@ -7,6 +7,7 @@
              UseLayoutRounding="True"
              SnapsToDevicePixels="True">
     <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <Style x:Key="CustomTimeQuickButtonStyle" TargetType="{x:Type Button}">
             <Setter Property="Width" Value="80" />
             <Setter Property="Height" Value="34" />
@@ -112,7 +113,8 @@
                     BorderThickness="1"
                     CornerRadius="8">
                 <Grid>
-                    <TextBox Width="120"
+                        <TextBox x:Name="MinutesTextBox"
+                                 Width="120"
                              HorizontalAlignment="Center"
                              VerticalAlignment="Center"
                              Padding="0"
@@ -121,6 +123,11 @@
                              FontFamily="Segoe UI Variable Display"
                              FontSize="34"
                              Foreground="{DynamicResource TextPrimary}"
+                             MaxLength="3"
+                             DataObject.Pasting="MinutesTextBox_Pasting"
+                             IsVisibleChanged="MinutesTextBox_IsVisibleChanged"
+                             KeyDown="MinutesTextBox_KeyDown"
+                             PreviewTextInput="MinutesTextBox_PreviewTextInput"
                              Text="{Binding Minutes, UpdateSourceTrigger=PropertyChanged}"
                              TextAlignment="Center" />
                     <TextBlock Margin="0,0,15,0"
@@ -137,15 +144,36 @@
                        FontSize="14"
                        FontWeight="SemiBold"
                        Text="{DynamicResource CustomTimeCommonLabel}" />
-
-            <Button Canvas.Left="16" Canvas.Top="183" Height="32" Style="{StaticResource CustomTimeAccentQuickButtonStyle}" Content="{DynamicResource CustomTimePreset15}" />
-            <Button Canvas.Left="110" Canvas.Top="183" Height="32" Style="{StaticResource CustomTimeAccentQuickButtonStyle}" Content="{DynamicResource CustomTimePreset15}" />
-            <Button Canvas.Left="204" Canvas.Top="183" Height="32" Style="{StaticResource CustomTimeQuickButtonStyle}" Content="{DynamicResource CustomTimePreset15}" />
-            <Button Canvas.Left="16" Canvas.Top="225" Height="32" Style="{StaticResource CustomTimeQuickButtonStyle}" Content="{DynamicResource CustomTimePreset15}" />
-            <Button Canvas.Left="110" Canvas.Top="225" Height="32" Style="{StaticResource CustomTimeAccentQuickButtonStyle}" Content="{DynamicResource CustomTimePreset15}" />
-            <Button Canvas.Left="204" Canvas.Top="225" Height="32" Style="{StaticResource CustomTimeAccentQuickButtonStyle}" Content="{DynamicResource CustomTimePreset15}" />
-            <Button Canvas.Left="16" Canvas.Top="267" Height="32" Style="{StaticResource CustomTimeQuickButtonStyle}" Content="{DynamicResource CustomTimePreset15}" />
-            <Button Canvas.Left="110" Canvas.Top="267" Height="32" Style="{StaticResource CustomTimeQuickButtonStyle}" Content="{DynamicResource CustomTimePreset15}" />
+            <Button Canvas.Left="248" Canvas.Top="153" Width="36" Height="24" Content="编辑" Command="{Binding ToggleEditCommand}">
+                <Button.Style><Style TargetType="{x:Type Button}" BasedOn="{StaticResource CustomTimeQuickButtonStyle}"><Setter Property="Visibility" Value="Visible" /><Style.Triggers><DataTrigger Binding="{Binding IsEditing}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers></Style></Button.Style>
+            </Button>
+            <Button Canvas.Left="248" Canvas.Top="153" Width="36" Height="24" Content="完成" Command="{Binding CompleteEditCommand}">
+                <Button.Style><Style TargetType="{x:Type Button}" BasedOn="{StaticResource CustomTimeQuickButtonStyle}"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding IsEditing}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></Button.Style>
+            </Button>
+            <ItemsControl Canvas.Left="16" Canvas.Top="183" Width="268" Height="120" ItemsSource="{Binding CommonTimes}">
+                <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Width="80" Height="34" Margin="0,0,8,8">
+                            <Button Command="{Binding DataContext.SelectTimeCommand, RelativeSource={RelativeSource AncestorType={x:Type ItemsControl}}}" CommandParameter="{Binding}" Content="{Binding DurationDisplayLabel}">
+                                <Button.Style>
+                                    <Style TargetType="{x:Type Button}" BasedOn="{StaticResource CustomTimeQuickButtonStyle}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
+                                                <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                            <Button Width="16" Height="16" Margin="0,-4,-4,0" HorizontalAlignment="Right" VerticalAlignment="Top" Command="{Binding DataContext.DeleteTimeCommand, RelativeSource={RelativeSource AncestorType={x:Type ItemsControl}}}" CommandParameter="{Binding}" Content="×" FontSize="10" Padding="0">
+                                <Button.Style><Style TargetType="{x:Type Button}" BasedOn="{StaticResource CustomTimeQuickButtonStyle}"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding DataContext.IsEditing, RelativeSource={RelativeSource AncestorType={x:Type ItemsControl}}}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></Button.Style>
+                            </Button>
+                        </Grid>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
 
             <Button Canvas.Left="16"
                     Canvas.Top="314"

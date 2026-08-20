@@ -155,8 +155,10 @@ public sealed class FocusSessionViewModelTests
         home.FocusSession.FocusAgainCommand.Execute(null);
 
         Assert.Equal(FocusFlowStage.Idle, home.FocusSession.Stage);
-        Assert.False(first.IsSelected);
-        Assert.True(second.IsSelected);
+        Assert.True(first.IsSelected);
+        Assert.False(second.IsSelected);
+        Assert.False(first.IsCurrent);
+        Assert.True(second.IsCurrent);
     }
 
     [Fact]

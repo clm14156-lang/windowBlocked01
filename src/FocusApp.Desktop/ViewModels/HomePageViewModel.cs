@@ -7,7 +7,9 @@ namespace FocusApp.Desktop.ViewModels;
 
 public sealed class HomePageViewModel : INotifyPropertyChanged
 {
-    private readonly HomeDurationOptionViewModel? _customDurationOption;
+    private readonly HomeDurationOptionViewModel _customDurationOption;
+    private readonly List<HomeDurationOptionViewModel> _displayOrder = [];
+    private HomeDurationOptionViewModel _currentDurationOption;
     private AutomaticRuleItemViewModel? _nextAutomaticRule;
     private DateTime _nextAutomaticStart;
     private bool _automaticBlockingIntervalActive;
@@ -19,7 +21,12 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
 
     public HomePageViewModel(IEnumerable<HomeDurationOptionViewModel> durationOptions)
     {
-        DurationOptions = new ReadOnlyCollection<HomeDurationOptionViewModel>(durationOptions.ToList());
+        var suppliedOptions = durationOptions.ToList();
+        _customDurationOption = suppliedOptions.FirstOrDefault(option => !string.IsNullOrEmpty(option.Icon))
+            ?? new HomeDurationOptionViewModel("自定义", "\uE823");
+        var commonOptions = suppliedOptions.Where(option => !ReferenceEquals(option, _customDurationOption)).ToList();
+        DurationOptions = new ObservableCollection<HomeDurationOptionViewModel>(commonOptions) { _customDurationOption };
+        VisibleDurationOptions = new ObservableCollection<HomeDurationOptionViewModel>();
 
         if (DurationOptions.Count == 0)
         {
@@ -31,8 +38,17 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
             DurationOptions[0].IsSelected = true;
         }
 
-        _customDurationOption = DurationOptions.FirstOrDefault(option => !string.IsNullOrEmpty(option.Icon));
-        CustomTimeModal = new CustomTimeModalViewModel(ConfirmCustomTime);
+        _currentDurationOption = DurationOptions.First(option => option.IsSelected && !ReferenceEquals(option, _customDurationOption));
+        _currentDurationOption.IsCurrent = true;
+        _displayOrder.AddRange(DurationOptions.Where(option => option.IsSelected && !ReferenceEquals(option, _customDurationOption)));
+
+        foreach (var option in DurationOptions)
+        {
+            option.PropertyChanged += DurationOption_PropertyChanged;
+        }
+        RefreshVisibleDurationOptions();
+
+        CustomTimeModal = new CustomTimeModalViewModel(ConfirmCustomTime, commonOptions, ToggleCommonTimeVisibility, DeleteCommonTime);
         FocusTargetModal = new FocusTargetModalViewModel();
         FocusSession = new FocusSessionViewModel();
         BlockedContentModal = new BlockedContentModalViewModel();
@@ -42,7 +58,11 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
         OpenBlockedContentCommand = new RelayCommand<object>(_ => OpenBlockedContent());
     }
 
-    public ReadOnlyCollection<HomeDurationOptionViewModel> DurationOptions { get; }
+    public ObservableCollection<HomeDurationOptionViewModel> DurationOptions { get; }
+
+    public ObservableCollection<HomeDurationOptionViewModel> VisibleDurationOptions { get; }
+
+    public HomeDurationOptionViewModel CurrentDurationOption => _currentDurationOption;
 
     public ICommand SelectDurationCommand { get; }
 
@@ -248,20 +268,31 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
         if (HasBlockingContent) BlockedContentModal.Open();
     }
 
-    private void ConfirmCustomTime(int minutes)
+    private bool ConfirmCustomTime(int minutes)
     {
-        if (_customDurationOption is null)
+        if (minutes <= 0 || DurationOptions.Count(item => !ReferenceEquals(item, _customDurationOption)) >= 9 ||
+            DurationOptions.Any(option => option.Minutes == minutes && !ReferenceEquals(option, _customDurationOption)))
         {
-            return;
+            return false;
         }
 
-        _customDurationOption.UpdateDuration($"{minutes} 分钟", minutes);
-        SelectOnly(_customDurationOption);
+        var option = new HomeDurationOptionViewModel($"{minutes} 分钟", string.Empty, false, minutes);
+        DurationOptions.Insert(Math.Max(0, DurationOptions.Count - 1), option);
+        option.PropertyChanged += DurationOption_PropertyChanged;
+        CustomTimeModal.CommonTimes.Add(option);
+        option.IsSelected = DurationOptions.Count(item => item.IsSelected) < 4;
+        if (option.IsSelected)
+        {
+            _displayOrder.Add(option);
+        }
+        OnPropertyChanged(nameof(DurationOptions));
+        RefreshVisibleDurationOptions();
+        return true;
     }
 
     private void StartFocus()
     {
-        var selectedDuration = DurationOptions.First(option => option.IsSelected);
+        var selectedDuration = _currentDurationOption;
         FocusSession.Start(
             selectedDuration.Minutes,
             FocusTargetModal.HasSelectedTarget ? FocusTargetModal.SelectedTarget : null,
@@ -270,15 +301,72 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
 
     private void SelectOnly(HomeDurationOptionViewModel option)
     {
-        if (option.IsSelected)
+        if (ReferenceEquals(option, _customDurationOption))
         {
             return;
         }
 
         foreach (var durationOption in DurationOptions)
         {
-            durationOption.IsSelected = ReferenceEquals(durationOption, option);
+            durationOption.IsCurrent = ReferenceEquals(durationOption, option);
         }
+        _currentDurationOption = option;
+        OnPropertyChanged(nameof(CurrentDurationOption));
+    }
+
+    private void ToggleCommonTimeVisibility(int minutes)
+    {
+        var option = DurationOptions.FirstOrDefault(item => item.Minutes == minutes && !ReferenceEquals(item, _customDurationOption));
+        if (option is null) return;
+        if (option.IsSelected)
+        {
+            option.IsSelected = false;
+            _displayOrder.Remove(option);
+            RefreshVisibleDurationOptions();
+            return;
+        }
+
+        if (_displayOrder.Count >= 4)
+        {
+            var oldest = _displayOrder[0];
+            _displayOrder.RemoveAt(0);
+            oldest.IsSelected = false;
+        }
+
+        option.IsSelected = true;
+        _displayOrder.Add(option);
+        SelectOnly(option);
+        RefreshVisibleDurationOptions();
+    }
+
+    private void DeleteCommonTime(int minutes)
+    {
+        var option = DurationOptions.FirstOrDefault(item => item.Minutes == minutes && !ReferenceEquals(item, _customDurationOption));
+        if (option is null) return;
+        DurationOptions.Remove(option);
+        _displayOrder.Remove(option);
+        option.PropertyChanged -= DurationOption_PropertyChanged;
+        OnPropertyChanged(nameof(DurationOptions));
+        RefreshVisibleDurationOptions();
+    }
+
+    private void DurationOption_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(HomeDurationOptionViewModel.IsSelected))
+        {
+            RefreshVisibleDurationOptions();
+        }
+    }
+
+    private void RefreshVisibleDurationOptions()
+    {
+        VisibleDurationOptions.Clear();
+        foreach (var option in _displayOrder.Where(item => item.IsSelected))
+        {
+            VisibleDurationOptions.Add(option);
+        }
+        VisibleDurationOptions.Add(_customDurationOption);
+        OnPropertyChanged(nameof(VisibleDurationOptions));
     }
 
     private static string GetDayKey(DayOfWeek day) => day switch

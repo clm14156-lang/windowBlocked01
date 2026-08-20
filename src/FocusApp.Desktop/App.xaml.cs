@@ -42,7 +42,6 @@ public partial class App : Application
             new HomeDurationOptionViewModel((string)FindResource("HomeDuration25"), string.Empty, true, 25),
             new HomeDurationOptionViewModel((string)FindResource("HomeDuration50"), string.Empty, false, 50),
             new HomeDurationOptionViewModel((string)FindResource("HomeDuration90"), string.Empty, false, 90),
-            new HomeDurationOptionViewModel((string)FindResource("HomeDuration90Alternate"), string.Empty, false, 90),
             new HomeDurationOptionViewModel((string)FindResource("HomeDurationCustom"), "\uE823", false, 90)
         ]);
     }

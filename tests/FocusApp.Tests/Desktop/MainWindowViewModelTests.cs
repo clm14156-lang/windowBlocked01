@@ -31,12 +31,14 @@ public sealed class MainWindowViewModelTests
 
         viewModel.SelectDurationCommand.Execute(second);
 
-        Assert.False(first.IsSelected);
-        Assert.True(second.IsSelected);
+        Assert.True(first.IsSelected);
+        Assert.False(second.IsSelected);
+        Assert.False(first.IsCurrent);
+        Assert.True(second.IsCurrent);
     }
 
     [Fact]
-    public void CustomDuration_OpensModalAndConfirmRefillsSelection()
+    public void CustomDuration_OpensModalAndAddsCommonDuration()
     {
         var first = new HomeDurationOptionViewModel("25 minutes", string.Empty, true);
         var custom = new HomeDurationOptionViewModel("Custom", "clock");
@@ -46,12 +48,107 @@ public sealed class MainWindowViewModelTests
 
         Assert.True(viewModel.CustomTimeModal.IsOpen);
 
+        viewModel.CustomTimeModal.Minutes = 90;
         viewModel.CustomTimeModal.ConfirmCommand.Execute(null);
 
+        Assert.True(viewModel.CustomTimeModal.IsOpen);
+        Assert.True(first.IsSelected);
+        Assert.False(custom.IsSelected);
+        var added = Assert.Single(viewModel.DurationOptions.Where(option => option.Minutes == 90));
+        Assert.Equal("90 分钟", added.Label);
+        Assert.True(added.IsSelected);
+
+        viewModel.CustomTimeModal.CancelCommand.Execute(null);
         Assert.False(viewModel.CustomTimeModal.IsOpen);
+    }
+
+    [Fact]
+    public void HomeShowsSelectedCommonDurationsAndAlwaysKeepsCustomEntry()
+    {
+        var first = new HomeDurationOptionViewModel("25 minutes", string.Empty, true, 25);
+        var second = new HomeDurationOptionViewModel("50 minutes", string.Empty, false, 50);
+        var custom = new HomeDurationOptionViewModel("Custom", "clock");
+        var viewModel = new HomePageViewModel([first, second, custom]);
+
+        Assert.Equal(["25 minutes", "Custom"], viewModel.VisibleDurationOptions.Select(option => option.Label));
+
+        viewModel.CustomTimeModal.SelectTimeCommand.Execute(viewModel.CustomTimeModal.CommonTimes.Single(option => option.Minutes == 50));
+
+        Assert.Equal(["25 minutes", "50 minutes", "Custom"], viewModel.VisibleDurationOptions.Select(option => option.Label));
+    }
+
+    [Fact]
+    public void DeletingCommonDurationRemovesItFromHomeAndModal()
+    {
+        var first = new HomeDurationOptionViewModel("25 minutes", string.Empty, true, 25);
+        var viewModel = new HomePageViewModel([first]);
+        var common = viewModel.CustomTimeModal.CommonTimes.Single();
+
+        viewModel.CustomTimeModal.DeleteTimeCommand.Execute(common);
+
+        Assert.Empty(viewModel.CustomTimeModal.CommonTimes);
+        Assert.Equal(["自定义"], viewModel.VisibleDurationOptions.Select(option => option.Label));
+    }
+
+    [Fact]
+    public void SelectingFifthCommonDurationRotatesOutOldestDisplayedDuration()
+    {
+        var options = new[]
+        {
+            new HomeDurationOptionViewModel("25", string.Empty, true, 25),
+            new HomeDurationOptionViewModel("50", string.Empty, true, 50),
+            new HomeDurationOptionViewModel("90", string.Empty, true, 90),
+            new HomeDurationOptionViewModel("903", string.Empty, true, 903),
+            new HomeDurationOptionViewModel("902", string.Empty, false, 902),
+            new HomeDurationOptionViewModel("Custom", "clock")
+        };
+        var viewModel = new HomePageViewModel(options);
+        var newTime = viewModel.CustomTimeModal.CommonTimes.Single(option => option.Minutes == 902);
+
+        viewModel.CustomTimeModal.SelectTimeCommand.Execute(newTime);
+
+        Assert.Equal(["50", "90", "903", "902", "Custom"], viewModel.VisibleDurationOptions.Select(option => option.Label));
+        Assert.True(newTime.IsSelected);
+        Assert.True(newTime.IsCurrent);
+        Assert.False(options[0].IsSelected);
+    }
+
+    [Fact]
+    public void AddingTenthCommonDurationFailsWithoutResettingInput()
+    {
+        var options = Enumerable.Range(1, 9)
+            .Select(minutes => new HomeDurationOptionViewModel(minutes.ToString(), string.Empty, minutes == 1, minutes))
+            .ToList();
+        options.Add(new HomeDurationOptionViewModel("Custom", "clock"));
+        var viewModel = new HomePageViewModel(options);
+        viewModel.CustomTimeModal.Open();
+        viewModel.CustomTimeModal.Minutes = 999;
+
+        viewModel.CustomTimeModal.ConfirmCommand.Execute(null);
+
+        Assert.Equal(999, viewModel.CustomTimeModal.Minutes);
+        Assert.True(viewModel.CustomTimeModal.IsOpen);
+        Assert.Equal(9, viewModel.CustomTimeModal.CommonTimes.Count);
+    }
+
+    [Fact]
+    public void ClickingDisplayedCommonDurationTogglesHomeVisibilityWithoutDeletingIt()
+    {
+        var first = new HomeDurationOptionViewModel("25", string.Empty, true, 25);
+        var second = new HomeDurationOptionViewModel("50", string.Empty, true, 50);
+        var custom = new HomeDurationOptionViewModel("Custom", "clock");
+        var viewModel = new HomePageViewModel([first, second, custom]);
+
+        viewModel.CustomTimeModal.SelectTimeCommand.Execute(first);
+
         Assert.False(first.IsSelected);
-        Assert.True(custom.IsSelected);
-        Assert.Equal("90 分钟", custom.Label);
+        Assert.Contains(first, viewModel.CustomTimeModal.CommonTimes);
+        Assert.Equal(["50", "Custom"], viewModel.VisibleDurationOptions.Select(option => option.Label));
+
+        viewModel.CustomTimeModal.SelectTimeCommand.Execute(first);
+
+        Assert.True(first.IsSelected);
+        Assert.Equal(["50", "25", "Custom"], viewModel.VisibleDurationOptions.Select(option => option.Label));
     }
 
     [Fact]
