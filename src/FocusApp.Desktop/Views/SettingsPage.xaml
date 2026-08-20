@@ -6,10 +6,11 @@
              SnapsToDevicePixels="True">
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <SolidColorBrush x:Key="SettingsHairlineBrush" Color="#EFEFF1" Opacity="0.5" />
 
         <Style x:Key="SettingsToggleRowStyle" TargetType="{x:Type ToggleButton}">
-            <Setter Property="Height" Value="59" />
-            <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
+            <Setter Property="Height" Value="63" />
+            <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
@@ -20,35 +21,43 @@
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="64" />
                                 <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="96" />
+                                <ColumnDefinition Width="76" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0"
-                                       HorizontalAlignment="Center"
-                                       VerticalAlignment="Center"
-                                       FontFamily="Segoe MDL2 Assets"
-                                       FontSize="23"
-                                       Foreground="{DynamicResource AccentPrimary}"
-                                       Text="{Binding Icon}" />
-                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                <TextBlock FontSize="14"
+                            <Border Grid.Column="0"
+                                    Width="34"
+                                    Height="34"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Background="{DynamicResource BackgroundSecondary}"
+                                    CornerRadius="17">
+                                <TextBlock x:Name="SettingIcon"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="20"
+                                           Foreground="{DynamicResource TextSecondary}"
+                                           Text="{Binding Icon}" />
+                            </Border>
+                            <StackPanel Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center">
+                                <TextBlock FontSize="12"
                                            FontWeight="SemiBold"
                                            Text="{Binding Title}" />
-                                <TextBlock Margin="0,3,0,0"
-                                           FontSize="12"
+                                <TextBlock Margin="0,2,0,0"
+                                           FontSize="11"
                                            Foreground="{DynamicResource TextSecondary}"
                                            Text="{Binding Description}" />
                             </StackPanel>
                             <Grid Grid.Column="2"
-                                  Width="40"
-                                  Height="23"
+                                  Width="35"
+                                  Height="20"
                                   HorizontalAlignment="Center"
                                   VerticalAlignment="Center">
                                 <Border x:Name="ToggleTrack"
                                         Background="{DynamicResource BorderPrimary}"
                                         CornerRadius="12" />
                                 <Ellipse x:Name="ToggleThumb"
-                                         Width="19"
-                                         Height="19"
+                                         Width="17"
+                                         Height="17"
                                          Margin="2"
                                          HorizontalAlignment="Left"
                                          Fill="{DynamicResource SurfacePrimary}">
@@ -60,21 +69,19 @@
                             <Border Grid.Column="0"
                                     Grid.ColumnSpan="3"
                                     Height="1"
-                                    Margin="18,0"
+                                    Margin="14,0"
                                     VerticalAlignment="Bottom"
-                                    Background="{DynamicResource BorderPrimary}"
+                                    Background="{StaticResource SettingsHairlineBrush}"
                                     Visibility="{Binding HasSeparator, Converter={StaticResource BooleanToVisibilityConverter}}" />
                         </Grid>
                         <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="RowBackground" Property="Background" Value="{DynamicResource ControlHoverBackground}" />
-                            </Trigger>
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="RowBackground" Property="Background" Value="{DynamicResource ControlPressedBackground}" />
                             </Trigger>
                             <Trigger Property="IsChecked" Value="True">
                                 <Setter TargetName="ToggleTrack" Property="Background" Value="{DynamicResource AccentPrimary}" />
                                 <Setter TargetName="ToggleThumb" Property="HorizontalAlignment" Value="Right" />
+                                <Setter TargetName="SettingIcon" Property="Foreground" Value="{DynamicResource AccentPrimary}" />
                             </Trigger>
                             <MultiTrigger>
                                 <MultiTrigger.Conditions>
@@ -94,8 +101,8 @@
         </Style>
 
         <Style x:Key="SettingsEntryRowStyle" TargetType="{x:Type Button}">
-            <Setter Property="Height" Value="54" />
-            <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
+            <Setter Property="Height" Value="63" />
+            <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
@@ -108,21 +115,29 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="66" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0"
-                                       HorizontalAlignment="Center"
-                                       VerticalAlignment="Center"
-                                       FontFamily="Segoe MDL2 Assets"
-                                       FontSize="22"
-                                       Foreground="{DynamicResource AccentPrimary}"
-                                       Text="{Binding Icon}" />
-                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                <TextBlock FontSize="14"
+                            <Border Grid.Column="0"
+                                    Width="34"
+                                    Height="34"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Background="{DynamicResource BackgroundSecondary}"
+                                    CornerRadius="17">
+                                <TextBlock HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="20"
+                                           Foreground="{DynamicResource TextSecondary}"
+                                           Text="{Binding Icon}" />
+                            </Border>
+                            <StackPanel Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center">
+                                <TextBlock FontSize="12"
                                            FontWeight="SemiBold"
                                            Text="{Binding Title}" />
-                                <TextBlock Margin="0,3,0,0"
-                                           FontSize="12"
+                                <TextBlock Margin="0,2,0,0"
+                                           FontSize="11"
                                            Foreground="{DynamicResource TextSecondary}"
                                            Text="{Binding Description}" />
+                                <StackPanel.RenderTransform><TranslateTransform Y="-1" /></StackPanel.RenderTransform>
                             </StackPanel>
                             <TextBlock Grid.Column="2"
                                        HorizontalAlignment="Center"
@@ -134,18 +149,15 @@
                             <Border Grid.Column="0"
                                     Grid.ColumnSpan="3"
                                     Height="1"
-                                    Margin="18,0"
+                                    Margin="14,0"
                                     VerticalAlignment="Bottom"
-                                    Background="{DynamicResource BorderPrimary}"
+                                    Background="{StaticResource SettingsHairlineBrush}"
                                     Visibility="{Binding HasSeparator, Converter={StaticResource BooleanToVisibilityConverter}}" />
                         </Grid>
                         <ControlTemplate.Triggers>
                             <DataTrigger Binding="{Binding IsActive}" Value="True">
                                 <Setter TargetName="RowBackground" Property="Background" Value="{DynamicResource AccentTint}" />
                             </DataTrigger>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="RowBackground" Property="Background" Value="{DynamicResource ControlHoverBackground}" />
-                            </Trigger>
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="RowBackground" Property="Background" Value="{DynamicResource ControlPressedBackground}" />
                             </Trigger>
@@ -207,18 +219,20 @@
     </UserControl.Resources>
 
     <Grid>
-        <TextBlock Margin="26,-14,0,0"
+        <TextBlock Margin="32,-15,0,0"
                    HorizontalAlignment="Left"
                    VerticalAlignment="Top"
                    Panel.ZIndex="2"
-                   FontSize="20"
+                   FontSize="21"
                    FontWeight="SemiBold"
                    Text="{DynamicResource NavigationSettings}" />
         <ScrollViewer HorizontalScrollBarVisibility="Disabled"
                       VerticalScrollBarVisibility="Hidden">
-            <StackPanel Width="646" Margin="26,47,0,24" HorizontalAlignment="Left">
-                <TextBlock Height="20" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource SettingsGeneralSection}" />
-                <Border Margin="0,6,0,0" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" CornerRadius="10">
+            <StackPanel Width="636" Margin="31,42,0,24" HorizontalAlignment="Left">
+                <TextBlock Height="20" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource SettingsGeneralSection}">
+                    <TextBlock.RenderTransform><TranslateTransform Y="-2" /></TextBlock.RenderTransform>
+                </TextBlock>
+                <Border Margin="0,6,0,0" Background="{DynamicResource SurfacePrimary}" BorderBrush="{StaticResource SettingsHairlineBrush}" BorderThickness="1" CornerRadius="10">
                     <StackPanel>
                         <ItemsControl ItemsSource="{Binding GeneralToggleItems}">
                             <ItemsControl.ItemTemplate>
@@ -281,8 +295,10 @@
                     </StackPanel>
                 </Border>
 
-                <TextBlock Height="20" Margin="0,25,0,0" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource SettingsDataSection}" />
-                <Border Margin="0,3,0,0" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" CornerRadius="10">
+                <TextBlock Height="20" Margin="0,25,0,0" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource SettingsDataSection}">
+                    <TextBlock.RenderTransform><TranslateTransform X="1" Y="-4" /></TextBlock.RenderTransform>
+                </TextBlock>
+                <Border Margin="0,6,0,0" Background="{DynamicResource SurfacePrimary}" BorderBrush="{StaticResource SettingsHairlineBrush}" BorderThickness="1" CornerRadius="10">
                     <ItemsControl ItemsSource="{Binding EntryItems}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
