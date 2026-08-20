@@ -15,8 +15,11 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     private const double ChartHeight = 152;
     private const double ChartAreaBaseline = 159;
     private const double YAxisHeight = 152;
-    private const int MinutesPerTick = 120;
-    private const int TrendMaximumMinutes = 4 * 60;
+    private const int CompactTrendTickIntervalMinutes = 2 * 60;
+    private const int ExpandedTrendTickIntervalMinutes = 4 * 60;
+    private const int PreferredMaximumTrendTickCount = 6;
+    private const int MaximumSupportedTrendMinutes = 24 * 60;
+    private const double TrendCurveTension = 0.12;
     private StatisticsRangeOptionViewModel _selectedRange;
     private TrendDataPointViewModel? _hoveredPoint;
     private StatisticsTab _selectedTab = StatisticsTab.Overview;
@@ -926,19 +929,22 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         TrendPoints.Clear();
         TrendLinePoints.Clear();
         YAxisTicks.Clear();
+        var maximumDataMinutes = data.Max(point => point.Minutes);
+        var (scaleMaximumMinutes, tickIntervalMinutes) = CalculateTrendScale(maximumDataMinutes);
 
-        for (var value = TrendMaximumMinutes; value >= 0; value -= MinutesPerTick)
+        for (var value = scaleMaximumMinutes; value >= 0; value -= tickIntervalMinutes)
         {
             YAxisTicks.Add(new YAxisTickViewModel(
                 value,
-                YAxisHeight - value * YAxisHeight / TrendMaximumMinutes));
+                YAxisHeight - value * YAxisHeight / scaleMaximumMinutes));
         }
 
         for (var index = 0; index < data.Length; index++)
         {
             var item = data[index];
             var x = data.Length == 1 ? ChartLeft + ChartWidth / 2 : ChartLeft + index * ChartWidth / (data.Length - 1);
-            var y = ChartHeight - item.Minutes * ChartHeight / TrendMaximumMinutes;
+            var plottedMinutes = Math.Min(item.Minutes, scaleMaximumMinutes);
+            var y = ChartHeight - plottedMinutes * ChartHeight / scaleMaximumMinutes;
             var point = new TrendDataPointViewModel(
                 item.Date,
                 item.Minutes,
@@ -967,6 +973,30 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(YAxisTicks));
     }
 
+    private static (int ScaleMaximumMinutes, int TickIntervalMinutes) CalculateTrendScale(int maximumDataMinutes)
+    {
+        var cappedMaximumMinutes = Math.Clamp(maximumDataMinutes, 0, MaximumSupportedTrendMinutes);
+        var compactScaleMaximum = RoundUpToInterval(
+            Math.Max(cappedMaximumMinutes, CompactTrendTickIntervalMinutes),
+            CompactTrendTickIntervalMinutes);
+        var compactTickCount = compactScaleMaximum / CompactTrendTickIntervalMinutes + 1;
+        var tickIntervalMinutes = compactTickCount <= PreferredMaximumTrendTickCount
+            ? CompactTrendTickIntervalMinutes
+            : ExpandedTrendTickIntervalMinutes;
+        var scaleMaximumMinutes = Math.Min(
+            MaximumSupportedTrendMinutes,
+            RoundUpToInterval(
+                Math.Max(cappedMaximumMinutes, tickIntervalMinutes),
+                tickIntervalMinutes));
+
+        return (scaleMaximumMinutes, tickIntervalMinutes);
+    }
+
+    private static int RoundUpToInterval(int value, int interval)
+    {
+        return (value + interval - 1) / interval * interval;
+    }
+
     private static bool IsRepresentativeThirtyDayIndex(int index, int count)
     {
         if (count <= 1)
@@ -988,14 +1018,26 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         }
 
         var curveFigure = new PathFigure { StartPoint = TrendLinePoints[0], IsClosed = false, IsFilled = false };
-        for (var index = 1; index < TrendLinePoints.Count; index++)
+        for (var index = 0; index < TrendLinePoints.Count - 1; index++)
         {
-            var start = TrendLinePoints[index - 1];
-            var end = TrendLinePoints[index];
-            var controlOffset = (end.X - start.X) / 2;
+            var previous = TrendLinePoints[Math.Max(index - 1, 0)];
+            var start = TrendLinePoints[index];
+            var end = TrendLinePoints[index + 1];
+            var next = TrendLinePoints[Math.Min(index + 2, TrendLinePoints.Count - 1)];
+            var segmentTop = Math.Min(start.Y, end.Y);
+            var segmentBottom = Math.Max(start.Y, end.Y);
+            var firstControlY = Math.Clamp(
+                start.Y + (end.Y - previous.Y) * TrendCurveTension,
+                segmentTop,
+                segmentBottom);
+            var secondControlY = Math.Clamp(
+                end.Y - (next.Y - start.Y) * TrendCurveTension,
+                segmentTop,
+                segmentBottom);
+
             curveFigure.Segments.Add(new BezierSegment(
-                new Point(start.X + controlOffset, start.Y),
-                new Point(end.X - controlOffset, end.Y),
+                new Point(start.X + (end.X - previous.X) * TrendCurveTension, firstControlY),
+                new Point(end.X - (next.X - start.X) * TrendCurveTension, secondControlY),
                 end,
                 true));
         }
@@ -1030,7 +1072,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         new(new DateTime(2024, 5, 9), 72, 2),
         new(new DateTime(2024, 5, 10), 126, 4),
         new(new DateTime(2024, 5, 11), 96, 3),
-        new(new DateTime(2024, 5, 12), 168, 5),
+        new(new DateTime(2024, 5, 12), 1380, 5),
         new(new DateTime(2024, 5, 13), 138, 4),
         new(new DateTime(2024, 5, 14), 186, 5),
         new(new DateTime(2024, 5, 15), 126, 5)
@@ -1387,7 +1429,9 @@ public sealed class YAxisTickViewModel
 
     public double ChartY { get; }
 
-    public string Label => Minutes == 0 ? "0" : $"{Minutes / 60}h";
+    public string Label => $"{Minutes / 60}h";
+
+    public bool ShowGuideLine => Minutes > 0;
 }
 
 public sealed class TrendDataPointViewModel : INotifyPropertyChanged
@@ -1426,9 +1470,9 @@ public sealed class TrendDataPointViewModel : INotifyPropertyChanged
 
     public bool IsKeyPoint { get; }
 
-    public bool IsMarkerVisible => IsKeyPoint || IsHovered;
+    public bool IsMarkerVisible => IsHovered;
 
-    public bool IsValueLabelVisible => IsKeyPoint || IsHovered;
+    public bool IsValueLabelVisible => IsHovered;
 
     public bool IsDateLabelVisible => IsKeyPoint;
 
@@ -1436,7 +1480,7 @@ public sealed class TrendDataPointViewModel : INotifyPropertyChanged
 
     public string TooltipDurationDisplay => FormatDuration(Minutes);
 
-    public string DateLabel => $"{Date:M/d}\n{GetWeekday(Date)}";
+    public string DateLabel => $"{Date:M/d}";
 
     public string DurationLabel => Minutes == 0 ? "0" : $"{Minutes / 60d:0.0}h";
 

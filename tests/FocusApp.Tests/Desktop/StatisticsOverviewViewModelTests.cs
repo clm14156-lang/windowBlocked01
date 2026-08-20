@@ -13,20 +13,30 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.Equal("近7天", viewModel.SelectedRange.Label);
         Assert.Equal(7, viewModel.TrendPoints.Count);
         Assert.Equal(7, viewModel.TrendLinePoints.Count);
-        Assert.Equal(new[] { "4h", "2h", "0" }, viewModel.YAxisTicks.Select(tick => tick.Label));
+        Assert.Equal(new[] { "24h", "20h", "16h", "12h", "8h", "4h", "0h" }, viewModel.YAxisTicks.Select(tick => tick.Label));
+        Assert.Equal(7, viewModel.YAxisTicks.Count);
+        Assert.All(
+            viewModel.YAxisTicks.Zip(viewModel.YAxisTicks.Skip(1)),
+            pair => Assert.Equal(240, pair.First.Minutes - pair.Second.Minutes));
         Assert.Equal(0, viewModel.YAxisTicks[0].ChartY);
-        Assert.Equal(76, viewModel.YAxisTicks[1].ChartY);
-        Assert.Equal(152, viewModel.YAxisTicks[2].ChartY);
-        Assert.Equal(106.4, viewModel.TrendPoints[0].ChartY, 5);
-        Assert.Equal(72.2, viewModel.TrendPoints[1].ChartY, 5);
-        Assert.Equal(34.2, viewModel.TrendPoints[5].ChartY, 5);
-        Assert.True(viewModel.TrendPoints[0].ChartY > viewModel.YAxisTicks[1].ChartY);
-        Assert.True(viewModel.TrendPoints[1].ChartY < viewModel.YAxisTicks[1].ChartY);
+        Assert.Equal(25.33333, viewModel.YAxisTicks[1].ChartY, 5);
+        Assert.Equal(152, viewModel.YAxisTicks[^1].ChartY);
+        Assert.All(viewModel.YAxisTicks.SkipLast(1), tick => Assert.True(tick.ShowGuideLine));
+        Assert.False(viewModel.YAxisTicks[^1].ShowGuideLine);
+        Assert.Equal(144.4, viewModel.TrendPoints[0].ChartY, 5);
+        Assert.Equal(138.7, viewModel.TrendPoints[1].ChartY, 5);
+        Assert.Equal(6.33333, viewModel.TrendPoints[3].ChartY, 5);
+        Assert.Equal(132.36667, viewModel.TrendPoints[5].ChartY, 5);
+        Assert.All(viewModel.TrendPoints, point => Assert.InRange(point.ChartY, 0, 152));
+        Assert.True(viewModel.TrendPoints[3].ChartY < viewModel.YAxisTicks[1].ChartY);
         Assert.All(viewModel.TrendPoints.Select((point, index) => (point, index)), item =>
         {
             Assert.Equal(item.point.ChartX, viewModel.TrendLinePoints[item.index].X);
             Assert.Equal(item.point.ChartY, viewModel.TrendLinePoints[item.index].Y);
             Assert.Equal(167, item.point.AxisLabelY);
+            Assert.False(item.point.IsMarkerVisible);
+            Assert.False(item.point.IsValueLabelVisible);
+            Assert.DoesNotContain('\n', item.point.DateLabel);
         });
         Assert.Equal("14 小时 20 分钟", viewModel.PeriodTotalDisplay);
     }
@@ -43,6 +53,7 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.Equal("本月总计", viewModel.PeriodTotalLabel);
         Assert.Equal("较上月日均", viewModel.ComparisonLabel);
         Assert.Equal(7, viewModel.TrendPoints.Count(point => point.IsKeyPoint));
+        Assert.Equal(new[] { "4h", "2h", "0h" }, viewModel.YAxisTicks.Select(tick => tick.Label));
         Assert.NotEqual("14 小时 20 分钟", viewModel.PeriodTotalDisplay);
     }
 
@@ -108,6 +119,23 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.Single(viewModel.SelectedDayRecords);
         Assert.Contains(viewModel.CalendarDays, day => day.Date == new DateTime(2026, 2, 26) && day.IsSelected);
         Assert.DoesNotContain(viewModel.CalendarDays, day => day.Date == new DateTime(2026, 2, 28) && day.IsSelected);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(29)]
+    [InlineData(31)]
+    public void MarchBoundaryDatesUseTheSameSelectableCalendarCell(int day)
+    {
+        var viewModel = new StatisticsOverviewViewModel();
+        viewModel.NextCalendarMonthCommand.Execute(null);
+        var target = viewModel.CalendarDays.Single(item => item.Date == new DateTime(2026, 3, day));
+
+        viewModel.SelectCalendarDateCommand.Execute(target);
+
+        Assert.True(target.IsSelected);
+        Assert.Equal($"3月{day}日", viewModel.SelectedDateDisplay.Split('·')[0].Trim());
+        Assert.Single(viewModel.CalendarDays.Where(item => item.IsSelected));
     }
 
     [Fact]

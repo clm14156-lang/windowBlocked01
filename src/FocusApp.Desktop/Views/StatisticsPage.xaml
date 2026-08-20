@@ -78,6 +78,61 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <Style x:Key="StatisticsThinScrollBarStyle" TargetType="{x:Type ScrollBar}">
+            <Setter Property="Width" Value="6" />
+            <Setter Property="MinWidth" Value="6" />
+            <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+            <Setter Property="Opacity" Value="0.48" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ScrollBar}">
+                        <Grid Width="6" Background="{TemplateBinding Background}">
+                            <Track x:Name="PART_Track"
+                                   Margin="0,3"
+                                   IsDirectionReversed="True"
+                                   Orientation="{TemplateBinding Orientation}">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Background="{DynamicResource TransparentBrush}"
+                                                  BorderThickness="0"
+                                                  Command="{x:Static ScrollBar.PageUpCommand}"
+                                                  CommandTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}"
+                                                  Focusable="False" />
+                                </Track.DecreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb MinHeight="28">
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="{x:Type Thumb}">
+                                                <Border Width="4"
+                                                        Margin="1,0"
+                                                        HorizontalAlignment="Center"
+                                                        Background="{DynamicResource TextSecondary}"
+                                                        CornerRadius="2"
+                                                        Opacity="0.72" />
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Background="{DynamicResource TransparentBrush}"
+                                                  BorderThickness="0"
+                                                  Command="{x:Static ScrollBar.PageDownCommand}"
+                                                  CommandTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}"
+                                                  Focusable="False" />
+                                </Track.IncreaseRepeatButton>
+                            </Track>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Opacity" Value="0.9" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.2" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </UserControl.Resources>
     <Grid>
     <ScrollViewer VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Disabled">
@@ -138,9 +193,9 @@
                 <Grid Width="695" Height="602" Margin="0,3,0,0" HorizontalAlignment="Left">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="346" /><ColumnDefinition Width="18" /><ColumnDefinition Width="331" /></Grid.ColumnDefinitions>
                     <StackPanel Grid.Column="0">
-                        <Border Height="388" Padding="20,17,20,10" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" CornerRadius="16">
-                            <StackPanel>
-                                <Grid Height="30">
+                        <Border Height="388" Padding="0,17,0,10" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" ClipToBounds="False" CornerRadius="16">
+                            <StackPanel ClipToBounds="False">
+                                <Grid Height="30" Margin="20,0">
                                     <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="62" /></Grid.ColumnDefinitions>
                                     <TextBlock VerticalAlignment="Center" FontSize="18" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}" Text="{Binding CalendarMonthDisplay}" />
                                     <Grid Grid.Column="1" Width="62" HorizontalAlignment="Right">
@@ -148,8 +203,8 @@
                                         <Button Width="28" Height="28" Margin="0,0,-4,0" HorizontalAlignment="Right" Padding="0" Background="{DynamicResource TransparentBrush}" BorderThickness="0" Command="{Binding NextCalendarMonthCommand}"><TextBlock FontFamily="Segoe MDL2 Assets" FontSize="16" Foreground="{DynamicResource TextPrimary}" Text="&#xE76C;" /></Button>
                                     </Grid>
                                 </Grid>
-                                <Border Margin="0,11,0,7" Height="1" Background="{DynamicResource BorderPrimary}" />
-                                <UniformGrid Columns="7" Margin="-14,0,-14,4">
+                                <Border Margin="20,11,20,7" Height="1" Background="{DynamicResource BorderPrimary}" />
+                                <UniformGrid Columns="7" Margin="6,0,6,4">
                                     <TextBlock HorizontalAlignment="Center" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="日" />
                                     <TextBlock HorizontalAlignment="Center" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="一" />
                                     <TextBlock HorizontalAlignment="Center" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="二" />
@@ -158,24 +213,31 @@
                                     <TextBlock HorizontalAlignment="Center" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="五" />
                                     <TextBlock HorizontalAlignment="Center" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="六" />
                                 </UniformGrid>
-                                <ItemsControl Margin="-14,13,-14,0" ItemsSource="{Binding CalendarDays}">
-                                    <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="7" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                <ItemsControl Margin="6,13,6,0" ClipToBounds="False" ItemsSource="{Binding CalendarDays}">
+                                    <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="7" ClipToBounds="False" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate DataType="{x:Type vm:CalendarDayViewModel}">
-                                            <Button Height="46" Margin="1" Padding="0" Command="{Binding DataContext.SelectCalendarDateCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}" Background="{DynamicResource TransparentBrush}" BorderThickness="0">
+                                            <Button Height="46" Margin="1" Padding="0" ClipToBounds="False" Command="{Binding DataContext.SelectCalendarDateCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}" Background="{DynamicResource TransparentBrush}" BorderThickness="0">
                                                 <Button.Template>
                                                     <ControlTemplate TargetType="Button">
-                                                        <Border x:Name="DayBorder" Width="40" Height="40" HorizontalAlignment="Center" VerticalAlignment="Center" Background="{TemplateBinding Background}" CornerRadius="20">
+                                                        <Grid Width="40" Height="40" HorizontalAlignment="Center" VerticalAlignment="Center" ClipToBounds="False">
+                                                            <Ellipse x:Name="DaySelectionBackground"
+                                                                     Width="40"
+                                                                     Height="40"
+                                                                     HorizontalAlignment="Center"
+                                                                     VerticalAlignment="Center"
+                                                                     Fill="{TemplateBinding Background}"
+                                                                     IsHitTestVisible="False" />
                                                             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                                                                 <TextBlock x:Name="DayNumberText" HorizontalAlignment="Center" FontSize="15" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}" Text="{Binding DayNumber}" />
                                                                 <TextBlock x:Name="DayDurationText" Margin="0,2,0,0" HorizontalAlignment="Center" FontSize="11" Foreground="{DynamicResource TextSecondary}" Text="{Binding DurationLabel}" />
                                                             </StackPanel>
-                                                        </Border>
+                                                        </Grid>
                                                         <ControlTemplate.Triggers>
                                                             <DataTrigger Binding="{Binding IsCurrentMonth}" Value="False"><Setter Property="Opacity" Value="0.55" /></DataTrigger>
-                                                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="DayBorder" Property="Background" Value="{DynamicResource ControlHoverBackground}" /></Trigger>
+                                                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="DaySelectionBackground" Property="Fill" Value="{DynamicResource ControlHoverBackground}" /></Trigger>
                                                             <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                                                <Setter TargetName="DayBorder" Property="Background" Value="{DynamicResource AccentPrimary}" />
+                                                                <Setter TargetName="DaySelectionBackground" Property="Fill" Value="{DynamicResource AccentPrimary}" />
                                                                 <Setter TargetName="DayNumberText" Property="Foreground" Value="{DynamicResource SurfacePrimary}" />
                                                                 <Setter TargetName="DayDurationText" Property="Foreground" Value="{DynamicResource SurfacePrimary}" />
                                                             </DataTrigger>
@@ -269,11 +331,14 @@
                                     </Border>
                                 </Popup>
                             </Grid>
-                            <ScrollViewer Margin="-5,11,-4,0" VerticalScrollBarVisibility="Auto">
+                            <ScrollViewer Margin="-5,11,-4,0" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                                <ScrollViewer.Resources>
+                                    <Style TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource StatisticsThinScrollBarStyle}" />
+                                </ScrollViewer.Resources>
                                 <ItemsControl ItemsSource="{Binding VisibleGoals}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate DataType="{x:Type vm:GoalOverviewItemViewModel}">
-                                            <Button Height="80" Margin="0,0,0,6" Padding="12,14" HorizontalContentAlignment="Stretch" Command="{Binding DataContext.SelectGoalCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}" Background="{DynamicResource TransparentBrush}" BorderThickness="0">
+                                            <Button Height="80" Margin="0,0,4,10" Padding="12,14" HorizontalContentAlignment="Stretch" Command="{Binding DataContext.SelectGoalCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}" Background="{DynamicResource SurfacePrimary}" BorderThickness="0" FocusVisualStyle="{x:Null}">
                                                 <Button.Template>
                                                     <ControlTemplate TargetType="Button">
                                                         <Border x:Name="GoalBorder" Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" CornerRadius="12">
@@ -308,11 +373,11 @@
                                                             </Grid>
                                                         </Border>
                                                         <ControlTemplate.Triggers>
-                                                            <DataTrigger Binding="{Binding IsSelected}" Value="True"><Setter TargetName="GoalBorder" Property="Background" Value="{DynamicResource AccentTint}" /><Setter TargetName="GoalBorder" Property="BorderBrush" Value="{DynamicResource AccentPrimary}" /><Setter TargetName="GoalBorder" Property="BorderThickness" Value="1" /><Setter TargetName="GoalMarker" Property="Stroke" Value="{DynamicResource AccentPrimary}" /><Setter TargetName="GoalMarker" Property="StrokeThickness" Value="4" /><Setter Property="Foreground" Value="{DynamicResource AccentPrimary}" /></DataTrigger>
                                                             <DataTrigger Binding="{Binding IsMenuOpen}" Value="True"><Setter TargetName="GoalMenuButton" Property="Visibility" Value="Visible" /></DataTrigger>
                                                             <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="GoalMenuButton" Property="Visibility" Value="Visible" /></Trigger>
                                                             <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="GoalBorder" Property="Background" Value="{DynamicResource ControlHoverBackground}" /></Trigger>
                                                             <Trigger Property="IsPressed" Value="True"><Setter TargetName="GoalBorder" Property="Background" Value="{DynamicResource ControlPressedBackground}" /></Trigger>
+                                                            <DataTrigger Binding="{Binding IsSelected}" Value="True"><Setter TargetName="GoalBorder" Property="Background" Value="{DynamicResource AccentTint}" /><Setter TargetName="GoalBorder" Property="BorderBrush" Value="{DynamicResource AccentPrimary}" /><Setter TargetName="GoalBorder" Property="BorderThickness" Value="1" /><Setter TargetName="GoalMarker" Property="Stroke" Value="{DynamicResource AccentPrimary}" /><Setter TargetName="GoalMarker" Property="StrokeThickness" Value="3" /><Setter Property="Foreground" Value="{DynamicResource AccentPrimary}" /></DataTrigger>
                                                         </ControlTemplate.Triggers>
                                                     </ControlTemplate>
                                                 </Button.Template>
@@ -389,43 +454,18 @@
                                 <Grid Height="238">
                                 <ScrollViewer x:Name="GoalProgressScrollViewer" ScrollChanged="GoalProgressScrollViewer_ScrollChanged" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
                                     <ScrollViewer.Resources>
-                                        <Style TargetType="{x:Type ScrollBar}">
-                                            <Setter Property="Width" Value="6" />
-                                            <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
-                                            <Setter Property="Template">
-                                                <Setter.Value>
-                                                    <ControlTemplate TargetType="{x:Type ScrollBar}">
-                                                        <Track x:Name="PART_Track" IsDirectionReversed="True">
-                                                            <Track.DecreaseRepeatButton>
-                                                                <RepeatButton Command="{x:Static ScrollBar.PageUpCommand}" CommandTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}" Background="{DynamicResource TransparentBrush}" BorderThickness="0" />
-                                                            </Track.DecreaseRepeatButton>
-                                                            <Track.Thumb>
-                                                                <Thumb>
-                                                                    <Thumb.Template>
-                                                                        <ControlTemplate TargetType="{x:Type Thumb}">
-                                                                            <Border Margin="1,0" Background="{DynamicResource BorderPrimary}" CornerRadius="3" Opacity="0.78" />
-                                                                        </ControlTemplate>
-                                                                    </Thumb.Template>
-                                                                </Thumb>
-                                                            </Track.Thumb>
-                                                            <Track.IncreaseRepeatButton>
-                                                                <RepeatButton Command="{x:Static ScrollBar.PageDownCommand}" CommandTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}" Background="{DynamicResource TransparentBrush}" BorderThickness="0" />
-                                                            </Track.IncreaseRepeatButton>
-                                                        </Track>
-                                                    </ControlTemplate>
-                                                </Setter.Value>
-                                            </Setter>
-                                        </Style>
+                                        <Style TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource StatisticsThinScrollBarStyle}" />
                                     </ScrollViewer.Resources>
                                     <ItemsControl x:Name="GoalDateGroupsControl" AlternationCount="100" ItemsSource="{Binding GoalDateGroups}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate DataType="{x:Type vm:GoalDateGroupViewModel}">
                                                 <StackPanel>
-                                                    <Button Height="34" Margin="6,0,4,0" Padding="0" HorizontalContentAlignment="Stretch" BorderThickness="0" Command="{Binding DataContext.ToggleGoalDateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
+                                                    <Button Height="38" Margin="6,2,6,2" Padding="0" HorizontalContentAlignment="Stretch" BorderThickness="0" FocusVisualStyle="{x:Null}" Command="{Binding DataContext.ToggleGoalDateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
                                                         <Button.Style>
                                                             <Style TargetType="Button">
                                                                 <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
                                                                 <Style.Triggers>
+                                                                    <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="{DynamicResource ControlHoverBackground}" /></Trigger>
                                                                     <DataTrigger Binding="{Binding IsExpanded}" Value="True"><Setter Property="Background" Value="{DynamicResource AccentTint}" /></DataTrigger>
                                                                     <MultiDataTrigger>
                                                                         <MultiDataTrigger.Conditions><Condition Binding="{Binding RelativeSource={RelativeSource AncestorType=ContentPresenter}, Path=(ItemsControl.AlternationIndex)}" Value="0" /><Condition Binding="{Binding DataContext.SelectedGoalTrendPoint, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="{x:Null}" /></MultiDataTrigger.Conditions>
@@ -440,10 +480,10 @@
                                                             </ControlTemplate>
                                                         </Button.Template>
                                                         <Grid>
-                                                            <Ellipse Width="8" Height="8" Margin="5,0,0,0" HorizontalAlignment="Left">
-                                                                <Ellipse.Style><Style TargetType="Ellipse"><Setter Property="Fill" Value="{DynamicResource BorderPrimary}" /><Style.Triggers><DataTrigger Binding="{Binding IsExpanded}" Value="True"><Setter Property="Fill" Value="{DynamicResource AccentPrimary}" /></DataTrigger><MultiDataTrigger><MultiDataTrigger.Conditions><Condition Binding="{Binding RelativeSource={RelativeSource AncestorType=ContentPresenter, AncestorLevel=2}, Path=(ItemsControl.AlternationIndex)}" Value="0" /><Condition Binding="{Binding DataContext.SelectedGoalTrendPoint, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="{x:Null}" /></MultiDataTrigger.Conditions><Setter Property="Fill" Value="{DynamicResource AccentPrimary}" /></MultiDataTrigger></Style.Triggers></Style></Ellipse.Style>
+                                                            <Ellipse Width="6" Height="6" Margin="7,0,0,0" HorizontalAlignment="Left">
+                                                                <Ellipse.Style><Style TargetType="Ellipse"><Setter Property="Fill" Value="{DynamicResource TextSecondary}" /><Setter Property="Opacity" Value="0.52" /><Style.Triggers><DataTrigger Binding="{Binding IsExpanded}" Value="True"><Setter Property="Fill" Value="{DynamicResource AccentPrimary}" /><Setter Property="Opacity" Value="1" /></DataTrigger><MultiDataTrigger><MultiDataTrigger.Conditions><Condition Binding="{Binding RelativeSource={RelativeSource AncestorType=ContentPresenter, AncestorLevel=2}, Path=(ItemsControl.AlternationIndex)}" Value="0" /><Condition Binding="{Binding DataContext.SelectedGoalTrendPoint, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="{x:Null}" /></MultiDataTrigger.Conditions><Setter Property="Fill" Value="{DynamicResource AccentPrimary}" /><Setter Property="Opacity" Value="1" /></MultiDataTrigger></Style.Triggers></Style></Ellipse.Style>
                                                             </Ellipse>
-                                                            <TextBlock Margin="26,0,0,0" VerticalAlignment="Center" FontSize="14" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}" Text="{Binding DateDisplay}" />
+                                                            <TextBlock Margin="28,0,0,0" VerticalAlignment="Center" FontSize="14" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}" Text="{Binding DateDisplay}" />
                                                             <TextBlock Margin="0,0,9,0" HorizontalAlignment="Right" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="13" Foreground="{DynamicResource TextSecondary}" Text="&#xE76C;">
                                                                 <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Opacity" Value="0" /><Style.Triggers><DataTrigger Binding="{Binding IsExpanded}" Value="True"><Setter Property="Text" Value="&#xE70D;" /><Setter Property="Opacity" Value="1" /></DataTrigger><DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Button}}" Value="True"><Setter Property="Opacity" Value="1" /></DataTrigger><MultiDataTrigger><MultiDataTrigger.Conditions><Condition Binding="{Binding RelativeSource={RelativeSource AncestorType=ContentPresenter, AncestorLevel=2}, Path=(ItemsControl.AlternationIndex)}" Value="0" /><Condition Binding="{Binding DataContext.SelectedGoalTrendPoint, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="{x:Null}" /></MultiDataTrigger.Conditions><Setter Property="Opacity" Value="1" /></MultiDataTrigger></Style.Triggers></Style></TextBlock.Style>
                                                             </TextBlock>

@@ -7,15 +7,60 @@
              UseLayoutRounding="True"
              SnapsToDevicePixels="True">
     <Grid ClipToBounds="False">
+        <ItemsControl IsHitTestVisible="False"
+                      ItemsSource="{Binding YAxisTicks}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <Canvas />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemContainerStyle>
+                <Style TargetType="ContentPresenter">
+                    <Setter Property="Canvas.Top" Value="{Binding ChartY}" />
+                </Style>
+            </ItemsControl.ItemContainerStyle>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="{x:Type vm:YAxisTickViewModel}">
+                    <Line X1="31"
+                          X2="537"
+                          Y1="0"
+                          Y2="0"
+                          Stroke="{DynamicResource BorderPrimary}"
+                          StrokeDashArray="3,4"
+                          StrokeThickness="1"
+                          Opacity="0.48">
+                        <Line.Style>
+                            <Style TargetType="Line">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ShowGuideLine}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Line.Style>
+                    </Line>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
         <Path Data="{Binding TrendAreaGeometry}"
-              Fill="{DynamicResource AccentTint}"
-              Opacity="0.52" />
+              IsHitTestVisible="False">
+            <Path.Fill>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                    <GradientStop Offset="0" Color="#38FF7A00" />
+                    <GradientStop Offset="0.58" Color="#14FF7A00" />
+                    <GradientStop Offset="1" Color="#00FF7A00" />
+                </LinearGradientBrush>
+            </Path.Fill>
+        </Path>
         <Path Data="{Binding TrendCurveGeometry}"
               Stroke="{DynamicResource AccentPrimary}"
-              StrokeThickness="1.6"
+              StrokeThickness="1.35"
               StrokeLineJoin="Round"
               StrokeStartLineCap="Round"
-              StrokeEndLineCap="Round" />
+              StrokeEndLineCap="Round"
+              IsHitTestVisible="False" />
 
         <ItemsControl Panel.ZIndex="1" ItemsSource="{Binding TrendPoints}">
             <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
@@ -23,18 +68,6 @@
             <ItemsControl.ItemTemplate>
                 <DataTemplate DataType="{x:Type vm:TrendDataPointViewModel}">
                     <Canvas Width="1" Height="1" ClipToBounds="False">
-                        <Line Canvas.Left="0"
-                              Canvas.Top="0"
-                              X1="0"
-                              Y1="-78"
-                              X2="0"
-                              Y2="0"
-                              Panel.ZIndex="0"
-                              Stroke="{DynamicResource BorderPrimary}"
-                              StrokeDashArray="2,2"
-                              StrokeThickness="1">
-                            <Line.Style><Style TargetType="Line"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding IsHovered}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></Line.Style>
-                        </Line>
                         <TextBlock Canvas.Left="-26"
                                    Canvas.Top="-29"
                                    Width="52"
@@ -64,7 +97,7 @@
                                 </ControlTemplate>
                             </Button.Template>
                             <Ellipse Width="12" Height="12" Fill="{DynamicResource AccentPrimary}" Stroke="{DynamicResource SurfacePrimary}" StrokeThickness="2">
-                                <Ellipse.Style><Style TargetType="Ellipse"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding IsMarkerVisible}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger><DataTrigger Binding="{Binding IsHovered}" Value="True"><Setter Property="Width" Value="18" /><Setter Property="Height" Value="18" /><Setter Property="StrokeThickness" Value="3" /></DataTrigger></Style.Triggers></Style></Ellipse.Style>
+                                <Ellipse.Style><Style TargetType="Ellipse"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding IsMarkerVisible}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger><DataTrigger Binding="{Binding IsHovered}" Value="True"><Setter Property="Width" Value="14" /><Setter Property="Height" Value="14" /></DataTrigger></Style.Triggers></Style></Ellipse.Style>
                             </Ellipse>
                         </Button>
                     </Canvas>
