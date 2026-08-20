@@ -259,7 +259,6 @@
     <system:String x:Key="StatisticsSessionsUnit">次</system:String>
     <system:String x:Key="StatisticsHoursUnit">小时</system:String>
     <system:String x:Key="StatisticsMinutesUnit">分钟</system:String>
-    <system:String x:Key="StatisticsTrendTitle">本周投入趋势</system:String>
     <system:String x:Key="StatisticsPeriodTotal">本周期总计</system:String>
     <system:String x:Key="StatisticsAverageDuration">日均时长</system:String>
     <system:String x:Key="StatisticsComparison">较上周期日均</system:String>

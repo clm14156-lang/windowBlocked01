@@ -2,8 +2,8 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="clr-namespace:FocusApp.Desktop.ViewModels"
-             Width="592"
-             Height="170"
+             Width="578"
+             Height="206"
              UseLayoutRounding="True"
              SnapsToDevicePixels="True">
     <Grid ClipToBounds="False">

@@ -13,14 +13,15 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.Equal("近7天", viewModel.SelectedRange.Label);
         Assert.Equal(7, viewModel.TrendPoints.Count);
         Assert.Equal(7, viewModel.TrendLinePoints.Count);
-        Assert.Equal(new[] { "4h", "0" }, viewModel.YAxisTicks.Select(tick => tick.Label));
+        Assert.Equal(new[] { "4h", "2h", "0" }, viewModel.YAxisTicks.Select(tick => tick.Label));
         Assert.Equal(0, viewModel.YAxisTicks[0].ChartY);
-        Assert.Equal(118, viewModel.YAxisTicks[1].ChartY);
+        Assert.Equal(76, viewModel.YAxisTicks[1].ChartY);
+        Assert.Equal(152, viewModel.YAxisTicks[2].ChartY);
         Assert.All(viewModel.TrendPoints.Select((point, index) => (point, index)), item =>
         {
             Assert.Equal(item.point.ChartX, viewModel.TrendLinePoints[item.index].X);
             Assert.Equal(item.point.ChartY, viewModel.TrendLinePoints[item.index].Y);
-            Assert.Equal(132, item.point.AxisLabelY);
+            Assert.Equal(167, item.point.AxisLabelY);
         });
         Assert.Equal("14 小时 20 分钟", viewModel.PeriodTotalDisplay);
     }
@@ -34,8 +35,6 @@ public sealed class StatisticsOverviewViewModelTests
 
         Assert.Equal(30, viewModel.TrendPoints.Count);
         Assert.Equal(30, viewModel.TrendLinePoints.Count);
-        Assert.Contains("4月16日", viewModel.TrendPeriodLabel);
-        Assert.Equal("本月投入趋势", viewModel.TrendTitleDisplay);
         Assert.Equal("本月总计", viewModel.PeriodTotalLabel);
         Assert.Equal("较上月日均", viewModel.ComparisonLabel);
         Assert.Equal(7, viewModel.TrendPoints.Count(point => point.IsKeyPoint));
@@ -230,6 +229,7 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.True(viewModel.HasMonthlyFocusTarget);
         Assert.Equal(60, viewModel.MonthlyFocusTargetHours);
         Assert.Equal(completedMinutes, viewModel.MonthlyFocusCompletedMinutes);
+        Assert.Equal(completedMinutes / 60, viewModel.MonthlyFocusCompletedHours);
         Assert.Equal(Math.Min(100, (int)Math.Round(completedMinutes / 3600d * 100)), viewModel.MonthlyFocusProgressPercent);
         Assert.Equal(Math.Min(1, completedMinutes / 3600d), viewModel.MonthlyFocusProgressRatio);
 

@@ -10,10 +10,12 @@ namespace FocusApp.Desktop.ViewModels;
 
 public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 {
-    private const double ChartLeft = 36;
+    private const double ChartLeft = 31;
     private const double ChartWidth = 506;
     private const double ChartHeight = 118;
-    private const int MinutesPerTick = 240;
+    private const double ChartAreaBaseline = 159;
+    private const double YAxisHeight = 152;
+    private const int MinutesPerTick = 120;
     private StatisticsRangeOptionViewModel _selectedRange;
     private TrendDataPointViewModel? _hoveredPoint;
     private StatisticsTab _selectedTab = StatisticsTab.Overview;
@@ -273,8 +275,6 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     public string CalendarMonthDisplay => $"{_calendarMonth:yyyy年M月}";
 
-    public string CalendarMonthSummary => $"本月专注  {FormatDuration(MonthlyTotalMinutes)}    完成任务  {MonthlyCompletedTasks} 个任务";
-
     public string SelectedDateDisplay => _selectedCalendarDay is null ? string.Empty : $"{_selectedCalendarDay.Date:M月d日} · {GetWeekday(_selectedCalendarDay.Date)}";
 
     public string SelectedDayDurationDisplay => FormatDuration(SelectedDayMinutes);
@@ -286,8 +286,6 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     public int SelectedDayCompletedTasks => SelectedDayRecords.Sum(record => record.CompletedTaskCount);
 
     public int MonthlyTotalMinutes => GoalDistributions.Sum(item => item.Minutes);
-
-    public int MonthlyCompletedTasks => GetRecordsForMonth(_calendarMonth).Sum(record => record.CompletedTaskCount);
 
     public bool HasMonthlyFocusTarget => _monthlyFocusTargetHours is > 0;
     public int MonthlyFocusTargetHours => _monthlyFocusTargetHours ?? 0;
@@ -315,6 +313,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     public string MonthlyFocusTargetPopupTitle => HasMonthlyFocusTarget ? "编辑本月目标" : "设置本月目标";
     public int MonthlyFocusCompletedMinutes => MonthlyTotalMinutes;
+    public int MonthlyFocusCompletedHours => MonthlyFocusCompletedMinutes / 60;
     public string MonthlyFocusCompletedDisplay => FormatDuration(MonthlyFocusCompletedMinutes);
     public int MonthlyFocusProgressPercent => !HasMonthlyFocusTarget
         ? 0
@@ -648,6 +647,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(MonthlyFocusTargetHours));
         OnPropertyChanged(nameof(MonthlyFocusTargetPopupTitle));
         OnPropertyChanged(nameof(MonthlyFocusCompletedMinutes));
+        OnPropertyChanged(nameof(MonthlyFocusCompletedHours));
         OnPropertyChanged(nameof(MonthlyFocusCompletedDisplay));
         OnPropertyChanged(nameof(MonthlyFocusProgressPercent));
         OnPropertyChanged(nameof(MonthlyFocusTargetDisplay));
@@ -820,9 +820,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
         OnPropertyChanged(nameof(CalendarMonth));
         OnPropertyChanged(nameof(CalendarMonthDisplay));
-        OnPropertyChanged(nameof(CalendarMonthSummary));
         OnPropertyChanged(nameof(MonthlyTotalMinutes));
-        OnPropertyChanged(nameof(MonthlyCompletedTasks));
         SelectCalendarDayInternal(selectedDate);
     }
 
@@ -858,10 +856,6 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     public PathGeometry TrendCurveGeometry { get; private set; } = new();
 
     public PathGeometry TrendAreaGeometry { get; private set; } = new();
-
-    public string TrendPeriodLabel { get; private set; } = string.Empty;
-
-    public string TrendTitleDisplay => SelectedRange.Days == 30 ? "本月投入趋势" : "本周投入趋势";
 
     public string PeriodTotalLabel => SelectedRange.Days == 30 ? "本月总计" : "本周总计";
 
@@ -937,7 +931,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         {
             YAxisTicks.Add(new YAxisTickViewModel(
                 value,
-                ChartHeight - value * ChartHeight / maxMinutes));
+                YAxisHeight - value * YAxisHeight / maxMinutes));
         }
 
         for (var index = 0; index < data.Length; index++)
@@ -958,14 +952,11 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
         UpdateTrendGeometry();
 
-        TrendPeriodLabel = $"{data[0].Date:M月d日} - {data[^1].Date:M月d日}";
         var totalMinutes = data.Sum(point => point.Minutes);
         var previousTotalMinutes = SelectedRange.Days == 7 ? 720 : 2400;
         PeriodTotalDisplay = SelectedRange.Days == 7 ? "14 小时 20 分钟" : FormatDuration(totalMinutes);
         AverageDurationDisplay = SelectedRange.Days == 7 ? "2 小时 2 分钟" : FormatDuration((int)Math.Round(totalMinutes / (double)data.Length));
         ComparisonDisplay = SelectedRange.Days == 7 ? "+35 分钟" : $"+{FormatDuration((int)Math.Round((totalMinutes - previousTotalMinutes) / (double)data.Length))}";
-        OnPropertyChanged(nameof(TrendPeriodLabel));
-        OnPropertyChanged(nameof(TrendTitleDisplay));
         OnPropertyChanged(nameof(PeriodTotalLabel));
         OnPropertyChanged(nameof(ComparisonLabel));
         OnPropertyChanged(nameof(PeriodTotalDisplay));
@@ -1015,14 +1006,14 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         }
 
         TrendCurveGeometry = new PathGeometry([curveFigure]);
-        var areaFigure = new PathFigure { StartPoint = new Point(TrendLinePoints[0].X, ChartHeight), IsClosed = true, IsFilled = true };
+        var areaFigure = new PathFigure { StartPoint = new Point(TrendLinePoints[0].X, ChartAreaBaseline), IsClosed = true, IsFilled = true };
         areaFigure.Segments.Add(new LineSegment(TrendLinePoints[0], true));
         foreach (var segment in curveFigure.Segments)
         {
             areaFigure.Segments.Add(segment.Clone());
         }
 
-        areaFigure.Segments.Add(new LineSegment(new Point(TrendLinePoints[^1].X, ChartHeight), true));
+        areaFigure.Segments.Add(new LineSegment(new Point(TrendLinePoints[^1].X, ChartAreaBaseline), true));
         TrendAreaGeometry = new PathGeometry([areaFigure]);
     }
 
@@ -1436,7 +1427,7 @@ public sealed class TrendDataPointViewModel : INotifyPropertyChanged
 
     public double ChartY { get; }
 
-    public double AxisLabelY => 132;
+    public double AxisLabelY => 167;
 
     public bool IsKeyPoint { get; }
 
