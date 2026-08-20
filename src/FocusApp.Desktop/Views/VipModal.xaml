@@ -7,6 +7,7 @@
              UseLayoutRounding="True"
              SnapsToDevicePixels="True">
     <UserControl.Resources>
+        <SolidColorBrush x:Key="VipSelectedPlanBackground" Color="#FFF8F2" />
         <Style x:Key="VipPlainButtonStyle" TargetType="{x:Type Button}">
             <Setter Property="Padding" Value="0" />
             <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
@@ -38,6 +39,7 @@
             <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
             <Setter Property="BorderBrush" Value="{DynamicResource BorderPrimary}" />
             <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Template">
                 <Setter.Value>
@@ -64,18 +66,18 @@
         </Style>
 
         <Style x:Key="VipBenefitCardStyle" TargetType="{x:Type Border}">
-            <Setter Property="Margin" Value="4" />
+            <Setter Property="Margin" Value="5,5,7,5" />
             <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
             <Setter Property="BorderBrush" Value="{DynamicResource BorderPrimary}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="CornerRadius" Value="9" />
         </Style>
     </UserControl.Resources>
 
     <Border Background="{DynamicResource SurfacePrimary}"
             BorderBrush="{DynamicResource OverlayBorder}"
             BorderThickness="1"
-            CornerRadius="18">
+            CornerRadius="16">
         <Border.Effect>
             <DropShadowEffect BlurRadius="30" Direction="270" Opacity="0.18" ShadowDepth="8" />
         </Border.Effect>
@@ -106,6 +108,7 @@
                 </Button>
 
                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <StackPanel.RenderTransform><TranslateTransform Y="-2" /></StackPanel.RenderTransform>
                     <Grid Width="48" Height="42" HorizontalAlignment="Center">
                         <Path HorizontalAlignment="Center"
                               VerticalAlignment="Center"
@@ -127,149 +130,145 @@
                     </Grid>
                     <TextBlock Margin="0,2,0,0"
                                HorizontalAlignment="Center"
-                               FontSize="28"
+                               FontSize="25"
                                FontWeight="Bold"
-                               Text="{DynamicResource VipModalTitle}" />
-                    <TextBlock Margin="0,2,0,0"
-                               HorizontalAlignment="Center"
-                               FontSize="13"
-                               Foreground="{DynamicResource TextSecondary}"
-                               Text="{DynamicResource VipModalSubtitle}" />
+                               Text="{DynamicResource VipModalTitle}">
+                        <TextBlock.RenderTransform><TranslateTransform Y="-2" /></TextBlock.RenderTransform>
+                    </TextBlock>
                 </StackPanel>
             </Grid>
 
-            <Border Grid.Row="1" Background="{DynamicResource BorderPrimary}" />
+            <Border Grid.Row="1" Background="{DynamicResource BorderPrimary}">
+                <Border.RenderTransform><TranslateTransform Y="-2" /></Border.RenderTransform>
+            </Border>
 
             <TextBlock Grid.Row="2"
                        Margin="4,0,0,0"
                        VerticalAlignment="Center"
-                       FontSize="15"
+                       FontSize="14"
                        FontWeight="SemiBold"
-                       Text="{DynamicResource VipModalBenefitsTitle}" />
+                       Text="{DynamicResource VipModalBenefitsTitle}">
+                <TextBlock.RenderTransform><TranslateTransform Y="3" /></TextBlock.RenderTransform>
+            </TextBlock>
 
             <UniformGrid Grid.Row="3" Columns="3" Rows="2">
+                <UniformGrid.RenderTransform><TranslateTransform Y="1" /></UniformGrid.RenderTransform>
                 <Border Style="{StaticResource VipBenefitCardStyle}">
-                    <Grid Margin="9,7">
+                    <Grid Margin="9,7,4,7">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition /></Grid.ColumnDefinitions>
                         <Border Width="27" Height="27" Background="{DynamicResource AccentTint}" CornerRadius="14">
                             <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="{DynamicResource AccentPrimary}" Text="&#xE72E;" />
                         </Border>
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
                             <TextBlock FontSize="12" FontWeight="SemiBold" Text="{DynamicResource VipBenefitForcedMode}" />
-                            <TextBlock Margin="0,3,0,0" FontSize="11" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource VipBenefitForcedModeHint}" />
                         </StackPanel>
                     </Grid>
                 </Border>
                 <Border Style="{StaticResource VipBenefitCardStyle}">
-                    <Grid Margin="9,7">
+                    <Grid Margin="9,7,4,7">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition /></Grid.ColumnDefinitions>
                         <Border Width="27" Height="27" Background="{DynamicResource AccentTint}" CornerRadius="14">
                             <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="{DynamicResource AccentPrimary}" Text="&#xEA18;" />
                         </Border>
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
                             <TextBlock FontSize="12" FontWeight="SemiBold" Text="{DynamicResource VipBenefitAutoBlocking}" />
-                            <TextBlock Margin="0,3,0,0" FontSize="11" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource VipBenefitAutoBlockingHint}" />
                         </StackPanel>
                     </Grid>
                 </Border>
                 <Border Style="{StaticResource VipBenefitCardStyle}">
-                    <Grid Margin="9,7">
+                    <Grid Margin="9,7,4,7">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition /></Grid.ColumnDefinitions>
                         <Border Width="27" Height="27" Background="{DynamicResource AccentTint}" CornerRadius="14">
                             <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="{DynamicResource AccentPrimary}" Text="&#xE790;" />
                         </Border>
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
                             <TextBlock FontSize="12" FontWeight="SemiBold" Text="{DynamicResource VipBenefitThemes}" />
-                            <TextBlock Margin="0,3,0,0" FontSize="11" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource VipBenefitThemesHint}" />
                         </StackPanel>
                     </Grid>
                 </Border>
                 <Border Style="{StaticResource VipBenefitCardStyle}">
-                    <Grid Margin="9,7">
+                    <Grid Margin="9,7,4,7">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition /></Grid.ColumnDefinitions>
                         <Border Width="27" Height="27" Background="{DynamicResource AccentTint}" CornerRadius="14">
                             <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="{DynamicResource AccentPrimary}" Text="&#xE8A5;" />
                         </Border>
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
                             <TextBlock FontSize="12" FontWeight="SemiBold" Text="{DynamicResource VipBenefitExport}" />
-                            <TextBlock Margin="0,3,0,0" FontSize="11" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource VipBenefitExportHint}" />
                         </StackPanel>
                     </Grid>
                 </Border>
                 <Border Style="{StaticResource VipBenefitCardStyle}">
-                    <Grid Margin="9,7">
+                    <Grid Margin="9,7,4,7">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition /></Grid.ColumnDefinitions>
                         <Border Width="27" Height="27" Background="{DynamicResource AccentTint}" CornerRadius="14">
                             <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="{DynamicResource AccentPrimary}" Text="&#xE9D2;" />
                         </Border>
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
                             <TextBlock FontSize="12" FontWeight="SemiBold" Text="{DynamicResource VipBenefitStatistics}" />
-                            <TextBlock Margin="0,3,0,0" FontSize="11" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource VipBenefitStatisticsHint}" />
                         </StackPanel>
                     </Grid>
                 </Border>
                 <Border Style="{StaticResource VipBenefitCardStyle}">
-                    <Grid Margin="9,7">
+                    <Grid Margin="9,7,4,7">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition /></Grid.ColumnDefinitions>
                         <Border Width="27" Height="27" Background="{DynamicResource AccentTint}" CornerRadius="14">
                             <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="{DynamicResource AccentPrimary}" Text="&#xE753;" />
                         </Border>
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
                             <TextBlock FontSize="12" FontWeight="SemiBold" Text="{DynamicResource VipBenefitSync}" />
-                            <TextBlock Margin="0,3,0,0" FontSize="11" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource VipBenefitSyncHint}" />
                         </StackPanel>
                     </Grid>
                 </Border>
             </UniformGrid>
 
             <UniformGrid Grid.Row="4" Columns="3">
-                <Button Margin="4,8" Command="{Binding SelectPlanCommand}" CommandParameter="{x:Static vm:VipModalViewModel.MonthlyPlan}">
+                <Button Margin="5,15,7,6" Command="{Binding SelectPlanCommand}" CommandParameter="{x:Static vm:VipModalViewModel.MonthlyPlan}">
                     <Button.Style>
                         <Style TargetType="{x:Type Button}" BasedOn="{StaticResource VipPlanButtonStyle}">
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding SelectedPlanKey}" Value="{x:Static vm:VipModalViewModel.MonthlyPlan}">
                                     <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
                                     <Setter Property="BorderThickness" Value="1.5" />
-                                    <Setter Property="Background" Value="{DynamicResource AccentTint}" />
+                                    <Setter Property="Background" Value="{StaticResource VipSelectedPlanBackground}" />
+                                    <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}" />
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>
                     </Button.Style>
                     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                        <TextBlock HorizontalAlignment="Center" FontSize="14" FontWeight="SemiBold" Text="{DynamicResource VipPlanMonthly}" />
-                        <StackPanel Margin="0,9,0,0" HorizontalAlignment="Center" Orientation="Horizontal">
+                        <StackPanel.RenderTransform><TranslateTransform Y="-9" /></StackPanel.RenderTransform>
+                        <TextBlock HorizontalAlignment="Center" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource VipPlanMonthly}" />
+                        <StackPanel Margin="0,8,0,0" HorizontalAlignment="Center" Orientation="Horizontal">
                             <TextBlock Margin="0,7,2,0" FontSize="12" Text="¥" />
                             <TextBlock FontSize="26" FontWeight="SemiBold" Text="{DynamicResource VipPlanMonthlyPrice}" />
                             <TextBlock Margin="3,12,0,0" FontSize="11" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource VipPlanMonthlyUnit}" />
                         </StackPanel>
-                        <TextBlock Margin="0,8,0,0" HorizontalAlignment="Center" FontSize="11" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource VipPlanMonthlyHint}" />
                     </StackPanel>
                 </Button>
 
-                <Button Margin="4,8" Command="{Binding SelectPlanCommand}" CommandParameter="{x:Static vm:VipModalViewModel.YearlyPlan}">
+                <Button Margin="5,15,7,6" Command="{Binding SelectPlanCommand}" CommandParameter="{x:Static vm:VipModalViewModel.YearlyPlan}">
                     <Button.Style>
                         <Style TargetType="{x:Type Button}" BasedOn="{StaticResource VipPlanButtonStyle}">
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding SelectedPlanKey}" Value="{x:Static vm:VipModalViewModel.YearlyPlan}">
                                     <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
                                     <Setter Property="BorderThickness" Value="1.5" />
-                                    <Setter Property="Background" Value="{DynamicResource AccentTint}" />
+                                    <Setter Property="Background" Value="{StaticResource VipSelectedPlanBackground}" />
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>
                     </Button.Style>
                     <Grid>
                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <StackPanel.RenderTransform><TranslateTransform Y="5" /></StackPanel.RenderTransform>
                             <TextBlock HorizontalAlignment="Center" FontSize="14" FontWeight="SemiBold" Text="{DynamicResource VipPlanYearly}" />
-                            <StackPanel Margin="0,9,0,0" HorizontalAlignment="Center" Orientation="Horizontal">
+                            <StackPanel Margin="0,6,0,0" HorizontalAlignment="Center" Orientation="Horizontal">
                                 <TextBlock Margin="0,7,2,0" FontSize="12" Text="¥" />
                                 <TextBlock FontSize="26" FontWeight="SemiBold" Text="{DynamicResource VipPlanYearlyPrice}" />
                                 <TextBlock Margin="3,12,0,0" FontSize="11" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource VipPlanYearlyUnit}" />
                             </StackPanel>
                             <TextBlock Margin="0,4,0,0" HorizontalAlignment="Center" FontSize="11" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource VipPlanYearlyHint}" />
-                            <Border Width="88" Height="22" Margin="0,5,0,0" Background="{DynamicResource SurfacePrimary}" CornerRadius="11">
-                                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AccentPrimary}" Text="{DynamicResource VipPlanSavings}" />
-                            </Border>
+                            <TextBlock Margin="0,2,0,0" HorizontalAlignment="Center" FontSize="11" FontWeight="Medium" Foreground="{DynamicResource AccentPrimary}" Text="{DynamicResource VipPlanSavings}" />
                         </StackPanel>
                         <Border Height="22" Padding="8,0" HorizontalAlignment="Right" VerticalAlignment="Top" Background="{DynamicResource AccentPrimary}" CornerRadius="0,10,0,9">
                             <TextBlock VerticalAlignment="Center" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource WhiteText}" Text="{DynamicResource VipPlanRecommended}" />
@@ -277,32 +276,33 @@
                     </Grid>
                 </Button>
 
-                <Button Margin="4,8" Command="{Binding SelectPlanCommand}" CommandParameter="{x:Static vm:VipModalViewModel.LifetimePlan}">
+                <Button Margin="5,15,7,6" Command="{Binding SelectPlanCommand}" CommandParameter="{x:Static vm:VipModalViewModel.LifetimePlan}">
                     <Button.Style>
                         <Style TargetType="{x:Type Button}" BasedOn="{StaticResource VipPlanButtonStyle}">
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding SelectedPlanKey}" Value="{x:Static vm:VipModalViewModel.LifetimePlan}">
                                     <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
                                     <Setter Property="BorderThickness" Value="1.5" />
-                                    <Setter Property="Background" Value="{DynamicResource AccentTint}" />
+                                    <Setter Property="Background" Value="{StaticResource VipSelectedPlanBackground}" />
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>
                     </Button.Style>
                     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <StackPanel.RenderTransform><TranslateTransform Y="2" /></StackPanel.RenderTransform>
                         <TextBlock HorizontalAlignment="Center" FontSize="14" FontWeight="SemiBold" Text="{DynamicResource VipPlanLifetime}" />
-                        <StackPanel Margin="0,9,0,0" HorizontalAlignment="Center" Orientation="Horizontal">
+                        <StackPanel Margin="0,5,0,0" HorizontalAlignment="Center" Orientation="Horizontal">
                             <TextBlock Margin="0,7,2,0" FontSize="12" Text="¥" />
                             <TextBlock FontSize="26" FontWeight="SemiBold" Text="{DynamicResource VipPlanLifetimePrice}" />
                         </StackPanel>
-                        <TextBlock Margin="0,8,0,0" HorizontalAlignment="Center" FontSize="11" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource VipPlanLifetimeHint}" />
+                        <TextBlock Margin="0,11,0,0" HorizontalAlignment="Center" FontSize="11" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource VipPlanLifetimeHint}" />
                     </StackPanel>
                 </Button>
             </UniformGrid>
 
             <Button Grid.Row="5"
-                    Height="44"
-                    Margin="4,5"
+                    Height="40"
+                    Margin="5,12,6,2"
                     AutomationProperties.Name="{DynamicResource VipUpgradeAction}"
                     Command="{Binding UpgradeCommand}">
                 <Button.Template>
@@ -316,18 +316,29 @@
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Button.Template>
-                <TextBlock FontSize="17" FontWeight="SemiBold" Foreground="{DynamicResource WhiteText}">
-                    <TextBlock.Style>
-                        <Style TargetType="{x:Type TextBlock}">
-                            <Setter Property="Text" Value="{DynamicResource VipUpgradeAction}" />
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding HasUpgradeFeedback}" Value="True">
-                                    <Setter Property="Text" Value="{DynamicResource VipUpgradeFeedback}" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </TextBlock.Style>
-                </TextBlock>
+                <StackPanel Orientation="Horizontal">
+                    <StackPanel.RenderTransform><TranslateTransform Y="1" /></StackPanel.RenderTransform>
+                    <Viewbox Width="20" Height="20" Margin="0,0,8,0" VerticalAlignment="Center">
+                        <Canvas Width="20" Height="20">
+                            <Path Data="M 1,5 L 5,12 L 10,3 L 15,12 L 19,5 L 17,15 L 3,15 Z M 3,18 L 17,18" Fill="Transparent" Stroke="White" StrokeThickness="1.7" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
+                            <Ellipse Canvas.Left="0" Canvas.Top="3.5" Width="2.5" Height="2.5" Fill="White" />
+                            <Ellipse Canvas.Left="8.75" Canvas.Top="1" Width="2.5" Height="2.5" Fill="White" />
+                            <Ellipse Canvas.Left="17.5" Canvas.Top="3.5" Width="2.5" Height="2.5" Fill="White" />
+                        </Canvas>
+                    </Viewbox>
+                    <TextBlock VerticalAlignment="Center" FontSize="17" FontWeight="SemiBold" Foreground="{DynamicResource WhiteText}">
+                        <TextBlock.Style>
+                            <Style TargetType="{x:Type TextBlock}">
+                                <Setter Property="Text" Value="{DynamicResource VipUpgradeAction}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasUpgradeFeedback}" Value="True">
+                                        <Setter Property="Text" Value="{DynamicResource VipUpgradeFeedback}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </StackPanel>
             </Button>
 
             <Button Grid.Row="6"

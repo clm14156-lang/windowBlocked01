@@ -57,51 +57,53 @@
         </RadialGradientBrush>
 
         <Style x:Key="ThemeOptionStyle" TargetType="{x:Type RadioButton}">
-            <Setter Property="Width" Value="99" />
-            <Setter Property="Height" Value="90" />
+            <Setter Property="Width" Value="130" />
+            <Setter Property="Height" Value="136" />
             <Setter Property="BorderBrush" Value="Transparent" />
             <Setter Property="BorderThickness" Value="2" />
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontSize" Value="16" />
+            <Setter Property="FontWeight" Value="Medium" />
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type RadioButton}">
-                        <Grid Width="99" Height="90">
+                        <Grid Width="130" Height="136">
                             <Border x:Name="SelectionBorder"
-                                    Width="70"
-                                    Height="70"
+                                    Width="100"
+                                    Height="100"
                                     HorizontalAlignment="Center"
                                     VerticalAlignment="Top"
-                                    Padding="2"
+                                    Padding="5,2,5,5"
                                     BorderBrush="{TemplateBinding BorderBrush}"
                                     BorderThickness="{TemplateBinding BorderThickness}"
-                                    CornerRadius="11">
+                                    CornerRadius="17">
                                 <Border Background="{TemplateBinding Background}"
-                                        CornerRadius="8" />
+                                        CornerRadius="14" />
                             </Border>
                             <Border x:Name="CheckBadge"
-                                    Width="21"
-                                    Height="21"
-                                    Margin="0,-2,11,0"
+                                    Width="29"
+                                    Height="29"
+                                    Margin="0,-5,7,0"
                                     HorizontalAlignment="Right"
                                     VerticalAlignment="Top"
                                     Background="{DynamicResource AccentPrimary}"
                                     BorderBrush="{DynamicResource SurfacePrimary}"
-                                    BorderThickness="2"
-                                    CornerRadius="11"
+                                    BorderThickness="3"
+                                    CornerRadius="15"
                                     Visibility="Collapsed">
                                 <TextBlock HorizontalAlignment="Center"
                                            VerticalAlignment="Center"
                                            FontFamily="Segoe MDL2 Assets"
-                                           FontSize="10"
+                                           FontSize="14"
                                            Foreground="{DynamicResource WhiteText}"
                                            Text="&#xE73E;" />
                             </Border>
-                            <TextBlock Margin="0,73,0,0"
+                            <TextBlock Margin="0,104,0,0"
                                        HorizontalAlignment="Center"
                                        VerticalAlignment="Top"
                                        FontSize="{TemplateBinding FontSize}"
+                                       FontWeight="{TemplateBinding FontWeight}"
                                        Foreground="{TemplateBinding Foreground}"
                                        Text="{TemplateBinding Tag}" />
                         </Grid>
@@ -124,75 +126,16 @@
 
         <Style x:Key="ThemePersonalOptionStyle"
                TargetType="{x:Type RadioButton}"
-               BasedOn="{StaticResource ThemeOptionStyle}">
-            <Setter Property="Width" Value="80" />
-            <Setter Property="Height" Value="68" />
-            <Setter Property="Foreground" Value="{DynamicResource WhiteText}" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="{x:Type RadioButton}">
-                        <Grid Width="80" Height="68">
-                            <Border x:Name="SelectionBorder"
-                                    Width="68"
-                                    Height="68"
-                                    HorizontalAlignment="Center"
-                                    Padding="1"
-                                    BorderBrush="{TemplateBinding BorderBrush}"
-                                    BorderThickness="{TemplateBinding BorderThickness}"
-                                    CornerRadius="10">
-                                <Border Background="{TemplateBinding Background}"
-                                        CornerRadius="8" />
-                            </Border>
-                            <TextBlock Margin="0,0,0,6"
-                                       HorizontalAlignment="Center"
-                                       VerticalAlignment="Bottom"
-                                       FontSize="13"
-                                       FontWeight="SemiBold"
-                                       Foreground="{TemplateBinding Foreground}"
-                                       Text="{TemplateBinding Tag}" />
-                            <Border x:Name="CheckBadge"
-                                    Width="20"
-                                    Height="20"
-                                    Margin="0,-2,5,0"
-                                    HorizontalAlignment="Right"
-                                    VerticalAlignment="Top"
-                                    Background="{DynamicResource AccentPrimary}"
-                                    BorderBrush="{DynamicResource SurfacePrimary}"
-                                    BorderThickness="2"
-                                    CornerRadius="10"
-                                    Visibility="Collapsed">
-                                <TextBlock HorizontalAlignment="Center"
-                                           VerticalAlignment="Center"
-                                           FontFamily="Segoe MDL2 Assets"
-                                           FontSize="9"
-                                           Foreground="{DynamicResource WhiteText}"
-                                           Text="&#xE73E;" />
-                            </Border>
-                        </Grid>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="SelectionBorder" Property="BorderBrush" Value="{DynamicResource AccentHover}" />
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter Property="Opacity" Value="0.82" />
-                            </Trigger>
-                            <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="SelectionBorder" Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
-                                <Setter TargetName="CheckBadge" Property="Visibility" Value="Visible" />
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
+               BasedOn="{StaticResource ThemeOptionStyle}" />
     </UserControl.Resources>
 
-    <Border Width="420"
-            Height="450"
-            Background="{DynamicResource SurfacePrimary}"
-            BorderBrush="{DynamicResource OverlayBorder}"
-            BorderThickness="1"
-            CornerRadius="12">
+    <Viewbox Width="420" Height="450" Stretch="Uniform">
+        <Border Width="560"
+                Height="600"
+                Background="{DynamicResource SurfacePrimary}"
+                BorderBrush="{DynamicResource OverlayBorder}"
+                BorderThickness="1"
+                CornerRadius="18">
         <Border.Effect>
             <DropShadowEffect BlurRadius="20"
                               Direction="270"
@@ -200,65 +143,34 @@
                               ShadowDepth="5" />
         </Border.Effect>
         <Canvas>
-            <TextBlock Canvas.Left="18"
-                       Canvas.Top="17"
-                       FontFamily="Segoe MDL2 Assets"
-                       FontSize="31"
-                       Foreground="{DynamicResource TextSecondary}"
-                       Text="&#xE790;" />
-            <TextBlock Canvas.Left="47"
-                       Canvas.Top="13"
-                       FontSize="20"
-                       FontWeight="SemiBold"
+            <TextBlock Canvas.Left="31"
+                       Canvas.Top="29"
+                       FontSize="28"
+                       FontWeight="Bold"
                        Text="{DynamicResource ThemePanelTitle}" />
-            <TextBlock Canvas.Left="47"
-                       Canvas.Top="38"
-                       FontSize="12"
-                       Foreground="{DynamicResource TextSecondary}"
-                       Text="{DynamicResource ThemePanelSubtitle}" />
-            <Button Canvas.Left="380"
-                    Canvas.Top="14"
-                    Width="28"
-                    Height="28"
-                    AutomationProperties.Name="{DynamicResource ThemePanelClose}"
-                    Command="{Binding CloseCommand}"
-                    Style="{StaticResource AuthCloseButtonStyle}">
-                <TextBlock FontFamily="Segoe MDL2 Assets"
-                           FontSize="13"
-                           Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
-                           Text="&#xE8BB;" />
-            </Button>
-            <Border Canvas.Left="18" Canvas.Top="54" Width="384" Height="1" Background="{DynamicResource BorderPrimary}" />
-
-            <Border Canvas.Left="19" Canvas.Top="68" Width="3" Height="13" Background="{DynamicResource AccentPrimary}" CornerRadius="1" />
-            <TextBlock Canvas.Left="29" Canvas.Top="62" FontSize="16" FontWeight="SemiBold" Text="{DynamicResource ThemePanelSolid}" />
-            <StackPanel Canvas.Left="11" Canvas.Top="86" Orientation="Horizontal">
+            <StackPanel Canvas.Left="18" Canvas.Top="86" Orientation="Horizontal">
                 <RadioButton GroupName="ThemePanelThemes" Tag="{DynamicResource ThemeOrange}" Background="{StaticResource ThemeOrangeBrush}" Command="{Binding SelectThemeCommand}" CommandParameter="Orange" Style="{StaticResource ThemeOptionStyle}" />
                 <RadioButton GroupName="ThemePanelThemes" Tag="{DynamicResource ThemeBlue}" Background="{StaticResource ThemeBlueBrush}" Command="{Binding SelectThemeCommand}" CommandParameter="Blue" Style="{StaticResource ThemeOptionStyle}" />
                 <RadioButton GroupName="ThemePanelThemes" Tag="{DynamicResource ThemeCyan}" Background="{StaticResource ThemeCyanBrush}" Command="{Binding SelectThemeCommand}" CommandParameter="Cyan" Style="{StaticResource ThemeOptionStyle}" />
                 <RadioButton GroupName="ThemePanelThemes" Tag="{DynamicResource ThemeDark}" Background="{StaticResource ThemeDarkBrush}" Command="{Binding SelectThemeCommand}" CommandParameter="Dark" Style="{StaticResource ThemeOptionStyle}" />
             </StackPanel>
-            <Border Canvas.Left="18" Canvas.Top="191" Width="384" Height="1" Background="{DynamicResource BorderPrimary}" />
+            <Border Canvas.Left="24" Canvas.Top="234" Width="512" Height="1" Background="{DynamicResource BorderPrimary}" Opacity="0.7" />
 
-            <Border Canvas.Left="19" Canvas.Top="205" Width="3" Height="13" Background="#7568FF" CornerRadius="1" />
-            <TextBlock Canvas.Left="29" Canvas.Top="199" FontSize="16" FontWeight="SemiBold" Text="{DynamicResource ThemePanelGradient}" />
-            <StackPanel Canvas.Left="11" Canvas.Top="227" Orientation="Horizontal">
+            <StackPanel Canvas.Left="18" Canvas.Top="259" Orientation="Horizontal">
                 <RadioButton GroupName="ThemePanelThemes" Tag="{DynamicResource ThemeWarm}" Background="{StaticResource ThemeWarmBrush}" Command="{Binding SelectThemeCommand}" CommandParameter="Warm" IsChecked="True" Style="{StaticResource ThemeOptionStyle}" />
                 <RadioButton GroupName="ThemePanelThemes" Tag="{DynamicResource ThemeSky}" Background="{StaticResource ThemeSkyBrush}" Command="{Binding SelectThemeCommand}" CommandParameter="Sky" Style="{StaticResource ThemeOptionStyle}" />
                 <RadioButton GroupName="ThemePanelThemes" Tag="{DynamicResource ThemeDream}" Background="{StaticResource ThemeDreamBrush}" Command="{Binding SelectThemeCommand}" CommandParameter="Dream" Style="{StaticResource ThemeOptionStyle}" />
                 <RadioButton GroupName="ThemePanelThemes" Tag="{DynamicResource ThemeFresh}" Background="{StaticResource ThemeFreshBrush}" Command="{Binding SelectThemeCommand}" CommandParameter="Fresh" Style="{StaticResource ThemeOptionStyle}" />
             </StackPanel>
-            <Border Canvas.Left="18" Canvas.Top="327" Width="384" Height="1" Background="{DynamicResource BorderPrimary}" />
+            <Border Canvas.Left="24" Canvas.Top="411" Width="512" Height="1" Background="{DynamicResource BorderPrimary}" Opacity="0.7" />
 
-            <Border Canvas.Left="19" Canvas.Top="340" Width="3" Height="13" Background="#42D485" CornerRadius="1" />
-            <TextBlock Canvas.Left="29" Canvas.Top="334" FontSize="16" FontWeight="SemiBold" Text="{DynamicResource ThemePanelPersonal}" />
-            <StackPanel Canvas.Left="10" Canvas.Top="361" Orientation="Horizontal">
+            <StackPanel Canvas.Left="18" Canvas.Top="439" Orientation="Horizontal">
                 <RadioButton GroupName="ThemePanelThemes" Tag="{DynamicResource ThemeStarry}" Background="{StaticResource ThemeStarryBrush}" Command="{Binding SelectThemeCommand}" CommandParameter="Starry" Style="{StaticResource ThemePersonalOptionStyle}" />
                 <RadioButton GroupName="ThemePanelThemes" Tag="{DynamicResource ThemeMountain}" Background="{StaticResource ThemeMountainBrush}" Command="{Binding SelectThemeCommand}" CommandParameter="Mountain" Style="{StaticResource ThemePersonalOptionStyle}" />
                 <RadioButton GroupName="ThemePanelThemes" Tag="{DynamicResource ThemeForest}" Background="{StaticResource ThemeForestBrush}" Command="{Binding SelectThemeCommand}" CommandParameter="Forest" Style="{StaticResource ThemePersonalOptionStyle}" />
                 <RadioButton GroupName="ThemePanelThemes" Tag="{DynamicResource ThemeSnow}" Background="{StaticResource ThemeSnowBrush}" Command="{Binding SelectThemeCommand}" CommandParameter="Snow" Style="{StaticResource ThemePersonalOptionStyle}" />
-                <RadioButton GroupName="ThemePanelThemes" Tag="{DynamicResource ThemeMoon}" Background="{StaticResource ThemeMoonBrush}" Command="{Binding SelectThemeCommand}" CommandParameter="Moon" Style="{StaticResource ThemePersonalOptionStyle}" />
             </StackPanel>
         </Canvas>
-    </Border>
+        </Border>
+    </Viewbox>
 </UserControl>
