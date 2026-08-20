@@ -390,6 +390,7 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.True(viewModel.IsGoalTrendTooltipOpen);
         Assert.Equal(84, viewModel.GoalTrendTooltipOffsetX);
         Assert.Equal(-22, viewModel.GoalTrendTooltipOffsetY);
+        Assert.Equal("7月23日 周四", new GoalTrendPointViewModel(0, new DateTime(2026, 7, 23), 270, 1).TooltipDateDisplay);
 
         viewModel.SelectGoalMonthCommand.Execute(viewModel.GoalMonths[1]);
 

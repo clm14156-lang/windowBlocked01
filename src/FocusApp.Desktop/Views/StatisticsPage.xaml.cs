@@ -175,13 +175,10 @@ public partial class StatisticsPage : UserControl
         }
 
         var barTopCenter = bar.TranslatePoint(new Point(bar.ActualWidth / 2, 0), GoalTrendChartArea);
-        const double tooltipWidth = 140;
-        const double tooltipHeight = 58;
-        const double tooltipGap = 8;
-        var x = Math.Clamp(
-            barTopCenter.X - tooltipWidth / 2,
-            0,
-            Math.Max(0, GoalTrendChartArea.ActualWidth - tooltipWidth));
+        const double tooltipWidth = 176;
+        const double tooltipHeight = 88;
+        const double tooltipGap = 0;
+        var x = barTopCenter.X - tooltipWidth / 2;
         var y = barTopCenter.Y - tooltipHeight - tooltipGap;
 
         viewModel.SetGoalTrendTooltipOffsets(x, y);

@@ -121,6 +121,8 @@
                                 VerticalAlignment="Top"
                                 Background="{DynamicResource BorderPrimary}" />
                         <RadioButton x:Name="AccountButton"
+                                     Width="44"
+                                     Height="44"
                                      Margin="0,14,0,24"
                                      HorizontalAlignment="Center"
                                      VerticalAlignment="Center"

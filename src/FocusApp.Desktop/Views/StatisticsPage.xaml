@@ -661,18 +661,33 @@
            HorizontalOffset="{Binding GoalTrendTooltipOffsetX}"
            VerticalOffset="{Binding GoalTrendTooltipOffsetY}"
            PopupAnimation="Fade">
-        <Border Width="140"
-                Padding="10,8"
-                Background="{DynamicResource SurfacePrimary}"
-                BorderBrush="{DynamicResource BorderPrimary}"
-                BorderThickness="1"
-                CornerRadius="8">
-            <Border.Effect><DropShadowEffect BlurRadius="8" Direction="270" Opacity="0.16" ShadowDepth="2" /></Border.Effect>
-            <StackPanel DataContext="{Binding HoveredGoalTrendPoint}">
-                <TextBlock HorizontalAlignment="Center" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="{Binding TooltipDateDisplay}" />
-                <TextBlock Margin="0,4,0,0" HorizontalAlignment="Center" FontSize="13" Foreground="{DynamicResource TextSecondary}" Text="{Binding TooltipDurationDisplay}" />
-            </StackPanel>
-        </Border>
+        <Grid Width="176" Height="88" DataContext="{Binding HoveredGoalTrendPoint}">
+            <Border Width="168"
+                    Height="74"
+                    Margin="4,3,4,0"
+                    Padding="14,11"
+                    VerticalAlignment="Top"
+                    Background="{DynamicResource SurfacePrimary}"
+                    BorderBrush="{DynamicResource BorderPrimary}"
+                    BorderThickness="1"
+                    CornerRadius="12">
+                <Border.Effect><DropShadowEffect BlurRadius="14" Direction="270" Opacity="0.13" ShadowDepth="3" /></Border.Effect>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="{Binding TooltipDateDisplay}" />
+                    <TextBlock Margin="0,6,0,0" FontFamily="{DynamicResource FontFamilyNumeric}" FontSize="17" FontWeight="SemiBold" Foreground="{DynamicResource AccentPrimary}" Text="{Binding TooltipDurationDisplay}" />
+                </StackPanel>
+            </Border>
+            <Path Width="12"
+                  Height="7"
+                  Margin="0,0,0,4"
+                  HorizontalAlignment="Center"
+                  VerticalAlignment="Bottom"
+                  Data="M 0,0 L 12,0 L 6,7 Z"
+                  Fill="{DynamicResource SurfacePrimary}"
+                  Stroke="{DynamicResource BorderPrimary}"
+                  StrokeLineJoin="Round"
+                  StrokeThickness="1" />
+        </Grid>
     </Popup>
     <Popup x:Name="MonthlyFocusTargetPopup"
            DataContext="{Binding}"

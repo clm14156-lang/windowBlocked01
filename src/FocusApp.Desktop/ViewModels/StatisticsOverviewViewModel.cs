@@ -1419,8 +1419,19 @@ public sealed class GoalTrendPointViewModel
     public double Ratio { get; }
     public bool IsSelected { get => _isSelected; set { _isSelected = value; } }
     public double BarHeight => Ratio * StatisticsOverviewViewModel.GoalTrendChartHeight;
-    public string TooltipDateDisplay => $"{Date:M月d日} · {Date:ddd}";
+    public string TooltipDateDisplay => $"{Date:M月d日} {GetWeekday(Date)}";
     public string TooltipDurationDisplay => $"{Minutes / 60}小时{Minutes % 60:00}分钟";
+
+    private static string GetWeekday(DateTime date) => date.DayOfWeek switch
+    {
+        DayOfWeek.Monday => "周一",
+        DayOfWeek.Tuesday => "周二",
+        DayOfWeek.Wednesday => "周三",
+        DayOfWeek.Thursday => "周四",
+        DayOfWeek.Friday => "周五",
+        DayOfWeek.Saturday => "周六",
+        _ => "周日"
+    };
 }
 
 public sealed class GoalMonthOptionViewModel
