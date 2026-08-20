@@ -106,9 +106,23 @@
             <Border x:Name="MonthlyFocusTargetCard" Height="114" Margin="0,10,0,0" Padding="24,12" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" CornerRadius="16">
                 <Grid>
                     <Grid x:Name="MonthlyFocusTargetEmptyState"><Grid.Style><Style TargetType="Grid"><Setter Property="Visibility" Value="Visible" /><Style.Triggers><DataTrigger Binding="{Binding HasMonthlyFocusTarget}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers></Style></Grid.Style>
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="290" /><ColumnDefinition /></Grid.ColumnDefinitions>
-                        <Grid Grid.Column="0" Margin="72,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Width="160" Height="78"><Ellipse Width="72" Height="72" Fill="{DynamicResource AccentTint}" Opacity="0.65" /><Ellipse Width="52" Height="52" Stroke="{DynamicResource AccentPrimary}" StrokeThickness="5" /><Ellipse Width="25" Height="25" Stroke="{DynamicResource AccentPrimary}" StrokeThickness="5" /><Ellipse Width="7" Height="7" Fill="{DynamicResource AccentPrimary}" /><Path Margin="96,3,20,48" Data="M 0,24 L 30,0 L 25,25 L 10,20 Z" Fill="{DynamicResource AccentPrimary}" /><TextBlock Margin="-50,44,0,0" HorizontalAlignment="Left" FontFamily="Segoe MDL2 Assets" FontSize="16" Foreground="{DynamicResource AccentPrimary}" Text="&#xE734;" Opacity="0.55" /></Grid>
-                        <StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock FontSize="20" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="设定本月专注目标" /><TextBlock Margin="0,5,0,0" FontSize="14" Foreground="{DynamicResource TextTertiary}" Text="设置专注目标，跟踪进度，保持高效专注" /><Button x:Name="SetMonthlyFocusTargetButton" Width="118" Height="34" Margin="0,10,0,0" HorizontalAlignment="Left" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource AccentPrimary}" BorderThickness="1" Foreground="{DynamicResource AccentPrimary}" FontSize="14" FontWeight="SemiBold" Content="设置目标" PreviewMouseLeftButtonDown="MonthlyFocusTargetAnchor_PreviewMouseLeftButtonDown" Click="SetMonthlyFocusTargetButton_Click" /></StackPanel>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="248" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                        <Grid Grid.Column="0" Width="90" Height="78" Margin="0,-2,13,2" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <Ellipse Width="66" Height="66" Fill="{DynamicResource AccentTint}" Opacity="0.65" />
+                            <Ellipse Width="44" Height="44" Stroke="{DynamicResource AccentPrimary}" StrokeThickness="4" />
+                            <Ellipse Width="20" Height="20" Stroke="{DynamicResource AccentPrimary}" StrokeThickness="4" />
+                            <Ellipse Width="6" Height="6" Fill="{DynamicResource AccentPrimary}" />
+                            <Line X1="57" Y1="31" X2="76" Y2="12" Stroke="{DynamicResource AccentPrimary}" StrokeThickness="4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                            <Path Data="M 70,11 L 82,6 L 77,18 Z" Fill="{DynamicResource AccentPrimary}" />
+                        </Grid>
+                        <Border Grid.Column="0" Width="1" Height="88" HorizontalAlignment="Right" VerticalAlignment="Center" Background="{DynamicResource BorderPrimary}" />
+                        <Grid Grid.Column="1" Margin="24,0,0,0">
+                            <TextBlock Margin="0,10,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="20" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="设定本月专注目标" />
+                            <Button x:Name="SetMonthlyFocusTargetButton" Width="96" Height="29" Margin="0,45,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Background="{DynamicResource SurfacePrimary}" BorderBrush="#FDDEC4" BorderThickness="1" Foreground="#FDA767" PreviewMouseLeftButtonDown="MonthlyFocusTargetAnchor_PreviewMouseLeftButtonDown" Click="SetMonthlyFocusTargetButton_Click">
+                                <Button.Template><ControlTemplate TargetType="Button"><Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="7" TextElement.Foreground="{TemplateBinding Foreground}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" /></Border></ControlTemplate></Button.Template>
+                                <TextBlock FontSize="13" FontWeight="Medium" Foreground="#FDA767" Text="设置目标" />
+                            </Button>
+                        </Grid>
                     </Grid>
                     <Grid x:Name="MonthlyFocusTargetSetState"><Grid.Style><Style TargetType="Grid"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding HasMonthlyFocusTarget}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></Grid.Style>
                         <Grid.ColumnDefinitions><ColumnDefinition Width="290" /><ColumnDefinition /><ColumnDefinition Width="55" /></Grid.ColumnDefinitions>

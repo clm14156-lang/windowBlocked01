@@ -17,6 +17,11 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.Equal(0, viewModel.YAxisTicks[0].ChartY);
         Assert.Equal(76, viewModel.YAxisTicks[1].ChartY);
         Assert.Equal(152, viewModel.YAxisTicks[2].ChartY);
+        Assert.Equal(106.4, viewModel.TrendPoints[0].ChartY, 5);
+        Assert.Equal(72.2, viewModel.TrendPoints[1].ChartY, 5);
+        Assert.Equal(34.2, viewModel.TrendPoints[5].ChartY, 5);
+        Assert.True(viewModel.TrendPoints[0].ChartY > viewModel.YAxisTicks[1].ChartY);
+        Assert.True(viewModel.TrendPoints[1].ChartY < viewModel.YAxisTicks[1].ChartY);
         Assert.All(viewModel.TrendPoints.Select((point, index) => (point, index)), item =>
         {
             Assert.Equal(item.point.ChartX, viewModel.TrendLinePoints[item.index].X);

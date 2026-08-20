@@ -12,10 +12,11 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 {
     private const double ChartLeft = 31;
     private const double ChartWidth = 506;
-    private const double ChartHeight = 118;
+    private const double ChartHeight = 152;
     private const double ChartAreaBaseline = 159;
     private const double YAxisHeight = 152;
     private const int MinutesPerTick = 120;
+    private const int TrendMaximumMinutes = 4 * 60;
     private StatisticsRangeOptionViewModel _selectedRange;
     private TrendDataPointViewModel? _hoveredPoint;
     private StatisticsTab _selectedTab = StatisticsTab.Overview;
@@ -926,19 +927,18 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         TrendLinePoints.Clear();
         YAxisTicks.Clear();
 
-        var maxMinutes = Math.Max(MinutesPerTick, RoundUpToTick(data.Max(point => point.Minutes)));
-        for (var value = maxMinutes; value >= 0; value -= MinutesPerTick)
+        for (var value = TrendMaximumMinutes; value >= 0; value -= MinutesPerTick)
         {
             YAxisTicks.Add(new YAxisTickViewModel(
                 value,
-                YAxisHeight - value * YAxisHeight / maxMinutes));
+                YAxisHeight - value * YAxisHeight / TrendMaximumMinutes));
         }
 
         for (var index = 0; index < data.Length; index++)
         {
             var item = data[index];
             var x = data.Length == 1 ? ChartLeft + ChartWidth / 2 : ChartLeft + index * ChartWidth / (data.Length - 1);
-            var y = ChartHeight - item.Minutes * ChartHeight / maxMinutes;
+            var y = ChartHeight - item.Minutes * ChartHeight / TrendMaximumMinutes;
             var point = new TrendDataPointViewModel(
                 item.Date,
                 item.Minutes,
@@ -965,11 +965,6 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(TrendCurveGeometry));
         OnPropertyChanged(nameof(TrendAreaGeometry));
         OnPropertyChanged(nameof(YAxisTicks));
-    }
-
-    private static int RoundUpToTick(int minutes)
-    {
-        return ((Math.Max(0, minutes) + MinutesPerTick - 1) / MinutesPerTick) * MinutesPerTick;
     }
 
     private static bool IsRepresentativeThirtyDayIndex(int index, int count)

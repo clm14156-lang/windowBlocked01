@@ -51,9 +51,18 @@
                                 Height="20"
                                 Background="{DynamicResource TransparentBrush}"
                                 BorderThickness="0"
+                                Focusable="False"
+                                FocusVisualStyle="{x:Null}"
                                 ToolTip="{Binding TooltipText}"
                                 MouseEnter="TrendPoint_MouseEnter"
                                 MouseLeave="TrendPoint_MouseLeave">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Background="{TemplateBinding Background}">
+                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+                                </ControlTemplate>
+                            </Button.Template>
                             <Ellipse Width="12" Height="12" Fill="{DynamicResource AccentPrimary}" Stroke="{DynamicResource SurfacePrimary}" StrokeThickness="2">
                                 <Ellipse.Style><Style TargetType="Ellipse"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding IsMarkerVisible}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger><DataTrigger Binding="{Binding IsHovered}" Value="True"><Setter Property="Width" Value="18" /><Setter Property="Height" Value="18" /><Setter Property="StrokeThickness" Value="3" /></DataTrigger></Style.Triggers></Style></Ellipse.Style>
                             </Ellipse>
