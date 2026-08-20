@@ -159,10 +159,12 @@ public sealed class StatisticsOverviewViewModelTests
         var viewModel = new StatisticsOverviewViewModel();
 
         Assert.Equal(31, viewModel.GoalTrendPoints.Count);
-        Assert.Equal(2, viewModel.GoalTrendDateLabels.Count);
+        Assert.Equal(7, viewModel.GoalTrendDateLabels.Count);
         Assert.Equal(new[] { "2026年7月", "2026年5月", "2026年3月" }, viewModel.GoalMonths.Select(month => month.Label));
-        Assert.Equal(new[] { "7/1", "7/31" }, viewModel.GoalTrendDateLabels.Select(label => label.Label));
-        Assert.Equal(new[] { "1h", "0" }, viewModel.GoalTrendAxisTicks.Select(tick => tick.Label));
+        Assert.Equal(new[] { "7/1", "7/6", "7/11", "7/16", "7/21", "7/26", "7/31" }, viewModel.GoalTrendDateLabels.Select(label => label.Label));
+        Assert.Equal(new[] { "6h", "4h", "2h", "0h" }, viewModel.GoalTrendAxisTicks.Select(tick => tick.Label));
+        Assert.All(viewModel.GoalTrendAxisTicks.SkipLast(1), tick => Assert.True(tick.ShowGuideLine));
+        Assert.False(viewModel.GoalTrendAxisTicks[^1].ShowGuideLine);
         Assert.All(viewModel.GoalTrendPoints, point => Assert.InRange(point.Ratio, 0, 1));
         Assert.All(
             viewModel.GoalTrendPoints.Where(point => point.Minutes > 0),
@@ -338,7 +340,7 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.Equal("2026年5月", viewModel.SelectedGoalMonth?.Label);
         Assert.Equal(31, viewModel.GoalTrendPoints.Count);
         Assert.All(viewModel.GoalTrendPoints, point => Assert.Equal(5, point.Date.Month));
-        Assert.Equal(new[] { "5/1", "5/31" }, viewModel.GoalTrendDateLabels.Select(label => label.Label));
+        Assert.Equal(new[] { "5/1", "5/6", "5/11", "5/16", "5/21", "5/26", "5/31" }, viewModel.GoalTrendDateLabels.Select(label => label.Label));
         Assert.Equal(new DateTime(2026, 5, 1), viewModel.GoalTrendPoints[0].Date);
         Assert.Equal(new DateTime(2026, 5, 31), viewModel.GoalTrendPoints[^1].Date);
         Assert.Equal(historyBeforeMonthChange, viewModel.GoalDateGroups);

@@ -19,7 +19,7 @@
             Background="{DynamicResource BackgroundPrimary}">
         <Grid>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="80" />
+                <ColumnDefinition Width="72" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
@@ -315,7 +315,7 @@
                         </views:BlockingPage.Style>
                     </views:BlockingPage>
 
-                    <views:StatisticsPage DataContext="{Binding StatisticsPage}">
+                    <views:StatisticsPage Margin="0,-16,0,0" DataContext="{Binding StatisticsPage}">
                         <views:StatisticsPage.Style>
                             <Style TargetType="{x:Type views:StatisticsPage}">
                                 <Setter Property="Visibility" Value="Collapsed" />

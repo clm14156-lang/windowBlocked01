@@ -20,6 +20,11 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     private const int PreferredMaximumTrendTickCount = 6;
     private const int MaximumSupportedTrendMinutes = 24 * 60;
     private const double TrendCurveTension = 0.12;
+    internal const double GoalTrendChartHeight = 150;
+    private const int GoalTrendCompactTickIntervalHours = 2;
+    private const int GoalTrendExpandedTickIntervalHours = 4;
+    private const int GoalTrendPreferredMaximumTickCount = 6;
+    private const int GoalTrendMaximumHours = 24;
     private StatisticsRangeOptionViewModel _selectedRange;
     private TrendDataPointViewModel? _hoveredPoint;
     private StatisticsTab _selectedTab = StatisticsTab.Overview;
@@ -362,13 +367,18 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         Goals.Add(new GoalOverviewItemViewModel("goal-code", "写代码", "7天未推进", "7天前", false, false));
         Goals.Add(new GoalOverviewItemViewModel("goal-design", "做设计", "3天未推进", "3天前", false, false));
         Goals.Add(new GoalOverviewItemViewModel("goal-reading", "读书", "21天未推进", "21天前", false, false));
-        Goals.Add(new GoalOverviewItemViewModel("goal-english", "英语学习", "2天未推进", "2天前", false, false));
+        Goals.Add(new GoalOverviewItemViewModel("goal-new-1", "新目标", "尚未推进", "暂无记录", false, false));
+        Goals.Add(new GoalOverviewItemViewModel("goal-new-2", "新目标", "尚未推进", "暂无记录", false, false));
+        Goals.Add(new GoalOverviewItemViewModel("goal-new-3", "新目标", "尚未推进", "暂无记录", false, false));
+        for (var index = 4; index <= 10; index++)
+        {
+            Goals.Add(new GoalOverviewItemViewModel($"goal-new-{index}", "新目标", "尚未推进", "暂无记录", false, false));
+        }
 
-        AddMockFocusSessions("goal-ue5", "学习UE5", 25 * 60 + 30, 32, [7, 5, 3], 1);
+        AddFeaturedGoalMockSessions();
         AddMockFocusSessions("goal-code", "写代码", 12 * 60 + 18, 18, [6, 4], 2);
         AddMockFocusSessions("goal-design", "做设计", 8 * 60 + 36, 14, [3], 3);
         AddMockFocusSessions("goal-reading", "读书", 5 * 60 + 12, 9, [2, 1], 4);
-        AddMockFocusSessions("goal-english", "英语学习", 3 * 60 + 36, 7, [7, 4], 5);
         FocusSessionRecords.Add(new FocusSessionRecordViewModel(new DateTime(2026, 2, 20, 8, 0, 0), new DateTime(2026, 2, 20, 8, 25, 0), "goal-reading", "读书", "阅读章节整理", 1));
         FocusSessionRecords.Add(new FocusSessionRecordViewModel(new DateTime(2026, 2, 20, 9, 10, 0), new DateTime(2026, 2, 20, 9, 50, 0), "goal-reading", "读书", "阅读笔记摘录", 2));
         FocusSessionRecords.Add(new FocusSessionRecordViewModel(new DateTime(2026, 2, 20, 10, 20, 0), new DateTime(2026, 2, 20, 11, 5, 0), "goal-reading", "读书", "主题阅读", 1));
@@ -377,6 +387,37 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
         RefreshGoalSummaries();
         SelectFirstVisibleGoal();
+    }
+
+    private void AddFeaturedGoalMockSessions()
+    {
+        int[] julyDays = [1, 2, 3, 5, 6, 7, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19, 19, 20, 21, 23, 24, 26, 28, 30];
+        int[] julyDurations = [20, 27, 12, 54, 15, 40, 24, 72, 126, 54, 36, 27, 72, 57, 44, 36, 29, 54, 18, 270, 90, 54, 72, 36];
+        int[] historyMonths = [5, 5, 5, 5, 3, 3, 3, 3];
+        int[] historyDays = [31, 25, 17, 9, 28, 19, 11, 3];
+        int[] historyDurations = [25, 20, 22, 24, 28, 18, 26, 28];
+
+        for (var index = 0; index < julyDays.Length; index++)
+        {
+            AddFeaturedGoalMockSession(7, julyDays[index], julyDurations[index], index);
+        }
+
+        for (var index = 0; index < historyMonths.Length; index++)
+        {
+            AddFeaturedGoalMockSession(historyMonths[index], historyDays[index], historyDurations[index], julyDays.Length + index);
+        }
+    }
+
+    private void AddFeaturedGoalMockSession(int month, int day, int durationMinutes, int index)
+    {
+        var start = new DateTime(2026, month, day, 8 + index * 3 % 11, index % 2 * 15, 0);
+        FocusSessionRecords.Add(new FocusSessionRecordViewModel(
+            start,
+            start.AddMinutes(durationMinutes),
+            "goal-ue5",
+            "学习UE5",
+            index % 3 == 0 ? "学习UE5" : $"学习UE5推进 {index + 1}",
+            index % 3 + 1));
     }
 
     private void AddMockFocusSessions(
@@ -716,11 +757,17 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
                 .Where(record => record.StartTime.Date == new DateTime(month.Year, month.Month, day))
                 .Sum(record => record.DurationMinutes))
             .ToArray();
-        var highestHours = (int)Math.Ceiling(values.Max() / 60d);
-        var tickIntervalHours = highestHours <= 3 ? 1 : 4;
-        var maxHours = highestHours <= 3
-            ? Math.Max(1, highestHours)
-            : ((highestHours + 3) / 4) * 4;
+        var highestHours = Math.Clamp((int)Math.Ceiling(values.Max() / 60d), 0, GoalTrendMaximumHours);
+        var compactMaximumHours = RoundUpToInterval(
+            Math.Max(highestHours, GoalTrendCompactTickIntervalHours),
+            GoalTrendCompactTickIntervalHours);
+        var compactTickCount = compactMaximumHours / GoalTrendCompactTickIntervalHours + 1;
+        var tickIntervalHours = compactTickCount <= GoalTrendPreferredMaximumTickCount
+            ? GoalTrendCompactTickIntervalHours
+            : GoalTrendExpandedTickIntervalHours;
+        var maxHours = Math.Min(
+            GoalTrendMaximumHours,
+            RoundUpToInterval(Math.Max(highestHours, tickIntervalHours), tickIntervalHours));
         var maxMinutes = maxHours * 60;
 
         for (var hours = maxHours; hours >= 0; hours -= tickIntervalHours)
@@ -732,7 +779,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         {
             var date = month.AddDays(index);
             GoalTrendPoints.Add(new GoalTrendPointViewModel(index, date, values[index], values[index] / (double)maxMinutes));
-            if (index is 0 || index == values.Length - 1)
+            if (index % 5 == 0 || index == values.Length - 1)
             {
                 GoalTrendDateLabels.Add(new GoalTrendDateLabelViewModel(date.ToString("M/d"), index / (double)(values.Length - 1)));
             }
@@ -1361,7 +1408,7 @@ public sealed class GoalTrendPointViewModel
     public int Minutes { get; }
     public double Ratio { get; }
     public bool IsSelected { get => _isSelected; set { _isSelected = value; } }
-    public double BarHeight => Ratio * 106;
+    public double BarHeight => Ratio * StatisticsOverviewViewModel.GoalTrendChartHeight;
     public string TooltipDateDisplay => $"{Date:M月d日} · {Date:ddd}";
     public string TooltipDurationDisplay => $"{Minutes / 60}小时{Minutes % 60:00}分钟";
 }
@@ -1383,6 +1430,18 @@ public sealed class GoalDateGroupViewModel : INotifyPropertyChanged
     public DateTime Date { get; }
     public IReadOnlyList<FocusSessionRecordViewModel> Sessions { get; }
     public string DateDisplay => $"{Date:M月d日}";
+    public string TimeRangeDisplay => Sessions.Count == 0
+        ? string.Empty
+        : $"{Sessions.Min(session => session.StartTime):HH:mm} - {Sessions.Max(session => session.EndTime):HH:mm}";
+    public string ProgressDisplay => $"推进 {Sessions.Sum(session => session.CompletedTaskCount)}";
+    public string DurationDisplay
+    {
+        get
+        {
+            var minutes = Sessions.Sum(session => session.DurationMinutes);
+            return $"{minutes / 60}小时{minutes % 60:00}分钟";
+        }
+    }
     public bool IsExpanded { get => _isExpanded; set { if (_isExpanded == value) return; _isExpanded = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsExpanded))); } }
 }
 
@@ -1402,12 +1461,15 @@ public sealed class GoalTrendAxisTickViewModel
 {
     public GoalTrendAxisTickViewModel(int hours, int maximumHours)
     {
-        Label = hours == 0 ? "0" : $"{hours}h";
-        ChartY = (maximumHours - hours) / (double)maximumHours * 106;
+        Hours = hours;
+        Label = $"{hours}h";
+        ChartY = (maximumHours - hours) / (double)maximumHours * StatisticsOverviewViewModel.GoalTrendChartHeight;
     }
 
+    public int Hours { get; }
     public string Label { get; }
     public double ChartY { get; }
+    public bool ShowGuideLine => Hours > 0;
 }
 
 public enum StatisticsTab
