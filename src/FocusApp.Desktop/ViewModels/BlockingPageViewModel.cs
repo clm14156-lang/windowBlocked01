@@ -25,13 +25,15 @@ public sealed class BlockingPageViewModel : INotifyPropertyChanged
         IEnumerable<BlockingApplicationItemViewModel> applications,
         string websiteCountTemplate,
         string applicationCountTemplate,
-        IFaviconService? faviconService = null)
+        IFaviconService? faviconService = null,
+        IEnumerable<RecentProgramRecord>? recentPrograms = null)
     {
         Websites = new ObservableCollection<BlockingWebsiteItemViewModel>(websites);
         Applications = new ObservableCollection<BlockingApplicationItemViewModel>(applications);
         _websiteCountTemplate = websiteCountTemplate;
         _applicationCountTemplate = applicationCountTemplate;
         _faviconService = faviconService ?? new FaviconService();
+        ProgramModal = new AddProgramModalViewModel(recentPrograms);
 
         SelectWebsitesCommand = new RelayCommand<object>(_ => SelectedTab = BlockingTab.Websites);
         SelectApplicationsCommand = new RelayCommand<object>(_ => SelectedTab = BlockingTab.Applications);
@@ -42,6 +44,7 @@ public sealed class BlockingPageViewModel : INotifyPropertyChanged
         EditWebsiteCommand = new RelayCommand<BlockingWebsiteItemViewModel>(_ => { });
 
         WebsiteModal.WebsiteCreated += WebsiteModal_WebsiteCreated;
+        ProgramModal.ProgramSelected += ProgramModal_ProgramSelected;
         foreach (var website in Websites) website.PropertyChanged += Website_PropertyChanged;
         foreach (var application in Applications) application.PropertyChanged += Application_PropertyChanged;
     }
@@ -56,7 +59,7 @@ public sealed class BlockingPageViewModel : INotifyPropertyChanged
 
     public AddWebsiteModalViewModel WebsiteModal { get; } = new();
 
-    public AddProgramModalViewModel ProgramModal { get; } = new();
+    public AddProgramModalViewModel ProgramModal { get; }
 
     public ICommand SelectWebsitesCommand { get; }
 
@@ -105,6 +108,20 @@ public sealed class BlockingPageViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(WebsiteCountText));
         BlockingChanged?.Invoke(this, EventArgs.Empty);
         _ = LoadFaviconAsync(item);
+    }
+
+    private void ProgramModal_ProgramSelected(object? sender, RecentProgramRecordViewModel program)
+    {
+        if (Applications.Any(application => string.Equals(application.Path, program.ExePath, StringComparison.OrdinalIgnoreCase)))
+        {
+            return;
+        }
+
+        var item = new BlockingApplicationItemViewModel(Guid.NewGuid(), program.DisplayName, program.ExePath, true);
+        item.PropertyChanged += Application_PropertyChanged;
+        Applications.Add(item);
+        OnPropertyChanged(nameof(ApplicationCountText));
+        BlockingChanged?.Invoke(this, EventArgs.Empty);
     }
 
     private async Task LoadFaviconAsync(BlockingWebsiteItemViewModel item)

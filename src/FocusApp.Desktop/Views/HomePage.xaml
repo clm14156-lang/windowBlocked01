@@ -135,14 +135,25 @@
             </Grid>
         </Grid>
 
-        <Button Width="190"
+        <Button Padding="12,0"
                 Margin="0,375,36,0"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Top"
                 AutomationProperties.Name="{DynamicResource HomeFocusTarget}"
                 Command="{Binding OpenFocusTargetCommand}"
                 IsHitTestVisible="{Binding FocusSession.IsHomeConfigurationEnabled}"
-                Style="{StaticResource HomePillButtonStyle}">
+                ToolTip="{Binding FocusTargetModal.SelectedTargetButtonText}">
+            <Button.Style>
+                <Style TargetType="{x:Type Button}" BasedOn="{StaticResource HomePillButtonStyle}">
+                    <Setter Property="Width" Value="190" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding FocusTargetModal.HasSelectedTarget}" Value="True">
+                            <Setter Property="Width" Value="Auto" />
+                            <Setter Property="Padding" Value="12,0,30,0" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Button.Style>
             <StackPanel Orientation="Horizontal">
                 <TextBlock Margin="0,0,10,0"
                            VerticalAlignment="Center"
@@ -150,15 +161,12 @@
                            FontSize="16"
                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
                            Text="&#xE70F;" />
-                <TextBlock VerticalAlignment="Center"
-                           Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
-                           Text="{Binding FocusTargetModal.SelectedTargetButtonText}" />
-                <TextBlock Margin="10,0,0,0"
+                <TextBlock MaxWidth="132"
                            VerticalAlignment="Center"
-                           FontFamily="Segoe MDL2 Assets"
-                           FontSize="12"
                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
-                           Text="&#xE76C;" />
+                           Text="{Binding FocusTargetModal.SelectedTargetButtonText}"
+                           TextTrimming="CharacterEllipsis"
+                           TextWrapping="NoWrap" />
             </StackPanel>
         </Button>
 

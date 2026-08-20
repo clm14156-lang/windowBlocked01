@@ -46,6 +46,7 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
     private string _name;
     private string _editName;
     private bool _isMenuOpen;
+    private bool _isHovered;
     private bool _isFocusMenuOpen;
     private bool _isEditing;
     private bool _isCompleted;
@@ -102,8 +103,27 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
 
             _isMenuOpen = value;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(IsMenuButtonVisible));
         }
     }
+
+    public bool IsHovered
+    {
+        get => _isHovered;
+        set
+        {
+            if (_isHovered == value)
+            {
+                return;
+            }
+
+            _isHovered = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(IsMenuButtonVisible));
+        }
+    }
+
+    public bool IsMenuButtonVisible => IsHovered || IsMenuOpen;
 
     public bool IsFocusMenuOpen
     {

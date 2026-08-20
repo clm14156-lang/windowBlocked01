@@ -129,7 +129,9 @@ public partial class MainWindow : Window
 
     private void HandleMinimizeRequest()
     {
-        if (DataContext is MainWindowViewModel viewModel && viewModel.HomePage.FocusSession.IsFocusing)
+        if (DataContext is MainWindowViewModel viewModel &&
+            viewModel.HomePage.FocusSession.IsFocusing &&
+            viewModel.SettingsPage.IsFloatingWindowEnabled)
         {
             ShowFocusFloatingWindow(viewModel.HomePage.FocusSession);
             return;
@@ -148,7 +150,6 @@ public partial class MainWindow : Window
     {
         if (_focusFloatingWindow is not null)
         {
-            _focusFloatingWindow.Activate();
             Hide();
             return;
         }
@@ -164,7 +165,6 @@ public partial class MainWindow : Window
         _focusFloatingWindow.Closed += FocusFloatingWindow_Closed;
         Hide();
         _focusFloatingWindow.Show();
-        _focusFloatingWindow.Activate();
     }
 
     private void FocusFloatingWindow_ExpandRequested(object? sender, EventArgs e)

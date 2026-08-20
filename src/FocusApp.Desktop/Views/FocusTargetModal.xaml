@@ -129,10 +129,20 @@
 
             <Grid Grid.Row="1" VerticalAlignment="Center">
                 <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
                     <ColumnDefinition />
-                    <ColumnDefinition Width="64" />
+                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                <ItemsControl ItemsSource="{Binding VisibleTargets}">
+                <Button Grid.Column="0" Width="28" Height="36" AutomationProperties.Name="上一个目标" Command="{Binding ShowPreviousTargetsCommand}">
+                    <Button.Style>
+                        <Style TargetType="{x:Type Button}" BasedOn="{StaticResource TargetPlainButton}">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers><DataTrigger Binding="{Binding CanShowPreviousTargets}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                    <TextBlock FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="{DynamicResource TextSecondary}" Text="&#xE76B;" />
+                </Button>
+                <ItemsControl Grid.Column="1" ItemsSource="{Binding VisibleTargets}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
                             <StackPanel Orientation="Horizontal" />
@@ -148,20 +158,15 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-                <StackPanel Grid.Column="1" HorizontalAlignment="Right" Orientation="Horizontal">
-                    <Button Width="28" Height="36" AutomationProperties.Name="清除目标" Command="{Binding ClearTargetCommand}" Style="{StaticResource TargetPlainButton}" Visibility="{Binding HasSelectedTarget, Converter={StaticResource BooleanToVisibilityConverter}}">
-                        <TextBlock FontSize="16" Foreground="{DynamicResource TextSecondary}" Text="×" />
-                    </Button>
-                    <Button Width="28" Height="36" AutomationProperties.Name="{DynamicResource FocusTargetMore}" Command="{Binding ShowMoreTargetsCommand}">
-                        <Button.Style>
-                            <Style TargetType="{x:Type Button}" BasedOn="{StaticResource TargetPlainButton}">
-                                <Setter Property="Visibility" Value="Collapsed" />
-                                <Style.Triggers><DataTrigger Binding="{Binding HasMoreTargets}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers>
-                            </Style>
-                        </Button.Style>
-                        <TextBlock FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="{DynamicResource TextSecondary}" Text="&#xE76C;" />
-                    </Button>
-                </StackPanel>
+                <Button Grid.Column="2" Width="28" Height="36" AutomationProperties.Name="{DynamicResource FocusTargetMore}" Command="{Binding ShowNextTargetsCommand}">
+                    <Button.Style>
+                        <Style TargetType="{x:Type Button}" BasedOn="{StaticResource TargetPlainButton}">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers><DataTrigger Binding="{Binding CanShowNextTargets}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                    <TextBlock FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="{DynamicResource TextSecondary}" Text="&#xE76C;" />
+                </Button>
             </Grid>
 
             <Grid Grid.Row="2">
@@ -227,7 +232,7 @@
                     <ItemsControl ItemsSource="{Binding CurrentTasks}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Border Height="46" Margin="0,0,0,7" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" CornerRadius="9">
+                                <Border Height="46" Margin="0,0,0,7" Background="{DynamicResource TransparentBrush}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" CornerRadius="9" MouseEnter="TaskRow_MouseEnter" MouseLeave="TaskRow_MouseLeave">
                                     <Grid>
                                         <Ellipse Width="17" Height="17" Margin="12,0,0,0" HorizontalAlignment="Left" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.4" />
                                         <TextBlock Margin="40,0,38,0" VerticalAlignment="Center" FontSize="13" Text="{Binding Name}">
@@ -258,14 +263,19 @@
                                                 </Style>
                                             </TextBox.Style>
                                         </TextBox>
-                                        <Button x:Name="TaskMenuButton"
-                                                Width="30"
-                                                Height="34"
-                                                HorizontalAlignment="Right"
-                                                AutomationProperties.Name="{DynamicResource FocusTargetTaskMenu}"
-                                                Command="{Binding DataContext.ToggleTaskMenuCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
-                                                CommandParameter="{Binding}"
-                                                Style="{StaticResource TargetPlainButton}">
+                                         <Button x:Name="TaskMenuButton"
+                                                 Width="30"
+                                                 Height="34"
+                                                 HorizontalAlignment="Right"
+                                                 AutomationProperties.Name="{DynamicResource FocusTargetTaskMenu}"
+                                                 Command="{Binding DataContext.ToggleTaskMenuCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
+                                                 CommandParameter="{Binding}">
+                                            <Button.Style>
+                                                <Style TargetType="{x:Type Button}" BasedOn="{StaticResource TargetPlainButton}">
+                                                    <Setter Property="Visibility" Value="Hidden" />
+                                                    <Style.Triggers><DataTrigger Binding="{Binding IsMenuButtonVisible}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers>
+                                                </Style>
+                                            </Button.Style>
                                             <TextBlock Margin="0,-7,0,0" FontSize="19" FontWeight="SemiBold" Text="..." />
                                         </Button>
                                         <Popup AllowsTransparency="True"
@@ -312,6 +322,9 @@
                                 <DataTrigger Binding="{Binding IsCreatingTarget}" Value="True">
                                     <Setter Property="Visibility" Value="Collapsed" />
                                 </DataTrigger>
+                                <DataTrigger Binding="{Binding HasSelectedTarget}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
                             </Style.Triggers>
                         </Style>
                     </Button.Style>
@@ -323,6 +336,56 @@
                         </StackPanel>
                     </Grid>
                 </Button>
+
+                <Grid Height="43">
+                    <Grid.Style>
+                        <Style TargetType="{x:Type Grid}">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasSelectedTarget}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition />
+                        <ColumnDefinition Width="8" />
+                        <ColumnDefinition />
+                    </Grid.ColumnDefinitions>
+                    <Button Grid.Column="0"
+                            AutomationProperties.Name="{DynamicResource FocusTargetCancel}"
+                            Command="{Binding CancelSelectionCommand}"
+                            Style="{StaticResource TargetPlainButton}">
+                        <Border Width="136"
+                                Height="43"
+                                Background="{DynamicResource SurfacePrimary}"
+                                BorderBrush="{DynamicResource BorderPrimary}"
+                                BorderThickness="1"
+                                CornerRadius="9">
+                            <TextBlock HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       FontSize="14"
+                                       Text="{DynamicResource FocusTargetCancel}" />
+                        </Border>
+                    </Button>
+                    <Button Grid.Column="2"
+                            AutomationProperties.Name="{DynamicResource FocusTargetConfirm}"
+                            Command="{Binding ConfirmSelectionCommand}"
+                            Style="{StaticResource TargetPlainButton}">
+                        <Border Width="136"
+                                Height="43"
+                                Background="{DynamicResource FocusButtonBackground}"
+                                CornerRadius="9">
+                            <TextBlock HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       FontSize="14"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource WhiteText}"
+                                       Text="{DynamicResource FocusTargetConfirm}" />
+                        </Border>
+                    </Button>
+                </Grid>
 
                 <StackPanel>
                     <StackPanel.Style>

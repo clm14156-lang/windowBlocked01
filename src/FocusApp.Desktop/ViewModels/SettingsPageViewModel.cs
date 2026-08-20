@@ -18,6 +18,7 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
         ToggleItems = new ReadOnlyCollection<SettingsToggleItemViewModel>(toggleItems.ToList());
         EntryItems = new ReadOnlyCollection<SettingsEntryItemViewModel>(entryItems.ToList());
         GeneralToggleItems = new ReadOnlyCollection<SettingsToggleItemViewModel>(ToggleItems.Take(5).ToList());
+        FloatingWindowItem = ToggleItems.FirstOrDefault(item => item.Key == "FloatingWindow");
         AutomaticBlockingItem = ToggleItems.FirstOrDefault(item => item.Key == "AutomaticBlocking");
         ForcedModeItem = ToggleItems.FirstOrDefault(item => item.Key == "ForcedMode");
         RuleModal = ruleModal ?? AutomaticRuleModalViewModel.CreateDefault();
@@ -48,6 +49,10 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
     public ReadOnlyCollection<SettingsEntryItemViewModel> EntryItems { get; }
 
     public SettingsToggleItemViewModel? AutomaticBlockingItem { get; }
+
+    public SettingsToggleItemViewModel? FloatingWindowItem { get; }
+
+    public bool IsFloatingWindowEnabled => FloatingWindowItem?.IsEnabled == true;
 
     public bool IsAutomaticBlockingEnabled => AutomaticBlockingItem?.IsEnabled == true;
 

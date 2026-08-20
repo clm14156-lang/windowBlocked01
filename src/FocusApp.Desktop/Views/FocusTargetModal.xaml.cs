@@ -66,4 +66,20 @@ public partial class FocusTargetModal : UserControl
             viewModel.DeleteTaskCommand.Execute(task);
         }
     }
+
+    private void TaskRow_MouseEnter(object sender, MouseEventArgs e)
+    {
+        if (sender is Border { DataContext: FocusTaskViewModel task })
+        {
+            task.IsHovered = true;
+        }
+    }
+
+    private void TaskRow_MouseLeave(object sender, MouseEventArgs e)
+    {
+        if (sender is Border { DataContext: FocusTaskViewModel task })
+        {
+            task.IsHovered = false;
+        }
+    }
 }

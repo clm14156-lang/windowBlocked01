@@ -17,6 +17,19 @@ public sealed class SettingsPageViewModelTests
     }
 
     [Fact]
+    public void IsFloatingWindowEnabled_ReflectsCurrentToggleState()
+    {
+        var item = new SettingsToggleItemViewModel("FloatingWindow", "Floating window", "Description", "Icon", false);
+        var viewModel = new SettingsPageViewModel([item], []);
+
+        Assert.False(viewModel.IsFloatingWindowEnabled);
+
+        item.IsEnabled = true;
+
+        Assert.True(viewModel.IsFloatingWindowEnabled);
+    }
+
+    [Fact]
     public void ActivateEntryCommand_TracksLatestClickedEntry()
     {
         var export = new SettingsEntryItemViewModel("Export", "Export", "Description", "Icon");

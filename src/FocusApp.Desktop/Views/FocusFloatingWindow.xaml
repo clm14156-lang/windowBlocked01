@@ -6,6 +6,8 @@
         Height="220"
         Background="Transparent"
         AllowsTransparency="True"
+        Topmost="True"
+        ShowActivated="False"
         ShowInTaskbar="True"
         ResizeMode="NoResize"
         WindowStartupLocation="Manual"

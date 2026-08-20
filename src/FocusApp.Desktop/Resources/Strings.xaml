@@ -38,11 +38,11 @@
     <system:String x:Key="BlockingModalSave">保存</system:String>
     <system:String x:Key="BlockingAddProgramModalTitle">添加应用到控制列表</system:String>
     <system:String x:Key="BlockingAddProgramModalDescription">管理允许或限制运行的程序</system:String>
-    <system:String x:Key="BlockingProgramSearchPlaceholder">输入程序路径或名称，支持通配符（必填）</system:String>
+    <system:String x:Key="BlockingProgramSearchPlaceholder">搜索已记录的程序名称或路径</system:String>
     <system:String x:Key="BlockingChooseProgram">选择程序</system:String>
-    <system:String x:Key="BlockingRecentProgramsTitle">最近三天运行的程序</system:String>
-    <system:String x:Key="BlockingRecentProgramsEmptyTitle">暂无最近运行的程序</system:String>
-    <system:String x:Key="BlockingRecentProgramsEmptyDescription">当前阶段不读取本机程序记录</system:String>
+    <system:String x:Key="BlockingRecentProgramsTitle">最近运行</system:String>
+    <system:String x:Key="BlockingRecentProgramsEmptyTitle">暂无最近运行记录</system:String>
+    <system:String x:Key="BlockingRecentProgramsEmptyDescription">运行过的应用会显示在这里</system:String>
     <system:String x:Key="NavigationHomeIcon">&#xEA8A;</system:String>
     <system:String x:Key="NavigationBlockingIcon">&#xEA18;</system:String>
     <system:String x:Key="NavigationStatisticsIcon">&#xE9D2;</system:String>
@@ -188,6 +188,7 @@
     <system:String x:Key="FocusTargetCreateNew">创建新目标</system:String>
     <system:String x:Key="FocusTargetNamePlaceholder">输入目标名称…</system:String>
     <system:String x:Key="FocusTargetCancel">取消</system:String>
+    <system:String x:Key="FocusTargetConfirm">确认</system:String>
     <system:String x:Key="FocusTargetCreate">创建</system:String>
     <system:String x:Key="AuthLoginTitle">账号登录</system:String>
     <system:String x:Key="AuthLoginSubtitle">使用账号登录，同步你的专注数据</system:String>

@@ -3,9 +3,14 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
+    <UseSystemDrawing>true</UseSystemDrawing>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\FocusApp.Contracts\FocusApp.Contracts.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Drawing.Common" Version="8.0.8" />
   </ItemGroup>
 </Project>

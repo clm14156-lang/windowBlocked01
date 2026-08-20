@@ -17,6 +17,8 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
     private string _newTaskName = string.Empty;
     private int _visibleTargetStart;
     private bool _hasSelectedTarget;
+    private FocusTargetViewModel? _selectedTargetBeforeOpen;
+    private bool _hadSelectedTargetBeforeOpen;
 
     public FocusTargetModalViewModel()
     {
@@ -51,8 +53,11 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
 
         OpenCommand = new RelayCommand<object>(_ => Open());
         CloseCommand = new RelayCommand<object>(_ => Close());
+        CancelSelectionCommand = new RelayCommand<object>(_ => CancelSelection());
+        ConfirmSelectionCommand = new RelayCommand<object>(_ => ConfirmSelection());
         SelectTargetCommand = new RelayCommand<FocusTargetViewModel>(SelectTarget);
-        ShowMoreTargetsCommand = new RelayCommand<object>(_ => ShowMoreTargets());
+        ShowPreviousTargetsCommand = new RelayCommand<object>(_ => ShowPreviousTargets());
+        ShowNextTargetsCommand = new RelayCommand<object>(_ => ShowNextTargets());
         BeginCreateTargetCommand = new RelayCommand<object>(_ => BeginCreateTarget());
         CancelCreateTargetCommand = new RelayCommand<object>(_ => CancelCreateTarget());
         CreateTargetCommand = new RelayCommand<object>(_ => CreateTarget());
@@ -62,7 +67,6 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
         BeginEditTaskCommand = new RelayCommand<FocusTaskViewModel>(BeginEditTask);
         ConfirmEditTaskCommand = new RelayCommand<FocusTaskViewModel>(ConfirmEditTask);
         DeleteTaskCommand = new RelayCommand<FocusTaskViewModel>(DeleteTask);
-        ClearTargetCommand = new RelayCommand<object>(_ => ClearTarget());
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -75,9 +79,15 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
 
     public ICommand CloseCommand { get; }
 
+    public ICommand CancelSelectionCommand { get; }
+
+    public ICommand ConfirmSelectionCommand { get; }
+
     public ICommand SelectTargetCommand { get; }
 
-    public ICommand ShowMoreTargetsCommand { get; }
+    public ICommand ShowPreviousTargetsCommand { get; }
+
+    public ICommand ShowNextTargetsCommand { get; }
 
     public ICommand BeginCreateTargetCommand { get; }
 
@@ -96,8 +106,6 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
     public ICommand ConfirmEditTaskCommand { get; }
 
     public ICommand DeleteTaskCommand { get; }
-
-    public ICommand ClearTargetCommand { get; }
 
     public bool IsOpen
     {
@@ -119,13 +127,17 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
 
     public bool HasMoreTargets => _targets.Count > VisibleTargetCount;
 
+    public bool CanShowPreviousTargets => _visibleTargetStart > 0;
+
+    public bool CanShowNextTargets => _visibleTargetStart < Math.Max(0, _targets.Count - VisibleTargetCount);
+
     public bool HasSelectedTarget
     {
         get => _hasSelectedTarget;
         private set => SetField(ref _hasSelectedTarget, value);
     }
 
-    public string SelectedTargetButtonText => HasSelectedTarget ? $"本次专注目标：{SelectedTarget.Name}" : "本次专注目标（可选）";
+    public string SelectedTargetButtonText => HasSelectedTarget ? SelectedTarget.Name : "本次专注目标（可选）";
 
     public FocusTargetViewModel SelectedTarget
     {
@@ -172,6 +184,8 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
 
     public void Open()
     {
+        _selectedTargetBeforeOpen = SelectedTarget;
+        _hadSelectedTargetBeforeOpen = HasSelectedTarget;
         IsCreatingTarget = false;
         IsAddingTask = false;
         NewTargetName = string.Empty;
@@ -182,10 +196,48 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
 
     private void Close()
     {
+        RestoreSelectionBeforeOpen();
+        CloseModal();
+    }
+
+    private void CloseModal()
+    {
         CloseTaskMenus();
         IsOpen = false;
         IsCreatingTarget = false;
         IsAddingTask = false;
+    }
+
+    private void CancelSelection()
+    {
+        HasSelectedTarget = false;
+        SelectedTarget.IsSelected = false;
+        CloseTaskMenus();
+        IsCreatingTarget = false;
+        IsAddingTask = false;
+        _selectedTargetBeforeOpen = SelectedTarget;
+        _hadSelectedTargetBeforeOpen = false;
+        OnPropertyChanged(nameof(SelectedTargetButtonText));
+    }
+
+    private void ConfirmSelection()
+    {
+        if (HasSelectedTarget)
+        {
+            CloseModal();
+        }
+    }
+
+    private void RestoreSelectionBeforeOpen()
+    {
+        if (_selectedTargetBeforeOpen is not null && !ReferenceEquals(SelectedTarget, _selectedTargetBeforeOpen))
+        {
+            SelectedTarget = _selectedTargetBeforeOpen;
+        }
+
+        HasSelectedTarget = _hadSelectedTargetBeforeOpen;
+        SelectedTarget.IsSelected = HasSelectedTarget;
+        OnPropertyChanged(nameof(SelectedTargetButtonText));
     }
 
     private void SelectTarget(FocusTargetViewModel? target)
@@ -194,7 +246,9 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
         {
             if (ReferenceEquals(SelectedTarget, target))
             {
-                HasSelectedTarget = true;
+                HasSelectedTarget = !HasSelectedTarget;
+                target.IsSelected = HasSelectedTarget;
+                CloseTaskMenus();
                 OnPropertyChanged(nameof(SelectedTargetButtonText));
                 return;
             }
@@ -203,22 +257,17 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
         }
     }
 
-    private void ClearTarget()
+    private void ShowPreviousTargets()
     {
-        HasSelectedTarget = false;
-        SelectedTarget.IsSelected = false;
-        CloseTaskMenus();
-        OnPropertyChanged(nameof(SelectedTargetButtonText));
+        if (!CanShowPreviousTargets) return;
+        _visibleTargetStart--;
+        RefreshVisibleTargets();
     }
 
-    private void ShowMoreTargets()
+    private void ShowNextTargets()
     {
-        if (!HasMoreTargets)
-        {
-            return;
-        }
-
-        _visibleTargetStart = (_visibleTargetStart + VisibleTargetCount) % _targets.Count;
+        if (!CanShowNextTargets) return;
+        _visibleTargetStart++;
         RefreshVisibleTargets();
     }
 
@@ -251,6 +300,8 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
         IsCreatingTarget = false;
         NewTargetName = string.Empty;
         OnPropertyChanged(nameof(HasMoreTargets));
+        OnPropertyChanged(nameof(CanShowPreviousTargets));
+        OnPropertyChanged(nameof(CanShowNextTargets));
     }
 
     private void BeginAddTask()
@@ -310,8 +361,11 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
         VisibleTargets.Clear();
         for (var index = 0; index < Math.Min(VisibleTargetCount, _targets.Count); index++)
         {
-            VisibleTargets.Add(_targets[(_visibleTargetStart + index) % _targets.Count]);
+            VisibleTargets.Add(_targets[_visibleTargetStart + index]);
         }
+
+        OnPropertyChanged(nameof(CanShowPreviousTargets));
+        OnPropertyChanged(nameof(CanShowNextTargets));
     }
 
     private void CloseTaskMenus()

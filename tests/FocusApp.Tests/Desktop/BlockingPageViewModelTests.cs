@@ -163,6 +163,44 @@ public sealed class BlockingPageViewModelTests
         Assert.Empty(viewModel.Applications);
     }
 
+    [Fact]
+    public void RecentPrograms_AreDeduplicatedFilteredAndSortedByLastRun()
+    {
+        var now = new DateTime(2026, 8, 19, 12, 0, 0);
+        var modal = new AddProgramModalViewModel(
+        [
+            new RecentProgramRecord("C:/chrome.exe", "chrome.exe", "Chrome", now.AddDays(-10)),
+            new RecentProgramRecord("C:/svchost.exe", "svchost.exe", "Service Host", now),
+            new RecentProgramRecord("C:/edge.exe", "msedge.exe", "Edge", now.AddDays(-4)),
+            new RecentProgramRecord("C:/chrome.exe", "chrome.exe", "Chrome", now.AddHours(-1))
+        ]);
+
+        var programs = modal.RecentPrograms.ToArray();
+        Assert.Equal(["Chrome", "Edge"], programs.Select(program => program.DisplayName));
+        Assert.Equal(now.AddHours(-1), programs[0].LastRunTime);
+        Assert.True(modal.HasRecentPrograms);
+
+        modal.SearchText = "edge";
+        Assert.Equal("Edge", Assert.Single(modal.RecentPrograms).DisplayName);
+    }
+
+    [Fact]
+    public void SelectingRecentProgramAndSavingAddsItToBlockingList()
+    {
+        var program = new RecentProgramRecord("C:/chrome.exe", "chrome.exe", "Chrome", DateTime.Now.AddDays(-8));
+        var viewModel = new BlockingPageViewModel([], [], "Added websites {0}", "Added applications {0}", recentPrograms: [program]);
+        viewModel.OpenProgramModalCommand.Execute(null);
+        var recent = Assert.Single(viewModel.ProgramModal.RecentPrograms);
+
+        viewModel.ProgramModal.SelectProgramCommand.Execute(recent);
+        viewModel.ProgramModal.SaveCommand.Execute(null);
+
+        var application = Assert.Single(viewModel.Applications);
+        Assert.Equal("Chrome", application.Name);
+        Assert.Equal("C:/chrome.exe", application.Path);
+        Assert.True(application.IsEnabled);
+    }
+
     private static BlockingPageViewModel CreateViewModel()
     {
         return new BlockingPageViewModel(
