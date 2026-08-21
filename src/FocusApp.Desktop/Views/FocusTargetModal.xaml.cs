@@ -53,7 +53,9 @@ public partial class FocusTargetModal : UserControl
     {
         if (sender is TextBox { IsVisible: true } textBox)
         {
-            FocusEditor(textBox, ReferenceEquals(textBox, NewTaskTextBox));
+            var placeCaretAtStart = ReferenceEquals(textBox, NewTaskTextBox) ||
+                                    ReferenceEquals(textBox, NewTargetTextBox);
+            FocusEditor(textBox, placeCaretAtStart);
         }
     }
 
@@ -81,6 +83,27 @@ public partial class FocusTargetModal : UserControl
         {
             viewModel.ConfirmAddTaskCommand.Execute(null);
             e.Handled = true;
+        }
+    }
+
+    private void NewTaskTextBox_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        CommitPendingTaskInput();
+    }
+
+    private void FocusTargetModal_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (!NewTaskTextBox.IsMouseOver)
+        {
+            CommitPendingTaskInput();
+        }
+    }
+
+    private void CommitPendingTaskInput()
+    {
+        if (DataContext is FocusTargetModalViewModel { IsAddingTask: true } viewModel)
+        {
+            viewModel.ConfirmAddTaskCommand.Execute(null);
         }
     }
 

@@ -244,6 +244,9 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
     {
         if (target is not null)
         {
+            IsCreatingTarget = false;
+            NewTargetName = string.Empty;
+
             if (ReferenceEquals(SelectedTarget, target))
             {
                 HasSelectedTarget = !HasSelectedTarget;
@@ -315,12 +318,11 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
     private void ConfirmAddTask()
     {
         var name = NewTaskName.Trim();
-        if (name.Length == 0)
+        if (name.Length > 0)
         {
-            return;
+            SelectedTarget.Tasks.Insert(0, new FocusTaskViewModel(name));
         }
 
-        SelectedTarget.Tasks.Insert(0, new FocusTaskViewModel(name));
         NewTaskName = string.Empty;
         IsAddingTask = false;
     }

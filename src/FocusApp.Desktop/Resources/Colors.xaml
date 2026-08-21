@@ -27,6 +27,12 @@
     <SolidColorBrush x:Key="FocusButtonPressedBackground" Color="#EF6D00" />
     <SolidColorBrush x:Key="ControlHoverBackground" Color="#F2F2F4" />
     <SolidColorBrush x:Key="ControlPressedBackground" Color="#EAEAED" />
+    <Color x:Key="RecentTargetDefaultBackgroundColor">#F2F2F4</Color>
+    <Color x:Key="RecentTargetHoverBackgroundColor">#EAEAED</Color>
+    <Color x:Key="RecentTargetDefaultBorderColor">Transparent</Color>
+    <Color x:Key="RecentTargetHoverBorderColor">#D8D8DD</Color>
+    <Color x:Key="CreateTargetDefaultBorderColor">#E5E5EA</Color>
+    <Color x:Key="CreateTargetHoverBorderColor">#CFCFD5</Color>
     <SolidColorBrush x:Key="OverlayBorder" Color="#EFEFF1" />
     <SolidColorBrush x:Key="WhiteText" Color="#FFFFFF" />
     <SolidColorBrush x:Key="ModalScrim" Color="#99000000" />

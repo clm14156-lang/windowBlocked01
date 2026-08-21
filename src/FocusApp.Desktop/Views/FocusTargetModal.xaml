@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              Width="336"
              Height="430"
+             PreviewMouseDown="FocusTargetModal_PreviewMouseDown"
              UseLayoutRounding="True"
              SnapsToDevicePixels="True">
     <UserControl.Resources>
@@ -47,19 +48,45 @@
                         <Border x:Name="Root"
                                 MinWidth="67"
                                 Padding="{TemplateBinding Padding}"
-                                Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
                                 CornerRadius="18">
+                            <Border.Background>
+                                <SolidColorBrush Color="{DynamicResource RecentTargetDefaultBackgroundColor}" />
+                            </Border.Background>
+                            <Border.BorderBrush>
+                                <SolidColorBrush Color="{DynamicResource RecentTargetDefaultBorderColor}" />
+                            </Border.BorderBrush>
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
                         <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Root" Property="Background" Value="{DynamicResource ControlHoverBackground}" />
-                            </Trigger>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource Self}}" Value="True" />
+                                    <Condition Binding="{Binding IsSelected}" Value="False" />
+                                </MultiDataTrigger.Conditions>
+                                <MultiDataTrigger.EnterActions>
+                                    <BeginStoryboard x:Name="RecentTargetHoverStoryboard">
+                                        <Storyboard>
+                                            <ColorAnimation Storyboard.TargetName="Root"
+                                                            Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
+                                                            To="{StaticResource RecentTargetHoverBackgroundColor}"
+                                                            Duration="0:0:0.18" />
+                                            <ColorAnimation Storyboard.TargetName="Root"
+                                                            Storyboard.TargetProperty="(Border.BorderBrush).(SolidColorBrush.Color)"
+                                                            To="{StaticResource RecentTargetHoverBorderColor}"
+                                                            Duration="0:0:0.18" />
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </MultiDataTrigger.EnterActions>
+                                <MultiDataTrigger.ExitActions>
+                                    <RemoveStoryboard BeginStoryboardName="RecentTargetHoverStoryboard" />
+                                </MultiDataTrigger.ExitActions>
+                            </MultiDataTrigger>
                             <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="{DynamicResource AccentTint}" />
+                                <Setter TargetName="Root" Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
                                 <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}" />
-                                <Setter Property="FontWeight" Value="Medium" />
+                                <Setter Property="FontWeight" Value="Normal" />
                             </DataTrigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -277,6 +304,7 @@
                                          AutomationProperties.Name="{DynamicResource FocusTargetTaskPlaceholder}"
                                          IsVisibleChanged="Editor_IsVisibleChanged"
                                          KeyDown="NewTaskTextBox_KeyDown"
+                                         LostKeyboardFocus="NewTaskTextBox_LostKeyboardFocus"
                                          Text="{Binding NewTaskName, UpdateSourceTrigger=PropertyChanged}"
                                          Style="{StaticResource TaskEditorStyle}" />
                                 <TextBlock VerticalAlignment="Center"
@@ -418,12 +446,40 @@
                             </Style.Triggers>
                         </Style>
                     </Button.Style>
-                    <Border Width="288"
+                    <Border Width="286"
                             Height="48"
                             Background="{DynamicResource SurfacePrimary}"
-                            BorderBrush="{DynamicResource BorderPrimary}"
                             BorderThickness="1"
                             CornerRadius="12">
+                        <Border.BorderBrush>
+                            <SolidColorBrush Color="{DynamicResource CreateTargetDefaultBorderColor}" />
+                        </Border.BorderBrush>
+                        <Border.Style>
+                            <Style TargetType="{x:Type Border}">
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Trigger.EnterActions>
+                                            <BeginStoryboard>
+                                                <Storyboard>
+                                                    <ColorAnimation Storyboard.TargetProperty="(Border.BorderBrush).(SolidColorBrush.Color)"
+                                                                    To="{StaticResource CreateTargetHoverBorderColor}"
+                                                                    Duration="0:0:0.18" />
+                                                </Storyboard>
+                                            </BeginStoryboard>
+                                        </Trigger.EnterActions>
+                                        <Trigger.ExitActions>
+                                            <BeginStoryboard>
+                                                <Storyboard>
+                                                    <ColorAnimation Storyboard.TargetProperty="(Border.BorderBrush).(SolidColorBrush.Color)"
+                                                                    To="{StaticResource CreateTargetDefaultBorderColor}"
+                                                                    Duration="0:0:0.18" />
+                                                </Storyboard>
+                                            </BeginStoryboard>
+                                        </Trigger.ExitActions>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
                         <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
                             <TextBlock Margin="0,-2,9,0" VerticalAlignment="Center" FontSize="24" FontWeight="Light" Foreground="{DynamicResource AccentPrimary}" Text="+" />
                             <TextBlock VerticalAlignment="Center" FontSize="14" FontWeight="Medium" Foreground="{DynamicResource AccentPrimary}" Text="{DynamicResource FocusTargetCreateNew}" />

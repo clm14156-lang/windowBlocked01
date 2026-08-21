@@ -145,6 +145,21 @@ public sealed class FocusTargetModalViewModelTests
     }
 
     [Fact]
+    public void SelectingExistingTarget_LeavesCreateTargetMode()
+    {
+        var viewModel = new FocusTargetModalViewModel();
+        var existingTarget = viewModel.VisibleTargets[0];
+        viewModel.BeginCreateTargetCommand.Execute(null);
+        viewModel.NewTargetName = "未完成目标";
+
+        viewModel.SelectTargetCommand.Execute(existingTarget);
+
+        Assert.False(viewModel.IsCreatingTarget);
+        Assert.Empty(viewModel.NewTargetName);
+        Assert.Same(existingTarget, viewModel.SelectedTarget);
+    }
+
+    [Fact]
     public void AddingTask_InsertsTaskAtTopAndLeavesInputMode()
     {
         var viewModel = new FocusTargetModalViewModel();
@@ -155,6 +170,21 @@ public sealed class FocusTargetModalViewModelTests
 
         Assert.False(viewModel.IsAddingTask);
         Assert.Equal("完成交互验收", viewModel.CurrentTasks[0].Name);
+    }
+
+    [Fact]
+    public void AddingEmptyTask_CancelsInputModeWithoutCreatingTask()
+    {
+        var viewModel = new FocusTargetModalViewModel();
+        var taskCount = viewModel.CurrentTasks.Count;
+        viewModel.BeginAddTaskCommand.Execute(null);
+        viewModel.NewTaskName = "   ";
+
+        viewModel.ConfirmAddTaskCommand.Execute(null);
+
+        Assert.False(viewModel.IsAddingTask);
+        Assert.Equal(taskCount, viewModel.CurrentTasks.Count);
+        Assert.Empty(viewModel.NewTaskName);
     }
 
     [Fact]
