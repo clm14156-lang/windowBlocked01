@@ -150,25 +150,61 @@
                     <Style.Triggers>
                         <DataTrigger Binding="{Binding FocusTargetModal.HasSelectedTarget}" Value="True">
                             <Setter Property="Width" Value="Auto" />
-                            <Setter Property="Padding" Value="12,0,30,0" />
+                            <Setter Property="Padding" Value="6,0" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
                         </DataTrigger>
                     </Style.Triggers>
                 </Style>
             </Button.Style>
-            <StackPanel Orientation="Horizontal">
-                <TextBlock Margin="0,0,10,0"
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="28" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="28" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0"
+                           HorizontalAlignment="Center"
                            VerticalAlignment="Center"
                            FontFamily="Segoe MDL2 Assets"
                            FontSize="16"
-                           Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
+                           Foreground="{DynamicResource TextTertiary}"
                            Text="&#xE70F;" />
-                <TextBlock MaxWidth="132"
+
+                <TextBlock Grid.Column="1"
+                           Margin="5,0"
+                           MaxWidth="132"
+                           HorizontalAlignment="Center"
                            VerticalAlignment="Center"
+                           FontWeight="Medium"
                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
                            Text="{Binding FocusTargetModal.SelectedTargetButtonText}"
+                           TextAlignment="Center"
                            TextTrimming="CharacterEllipsis"
                            TextWrapping="NoWrap" />
-            </StackPanel>
+
+                <TextBlock Grid.Column="2"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           FontSize="28"
+                           FontWeight="Light"
+                           Foreground="{DynamicResource TextTertiary}"
+                           Text="{DynamicResource HomeFocusTargetChevron}">
+                    <TextBlock.RenderTransform>
+                        <TranslateTransform Y="-1" />
+                    </TextBlock.RenderTransform>
+                    <TextBlock.Style>
+                        <Style TargetType="{x:Type TextBlock}">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding FocusTargetModal.HasSelectedTarget}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </Grid>
         </Button>
 
         <ItemsControl Width="550"
