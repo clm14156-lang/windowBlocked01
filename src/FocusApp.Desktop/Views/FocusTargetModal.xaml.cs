@@ -1,23 +1,51 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Threading;
 using FocusApp.Desktop.ViewModels;
 
 namespace FocusApp.Desktop.Views;
 
 public partial class FocusTargetModal : UserControl
 {
+    public static readonly DependencyProperty IsTaskScrollBarActiveProperty = DependencyProperty.Register(
+        nameof(IsTaskScrollBarActive),
+        typeof(bool),
+        typeof(FocusTargetModal),
+        new PropertyMetadata(false));
+
+    private readonly DispatcherTimer _taskScrollBarIdleTimer;
+
     public FocusTargetModal()
     {
         InitializeComponent();
+
+        _taskScrollBarIdleTimer = new DispatcherTimer(DispatcherPriority.Background)
+        {
+            Interval = TimeSpan.FromMilliseconds(650)
+        };
+        _taskScrollBarIdleTimer.Tick += TaskScrollBarIdleTimer_Tick;
     }
 
-    private static void FocusEditor(TextBox textBox)
+    public bool IsTaskScrollBarActive
+    {
+        get => (bool)GetValue(IsTaskScrollBarActiveProperty);
+        private set => SetValue(IsTaskScrollBarActiveProperty, value);
+    }
+
+    private static void FocusEditor(TextBox textBox, bool placeCaretAtStart)
     {
         textBox.Dispatcher.BeginInvoke(() =>
         {
             textBox.Focus();
-            textBox.SelectAll();
+            if (placeCaretAtStart)
+            {
+                textBox.Select(0, 0);
+            }
+            else
+            {
+                textBox.SelectAll();
+            }
         });
     }
 
@@ -25,8 +53,26 @@ public partial class FocusTargetModal : UserControl
     {
         if (sender is TextBox { IsVisible: true } textBox)
         {
-            FocusEditor(textBox);
+            FocusEditor(textBox, ReferenceEquals(textBox, NewTaskTextBox));
         }
+    }
+
+    private void TaskScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)
+    {
+        if (Math.Abs(e.VerticalChange) <= 0.01)
+        {
+            return;
+        }
+
+        IsTaskScrollBarActive = true;
+        _taskScrollBarIdleTimer.Stop();
+        _taskScrollBarIdleTimer.Start();
+    }
+
+    private void TaskScrollBarIdleTimer_Tick(object? sender, EventArgs e)
+    {
+        _taskScrollBarIdleTimer.Stop();
+        IsTaskScrollBarActive = false;
     }
 
     private void NewTaskTextBox_KeyDown(object sender, KeyEventArgs e)

@@ -44,6 +44,64 @@
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="11" />
         </Style>
+
+        <Style x:Key="AccountSyncThinScrollBarStyle" TargetType="{x:Type ScrollBar}">
+            <Setter Property="Width" Value="5" />
+            <Setter Property="MinWidth" Value="5" />
+            <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+            <Setter Property="Opacity" Value="0.16" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ScrollBar}">
+                        <Grid Width="5" Background="{TemplateBinding Background}">
+                            <Track x:Name="PART_Track"
+                                   Margin="0,3"
+                                   IsDirectionReversed="True"
+                                   Orientation="{TemplateBinding Orientation}">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Background="{DynamicResource TransparentBrush}"
+                                                  BorderThickness="0"
+                                                  Command="{x:Static ScrollBar.PageUpCommand}"
+                                                  CommandTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}"
+                                                  Focusable="False" />
+                                </Track.DecreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb MinHeight="28">
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="{x:Type Thumb}">
+                                                <Border Width="3"
+                                                        HorizontalAlignment="Center"
+                                                        Background="{DynamicResource TextSecondary}"
+                                                        CornerRadius="1.5"
+                                                        Opacity="0.62" />
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Background="{DynamicResource TransparentBrush}"
+                                                  BorderThickness="0"
+                                                  Command="{x:Static ScrollBar.PageDownCommand}"
+                                                  CommandTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}"
+                                                  Focusable="False" />
+                                </Track.IncreaseRepeatButton>
+                            </Track>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <DataTrigger Binding="{Binding IsScrollBarActive, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}" Value="True">
+                                <Setter Property="Opacity" Value="0.68" />
+                            </DataTrigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Opacity" Value="0.86" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </UserControl.Resources>
 
     <Border Background="{DynamicResource SurfacePrimary}"
@@ -56,7 +114,7 @@
 
         <Grid>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="135" />
+                <ColumnDefinition Width="145" />
                 <ColumnDefinition Width="1" />
                 <ColumnDefinition />
             </Grid.ColumnDefinitions>
@@ -132,9 +190,15 @@
             <Grid Grid.Column="2">
                 <ScrollViewer x:Name="ContentScrollViewer"
                               Margin="28,30,17,14"
+                              CanContentScroll="False"
                               HorizontalScrollBarVisibility="Disabled"
                               PanningMode="VerticalOnly"
+                              PreviewMouseWheel="ContentScrollViewer_PreviewMouseWheel"
+                              ScrollChanged="ContentScrollViewer_ScrollChanged"
                               VerticalScrollBarVisibility="Auto">
+                    <ScrollViewer.Resources>
+                        <Style TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource AccountSyncThinScrollBarStyle}" />
+                    </ScrollViewer.Resources>
                     <StackPanel Margin="0,0,8,0">
                         <TextBlock FontSize="25" FontWeight="Bold" Text="{DynamicResource AccountSyncTitle}" />
                         <TextBlock Margin="0,7,0,0" FontSize="13" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource AccountSyncSubtitle}" />
@@ -308,16 +372,6 @@
                     </StackPanel>
                 </ScrollViewer>
 
-                <Button Width="30"
-                        Height="30"
-                        Margin="0,18,12,0"
-                        HorizontalAlignment="Right"
-                        VerticalAlignment="Top"
-                        AutomationProperties.Name="{DynamicResource AccountSyncClose}"
-                        Command="{Binding CloseCommand}"
-                        Style="{StaticResource AccountSyncPlainButton}">
-                    <TextBlock FontFamily="Segoe MDL2 Assets" FontSize="17" Foreground="{DynamicResource TextSecondary}" Text="&#xE8BB;" />
-                </Button>
             </Grid>
         </Grid>
     </Border>

@@ -525,7 +525,8 @@
                         </Style.Triggers>
                     </Style>
                 </Grid.Style>
-                <Border Background="{DynamicResource ModalScrim}">
+                <Border Background="{DynamicResource ModalScrim}"
+                        MouseDown="AccountSyncScrim_MouseDown">
                     <views:AccountSyncModal HorizontalAlignment="Center"
                                             VerticalAlignment="Center"
                                             DataContext="{Binding AccountSyncModal}" />

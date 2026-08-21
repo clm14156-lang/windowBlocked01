@@ -6,6 +6,73 @@
              VerticalAlignment="Center"
              UseLayoutRounding="True"
              SnapsToDevicePixels="True">
+    <UserControl.Resources>
+        <Style x:Key="AuthPasswordRevealButtonStyle" TargetType="{x:Type Button}">
+            <Setter Property="Width" Value="28" />
+            <Setter Property="Height" Value="36" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border x:Name="Root" Background="{TemplateBinding Background}" CornerRadius="8">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="{DynamicResource ControlHoverBackground}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="{DynamicResource ControlPressedBackground}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="AuthAgreementCheckBoxStyle" TargetType="{x:Type ToggleButton}">
+            <Setter Property="Width" Value="14" />
+            <Setter Property="Height" Value="14" />
+            <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderPrimary}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ToggleButton}">
+                        <Border x:Name="CheckBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4">
+                            <TextBlock x:Name="CheckMark"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       FontFamily="Segoe MDL2 Assets"
+                                       FontSize="9"
+                                       Foreground="{DynamicResource WhiteText}"
+                                       Text="&#xE73E;"
+                                       Visibility="Collapsed" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="CheckBorder" Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="CheckBorder" Property="Background" Value="{DynamicResource AccentPrimary}" />
+                                <Setter TargetName="CheckBorder" Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
+                                <Setter TargetName="CheckMark" Property="Visibility" Value="Visible" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
     <UserControl.Style>
         <Style TargetType="{x:Type UserControl}">
             <Setter Property="Height" Value="360" />
@@ -152,6 +219,16 @@
                                      FontSize="16"
                                      PasswordChanged="LoginPasswordBox_PasswordChanged"
                                      PreviewKeyDown="LoginPasswordBox_PreviewKeyDown" />
+                        <TextBox x:Name="LoginPasswordTextBox"
+                                 Grid.Column="1"
+                                 Padding="0"
+                                 VerticalContentAlignment="Center"
+                                 Background="Transparent"
+                                 BorderThickness="0"
+                                 FontSize="16"
+                                 PreviewKeyDown="LoginPasswordBox_PreviewKeyDown"
+                                 Text="{Binding LoginPassword, UpdateSourceTrigger=PropertyChanged}"
+                                 Visibility="Collapsed" />
                         <TextBlock Grid.Column="1"
                                    VerticalAlignment="Center"
                                    IsHitTestVisible="False"
@@ -169,13 +246,17 @@
                                 </Style>
                             </TextBlock.Style>
                         </TextBlock>
-                        <TextBlock Grid.Column="2"
-                                   HorizontalAlignment="Right"
-                                   VerticalAlignment="Center"
-                                   FontFamily="Segoe MDL2 Assets"
-                                   FontSize="16"
-                                   Foreground="{DynamicResource AuthInputPlaceholder}"
-                                   Text="&#xE890;" />
+                        <Button Grid.Column="2"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Center"
+                                Click="ToggleLoginPasswordVisibility_Click"
+                                Style="{StaticResource AuthPasswordRevealButtonStyle}">
+                            <TextBlock x:Name="LoginPasswordVisibilityIcon"
+                                       FontFamily="Segoe MDL2 Assets"
+                                       FontSize="16"
+                                       Foreground="{DynamicResource AuthInputPlaceholder}"
+                                       Text="&#xE890;" />
+                        </Button>
                     </Grid>
                 </Border>
 
@@ -247,19 +328,6 @@
                            FontSize="13"
                            Foreground="{DynamicResource TextSecondary}"
                            Text="{DynamicResource AuthRegisterSubtitle}" />
-                <Button Width="24"
-                        Height="24"
-                        Margin="0,11,-12,0"
-                        HorizontalAlignment="Right"
-                        VerticalAlignment="Top"
-                        AutomationProperties.Name="{DynamicResource AuthClose}"
-                        Command="{Binding CloseCommand}"
-                        Style="{StaticResource AuthCloseButtonStyle}">
-                    <TextBlock Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
-                               FontFamily="Segoe MDL2 Assets"
-                               Text="&#xE8BB;" />
-                </Button>
-
                 <Grid Height="34"
                       Margin="0,89,0,0"
                       VerticalAlignment="Top">
@@ -390,8 +458,7 @@
                             </TextBlock.Style>
                         </TextBlock>
                         <Button Grid.Column="2"
-                                Width="56"
-                                HorizontalAlignment="Right"
+                                HorizontalAlignment="Stretch"
                                 Padding="0"
                                 Style="{StaticResource HomeLinkButtonStyle}">
                             <TextBlock Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
@@ -413,6 +480,7 @@
                                    Foreground="{DynamicResource AuthInputPlaceholder}"
                                    Text="&#xE72E;" />
                         <PasswordBox Margin="24,0,28,0"
+                                     x:Name="RegisterPasswordBox"
                                      Padding="0"
                                      VerticalContentAlignment="Center"
                                      AutomationProperties.Name="{DynamicResource AuthPasswordInputPlaceholder}"
@@ -420,6 +488,15 @@
                                      BorderThickness="0"
                                      FontSize="14"
                                      PasswordChanged="RegisterPasswordBox_PasswordChanged" />
+                        <TextBox x:Name="RegisterPasswordTextBox"
+                                 Margin="24,0,28,0"
+                                 Padding="0"
+                                 VerticalContentAlignment="Center"
+                                 Background="Transparent"
+                                 BorderThickness="0"
+                                 FontSize="14"
+                                 Text="{Binding RegisterPassword, UpdateSourceTrigger=PropertyChanged}"
+                                 Visibility="Collapsed" />
                         <TextBlock Margin="24,0,28,0"
                                    VerticalAlignment="Center"
                                    IsHitTestVisible="False"
@@ -437,12 +514,16 @@
                                 </Style>
                             </TextBlock.Style>
                         </TextBlock>
-                        <TextBlock HorizontalAlignment="Right"
-                                   VerticalAlignment="Center"
-                                   FontFamily="Segoe MDL2 Assets"
-                                   FontSize="16"
-                                   Foreground="{DynamicResource AuthInputPlaceholder}"
-                                   Text="&#xE890;" />
+                        <Button HorizontalAlignment="Right"
+                                VerticalAlignment="Center"
+                                Click="ToggleRegisterPasswordVisibility_Click"
+                                Style="{StaticResource AuthPasswordRevealButtonStyle}">
+                            <TextBlock x:Name="RegisterPasswordVisibilityIcon"
+                                       FontFamily="Segoe MDL2 Assets"
+                                       FontSize="16"
+                                       Foreground="{DynamicResource AuthInputPlaceholder}"
+                                       Text="&#xE890;" />
+                        </Button>
                     </Grid>
                 </Border>
                 <Border Height="41"
@@ -458,6 +539,7 @@
                                    Foreground="{DynamicResource AuthInputPlaceholder}"
                                    Text="&#xE72E;" />
                         <PasswordBox Margin="24,0,28,0"
+                                     x:Name="RegisterConfirmPasswordBox"
                                      Padding="0"
                                      VerticalContentAlignment="Center"
                                      AutomationProperties.Name="{DynamicResource AuthConfirmPasswordPlaceholder}"
@@ -465,6 +547,15 @@
                                      BorderThickness="0"
                                      FontSize="14"
                                      PasswordChanged="RegisterConfirmPasswordBox_PasswordChanged" />
+                        <TextBox x:Name="RegisterConfirmPasswordTextBox"
+                                 Margin="24,0,28,0"
+                                 Padding="0"
+                                 VerticalContentAlignment="Center"
+                                 Background="Transparent"
+                                 BorderThickness="0"
+                                 FontSize="14"
+                                 Text="{Binding RegisterConfirmPassword, UpdateSourceTrigger=PropertyChanged}"
+                                 Visibility="Collapsed" />
                         <TextBlock Margin="24,0,28,0"
                                    VerticalAlignment="Center"
                                    IsHitTestVisible="False"
@@ -482,24 +573,26 @@
                                 </Style>
                             </TextBlock.Style>
                         </TextBlock>
-                        <TextBlock HorizontalAlignment="Right"
-                                   VerticalAlignment="Center"
-                                   FontFamily="Segoe MDL2 Assets"
-                                   FontSize="16"
-                                   Foreground="{DynamicResource AuthInputPlaceholder}"
-                                   Text="&#xE890;" />
+                        <Button HorizontalAlignment="Right"
+                                VerticalAlignment="Center"
+                                Click="ToggleRegisterConfirmPasswordVisibility_Click"
+                                Style="{StaticResource AuthPasswordRevealButtonStyle}">
+                            <TextBlock x:Name="RegisterConfirmPasswordVisibilityIcon"
+                                       FontFamily="Segoe MDL2 Assets"
+                                       FontSize="16"
+                                       Foreground="{DynamicResource AuthInputPlaceholder}"
+                                       Text="&#xE890;" />
+                        </Button>
                     </Grid>
                 </Border>
 
                 <StackPanel Margin="9,360,0,0"
                             VerticalAlignment="Top"
-                            Orientation="Horizontal">
-                    <Border Width="14"
-                            Height="14"
-                            Margin="0,0,4,0"
-                            BorderBrush="{DynamicResource BorderPrimary}"
-                            BorderThickness="1"
-                            CornerRadius="4" />
+                            Orientation="Horizontal"
+                            MouseLeftButtonDown="RegisterAgreementRow_MouseLeftButtonDown">
+                    <ToggleButton x:Name="RegisterAgreementCheckBox"
+                                  Margin="0,0,4,0"
+                                  Style="{StaticResource AuthAgreementCheckBoxStyle}" />
                     <TextBlock FontSize="11"
                                VerticalAlignment="Center"
                                Text="{DynamicResource AuthAgreementPrefix}" />

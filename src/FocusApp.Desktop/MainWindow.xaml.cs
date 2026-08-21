@@ -297,6 +297,15 @@ public partial class MainWindow : Window
         }
     }
 
+    private void AccountSyncScrim_MouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (ReferenceEquals(e.OriginalSource, sender) &&
+            DataContext is ViewModels.MainWindowViewModel viewModel)
+        {
+            viewModel.AccountSyncModal.CloseCommand.Execute(null);
+        }
+    }
+
     private void MembershipCenterScrim_MouseDown(object sender, MouseButtonEventArgs e)
     {
         if (ReferenceEquals(e.OriginalSource, sender) &&
