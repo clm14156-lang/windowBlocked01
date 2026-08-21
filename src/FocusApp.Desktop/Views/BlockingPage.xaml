@@ -36,11 +36,11 @@
             <Setter Property="Height" Value="40" />
             <Setter Property="Padding" Value="15,0" />
             <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AccentHover}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderPrimary}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
             <Setter Property="FontSize" Value="13" />
-            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontWeight" Value="Medium" />
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Template">
                 <Setter.Value>
@@ -49,7 +49,7 @@
                             <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
                         <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource AccentTint}" /></Trigger>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource AccentTint}" /><Setter TargetName="ButtonBorder" Property="BorderBrush" Value="{DynamicResource AccentSoftBorder}" /></Trigger>
                             <Trigger Property="IsPressed" Value="True"><Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource ControlPressedBackground}" /></Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -98,6 +98,42 @@
                             <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Track" Property="Opacity" Value="0.82" /></Trigger>
                             <Trigger Property="IsPressed" Value="True"><Setter TargetName="Track" Property="Opacity" Value="0.68" /></Trigger>
                             <Trigger Property="IsChecked" Value="True"><Setter TargetName="Track" Property="Background" Value="{DynamicResource AccentPrimary}" /><Setter TargetName="Thumb" Property="HorizontalAlignment" Value="Right" /><Setter TargetName="Thumb" Property="Margin" Value="0,0,2,0" /></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="BlockingApplicationToggleStyle" TargetType="{x:Type ToggleButton}">
+            <Setter Property="Width" Value="36" />
+            <Setter Property="Height" Value="20" />
+            <Setter Property="Background" Value="{DynamicResource BorderPrimary}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ToggleButton}">
+                        <Grid>
+                            <Border x:Name="Track" Background="{TemplateBinding Background}" CornerRadius="10" />
+                            <Ellipse x:Name="Thumb"
+                                     Width="16"
+                                     Height="16"
+                                     Margin="2,0,0,0"
+                                     HorizontalAlignment="Left"
+                                     Fill="{DynamicResource SurfacePrimary}" />
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Track" Property="Opacity" Value="0.84" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Track" Property="Opacity" Value="0.68" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Track" Property="Background" Value="{DynamicResource AccentPrimary}" />
+                                <Setter TargetName="Thumb" Property="HorizontalAlignment" Value="Right" />
+                                <Setter TargetName="Thumb" Property="Margin" Value="0,0,2,0" />
+                            </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
@@ -273,27 +309,213 @@
             </Border>
         </Grid>
 
-        <Grid Margin="26,114,26,48">
+        <Grid Margin="26,114,26,42">
             <Grid.Style>
                 <Style TargetType="{x:Type Grid}"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding IsApplicationsSelected}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style>
             </Grid.Style>
-            <Grid.RowDefinitions><RowDefinition Height="72" /><RowDefinition Height="8" /><RowDefinition /></Grid.RowDefinitions>
-            <Border Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" CornerRadius="10">
-                <Grid Margin="16,0">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="56" /><ColumnDefinition /><ColumnDefinition Width="132" /></Grid.ColumnDefinitions>
-                    <Border Width="44" Height="44" HorizontalAlignment="Left" Background="{DynamicResource AccentTint}" CornerRadius="22"><TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="22" Foreground="{DynamicResource AccentPrimary}" Text="&#xE71D;" /></Border>
-                    <StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock FontSize="15" FontWeight="SemiBold" Text="{Binding ApplicationCountText}" /><TextBlock Margin="0,5,0,0" FontSize="12" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource BlockingApplicationSummaryDescription}" /></StackPanel>
-                    <Button Grid.Column="2" AutomationProperties.Name="{DynamicResource BlockingAddApplication}" Command="{Binding OpenProgramModalCommand}" Style="{StaticResource BlockingOutlineButtonStyle}"><StackPanel Orientation="Horizontal"><TextBlock Margin="0,-1,8,0" VerticalAlignment="Center" FontSize="21" Text="+" /><TextBlock VerticalAlignment="Center" Text="{DynamicResource BlockingAddApplication}" /></StackPanel></Button>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="92" />
+                <RowDefinition Height="14" />
+                <RowDefinition />
+            </Grid.RowDefinitions>
+
+            <Border Background="{DynamicResource SurfacePrimary}"
+                    BorderBrush="{DynamicResource OverlayBorder}"
+                    BorderThickness="1"
+                    CornerRadius="14">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="10" Direction="270" Opacity="0.035" ShadowDepth="2" />
+                </Border.Effect>
+                <Grid Margin="22,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="68" />
+                        <ColumnDefinition />
+                        <ColumnDefinition Width="140" />
+                    </Grid.ColumnDefinitions>
+                    <Border Width="52"
+                            Height="52"
+                            HorizontalAlignment="Left"
+                            Background="{DynamicResource AccentTint}"
+                            CornerRadius="26">
+                        <TextBlock HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   FontFamily="Segoe MDL2 Assets"
+                                   FontSize="25"
+                                   Foreground="{DynamicResource AccentPrimary}"
+                                   Text="&#xE71D;" />
+                    </Border>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock FontSize="16"
+                                   FontWeight="Medium"
+                                   Foreground="{DynamicResource TextPrimary}"
+                                   Text="{DynamicResource BlockingApplicationSummaryTitle}" />
+                        <TextBlock Margin="0,8,0,0"
+                                   FontSize="12.5"
+                                   Foreground="{DynamicResource TextSecondary}">
+                            <Run Text="{Binding Applications.Count, Mode=OneWay}" />
+                            <Run Text="{DynamicResource BlockingApplicationManagedSuffix}" />
+                        </TextBlock>
+                    </StackPanel>
+                    <Button Grid.Column="2"
+                            Width="132"
+                            Height="42"
+                            HorizontalAlignment="Right"
+                            AutomationProperties.Name="{DynamicResource BlockingAddApplication}"
+                            Command="{Binding OpenProgramModalCommand}"
+                            Style="{StaticResource BlockingOutlineButtonStyle}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Margin="0,-1,8,0"
+                                       VerticalAlignment="Center"
+                                       FontSize="20"
+                                       FontWeight="Normal"
+                                       Foreground="{DynamicResource AccentPrimary}"
+                                       Text="+" />
+                            <TextBlock VerticalAlignment="Center"
+                                       FontWeight="Medium"
+                                       Foreground="{DynamicResource TextPrimary}"
+                                       Text="{DynamicResource BlockingAddApplication}" />
+                        </StackPanel>
+                    </Button>
                 </Grid>
             </Border>
-            <Border Grid.Row="2" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" CornerRadius="10">
+
+            <Border Grid.Row="2"
+                    Background="{DynamicResource SurfacePrimary}"
+                    BorderBrush="{DynamicResource OverlayBorder}"
+                    BorderThickness="1"
+                    CornerRadius="14">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="8" Direction="270" Opacity="0.025" ShadowDepth="1" />
+                </Border.Effect>
                 <Grid>
-                    <Grid.RowDefinitions><RowDefinition Height="42" /><RowDefinition /></Grid.RowDefinitions>
-                    <Grid Margin="18,0"><Grid.ColumnDefinitions><ColumnDefinition Width="323" /><ColumnDefinition Width="140" /><ColumnDefinition /></Grid.ColumnDefinitions><TextBlock VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource BlockingApplicationNameColumn}" /><TextBlock Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource BlockingStatusColumn}" /><TextBlock Grid.Column="2" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource BlockingActionsColumn}" /></Grid>
-                    <Border Height="1" VerticalAlignment="Bottom" Background="{DynamicResource BorderPrimary}" />
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="46" />
+                        <RowDefinition />
+                    </Grid.RowDefinitions>
+                    <Grid Margin="24,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="323" />
+                            <ColumnDefinition Width="140" />
+                            <ColumnDefinition />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Margin="12,0,0,0"
+                                   VerticalAlignment="Center"
+                                   FontSize="12"
+                                   FontWeight="Normal"
+                                   Foreground="{DynamicResource TextTertiary}"
+                                   Text="{DynamicResource BlockingApplicationNameColumn}" />
+                        <TextBlock Grid.Column="1"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   FontSize="12"
+                                   FontWeight="Normal"
+                                   Foreground="{DynamicResource TextTertiary}"
+                                   Text="{DynamicResource BlockingStatusColumn}" />
+                        <TextBlock Grid.Column="2"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   FontSize="12"
+                                   FontWeight="Normal"
+                                   Foreground="{DynamicResource TextTertiary}"
+                                   Text="{DynamicResource BlockingActionsColumn}" />
+                    </Grid>
+                    <Border Height="1"
+                            VerticalAlignment="Bottom"
+                            Background="{DynamicResource OverlayBorder}"
+                            Opacity="0.72" />
                     <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
                         <ItemsControl ItemsSource="{Binding Applications}">
-                            <ItemsControl.ItemTemplate><DataTemplate><Grid Height="46" Margin="18,0"><Grid.ColumnDefinitions><ColumnDefinition Width="323" /><ColumnDefinition Width="140" /><ColumnDefinition /></Grid.ColumnDefinitions><Border Grid.ColumnSpan="3" Height="1" VerticalAlignment="Bottom" Background="{DynamicResource OverlayBorder}" /><StackPanel Orientation="Horizontal" VerticalAlignment="Center"><Border Width="26" Height="26" Background="{DynamicResource AccentPrimary}" CornerRadius="6"><TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{DynamicResource WhiteText}" Text="&#xE71D;" /></Border><StackPanel Margin="11,0,0,0" VerticalAlignment="Center"><TextBlock FontSize="13" FontWeight="SemiBold" Text="{Binding Name}" /><TextBlock MaxWidth="250" Margin="0,1,0,0" FontSize="12" Foreground="{DynamicResource TextSecondary}" Text="{Binding Path}" TextTrimming="CharacterEllipsis" /></StackPanel></StackPanel><ToggleButton Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center" AutomationProperties.Name="{Binding Name}" IsChecked="{Binding IsEnabled, Mode=TwoWay}" Style="{StaticResource BlockingToggleStyle}" /><Button Grid.Column="2" HorizontalAlignment="Center" VerticalAlignment="Center" AutomationProperties.Name="{DynamicResource BlockingDeleteApplication}" Command="{Binding DataContext.DeleteApplicationCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}" CommandParameter="{Binding}" Foreground="{DynamicResource Danger}" Style="{StaticResource BlockingIconButtonStyle}" ToolTip="{DynamicResource BlockingDeleteApplication}"><TextBlock FontFamily="Segoe MDL2 Assets" FontSize="15" Text="&#xE74D;" /></Button></Grid></DataTemplate></ItemsControl.ItemTemplate>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Height="60" Margin="24,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="323" />
+                                            <ColumnDefinition Width="140" />
+                                            <ColumnDefinition />
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.Style>
+                                            <Style TargetType="{x:Type Grid}">
+                                                <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+                                                <Style.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter Property="Background" Value="{DynamicResource ControlHoverBackground}" />
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Grid.Style>
+                                        <Border Grid.ColumnSpan="3"
+                                                Height="1"
+                                                Margin="12,0"
+                                                VerticalAlignment="Bottom"
+                                                Background="{DynamicResource OverlayBorder}"
+                                                Opacity="0.55" />
+                                        <StackPanel Margin="12,0,0,0" Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Border Width="32"
+                                                    Height="32"
+                                                    Background="{DynamicResource AccentPrimary}"
+                                                    CornerRadius="8">
+                                                <TextBlock HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center"
+                                                           FontFamily="Segoe MDL2 Assets"
+                                                           FontSize="16"
+                                                           Foreground="{DynamicResource WhiteText}"
+                                                           Text="&#xE71D;" />
+                                            </Border>
+                                            <StackPanel Margin="15,0,0,0" VerticalAlignment="Center">
+                                                <TextBlock FontSize="13.5"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource TextPrimary}"
+                                                           Text="{Binding Name}" />
+                                                <TextBlock MaxWidth="245"
+                                                           Margin="0,3,0,0"
+                                                           FontSize="11.5"
+                                                           Foreground="{DynamicResource TextTertiary}"
+                                                           Text="{Binding Path}"
+                                                           TextTrimming="CharacterEllipsis" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                        <ToggleButton Grid.Column="1"
+                                                      HorizontalAlignment="Center"
+                                                      VerticalAlignment="Center"
+                                                      AutomationProperties.Name="{Binding Name}"
+                                                      IsChecked="{Binding IsEnabled, Mode=TwoWay}"
+                                                      Style="{StaticResource BlockingApplicationToggleStyle}" />
+                                        <ToggleButton x:Name="ApplicationMoreButton"
+                                                      Grid.Column="2"
+                                                      HorizontalAlignment="Center"
+                                                      VerticalAlignment="Center"
+                                                      AutomationProperties.Name="{DynamicResource BlockingActionsColumn}"
+                                                      Style="{StaticResource BlockingMoreButtonStyle}">
+                                            <TextBlock Margin="0,-7,0,0"
+                                                       FontSize="17"
+                                                       FontWeight="SemiBold"
+                                                       Text="..." />
+                                        </ToggleButton>
+                                        <Popup AllowsTransparency="True"
+                                               IsOpen="{Binding IsChecked, ElementName=ApplicationMoreButton, Mode=TwoWay}"
+                                               Placement="Left"
+                                               PlacementTarget="{Binding ElementName=ApplicationMoreButton}"
+                                               PopupAnimation="Fade"
+                                               StaysOpen="False">
+                                            <Border Width="118"
+                                                    Padding="6"
+                                                    Background="{DynamicResource SurfacePrimary}"
+                                                    BorderBrush="{DynamicResource BorderPrimary}"
+                                                    BorderThickness="1"
+                                                    CornerRadius="12">
+                                                <Border.Effect>
+                                                    <DropShadowEffect BlurRadius="14" Direction="270" Opacity="0.12" ShadowDepth="3" />
+                                                </Border.Effect>
+                                                <Button Command="{Binding DataContext.DeleteApplicationCommand, Source={x:Reference BlockingPageRoot}}"
+                                                        CommandParameter="{Binding}"
+                                                        Content="{DynamicResource BlockingDeleteApplication}"
+                                                        Foreground="{DynamicResource Danger}"
+                                                        Style="{StaticResource BlockingMenuItemStyle}" />
+                                            </Border>
+                                        </Popup>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
                         </ItemsControl>
                     </ScrollViewer>
                 </Grid>

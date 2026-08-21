@@ -18,6 +18,8 @@
     <system:String x:Key="BlockingWebsiteSummaryTitle">已添加网站</system:String>
     <system:String x:Key="BlockingWebsiteManagedSuffix"> 个网站正在管理</system:String>
     <system:String x:Key="BlockingApplicationSummaryDescription">在专注模式下，可通过开关控制是否屏蔽程序</system:String>
+    <system:String x:Key="BlockingApplicationSummaryTitle">已添加程序</system:String>
+    <system:String x:Key="BlockingApplicationManagedSuffix"> 个程序正在控制中</system:String>
     <system:String x:Key="BlockingAddWebsite">添加网站</system:String>
     <system:String x:Key="BlockingAddApplication">添加程序</system:String>
     <system:String x:Key="BlockingWebsiteNameColumn">网站名称</system:String>
