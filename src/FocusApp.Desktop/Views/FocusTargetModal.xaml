@@ -487,7 +487,9 @@
                     </Border>
                 </Button>
 
-                <Grid Height="48">
+                <Grid Height="38"
+                      Margin="0,14,0,4"
+                      HorizontalAlignment="Center">
                     <Grid.Style>
                         <Style TargetType="{x:Type Grid}">
                             <Setter Property="Visibility" Value="Collapsed" />
@@ -499,20 +501,20 @@
                         </Style>
                     </Grid.Style>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition />
-                        <ColumnDefinition Width="10" />
-                        <ColumnDefinition />
+                        <ColumnDefinition Width="112" />
+                        <ColumnDefinition Width="16" />
+                        <ColumnDefinition Width="112" />
                     </Grid.ColumnDefinitions>
                     <Button Grid.Column="0"
                             AutomationProperties.Name="{DynamicResource FocusTargetCancel}"
                             Command="{Binding CancelSelectionCommand}"
                             Style="{StaticResource TargetPlainButton}">
-                        <Border Width="139"
-                                Height="48"
+                        <Border Width="112"
+                                Height="38"
                                 Background="{DynamicResource SurfacePrimary}"
                                 BorderBrush="{DynamicResource BorderPrimary}"
                                 BorderThickness="1"
-                                CornerRadius="12">
+                                CornerRadius="10">
                             <TextBlock HorizontalAlignment="Center"
                                        VerticalAlignment="Center"
                                        FontSize="14"
@@ -524,10 +526,10 @@
                             AutomationProperties.Name="{DynamicResource FocusTargetConfirm}"
                             Command="{Binding ConfirmSelectionCommand}"
                             Style="{StaticResource TargetPlainButton}">
-                        <Border Width="139"
-                                Height="48"
-                                Background="{DynamicResource FocusButtonBackground}"
-                                CornerRadius="12">
+                        <Border Width="112"
+                                Height="38"
+                                Background="{DynamicResource AccentPrimary}"
+                                CornerRadius="10">
                             <TextBlock HorizontalAlignment="Center"
                                        VerticalAlignment="Center"
                                        FontSize="14"
@@ -556,12 +558,16 @@
                                  IsVisibleChanged="Editor_IsVisibleChanged"
                                  Text="{Binding NewTargetName, UpdateSourceTrigger=PropertyChanged}"
                                  Style="{StaticResource TaskEditorStyle}" />
-                        <TextBlock Margin="12,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False" FontSize="13" Foreground="{DynamicResource TextTertiary}" Text="{DynamicResource FocusTargetNamePlaceholder}">
+                        <TextBlock VerticalAlignment="Center" IsHitTestVisible="False" FontSize="13" Foreground="{DynamicResource TextTertiary}" Text="{DynamicResource FocusTargetNamePlaceholder}">
                             <TextBlock.Style>
                                 <Style TargetType="{x:Type TextBlock}">
+                                    <Setter Property="Margin" Value="12,0,0,0" />
                                     <Setter Property="Visibility" Value="Collapsed" />
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding Text, ElementName=NewTargetTextBox}" Value=""><Setter Property="Visibility" Value="Visible" /></DataTrigger>
+                                        <DataTrigger Binding="{Binding IsKeyboardFocused, ElementName=NewTargetTextBox}" Value="True">
+                                            <Setter Property="Margin" Value="20,0,0,0" />
+                                        </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
                             </TextBlock.Style>

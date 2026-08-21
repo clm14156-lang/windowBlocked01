@@ -35,18 +35,27 @@ public partial class FocusTargetModal : UserControl
 
     private static void FocusEditor(TextBox textBox, bool placeCaretAtStart)
     {
-        textBox.Dispatcher.BeginInvoke(() =>
-        {
-            textBox.Focus();
-            if (placeCaretAtStart)
+        textBox.Dispatcher.BeginInvoke(
+            DispatcherPriority.ContextIdle,
+            new Action(() =>
             {
-                textBox.Select(0, 0);
-            }
-            else
-            {
-                textBox.SelectAll();
-            }
-        });
+                if (!textBox.IsVisible)
+                {
+                    return;
+                }
+
+                textBox.Focus();
+                if (placeCaretAtStart)
+                {
+                    textBox.CaretIndex = 0;
+                    textBox.SelectionStart = 0;
+                    textBox.SelectionLength = 0;
+                }
+                else
+                {
+                    textBox.SelectAll();
+                }
+            }));
     }
 
     private void Editor_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
