@@ -239,14 +239,8 @@
                 Background="{DynamicResource SurfacePrimary}"
                 BorderBrush="{DynamicResource OverlayBorder}"
                 BorderThickness="1"
-                CornerRadius="12">
-            <Border.Effect>
-                <DropShadowEffect BlurRadius="18"
-                                  Direction="270"
-                                  Opacity="0.06"
-                                  ShadowDepth="4" />
-            </Border.Effect>
-            <Grid Margin="20,0">
+                CornerRadius="14">
+            <Grid Margin="24,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="44" />
                     <ColumnDefinition Width="*" />
@@ -257,20 +251,20 @@
                 <TextBlock Grid.Column="0"
                            VerticalAlignment="Center"
                            FontFamily="Segoe MDL2 Assets"
-                           FontSize="32"
-                           Foreground="{DynamicResource TextSecondary}"
+                           FontSize="30"
+                           Foreground="{DynamicResource TextTertiary}"
                            Text="&#xEA18;" />
 
                 <StackPanel Grid.Column="1"
                             Margin="8,0,0,0"
                             VerticalAlignment="Center">
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock FontSize="{DynamicResource CardTitleFontSize}"
-                                   FontWeight="SemiBold"
+                        <TextBlock FontSize="14"
+                                   FontWeight="Medium"
                                    Text="{DynamicResource HomeBlockingTitle}" />
                         <TextBlock Margin="8,0,0,0"
                                    VerticalAlignment="Center"
-                                   FontSize="{DynamicResource CardTitleFontSize}"
+                                   FontSize="14"
                                    Foreground="{DynamicResource TextSecondary}"
                                    Text="·">
                             <TextBlock.Style>
@@ -283,8 +277,8 @@
                         <TextBlock Margin="12,0,0,0"
                                    VerticalAlignment="Center"
                                    FontFamily="{DynamicResource FontFamilyNumeric}"
-                                   FontSize="{DynamicResource CardTitleFontSize}"
-                                   FontWeight="SemiBold"
+                                   FontSize="14"
+                                   FontWeight="Medium"
                                    Foreground="{DynamicResource AccentPrimary}"
                                    Text="{Binding NextAutomaticStartDisplay}"
                                    ToolTip="{Binding NextAutomaticBlockingToolTip}">
@@ -296,50 +290,92 @@
                             </TextBlock.Style>
                         </TextBlock>
                     </StackPanel>
-                    <TextBlock Margin="0,4,0,0" FontSize="12" Foreground="{DynamicResource TextSecondary}" Text="{Binding BlockingCountText}">
-                        <TextBlock.Style><Style TargetType="{x:Type TextBlock}"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding HasBlockingContent}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                    <TextBlock Margin="0,4,0,0"
+                               FontSize="12"
+                               FontWeight="Normal"
+                               Foreground="{DynamicResource TextTertiary}">
+                        <TextBlock.Style>
+                            <Style TargetType="{x:Type TextBlock}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasBlockingContent}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                        <Run Text="{Binding EnabledBlockingCount, Mode=OneWay}" />
+                        <Run Text="{DynamicResource HomeBlockingCountSuffix}" />
                     </TextBlock>
                 </StackPanel>
 
-                <StackPanel Grid.Column="2" Margin="10,0,18,0" VerticalAlignment="Center" Orientation="Horizontal">
+                <StackPanel Grid.Column="2" Margin="12,0,17,0" VerticalAlignment="Center" Orientation="Horizontal">
                     <ItemsControl ItemsSource="{Binding BlockingPreviewItems}">
                         <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Border Width="30" Height="30" Margin="0,0,7,0" Background="{DynamicResource AccentTint}" CornerRadius="15">
+                                <Border Width="28" Height="28" Margin="0,0,6,0" Background="{DynamicResource AccentTint}" CornerRadius="14">
                                     <Grid>
-                                        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="{DynamicResource AccentPrimary}" Text="{Binding IconGlyph}">
+                                        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{DynamicResource AccentPrimary}" Text="{Binding IconGlyph}">
                                             <TextBlock.Style><Style TargetType="{x:Type TextBlock}"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding Favicon}" Value="{x:Null}"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></TextBlock.Style>
                                         </TextBlock>
-                                        <Image Width="24" Height="24" Source="{Binding Favicon}" Stretch="Uniform" />
+                                        <Image Width="22" Height="22" Source="{Binding Favicon}" Stretch="Uniform" />
                                     </Grid>
                                 </Border>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                    <Border Width="30" Height="30" Background="{DynamicResource ControlHoverBackground}" CornerRadius="15">
+                    <Border Width="28" Height="28" Background="{DynamicResource ControlHoverBackground}" CornerRadius="14">
                         <Border.Style><Style TargetType="{x:Type Border}"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding HasAdditionalBlockingItems}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></Border.Style>
-                        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold"><Run Text="+" /><Run Text="{Binding AdditionalBlockingCount, Mode=OneWay}" /></TextBlock>
+                        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="11" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}"><Run Text="+" /><Run Text="{Binding AdditionalBlockingCount, Mode=OneWay}" /></TextBlock>
                     </Border>
                 </StackPanel>
 
                 <Button Grid.Column="3"
                         VerticalAlignment="Center"
                         Command="{Binding OpenBlockedContentCommand}"
-                        AutomationProperties.Name="{DynamicResource HomeAddBlockingRule}"
-                        Style="{StaticResource HomeLinkButtonStyle}">
+                        AutomationProperties.Name="{DynamicResource HomeAddBlockingRule}">
+                    <Button.Style>
+                        <Style TargetType="{x:Type Button}">
+                            <Setter Property="MinHeight" Value="36" />
+                            <Setter Property="Padding" Value="0" />
+                            <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+                            <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
+                            <Setter Property="BorderThickness" Value="0" />
+                            <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}" />
+                            <Setter Property="FontWeight" Value="Medium" />
+                            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="{x:Type Button}">
+                                        <Border Background="{DynamicResource TransparentBrush}">
+                                            <ContentPresenter HorizontalAlignment="Center"
+                                                              VerticalAlignment="Center" />
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsPressed" Value="True">
+                                                <Setter Property="Opacity" Value="0.72" />
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </Button.Style>
                     <StackPanel Orientation="Horizontal">
                         <TextBlock VerticalAlignment="Center"
-                                   FontWeight="SemiBold"
+                                   FontSize="13"
+                                   FontWeight="Medium"
                                    Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}">
                             <TextBlock.Style><Style TargetType="{x:Type TextBlock}"><Setter Property="Text" Value="{DynamicResource HomeAddBlockingRule}" /><Style.Triggers><DataTrigger Binding="{Binding HasBlockingContent}" Value="True"><Setter Property="Text" Value="{DynamicResource HomeViewAllBlocking}" /></DataTrigger></Style.Triggers></Style></TextBlock.Style>
                         </TextBlock>
-                        <TextBlock Margin="8,0,0,0"
+                        <TextBlock Margin="6,-1,0,0"
                                    VerticalAlignment="Center"
-                                   FontFamily="Segoe MDL2 Assets"
-                                   FontSize="12"
+                                   FontSize="17"
+                                   FontWeight="Normal"
                                    Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
-                                   Text="&#xE76C;" />
+                                   Opacity="0.72"
+                                   Text="{DynamicResource HomeViewAllChevron}" />
                     </StackPanel>
                 </Button>
             </Grid>
