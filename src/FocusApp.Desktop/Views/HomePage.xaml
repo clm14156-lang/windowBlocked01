@@ -188,14 +188,16 @@
                 <DataTemplate>
                     <RadioButton AutomationProperties.Name="{Binding Label}"
                                  Command="{Binding DataContext.SelectDurationCommand, RelativeSource={RelativeSource AncestorType={x:Type ItemsControl}}}"
-                                 CommandParameter="{Binding}"
-                                 IsChecked="{Binding IsCurrent, Mode=OneWay}">
+                                 CommandParameter="{Binding}">
                         <RadioButton.Style>
                             <Style TargetType="{x:Type RadioButton}" BasedOn="{StaticResource HomeDurationButtonStyle}">
+                                <Setter Property="IsChecked" Value="{Binding IsCurrent, Mode=OneWay}" />
                                 <Setter Property="Width" Value="92" />
                                 <Setter Property="Margin" Value="0,0,20,0" />
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding Icon}" Value="&#xE823;">
+                                        <Setter Property="Focusable" Value="False" />
+                                        <Setter Property="IsChecked" Value="{Binding DataContext.CustomTimeModal.IsOpen, RelativeSource={RelativeSource AncestorType={x:Type ItemsControl}}, Mode=OneWay}" />
                                         <Setter Property="Width" Value="102" />
                                         <Setter Property="Margin" Value="0" />
                                     </DataTrigger>
@@ -221,7 +223,7 @@
                                 </TextBlock.Style>
                             </TextBlock>
                             <TextBlock VerticalAlignment="Center"
-                                       FontWeight="SemiBold"
+                                       FontWeight="Medium"
                                        Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type RadioButton}}}"
                                        Text="{Binding DurationDisplayLabel}" />
                         </StackPanel>
