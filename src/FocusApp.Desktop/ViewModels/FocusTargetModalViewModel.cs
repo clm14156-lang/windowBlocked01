@@ -137,7 +137,7 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
         private set => SetField(ref _hasSelectedTarget, value);
     }
 
-    public string SelectedTargetButtonText => HasSelectedTarget ? SelectedTarget.Name : "本次专注目标（可选）";
+    public string SelectedTargetButtonText => HasSelectedTarget ? SelectedTarget.Name : "选择专注目标(可选)";
 
     public FocusTargetViewModel SelectedTarget
     {

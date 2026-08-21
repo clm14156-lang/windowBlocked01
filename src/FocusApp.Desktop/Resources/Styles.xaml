@@ -131,7 +131,7 @@
                         <Trigger Property="IsChecked" Value="True">
                             <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}" />
                             <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
-                            <Setter Property="BorderThickness" Value="1.5" />
+                            <Setter Property="BorderThickness" Value="1" />
                         </Trigger>
                         <Trigger Property="IsKeyboardFocused" Value="True">
                             <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />

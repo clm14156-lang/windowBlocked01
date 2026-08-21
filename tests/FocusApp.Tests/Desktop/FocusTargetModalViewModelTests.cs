@@ -61,7 +61,7 @@ public sealed class FocusTargetModalViewModelTests
 
         Assert.False(viewModel.HasSelectedTarget);
         Assert.False(initialTarget.IsSelected);
-        Assert.Equal("本次专注目标（可选）", viewModel.SelectedTargetButtonText);
+        Assert.Equal("选择专注目标(可选)", viewModel.SelectedTargetButtonText);
     }
 
     [Fact]
@@ -127,7 +127,7 @@ public sealed class FocusTargetModalViewModelTests
         Assert.True(viewModel.IsOpen);
         Assert.False(viewModel.HasSelectedTarget);
         Assert.False(coding.IsSelected);
-        Assert.Equal("本次专注目标（可选）", viewModel.SelectedTargetButtonText);
+        Assert.Equal("选择专注目标(可选)", viewModel.SelectedTargetButtonText);
     }
 
     [Fact]

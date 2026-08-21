@@ -7,6 +7,7 @@
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <SolidColorBrush x:Key="SettingsHairlineBrush" Color="#EFEFF1" Opacity="0.5" />
+        <Color x:Key="SettingsRowHoverColor">#FBFBFC</Color>
 
         <Style x:Key="SettingsToggleRowStyle" TargetType="{x:Type ToggleButton}">
             <Setter Property="Height" Value="63" />
@@ -17,7 +18,10 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type ToggleButton}">
-                        <Grid x:Name="RowBackground" Background="{TemplateBinding Background}">
+                        <Grid x:Name="RowBackground">
+                            <Grid.Background>
+                                <SolidColorBrush x:Name="RowHoverBrush" Color="Transparent" />
+                            </Grid.Background>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="64" />
                                 <ColumnDefinition Width="*" />
@@ -75,9 +79,26 @@
                                     Visibility="{Binding HasSeparator, Converter={StaticResource BooleanToVisibilityConverter}}" />
                         </Grid>
                         <ControlTemplate.Triggers>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="RowBackground" Property="Background" Value="{DynamicResource ControlPressedBackground}" />
-                            </Trigger>
+                            <EventTrigger RoutedEvent="MouseEnter">
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <ColorAnimation Storyboard.TargetName="RowHoverBrush"
+                                                        Storyboard.TargetProperty="Color"
+                                                        To="{StaticResource SettingsRowHoverColor}"
+                                                        Duration="0:0:0.18" />
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </EventTrigger>
+                            <EventTrigger RoutedEvent="MouseLeave">
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <ColorAnimation Storyboard.TargetName="RowHoverBrush"
+                                                        Storyboard.TargetProperty="Color"
+                                                        To="Transparent"
+                                                        Duration="0:0:0.18" />
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </EventTrigger>
                             <Trigger Property="IsChecked" Value="True">
                                 <Setter TargetName="ToggleTrack" Property="Background" Value="{DynamicResource AccentPrimary}" />
                                 <Setter TargetName="ToggleThumb" Property="HorizontalAlignment" Value="Right" />
@@ -90,10 +111,6 @@
                                 </MultiTrigger.Conditions>
                                 <Setter TargetName="ToggleTrack" Property="Background" Value="{DynamicResource AccentHover}" />
                             </MultiTrigger>
-                            <Trigger Property="IsKeyboardFocused" Value="True">
-                                <Setter TargetName="ToggleTrack" Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
-                                <Setter TargetName="ToggleTrack" Property="BorderThickness" Value="1" />
-                            </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
@@ -109,7 +126,10 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type Button}">
-                        <Grid x:Name="RowBackground" Background="{TemplateBinding Background}">
+                        <Grid x:Name="RowBackground">
+                            <Grid.Background>
+                                <SolidColorBrush x:Name="RowHoverBrush" Color="Transparent" />
+                            </Grid.Background>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="64" />
                                 <ColumnDefinition Width="*" />
@@ -155,15 +175,26 @@
                                     Visibility="{Binding HasSeparator, Converter={StaticResource BooleanToVisibilityConverter}}" />
                         </Grid>
                         <ControlTemplate.Triggers>
-                            <DataTrigger Binding="{Binding IsActive}" Value="True">
-                                <Setter TargetName="RowBackground" Property="Background" Value="{DynamicResource AccentTint}" />
-                            </DataTrigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="RowBackground" Property="Background" Value="{DynamicResource ControlPressedBackground}" />
-                            </Trigger>
-                            <Trigger Property="IsKeyboardFocused" Value="True">
-                                <Setter TargetName="RowBackground" Property="Background" Value="{DynamicResource AccentTint}" />
-                            </Trigger>
+                            <EventTrigger RoutedEvent="MouseEnter">
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <ColorAnimation Storyboard.TargetName="RowHoverBrush"
+                                                        Storyboard.TargetProperty="Color"
+                                                        To="{StaticResource SettingsRowHoverColor}"
+                                                        Duration="0:0:0.18" />
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </EventTrigger>
+                            <EventTrigger RoutedEvent="MouseLeave">
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <ColorAnimation Storyboard.TargetName="RowHoverBrush"
+                                                        Storyboard.TargetProperty="Color"
+                                                        To="Transparent"
+                                                        Duration="0:0:0.18" />
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </EventTrigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>

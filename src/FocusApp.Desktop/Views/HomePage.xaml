@@ -140,6 +140,7 @@
                 HorizontalAlignment="Center"
                 VerticalAlignment="Top"
                 AutomationProperties.Name="{DynamicResource HomeFocusTarget}"
+                BorderBrush="{DynamicResource BorderPrimary}"
                 Command="{Binding OpenFocusTargetCommand}"
                 IsHitTestVisible="{Binding FocusSession.IsHomeConfigurationEnabled}"
                 ToolTip="{Binding FocusTargetModal.SelectedTargetButtonText}">
