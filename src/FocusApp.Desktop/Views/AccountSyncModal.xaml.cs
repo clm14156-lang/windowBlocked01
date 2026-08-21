@@ -23,6 +23,8 @@ public partial class AccountSyncModal : UserControl
     private double _scrollAnimationTargetOffset;
     private string _scrollAnimationTargetSection = AccountSyncModalViewModel.CloudSection;
     private bool _isAnimatingScroll;
+    private bool _isAccountNewPasswordVisible;
+    private bool _isAccountConfirmPasswordVisible;
 
     public AccountSyncModal()
     {
@@ -62,6 +64,91 @@ public partial class AccountSyncModal : UserControl
         };
 
         BeginSmoothScroll(sectionKey, target);
+    }
+
+    private void OpenPasswordChange_Click(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is not AccountSyncModalViewModel viewModel)
+        {
+            return;
+        }
+
+        viewModel.OpenPasswordChangeCommand.Execute(null);
+        ResetPasswordEditors();
+    }
+
+    private void AccountNewPasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
+    {
+        if (sender is PasswordBox passwordBox && DataContext is AccountSyncModalViewModel viewModel)
+        {
+            viewModel.NewPassword = passwordBox.Password;
+        }
+    }
+
+    private void AccountConfirmPasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
+    {
+        if (sender is PasswordBox passwordBox && DataContext is AccountSyncModalViewModel viewModel)
+        {
+            viewModel.ConfirmPassword = passwordBox.Password;
+        }
+    }
+
+    private void ToggleAccountNewPasswordVisibility_Click(object sender, RoutedEventArgs e)
+    {
+        _isAccountNewPasswordVisible = !_isAccountNewPasswordVisible;
+        SetPasswordVisibility(
+            AccountNewPasswordBox,
+            AccountNewPasswordTextBox,
+            AccountNewPasswordVisibilityIcon,
+            _isAccountNewPasswordVisible);
+    }
+
+    private void ToggleAccountConfirmPasswordVisibility_Click(object sender, RoutedEventArgs e)
+    {
+        _isAccountConfirmPasswordVisible = !_isAccountConfirmPasswordVisible;
+        SetPasswordVisibility(
+            AccountConfirmPasswordBox,
+            AccountConfirmPasswordTextBox,
+            AccountConfirmPasswordVisibilityIcon,
+            _isAccountConfirmPasswordVisible);
+    }
+
+    private static void SetPasswordVisibility(
+        PasswordBox passwordBox,
+        TextBox textBox,
+        TextBlock icon,
+        bool showPassword)
+    {
+        if (showPassword)
+        {
+            textBox.SetCurrentValue(TextBox.TextProperty, passwordBox.Password);
+            passwordBox.Visibility = Visibility.Collapsed;
+            textBox.Visibility = Visibility.Visible;
+            icon.Text = "\uED1A";
+            textBox.Focus();
+            textBox.CaretIndex = textBox.Text.Length;
+            return;
+        }
+
+        passwordBox.Password = textBox.Text;
+        textBox.Visibility = Visibility.Collapsed;
+        passwordBox.Visibility = Visibility.Visible;
+        icon.Text = "\uE890";
+        passwordBox.Focus();
+    }
+
+    private void ResetPasswordEditors()
+    {
+        _isAccountNewPasswordVisible = false;
+        _isAccountConfirmPasswordVisible = false;
+        AccountNewPasswordTextBox.Visibility = Visibility.Collapsed;
+        AccountConfirmPasswordTextBox.Visibility = Visibility.Collapsed;
+        AccountNewPasswordBox.Visibility = Visibility.Visible;
+        AccountConfirmPasswordBox.Visibility = Visibility.Visible;
+        AccountNewPasswordBox.Password = string.Empty;
+        AccountConfirmPasswordBox.Password = string.Empty;
+        AccountNewPasswordVisibilityIcon.Text = "\uE890";
+        AccountConfirmPasswordVisibilityIcon.Text = "\uE890";
     }
 
     private void BeginSmoothScroll(string sectionKey, FrameworkElement target)

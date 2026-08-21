@@ -8,6 +8,8 @@
              UseLayoutRounding="True"
              SnapsToDevicePixels="True">
     <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+
         <Style x:Key="AccountSyncPlainButton" TargetType="{x:Type Button}">
             <Setter Property="Padding" Value="0" />
             <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
@@ -43,6 +45,41 @@
             <Setter Property="BorderBrush" Value="{DynamicResource BorderPrimary}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="11" />
+        </Style>
+
+        <Style x:Key="AccountPasswordPrimaryButtonStyle" TargetType="{x:Type Button}">
+            <Setter Property="Height" Value="44" />
+            <Setter Property="Background" Value="{DynamicResource AccentPrimary}" />
+            <Setter Property="Foreground" Value="{DynamicResource WhiteText}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border x:Name="Root" Background="{TemplateBinding Background}" CornerRadius="11">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Root" Property="Opacity" Value="0.9" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Root" Property="Opacity" Value="0.76" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Root" Property="Opacity" Value="0.42" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="AccountPasswordRevealButtonStyle" TargetType="{x:Type Button}" BasedOn="{StaticResource AccountSyncPlainButton}">
+            <Setter Property="Width" Value="36" />
+            <Setter Property="Height" Value="36" />
         </Style>
 
         <Style x:Key="AccountSyncThinScrollBarStyle" TargetType="{x:Type ScrollBar}">
@@ -196,6 +233,16 @@
                               PreviewMouseWheel="ContentScrollViewer_PreviewMouseWheel"
                               ScrollChanged="ContentScrollViewer_ScrollChanged"
                               VerticalScrollBarVisibility="Auto">
+                    <ScrollViewer.Style>
+                        <Style TargetType="{x:Type ScrollViewer}">
+                            <Setter Property="Visibility" Value="Visible" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsPasswordChangeActive}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ScrollViewer.Style>
                     <ScrollViewer.Resources>
                         <Style TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource AccountSyncThinScrollBarStyle}" />
                     </ScrollViewer.Resources>
@@ -336,7 +383,11 @@
                                     <Border Grid.Row="3" Background="{DynamicResource BorderPrimary}" />
                                     <Grid Grid.Row="4">
                                         <TextBlock VerticalAlignment="Center" FontSize="13" Text="{DynamicResource AccountSyncPassword}" />
-                                        <Button Width="64" Height="30" HorizontalAlignment="Right" Style="{StaticResource AccountSyncPlainButton}">
+                                        <Button Width="64"
+                                                Height="30"
+                                                HorizontalAlignment="Right"
+                                                Click="OpenPasswordChange_Click"
+                                                Style="{StaticResource AccountSyncPlainButton}">
                                             <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
                                                 <TextBlock VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource AccountSyncModify}" />
                                                 <TextBlock Margin="7,0,0,0" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="{DynamicResource TextSecondary}" Text="&#xE76C;" />
@@ -371,6 +422,199 @@
                         </StackPanel>
                     </StackPanel>
                 </ScrollViewer>
+
+                <Grid Margin="28,18,17,16"
+                      Visibility="{Binding IsPasswordChangeActive, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <Grid Visibility="{Binding IsVerificationStage, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Button Width="66"
+                                Height="30"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Top"
+                                Command="{Binding ReturnFromPasswordChangeCommand}"
+                                Style="{StaticResource AccountSyncPlainButton}">
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
+                                <TextBlock Margin="0,0,7,0" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="16" Foreground="{DynamicResource TextSecondary}" Text="&#xE76B;" />
+                                <TextBlock VerticalAlignment="Center" FontSize="14" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource AccountPasswordBack}" />
+                            </StackPanel>
+                        </Button>
+
+                        <TextBlock Margin="0,34,0,0" VerticalAlignment="Top" FontSize="25" FontWeight="Bold" Text="{DynamicResource AccountPasswordTitle}" />
+                        <TextBlock Margin="0,69,0,0" VerticalAlignment="Top" FontSize="13" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource AccountPasswordVerifySubtitle}" />
+
+                        <Grid Width="68" Height="68" Margin="170,106,0,0" HorizontalAlignment="Left" VerticalAlignment="Top">
+                            <Border Background="{DynamicResource BackgroundSecondary}" CornerRadius="34">
+                                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="31" Foreground="{DynamicResource TextSecondary}" Text="&#xE715;" />
+                            </Border>
+                            <Border Width="22" Height="22" Margin="0,0,-2,-1" HorizontalAlignment="Right" VerticalAlignment="Bottom" Background="{DynamicResource AccentPrimary}" CornerRadius="11">
+                                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="{DynamicResource WhiteText}" Text="&#xEA18;" />
+                            </Border>
+                        </Grid>
+
+                        <StackPanel Width="408" Margin="0,188,0,0" HorizontalAlignment="Left" VerticalAlignment="Top">
+                            <TextBlock HorizontalAlignment="Center" FontSize="13" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource AccountPasswordCodeSent}" />
+                            <TextBlock Margin="0,6,0,0" HorizontalAlignment="Center" FontSize="15" FontWeight="SemiBold" Text="{DynamicResource AccountPasswordMaskedEmail}" />
+                        </StackPanel>
+
+                        <Border Width="360" Height="44" Margin="23,246,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Style="{StaticResource AccountSyncCard}">
+                            <Grid Margin="12,0,7,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="28" />
+                                    <ColumnDefinition />
+                                    <ColumnDefinition Width="1" />
+                                    <ColumnDefinition Width="116" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="17" Foreground="{DynamicResource TextSecondary}" Text="&#xEA18;" />
+                                <TextBox x:Name="PasswordVerificationCodeTextBox"
+                                         Grid.Column="1"
+                                         Padding="0"
+                                         VerticalContentAlignment="Center"
+                                         Background="{DynamicResource TransparentBrush}"
+                                         BorderThickness="0"
+                                         FontSize="14"
+                                         Text="{Binding VerificationCode, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock Grid.Column="1" VerticalAlignment="Center" IsHitTestVisible="False" FontSize="14" Foreground="{DynamicResource TextTertiary}" Text="{DynamicResource AccountPasswordCodePlaceholder}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="{x:Type TextBlock}">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding VerificationCode}" Value=""><Setter Property="Visibility" Value="Visible" /></DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <Border Grid.Column="2" Height="26" VerticalAlignment="Center" Background="{DynamicResource BorderPrimary}" />
+                                <Button Grid.Column="3" Margin="6,0,0,0" Style="{StaticResource AccountSyncPlainButton}">
+                                    <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource AccountPasswordGetCode}" />
+                                </Button>
+                            </Grid>
+                        </Border>
+
+                        <Button Width="360"
+                                Height="44"
+                                Margin="23,310,0,0"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Top"
+                                Command="{Binding ContinuePasswordChangeCommand}"
+                                Style="{StaticResource AccountPasswordPrimaryButtonStyle}"
+                                Content="{DynamicResource AccountPasswordNext}" />
+                    </Grid>
+
+                    <Grid Visibility="{Binding IsNewPasswordStage, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Button Width="66"
+                                Height="30"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Top"
+                                Command="{Binding ReturnFromPasswordChangeCommand}"
+                                Style="{StaticResource AccountSyncPlainButton}">
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
+                                <TextBlock Margin="0,0,7,0" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="16" Foreground="{DynamicResource TextSecondary}" Text="&#xE76B;" />
+                                <TextBlock VerticalAlignment="Center" FontSize="14" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource AccountPasswordBack}" />
+                            </StackPanel>
+                        </Button>
+
+                        <TextBlock Margin="0,34,0,0" VerticalAlignment="Top" FontSize="25" FontWeight="Bold" Text="{DynamicResource AccountPasswordTitle}" />
+                        <TextBlock Margin="0,69,0,0" VerticalAlignment="Top" FontSize="13" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource AccountPasswordNewSubtitle}" />
+
+                        <TextBlock Margin="22,101,0,0" VerticalAlignment="Top" FontSize="13" FontWeight="SemiBold" Text="{DynamicResource AccountPasswordNewLabel}" />
+                        <Border Width="344" Height="44" Margin="22,123,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Style="{StaticResource AccountSyncCard}">
+                            <Grid Margin="13,0,5,0">
+                                <PasswordBox x:Name="AccountNewPasswordBox"
+                                             Margin="0,0,40,0"
+                                             Padding="0"
+                                             VerticalContentAlignment="Center"
+                                             Background="{DynamicResource TransparentBrush}"
+                                             BorderThickness="0"
+                                             FontSize="14"
+                                             PasswordChanged="AccountNewPasswordBox_PasswordChanged" />
+                                <TextBox x:Name="AccountNewPasswordTextBox"
+                                         Margin="0,0,40,0"
+                                         Padding="0"
+                                         VerticalContentAlignment="Center"
+                                         Background="{DynamicResource TransparentBrush}"
+                                         BorderThickness="0"
+                                         FontSize="14"
+                                         Text="{Binding NewPassword, UpdateSourceTrigger=PropertyChanged}"
+                                         Visibility="Collapsed" />
+                                <Button HorizontalAlignment="Right" VerticalAlignment="Center" Click="ToggleAccountNewPasswordVisibility_Click" Style="{StaticResource AccountPasswordRevealButtonStyle}">
+                                    <TextBlock x:Name="AccountNewPasswordVisibilityIcon" HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="17" Foreground="{DynamicResource TextSecondary}" Text="&#xE890;" />
+                                </Button>
+                            </Grid>
+                        </Border>
+
+                        <StackPanel Margin="22,175,0,0" VerticalAlignment="Top" Orientation="Horizontal">
+                            <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource AccountPasswordStrength}" />
+                            <TextBlock Margin="4,0,0,0" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource AccentPrimary}" Text="{Binding PasswordStrengthText}" />
+                        </StackPanel>
+                        <Grid Width="344" Height="5" Margin="22,200,0,0" HorizontalAlignment="Left" VerticalAlignment="Top">
+                            <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+                            <Border Margin="0,0,5,0" CornerRadius="2.5">
+                                <Border.Style><Style TargetType="{x:Type Border}"><Setter Property="Background" Value="{DynamicResource BorderPrimary}" /><Style.Triggers><DataTrigger Binding="{Binding IsPasswordStrengthOneActive}" Value="True"><Setter Property="Background" Value="{DynamicResource AccentPrimary}" /></DataTrigger></Style.Triggers></Style></Border.Style>
+                            </Border>
+                            <Border Grid.Column="1" Margin="5,0" CornerRadius="2.5">
+                                <Border.Style><Style TargetType="{x:Type Border}"><Setter Property="Background" Value="{DynamicResource BorderPrimary}" /><Style.Triggers><DataTrigger Binding="{Binding IsPasswordStrengthTwoActive}" Value="True"><Setter Property="Background" Value="{DynamicResource AccentPrimary}" /></DataTrigger></Style.Triggers></Style></Border.Style>
+                            </Border>
+                            <Border Grid.Column="2" Margin="5,0,0,0" CornerRadius="2.5">
+                                <Border.Style><Style TargetType="{x:Type Border}"><Setter Property="Background" Value="{DynamicResource BorderPrimary}" /><Style.Triggers><DataTrigger Binding="{Binding IsPasswordStrengthThreeActive}" Value="True"><Setter Property="Background" Value="{DynamicResource AccentPrimary}" /></DataTrigger></Style.Triggers></Style></Border.Style>
+                            </Border>
+                        </Grid>
+
+                        <TextBlock Margin="22,221,0,0" VerticalAlignment="Top" FontSize="13" FontWeight="SemiBold" Text="{DynamicResource AccountPasswordConfirmLabel}" />
+                        <Border Width="344" Height="44" Margin="22,241,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Style="{StaticResource AccountSyncCard}">
+                            <Grid Margin="13,0,5,0">
+                                <PasswordBox x:Name="AccountConfirmPasswordBox"
+                                             Margin="0,0,40,0"
+                                             Padding="0"
+                                             VerticalContentAlignment="Center"
+                                             Background="{DynamicResource TransparentBrush}"
+                                             BorderThickness="0"
+                                             FontSize="14"
+                                             PasswordChanged="AccountConfirmPasswordBox_PasswordChanged" />
+                                <TextBox x:Name="AccountConfirmPasswordTextBox"
+                                         Margin="0,0,40,0"
+                                         Padding="0"
+                                         VerticalContentAlignment="Center"
+                                         Background="{DynamicResource TransparentBrush}"
+                                         BorderThickness="0"
+                                         FontSize="14"
+                                         Text="{Binding ConfirmPassword, UpdateSourceTrigger=PropertyChanged}"
+                                         Visibility="Collapsed" />
+                                <Button HorizontalAlignment="Right" VerticalAlignment="Center" Click="ToggleAccountConfirmPasswordVisibility_Click" Style="{StaticResource AccountPasswordRevealButtonStyle}">
+                                    <TextBlock x:Name="AccountConfirmPasswordVisibilityIcon" HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="17" Foreground="{DynamicResource TextSecondary}" Text="&#xE890;" />
+                                </Button>
+                            </Grid>
+                        </Border>
+
+                        <TextBlock Margin="22,286,0,0" VerticalAlignment="Top" FontSize="12" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource AccountPasswordHint}" />
+                        <Button Width="344"
+                                Height="42"
+                                Margin="22,318,0,0"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Top"
+                                Command="{Binding SavePasswordCommand}"
+                                IsEnabled="{Binding CanSavePassword}"
+                                Style="{StaticResource AccountPasswordPrimaryButtonStyle}"
+                                Content="{DynamicResource AccountPasswordSave}" />
+                    </Grid>
+
+                    <Grid Visibility="{Binding IsPasswordChangeSuccessStage, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Border Width="70" Height="70" Margin="169,73,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Background="#E8F7EC" CornerRadius="35">
+                            <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="34" Foreground="{DynamicResource Success}" Text="&#xE73E;" />
+                        </Border>
+                        <TextBlock Width="408" Margin="0,159,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="22" FontWeight="Bold" Text="{DynamicResource AccountPasswordSuccessTitle}" TextAlignment="Center" />
+                        <StackPanel Width="408" Margin="0,202,0,0" HorizontalAlignment="Left" VerticalAlignment="Top">
+                            <TextBlock HorizontalAlignment="Center" FontSize="14" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource AccountPasswordSuccessLineOne}" />
+                            <TextBlock Margin="0,7,0,0" HorizontalAlignment="Center" FontSize="14" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource AccountPasswordSuccessLineTwo}" />
+                        </StackPanel>
+                        <Button Width="196"
+                                 Height="42"
+                                 Margin="106,284,0,0"
+                                 HorizontalAlignment="Left"
+                                VerticalAlignment="Top"
+                                Command="{Binding CompletePasswordChangeCommand}"
+                                Style="{StaticResource AccountPasswordPrimaryButtonStyle}"
+                                Content="{DynamicResource AccountPasswordComplete}" />
+                    </Grid>
+                </Grid>
 
             </Grid>
         </Grid>
