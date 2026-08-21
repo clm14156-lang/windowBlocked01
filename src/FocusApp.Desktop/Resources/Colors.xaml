@@ -11,6 +11,7 @@
     <SolidColorBrush x:Key="BorderPrimary" Color="#E5E5EA" />
     <SolidColorBrush x:Key="AccentPrimary" Color="#FF7A00" />
     <SolidColorBrush x:Key="AccentTint" Color="#FFF1E6" />
+    <SolidColorBrush x:Key="AccentSoftBorder" Color="#FFD3B0" />
     <SolidColorBrush x:Key="AccentHover" Color="#FF8B18" />
     <SolidColorBrush x:Key="AccentPressed" Color="#E96800" />
     <LinearGradientBrush x:Key="FocusButtonBackground" StartPoint="0,0" EndPoint="1,1">
@@ -34,6 +35,8 @@
     <SolidColorBrush x:Key="Success" Color="#2E9B62" />
     <SolidColorBrush x:Key="Warning" Color="#C47A00" />
     <SolidColorBrush x:Key="Danger" Color="#D83B3B" />
+    <SolidColorBrush x:Key="DangerTint" Color="#FFF4F4" />
+    <SolidColorBrush x:Key="DangerBorder" Color="#F2B8B8" />
     <SolidColorBrush x:Key="AccentRingTrack" Color="#FFE7D2" />
     <SolidColorBrush x:Key="FocusRingTrack" Color="#E5E5E5" />
     <SolidColorBrush x:Key="ConfirmPrimaryBackground" Color="#1F2226" />

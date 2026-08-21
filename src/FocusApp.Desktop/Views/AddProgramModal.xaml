@@ -33,7 +33,7 @@
                     </Grid>
                 </Border>
                 <Button Grid.Column="2" AutomationProperties.Name="{DynamicResource BlockingChooseProgram}" Command="{Binding ChooseProgramCommand}" Style="{StaticResource AuthPrimaryButtonStyle}">
-                    <StackPanel Orientation="Horizontal"><TextBlock Margin="0,0,7,0" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="15" Text="&#xED25;" /><TextBlock VerticalAlignment="Center" FontSize="13" Text="{DynamicResource BlockingChooseProgram}" /></StackPanel>
+                    <StackPanel Orientation="Horizontal"><TextBlock Margin="0,0,7,0" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="{DynamicResource WhiteText}" Text="&#xED25;" /><TextBlock VerticalAlignment="Center" FontSize="13" Foreground="{DynamicResource WhiteText}" Text="{DynamicResource BlockingChooseProgram}" /></StackPanel>
                 </Button>
             </Grid>
 
@@ -58,7 +58,7 @@
 
             <Border Height="1" Margin="20,0,20,56" VerticalAlignment="Bottom" Background="{DynamicResource BorderPrimary}" />
             <StackPanel Margin="0,0,20,13" HorizontalAlignment="Right" VerticalAlignment="Bottom" Orientation="Horizontal">
-                <Button Width="86" Height="38" AutomationProperties.Name="{DynamicResource BlockingModalSave}" Command="{Binding SaveCommand}" Content="{DynamicResource BlockingModalSave}" Style="{StaticResource AuthPrimaryButtonStyle}" />
+                <Button Width="86" Height="38" AutomationProperties.Name="{DynamicResource BlockingModalSave}" Command="{Binding SaveCommand}" Style="{StaticResource AuthPrimaryButtonStyle}"><TextBlock Foreground="{DynamicResource WhiteText}" Text="{DynamicResource BlockingModalSave}" /></Button>
                 <Button Width="86" Height="38" Margin="12,0,0,0" AutomationProperties.Name="{DynamicResource BlockingModalCancel}" Command="{Binding CloseCommand}" Content="{DynamicResource BlockingModalCancel}" Style="{StaticResource ProgramModalSecondaryButtonStyle}" />
             </StackPanel>
         </Grid>

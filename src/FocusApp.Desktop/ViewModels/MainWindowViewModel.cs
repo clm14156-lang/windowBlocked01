@@ -74,6 +74,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         RefreshBlockingContent();
         AuthModal = new AuthModalViewModel();
         AuthModal.LoginSucceeded += AuthModal_LoginSucceeded;
+        AccountSyncModal.AccountDeletionConfirmed += AccountSyncModal_AccountDeletionConfirmed;
         _currentNavigationItem = PrimaryNavigationItems[0];
         _currentNavigationItem.IsSelected = true;
         NavigateCommand = new RelayCommand<NavigationItemViewModel>(Navigate);
@@ -232,10 +233,28 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     private void Logout()
     {
+        ClearAccountSession();
+    }
+
+    private void AccountSyncModal_AccountDeletionConfirmed(object? sender, EventArgs e)
+    {
+        ClearAccountSession(clearSimulatedAccountData: true);
+        var homeNavigationItem = PrimaryNavigationItems.FirstOrDefault(item => item.Page == NavigationPage.Home)
+            ?? PrimaryNavigationItems[0];
+        Navigate(homeNavigationItem);
+    }
+
+    private void ClearAccountSession(bool clearSimulatedAccountData = false)
+    {
         IsAccountPanelOpen = false;
         AccountSyncModal.CloseCommand.Execute(null);
         VipModal.CloseCommand.Execute(null);
         MembershipCenter.CloseCommand.Execute(null);
+        if (clearSimulatedAccountData)
+        {
+            AuthModal.ClearSimulatedAccountData();
+        }
+
         _currentAccount = string.Empty;
         MembershipType = MembershipType.Normal;
         OnPropertyChanged(nameof(CurrentUserEmail));

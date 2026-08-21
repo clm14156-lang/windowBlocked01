@@ -129,8 +129,12 @@
                                      AutomationProperties.Name="{Binding AccountNavigationItem.Title}"
                                      Command="{Binding OpenAuthCommand}"
                                      IsChecked="{Binding AccountNavigationItem.IsSelected, Mode=OneWay}"
+                                     MouseEnter="GuestAccountHint_MouseEnter"
+                                     MouseLeave="GuestAccountHint_MouseLeave"
+                                     PreviewMouseLeftButtonDown="AccountButton_PreviewMouseLeftButtonDown"
                                      Style="{StaticResource NavigationButtonStyle}"
-                                     ToolTip="{Binding AccountNavigationItem.Title}">
+                                     ToolTip="{Binding AccountNavigationItem.Title}"
+                                     ToolTipService.IsEnabled="{Binding IsLoggedIn}">
                             <Grid Width="40" Height="40">
                                 <Ellipse Fill="{DynamicResource BackgroundSecondary}" />
                                 <Ellipse Stroke="{DynamicResource AccentPrimary}" StrokeThickness="2">
@@ -230,6 +234,54 @@
                     </Grid>
                 </Grid>
             </Border>
+
+            <Popup x:Name="GuestLoginHintPopup"
+                   AllowsTransparency="True"
+                   HorizontalOffset="8"
+                   Placement="Right"
+                   PlacementTarget="{Binding ElementName=AccountButton}"
+                   PopupAnimation="Fade"
+                   StaysOpen="True"
+                   VerticalOffset="-28">
+                <Grid x:Name="GuestLoginHintRoot"
+                      Width="220"
+                      Height="100"
+                      Background="{DynamicResource TransparentBrush}"
+                      MouseEnter="GuestAccountHint_MouseEnter"
+                      MouseLeave="GuestAccountHint_MouseLeave">
+                    <Border Width="210"
+                            Height="100"
+                            HorizontalAlignment="Right"
+                            Background="{DynamicResource SurfacePrimary}"
+                            BorderBrush="{DynamicResource BorderPrimary}"
+                            BorderThickness="1"
+                            CornerRadius="16">
+                        <Border.Effect>
+                            <DropShadowEffect BlurRadius="18" Direction="270" Opacity="0.14" ShadowDepth="5" />
+                        </Border.Effect>
+                        <StackPanel Margin="20,0" VerticalAlignment="Center">
+                            <TextBlock FontSize="16"
+                                       FontWeight="Medium"
+                                       Text="{DynamicResource GuestLoginHintTitle}" />
+                            <TextBlock Margin="0,12,0,0"
+                                       FontSize="13"
+                                       FontWeight="Normal"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       LineHeight="20"
+                                       Text="{DynamicResource GuestLoginHintDescription}"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+                    <Path Width="11"
+                          Height="18"
+                          HorizontalAlignment="Left"
+                          VerticalAlignment="Center"
+                          Data="M 11,0 L 0,9 L 11,18 Z"
+                          Fill="{DynamicResource SurfacePrimary}"
+                          Stroke="{DynamicResource BorderPrimary}"
+                          StrokeThickness="1" />
+                </Grid>
+            </Popup>
 
             <Grid Grid.Column="1">
                 <Grid.RowDefinitions>

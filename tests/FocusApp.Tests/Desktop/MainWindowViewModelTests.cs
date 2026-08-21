@@ -291,4 +291,43 @@ public sealed class MainWindowViewModelTests
         Assert.Equal(MembershipType.Normal, viewModel.MembershipType);
         Assert.False(viewModel.IsVipMember);
     }
+
+    [Fact]
+    public void AccountDeletion_ClearsSimulatedAccountStateAndReturnsHome()
+    {
+        var home = new NavigationItemViewModel(NavigationPage.Home, "Home", "H");
+        var settings = new NavigationItemViewModel(NavigationPage.Settings, "Settings", "S");
+        var accountNavigation = new NavigationItemViewModel(NavigationPage.Account, "Account", "A");
+        var homePage = new HomePageViewModel([new HomeDurationOptionViewModel("25 minutes", string.Empty)]);
+        var viewModel = new MainWindowViewModel([home, settings], accountNavigation, homePage);
+        viewModel.NavigateCommand.Execute(settings);
+        viewModel.OpenAuthCommand.Execute(null);
+        viewModel.AuthModal.LoginAccount = "789";
+        viewModel.AuthModal.LoginPassword = "789";
+        viewModel.AuthModal.RegisterEmail = "cached@focusapp.local";
+        viewModel.AuthModal.RegisterCode = "123";
+        viewModel.AuthModal.RegisterPassword = "cached123";
+        viewModel.AuthModal.RegisterConfirmPassword = "cached123";
+        viewModel.AuthModal.LoginCommand.Execute(null);
+        viewModel.OpenAccountSyncCommand.Execute(null);
+        viewModel.AccountSyncModal.OpenAccountDeletionCommand.Execute(null);
+        viewModel.AccountSyncModal.AccountDeletionConfirmation =
+            AccountSyncModalViewModel.AccountDeletionConfirmationPhrase;
+
+        viewModel.AccountSyncModal.ConfirmAccountDeletionCommand.Execute(null);
+
+        Assert.False(viewModel.IsLoggedIn);
+        Assert.False(viewModel.IsAccountPanelOpen);
+        Assert.False(viewModel.AccountSyncModal.IsOpen);
+        Assert.Equal(NavigationPage.Home, viewModel.CurrentPage);
+        Assert.Empty(viewModel.CurrentUserEmail);
+        Assert.Equal(MembershipType.Normal, viewModel.MembershipType);
+        Assert.False(viewModel.IsVipMember);
+        Assert.Empty(viewModel.AuthModal.LoginAccount);
+        Assert.Empty(viewModel.AuthModal.LoginPassword);
+        Assert.Empty(viewModel.AuthModal.RegisterEmail);
+        Assert.Empty(viewModel.AuthModal.RegisterCode);
+        Assert.Empty(viewModel.AuthModal.RegisterPassword);
+        Assert.Empty(viewModel.AuthModal.RegisterConfirmPassword);
+    }
 }

@@ -127,6 +127,19 @@ public sealed class AuthModalViewModel : INotifyPropertyChanged
         IsOpen = true;
     }
 
+    public void ClearSimulatedAccountData()
+    {
+        IsOpen = false;
+        IsRegistration = false;
+        LoginAccount = string.Empty;
+        LoginPassword = string.Empty;
+        RegisterEmail = string.Empty;
+        RegisterCode = string.Empty;
+        RegisterPassword = string.Empty;
+        RegisterConfirmPassword = string.Empty;
+        HasLoginError = false;
+    }
+
     private void Close()
     {
         IsOpen = false;

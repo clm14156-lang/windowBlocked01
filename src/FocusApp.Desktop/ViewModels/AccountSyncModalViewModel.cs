@@ -17,6 +17,7 @@ public sealed class AccountSyncModalViewModel : INotifyPropertyChanged
     public const string CloudSection = "Cloud";
     public const string DevicesSection = "Devices";
     public const string SecuritySection = "Security";
+    public const string AccountDeletionConfirmationPhrase = "永久注销";
 
     private bool _isOpen;
     private string _selectedSectionKey = CloudSection;
@@ -24,6 +25,10 @@ public sealed class AccountSyncModalViewModel : INotifyPropertyChanged
     private string _verificationCode = string.Empty;
     private string _newPassword = string.Empty;
     private string _confirmPassword = string.Empty;
+    private bool _isAccountDeletionActive;
+    private string _accountDeletionConfirmation = string.Empty;
+    private bool _isDeviceLogoutConfirmationActive;
+    private bool _isMacBookProLoggedIn = true;
 
     public AccountSyncModalViewModel()
     {
@@ -34,9 +39,17 @@ public sealed class AccountSyncModalViewModel : INotifyPropertyChanged
         ContinuePasswordChangeCommand = new RelayCommand<object>(_ => ContinuePasswordChange());
         SavePasswordCommand = new RelayCommand<object>(_ => SavePassword());
         CompletePasswordChangeCommand = new RelayCommand<object>(_ => ReturnFromPasswordChange());
+        OpenAccountDeletionCommand = new RelayCommand<object>(_ => OpenAccountDeletion());
+        ReturnFromAccountDeletionCommand = new RelayCommand<object>(_ => ReturnFromAccountDeletion());
+        ConfirmAccountDeletionCommand = new RelayCommand<object>(_ => ConfirmAccountDeletion());
+        OpenDeviceLogoutConfirmationCommand = new RelayCommand<object>(_ => OpenDeviceLogoutConfirmation());
+        ReturnFromDeviceLogoutConfirmationCommand = new RelayCommand<object>(_ => ReturnFromDeviceLogoutConfirmation());
+        ConfirmDeviceLogoutCommand = new RelayCommand<object>(_ => ConfirmDeviceLogout());
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
+
+    public event EventHandler? AccountDeletionConfirmed;
 
     public ICommand CloseCommand { get; }
 
@@ -51,6 +64,18 @@ public sealed class AccountSyncModalViewModel : INotifyPropertyChanged
     public ICommand SavePasswordCommand { get; }
 
     public ICommand CompletePasswordChangeCommand { get; }
+
+    public ICommand OpenAccountDeletionCommand { get; }
+
+    public ICommand ReturnFromAccountDeletionCommand { get; }
+
+    public ICommand ConfirmAccountDeletionCommand { get; }
+
+    public ICommand OpenDeviceLogoutConfirmationCommand { get; }
+
+    public ICommand ReturnFromDeviceLogoutConfirmationCommand { get; }
+
+    public ICommand ConfirmDeviceLogoutCommand { get; }
 
     public bool IsOpen
     {
@@ -78,6 +103,7 @@ public sealed class AccountSyncModalViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(IsVerificationStage));
             OnPropertyChanged(nameof(IsNewPasswordStage));
             OnPropertyChanged(nameof(IsPasswordChangeSuccessStage));
+            OnPropertyChanged(nameof(IsTransientContentActive));
         }
     }
 
@@ -88,6 +114,54 @@ public sealed class AccountSyncModalViewModel : INotifyPropertyChanged
     public bool IsNewPasswordStage => PasswordChangeStage == AccountPasswordChangeStage.SetNewPassword;
 
     public bool IsPasswordChangeSuccessStage => PasswordChangeStage == AccountPasswordChangeStage.Success;
+
+    public bool IsAccountDeletionActive
+    {
+        get => _isAccountDeletionActive;
+        private set
+        {
+            if (SetField(ref _isAccountDeletionActive, value))
+            {
+                OnPropertyChanged(nameof(IsTransientContentActive));
+            }
+        }
+    }
+
+    public bool IsDeviceLogoutConfirmationActive
+    {
+        get => _isDeviceLogoutConfirmationActive;
+        private set
+        {
+            if (SetField(ref _isDeviceLogoutConfirmationActive, value))
+            {
+                OnPropertyChanged(nameof(IsTransientContentActive));
+            }
+        }
+    }
+
+    public bool IsMacBookProLoggedIn
+    {
+        get => _isMacBookProLoggedIn;
+        private set => SetField(ref _isMacBookProLoggedIn, value);
+    }
+
+    public bool IsTransientContentActive =>
+        IsPasswordChangeActive || IsAccountDeletionActive || IsDeviceLogoutConfirmationActive;
+
+    public string AccountDeletionConfirmation
+    {
+        get => _accountDeletionConfirmation;
+        set
+        {
+            if (SetField(ref _accountDeletionConfirmation, value))
+            {
+                OnPropertyChanged(nameof(CanConfirmAccountDeletion));
+            }
+        }
+    }
+
+    public bool CanConfirmAccountDeletion =>
+        string.Equals(AccountDeletionConfirmation, AccountDeletionConfirmationPhrase, StringComparison.Ordinal);
 
     public string VerificationCode
     {
@@ -169,7 +243,7 @@ public sealed class AccountSyncModalViewModel : INotifyPropertyChanged
 
     public void Open()
     {
-        ResetPasswordChange();
+        ResetTransientContent();
         SelectedSectionKey = CloudSection;
         IsOpen = true;
     }
@@ -178,13 +252,15 @@ public sealed class AccountSyncModalViewModel : INotifyPropertyChanged
     {
         if (sectionKey is CloudSection or DevicesSection or SecuritySection)
         {
-            ResetPasswordChange();
+            ResetTransientContent();
             SelectedSectionKey = sectionKey;
         }
     }
 
     private void OpenPasswordChange()
     {
+        ResetAccountDeletion();
+        ResetDeviceLogoutConfirmation();
         SelectedSectionKey = SecuritySection;
         VerificationCode = string.Empty;
         NewPassword = string.Empty;
@@ -213,10 +289,71 @@ public sealed class AccountSyncModalViewModel : INotifyPropertyChanged
         }
     }
 
-    private void Close()
+    private void OpenAccountDeletion()
     {
         ResetPasswordChange();
+        ResetDeviceLogoutConfirmation();
+        SelectedSectionKey = SecuritySection;
+        AccountDeletionConfirmation = string.Empty;
+        IsAccountDeletionActive = true;
+    }
+
+    private void ReturnFromAccountDeletion()
+    {
+        ResetAccountDeletion();
+    }
+
+    private void ConfirmAccountDeletion()
+    {
+        if (!CanConfirmAccountDeletion)
+        {
+            return;
+        }
+
+        Close();
+        AccountDeletionConfirmed?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void OpenDeviceLogoutConfirmation()
+    {
+        if (!IsMacBookProLoggedIn)
+        {
+            return;
+        }
+
+        ResetPasswordChange();
+        ResetAccountDeletion();
+        SelectedSectionKey = DevicesSection;
+        IsDeviceLogoutConfirmationActive = true;
+    }
+
+    private void ReturnFromDeviceLogoutConfirmation()
+    {
+        ResetDeviceLogoutConfirmation();
+    }
+
+    private void ConfirmDeviceLogout()
+    {
+        if (!IsDeviceLogoutConfirmationActive || !IsMacBookProLoggedIn)
+        {
+            return;
+        }
+
+        IsMacBookProLoggedIn = false;
+        ResetDeviceLogoutConfirmation();
+    }
+
+    private void Close()
+    {
+        ResetTransientContent();
         IsOpen = false;
+    }
+
+    private void ResetTransientContent()
+    {
+        ResetPasswordChange();
+        ResetAccountDeletion();
+        ResetDeviceLogoutConfirmation();
     }
 
     private void ResetPasswordChange()
@@ -225,6 +362,17 @@ public sealed class AccountSyncModalViewModel : INotifyPropertyChanged
         VerificationCode = string.Empty;
         NewPassword = string.Empty;
         ConfirmPassword = string.Empty;
+    }
+
+    private void ResetAccountDeletion()
+    {
+        IsAccountDeletionActive = false;
+        AccountDeletionConfirmation = string.Empty;
+    }
+
+    private void ResetDeviceLogoutConfirmation()
+    {
+        IsDeviceLogoutConfirmationActive = false;
     }
 
     private void NotifyPasswordValidationChanged()

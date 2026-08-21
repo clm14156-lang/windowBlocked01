@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
 using FocusApp.Desktop.ViewModels;
 using FocusApp.Desktop.Views;
 
@@ -11,10 +12,16 @@ public partial class MainWindow : Window
     private FocusFloatingWindow? _focusFloatingWindow;
     private FocusFloatingWindowViewModel? _focusFloatingViewModel;
     private bool _isClosing;
+    private readonly DispatcherTimer _guestLoginHintCloseTimer;
 
     public MainWindow()
     {
         InitializeComponent();
+        _guestLoginHintCloseTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(280)
+        };
+        _guestLoginHintCloseTimer.Tick += GuestLoginHintCloseTimer_Tick;
         DataContextChanged += MainWindow_DataContextChanged;
         Closed += MainWindow_Closed;
     }
@@ -225,11 +232,54 @@ public partial class MainWindow : Window
     private void MainWindow_Closed(object? sender, EventArgs e)
     {
         _isClosing = true;
+        _guestLoginHintCloseTimer.Stop();
         var floatingWindow = _focusFloatingWindow;
         _focusFloatingWindow = null;
         _focusFloatingViewModel?.Dispose();
         _focusFloatingViewModel = null;
         floatingWindow?.Close();
+    }
+
+    private void GuestAccountHint_MouseEnter(object sender, MouseEventArgs e)
+    {
+        _guestLoginHintCloseTimer.Stop();
+        if (DataContext is MainWindowViewModel viewModel && !viewModel.IsLoggedIn)
+        {
+            GuestLoginHintPopup.IsOpen = true;
+        }
+    }
+
+    private void GuestAccountHint_MouseLeave(object sender, MouseEventArgs e)
+    {
+        if (!GuestLoginHintPopup.IsOpen)
+        {
+            return;
+        }
+
+        _guestLoginHintCloseTimer.Stop();
+        _guestLoginHintCloseTimer.Start();
+    }
+
+    private void AccountButton_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        CloseGuestLoginHint();
+    }
+
+    private void GuestLoginHintCloseTimer_Tick(object? sender, EventArgs e)
+    {
+        if (!AccountButton.IsMouseOver && !GuestLoginHintRoot.IsMouseOver)
+        {
+            CloseGuestLoginHint();
+            return;
+        }
+
+        _guestLoginHintCloseTimer.Stop();
+    }
+
+    private void CloseGuestLoginHint()
+    {
+        _guestLoginHintCloseTimer.Stop();
+        GuestLoginHintPopup.IsOpen = false;
     }
 
     private void AuthScrim_MouseDown(object sender, MouseButtonEventArgs e)

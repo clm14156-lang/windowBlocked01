@@ -110,4 +110,87 @@ public sealed class AccountSyncModalViewModelTests
         Assert.Equal(expectedLevel, viewModel.PasswordStrengthLevel);
         Assert.Equal(expectedText, viewModel.PasswordStrengthText);
     }
+
+    [Fact]
+    public void AccountDeletion_RequiresExactConfirmationBeforeRaisingEvent()
+    {
+        var viewModel = new AccountSyncModalViewModel();
+        var deletionConfirmed = false;
+        viewModel.AccountDeletionConfirmed += (_, _) => deletionConfirmed = true;
+        viewModel.Open();
+
+        viewModel.OpenAccountDeletionCommand.Execute(null);
+
+        Assert.True(viewModel.IsAccountDeletionActive);
+        Assert.True(viewModel.IsTransientContentActive);
+        Assert.Equal(AccountSyncModalViewModel.SecuritySection, viewModel.SelectedSectionKey);
+
+        viewModel.AccountDeletionConfirmation = "注销";
+        viewModel.ConfirmAccountDeletionCommand.Execute(null);
+
+        Assert.False(deletionConfirmed);
+        Assert.True(viewModel.IsOpen);
+
+        viewModel.AccountDeletionConfirmation = AccountSyncModalViewModel.AccountDeletionConfirmationPhrase;
+        Assert.True(viewModel.CanConfirmAccountDeletion);
+        viewModel.ConfirmAccountDeletionCommand.Execute(null);
+
+        Assert.True(deletionConfirmed);
+        Assert.False(viewModel.IsOpen);
+        Assert.False(viewModel.IsAccountDeletionActive);
+        Assert.Empty(viewModel.AccountDeletionConfirmation);
+    }
+
+    [Fact]
+    public void AccountDeletion_CancelRestoresSecurityContent()
+    {
+        var viewModel = new AccountSyncModalViewModel();
+        viewModel.OpenAccountDeletionCommand.Execute(null);
+        viewModel.AccountDeletionConfirmation = AccountSyncModalViewModel.AccountDeletionConfirmationPhrase;
+
+        viewModel.ReturnFromAccountDeletionCommand.Execute(null);
+
+        Assert.False(viewModel.IsAccountDeletionActive);
+        Assert.False(viewModel.IsTransientContentActive);
+        Assert.Equal(AccountSyncModalViewModel.SecuritySection, viewModel.SelectedSectionKey);
+        Assert.Empty(viewModel.AccountDeletionConfirmation);
+    }
+
+    [Fact]
+    public void DeviceLogout_CancelReturnsToDeviceListWithoutRemovingDevice()
+    {
+        var viewModel = new AccountSyncModalViewModel();
+
+        viewModel.OpenDeviceLogoutConfirmationCommand.Execute(null);
+
+        Assert.True(viewModel.IsDeviceLogoutConfirmationActive);
+        Assert.True(viewModel.IsTransientContentActive);
+        Assert.Equal(AccountSyncModalViewModel.DevicesSection, viewModel.SelectedSectionKey);
+
+        viewModel.ReturnFromDeviceLogoutConfirmationCommand.Execute(null);
+
+        Assert.False(viewModel.IsDeviceLogoutConfirmationActive);
+        Assert.False(viewModel.IsTransientContentActive);
+        Assert.True(viewModel.IsMacBookProLoggedIn);
+        Assert.Equal(AccountSyncModalViewModel.DevicesSection, viewModel.SelectedSectionKey);
+    }
+
+    [Fact]
+    public void DeviceLogout_ConfirmRemovesDeviceAndRefreshesListState()
+    {
+        var viewModel = new AccountSyncModalViewModel();
+        viewModel.Open();
+        viewModel.OpenDeviceLogoutConfirmationCommand.Execute(null);
+
+        viewModel.ConfirmDeviceLogoutCommand.Execute(null);
+
+        Assert.False(viewModel.IsDeviceLogoutConfirmationActive);
+        Assert.False(viewModel.IsMacBookProLoggedIn);
+        Assert.Equal(AccountSyncModalViewModel.DevicesSection, viewModel.SelectedSectionKey);
+        Assert.True(viewModel.IsOpen);
+
+        viewModel.OpenDeviceLogoutConfirmationCommand.Execute(null);
+
+        Assert.False(viewModel.IsDeviceLogoutConfirmationActive);
+    }
 }
