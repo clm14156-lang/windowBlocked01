@@ -80,4 +80,74 @@ public sealed class AuthModalViewModelTests
         Assert.True(viewModel.IsOpen);
         Assert.True(viewModel.HasLoginError);
     }
+
+    [Fact]
+    public void PasswordRecovery_CompletesEntireInMemoryFlowAndReturnsToLogin()
+    {
+        var viewModel = new AuthModalViewModel();
+        viewModel.OpenLogin();
+
+        viewModel.StartPasswordRecoveryCommand.Execute(null);
+
+        Assert.True(viewModel.IsPasswordRecovery);
+        Assert.True(viewModel.IsRecoveryAccountStep);
+        Assert.False(viewModel.CanContinueRecovery);
+
+        viewModel.RecoveryAccount = "user@focusapp.local";
+        Assert.True(viewModel.CanContinueRecovery);
+        viewModel.ContinueRecoveryCommand.Execute(null);
+
+        Assert.True(viewModel.IsRecoveryVerificationStep);
+        Assert.Equal(55, viewModel.ResendSecondsRemaining);
+        Assert.False(viewModel.CanVerifyRecoveryCode);
+
+        viewModel.RecoveryCode = "123456";
+        Assert.True(viewModel.CanVerifyRecoveryCode);
+        viewModel.VerifyRecoveryCodeCommand.Execute(null);
+
+        Assert.True(viewModel.IsRecoveryNewPasswordStep);
+        Assert.False(viewModel.CanCompletePasswordRecovery);
+
+        viewModel.RecoveryNewPassword = "new-password";
+        viewModel.RecoveryConfirmPassword = "different-password";
+        Assert.False(viewModel.CanCompletePasswordRecovery);
+
+        viewModel.RecoveryConfirmPassword = "new-password";
+        Assert.True(viewModel.CanCompletePasswordRecovery);
+        viewModel.CompletePasswordRecoveryCommand.Execute(null);
+
+        Assert.True(viewModel.IsRecoveryCompletedStep);
+        Assert.False(viewModel.IsRecoveryBackVisible);
+        viewModel.ReturnToLoginCommand.Execute(null);
+
+        Assert.False(viewModel.IsPasswordRecovery);
+        Assert.False(viewModel.IsRegistration);
+        Assert.True(viewModel.IsOpen);
+        Assert.Empty(viewModel.RecoveryAccount);
+        Assert.Empty(viewModel.RecoveryCode);
+        Assert.Empty(viewModel.RecoveryNewPassword);
+    }
+
+    [Fact]
+    public void PasswordRecovery_BackCommandReturnsOneStepAtATime()
+    {
+        var viewModel = new AuthModalViewModel();
+        viewModel.OpenLogin();
+        viewModel.StartPasswordRecoveryCommand.Execute(null);
+        viewModel.RecoveryAccount = "123";
+        viewModel.ContinueRecoveryCommand.Execute(null);
+        viewModel.RecoveryCode = "654321";
+        viewModel.VerifyRecoveryCodeCommand.Execute(null);
+
+        viewModel.PasswordRecoveryBackCommand.Execute(null);
+        Assert.True(viewModel.IsRecoveryVerificationStep);
+
+        viewModel.PasswordRecoveryBackCommand.Execute(null);
+        Assert.True(viewModel.IsRecoveryAccountStep);
+
+        viewModel.PasswordRecoveryBackCommand.Execute(null);
+        Assert.False(viewModel.IsPasswordRecovery);
+        Assert.False(viewModel.IsRegistration);
+        Assert.True(viewModel.IsOpen);
+    }
 }

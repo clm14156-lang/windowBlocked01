@@ -305,6 +305,9 @@
                                           VerticalAlignment="Center" />
                     </Border>
                     <ControlTemplate.Triggers>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="AuthActionBorder" Property="Opacity" Value="0.38" />
+                        </Trigger>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="AuthActionBorder" Property="Background" Value="{DynamicResource FocusButtonHoverBackground}" />
                         </Trigger>
