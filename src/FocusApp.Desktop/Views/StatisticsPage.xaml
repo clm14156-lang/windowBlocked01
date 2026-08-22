@@ -898,7 +898,17 @@
                                                                             <ItemsControl Grid.Column="2" ItemsSource="{Binding CompletedTaskNames}">
                                                                                 <ItemsControl.ItemTemplate>
                                                                                     <DataTemplate>
-                                                                                        <TextBlock Margin="0,0,0,5" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}" Text="{Binding}" TextTrimming="CharacterEllipsis" />
+                                                                                        <Grid Margin="0,0,0,5">
+                                                                                            <Grid.ColumnDefinitions>
+                                                                                                <ColumnDefinition Width="14" />
+                                                                                                <ColumnDefinition Width="7" />
+                                                                                                <ColumnDefinition Width="*" />
+                                                                                            </Grid.ColumnDefinitions>
+                                                                                            <Border x:Name="CompletedTaskMarker" Width="13" Height="13" HorizontalAlignment="Left" VerticalAlignment="Center" Background="{DynamicResource TransparentBrush}" BorderBrush="{DynamicResource TextWeak}" BorderThickness="1" CornerRadius="3" IsHitTestVisible="False" Opacity="0.72">
+                                                                                                <Path Width="7" Height="5" Data="M 0.8,2.6 L 2.8,4.5 L 6.4,0.8" Stroke="{DynamicResource TextWeak}" StrokeEndLineCap="Round" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeThickness="1.2" />
+                                                                                            </Border>
+                                                                                            <TextBlock Grid.Column="2" VerticalAlignment="Center" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}" Text="{Binding}" TextTrimming="CharacterEllipsis" />
+                                                                                        </Grid>
                                                                                     </DataTemplate>
                                                                                 </ItemsControl.ItemTemplate>
                                                                             </ItemsControl>

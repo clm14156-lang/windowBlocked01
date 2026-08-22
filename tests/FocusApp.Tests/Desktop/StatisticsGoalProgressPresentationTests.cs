@@ -95,9 +95,31 @@ public sealed class StatisticsGoalProgressPresentationTests
             (string?)control.Attribute("ItemsSource") == "{Binding CompletedTaskNames}"));
         var taskText = Assert.Single(completedTasks.Descendants(Presentation + "TextBlock"));
         Assert.Equal("{Binding}", (string?)taskText.Attribute("Text"));
+        Assert.Equal("2", (string?)taskText.Attribute("Grid.Column"));
         Assert.Equal("13", (string?)taskText.Attribute("FontSize"));
         Assert.Equal("Normal", (string?)taskText.Attribute("FontWeight"));
         Assert.Equal("{DynamicResource TextPrimary}", (string?)taskText.Attribute("Foreground"));
+        var completedTaskTemplate = Assert.Single(completedTasks.Elements(Presentation + "ItemsControl.ItemTemplate")
+            .Elements(Presentation + "DataTemplate"));
+        var completedTaskLayout = Assert.Single(completedTaskTemplate.Elements(Presentation + "Grid"));
+        Assert.Equal(
+            new[] { "14", "7", "*" },
+            completedTaskLayout.Elements(Presentation + "Grid.ColumnDefinitions")
+                .Elements(Presentation + "ColumnDefinition")
+                .Select(column => (string?)column.Attribute("Width")));
+        var completedMarker = Assert.Single(completedTaskTemplate.Descendants(Presentation + "Border").Where(border =>
+            (string?)border.Attribute(Xaml + "Name") == "CompletedTaskMarker"));
+        Assert.Equal("13", (string?)completedMarker.Attribute("Width"));
+        Assert.Equal("13", (string?)completedMarker.Attribute("Height"));
+        Assert.Equal("3", (string?)completedMarker.Attribute("CornerRadius"));
+        Assert.Equal("1", (string?)completedMarker.Attribute("BorderThickness"));
+        Assert.Equal("{DynamicResource TextWeak}", (string?)completedMarker.Attribute("BorderBrush"));
+        Assert.Equal("False", (string?)completedMarker.Attribute("IsHitTestVisible"));
+        var completedCheck = Assert.Single(completedMarker.Elements(Presentation + "Path"));
+        Assert.Equal("M 0.8,2.6 L 2.8,4.5 L 6.4,0.8", (string?)completedCheck.Attribute("Data"));
+        Assert.Equal("{DynamicResource TextWeak}", (string?)completedCheck.Attribute("Stroke"));
+        Assert.Empty(completedTaskTemplate.Descendants(Presentation + "Button"));
+        Assert.Empty(completedTaskTemplate.Descendants(Presentation + "CheckBox"));
         var timelineDot = Assert.Single(detailTemplate.Descendants(Presentation + "Ellipse"));
         Assert.Equal("{DynamicResource TextWeak}", (string?)timelineDot.Attribute("Fill"));
         var connector = Assert.Single(detailTemplate.Descendants(Presentation + "Line"));
@@ -111,7 +133,8 @@ public sealed class StatisticsGoalProgressPresentationTests
         Assert.DoesNotContain(groupTemplate.Descendants(), element =>
             (string?)element.Attribute("Background") == "{DynamicResource AccentSoftBorder}"
             || (string?)element.Attribute("BorderBrush") == "{DynamicResource AccentSoftBorder}");
-        Assert.Empty(detailTemplate.Descendants(Presentation + "Border"));
+        Assert.All(detailTemplate.Descendants(Presentation + "Border"), border =>
+            Assert.Equal("CompletedTaskMarker", (string?)border.Attribute(Xaml + "Name")));
     }
 
     [Fact]
