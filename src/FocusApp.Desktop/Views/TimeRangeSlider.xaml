@@ -56,7 +56,7 @@
                               DragDelta="EndThumb_DragDelta"
                               Style="{StaticResource RangeSliderThumbStyle}" />
         </Canvas>
-        <Grid Margin="0,22,0,0">
+        <Grid Margin="0,29,0,0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition />
                 <ColumnDefinition />
