@@ -1,6 +1,8 @@
 using System.Xml.Linq;
 using System.Windows;
 using System.Globalization;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using FocusApp.Desktop.ViewModels;
 using FocusApp.Desktop.Views;
 using Xunit;
@@ -65,11 +67,9 @@ public sealed class StatisticsGoalProgressPresentationTests
             (string?)trigger.Attribute("Property") == "IsMouseOver"
             && trigger.Descendants(Presentation + "Setter").Any(setter =>
                 (string?)setter.Attribute("Value") == "{DynamicResource ControlHoverBackground}"));
-        Assert.Contains(groupBorder.Descendants(Presentation + "DataTrigger"), trigger =>
-            (string?)trigger.Attribute("Binding") == "{Binding IsExpanded}"
-            && trigger.Descendants(Presentation + "Setter").Any(setter =>
-                (string?)setter.Attribute("Property") == "Background"
-                && (string?)setter.Attribute("Value") == "{DynamicResource RecentTargetSelectedBackground}"));
+        Assert.Equal("{DynamicResource SurfacePrimary}", (string?)groupBorder.Attribute("Background"));
+        Assert.DoesNotContain(groupBorder.Descendants(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("Value") == "{DynamicResource RecentTargetSelectedBackground}");
         Assert.Contains(headerTexts, text =>
             (string?)text.Attribute("Text") == "{Binding DateDisplay}"
             && (string?)text.Attribute("FontSize") == "13"
@@ -89,22 +89,27 @@ public sealed class StatisticsGoalProgressPresentationTests
             (string?)text.Attribute("Text") == "{Binding TimeRangeDisplay}"
             && (string?)text.Attribute("FontSize") == "12"
             && (string?)text.Attribute("Foreground") == "{DynamicResource TextSecondary}"
-            && (string?)text.Attribute("Grid.Row") == "1");
-        Assert.Contains(detailTexts, text =>
+            && (string?)text.Attribute("Grid.Column") == "1");
+        var completedTasks = Assert.Single(detailTemplate.Descendants(Presentation + "ItemsControl").Where(control =>
+            (string?)control.Attribute("ItemsSource") == "{Binding CompletedTaskNames}"));
+        var taskText = Assert.Single(completedTasks.Descendants(Presentation + "TextBlock"));
+        Assert.Equal("{Binding}", (string?)taskText.Attribute("Text"));
+        Assert.Equal("13", (string?)taskText.Attribute("FontSize"));
+        Assert.Equal("{DynamicResource TextPrimary}", (string?)taskText.Attribute("Foreground"));
+        var timelineDot = Assert.Single(detailTemplate.Descendants(Presentation + "Ellipse"));
+        Assert.Equal("{DynamicResource TextWeak}", (string?)timelineDot.Attribute("Fill"));
+        var connector = Assert.Single(detailTemplate.Descendants(Presentation + "Line"));
+        Assert.Equal("2,4", (string?)connector.Attribute("StrokeDashArray"));
+        Assert.Contains(connector.Descendants(Presentation + "DataTrigger"), trigger =>
+            (string?)trigger.Attribute("Binding") == "{Binding IsLastInGoalDateGroup}"
+            && (string?)trigger.Attribute("Value") == "True");
+        Assert.DoesNotContain(detailTexts, text =>
             (string?)text.Attribute("Text") == "{Binding TaskName}"
-            && (string?)text.Attribute("FontSize") == "13"
-            && (string?)text.Attribute("Foreground") == "{DynamicResource TextUnit}"
-            && (string?)text.Attribute("Grid.Row") == "0");
-        Assert.Contains(detailTexts, text =>
-            (string?)text.Attribute("Text") == "{Binding DurationMinutes, Converter={StaticResource CompactDurationConverter}}"
-            && (string?)text.Attribute("FontSize") == "12"
-            && (string?)text.Attribute("Foreground") == "{DynamicResource TextSecondary}"
-            && (string?)text.Attribute("Grid.Row") == "0");
+            || ((string?)text.Attribute("Text"))?.Contains("DurationMinutes", StringComparison.Ordinal) == true);
         Assert.DoesNotContain(groupTemplate.Descendants(), element =>
             (string?)element.Attribute("Background") == "{DynamicResource AccentSoftBorder}"
             || (string?)element.Attribute("BorderBrush") == "{DynamicResource AccentSoftBorder}");
-        Assert.DoesNotContain(detailTemplate.Descendants(Presentation + "Border"), border =>
-            (string?)border.Attribute("Background") == "{DynamicResource BackgroundPrimary}");
+        Assert.Empty(detailTemplate.Descendants(Presentation + "Border"));
     }
 
     [Fact]
@@ -184,10 +189,23 @@ public sealed class StatisticsGoalProgressPresentationTests
                 var viewModel = new StatisticsOverviewViewModel();
                 var page = new StatisticsPage { DataContext = viewModel };
                 viewModel.SelectGoalsCommand.Execute(null);
+                viewModel.ToggleGoalDateCommand.Execute(
+                    viewModel.GoalDateGroups.Single(group => group.Date == new DateTime(2026, 7, 30)));
 
                 page.Measure(new Size(800, 710));
                 page.Arrange(new Rect(0, 0, 800, 710));
                 page.UpdateLayout();
+
+                var visualQaPath = Environment.GetEnvironmentVariable("FOCUSAPP_VISUAL_QA_PATH");
+                if (!string.IsNullOrWhiteSpace(visualQaPath))
+                {
+                    var bitmap = new RenderTargetBitmap(800, 710, 96, 96, PixelFormats.Pbgra32);
+                    bitmap.Render(page);
+                    var encoder = new PngBitmapEncoder();
+                    encoder.Frames.Add(BitmapFrame.Create(bitmap));
+                    using var stream = File.Create(visualQaPath);
+                    encoder.Save(stream);
+                }
             }
             catch (Exception exception)
             {

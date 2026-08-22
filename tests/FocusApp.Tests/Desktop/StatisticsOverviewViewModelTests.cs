@@ -204,6 +204,12 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.Equal(216, group.Sessions.Sum(session => session.DurationMinutes));
         Assert.Equal("当日学习复盘", group.RepresentativeTaskDisplay);
         Assert.Equal(" · 13项任务", group.TaskCountDisplay);
+        Assert.Equal(
+            new[] { "当日学习复盘", "修改登录页面", "修复登录验证" },
+            group.Sessions[0].CompletedTaskNames);
+        Assert.Equal(4, group.Sessions.Count(session => session.CompletedTaskNames.Count == 0));
+        Assert.True(group.Sessions[^1].IsLastInGoalDateGroup);
+        Assert.All(group.Sessions.SkipLast(1), session => Assert.False(session.IsLastInGoalDateGroup));
     }
 
     [Fact]
@@ -221,6 +227,7 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.Equal("最后任务 · 3项任务", group.TaskSummaryDisplay);
         Assert.Equal("2小时36分", group.DurationDisplay);
         Assert.Equal("最后任务", group.Sessions[0].TaskName);
+        Assert.Equal(2, group.Sessions[0].CompletedTaskNames.Count);
 
         var singleTask = new GoalDateGroupViewModel(date,
         [
@@ -238,6 +245,7 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.Empty(noTask.RepresentativeTaskDisplay);
         Assert.Empty(noTask.TaskCountDisplay);
         Assert.Empty(noTask.TaskSummaryDisplay);
+        Assert.Empty(noTask.Sessions[0].CompletedTaskNames);
     }
 
     [Fact]

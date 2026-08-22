@@ -457,18 +457,18 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     private void AddFeaturedGoalJuly30MockSessions()
     {
-        (int Hour, int Minute, int DurationMinutes, string TaskName)[] sessions =
+        (int Hour, int Minute, int DurationMinutes, string[] CompletedTasks)[] sessions =
         [
-            (7, 30, 12, "场景结构梳理"),
-            (8, 20, 18, "蓝图交互练习"),
-            (9, 10, 15, "材质节点练习"),
-            (10, 10, 20, "光照参数调整"),
-            (12, 30, 14, "粒子效果测试"),
-            (14, 0, 16, "动画状态机练习"),
-            (15, 20, 22, "UI控件搭建"),
-            (17, 0, 17, "性能分析记录"),
-            (19, 0, 19, "关卡细节调整"),
-            (20, 40, 27, "当日学习复盘")
+            (7, 30, 12, []),
+            (8, 20, 18, []),
+            (9, 10, 15, []),
+            (10, 10, 20, []),
+            (12, 30, 14, ["粒子效果测试"]),
+            (14, 0, 16, ["动画状态机练习"]),
+            (15, 20, 22, ["UI控件搭建", "按钮组件优化"]),
+            (17, 0, 17, ["性能分析记录", "优化加载性能"]),
+            (19, 0, 19, ["关卡细节调整"]),
+            (20, 40, 27, ["当日学习复盘", "修改登录页面", "修复登录验证"])
         ];
 
         foreach (var session in sessions)
@@ -479,8 +479,9 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
                 start.AddMinutes(session.DurationMinutes),
                 "goal-ue5",
                 "学习UE5",
-                session.TaskName,
-                1));
+                session.CompletedTasks.FirstOrDefault() ?? string.Empty,
+                session.CompletedTasks.Length,
+                session.CompletedTasks));
         }
     }
 
@@ -1307,14 +1308,25 @@ public sealed class FocusSessionRecordViewModel : INotifyPropertyChanged
         string goalId,
         string goalName,
         string taskName,
-        int completedTaskCount)
+        int completedTaskCount,
+        IEnumerable<string>? completedTaskNames = null)
     {
         _startTime = startTime;
         _endTime = endTime;
         _goalId = goalId;
         _goalName = goalName;
-        _taskName = taskName;
-        _completedTaskCount = completedTaskCount;
+        var providedTaskNames = completedTaskNames?
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .ToArray();
+        CompletedTaskNames = providedTaskNames is { Length: > 0 }
+            ? providedTaskNames
+            : completedTaskCount > 0 && !string.IsNullOrWhiteSpace(taskName)
+                ? Enumerable.Range(0, completedTaskCount)
+                    .Select(index => index == 0 ? taskName : $"{taskName} · 任务{index + 1}")
+                    .ToArray()
+                : [];
+        _taskName = CompletedTaskNames.FirstOrDefault() ?? taskName;
+        _completedTaskCount = CompletedTaskNames.Count;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -1343,6 +1355,7 @@ public sealed class FocusSessionRecordViewModel : INotifyPropertyChanged
 
     public string GoalId { get => _goalId; set { if (_goalId == value) return; _goalId = value; OnPropertyChanged(); } }
     public string GoalName { get => _goalName; set { if (_goalName == value) return; _goalName = value; OnPropertyChanged(); } }
+    public IReadOnlyList<string> CompletedTaskNames { get; }
     public string TaskName { get => _taskName; set { if (_taskName == value) return; _taskName = value; OnPropertyChanged(); OnPropertyChanged(nameof(CompletedTaskNamesDisplay)); } }
     public int CompletedTaskCount { get => _completedTaskCount; set { if (_completedTaskCount == value) return; _completedTaskCount = value; OnPropertyChanged(); OnPropertyChanged(nameof(CompletedTasksDisplay)); OnPropertyChanged(nameof(CompletedTaskNamesDisplay)); } }
     public int DurationMinutes => (int)(EndTime - StartTime).TotalMinutes;
@@ -1353,6 +1366,7 @@ public sealed class FocusSessionRecordViewModel : INotifyPropertyChanged
     public string CompletedTaskNamesDisplay => CompletedTaskCount == 0
         ? "没有完成任务"
         : TaskName;
+    public bool IsLastInGoalDateGroup { get; set; }
 
     private void NotifyTimeChanged()
     {
@@ -1545,7 +1559,14 @@ public sealed class GoalDateGroupViewModel : INotifyPropertyChanged
 {
     private bool _isExpanded;
     public GoalDateGroupViewModel(DateTime date, IEnumerable<FocusSessionRecordViewModel> sessions)
-    { Date = date; Sessions = sessions.OrderByDescending(session => session.StartTime).ToList(); }
+    {
+        Date = date;
+        Sessions = sessions.OrderByDescending(session => session.StartTime).ToList();
+        for (var index = 0; index < Sessions.Count; index++)
+        {
+            Sessions[index].IsLastInGoalDateGroup = index == Sessions.Count - 1;
+        }
+    }
     public event PropertyChangedEventHandler? PropertyChanged;
     public DateTime Date { get; }
     public IReadOnlyList<FocusSessionRecordViewModel> Sessions { get; }

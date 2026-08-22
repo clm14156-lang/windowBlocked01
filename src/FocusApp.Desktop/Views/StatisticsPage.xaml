@@ -775,15 +775,7 @@
                                     <ItemsControl x:Name="GoalDateGroupsControl" AlternationCount="100" ItemsSource="{Binding GoalDateGroups}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate DataType="{x:Type vm:GoalDateGroupViewModel}">
-                                                <Border BorderBrush="{DynamicResource OverlayBorder}" BorderThickness="0,0,0,1">
-                                                    <Border.Style>
-                                                        <Style TargetType="Border">
-                                                            <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
-                                                            <Style.Triggers>
-                                                                <DataTrigger Binding="{Binding IsExpanded}" Value="True"><Setter Property="Background" Value="{DynamicResource RecentTargetSelectedBackground}" /></DataTrigger>
-                                                            </Style.Triggers>
-                                                        </Style>
-                                                    </Border.Style>
+                                                <Border Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource OverlayBorder}" BorderThickness="0,0,0,1">
                                                     <StackPanel>
                                                         <Button Height="50" Padding="12,0" HorizontalContentAlignment="Stretch" FocusVisualStyle="{x:Null}" Command="{Binding DataContext.ToggleGoalDateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
                                                             <Button.Style>
@@ -821,25 +813,28 @@
                                                                 </Grid>
                                                             </Grid>
                                                         </Button>
-                                                        <Grid Margin="16,0,12,8" Visibility="{Binding IsExpanded, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                        <Grid Margin="16,14,14,0" Visibility="{Binding IsExpanded, Converter={StaticResource BooleanToVisibilityConverter}}">
                                                             <ItemsControl ItemsSource="{Binding Sessions}">
                                                                 <ItemsControl.ItemTemplate>
                                                                     <DataTemplate DataType="{x:Type vm:FocusSessionRecordViewModel}">
-                                                                        <Grid Height="52">
+                                                                        <Grid MinHeight="18" Margin="0,0,0,18">
                                                                             <Grid.ColumnDefinitions>
-                                                                                <ColumnDefinition Width="18" />
+                                                                                <ColumnDefinition Width="20" />
+                                                                                <ColumnDefinition Width="116" />
                                                                                 <ColumnDefinition Width="*" />
-                                                                                <ColumnDefinition Width="78" />
                                                                             </Grid.ColumnDefinitions>
-                                                                            <Grid.RowDefinitions>
-                                                                                <RowDefinition Height="29" />
-                                                                                <RowDefinition Height="23" />
-                                                                            </Grid.RowDefinitions>
-                                                                            <Ellipse Grid.RowSpan="2" Grid.Column="0" Width="5" Height="5" Margin="1,12,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Fill="{DynamicResource TextWeak}" Opacity="0.62" />
-                                                                            <Border Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Height="1" VerticalAlignment="Bottom" Background="{DynamicResource OverlayBorder}" />
-                                                                            <TextBlock Grid.Row="0" Grid.Column="1" VerticalAlignment="Bottom" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextUnit}" Text="{Binding TaskName}" TextTrimming="CharacterEllipsis" />
-                                                                            <TextBlock Grid.Row="0" Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Bottom" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding DurationMinutes, Converter={StaticResource CompactDurationConverter}}" />
-                                                                            <TextBlock Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,3,0,0" VerticalAlignment="Top" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding TimeRangeDisplay}" />
+                                                                            <Line X1="0" Y1="0" X2="0" Y2="1" Margin="0,14,0,-18" HorizontalAlignment="Center" VerticalAlignment="Stretch" Stretch="Fill" Stroke="{DynamicResource OverlayBorder}" StrokeDashArray="2,4" StrokeThickness="1">
+                                                                                <Line.Style><Style TargetType="Line"><Style.Triggers><DataTrigger Binding="{Binding IsLastInGoalDateGroup}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers></Style></Line.Style>
+                                                                            </Line>
+                                                                            <Ellipse Grid.Column="0" Width="6" Height="6" Margin="0,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Top" Fill="{DynamicResource TextWeak}" Opacity="0.5" />
+                                                                            <TextBlock Grid.Column="1" VerticalAlignment="Top" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding TimeRangeDisplay}" />
+                                                                            <ItemsControl Grid.Column="2" ItemsSource="{Binding CompletedTaskNames}">
+                                                                                <ItemsControl.ItemTemplate>
+                                                                                    <DataTemplate>
+                                                                                        <TextBlock Margin="0,0,0,5" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}" Text="{Binding}" TextTrimming="CharacterEllipsis" />
+                                                                                    </DataTemplate>
+                                                                                </ItemsControl.ItemTemplate>
+                                                                            </ItemsControl>
                                                                         </Grid>
                                                                     </DataTemplate>
                                                                 </ItemsControl.ItemTemplate>
