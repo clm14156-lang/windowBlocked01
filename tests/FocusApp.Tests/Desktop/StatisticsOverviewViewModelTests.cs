@@ -1,4 +1,5 @@
 using FocusApp.Desktop.ViewModels;
+using System.Windows.Media;
 using Xunit;
 
 namespace FocusApp.Tests.Desktop;
@@ -18,16 +19,21 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.All(
             viewModel.YAxisTicks.Zip(viewModel.YAxisTicks.Skip(1)),
             pair => Assert.Equal(240, pair.First.Minutes - pair.Second.Minutes));
-        Assert.Equal(0, viewModel.YAxisTicks[0].ChartY);
-        Assert.Equal(25.33333, viewModel.YAxisTicks[1].ChartY, 5);
-        Assert.Equal(152, viewModel.YAxisTicks[^1].ChartY);
+        var twentyFourHourTick = Assert.Single(viewModel.YAxisTicks, tick => tick.Minutes == 1440);
+        var fourHourTick = Assert.Single(viewModel.YAxisTicks, tick => tick.Minutes == 240);
+        var zeroHourTick = Assert.Single(viewModel.YAxisTicks, tick => tick.Minutes == 0);
+        Assert.Equal(0, twentyFourHourTick.ChartY);
+        Assert.Equal(132.5, fourHourTick.ChartY, 5);
+        Assert.Equal(159, zeroHourTick.ChartY);
         Assert.All(viewModel.YAxisTicks.SkipLast(1), tick => Assert.True(tick.ShowGuideLine));
         Assert.False(viewModel.YAxisTicks[^1].ShowGuideLine);
-        Assert.Equal(144.4, viewModel.TrendPoints[0].ChartY, 5);
-        Assert.Equal(138.7, viewModel.TrendPoints[1].ChartY, 5);
-        Assert.Equal(6.33333, viewModel.TrendPoints[3].ChartY, 5);
-        Assert.Equal(132.36667, viewModel.TrendPoints[5].ChartY, 5);
-        Assert.All(viewModel.TrendPoints, point => Assert.InRange(point.ChartY, 0, 152));
+        Assert.Equal(0, viewModel.TrendPoints[0].Minutes);
+        Assert.Equal(0, viewModel.TrendPoints[0].SessionCount);
+        Assert.Equal(zeroHourTick.ChartY, viewModel.TrendPoints[0].ChartY, 5);
+        Assert.Equal(145.0875, viewModel.TrendPoints[1].ChartY, 5);
+        Assert.Equal(6.625, viewModel.TrendPoints[3].ChartY, 5);
+        Assert.Equal(138.4625, viewModel.TrendPoints[5].ChartY, 5);
+        Assert.All(viewModel.TrendPoints, point => Assert.InRange(point.ChartY, twentyFourHourTick.ChartY, zeroHourTick.ChartY));
         Assert.True(viewModel.TrendPoints[3].ChartY < viewModel.YAxisTicks[1].ChartY);
         Assert.All(viewModel.TrendPoints.Select((point, index) => (point, index)), item =>
         {
@@ -38,6 +44,14 @@ public sealed class StatisticsOverviewViewModelTests
             Assert.False(item.point.IsValueLabelVisible);
             Assert.DoesNotContain('\n', item.point.DateLabel);
         });
+        var curveFigure = Assert.Single(viewModel.TrendCurveGeometry.Figures);
+        Assert.Equal(viewModel.TrendLinePoints[0], curveFigure.StartPoint);
+        Assert.Equal(
+            viewModel.TrendLinePoints.Skip(1),
+            curveFigure.Segments.Cast<BezierSegment>().Select(segment => segment.Point3));
+        var areaFigure = Assert.Single(viewModel.TrendAreaGeometry.Figures);
+        Assert.Equal(zeroHourTick.ChartY, areaFigure.StartPoint.Y);
+        Assert.Equal(zeroHourTick.ChartY, ((LineSegment)areaFigure.Segments[^1]).Point.Y);
         Assert.Equal("14 小时 20 分钟", viewModel.PeriodTotalDisplay);
     }
 

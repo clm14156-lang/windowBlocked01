@@ -12,9 +12,9 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 {
     private const double ChartLeft = 31;
     private const double ChartWidth = 506;
-    private const double ChartHeight = 152;
-    private const double ChartAreaBaseline = 159;
-    private const double YAxisHeight = 152;
+    private const double TrendPlotTop = 0;
+    private const double TrendPlotBottom = 159;
+    private const double TrendPlotHeight = TrendPlotBottom - TrendPlotTop;
     private const int CompactTrendTickIntervalMinutes = 2 * 60;
     private const int ExpandedTrendTickIntervalMinutes = 4 * 60;
     private const int PreferredMaximumTrendTickCount = 6;
@@ -993,15 +993,14 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         {
             YAxisTicks.Add(new YAxisTickViewModel(
                 value,
-                YAxisHeight - value * YAxisHeight / scaleMaximumMinutes));
+                MapTrendValueToY(value, scaleMaximumMinutes)));
         }
 
         for (var index = 0; index < data.Length; index++)
         {
             var item = data[index];
             var x = data.Length == 1 ? ChartLeft + ChartWidth / 2 : ChartLeft + index * ChartWidth / (data.Length - 1);
-            var plottedMinutes = Math.Min(item.Minutes, scaleMaximumMinutes);
-            var y = ChartHeight - plottedMinutes * ChartHeight / scaleMaximumMinutes;
+            var y = MapTrendValueToY(item.Minutes, scaleMaximumMinutes);
             var point = new TrendDataPointViewModel(
                 item.Date,
                 item.Minutes,
@@ -1028,6 +1027,17 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(TrendCurveGeometry));
         OnPropertyChanged(nameof(TrendAreaGeometry));
         OnPropertyChanged(nameof(YAxisTicks));
+    }
+
+    private static double MapTrendValueToY(int value, int maximumValue)
+    {
+        if (maximumValue <= 0)
+        {
+            return TrendPlotBottom;
+        }
+
+        var plottedValue = Math.Clamp(value, 0, maximumValue);
+        return TrendPlotBottom - plottedValue / (double)maximumValue * TrendPlotHeight;
     }
 
     private static (int ScaleMaximumMinutes, int TickIntervalMinutes) CalculateTrendScale(int maximumDataMinutes)
@@ -1100,14 +1110,14 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         }
 
         TrendCurveGeometry = new PathGeometry([curveFigure]);
-        var areaFigure = new PathFigure { StartPoint = new Point(TrendLinePoints[0].X, ChartAreaBaseline), IsClosed = true, IsFilled = true };
+        var areaFigure = new PathFigure { StartPoint = new Point(TrendLinePoints[0].X, TrendPlotBottom), IsClosed = true, IsFilled = true };
         areaFigure.Segments.Add(new LineSegment(TrendLinePoints[0], true));
         foreach (var segment in curveFigure.Segments)
         {
             areaFigure.Segments.Add(segment.Clone());
         }
 
-        areaFigure.Segments.Add(new LineSegment(new Point(TrendLinePoints[^1].X, ChartAreaBaseline), true));
+        areaFigure.Segments.Add(new LineSegment(new Point(TrendLinePoints[^1].X, TrendPlotBottom), true));
         TrendAreaGeometry = new PathGeometry([areaFigure]);
     }
 
@@ -1126,7 +1136,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     private static readonly TrendMockData[] SevenDayData =
     [
-        new(new DateTime(2024, 5, 9), 72, 2),
+        new(new DateTime(2024, 5, 9), 0, 0),
         new(new DateTime(2024, 5, 10), 126, 4),
         new(new DateTime(2024, 5, 11), 96, 3),
         new(new DateTime(2024, 5, 12), 1380, 5),
