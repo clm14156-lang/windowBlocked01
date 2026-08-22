@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:primitives="clr-namespace:System.Windows.Controls.Primitives;assembly=PresentationFramework"
              Height="52"
+             FontFamily="{DynamicResource FontFamilyPrimary}"
              UseLayoutRounding="True"
              SnapsToDevicePixels="True">
     <UserControl.Resources>
@@ -55,7 +56,7 @@
                               DragDelta="EndThumb_DragDelta"
                               Style="{StaticResource RangeSliderThumbStyle}" />
         </Canvas>
-        <Grid Margin="0,29,0,0">
+        <Grid Margin="0,22,0,0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition />
                 <ColumnDefinition />
@@ -63,11 +64,11 @@
                 <ColumnDefinition />
                 <ColumnDefinition />
             </Grid.ColumnDefinitions>
-            <TextBlock Grid.Column="0" HorizontalAlignment="Left" FontSize="12" Foreground="{DynamicResource TextSecondary}" Text="00:00" />
-            <TextBlock Grid.Column="1" HorizontalAlignment="Center" FontSize="12" Foreground="{DynamicResource TextSecondary}" Text="06:00" />
-            <TextBlock Grid.Column="2" HorizontalAlignment="Center" FontSize="12" Foreground="{DynamicResource TextSecondary}" Text="12:00" />
-            <TextBlock Grid.Column="3" HorizontalAlignment="Center" FontSize="12" Foreground="{DynamicResource TextSecondary}" Text="18:00" />
-            <TextBlock Grid.Column="4" HorizontalAlignment="Right" FontSize="12" Foreground="{DynamicResource TextSecondary}" Text="24:00" />
+            <TextBlock Grid.Column="0" HorizontalAlignment="Left" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="00:00" />
+            <TextBlock Grid.Column="1" HorizontalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="06:00" />
+            <TextBlock Grid.Column="2" HorizontalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="12:00" />
+            <TextBlock Grid.Column="3" HorizontalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="18:00" />
+            <TextBlock Grid.Column="4" HorizontalAlignment="Right" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="24:00" />
         </Grid>
     </Grid>
 </UserControl>

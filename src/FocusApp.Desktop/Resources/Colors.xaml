@@ -56,6 +56,7 @@
     <SolidColorBrush x:Key="SuccessPositive" Color="#34C759" />
     <SolidColorBrush x:Key="Warning" Color="#C47A00" />
     <SolidColorBrush x:Key="Danger" Color="#D83B3B" />
+    <SolidColorBrush x:Key="AutomaticRuleValidationText" Color="#FF3B30" />
     <SolidColorBrush x:Key="DangerTint" Color="#FFF4F4" />
     <SolidColorBrush x:Key="DangerBorder" Color="#F2B8B8" />
     <SolidColorBrush x:Key="AccentRingTrack" Color="#FFE7D2" />

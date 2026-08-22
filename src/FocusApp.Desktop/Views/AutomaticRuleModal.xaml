@@ -4,6 +4,7 @@
              xmlns:views="clr-namespace:FocusApp.Desktop.Views"
              Width="270"
              Background="Transparent"
+             FontFamily="{DynamicResource FontFamilyPrimary}"
              UseLayoutRounding="True"
              SnapsToDevicePixels="True">
     <UserControl.Style>
@@ -19,13 +20,25 @@
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
 
+        <DataTemplate x:Key="RuleToggleTextContentTemplate">
+            <TextBlock HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       FontFamily="{Binding FontFamily, RelativeSource={RelativeSource AncestorType={x:Type ToggleButton}}}"
+                       FontSize="{Binding FontSize, RelativeSource={RelativeSource AncestorType={x:Type ToggleButton}}}"
+                       FontWeight="{Binding FontWeight, RelativeSource={RelativeSource AncestorType={x:Type ToggleButton}}}"
+                       Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type ToggleButton}}}"
+                       Text="{Binding}" />
+        </DataTemplate>
+
         <Style x:Key="RuleModeButtonStyle" TargetType="{x:Type RadioButton}">
             <Setter Property="Height" Value="30" />
             <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
             <Setter Property="BorderBrush" Value="{DynamicResource BorderPrimary}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Foreground" Value="{DynamicResource TextUnit}" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="ContentTemplate" Value="{StaticResource RuleToggleTextContentTemplate}" />
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Template">
                 <Setter.Value>
@@ -61,8 +74,10 @@
             <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
             <Setter Property="BorderBrush" Value="{DynamicResource BorderPrimary}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextUnit}" />
             <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="ContentTemplate" Value="{StaticResource RuleToggleTextContentTemplate}" />
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Template">
                 <Setter.Value>
@@ -98,8 +113,10 @@
             <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
             <Setter Property="BorderBrush" Value="{DynamicResource BorderPrimary}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="FontFamily" Value="{DynamicResource FontFamilyNumeric}" />
-            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontFamily" Value="{DynamicResource FontFamilyPrimary}" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="Normal" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
             <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
@@ -127,13 +144,15 @@
             </Setter>
         </Style>
 
-        <Style x:Key="RuleSecondaryButtonStyle" TargetType="{x:Type Button}">
+        <Style x:Key="RuleSecondaryButtonStyle" TargetType="{x:Type Button}" BasedOn="{StaticResource ThemedTextButtonBaseStyle}">
             <Setter Property="Width" Value="72" />
             <Setter Property="Height" Value="34" />
             <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
             <Setter Property="BorderBrush" Value="{DynamicResource BorderPrimary}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Foreground" Value="{DynamicResource TextUnit}" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="Medium" />
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Template">
                 <Setter.Value>
@@ -177,22 +196,22 @@
         <Border.Effect>
             <DropShadowEffect BlurRadius="22" Direction="270" Opacity="0.16" ShadowDepth="5" />
         </Border.Effect>
-        <Canvas>
-            <TextBlock Canvas.Left="18" Canvas.Top="16" FontSize="18" FontWeight="SemiBold" Text="{DynamicResource AutomaticRuleNewTitle}" />
-            <Button Canvas.Left="228" Canvas.Top="12" Width="28" Height="28" AutomationProperties.Name="{DynamicResource AutomaticRuleClose}" Command="{Binding CloseCommand}" Style="{StaticResource AuthCloseButtonStyle}">
-                <TextBlock FontFamily="Segoe MDL2 Assets" FontSize="13" Text="&#xE8BB;" />
+        <Grid>
+            <TextBlock Margin="18,16,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="17" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource AutomaticRuleNewTitle}" />
+            <Button Margin="228,12,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Width="28" Height="28" Foreground="{DynamicResource TextUnit}" AutomationProperties.Name="{DynamicResource AutomaticRuleClose}" Command="{Binding CloseCommand}" Style="{StaticResource AuthCloseButtonStyle}">
+                <TextBlock FontFamily="Segoe MDL2 Assets" FontSize="13" Foreground="{DynamicResource TextUnit}" Text="&#xE8BB;" />
             </Button>
-            <Border Canvas.Left="18" Canvas.Top="54" Width="234" Height="1" Background="{DynamicResource BorderPrimary}" />
+            <Border Margin="18,54,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Width="234" Height="1" Background="{DynamicResource BorderPrimary}" />
 
-            <TextBlock Canvas.Left="18" Canvas.Top="70" FontSize="14" FontWeight="SemiBold" Text="{DynamicResource AutomaticRuleRepeatTitle}" />
-            <Grid Canvas.Left="18" Canvas.Top="94" Width="234" Height="30">
+            <TextBlock Margin="18,70,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource AutomaticRuleRepeatTitle}" />
+            <Grid Margin="18,94,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Width="234" Height="30">
                 <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
                 <RadioButton Grid.Column="0" Content="{DynamicResource AutomaticRuleDaily}" Command="{Binding SelectDailyCommand}" IsChecked="{Binding IsDaily, Mode=OneWay}" Style="{StaticResource RuleModeButtonStyle}" />
                 <RadioButton Grid.Column="1" Content="{DynamicResource AutomaticRuleCustom}" Command="{Binding SelectCustomCommand}" IsChecked="{Binding IsCustom, Mode=OneWay}" Style="{StaticResource RuleModeButtonStyle}" />
             </Grid>
 
-            <StackPanel Canvas.Left="18" Canvas.Top="132" Visibility="{Binding IsCustom, Converter={StaticResource BooleanToVisibilityConverter}}">
-                <TextBlock FontSize="14" FontWeight="SemiBold" Text="{DynamicResource AutomaticRuleChooseWeekdays}" />
+            <StackPanel Margin="18,132,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Visibility="{Binding IsCustom, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <TextBlock FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource AutomaticRuleChooseWeekdays}" />
                 <ItemsControl Margin="0,12,0,0" ItemsSource="{Binding Weekdays}">
                     <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                     <ItemsControl.ItemContainerStyle><Style TargetType="{x:Type ContentPresenter}"><Setter Property="Margin" Value="0,0,5,0" /></Style></ItemsControl.ItemContainerStyle>
@@ -202,70 +221,74 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-                <TextBlock Margin="0,10,0,0" FontSize="12" Foreground="{DynamicResource TextSecondary}">
+                <TextBlock Margin="0,10,0,0" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}">
                     <Run Text="{DynamicResource AutomaticRuleSelectedPrefix}" /><Run Text="{Binding SelectedDaysText, Mode=OneWay}" />
                 </TextBlock>
             </StackPanel>
-            <Border Canvas.Left="18" Canvas.Top="218" Width="234" Height="1" Background="{DynamicResource BorderPrimary}" Visibility="{Binding IsCustom, Converter={StaticResource BooleanToVisibilityConverter}}" />
+            <Border Margin="18,218,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Width="234" Height="1" Background="{DynamicResource BorderPrimary}" Visibility="{Binding IsCustom, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
-            <TextBlock Canvas.Left="18" FontSize="14" FontWeight="SemiBold" Text="{DynamicResource AutomaticRuleTimeTitle}">
+            <TextBlock HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource AutomaticRuleTimeTitle}">
                 <TextBlock.Style>
                     <Style TargetType="{x:Type TextBlock}" BasedOn="{StaticResource {x:Type TextBlock}}">
-                        <Setter Property="Canvas.Top" Value="145" />
-                        <Style.Triggers><DataTrigger Binding="{Binding IsCustom}" Value="True"><Setter Property="Canvas.Top" Value="224" /></DataTrigger></Style.Triggers>
+                        <Setter Property="Margin" Value="18,145,0,0" />
+                        <Style.Triggers><DataTrigger Binding="{Binding IsCustom}" Value="True"><Setter Property="Margin" Value="18,224,0,0" /></DataTrigger></Style.Triggers>
                     </Style>
                 </TextBlock.Style>
             </TextBlock>
-            <TextBox Canvas.Left="18" AutomationProperties.Name="{DynamicResource AutomaticRuleStartTime}" Text="{Binding StartTimeText, UpdateSourceTrigger=PropertyChanged}">
+            <TextBox HorizontalAlignment="Left" VerticalAlignment="Top" AutomationProperties.Name="{DynamicResource AutomaticRuleStartTime}" Text="{Binding StartTimeText, UpdateSourceTrigger=PropertyChanged}">
                 <TextBox.Style>
                     <Style TargetType="{x:Type TextBox}" BasedOn="{StaticResource RuleTimeTextBoxStyle}">
-                        <Setter Property="Canvas.Top" Value="178" />
-                        <Style.Triggers><DataTrigger Binding="{Binding IsCustom}" Value="True"><Setter Property="Canvas.Top" Value="258" /></DataTrigger></Style.Triggers>
+                        <Setter Property="Margin" Value="18,178,0,0" />
+                        <Style.Triggers><DataTrigger Binding="{Binding IsCustom}" Value="True"><Setter Property="Margin" Value="18,258,0,0" /></DataTrigger></Style.Triggers>
                     </Style>
                 </TextBox.Style>
             </TextBox>
-            <TextBlock Canvas.Left="130" FontSize="18" Text="–">
-                <TextBlock.Style><Style TargetType="{x:Type TextBlock}" BasedOn="{StaticResource {x:Type TextBlock}}"><Setter Property="Canvas.Top" Value="185" /><Style.Triggers><DataTrigger Binding="{Binding IsCustom}" Value="True"><Setter Property="Canvas.Top" Value="265" /></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+            <TextBlock HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="—">
+                <TextBlock.Style><Style TargetType="{x:Type TextBlock}" BasedOn="{StaticResource {x:Type TextBlock}}"><Setter Property="Margin" Value="130,185,0,0" /><Style.Triggers><DataTrigger Binding="{Binding IsCustom}" Value="True"><Setter Property="Margin" Value="130,265,0,0" /></DataTrigger></Style.Triggers></Style></TextBlock.Style>
             </TextBlock>
-            <TextBox Canvas.Left="160" AutomationProperties.Name="{DynamicResource AutomaticRuleEndTime}" Text="{Binding EndTimeText, UpdateSourceTrigger=PropertyChanged}">
+            <TextBox HorizontalAlignment="Left" VerticalAlignment="Top" AutomationProperties.Name="{DynamicResource AutomaticRuleEndTime}" Text="{Binding EndTimeText, UpdateSourceTrigger=PropertyChanged}">
                 <TextBox.Style>
                     <Style TargetType="{x:Type TextBox}" BasedOn="{StaticResource RuleTimeTextBoxStyle}">
-                        <Setter Property="Canvas.Top" Value="178" />
-                        <Style.Triggers><DataTrigger Binding="{Binding IsCustom}" Value="True"><Setter Property="Canvas.Top" Value="258" /></DataTrigger></Style.Triggers>
+                        <Setter Property="Margin" Value="160,178,0,0" />
+                        <Style.Triggers><DataTrigger Binding="{Binding IsCustom}" Value="True"><Setter Property="Margin" Value="160,258,0,0" /></DataTrigger></Style.Triggers>
                     </Style>
                 </TextBox.Style>
             </TextBox>
-            <views:TimeRangeSlider Canvas.Left="18" Width="234" StartValue="{Binding StartValue, Mode=TwoWay}" EndValue="{Binding EndValue, Mode=TwoWay}">
+            <views:TimeRangeSlider HorizontalAlignment="Left" VerticalAlignment="Top" Width="234" StartValue="{Binding StartValue, Mode=TwoWay}" EndValue="{Binding EndValue, Mode=TwoWay}">
                 <views:TimeRangeSlider.Style>
                     <Style TargetType="{x:Type views:TimeRangeSlider}">
-                        <Setter Property="Canvas.Top" Value="238" />
-                        <Style.Triggers><DataTrigger Binding="{Binding IsCustom}" Value="True"><Setter Property="Canvas.Top" Value="318" /></DataTrigger></Style.Triggers>
+                        <Setter Property="Margin" Value="18,238,0,0" />
+                        <Style.Triggers><DataTrigger Binding="{Binding IsCustom}" Value="True"><Setter Property="Margin" Value="18,318,0,0" /></DataTrigger></Style.Triggers>
                     </Style>
                 </views:TimeRangeSlider.Style>
             </views:TimeRangeSlider>
 
-            <TextBlock Canvas.Left="18" Width="234" FontSize="12" Foreground="{DynamicResource Danger}" Text="{Binding ValidationMessage}">
-                <TextBlock.Style>
-                    <Style TargetType="{x:Type TextBlock}">
-                        <Setter Property="Canvas.Top" Value="274" />
-                        <Setter Property="Visibility" Value="Visible" />
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding IsCustom}" Value="True"><Setter Property="Canvas.Top" Value="354" /></DataTrigger>
-                            <DataTrigger Binding="{Binding ValidationMessage}" Value=""><Setter Property="Visibility" Value="Collapsed" /></DataTrigger>
-                        </Style.Triggers>
+            <Grid HorizontalAlignment="Left" VerticalAlignment="Top" Width="234" Height="20">
+                <Grid.Style>
+                    <Style TargetType="{x:Type Grid}">
+                        <Setter Property="Margin" Value="18,282,0,0" />
+                        <Style.Triggers><DataTrigger Binding="{Binding IsCustom}" Value="True"><Setter Property="Margin" Value="18,362,0,0" /></DataTrigger></Style.Triggers>
                     </Style>
-                </TextBlock.Style>
-            </TextBlock>
+                </Grid.Style>
+                <TextBlock HorizontalAlignment="Left"
+                           VerticalAlignment="Center"
+                           FontSize="12"
+                           FontWeight="Normal"
+                           Foreground="{DynamicResource AutomaticRuleValidationText}"
+                           Text="{Binding ValidationMessage}"
+                           TextTrimming="CharacterEllipsis"
+                           TextWrapping="NoWrap" />
+            </Grid>
 
-            <Border Canvas.Left="18" Width="234" Height="1" Background="{DynamicResource BorderPrimary}">
-                <Border.Style><Style TargetType="{x:Type Border}"><Setter Property="Canvas.Top" Value="306" /><Style.Triggers><DataTrigger Binding="{Binding IsCustom}" Value="True"><Setter Property="Canvas.Top" Value="386" /></DataTrigger></Style.Triggers></Style></Border.Style>
+            <Border HorizontalAlignment="Left" VerticalAlignment="Top" Width="234" Height="1" Background="{DynamicResource BorderPrimary}">
+                <Border.Style><Style TargetType="{x:Type Border}"><Setter Property="Margin" Value="18,312,0,0" /><Style.Triggers><DataTrigger Binding="{Binding IsCustom}" Value="True"><Setter Property="Margin" Value="18,392,0,0" /></DataTrigger></Style.Triggers></Style></Border.Style>
             </Border>
-            <Button Canvas.Left="96" Content="{DynamicResource AutomaticRuleCancel}" Command="{Binding CloseCommand}">
-                <Button.Style><Style TargetType="{x:Type Button}" BasedOn="{StaticResource RuleSecondaryButtonStyle}"><Setter Property="Canvas.Top" Value="320" /><Style.Triggers><DataTrigger Binding="{Binding IsCustom}" Value="True"><Setter Property="Canvas.Top" Value="400" /></DataTrigger></Style.Triggers></Style></Button.Style>
+            <Button HorizontalAlignment="Left" VerticalAlignment="Top" Content="{DynamicResource AutomaticRuleCancel}" Command="{Binding CloseCommand}">
+                <Button.Style><Style TargetType="{x:Type Button}" BasedOn="{StaticResource RuleSecondaryButtonStyle}"><Setter Property="Margin" Value="96,320,0,0" /><Style.Triggers><DataTrigger Binding="{Binding IsCustom}" Value="True"><Setter Property="Margin" Value="96,400,0,0" /></DataTrigger></Style.Triggers></Style></Button.Style>
             </Button>
-            <Button Canvas.Left="180" Content="{DynamicResource AutomaticRuleAdd}" Command="{Binding ConfirmCommand}">
-                <Button.Style><Style TargetType="{x:Type Button}" BasedOn="{StaticResource RulePrimaryButtonStyle}"><Setter Property="Canvas.Top" Value="320" /><Style.Triggers><DataTrigger Binding="{Binding IsCustom}" Value="True"><Setter Property="Canvas.Top" Value="400" /></DataTrigger></Style.Triggers></Style></Button.Style>
+            <Button HorizontalAlignment="Left" VerticalAlignment="Top" Content="{DynamicResource AutomaticRuleAdd}" Command="{Binding ConfirmCommand}">
+                <Button.Style><Style TargetType="{x:Type Button}" BasedOn="{StaticResource RulePrimaryButtonStyle}"><Setter Property="Margin" Value="180,320,0,0" /><Style.Triggers><DataTrigger Binding="{Binding IsCustom}" Value="True"><Setter Property="Margin" Value="180,400,0,0" /></DataTrigger></Style.Triggers></Style></Button.Style>
             </Button>
-        </Canvas>
+        </Grid>
     </Border>
 </UserControl>
