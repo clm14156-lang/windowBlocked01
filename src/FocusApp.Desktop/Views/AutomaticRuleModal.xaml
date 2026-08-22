@@ -210,55 +210,60 @@
                 <RadioButton Grid.Column="1" Content="{DynamicResource AutomaticRuleCustom}" Command="{Binding SelectCustomCommand}" IsChecked="{Binding IsCustom, Mode=OneWay}" Style="{StaticResource RuleModeButtonStyle}" />
             </Grid>
 
-            <StackPanel Margin="20,150,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Visibility="{Binding IsCustom, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <StackPanel Margin="20,150,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Width="260" Visibility="{Binding IsCustom, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <TextBlock FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource AutomaticRuleChooseWeekdays}" />
-                <ItemsControl Margin="0,8,0,0" ItemsSource="{Binding Weekdays}">
+                <ItemsControl Width="238" Margin="0,8,0,0" HorizontalAlignment="Center" AlternationCount="7" ItemsSource="{Binding Weekdays}">
                     <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemContainerStyle><Style TargetType="{x:Type ContentPresenter}"><Setter Property="Margin" Value="0,0,7,0" /></Style></ItemsControl.ItemContainerStyle>
+                    <ItemsControl.ItemContainerStyle>
+                        <Style TargetType="{x:Type ContentPresenter}">
+                            <Setter Property="Margin" Value="0,0,7,0" />
+                            <Style.Triggers><Trigger Property="ItemsControl.AlternationIndex" Value="6"><Setter Property="Margin" Value="0" /></Trigger></Style.Triggers>
+                        </Style>
+                    </ItemsControl.ItemContainerStyle>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
                             <ToggleButton AutomationProperties.Name="{Binding DisplayName}" Content="{Binding ShortName}" IsChecked="{Binding IsSelected, Mode=TwoWay}" Style="{StaticResource WeekdayButtonStyle}" />
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-                <TextBlock Margin="0,6,0,0" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}">
+                <TextBlock Margin="0,8,0,0" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}">
                     <Run Text="{DynamicResource AutomaticRuleSelectedPrefix}" /><Run Text="{Binding SelectedDaysText, Mode=OneWay}" />
                 </TextBlock>
             </StackPanel>
-            <Border Margin="20,232,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Width="260" Height="1" Background="{DynamicResource BorderPrimary}" Visibility="{Binding IsCustom, Converter={StaticResource BooleanToVisibilityConverter}}" />
+            <Border Margin="20,236,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Width="260" Height="1" Background="{DynamicResource BorderPrimary}" Visibility="{Binding IsCustom, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
             <TextBlock HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource AutomaticRuleTimeTitle}">
                 <TextBlock.Style>
                     <Style TargetType="{x:Type TextBlock}" BasedOn="{StaticResource {x:Type TextBlock}}">
-                        <Setter Property="Margin" Value="20,154,0,0" />
-                        <Style.Triggers><DataTrigger Binding="{Binding IsCustom}" Value="True"><Setter Property="Margin" Value="20,244,0,0" /></DataTrigger></Style.Triggers>
+                        <Setter Property="Margin" Value="20,150,0,0" />
+                        <Style.Triggers><DataTrigger Binding="{Binding IsCustom}" Value="True"><Setter Property="Margin" Value="20,246,0,0" /></DataTrigger></Style.Triggers>
                     </Style>
                 </TextBlock.Style>
             </TextBlock>
             <TextBox HorizontalAlignment="Left" VerticalAlignment="Top" AutomationProperties.Name="{DynamicResource AutomaticRuleStartTime}" Text="{Binding StartTimeText, UpdateSourceTrigger=PropertyChanged}">
                 <TextBox.Style>
                     <Style TargetType="{x:Type TextBox}" BasedOn="{StaticResource RuleTimeTextBoxStyle}">
-                        <Setter Property="Margin" Value="20,182,0,0" />
-                        <Style.Triggers><DataTrigger Binding="{Binding IsCustom}" Value="True"><Setter Property="Margin" Value="20,272,0,0" /></DataTrigger></Style.Triggers>
+                        <Setter Property="Margin" Value="20,174,0,0" />
+                        <Style.Triggers><DataTrigger Binding="{Binding IsCustom}" Value="True"><Setter Property="Margin" Value="20,270,0,0" /></DataTrigger></Style.Triggers>
                     </Style>
                 </TextBox.Style>
             </TextBox>
             <TextBlock HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="—">
-                <TextBlock.Style><Style TargetType="{x:Type TextBlock}" BasedOn="{StaticResource {x:Type TextBlock}}"><Setter Property="Margin" Value="147,189,0,0" /><Style.Triggers><DataTrigger Binding="{Binding IsCustom}" Value="True"><Setter Property="Margin" Value="147,279,0,0" /></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                <TextBlock.Style><Style TargetType="{x:Type TextBlock}" BasedOn="{StaticResource {x:Type TextBlock}}"><Setter Property="Margin" Value="147,181,0,0" /><Style.Triggers><DataTrigger Binding="{Binding IsCustom}" Value="True"><Setter Property="Margin" Value="147,277,0,0" /></DataTrigger></Style.Triggers></Style></TextBlock.Style>
             </TextBlock>
             <TextBox HorizontalAlignment="Left" VerticalAlignment="Top" AutomationProperties.Name="{DynamicResource AutomaticRuleEndTime}" Text="{Binding EndTimeText, UpdateSourceTrigger=PropertyChanged}">
                 <TextBox.Style>
                     <Style TargetType="{x:Type TextBox}" BasedOn="{StaticResource RuleTimeTextBoxStyle}">
-                        <Setter Property="Margin" Value="180,182,0,0" />
-                        <Style.Triggers><DataTrigger Binding="{Binding IsCustom}" Value="True"><Setter Property="Margin" Value="180,272,0,0" /></DataTrigger></Style.Triggers>
+                        <Setter Property="Margin" Value="180,174,0,0" />
+                        <Style.Triggers><DataTrigger Binding="{Binding IsCustom}" Value="True"><Setter Property="Margin" Value="180,270,0,0" /></DataTrigger></Style.Triggers>
                     </Style>
                 </TextBox.Style>
             </TextBox>
             <views:TimeRangeSlider HorizontalAlignment="Left" VerticalAlignment="Top" Width="260" StartValue="{Binding StartValue, Mode=TwoWay}" EndValue="{Binding EndValue, Mode=TwoWay}">
                 <views:TimeRangeSlider.Style>
                     <Style TargetType="{x:Type views:TimeRangeSlider}">
-                        <Setter Property="Margin" Value="20,238,0,0" />
-                        <Style.Triggers><DataTrigger Binding="{Binding IsCustom}" Value="True"><Setter Property="Margin" Value="20,328,0,0" /></DataTrigger></Style.Triggers>
+                        <Setter Property="Margin" Value="20,230,0,0" />
+                        <Style.Triggers><DataTrigger Binding="{Binding IsCustom}" Value="True"><Setter Property="Margin" Value="20,326,0,0" /></DataTrigger></Style.Triggers>
                     </Style>
                 </views:TimeRangeSlider.Style>
             </views:TimeRangeSlider>
@@ -266,8 +271,8 @@
             <Grid HorizontalAlignment="Left" VerticalAlignment="Top" Width="260" Height="20">
                 <Grid.Style>
                     <Style TargetType="{x:Type Grid}">
-                        <Setter Property="Margin" Value="20,298,0,0" />
-                        <Style.Triggers><DataTrigger Binding="{Binding IsCustom}" Value="True"><Setter Property="Margin" Value="20,388,0,0" /></DataTrigger></Style.Triggers>
+                        <Setter Property="Margin" Value="20,280,0,0" />
+                        <Style.Triggers><DataTrigger Binding="{Binding IsCustom}" Value="True"><Setter Property="Margin" Value="20,376,0,0" /></DataTrigger></Style.Triggers>
                     </Style>
                 </Grid.Style>
                 <TextBlock HorizontalAlignment="Left"
@@ -281,13 +286,13 @@
             </Grid>
 
             <Border HorizontalAlignment="Left" VerticalAlignment="Top" Width="260" Height="1" Background="{DynamicResource BorderPrimary}">
-                <Border.Style><Style TargetType="{x:Type Border}"><Setter Property="Margin" Value="20,328,0,0" /><Style.Triggers><DataTrigger Binding="{Binding IsCustom}" Value="True"><Setter Property="Margin" Value="20,418,0,0" /></DataTrigger></Style.Triggers></Style></Border.Style>
+                <Border.Style><Style TargetType="{x:Type Border}"><Setter Property="Margin" Value="20,311,0,0" /><Style.Triggers><DataTrigger Binding="{Binding IsCustom}" Value="True"><Setter Property="Margin" Value="20,407,0,0" /></DataTrigger></Style.Triggers></Style></Border.Style>
             </Border>
             <Button HorizontalAlignment="Left" VerticalAlignment="Top" Content="{DynamicResource AutomaticRuleCancel}" Command="{Binding CloseCommand}">
-                <Button.Style><Style TargetType="{x:Type Button}" BasedOn="{StaticResource RuleSecondaryButtonStyle}"><Setter Property="Margin" Value="124,340,0,0" /><Style.Triggers><DataTrigger Binding="{Binding IsCustom}" Value="True"><Setter Property="Margin" Value="124,430,0,0" /></DataTrigger></Style.Triggers></Style></Button.Style>
+                <Button.Style><Style TargetType="{x:Type Button}" BasedOn="{StaticResource RuleSecondaryButtonStyle}"><Setter Property="Margin" Value="124,324,0,0" /><Style.Triggers><DataTrigger Binding="{Binding IsCustom}" Value="True"><Setter Property="Margin" Value="124,420,0,0" /></DataTrigger></Style.Triggers></Style></Button.Style>
             </Button>
             <Button HorizontalAlignment="Left" VerticalAlignment="Top" Content="{DynamicResource AutomaticRuleAdd}" Command="{Binding ConfirmCommand}">
-                <Button.Style><Style TargetType="{x:Type Button}" BasedOn="{StaticResource RulePrimaryButtonStyle}"><Setter Property="Margin" Value="208,340,0,0" /><Style.Triggers><DataTrigger Binding="{Binding IsCustom}" Value="True"><Setter Property="Margin" Value="208,430,0,0" /></DataTrigger></Style.Triggers></Style></Button.Style>
+                <Button.Style><Style TargetType="{x:Type Button}" BasedOn="{StaticResource RulePrimaryButtonStyle}"><Setter Property="Margin" Value="208,324,0,0" /><Style.Triggers><DataTrigger Binding="{Binding IsCustom}" Value="True"><Setter Property="Margin" Value="208,420,0,0" /></DataTrigger></Style.Triggers></Style></Button.Style>
             </Button>
         </Grid>
     </Border>

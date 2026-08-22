@@ -92,19 +92,24 @@ public sealed class ThemedTextButtonTemplateTests
         Assert.Equal("20", (string?)validationRegion.Attribute("Height"));
         Assert.Contains(validationRegion.Descendants(Presentation + "Setter"), setter =>
             (string?)setter.Attribute("Property") == "Margin" &&
-            (string?)setter.Attribute("Value") == "20,298,0,0");
+            (string?)setter.Attribute("Value") == "20,280,0,0");
         Assert.Contains(validationRegion.Descendants(Presentation + "Setter"), setter =>
             (string?)setter.Attribute("Property") == "Margin" &&
-            (string?)setter.Attribute("Value") == "20,388,0,0");
+            (string?)setter.Attribute("Value") == "20,376,0,0");
 
+        Assert.Equal("45", (string?)slider.Root?.Attribute("Height"));
         Assert.Contains(slider.Descendants(Presentation + "Grid"), grid =>
-            (string?)grid.Attribute("Margin") == "0,29,0,0");
+            (string?)grid.Attribute("Margin") == "0,26,0,0");
 
         var timeInputStyle = FindKeyedElement(modal, "Style", "RuleTimeTextBoxStyle");
         AssertStyleSetter(timeInputStyle, "Width", "100");
         var weekdayStyle = Assert.Single(modal.Descendants(Presentation + "ItemsControl.ItemContainerStyle")
             .Descendants(Presentation + "Style"));
         AssertStyleSetter(weekdayStyle, "Margin", "0,0,7,0");
+        Assert.Contains(weekdayStyle.Descendants(Presentation + "Trigger")
+            .Elements(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("Property") == "Margin" &&
+            (string?)setter.Attribute("Value") == "0");
     }
 
     private static void AssertFooterStyle(XDocument modal, string styleKey, string brushKey)
