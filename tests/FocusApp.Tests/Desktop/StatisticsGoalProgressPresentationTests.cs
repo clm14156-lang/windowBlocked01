@@ -73,7 +73,7 @@ public sealed class StatisticsGoalProgressPresentationTests
         Assert.Contains(headerTexts, text =>
             (string?)text.Attribute("Text") == "{Binding DateDisplay}"
             && (string?)text.Attribute("FontSize") == "13"
-            && (string?)text.Attribute("FontWeight") == "Medium"
+            && (string?)text.Attribute("FontWeight") == "Normal"
             && (string?)text.Attribute("Foreground") == "{DynamicResource TextPrimary}");
         Assert.Contains(headerTexts, text =>
             (string?)text.Attribute("Text") == "{Binding DurationDisplay}"
@@ -88,13 +88,15 @@ public sealed class StatisticsGoalProgressPresentationTests
         Assert.Contains(detailTexts, text =>
             (string?)text.Attribute("Text") == "{Binding TimeRangeDisplay}"
             && (string?)text.Attribute("FontSize") == "12"
-            && (string?)text.Attribute("Foreground") == "{DynamicResource TextSecondary}"
+            && (string?)text.Attribute("FontWeight") == "Normal"
+            && (string?)text.Attribute("Foreground") == "{DynamicResource TextWeak}"
             && (string?)text.Attribute("Grid.Column") == "1");
         var completedTasks = Assert.Single(detailTemplate.Descendants(Presentation + "ItemsControl").Where(control =>
             (string?)control.Attribute("ItemsSource") == "{Binding CompletedTaskNames}"));
         var taskText = Assert.Single(completedTasks.Descendants(Presentation + "TextBlock"));
         Assert.Equal("{Binding}", (string?)taskText.Attribute("Text"));
         Assert.Equal("13", (string?)taskText.Attribute("FontSize"));
+        Assert.Equal("Normal", (string?)taskText.Attribute("FontWeight"));
         Assert.Equal("{DynamicResource TextPrimary}", (string?)taskText.Attribute("Foreground"));
         var timelineDot = Assert.Single(detailTemplate.Descendants(Presentation + "Ellipse"));
         Assert.Equal("{DynamicResource TextWeak}", (string?)timelineDot.Attribute("Fill"));
@@ -110,6 +112,54 @@ public sealed class StatisticsGoalProgressPresentationTests
             (string?)element.Attribute("Background") == "{DynamicResource AccentSoftBorder}"
             || (string?)element.Attribute("BorderBrush") == "{DynamicResource AccentSoftBorder}");
         Assert.Empty(detailTemplate.Descendants(Presentation + "Border"));
+    }
+
+    [Fact]
+    public void GoalPageTypographyMatchesTheGlobalStandard()
+    {
+        var page = XDocument.Load(Path.Combine(
+            FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
+        var goalsPage = Assert.Single(page.Descendants(Presentation + "StackPanel").Where(panel =>
+            (string?)panel.Attribute(Xaml + "Name") == "GoalsPageLayout"));
+        var texts = goalsPage.Descendants(Presentation + "TextBlock").ToArray();
+
+        Assert.Equal("Segoe UI Variable, Segoe UI", (string?)goalsPage.Attribute("TextElement.FontFamily"));
+
+        var pageTitle = Assert.Single(texts.Where(text =>
+            (string?)text.Attribute("Text") == "{Binding SelectedGoalName}"));
+        Assert.Equal("20", (string?)pageTitle.Attribute("FontSize"));
+        Assert.Equal("SemiBold", (string?)pageTitle.Attribute("FontWeight"));
+        Assert.Equal("{DynamicResource TextPrimary}", (string?)pageTitle.Attribute("Foreground"));
+
+        var sectionTitles = texts.Where(text =>
+            (string?)text.Attribute("Text") is "{Binding GoalListTitle}" or "投入趋势" or "推进记录").ToArray();
+        Assert.Equal(3, sectionTitles.Length);
+        Assert.All(sectionTitles, title =>
+        {
+            Assert.Equal("15", (string?)title.Attribute("FontSize"));
+            Assert.Equal("Medium", (string?)title.Attribute("FontWeight"));
+            Assert.Equal("{DynamicResource TextPrimary}", (string?)title.Attribute("Foreground"));
+        });
+
+        var goalName = Assert.Single(texts.Where(text => (string?)text.Attribute("Text") == "{Binding Name}"));
+        Assert.Equal("13", (string?)goalName.Attribute("FontSize"));
+        Assert.Equal("Normal", (string?)goalName.Attribute("FontWeight"));
+        Assert.Equal("{DynamicResource TextPrimary}", (string?)goalName.Attribute("Foreground"));
+
+        var status = Assert.Single(texts.Where(text => (string?)text.Attribute(Xaml + "Name") == "GoalStatusText"));
+        Assert.Equal("12", (string?)status.Attribute("FontSize"));
+        Assert.Equal("Normal", (string?)status.Attribute("FontWeight"));
+        Assert.Equal("{DynamicResource TextWeak}", (string?)status.Attribute("Foreground"));
+
+        var totalDuration = Assert.Single(texts.Where(text =>
+            (string?)text.Attribute("Text") == "{Binding SelectedGoalDurationDisplay}"));
+        Assert.Equal("12", (string?)totalDuration.Attribute("FontSize"));
+        Assert.Equal("Normal", (string?)totalDuration.Attribute("FontWeight"));
+        Assert.Equal("{DynamicResource TextSecondary}", (string?)totalDuration.Attribute("Foreground"));
+
+        Assert.DoesNotContain(texts, text => (string?)text.Attribute("FontWeight") == "Bold");
+        Assert.DoesNotContain(texts, text => (string?)text.Attribute("FontSize") is "11" or "14" or "16");
+        Assert.DoesNotContain(texts, text => (string?)text.Attribute("Foreground") == "#000000");
     }
 
     [Fact]
