@@ -77,6 +77,75 @@ public sealed class SettingsPageViewModelTests
     }
 
     [Fact]
+    public void TimePicker_ConfirmsFiveMinuteSelectionAndWheelStaysSynchronized()
+    {
+        var modal = CreateRuleModal();
+        modal.Open();
+
+        modal.OpenTimePicker(true);
+        Assert.True(modal.IsStartTimePickerOpen);
+        Assert.Equal(9, modal.SelectedHour?.Value);
+        Assert.Equal(0, modal.SelectedMinute?.Value);
+        Assert.Equal(5, modal.HourWheelItems.Count);
+        Assert.Equal(5, modal.MinuteWheelItems.Count);
+        Assert.Equal(9, Assert.Single(modal.HourWheelItems.Where(item => item.IsSelected)).Value);
+        Assert.Equal(0, Assert.Single(modal.MinuteWheelItems.Where(item => item.IsSelected)).Value);
+
+        modal.AdjustPickerWheel(true, -120);
+        Assert.Equal(10, modal.SelectedHour?.Value);
+        Assert.Equal(10, Assert.Single(modal.HourWheelItems.Where(item => item.IsSelected)).Value);
+
+        var nextMinute = modal.MinuteWheelItems.Single(item => item.Value == 5);
+        modal.SelectMinuteWheelItemCommand.Execute(nextMinute);
+        Assert.Equal(5, modal.SelectedMinute?.Value);
+        Assert.Equal(5, Assert.Single(modal.MinuteWheelItems.Where(item => item.IsSelected)).Value);
+
+        modal.SelectedHour = modal.HourOptions[9];
+        modal.SelectedMinute = modal.MinuteOptions.Single(option => option.Value == 30);
+        modal.ConfirmTimePickerCommand.Execute(null);
+
+        Assert.False(modal.IsTimePickerOpen);
+        Assert.Equal(570, modal.StartValue);
+        Assert.Equal("09:30", modal.StartTimeText);
+
+        modal.AdjustTimeByWheel(true, 120);
+        Assert.Equal(575, modal.StartValue);
+        Assert.Equal("09:35", modal.StartTimeText);
+
+        modal.StartValue = 10 * 60;
+        Assert.Equal("10:00", modal.StartTimeText);
+
+        modal.OpenTimePicker(true);
+        modal.StartValue = 10 * 60 + 3;
+        Assert.Equal(10 * 60 + 5, modal.StartValue);
+        Assert.Equal("10:05", modal.StartTimeText);
+        Assert.Equal(10, modal.SelectedHour?.Value);
+        Assert.Equal(5, modal.SelectedMinute?.Value);
+    }
+
+    [Fact]
+    public void TimePicker_ClearReservesSafeSliderBoundaryUntilTimeIsSelectedAgain()
+    {
+        var modal = CreateRuleModal();
+        modal.Open();
+
+        modal.OpenTimePicker(false);
+        modal.ClearTimePickerCommand.Execute(null);
+
+        Assert.False(modal.IsTimePickerOpen);
+        Assert.Equal("--:--", modal.EndTimeText);
+        Assert.Equal(24 * 60, modal.EndValue);
+
+        modal.ConfirmCommand.Execute(null);
+        Assert.True(modal.IsOpen);
+        Assert.Equal("请选择开始时间和结束时间", modal.ValidationMessage);
+
+        modal.AdjustTimeByWheel(false, -120);
+        Assert.Equal("23:55", modal.EndTimeText);
+        Assert.Equal(23 * 60 + 55, modal.EndValue);
+    }
+
+    [Fact]
     public void AddAndDeleteRule_UpdatesOnlyRequestedRule()
     {
         var automatic = new SettingsToggleItemViewModel("AutomaticBlocking", "Automatic", "Description", "Icon", true);

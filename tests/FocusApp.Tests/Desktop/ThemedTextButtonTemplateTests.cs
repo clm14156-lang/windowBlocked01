@@ -101,8 +101,23 @@ public sealed class ThemedTextButtonTemplateTests
         Assert.Contains(slider.Descendants(Presentation + "Grid"), grid =>
             (string?)grid.Attribute("Margin") == "0,26,0,0");
 
-        var timeInputStyle = FindKeyedElement(modal, "Style", "RuleTimeTextBoxStyle");
-        AssertStyleSetter(timeInputStyle, "Width", "100");
+        var timeSelectorStyle = FindKeyedElement(modal, "Style", "RuleTimeSelectorButtonStyle");
+        Assert.Equal("{x:Type Button}", (string?)timeSelectorStyle.Attribute("TargetType"));
+        AssertStyleSetter(timeSelectorStyle, "Width", "100");
+        Assert.Empty(modal.Descendants(Presentation + "TextBox"));
+        Assert.Single(modal.Descendants(Presentation + "Popup")
+            .Where(element => (string?)element.Attribute(Xaml + "Name") == "TimePickerPopup"));
+        Assert.Empty(modal.Descendants(Presentation + "ListBox"));
+        Assert.Equal(2, modal.Descendants(Presentation + "ItemsControl").Count(control =>
+            (string?)control.Attribute("PreviewMouseWheel") == "TimeWheel_PreviewMouseWheel"));
+        Assert.Single(modal.Descendants(Presentation + "TextBlock").Where(text =>
+            (string?)text.Attribute("Text") == ":"));
+        var wheelItemStyle = FindKeyedElement(modal, "Style", "TimeWheelItemButtonStyle");
+        AssertStyleSetter(wheelItemStyle, "FontSize", "13");
+        AssertStyleSetter(wheelItemStyle, "FontWeight", "Normal");
+        Assert.Equal(2, modal.Descendants(Presentation + "Button").Count(button =>
+            (string?)button.Attribute("Click") == "TimeSelectorButton_Click" &&
+            (string?)button.Attribute("PreviewMouseWheel") == "TimeSelectorButton_PreviewMouseWheel"));
         var weekdayStyle = Assert.Single(modal.Descendants(Presentation + "ItemsControl.ItemContainerStyle")
             .Descendants(Presentation + "Style"));
         AssertStyleSetter(weekdayStyle, "Margin", "0,0,7,0");

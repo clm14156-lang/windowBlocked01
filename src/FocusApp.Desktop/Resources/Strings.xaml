@@ -87,6 +87,8 @@
     <system:String x:Key="AutomaticRuleEndTime">结束时间</system:String>
     <system:String x:Key="AutomaticRuleStartSlider">调整开始时间</system:String>
     <system:String x:Key="AutomaticRuleEndSlider">调整结束时间</system:String>
+    <system:String x:Key="AutomaticRuleTimePickerClear">清除</system:String>
+    <system:String x:Key="AutomaticRuleTimePickerConfirm">确定</system:String>
     <system:String x:Key="AutomaticRuleCancel">取消</system:String>
     <system:String x:Key="AutomaticRuleAdd">添加</system:String>
     <system:String x:Key="AutomaticRuleEdit">编辑规则</system:String>

@@ -8,6 +8,11 @@ public partial class TimeRangeSlider : UserControl
 {
     private const double MaximumMinutes = 24 * 60;
     private const double ThumbSize = 18;
+    private const double TimeStepMinutes = 5;
+    private double _startDragOrigin;
+    private double _startDragDistance;
+    private double _endDragOrigin;
+    private double _endDragDistance;
 
     public static readonly DependencyProperty StartValueProperty = DependencyProperty.Register(
         nameof(StartValue),
@@ -44,20 +49,39 @@ public partial class TimeRangeSlider : UserControl
         ((TimeRangeSlider)d).UpdateVisuals();
     }
 
+    private void StartThumb_DragStarted(object sender, DragStartedEventArgs e)
+    {
+        _startDragOrigin = StartValue;
+        _startDragDistance = 0;
+    }
+
     private void StartThumb_DragDelta(object sender, DragDeltaEventArgs e)
     {
-        StartValue = Math.Clamp(StartValue + DeltaToMinutes(e.HorizontalChange), 0, EndValue);
+        _startDragDistance += e.HorizontalChange;
+        StartValue = Math.Clamp(SnapToStep(_startDragOrigin + DeltaToMinutes(_startDragDistance)), 0, EndValue);
+    }
+
+    private void EndThumb_DragStarted(object sender, DragStartedEventArgs e)
+    {
+        _endDragOrigin = EndValue;
+        _endDragDistance = 0;
     }
 
     private void EndThumb_DragDelta(object sender, DragDeltaEventArgs e)
     {
-        EndValue = Math.Clamp(EndValue + DeltaToMinutes(e.HorizontalChange), StartValue, MaximumMinutes);
+        _endDragDistance += e.HorizontalChange;
+        EndValue = Math.Clamp(SnapToStep(_endDragOrigin + DeltaToMinutes(_endDragDistance)), StartValue, MaximumMinutes);
     }
 
     private double DeltaToMinutes(double horizontalChange)
     {
         var trackWidth = Math.Max(1, ActualWidth - ThumbSize);
         return horizontalChange / trackWidth * MaximumMinutes;
+    }
+
+    private static double SnapToStep(double minutes)
+    {
+        return Math.Round(minutes / TimeStepMinutes) * TimeStepMinutes;
     }
 
     private void RangeSlider_SizeChanged(object sender, SizeChangedEventArgs e)

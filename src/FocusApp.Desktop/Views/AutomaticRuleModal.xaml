@@ -107,7 +107,7 @@
             </Setter>
         </Style>
 
-        <Style x:Key="RuleTimeTextBoxStyle" TargetType="{x:Type TextBox}">
+        <Style x:Key="RuleTimeSelectorButtonStyle" TargetType="{x:Type Button}">
             <Setter Property="Width" Value="100" />
             <Setter Property="Height" Value="40" />
             <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
@@ -117,27 +117,105 @@
             <Setter Property="FontSize" Value="13" />
             <Setter Property="FontWeight" Value="Normal" />
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Template">
                 <Setter.Value>
-                    <ControlTemplate TargetType="{x:Type TextBox}">
-                        <Border x:Name="InputBorder"
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border x:Name="SelectorBorder"
                                 Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
                                 CornerRadius="8">
-                            <ScrollViewer x:Name="PART_ContentHost" />
+                            <Grid>
+                                <TextBlock HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           FontFamily="{TemplateBinding FontFamily}"
+                                           FontSize="{TemplateBinding FontSize}"
+                                           FontWeight="{TemplateBinding FontWeight}"
+                                           Foreground="{TemplateBinding Foreground}"
+                                           Text="{TemplateBinding Content}" />
+                                <TextBlock Margin="0,0,11,0"
+                                           HorizontalAlignment="Right"
+                                           VerticalAlignment="Center"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="12"
+                                           FontWeight="Normal"
+                                           Foreground="{DynamicResource TextSecondary}"
+                                           Text="&#xE70D;" />
+                            </Grid>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="InputBorder" Property="BorderBrush" Value="{DynamicResource AccentHover}" />
+                                <Setter TargetName="SelectorBorder" Property="BorderBrush" Value="{DynamicResource AccentHover}" />
                             </Trigger>
                             <Trigger Property="IsKeyboardFocused" Value="True">
-                                <Setter TargetName="InputBorder" Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
-                                <Setter TargetName="InputBorder" Property="BorderThickness" Value="1.5" />
+                                <Setter TargetName="SelectorBorder" Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
+                                <Setter TargetName="SelectorBorder" Property="BorderThickness" Value="1.5" />
                             </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="SelectorBorder" Property="Background" Value="{DynamicResource ControlPressedBackground}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="TimeWheelItemButtonStyle" TargetType="{x:Type Button}" BasedOn="{StaticResource ThemedTextButtonBaseStyle}">
+            <Setter Property="Width" Value="68" />
+            <Setter Property="Height" Value="30" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="Normal" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border x:Name="WheelItemBorder" Background="{TemplateBinding Background}" CornerRadius="7">
+                            <TextBlock HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       FontFamily="{TemplateBinding FontFamily}"
+                                       FontSize="{TemplateBinding FontSize}"
+                                       FontWeight="{TemplateBinding FontWeight}"
+                                       Foreground="{TemplateBinding Foreground}"
+                                       Text="{TemplateBinding Content}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="WheelItemBorder" Property="Background" Value="{DynamicResource ControlHoverBackground}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                    <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}" />
+                    <Setter Property="FontWeight" Value="Medium" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="TimePickerActionButtonStyle" TargetType="{x:Type Button}" BasedOn="{StaticResource ThemedTextButtonBaseStyle}">
+            <Setter Property="Width" Value="68" />
+            <Setter Property="Height" Value="30" />
+            <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border x:Name="ActionBorder" Background="{TemplateBinding Background}" CornerRadius="7">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ActionBorder" Property="Background" Value="{DynamicResource ControlHoverBackground}" /></Trigger>
+                            <Trigger Property="IsPressed" Value="True"><Setter TargetName="ActionBorder" Property="Background" Value="{DynamicResource ControlPressedBackground}" /></Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
@@ -240,25 +318,137 @@
                     </Style>
                 </TextBlock.Style>
             </TextBlock>
-            <TextBox HorizontalAlignment="Left" VerticalAlignment="Top" AutomationProperties.Name="{DynamicResource AutomaticRuleStartTime}" Text="{Binding StartTimeText, UpdateSourceTrigger=PropertyChanged}">
-                <TextBox.Style>
-                    <Style TargetType="{x:Type TextBox}" BasedOn="{StaticResource RuleTimeTextBoxStyle}">
+            <Button x:Name="StartTimeButton"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Top"
+                    AutomationProperties.Name="{DynamicResource AutomaticRuleStartTime}"
+                    Click="TimeSelectorButton_Click"
+                    Content="{Binding StartTimeText}"
+                    PreviewMouseWheel="TimeSelectorButton_PreviewMouseWheel"
+                    Tag="Start">
+                <Button.Style>
+                    <Style TargetType="{x:Type Button}" BasedOn="{StaticResource RuleTimeSelectorButtonStyle}">
                         <Setter Property="Margin" Value="20,174,0,0" />
-                        <Style.Triggers><DataTrigger Binding="{Binding IsCustom}" Value="True"><Setter Property="Margin" Value="20,270,0,0" /></DataTrigger></Style.Triggers>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsCustom}" Value="True"><Setter Property="Margin" Value="20,270,0,0" /></DataTrigger>
+                            <DataTrigger Binding="{Binding IsStartTimePickerOpen}" Value="True">
+                                <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
+                                <Setter Property="BorderThickness" Value="1.5" />
+                            </DataTrigger>
+                        </Style.Triggers>
                     </Style>
-                </TextBox.Style>
-            </TextBox>
+                </Button.Style>
+            </Button>
             <TextBlock HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="—">
                 <TextBlock.Style><Style TargetType="{x:Type TextBlock}" BasedOn="{StaticResource {x:Type TextBlock}}"><Setter Property="Margin" Value="147,181,0,0" /><Style.Triggers><DataTrigger Binding="{Binding IsCustom}" Value="True"><Setter Property="Margin" Value="147,277,0,0" /></DataTrigger></Style.Triggers></Style></TextBlock.Style>
             </TextBlock>
-            <TextBox HorizontalAlignment="Left" VerticalAlignment="Top" AutomationProperties.Name="{DynamicResource AutomaticRuleEndTime}" Text="{Binding EndTimeText, UpdateSourceTrigger=PropertyChanged}">
-                <TextBox.Style>
-                    <Style TargetType="{x:Type TextBox}" BasedOn="{StaticResource RuleTimeTextBoxStyle}">
+            <Button x:Name="EndTimeButton"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Top"
+                    AutomationProperties.Name="{DynamicResource AutomaticRuleEndTime}"
+                    Click="TimeSelectorButton_Click"
+                    Content="{Binding EndTimeText}"
+                    PreviewMouseWheel="TimeSelectorButton_PreviewMouseWheel"
+                    Tag="End">
+                <Button.Style>
+                    <Style TargetType="{x:Type Button}" BasedOn="{StaticResource RuleTimeSelectorButtonStyle}">
                         <Setter Property="Margin" Value="180,174,0,0" />
-                        <Style.Triggers><DataTrigger Binding="{Binding IsCustom}" Value="True"><Setter Property="Margin" Value="180,270,0,0" /></DataTrigger></Style.Triggers>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsCustom}" Value="True"><Setter Property="Margin" Value="180,270,0,0" /></DataTrigger>
+                            <DataTrigger Binding="{Binding IsEndTimePickerOpen}" Value="True">
+                                <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
+                                <Setter Property="BorderThickness" Value="1.5" />
+                            </DataTrigger>
+                        </Style.Triggers>
                     </Style>
-                </TextBox.Style>
-            </TextBox>
+                </Button.Style>
+            </Button>
+
+            <Popup x:Name="TimePickerPopup"
+                   AllowsTransparency="True"
+                   Closed="TimePickerPopup_Closed"
+                   IsOpen="{Binding IsTimePickerOpen, Mode=TwoWay}"
+                   Placement="Bottom"
+                   PlacementTarget="{Binding ElementName=StartTimeButton}"
+                   PopupAnimation="Fade"
+                   StaysOpen="False">
+                <Border Width="176"
+                        Height="214"
+                        Padding="10"
+                        Background="{DynamicResource SurfacePrimary}"
+                        BorderBrush="{DynamicResource OverlayBorder}"
+                        BorderThickness="1"
+                        CornerRadius="10">
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="16" Direction="270" Opacity="0.15" ShadowDepth="4" />
+                    </Border.Effect>
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="152" />
+                            <RowDefinition Height="1" />
+                            <RowDefinition Height="39" />
+                        </Grid.RowDefinitions>
+                        <Grid Grid.Row="0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition />
+                                <ColumnDefinition Width="18" />
+                                <ColumnDefinition />
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.ColumnSpan="3"
+                                    Height="30"
+                                    VerticalAlignment="Center"
+                                    Background="{DynamicResource AccentTint}"
+                                    CornerRadius="7" />
+                            <ItemsControl Grid.Column="0"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          ItemsSource="{Binding HourWheelItems}"
+                                          PreviewMouseWheel="TimeWheel_PreviewMouseWheel"
+                                          Tag="Hour">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button Command="{Binding DataContext.SelectHourWheelItemCommand, RelativeSource={RelativeSource AncestorType={x:Type ItemsControl}}}"
+                                                CommandParameter="{Binding}"
+                                                Content="{Binding Display}"
+                                                Opacity="{Binding Opacity}"
+                                                Style="{StaticResource TimeWheelItemButtonStyle}" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBlock Grid.Column="1"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       FontSize="13"
+                                       FontWeight="Medium"
+                                       Foreground="{DynamicResource TextPrimary}"
+                                       Text=":" />
+                            <ItemsControl Grid.Column="2"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          ItemsSource="{Binding MinuteWheelItems}"
+                                          PreviewMouseWheel="TimeWheel_PreviewMouseWheel"
+                                          Tag="Minute">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button Command="{Binding DataContext.SelectMinuteWheelItemCommand, RelativeSource={RelativeSource AncestorType={x:Type ItemsControl}}}"
+                                                CommandParameter="{Binding}"
+                                                Content="{Binding Display}"
+                                                Opacity="{Binding Opacity}"
+                                                Style="{StaticResource TimeWheelItemButtonStyle}" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Grid>
+
+                        <Border Grid.Row="1" Background="{DynamicResource BorderPrimary}" />
+                        <Grid Grid.Row="2">
+                            <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+                            <Button Grid.Column="0" Content="{DynamicResource AutomaticRuleTimePickerClear}" Command="{Binding ClearTimePickerCommand}" Style="{StaticResource TimePickerActionButtonStyle}" />
+                            <Button Grid.Column="1" Content="{DynamicResource AutomaticRuleTimePickerConfirm}" Command="{Binding ConfirmTimePickerCommand}" Foreground="{DynamicResource AccentPrimary}" Style="{StaticResource TimePickerActionButtonStyle}" />
+                        </Grid>
+                    </Grid>
+                </Border>
+            </Popup>
             <views:TimeRangeSlider HorizontalAlignment="Left" VerticalAlignment="Top" Width="260" StartValue="{Binding StartValue, Mode=TwoWay}" EndValue="{Binding EndValue, Mode=TwoWay}">
                 <views:TimeRangeSlider.Style>
                     <Style TargetType="{x:Type views:TimeRangeSlider}">

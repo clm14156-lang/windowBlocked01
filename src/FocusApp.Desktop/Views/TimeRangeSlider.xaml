@@ -46,6 +46,7 @@
                               Height="18"
                               Canvas.Top="2"
                               AutomationProperties.Name="{DynamicResource AutomaticRuleStartSlider}"
+                              DragStarted="StartThumb_DragStarted"
                               DragDelta="StartThumb_DragDelta"
                               Style="{StaticResource RangeSliderThumbStyle}" />
             <primitives:Thumb x:Name="EndThumb"
@@ -53,6 +54,7 @@
                               Height="18"
                               Canvas.Top="2"
                               AutomationProperties.Name="{DynamicResource AutomaticRuleEndSlider}"
+                              DragStarted="EndThumb_DragStarted"
                               DragDelta="EndThumb_DragDelta"
                               Style="{StaticResource RangeSliderThumbStyle}" />
         </Canvas>
