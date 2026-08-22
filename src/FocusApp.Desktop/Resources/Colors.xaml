@@ -27,10 +27,21 @@
     <SolidColorBrush x:Key="FocusButtonPressedBackground" Color="#EF6D00" />
     <SolidColorBrush x:Key="ControlHoverBackground" Color="#F2F2F4" />
     <SolidColorBrush x:Key="ControlPressedBackground" Color="#EAEAED" />
-    <Color x:Key="RecentTargetDefaultBackgroundColor">#F2F2F4</Color>
-    <Color x:Key="RecentTargetHoverBackgroundColor">#EAEAED</Color>
-    <Color x:Key="RecentTargetDefaultBorderColor">Transparent</Color>
-    <Color x:Key="RecentTargetHoverBorderColor">#D8D8DD</Color>
+    <SolidColorBrush x:Key="RecentTargetDefaultBackgroundColor" Color="#F5F5F7" />
+    <SolidColorBrush x:Key="RecentTargetHoverBackgroundColor" Color="#ECECEF" />
+    <SolidColorBrush x:Key="RecentTargetDefaultBorderColor" Color="Transparent" />
+    <SolidColorBrush x:Key="RecentTargetHoverBorderColor" Color="Transparent" />
+    <SolidColorBrush x:Key="RecentTargetSelectedBackground" Color="#FFF7F0" />
+    <SolidColorBrush x:Key="RecentTargetSelectedBorder" Color="#FF9A4A" />
+    <SolidColorBrush x:Key="RecentTargetPressedBackground" Color="#E4E4E8" />
+    <SolidColorBrush x:Key="RecentTargetSelectedPressedBackground" Color="#FFEBDD" />
+    <SolidColorBrush x:Key="FocusTargetIconBrush" Color="#3A3A3C" />
+    <SolidColorBrush x:Key="FocusTargetChevronBrush" Color="#8E8E93" />
+    <SolidColorBrush x:Key="FocusTargetDividerBrush" Color="#E8E8EA" />
+    <SolidColorBrush x:Key="FocusTargetCancelTextBrush" Color="#3A3A3C" />
+    <SolidColorBrush x:Key="FocusTargetConfirmTextBrush" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="FocusTargetSubtleHoverBrush" Color="#F5F5F7" />
+    <SolidColorBrush x:Key="FocusTargetSubtlePressedBrush" Color="#ECECEF" />
     <Color x:Key="CreateTargetDefaultBorderColor">#E5E5EA</Color>
     <Color x:Key="CreateTargetHoverBorderColor">#CFCFD5</Color>
     <SolidColorBrush x:Key="OverlayBorder" Color="#EFEFF1" />

@@ -31,6 +31,132 @@
             </Setter>
         </Style>
 
+        <Style x:Key="TargetChevronButton" TargetType="{x:Type Button}">
+            <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="{DynamicResource FocusTargetChevronBrush}" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border Background="Transparent" CornerRadius="8">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Opacity" Value="0.58" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="TargetAddButton" TargetType="{x:Type Button}">
+            <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Grid Background="Transparent">
+                            <Border x:Name="Surface"
+                                    Width="34"
+                                    Height="34"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Background="{DynamicResource SurfacePrimary}"
+                                    BorderBrush="{DynamicResource BorderPrimary}"
+                                    BorderThickness="1"
+                                    CornerRadius="17">
+                                <Border.Effect>
+                                    <DropShadowEffect BlurRadius="5" Direction="270" Opacity="0.055" ShadowDepth="1" />
+                                </Border.Effect>
+                                <TextBlock HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           FontSize="25"
+                                           FontWeight="Light"
+                                           Foreground="{DynamicResource AccentPrimary}"
+                                           Text="+" />
+                            </Border>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Surface" Property="Background" Value="{DynamicResource FocusTargetSubtleHoverBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Surface" Property="Background" Value="{DynamicResource FocusTargetSubtlePressedBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="TargetCancelButton"
+               TargetType="{x:Type Button}"
+               BasedOn="{StaticResource ThemedTextButtonBaseStyle}">
+            <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderPrimary}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="{DynamicResource FocusTargetCancelTextBrush}" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border x:Name="Surface"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="10">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Surface" Property="Background" Value="{DynamicResource FocusTargetSubtleHoverBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Surface" Property="Background" Value="{DynamicResource FocusTargetSubtlePressedBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="TargetConfirmButton"
+               TargetType="{x:Type Button}"
+               BasedOn="{StaticResource ThemedTextButtonBaseStyle}">
+            <Setter Property="Background" Value="{DynamicResource AccentPrimary}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="{DynamicResource FocusTargetConfirmTextBrush}" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border x:Name="Surface" Background="{TemplateBinding Background}" CornerRadius="10">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Surface" Property="Background" Value="{DynamicResource AccentHover}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Surface" Property="Background" Value="{DynamicResource AccentPressed}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="RecentTargetButton" TargetType="{x:Type Button}">
             <Setter Property="Height" Value="36" />
             <Setter Property="Margin" Value="0,0,8,0" />
@@ -39,7 +165,7 @@
             <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
-            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontSize" Value="13" />
             <Setter Property="FontWeight" Value="Normal" />
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Template">
@@ -48,14 +174,10 @@
                         <Border x:Name="Root"
                                 MinWidth="67"
                                 Padding="{TemplateBinding Padding}"
+                                Background="{DynamicResource RecentTargetDefaultBackgroundColor}"
+                                BorderBrush="{DynamicResource RecentTargetDefaultBorderColor}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
                                 CornerRadius="18">
-                            <Border.Background>
-                                <SolidColorBrush Color="{DynamicResource RecentTargetDefaultBackgroundColor}" />
-                            </Border.Background>
-                            <Border.BorderBrush>
-                                <SolidColorBrush Color="{DynamicResource RecentTargetDefaultBorderColor}" />
-                            </Border.BorderBrush>
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
                         <ControlTemplate.Triggers>
@@ -64,30 +186,29 @@
                                     <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource Self}}" Value="True" />
                                     <Condition Binding="{Binding IsSelected}" Value="False" />
                                 </MultiDataTrigger.Conditions>
-                                <MultiDataTrigger.EnterActions>
-                                    <BeginStoryboard x:Name="RecentTargetHoverStoryboard">
-                                        <Storyboard>
-                                            <ColorAnimation Storyboard.TargetName="Root"
-                                                            Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
-                                                            To="{StaticResource RecentTargetHoverBackgroundColor}"
-                                                            Duration="0:0:0.18" />
-                                            <ColorAnimation Storyboard.TargetName="Root"
-                                                            Storyboard.TargetProperty="(Border.BorderBrush).(SolidColorBrush.Color)"
-                                                            To="{StaticResource RecentTargetHoverBorderColor}"
-                                                            Duration="0:0:0.18" />
-                                        </Storyboard>
-                                    </BeginStoryboard>
-                                </MultiDataTrigger.EnterActions>
-                                <MultiDataTrigger.ExitActions>
-                                    <RemoveStoryboard BeginStoryboardName="RecentTargetHoverStoryboard" />
-                                </MultiDataTrigger.ExitActions>
+                                <Setter TargetName="Root" Property="Background" Value="{DynamicResource RecentTargetHoverBackgroundColor}" />
+                                <Setter TargetName="Root" Property="BorderBrush" Value="{DynamicResource RecentTargetHoverBorderColor}" />
                             </MultiDataTrigger>
                             <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                <Setter TargetName="Root" Property="Background" Value="{DynamicResource AccentTint}" />
-                                <Setter TargetName="Root" Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
+                                <Setter TargetName="Root" Property="Background" Value="{DynamicResource RecentTargetSelectedBackground}" />
+                                <Setter TargetName="Root" Property="BorderBrush" Value="{DynamicResource RecentTargetSelectedBorder}" />
                                 <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}" />
                                 <Setter Property="FontWeight" Value="Normal" />
                             </DataTrigger>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding IsPressed, RelativeSource={RelativeSource Self}}" Value="True" />
+                                    <Condition Binding="{Binding IsSelected}" Value="False" />
+                                </MultiDataTrigger.Conditions>
+                                <Setter TargetName="Root" Property="Background" Value="{DynamicResource RecentTargetPressedBackground}" />
+                            </MultiDataTrigger>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding IsPressed, RelativeSource={RelativeSource Self}}" Value="True" />
+                                    <Condition Binding="{Binding IsSelected}" Value="True" />
+                                </MultiDataTrigger.Conditions>
+                                <Setter TargetName="Root" Property="Background" Value="{DynamicResource RecentTargetSelectedPressedBackground}" />
+                            </MultiDataTrigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
@@ -101,7 +222,7 @@
             <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
             <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontSize" Value="13" />
             <Setter Property="CaretBrush" Value="{DynamicResource TextPrimary}" />
             <Setter Property="Template">
                 <Setter.Value>
@@ -181,7 +302,7 @@
             BorderThickness="1"
             CornerRadius="20">
         <Border.Effect>
-            <DropShadowEffect BlurRadius="22" Direction="270" Opacity="0.11" ShadowDepth="6" />
+            <DropShadowEffect BlurRadius="18" Direction="270" Opacity="0.075" ShadowDepth="3" />
         </Border.Effect>
         <Grid Margin="24,20,24,18">
             <Grid.RowDefinitions>
@@ -197,11 +318,11 @@
                 <TextBlock Margin="0,0,9,0"
                            VerticalAlignment="Center"
                            FontFamily="Segoe MDL2 Assets"
-                           FontSize="20"
-                           Foreground="{DynamicResource TextPrimary}"
+                           FontSize="18"
+                           Foreground="{DynamicResource FocusTargetIconBrush}"
                            Text="&#xE823;" />
                 <TextBlock VerticalAlignment="Center"
-                           FontSize="18"
+                           FontSize="16"
                            FontWeight="Medium"
                            Foreground="{DynamicResource TextPrimary}"
                            Text="{DynamicResource FocusTargetRecent}" />
@@ -214,12 +335,12 @@
                 </Grid.ColumnDefinitions>
                 <Button Grid.Column="0" Width="28" Height="36" AutomationProperties.Name="上一个目标" Command="{Binding ShowPreviousTargetsCommand}">
                     <Button.Style>
-                        <Style TargetType="{x:Type Button}" BasedOn="{StaticResource TargetPlainButton}">
+                        <Style TargetType="{x:Type Button}" BasedOn="{StaticResource TargetChevronButton}">
                             <Setter Property="Visibility" Value="Collapsed" />
                             <Style.Triggers><DataTrigger Binding="{Binding CanShowPreviousTargets}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers>
                         </Style>
                     </Button.Style>
-                    <TextBlock FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="{DynamicResource TextSecondary}" Text="&#xE76B;" />
+                    <TextBlock FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}" Text="&#xE76B;" />
                 </Button>
                 <ItemsControl Grid.Column="1" ItemsSource="{Binding VisibleTargets}">
                     <ItemsControl.ItemsPanel>
@@ -239,43 +360,31 @@
                 </ItemsControl>
                 <Button Grid.Column="2" Width="28" Height="36" AutomationProperties.Name="{DynamicResource FocusTargetMore}" Command="{Binding ShowNextTargetsCommand}">
                     <Button.Style>
-                        <Style TargetType="{x:Type Button}" BasedOn="{StaticResource TargetPlainButton}">
+                        <Style TargetType="{x:Type Button}" BasedOn="{StaticResource TargetChevronButton}">
                             <Setter Property="Visibility" Value="Collapsed" />
                             <Style.Triggers><DataTrigger Binding="{Binding CanShowNextTargets}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers>
                         </Style>
                     </Button.Style>
-                    <TextBlock FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="{DynamicResource TextSecondary}" Text="&#xE76C;" />
+                    <TextBlock FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}" Text="&#xE76C;" />
                 </Button>
             </Grid>
 
             <Border Grid.Row="2"
                     Height="1"
                     VerticalAlignment="Center"
-                    Background="{DynamicResource OverlayBorder}" />
+                    Background="{DynamicResource FocusTargetDividerBrush}" />
 
             <Grid Grid.Row="3">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Margin="0,0,9,0" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="20" Foreground="{DynamicResource TextPrimary}" Text="&#xE823;" />
-                    <TextBlock VerticalAlignment="Center" FontSize="18" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource FocusTargetPendingTasks}" />
+                    <TextBlock Margin="0,0,9,0" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="{DynamicResource FocusTargetIconBrush}" Text="&#xE823;" />
+                    <TextBlock VerticalAlignment="Center" FontSize="16" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource FocusTargetPendingTasks}" />
                 </StackPanel>
                 <Button Width="38"
                         Height="38"
                         HorizontalAlignment="Right"
                         AutomationProperties.Name="{DynamicResource FocusTargetAddTask}"
                         Command="{Binding BeginAddTaskCommand}"
-                        Style="{StaticResource TargetPlainButton}">
-                    <Border Width="34"
-                            Height="34"
-                            Background="{DynamicResource SurfacePrimary}"
-                            BorderBrush="{DynamicResource OverlayBorder}"
-                            BorderThickness="1"
-                            CornerRadius="17">
-                        <Border.Effect>
-                            <DropShadowEffect BlurRadius="9" Direction="270" Opacity="0.10" ShadowDepth="2" />
-                        </Border.Effect>
-                        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="25" FontWeight="Light" Foreground="{DynamicResource AccentPrimary}" Text="+" />
-                    </Border>
-                </Button>
+                        Style="{StaticResource TargetAddButton}" />
             </Grid>
 
             <ScrollViewer Grid.Row="4"
@@ -336,7 +445,7 @@
                             <DataTemplate>
                                 <Border Height="48"
                                         Margin="0"
-                                        BorderBrush="{DynamicResource OverlayBorder}"
+                                        BorderBrush="{DynamicResource FocusTargetDividerBrush}"
                                         BorderThickness="0,0,0,1"
                                         CornerRadius="10"
                                         MouseEnter="TaskRow_MouseEnter"
@@ -353,7 +462,7 @@
                                     </Border.Style>
                                     <Grid>
                                         <Ellipse Width="18" Height="18" Margin="4,0,0,0" HorizontalAlignment="Left" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.3" />
-                                        <TextBlock Margin="36,0,38,0" VerticalAlignment="Center" FontSize="14" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}" Text="{Binding Name}">
+                                        <TextBlock Margin="36,0,38,0" VerticalAlignment="Center" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}" Text="{Binding Name}">
                                             <TextBlock.Style>
                                                 <Style TargetType="{x:Type TextBlock}">
                                                     <Setter Property="Visibility" Value="Visible" />
@@ -402,7 +511,7 @@
                                                PlacementTarget="{Binding ElementName=TaskMenuButton}"
                                                StaysOpen="False">
                                             <Border Width="142" Height="92" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource OverlayBorder}" BorderThickness="1" CornerRadius="10">
-                                                <Border.Effect><DropShadowEffect BlurRadius="18" Direction="270" Opacity="0.18" ShadowDepth="5" /></Border.Effect>
+                                                <Border.Effect><DropShadowEffect BlurRadius="14" Direction="270" Opacity="0.10" ShadowDepth="3" /></Border.Effect>
                                                 <Grid Margin="8">
                                                     <Grid.RowDefinitions><RowDefinition /><RowDefinition Height="1" /><RowDefinition /></Grid.RowDefinitions>
                                                     <Button Click="EditTaskButton_Click" Style="{StaticResource TargetPlainButton}">
@@ -482,7 +591,7 @@
                         </Border.Style>
                         <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
                             <TextBlock Margin="0,-2,9,0" VerticalAlignment="Center" FontSize="24" FontWeight="Light" Foreground="{DynamicResource AccentPrimary}" Text="+" />
-                            <TextBlock VerticalAlignment="Center" FontSize="14" FontWeight="Medium" Foreground="{DynamicResource AccentPrimary}" Text="{DynamicResource FocusTargetCreateNew}" />
+                            <TextBlock VerticalAlignment="Center" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource AccentPrimary}" Text="{DynamicResource FocusTargetCreateNew}" />
                         </StackPanel>
                     </Border>
                 </Button>
@@ -508,36 +617,13 @@
                     <Button Grid.Column="0"
                             AutomationProperties.Name="{DynamicResource FocusTargetCancel}"
                             Command="{Binding CancelSelectionCommand}"
-                            Style="{StaticResource TargetPlainButton}">
-                        <Border Width="112"
-                                Height="38"
-                                Background="{DynamicResource SurfacePrimary}"
-                                BorderBrush="{DynamicResource BorderPrimary}"
-                                BorderThickness="1"
-                                CornerRadius="10">
-                            <TextBlock HorizontalAlignment="Center"
-                                       VerticalAlignment="Center"
-                                       FontSize="14"
-                                       FontWeight="Normal"
-                                       Text="{DynamicResource FocusTargetCancel}" />
-                        </Border>
-                    </Button>
+                            Content="{DynamicResource FocusTargetCancel}"
+                            Style="{StaticResource TargetCancelButton}" />
                     <Button Grid.Column="2"
                             AutomationProperties.Name="{DynamicResource FocusTargetConfirm}"
                             Command="{Binding ConfirmSelectionCommand}"
-                            Style="{StaticResource TargetPlainButton}">
-                        <Border Width="112"
-                                Height="38"
-                                Background="{DynamicResource AccentPrimary}"
-                                CornerRadius="10">
-                            <TextBlock HorizontalAlignment="Center"
-                                       VerticalAlignment="Center"
-                                       FontSize="14"
-                                       FontWeight="Medium"
-                                       Foreground="{DynamicResource WhiteText}"
-                                       Text="{DynamicResource FocusTargetConfirm}" />
-                        </Border>
-                    </Button>
+                            Content="{DynamicResource FocusTargetConfirm}"
+                            Style="{StaticResource TargetConfirmButton}" />
                 </Grid>
 
                 <StackPanel>
@@ -575,11 +661,14 @@
                     </Grid>
                     <StackPanel Margin="0,9,0,0" HorizontalAlignment="Right" Orientation="Horizontal">
                         <Button Width="76" Height="36" AutomationProperties.Name="{DynamicResource FocusTargetCancel}" Command="{Binding CancelCreateTargetCommand}" Content="{DynamicResource FocusTargetCancel}" Style="{StaticResource RecentTargetButton}" />
-                        <Button Width="82" Height="36" Margin="8,0,0,0" AutomationProperties.Name="{DynamicResource FocusTargetCreate}" Command="{Binding CreateTargetCommand}" IsEnabled="{Binding CanCreateTarget}" Style="{StaticResource TargetPlainButton}">
-                            <Border Width="82" Height="36" Background="{DynamicResource FocusButtonBackground}" CornerRadius="9">
-                                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource WhiteText}" Text="{DynamicResource FocusTargetCreate}" />
-                            </Border>
-                        </Button>
+                        <Button Width="82"
+                                Height="36"
+                                Margin="8,0,0,0"
+                                AutomationProperties.Name="{DynamicResource FocusTargetCreate}"
+                                Command="{Binding CreateTargetCommand}"
+                                Content="{DynamicResource FocusTargetCreate}"
+                                IsEnabled="{Binding CanCreateTarget}"
+                                Style="{StaticResource TargetConfirmButton}" />
                     </StackPanel>
                 </StackPanel>
             </Grid>

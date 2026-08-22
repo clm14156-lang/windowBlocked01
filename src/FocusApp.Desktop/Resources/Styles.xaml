@@ -15,6 +15,25 @@
         <Setter Property="FontSize" Value="{DynamicResource BodyFontSize}" />
     </Style>
 
+    <!--
+        Base content template for text-only buttons. The explicit TextBlock
+        bindings outrank the global implicit TextBlock style, while every value
+        still follows the Button and its DynamicResource-based theme properties.
+    -->
+    <DataTemplate x:Key="ThemedButtonTextContentTemplate">
+        <TextBlock HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   FontFamily="{Binding FontFamily, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
+                   FontSize="{Binding FontSize, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
+                   FontWeight="{Binding FontWeight, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
+                   Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
+                   Text="{Binding}" />
+    </DataTemplate>
+
+    <Style x:Key="ThemedTextButtonBaseStyle" TargetType="{x:Type Button}">
+        <Setter Property="ContentTemplate" Value="{StaticResource ThemedButtonTextContentTemplate}" />
+    </Style>
+
     <Style x:Key="NavigationButtonStyle" TargetType="{x:Type RadioButton}">
         <Setter Property="Width" Value="40" />
         <Setter Property="Height" Value="40" />
