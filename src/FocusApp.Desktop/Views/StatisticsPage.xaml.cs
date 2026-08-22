@@ -12,6 +12,7 @@ public partial class StatisticsPage : UserControl
     private bool _suppressGoalProgressScrollSync;
     private bool _monthlyFocusTargetPopupWasOpenOnAnchorPress;
     private bool _monthlyFocusTargetMenuWasOpenOnAnchorPress;
+    private bool _goalMonthMenuWasOpenOnAnchorPress;
     public StatisticsPage()
     {
         InitializeComponent();
@@ -226,6 +227,31 @@ public partial class StatisticsPage : UserControl
 
         viewModel.SetGoalTrendTooltipOffsets(x, y);
         viewModel.SetHoveredGoalTrendPoint(point);
+    }
+
+    private void MonthSelectorArea_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        _goalMonthMenuWasOpenOnAnchorPress =
+            DataContext is StatisticsOverviewViewModel { IsGoalMonthMenuOpen: true };
+    }
+
+    private void MonthSelectorArea_Click(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is not StatisticsOverviewViewModel viewModel)
+        {
+            return;
+        }
+
+        if (_goalMonthMenuWasOpenOnAnchorPress)
+        {
+            viewModel.IsGoalMonthMenuOpen = false;
+            _goalMonthMenuWasOpenOnAnchorPress = false;
+            e.Handled = true;
+            return;
+        }
+
+        viewModel.ToggleGoalMonthMenuCommand.Execute(null);
+        e.Handled = true;
     }
 
     private void GoalTrendBar_MouseLeave(object sender, System.Windows.Input.MouseEventArgs e)

@@ -35,6 +35,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     private bool _isGoalListMenuOpen;
     private GoalMonthOptionViewModel? _selectedGoalMonth;
     private bool _isGoalTrendExpanded;
+    private bool _isGoalMonthMenuOpen;
     private GoalDateGroupViewModel? _expandedGoalDate;
     private GoalTrendPointViewModel? _selectedGoalTrendPoint;
     private GoalTrendPointViewModel? _hoveredGoalTrendPoint;
@@ -69,6 +70,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         DeleteGoalCommand = new RelayCommand<GoalOverviewItemViewModel>(DeleteGoal);
         SelectGoalMonthCommand = new RelayCommand<GoalMonthOptionViewModel>(SelectGoalMonth);
         ToggleGoalTrendCommand = new RelayCommand<object>(_ => IsGoalTrendExpanded = !IsGoalTrendExpanded);
+        ToggleGoalMonthMenuCommand = new RelayCommand<object>(_ => IsGoalMonthMenuOpen = !IsGoalMonthMenuOpen);
         SelectGoalTrendPointCommand = new RelayCommand<GoalTrendPointViewModel>(SelectGoalTrendPoint);
         ToggleGoalDateCommand = new RelayCommand<GoalDateGroupViewModel>(ToggleGoalDate);
         OpenMonthlyFocusTargetCommand = new RelayCommand<object>(_ => OpenMonthlyFocusTarget(false));
@@ -128,6 +130,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     public ICommand SelectGoalMonthCommand { get; }
     public ICommand ToggleGoalTrendCommand { get; }
+    public ICommand ToggleGoalMonthMenuCommand { get; }
     public ICommand SelectGoalTrendPointCommand { get; }
     public ICommand ToggleGoalDateCommand { get; }
 
@@ -208,13 +211,26 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         }
     }
 
+    public bool IsGoalMonthMenuOpen
+    {
+        get => _isGoalMonthMenuOpen;
+        set
+        {
+            if (_isGoalMonthMenuOpen == value) return;
+            _isGoalMonthMenuOpen = value;
+            OnPropertyChanged();
+        }
+    }
+
     public GoalMonthOptionViewModel? SelectedGoalMonth
     {
         get => _selectedGoalMonth;
         set
         {
             if (ReferenceEquals(_selectedGoalMonth, value)) return;
+            if (_selectedGoalMonth is not null) _selectedGoalMonth.IsSelected = false;
             _selectedGoalMonth = value;
+            if (value is not null) value.IsSelected = true;
             SetHoveredGoalTrendPoint(null);
             OnPropertyChanged();
             RefreshGoalTrend();
@@ -574,6 +590,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     {
         if (month is null) return;
         SelectedGoalMonth = month;
+        IsGoalMonthMenuOpen = false;
     }
 
     private void SelectGoalTrendPoint(GoalTrendPointViewModel? point)
@@ -1547,12 +1564,26 @@ public sealed class GoalTrendPointViewModel
     };
 }
 
-public sealed class GoalMonthOptionViewModel
+public sealed class GoalMonthOptionViewModel : INotifyPropertyChanged
 {
+    private bool _isSelected;
+
     public GoalMonthOptionViewModel(DateTime date) => Date = date;
+    public event PropertyChangedEventHandler? PropertyChanged;
     public DateTime Date { get; }
     public int Month => Date.Month;
     public string Label => $"{Date:yyyy年M月}";
+
+    public bool IsSelected
+    {
+        get => _isSelected;
+        set
+        {
+            if (_isSelected == value) return;
+            _isSelected = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsSelected)));
+        }
+    }
 }
 
 public sealed class GoalDateGroupViewModel : INotifyPropertyChanged

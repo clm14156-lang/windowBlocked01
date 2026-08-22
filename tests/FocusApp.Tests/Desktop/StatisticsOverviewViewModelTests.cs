@@ -445,6 +445,33 @@ public sealed class StatisticsOverviewViewModelTests
     }
 
     [Fact]
+    public void MonthMenuSelectionDoesNotChangeTrendExpansionState()
+    {
+        var viewModel = new StatisticsOverviewViewModel();
+
+        Assert.False(viewModel.IsGoalTrendExpanded);
+        Assert.False(viewModel.IsGoalMonthMenuOpen);
+        Assert.True(viewModel.SelectedGoalMonth?.IsSelected);
+
+        viewModel.ToggleGoalTrendCommand.Execute(null);
+        viewModel.ToggleGoalMonthMenuCommand.Execute(null);
+
+        Assert.True(viewModel.IsGoalTrendExpanded);
+        Assert.True(viewModel.IsGoalMonthMenuOpen);
+
+        var previousMonth = viewModel.SelectedGoalMonth;
+        var selectedMonth = viewModel.GoalMonths[1];
+        viewModel.SelectGoalMonthCommand.Execute(selectedMonth);
+
+        Assert.Same(selectedMonth, viewModel.SelectedGoalMonth);
+        Assert.True(selectedMonth.IsSelected);
+        Assert.False(previousMonth?.IsSelected);
+        Assert.False(viewModel.IsGoalMonthMenuOpen);
+        Assert.True(viewModel.IsGoalTrendExpanded);
+        Assert.All(viewModel.GoalTrendPoints, point => Assert.Equal(selectedMonth.Month, point.Date.Month));
+    }
+
+    [Fact]
     public void SelectingTrendPointExpandsMatchingDateGroup()
     {
         var viewModel = new StatisticsOverviewViewModel();

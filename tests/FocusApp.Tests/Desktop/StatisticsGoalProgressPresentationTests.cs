@@ -163,7 +163,7 @@ public sealed class StatisticsGoalProgressPresentationTests
     }
 
     [Fact]
-    public void GoalTrendDefaultsCollapsedAndUsesACompactAnimatedSection()
+    public void GoalTrendHeaderSeparatesTrendToggleFromMonthSelection()
     {
         var viewModel = new StatisticsOverviewViewModel();
         Assert.False(viewModel.IsGoalTrendExpanded);
@@ -181,28 +181,54 @@ public sealed class StatisticsGoalProgressPresentationTests
             .Elements(Presentation + "RowDefinition")
             .Select(row => (string?)row.Attribute("Height"))
             .ToArray();
-        var toggle = Assert.Single(page.Descendants(Presentation + "Button").Where(button =>
-            (string?)button.Attribute(Xaml + "Name") == "GoalTrendToggleButton"));
+        var trendToggle = Assert.Single(page.Descendants(Presentation + "Button").Where(button =>
+            (string?)button.Attribute(Xaml + "Name") == "TrendToggleArea"));
+        var monthSelector = Assert.Single(page.Descendants(Presentation + "Button").Where(button =>
+            (string?)button.Attribute(Xaml + "Name") == "MonthSelectorArea"));
+        var trendHeader = Assert.Single(page.Descendants(Presentation + "Border").Where(border =>
+            (string?)border.Attribute(Xaml + "Name") == "GoalTrendHeader"));
+        var monthPopup = Assert.Single(page.Descendants(Presentation + "Popup").Where(popup =>
+            (string?)popup.Attribute(Xaml + "Name") == "GoalMonthPopup"));
         var expandableContent = Assert.Single(page.Descendants(Presentation + "Border").Where(border =>
             (string?)border.Attribute(Xaml + "Name") == "GoalTrendExpandableContent"));
         var animations = expandableContent.Descendants(Presentation + "DoubleAnimation").ToArray();
         var chartLayout = Assert.Single(expandableContent.Elements(Presentation + "Grid"));
 
         Assert.Equal(new[] { "76", "Auto", "42", "*" }, rowHeights);
-        Assert.Equal("44", (string?)toggle.Attribute("Height"));
-        Assert.Equal("{Binding ToggleGoalTrendCommand}", (string?)toggle.Attribute("Command"));
-        var trendHeader = Assert.Single(toggle.Descendants(Presentation + "Border").Where(border =>
-            (string?)border.Attribute(Xaml + "Name") == "TrendHeaderBackground"));
+        Assert.Equal("42", (string?)trendToggle.Attribute("Height"));
+        Assert.Equal("42", (string?)monthSelector.Attribute("Height"));
+        Assert.Equal("{Binding ToggleGoalTrendCommand}", (string?)trendToggle.Attribute("Command"));
+        Assert.Null((string?)monthSelector.Attribute("Command"));
+        Assert.Equal("MonthSelectorArea_PreviewMouseLeftButtonDown", (string?)monthSelector.Attribute("PreviewMouseLeftButtonDown"));
+        Assert.Equal("MonthSelectorArea_Click", (string?)monthSelector.Attribute("Click"));
         Assert.Equal("12", (string?)trendHeader.Attribute("CornerRadius"));
         Assert.Equal("1", (string?)trendHeader.Attribute("BorderThickness"));
         Assert.Equal("{DynamicResource OverlayBorder}", (string?)trendHeader.Attribute("BorderBrush"));
-        Assert.Contains(toggle.Descendants(Presentation + "Path"), path =>
+        Assert.Contains(trendToggle.Descendants(Presentation + "Path"), path =>
             (string?)path.Attribute("Data") == "M 2,3 V 15 H 16 M 4,12 L 8,8 L 11,10 L 16,5");
-        Assert.Empty(toggle.Descendants(Presentation + "ComboBox"));
-        Assert.Contains(toggle.Descendants(Presentation + "Trigger"), trigger =>
+        Assert.Contains(trendToggle.Descendants(Presentation + "DataTrigger"), trigger =>
+            (string?)trigger.Attribute("Binding") == "{Binding IsGoalTrendExpanded}");
+        Assert.Contains(monthSelector.Descendants(Presentation + "DataTrigger"), trigger =>
+            (string?)trigger.Attribute("Binding") == "{Binding IsGoalMonthMenuOpen}");
+        Assert.Contains(trendToggle.Descendants(Presentation + "Trigger"), trigger =>
             (string?)trigger.Attribute("Property") == "IsMouseOver"
             && trigger.Descendants(Presentation + "Setter").Any(setter =>
                 (string?)setter.Attribute("Value") == "{DynamicResource ControlHoverBackground}"));
+        Assert.Contains(monthSelector.Descendants(Presentation + "Trigger"), trigger =>
+            (string?)trigger.Attribute("Property") == "IsMouseOver"
+            && trigger.Descendants(Presentation + "Setter").Any(setter =>
+                (string?)setter.Attribute("Value") == "{DynamicResource ControlHoverBackground}"));
+        Assert.Equal("{Binding IsGoalMonthMenuOpen, Mode=TwoWay}", (string?)monthPopup.Attribute("IsOpen"));
+        Assert.Equal("{Binding ElementName=MonthSelectorArea}", (string?)monthPopup.Attribute("PlacementTarget"));
+        Assert.Equal("False", (string?)monthPopup.Attribute("StaysOpen"));
+        var monthMenuSurface = Assert.Single(monthPopup.Elements(Presentation + "Border"));
+        Assert.Equal("10", (string?)monthMenuSurface.Attribute("CornerRadius"));
+        Assert.Equal("1", (string?)monthMenuSurface.Attribute("BorderThickness"));
+        var monthItems = Assert.Single(monthPopup.Descendants(Presentation + "ItemsControl"));
+        Assert.Equal("{Binding GoalMonths}", (string?)monthItems.Attribute("ItemsSource"));
+        Assert.Contains(monthPopup.Descendants(Presentation + "Button"), button =>
+            (string?)button.Attribute("Command") == "{Binding Tag, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+            && (string?)button.Attribute("CommandParameter") == "{Binding}");
         Assert.Contains(animations, animation =>
             (string?)animation.Attribute("Storyboard.TargetProperty") == "Height"
             && (string?)animation.Attribute("To") == "160"

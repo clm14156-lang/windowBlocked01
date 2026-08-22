@@ -638,38 +638,105 @@
                                     <RowDefinition Height="44" />
                                     <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
-                                <Button x:Name="GoalTrendToggleButton" Height="44" Padding="18,0" HorizontalContentAlignment="Stretch" Background="{DynamicResource SurfacePrimary}" BorderThickness="0" FocusVisualStyle="{x:Null}" Command="{Binding ToggleGoalTrendCommand}">
-                                    <Button.Template>
-                                        <ControlTemplate TargetType="Button">
-                                            <Border x:Name="TrendHeaderBackground" Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}" BorderBrush="{DynamicResource OverlayBorder}" BorderThickness="1" CornerRadius="12">
-                                                <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center" />
-                                            </Border>
-                                            <ControlTemplate.Triggers>
-                                                <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="TrendHeaderBackground" Property="Background" Value="{DynamicResource ControlHoverBackground}" /></Trigger>
-                                                <Trigger Property="IsPressed" Value="True"><Setter TargetName="TrendHeaderBackground" Property="Background" Value="{DynamicResource ControlPressedBackground}" /></Trigger>
-                                            </ControlTemplate.Triggers>
-                                        </ControlTemplate>
-                                    </Button.Template>
+                                <Border x:Name="GoalTrendHeader" Grid.Row="0" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource OverlayBorder}" BorderThickness="1" CornerRadius="12">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="20" />
                                             <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="96" />
-                                            <ColumnDefinition Width="18" />
+                                            <ColumnDefinition Width="132" />
                                         </Grid.ColumnDefinitions>
-                                        <Path Width="18" Height="18" VerticalAlignment="Center" Data="M 2,3 V 15 H 16 M 4,12 L 8,8 L 11,10 L 16,5" Stroke="{DynamicResource TextSecondary}" StrokeEndLineCap="Round" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeThickness="1.4" />
-                                        <TextBlock Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center" FontSize="15" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="投入趋势" />
-                                        <TextBlock Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}" Text="{Binding SelectedGoalMonth.Label}" />
-                                        <Grid Grid.Column="3" Width="12" Height="12" HorizontalAlignment="Right" VerticalAlignment="Center">
-                                            <Path Data="M 1,3 L 6,8 L 11,3" Stroke="{DynamicResource TextWeak}" StrokeEndLineCap="Round" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeThickness="1.4">
-                                                <Path.Style><Style TargetType="Path"><Setter Property="Visibility" Value="Visible" /><Style.Triggers><DataTrigger Binding="{Binding IsGoalTrendExpanded}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers></Style></Path.Style>
-                                            </Path>
-                                            <Path Data="M 1,8 L 6,3 L 11,8" Stroke="{DynamicResource TextWeak}" StrokeEndLineCap="Round" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeThickness="1.4">
-                                                <Path.Style><Style TargetType="Path"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding IsGoalTrendExpanded}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></Path.Style>
-                                            </Path>
-                                        </Grid>
+                                        <Button x:Name="TrendToggleArea" Grid.Column="0" Height="42" Padding="17,0,10,0" HorizontalContentAlignment="Stretch" Background="{DynamicResource TransparentBrush}" BorderThickness="0" FocusVisualStyle="{x:Null}" Command="{Binding ToggleGoalTrendCommand}">
+                                            <Button.Template>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border x:Name="TrendToggleBackground" Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}" CornerRadius="11,0,0,11">
+                                                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center" />
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="TrendToggleBackground" Property="Background" Value="{DynamicResource ControlHoverBackground}" /></Trigger>
+                                                        <Trigger Property="IsPressed" Value="True"><Setter TargetName="TrendToggleBackground" Property="Background" Value="{DynamicResource ControlPressedBackground}" /></Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Button.Template>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="20" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="22" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <Path Width="18" Height="18" VerticalAlignment="Center" Data="M 2,3 V 15 H 16 M 4,12 L 8,8 L 11,10 L 16,5" Stroke="{DynamicResource TextSecondary}" StrokeEndLineCap="Round" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeThickness="1.4" />
+                                                <TextBlock Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center" FontSize="15" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="投入趋势" />
+                                                <Grid Grid.Column="2" Width="12" Height="12" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                                    <Path Data="M 3,1 L 8,6 L 3,11" Stroke="{DynamicResource TextWeak}" StrokeEndLineCap="Round" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeThickness="1.4">
+                                                        <Path.Style><Style TargetType="Path"><Setter Property="Visibility" Value="Visible" /><Style.Triggers><DataTrigger Binding="{Binding IsGoalTrendExpanded}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers></Style></Path.Style>
+                                                    </Path>
+                                                    <Path Data="M 1,3 L 6,8 L 11,3" Stroke="{DynamicResource TextWeak}" StrokeEndLineCap="Round" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeThickness="1.4">
+                                                        <Path.Style><Style TargetType="Path"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding IsGoalTrendExpanded}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></Path.Style>
+                                                    </Path>
+                                                </Grid>
+                                            </Grid>
+                                        </Button>
+                                        <Button x:Name="MonthSelectorArea" Grid.Column="1" Height="42" Padding="10,0,17,0" HorizontalContentAlignment="Stretch" Background="{DynamicResource TransparentBrush}" BorderThickness="0" FocusVisualStyle="{x:Null}" PreviewMouseLeftButtonDown="MonthSelectorArea_PreviewMouseLeftButtonDown" Click="MonthSelectorArea_Click">
+                                            <Button.Template>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border x:Name="MonthSelectorBackground" Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}" CornerRadius="0,11,11,0">
+                                                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center" />
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="MonthSelectorBackground" Property="Background" Value="{DynamicResource ControlHoverBackground}" /></Trigger>
+                                                        <Trigger Property="IsPressed" Value="True"><Setter TargetName="MonthSelectorBackground" Property="Background" Value="{DynamicResource ControlPressedBackground}" /></Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Button.Template>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="18" /></Grid.ColumnDefinitions>
+                                                <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}" Text="{Binding SelectedGoalMonth.Label}" />
+                                                <Grid Grid.Column="1" Width="12" Height="12" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                                    <Path Data="M 1,3 L 6,8 L 11,3" Stroke="{DynamicResource TextWeak}" StrokeEndLineCap="Round" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeThickness="1.4">
+                                                        <Path.Style><Style TargetType="Path"><Setter Property="Visibility" Value="Visible" /><Style.Triggers><DataTrigger Binding="{Binding IsGoalMonthMenuOpen}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers></Style></Path.Style>
+                                                    </Path>
+                                                    <Path Data="M 1,8 L 6,3 L 11,8" Stroke="{DynamicResource TextWeak}" StrokeEndLineCap="Round" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeThickness="1.4">
+                                                        <Path.Style><Style TargetType="Path"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding IsGoalMonthMenuOpen}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></Path.Style>
+                                                    </Path>
+                                                </Grid>
+                                            </Grid>
+                                        </Button>
                                     </Grid>
-                                </Button>
+                                </Border>
+                                <Popup x:Name="GoalMonthPopup" Grid.Row="0" AllowsTransparency="True" IsOpen="{Binding IsGoalMonthMenuOpen, Mode=TwoWay}" Placement="Bottom" PlacementTarget="{Binding ElementName=MonthSelectorArea}" PopupAnimation="Fade" StaysOpen="False" VerticalOffset="4">
+                                    <Border Width="142" Padding="6" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource OverlayBorder}" BorderThickness="1" CornerRadius="10">
+                                        <Border.Effect><DropShadowEffect BlurRadius="10" Direction="270" Opacity="0.10" ShadowDepth="2" /></Border.Effect>
+                                        <ItemsControl ItemsSource="{Binding GoalMonths}" Tag="{Binding SelectGoalMonthCommand}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate DataType="{x:Type vm:GoalMonthOptionViewModel}">
+                                                    <Button Height="38" Padding="11,0" HorizontalContentAlignment="Stretch" Background="{DynamicResource TransparentBrush}" BorderThickness="0" FocusVisualStyle="{x:Null}" Command="{Binding Tag, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}">
+                                                        <Button.Style>
+                                                            <Style TargetType="Button">
+                                                                <Setter Property="Template">
+                                                                    <Setter.Value>
+                                                                        <ControlTemplate TargetType="Button">
+                                                                            <Border x:Name="MonthItemBackground" Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}" CornerRadius="8">
+                                                                                <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center" />
+                                                                            </Border>
+                                                                            <ControlTemplate.Triggers>
+                                                                                <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="MonthItemBackground" Property="Background" Value="{DynamicResource ControlHoverBackground}" /></Trigger>
+                                                                                <DataTrigger Binding="{Binding IsSelected}" Value="True"><Setter TargetName="MonthItemBackground" Property="Background" Value="{DynamicResource BackgroundSecondary}" /></DataTrigger>
+                                                                            </ControlTemplate.Triggers>
+                                                                        </ControlTemplate>
+                                                                    </Setter.Value>
+                                                                </Setter>
+                                                            </Style>
+                                                        </Button.Style>
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="16" /></Grid.ColumnDefinitions>
+                                                            <TextBlock VerticalAlignment="Center" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}" Text="{Binding Label}" />
+                                                            <Path Grid.Column="1" Width="11" Height="10" HorizontalAlignment="Right" VerticalAlignment="Center" Data="M 1,5 L 4,8 L 10,2" Stroke="{DynamicResource TextSecondary}" StrokeEndLineCap="Round" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeThickness="1.5" Visibility="{Binding IsSelected, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                                        </Grid>
+                                                    </Button>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </Border>
+                                </Popup>
                                 <Border x:Name="GoalTrendExpandableContent" Grid.Row="1" ClipToBounds="True" Background="{DynamicResource SurfacePrimary}">
                                     <Border.Style>
                                         <Style TargetType="Border">
