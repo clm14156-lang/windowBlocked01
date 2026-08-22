@@ -292,6 +292,14 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     public string SelectedDayDurationDisplay => FormatDuration(SelectedDayMinutes);
 
+    public string SelectedDayHoursValueDisplay => SelectedDayMinutes >= 60
+        ? (SelectedDayMinutes / 60).ToString()
+        : string.Empty;
+
+    public string SelectedDayHoursUnitDisplay => SelectedDayMinutes >= 60 ? " 小时 " : string.Empty;
+
+    public string SelectedDayMinutesValueDisplay => (SelectedDayMinutes % 60).ToString();
+
     public string SelectedDayTasksDisplay => $"{SelectedDayCompletedTasks} 个任务";
 
     public int SelectedDayMinutes => SelectedDayRecords.Sum(record => record.DurationMinutes);
@@ -844,6 +852,9 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
         OnPropertyChanged(nameof(SelectedDateDisplay));
         OnPropertyChanged(nameof(SelectedDayDurationDisplay));
+        OnPropertyChanged(nameof(SelectedDayHoursValueDisplay));
+        OnPropertyChanged(nameof(SelectedDayHoursUnitDisplay));
+        OnPropertyChanged(nameof(SelectedDayMinutesValueDisplay));
         OnPropertyChanged(nameof(SelectedDayTasksDisplay));
         OnPropertyChanged(nameof(SelectedDayMinutes));
         OnPropertyChanged(nameof(SelectedDayCompletedTasks));

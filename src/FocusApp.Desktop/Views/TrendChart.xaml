@@ -73,7 +73,7 @@
                                    Width="52"
                                    TextAlignment="Center"
                                    FontSize="12"
-                                   FontWeight="SemiBold"
+                                   FontWeight="Normal"
                                    Foreground="{DynamicResource TextSecondary}"
                                    Text="{Binding DurationLabel}">
                             <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding IsValueLabelVisible}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></TextBlock.Style>
@@ -114,6 +114,7 @@
                                Margin="-29,0,0,0"
                                TextAlignment="Center"
                                FontSize="12"
+                               FontWeight="Normal"
                                Foreground="{DynamicResource TextSecondary}"
                                Text="{Binding DateLabel}">
                         <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding IsDateLabelVisible}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></TextBlock.Style>

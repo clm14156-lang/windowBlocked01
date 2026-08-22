@@ -116,6 +116,9 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.Equal("2月28日 · 周六", viewModel.SelectedDateDisplay);
         Assert.Single(viewModel.SelectedDayRecords);
         Assert.Equal("35 分钟", viewModel.SelectedDayDurationDisplay);
+        Assert.Equal(string.Empty, viewModel.SelectedDayHoursValueDisplay);
+        Assert.Equal(string.Empty, viewModel.SelectedDayHoursUnitDisplay);
+        Assert.Equal("35", viewModel.SelectedDayMinutesValueDisplay);
         Assert.Equal("1 个任务", viewModel.SelectedDayTasksDisplay);
         Assert.Contains(viewModel.CalendarDays, day => day.Date == new DateTime(2026, 2, 28) && day.IsSelected);
     }
@@ -546,6 +549,9 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.Equal(2, viewModel.SelectedDayRecords.Count);
         Assert.Contains(added, viewModel.SelectedDayRecords);
         Assert.Equal("1 小时 35 分钟", viewModel.SelectedDayDurationDisplay);
+        Assert.Equal("1", viewModel.SelectedDayHoursValueDisplay);
+        Assert.Equal(" 小时 ", viewModel.SelectedDayHoursUnitDisplay);
+        Assert.Equal("35", viewModel.SelectedDayMinutesValueDisplay);
         Assert.Equal(95, viewModel.GoalTrendPoints.Single(point => point.Date == new DateTime(2026, 2, 28)).Minutes);
         Assert.Equal("9 小时 2 分钟", viewModel.SelectedGoalDurationDisplay);
         Assert.Equal("15 次推进", viewModel.SelectedGoalProgressDisplay);
@@ -553,6 +559,8 @@ public sealed class StatisticsOverviewViewModelTests
 
         added.EndTime = new DateTime(2026, 2, 28, 21, 30, 0);
         Assert.Equal("2 小时 5 分钟", viewModel.SelectedDayDurationDisplay);
+        Assert.Equal("2", viewModel.SelectedDayHoursValueDisplay);
+        Assert.Equal("5", viewModel.SelectedDayMinutesValueDisplay);
         Assert.Equal(125, viewModel.GoalTrendPoints.Single(point => point.Date == new DateTime(2026, 2, 28)).Minutes);
 
         viewModel.FocusSessionRecords.Remove(added);
