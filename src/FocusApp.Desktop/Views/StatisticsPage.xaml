@@ -72,6 +72,30 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <Style x:Key="MonthlyTargetMenuItemStyle" TargetType="{x:Type Button}" BasedOn="{StaticResource ThemedTextButtonBaseStyle}">
+            <Setter Property="Height" Value="34" />
+            <Setter Property="Padding" Value="10,0" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border x:Name="MenuItemBackground" Background="{TemplateBinding Background}" CornerRadius="7">
+                            <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="MenuItemBackground" Property="Background" Value="{DynamicResource ControlHoverBackground}" /></Trigger>
+                            <Trigger Property="IsPressed" Value="True"><Setter TargetName="MenuItemBackground" Property="Background" Value="{DynamicResource ControlPressedBackground}" /></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
         <Style x:Key="MonthlyTargetPrimaryButtonStyle" TargetType="{x:Type Button}">
             <Setter Property="Background" Value="{DynamicResource AccentPrimary}" />
             <Setter Property="BorderThickness" Value="0" />
@@ -322,7 +346,42 @@
                         <Grid.ColumnDefinitions><ColumnDefinition Width="290" /><ColumnDefinition /><ColumnDefinition Width="55" /></Grid.ColumnDefinitions>
                         <StackPanel VerticalAlignment="Top"><StackPanel Orientation="Horizontal"><TextBlock FontSize="36" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}" Text="{Binding MonthlyFocusCompletedHours}" /><TextBlock Margin="8,20,0,0" FontSize="15" FontWeight="Normal" Foreground="{DynamicResource TextUnit}" Text="{DynamicResource StatisticsHoursUnit}" /><TextBlock Margin="16,20,0,0" FontSize="15" FontWeight="Normal" Foreground="{DynamicResource TextUnit}" Text="/" /><TextBlock Margin="16,20,0,0" FontSize="15" FontWeight="Normal" Foreground="{DynamicResource TextUnit}" Text="{Binding MonthlyFocusTargetDisplay}" /></StackPanel><TextBlock Margin="0,2,0,0" FontSize="13" Foreground="{DynamicResource TextSecondary}"><Run Text="距离目标还差 " /><Run Text="{Binding MonthlyFocusRemainingDisplay, Mode=OneWay}" /></TextBlock></StackPanel>
                         <ProgressBar Grid.Column="1" Margin="8,0,5,0" VerticalAlignment="Center" Maximum="1" Value="{Binding MonthlyFocusProgressRatio, Mode=OneWay}" Style="{StaticResource StatisticsProgressBarStyle}" />
-                        <Grid Grid.Column="2"><Button x:Name="EditMonthlyFocusTargetButton" Width="34" Height="24" Margin="0,-10,-18,0" HorizontalAlignment="Right" VerticalAlignment="Top" Padding="0" Background="{DynamicResource TransparentBrush}" BorderThickness="0" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondary}" Content="•••" ToolTip="编辑本月目标" PreviewMouseLeftButtonDown="MonthlyFocusTargetAnchor_PreviewMouseLeftButtonDown" Click="EditMonthlyFocusTargetButton_Click" /><TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="15" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{Binding MonthlyFocusProgressPercent, StringFormat={}{0}%}" /></Grid>
+                        <Grid Grid.Column="2">
+                            <Button x:Name="EditMonthlyFocusTargetButton"
+                                    Width="34"
+                                    Height="24"
+                                    Margin="0,-10,-18,0"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Top"
+                                    Padding="0"
+                                    Background="{DynamicResource TransparentBrush}"
+                                    BorderThickness="0"
+                                    FontSize="15"
+                                    FontWeight="SemiBold"
+                                    Foreground="{DynamicResource TextSecondary}"
+                                    Content="•••"
+                                    ToolTip="本月目标操作"
+                                    PreviewMouseLeftButtonDown="MonthlyFocusTargetMenuButton_PreviewMouseLeftButtonDown"
+                                    Click="MonthlyFocusTargetMenuButton_Click" />
+                            <Popup x:Name="MonthlyFocusTargetActionMenu"
+                                   AllowsTransparency="True"
+                                   StaysOpen="False"
+                                   IsOpen="{Binding IsMonthlyFocusTargetMenuOpen, Mode=TwoWay}"
+                                   Placement="Bottom"
+                                   PlacementTarget="{Binding ElementName=EditMonthlyFocusTargetButton}"
+                                   HorizontalOffset="-84"
+                                   VerticalOffset="4"
+                                   PopupAnimation="Fade">
+                                <Border Width="118" Padding="6" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" CornerRadius="10">
+                                    <Border.Effect><DropShadowEffect BlurRadius="10" Direction="270" Opacity="0.1" ShadowDepth="2" /></Border.Effect>
+                                    <StackPanel>
+                                        <Button Content="编辑" Click="EditMonthlyFocusTargetMenuItem_Click" Style="{StaticResource MonthlyTargetMenuItemStyle}" />
+                                        <Button Content="删除" Click="DeleteMonthlyFocusTargetMenuItem_Click" Foreground="{DynamicResource Danger}" Style="{StaticResource MonthlyTargetMenuItemStyle}" />
+                                    </StackPanel>
+                                </Border>
+                            </Popup>
+                            <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="15" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{Binding MonthlyFocusProgressPercent, StringFormat={}{0}%}" />
+                        </Grid>
                     </Grid>
                 </Grid>
                 <Border.Style><Style TargetType="Border"><Setter Property="Background" Value="{DynamicResource SurfacePrimary}" /></Style></Border.Style>
@@ -818,9 +877,6 @@
                         <Button Grid.Column="1" Margin="1,0,0,0" Command="{Binding SaveMonthlyFocusTargetCommand}" Style="{StaticResource MonthlyTargetPrimaryButtonStyle}"><TextBlock Foreground="White" Text="保存" /></Button>
                     </Grid>
                 </StackPanel>
-                <Button Margin="0,-8,-12,0" HorizontalAlignment="Right" VerticalAlignment="Top" Padding="6,4" Background="{DynamicResource TransparentBrush}" BorderThickness="0" Foreground="{DynamicResource Danger}" FontSize="12" Content="删除目标" Command="{Binding DeleteMonthlyFocusTargetCommand}">
-                    <Button.Style><Style TargetType="Button"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding HasMonthlyFocusTarget}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></Button.Style>
-                </Button>
             </Grid>
         </Border>
     </Popup>

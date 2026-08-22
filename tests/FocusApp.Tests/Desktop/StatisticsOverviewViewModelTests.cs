@@ -285,7 +285,11 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.Equal(Math.Min(100, (int)Math.Round(completedMinutes / 3600d * 100)), viewModel.MonthlyFocusProgressPercent);
         Assert.Equal(Math.Min(1, completedMinutes / 3600d), viewModel.MonthlyFocusProgressRatio);
 
+        viewModel.ToggleMonthlyFocusTargetMenuCommand.Execute(null);
+        Assert.True(viewModel.IsMonthlyFocusTargetMenuOpen);
         viewModel.EditMonthlyFocusTargetCommand.Execute(null);
+        Assert.False(viewModel.IsMonthlyFocusTargetMenuOpen);
+        Assert.True(viewModel.IsMonthlyFocusTargetPopupOpen);
         Assert.Equal("60", viewModel.MonthlyFocusTargetInput);
         viewModel.MonthlyFocusTargetInput = "4";
         viewModel.SaveMonthlyFocusTargetCommand.Execute(null);
@@ -293,7 +297,10 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.Equal(100, viewModel.MonthlyFocusProgressPercent);
         Assert.Equal("0 小时", viewModel.MonthlyFocusRemainingDisplay);
 
+        viewModel.ToggleMonthlyFocusTargetMenuCommand.Execute(null);
+        Assert.True(viewModel.IsMonthlyFocusTargetMenuOpen);
         viewModel.DeleteMonthlyFocusTargetCommand.Execute(null);
+        Assert.False(viewModel.IsMonthlyFocusTargetMenuOpen);
         Assert.False(viewModel.HasMonthlyFocusTarget);
         Assert.Equal(0, viewModel.MonthlyFocusProgressPercent);
     }

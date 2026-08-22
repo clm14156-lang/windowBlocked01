@@ -11,6 +11,7 @@ public partial class StatisticsPage : UserControl
 {
     private bool _suppressGoalProgressScrollSync;
     private bool _monthlyFocusTargetPopupWasOpenOnAnchorPress;
+    private bool _monthlyFocusTargetMenuWasOpenOnAnchorPress;
     public StatisticsPage()
     {
         InitializeComponent();
@@ -121,8 +122,50 @@ public partial class StatisticsPage : UserControl
     private void SetMonthlyFocusTargetButton_Click(object sender, RoutedEventArgs e) =>
         ToggleMonthlyFocusTargetPopup(sender, viewModel => viewModel.OpenMonthlyFocusTargetCommand);
 
-    private void EditMonthlyFocusTargetButton_Click(object sender, RoutedEventArgs e) =>
-        ToggleMonthlyFocusTargetPopup(sender, viewModel => viewModel.EditMonthlyFocusTargetCommand);
+    private void MonthlyFocusTargetMenuButton_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        _monthlyFocusTargetMenuWasOpenOnAnchorPress =
+            DataContext is StatisticsOverviewViewModel { IsMonthlyFocusTargetMenuOpen: true };
+    }
+
+    private void MonthlyFocusTargetMenuButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is not StatisticsOverviewViewModel viewModel)
+        {
+            return;
+        }
+
+        if (_monthlyFocusTargetMenuWasOpenOnAnchorPress)
+        {
+            viewModel.IsMonthlyFocusTargetMenuOpen = false;
+            _monthlyFocusTargetMenuWasOpenOnAnchorPress = false;
+            return;
+        }
+
+        viewModel.ToggleMonthlyFocusTargetMenuCommand.Execute(null);
+        e.Handled = true;
+    }
+
+    private void EditMonthlyFocusTargetMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is StatisticsOverviewViewModel viewModel)
+        {
+            MonthlyFocusTargetPopup.PlacementTarget = EditMonthlyFocusTargetButton;
+            viewModel.EditMonthlyFocusTargetCommand.Execute(null);
+        }
+
+        e.Handled = true;
+    }
+
+    private void DeleteMonthlyFocusTargetMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is StatisticsOverviewViewModel viewModel)
+        {
+            viewModel.DeleteMonthlyFocusTargetCommand.Execute(null);
+        }
+
+        e.Handled = true;
+    }
 
     private void ToggleMonthlyFocusTargetPopup(object sender, Func<StatisticsOverviewViewModel, ICommand> commandSelector)
     {

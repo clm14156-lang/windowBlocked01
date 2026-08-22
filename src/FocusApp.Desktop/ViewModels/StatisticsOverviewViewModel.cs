@@ -40,6 +40,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     private readonly HashSet<FocusSessionRecordViewModel> _subscribedFocusSessionRecords = [];
     private int? _monthlyFocusTargetHours;
     private bool _isMonthlyFocusTargetPopupOpen;
+    private bool _isMonthlyFocusTargetMenuOpen;
     private string _monthlyFocusTargetInput = string.Empty;
 
     public StatisticsOverviewViewModel()
@@ -69,6 +70,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         SelectGoalTrendPointCommand = new RelayCommand<GoalTrendPointViewModel>(SelectGoalTrendPoint);
         ToggleGoalDateCommand = new RelayCommand<GoalDateGroupViewModel>(ToggleGoalDate);
         OpenMonthlyFocusTargetCommand = new RelayCommand<object>(_ => OpenMonthlyFocusTarget(false));
+        ToggleMonthlyFocusTargetMenuCommand = new RelayCommand<object>(_ => ToggleMonthlyFocusTargetMenu());
         EditMonthlyFocusTargetCommand = new RelayCommand<object>(_ => OpenMonthlyFocusTarget(true));
         SaveMonthlyFocusTargetCommand = new RelayCommand<object>(_ => SaveMonthlyFocusTarget());
         CancelMonthlyFocusTargetCommand = new RelayCommand<object>(_ => IsMonthlyFocusTargetPopupOpen = false);
@@ -127,6 +129,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     public ICommand ToggleGoalDateCommand { get; }
 
     public ICommand OpenMonthlyFocusTargetCommand { get; }
+    public ICommand ToggleMonthlyFocusTargetMenuCommand { get; }
     public ICommand EditMonthlyFocusTargetCommand { get; }
     public ICommand SaveMonthlyFocusTargetCommand { get; }
     public ICommand CancelMonthlyFocusTargetCommand { get; }
@@ -328,6 +331,21 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         {
             if (_isMonthlyFocusTargetPopupOpen == value) return;
             _isMonthlyFocusTargetPopupOpen = value;
+            if (value)
+            {
+                IsMonthlyFocusTargetMenuOpen = false;
+            }
+            OnPropertyChanged();
+        }
+    }
+
+    public bool IsMonthlyFocusTargetMenuOpen
+    {
+        get => _isMonthlyFocusTargetMenuOpen;
+        set
+        {
+            if (_isMonthlyFocusTargetMenuOpen == value) return;
+            _isMonthlyFocusTargetMenuOpen = value;
             OnPropertyChanged();
         }
     }
@@ -667,6 +685,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     private void OpenMonthlyFocusTarget(bool editing)
     {
+        IsMonthlyFocusTargetMenuOpen = false;
         if (IsMonthlyFocusTargetPopupOpen)
         {
             IsMonthlyFocusTargetPopupOpen = false;
@@ -677,6 +696,18 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             ? MonthlyFocusTargetHours.ToString()
             : string.Empty;
         IsMonthlyFocusTargetPopupOpen = true;
+    }
+
+    private void ToggleMonthlyFocusTargetMenu()
+    {
+        if (!HasMonthlyFocusTarget)
+        {
+            IsMonthlyFocusTargetMenuOpen = false;
+            return;
+        }
+
+        IsMonthlyFocusTargetPopupOpen = false;
+        IsMonthlyFocusTargetMenuOpen = !IsMonthlyFocusTargetMenuOpen;
     }
 
     private void SaveMonthlyFocusTarget()
@@ -699,6 +730,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     private void DeleteMonthlyFocusTarget()
     {
+        IsMonthlyFocusTargetMenuOpen = false;
         _monthlyFocusTargetHours = null;
         IsMonthlyFocusTargetPopupOpen = false;
         NotifyMonthlyFocusTargetChanged();
