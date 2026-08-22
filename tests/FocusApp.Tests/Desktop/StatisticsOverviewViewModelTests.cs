@@ -194,6 +194,53 @@ public sealed class StatisticsOverviewViewModelTests
     }
 
     [Fact]
+    public void FeaturedGoalHasTenAdditionalMockSessionsOnJulyThirtieth()
+    {
+        var viewModel = new StatisticsOverviewViewModel();
+        var group = Assert.Single(viewModel.GoalDateGroups, item => item.Date == new DateTime(2026, 7, 30));
+
+        Assert.Equal(11, group.Sessions.Count);
+        Assert.Equal(10, group.Sessions.Count(session => session.StartTime != new DateTime(2026, 7, 30, 11, 15, 0)));
+        Assert.Equal(216, group.Sessions.Sum(session => session.DurationMinutes));
+        Assert.Equal("当日学习复盘", group.RepresentativeTaskDisplay);
+        Assert.Equal(" · 13项任务", group.TaskCountDisplay);
+    }
+
+    [Fact]
+    public void GoalDateGroupSummaryUsesLatestTaskCountAndCompactDuration()
+    {
+        var date = new DateTime(2026, 7, 30);
+        var group = new GoalDateGroupViewModel(date,
+        [
+            new FocusSessionRecordViewModel(date.AddHours(9), date.AddHours(9.5), "goal", "目标", "较早任务", 1),
+            new FocusSessionRecordViewModel(date.AddHours(11), date.AddHours(13).AddMinutes(6), "goal", "目标", "最后任务", 2)
+        ]);
+
+        Assert.Equal("最后任务", group.RepresentativeTaskDisplay);
+        Assert.Equal(" · 3项任务", group.TaskCountDisplay);
+        Assert.Equal("最后任务 · 3项任务", group.TaskSummaryDisplay);
+        Assert.Equal("2小时36分", group.DurationDisplay);
+        Assert.Equal("最后任务", group.Sessions[0].TaskName);
+
+        var singleTask = new GoalDateGroupViewModel(date,
+        [
+            new FocusSessionRecordViewModel(date, date.AddMinutes(54), "goal", "目标", "唯一任务", 1)
+        ]);
+        Assert.Equal("唯一任务", singleTask.RepresentativeTaskDisplay);
+        Assert.Empty(singleTask.TaskCountDisplay);
+        Assert.Equal("唯一任务", singleTask.TaskSummaryDisplay);
+        Assert.Equal("54分钟", singleTask.DurationDisplay);
+
+        var noTask = new GoalDateGroupViewModel(date,
+        [
+            new FocusSessionRecordViewModel(date, date.AddMinutes(20), "goal", "目标", "不应显示", 0)
+        ]);
+        Assert.Empty(noTask.RepresentativeTaskDisplay);
+        Assert.Empty(noTask.TaskCountDisplay);
+        Assert.Empty(noTask.TaskSummaryDisplay);
+    }
+
+    [Fact]
     public void GoalArchiveAndRestoreMoveItemsBetweenFilteredLists()
     {
         var viewModel = new StatisticsOverviewViewModel();
@@ -440,19 +487,19 @@ public sealed class StatisticsOverviewViewModelTests
 
         Assert.Equal(80, viewModel.GoalTrendPoints.Single(point => point.Date == new DateTime(2026, 7, 14)).Minutes);
         Assert.Contains(viewModel.GoalDateGroups, group => group.Date == new DateTime(2026, 7, 14));
-        Assert.Equal("26 小时 50 分钟", viewModel.SelectedGoalDurationDisplay);
-        Assert.Equal("33 次推进", viewModel.SelectedGoalProgressDisplay);
+        Assert.Equal("29 小时 50 分钟", viewModel.SelectedGoalDurationDisplay);
+        Assert.Equal("43 次推进", viewModel.SelectedGoalProgressDisplay);
 
         added.EndTime = new DateTime(2026, 7, 14, 12, 0, 0);
         Assert.Equal(120, viewModel.GoalTrendPoints.Single(point => point.Date == new DateTime(2026, 7, 14)).Minutes);
-        Assert.Equal("27 小时 30 分钟", viewModel.SelectedGoalDurationDisplay);
+        Assert.Equal("30 小时 30 分钟", viewModel.SelectedGoalDurationDisplay);
 
         records.Remove(added);
 
         Assert.Equal(0, viewModel.GoalTrendPoints.Single(point => point.Date == new DateTime(2026, 7, 14)).Minutes);
         Assert.DoesNotContain(viewModel.GoalDateGroups, group => group.Date == new DateTime(2026, 7, 14));
-        Assert.Equal("25 小时 30 分钟", viewModel.SelectedGoalDurationDisplay);
-        Assert.Equal("32 次推进", viewModel.SelectedGoalProgressDisplay);
+        Assert.Equal("28 小时 30 分钟", viewModel.SelectedGoalDurationDisplay);
+        Assert.Equal("42 次推进", viewModel.SelectedGoalProgressDisplay);
     }
 
     [Fact]
@@ -502,8 +549,8 @@ public sealed class StatisticsOverviewViewModelTests
         var ue5Records = viewModel.FocusSessionRecords.Where(record => record.GoalId == ue5.GoalId).ToArray();
         var designRecords = viewModel.FocusSessionRecords.Where(record => record.GoalId == design.GoalId).ToArray();
 
-        Assert.Equal("25 小时 30 分钟", viewModel.SelectedGoalDurationDisplay);
-        Assert.Equal("32 次推进", viewModel.SelectedGoalProgressDisplay);
+        Assert.Equal("28 小时 30 分钟", viewModel.SelectedGoalDurationDisplay);
+        Assert.Equal("42 次推进", viewModel.SelectedGoalProgressDisplay);
 
         viewModel.SelectGoalCommand.Execute(design);
 

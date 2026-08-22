@@ -432,9 +432,40 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             AddFeaturedGoalMockSession(7, julyDays[index], julyDurations[index], index);
         }
 
+        AddFeaturedGoalJuly30MockSessions();
+
         for (var index = 0; index < historyMonths.Length; index++)
         {
             AddFeaturedGoalMockSession(historyMonths[index], historyDays[index], historyDurations[index], julyDays.Length + index);
+        }
+    }
+
+    private void AddFeaturedGoalJuly30MockSessions()
+    {
+        (int Hour, int Minute, int DurationMinutes, string TaskName)[] sessions =
+        [
+            (7, 30, 12, "场景结构梳理"),
+            (8, 20, 18, "蓝图交互练习"),
+            (9, 10, 15, "材质节点练习"),
+            (10, 10, 20, "光照参数调整"),
+            (12, 30, 14, "粒子效果测试"),
+            (14, 0, 16, "动画状态机练习"),
+            (15, 20, 22, "UI控件搭建"),
+            (17, 0, 17, "性能分析记录"),
+            (19, 0, 19, "关卡细节调整"),
+            (20, 40, 27, "当日学习复盘")
+        ];
+
+        foreach (var session in sessions)
+        {
+            var start = new DateTime(2026, 7, 30, session.Hour, session.Minute, 0);
+            FocusSessionRecords.Add(new FocusSessionRecordViewModel(
+                start,
+                start.AddMinutes(session.DurationMinutes),
+                "goal-ue5",
+                "学习UE5",
+                session.TaskName,
+                1));
         }
     }
 
@@ -1499,7 +1530,7 @@ public sealed class GoalDateGroupViewModel : INotifyPropertyChanged
 {
     private bool _isExpanded;
     public GoalDateGroupViewModel(DateTime date, IEnumerable<FocusSessionRecordViewModel> sessions)
-    { Date = date; Sessions = sessions.ToList(); }
+    { Date = date; Sessions = sessions.OrderByDescending(session => session.StartTime).ToList(); }
     public event PropertyChangedEventHandler? PropertyChanged;
     public DateTime Date { get; }
     public IReadOnlyList<FocusSessionRecordViewModel> Sessions { get; }
@@ -1508,12 +1539,38 @@ public sealed class GoalDateGroupViewModel : INotifyPropertyChanged
         ? string.Empty
         : $"{Sessions.Min(session => session.StartTime):HH:mm} - {Sessions.Max(session => session.EndTime):HH:mm}";
     public string ProgressDisplay => $"推进 {Sessions.Sum(session => session.CompletedTaskCount)}";
+    public int TaskCount => Sessions.Sum(session => session.CompletedTaskCount);
+    public string RepresentativeTaskDisplay
+    {
+        get
+        {
+            if (TaskCount == 0)
+            {
+                return string.Empty;
+            }
+
+            return Sessions.FirstOrDefault(session =>
+                session.CompletedTaskCount > 0 && !string.IsNullOrWhiteSpace(session.TaskName))?.TaskName
+                ?? string.Empty;
+        }
+    }
+    public string TaskCountDisplay => TaskCount > 1 && !string.IsNullOrEmpty(RepresentativeTaskDisplay)
+        ? $" · {TaskCount}项任务"
+        : string.Empty;
+    public string TaskSummaryDisplay => $"{RepresentativeTaskDisplay}{TaskCountDisplay}";
     public string DurationDisplay
     {
         get
         {
             var minutes = Sessions.Sum(session => session.DurationMinutes);
-            return $"{minutes / 60}小时{minutes % 60:00}分钟";
+            if (minutes < 60)
+            {
+                return $"{minutes}分钟";
+            }
+
+            return minutes % 60 == 0
+                ? $"{minutes / 60}小时"
+                : $"{minutes / 60}小时{minutes % 60}分";
         }
     }
     public bool IsExpanded { get => _isExpanded; set { if (_isExpanded == value) return; _isExpanded = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsExpanded))); } }

@@ -708,42 +708,41 @@
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate DataType="{x:Type vm:GoalDateGroupViewModel}">
                                                 <StackPanel>
-                                                    <Button Height="36" Margin="6,1,6,1" Padding="0" HorizontalContentAlignment="Stretch" BorderThickness="0" FocusVisualStyle="{x:Null}" Command="{Binding DataContext.ToggleGoalDateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
+                                                    <Button Height="44" Margin="6,1,6,1" Padding="12,0" HorizontalContentAlignment="Stretch" FocusVisualStyle="{x:Null}" Command="{Binding DataContext.ToggleGoalDateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
                                                         <Button.Style>
                                                             <Style TargetType="Button">
                                                                 <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+                                                                <Setter Property="BorderBrush" Value="{DynamicResource OverlayBorder}" />
+                                                                <Setter Property="BorderThickness" Value="0,0,0,1" />
                                                                 <Style.Triggers>
                                                                     <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="{DynamicResource ControlHoverBackground}" /></Trigger>
-                                                                    <DataTrigger Binding="{Binding IsExpanded}" Value="True"><Setter Property="Background" Value="{DynamicResource AccentTint}" /></DataTrigger>
-                                                                    <MultiDataTrigger>
-                                                                        <MultiDataTrigger.Conditions><Condition Binding="{Binding RelativeSource={RelativeSource AncestorType=ContentPresenter}, Path=(ItemsControl.AlternationIndex)}" Value="0" /><Condition Binding="{Binding DataContext.SelectedGoalTrendPoint, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="{x:Null}" /></MultiDataTrigger.Conditions>
-                                                                        <Setter Property="Background" Value="{DynamicResource AccentTint}" />
-                                                                    </MultiDataTrigger>
+                                                                    <DataTrigger Binding="{Binding IsExpanded}" Value="True"><Setter Property="Background" Value="{DynamicResource RecentTargetSelectedBackground}" /></DataTrigger>
+                                                                    <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ContentPresenter}, Path=(ItemsControl.AlternationIndex)}" Value="0"><Setter Property="Background" Value="{DynamicResource RecentTargetSelectedBackground}" /><Setter Property="BorderThickness" Value="0" /></DataTrigger>
                                                                 </Style.Triggers>
                                                             </Style>
                                                         </Button.Style>
                                                         <Button.Template>
                                                             <ControlTemplate TargetType="Button">
-                                                                <Border x:Name="DateBackground" Background="{TemplateBinding Background}" CornerRadius="10"><ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center" /></Border>
+                                                                <Border x:Name="DateBackground" Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="10"><ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center" /></Border>
                                                             </ControlTemplate>
                                                         </Button.Template>
                                                         <Grid>
                                                             <Grid.ColumnDefinitions>
-                                                                <ColumnDefinition Width="22" />
-                                                                <ColumnDefinition Width="104" />
-                                                                <ColumnDefinition Width="104" />
-                                                                <ColumnDefinition Width="72" />
+                                                                <ColumnDefinition Width="18" />
+                                                                <ColumnDefinition Width="78" />
                                                                 <ColumnDefinition Width="*" />
-                                                                <ColumnDefinition Width="22" />
+                                                                <ColumnDefinition Width="86" />
+                                                                <ColumnDefinition Width="18" />
                                                             </Grid.ColumnDefinitions>
-                                                            <Ellipse Width="6" Height="6" Margin="7,0,0,0" HorizontalAlignment="Left">
-                                                                <Ellipse.Style><Style TargetType="Ellipse"><Setter Property="Fill" Value="{DynamicResource TextSecondary}" /><Setter Property="Opacity" Value="0.52" /><Style.Triggers><DataTrigger Binding="{Binding IsExpanded}" Value="True"><Setter Property="Fill" Value="{DynamicResource AccentPrimary}" /><Setter Property="Opacity" Value="1" /></DataTrigger><MultiDataTrigger><MultiDataTrigger.Conditions><Condition Binding="{Binding RelativeSource={RelativeSource AncestorType=ContentPresenter, AncestorLevel=2}, Path=(ItemsControl.AlternationIndex)}" Value="0" /><Condition Binding="{Binding DataContext.SelectedGoalTrendPoint, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="{x:Null}" /></MultiDataTrigger.Conditions><Setter Property="Fill" Value="{DynamicResource AccentPrimary}" /><Setter Property="Opacity" Value="1" /></MultiDataTrigger></Style.Triggers></Style></Ellipse.Style>
+                                                            <Ellipse Grid.Column="0" Width="6" Height="6" HorizontalAlignment="Left" Fill="{DynamicResource AccentPrimary}">
+                                                                <Ellipse.Style><Style TargetType="Ellipse"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ContentPresenter, AncestorLevel=2}, Path=(ItemsControl.AlternationIndex)}" Value="0"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></Ellipse.Style>
                                                             </Ellipse>
-                                                            <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{Binding DateDisplay}" />
-                                                            <TextBlock Grid.Column="2" VerticalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding TimeRangeDisplay}" />
-                                                            <TextBlock Grid.Column="3" VerticalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextUnit}" Text="{Binding ProgressDisplay}" />
-                                                            <TextBlock Grid.Column="4" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextUnit}" Text="{Binding DurationDisplay}" />
-                                                            <TextBlock Grid.Column="5" HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="{DynamicResource TextSecondary}" Text="&#xE76C;">
+                                                            <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding DateDisplay}" />
+                                                            <TextBlock Grid.Column="2" VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
+                                                                <Run FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{Binding RepresentativeTaskDisplay, Mode=OneWay}" /><Run FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding TaskCountDisplay, Mode=OneWay}" />
+                                                            </TextBlock>
+                                                            <TextBlock Grid.Column="3" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{Binding DurationDisplay}" />
+                                                            <TextBlock Grid.Column="4" HorizontalAlignment="Right" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="10" Foreground="{DynamicResource TextWeak}" Text="&#xE76C;">
                                                                 <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Opacity" Value="0.62" /><Style.Triggers><DataTrigger Binding="{Binding IsExpanded}" Value="True"><Setter Property="Text" Value="&#xE70D;" /><Setter Property="Opacity" Value="1" /></DataTrigger><DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Button}}" Value="True"><Setter Property="Opacity" Value="1" /></DataTrigger></Style.Triggers></Style></TextBlock.Style>
                                                             </TextBlock>
                                                         </Grid>
