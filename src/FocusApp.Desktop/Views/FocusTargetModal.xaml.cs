@@ -106,6 +106,11 @@ public partial class FocusTargetModal : UserControl
         {
             CommitPendingTaskInput();
         }
+
+        if (Keyboard.FocusedElement is TextBox focusedEditor && !focusedEditor.IsMouseOver)
+        {
+            CommitTaskEdit(focusedEditor);
+        }
     }
 
     private void CommitPendingTaskInput()
@@ -124,6 +129,23 @@ public partial class FocusTargetModal : UserControl
         {
             viewModel.ConfirmEditTaskCommand.Execute(task);
             e.Handled = true;
+        }
+    }
+
+    private void EditTaskTextBox_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        if (sender is TextBox textBox)
+        {
+            CommitTaskEdit(textBox);
+        }
+    }
+
+    private void CommitTaskEdit(TextBox textBox)
+    {
+        if (textBox.DataContext is FocusTaskViewModel { IsEditing: true } task &&
+            DataContext is FocusTargetModalViewModel viewModel)
+        {
+            viewModel.ConfirmEditTaskCommand.Execute(task);
         }
     }
 

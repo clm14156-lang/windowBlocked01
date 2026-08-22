@@ -335,6 +335,7 @@ public partial class MainWindow : Window
             DataContext is ViewModels.MainWindowViewModel viewModel)
         {
             viewModel.HomePage.FocusTargetModal.CloseCommand.Execute(null);
+            Keyboard.ClearFocus();
         }
     }
 

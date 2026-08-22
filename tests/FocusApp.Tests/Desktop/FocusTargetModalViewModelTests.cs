@@ -163,6 +163,7 @@ public sealed class FocusTargetModalViewModelTests
     public void AddingTask_InsertsTaskAtTopAndLeavesInputMode()
     {
         var viewModel = new FocusTargetModalViewModel();
+        viewModel.SelectTargetCommand.Execute(viewModel.VisibleTargets.Single(target => target.Name == "学习"));
         viewModel.BeginAddTaskCommand.Execute(null);
         viewModel.NewTaskName = "完成交互验收";
 
@@ -176,6 +177,7 @@ public sealed class FocusTargetModalViewModelTests
     public void AddingEmptyTask_CancelsInputModeWithoutCreatingTask()
     {
         var viewModel = new FocusTargetModalViewModel();
+        viewModel.SelectTargetCommand.Execute(viewModel.VisibleTargets.Single(target => target.Name == "学习"));
         var taskCount = viewModel.CurrentTasks.Count;
         viewModel.BeginAddTaskCommand.Execute(null);
         viewModel.NewTaskName = "   ";
@@ -185,6 +187,36 @@ public sealed class FocusTargetModalViewModelTests
         Assert.False(viewModel.IsAddingTask);
         Assert.Equal(taskCount, viewModel.CurrentTasks.Count);
         Assert.Empty(viewModel.NewTaskName);
+    }
+
+    [Fact]
+    public void AddingTask_RequiresSelectedTargetAndTracksSelectionChanges()
+    {
+        var viewModel = new FocusTargetModalViewModel();
+        var coding = viewModel.VisibleTargets.Single(target => target.Name == "写代码");
+        var initialTaskCount = coding.Tasks.Count;
+        var canExecuteChangedCount = 0;
+        viewModel.BeginAddTaskCommand.CanExecuteChanged += (_, _) => canExecuteChangedCount++;
+
+        Assert.False(viewModel.BeginAddTaskCommand.CanExecute(null));
+        viewModel.BeginAddTaskCommand.Execute(null);
+        Assert.False(viewModel.IsAddingTask);
+
+        viewModel.SelectTargetCommand.Execute(coding);
+        Assert.True(viewModel.BeginAddTaskCommand.CanExecute(null));
+        Assert.Equal(1, canExecuteChangedCount);
+
+        viewModel.BeginAddTaskCommand.Execute(null);
+        viewModel.NewTaskName = "只属于写代码";
+        viewModel.ConfirmAddTaskCommand.Execute(null);
+        Assert.Equal(initialTaskCount + 1, coding.Tasks.Count);
+        Assert.Equal("只属于写代码", coding.Tasks[0].Name);
+
+        viewModel.SelectTargetCommand.Execute(coding);
+        Assert.False(viewModel.HasSelectedTarget);
+        Assert.False(viewModel.BeginAddTaskCommand.CanExecute(null));
+        Assert.False(viewModel.IsAddingTask);
+        Assert.Equal(2, canExecuteChangedCount);
     }
 
     [Fact]
@@ -203,6 +235,52 @@ public sealed class FocusTargetModalViewModelTests
 
         viewModel.DeleteTaskCommand.Execute(task);
         Assert.DoesNotContain(task, viewModel.CurrentTasks);
+    }
+
+    [Fact]
+    public void EditingTask_CommitIsIdempotentAndEmptyContentRestoresOriginalName()
+    {
+        var viewModel = new FocusTargetModalViewModel();
+        var task = viewModel.CurrentTasks[0];
+
+        viewModel.BeginEditTaskCommand.Execute(task);
+        task.EditName = "失焦后保存";
+        viewModel.ConfirmEditTaskCommand.Execute(task);
+        viewModel.ConfirmEditTaskCommand.Execute(task);
+
+        Assert.Equal("失焦后保存", task.Name);
+        Assert.False(task.IsEditing);
+
+        viewModel.BeginEditTaskCommand.Execute(task);
+        task.EditName = "   ";
+        viewModel.ConfirmEditTaskCommand.Execute(task);
+
+        Assert.Equal("失焦后保存", task.Name);
+        Assert.Equal("失焦后保存", task.EditName);
+        Assert.False(task.IsEditing);
+    }
+
+    [Fact]
+    public void ClosingModal_CancelsPendingTaskEditAndReopenHasNoEditingState()
+    {
+        var viewModel = new FocusTargetModalViewModel();
+        var task = viewModel.CurrentTasks[0];
+        var originalName = task.Name;
+        viewModel.Open();
+        viewModel.BeginEditTaskCommand.Execute(task);
+        task.EditName = "不应由蒙版关闭保存";
+
+        viewModel.CloseCommand.Execute(null);
+
+        Assert.False(viewModel.IsOpen);
+        Assert.False(task.IsEditing);
+        Assert.Equal(originalName, task.Name);
+        Assert.Equal(originalName, task.EditName);
+
+        viewModel.Open();
+
+        Assert.True(viewModel.IsOpen);
+        Assert.All(viewModel.CurrentTasks, currentTask => Assert.False(currentTask.IsEditing));
     }
 
     [Fact]

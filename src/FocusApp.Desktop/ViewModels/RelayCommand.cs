@@ -6,19 +6,20 @@ internal sealed class RelayCommand<T> : ICommand
     where T : class
 {
     private readonly Action<T?> _execute;
+    private readonly Func<T?, bool>? _canExecute;
 
-    public RelayCommand(Action<T?> execute)
+    public RelayCommand(Action<T?> execute, Func<T?, bool>? canExecute = null)
     {
         _execute = execute;
+        _canExecute = canExecute;
     }
 
-    public event EventHandler? CanExecuteChanged
-    {
-        add { }
-        remove { }
-    }
+    public event EventHandler? CanExecuteChanged;
 
-    public bool CanExecute(object? parameter) => parameter is null or T;
+    public bool CanExecute(object? parameter) =>
+        (parameter is null or T) && (_canExecute?.Invoke(parameter as T) ?? true);
 
     public void Execute(object? parameter) => _execute(parameter as T);
+
+    public void NotifyCanExecuteChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
 }

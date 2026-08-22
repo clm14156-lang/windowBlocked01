@@ -198,6 +198,7 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
         var name = EditName.Trim();
         if (name.Length == 0)
         {
+            CancelEdit();
             return;
         }
 

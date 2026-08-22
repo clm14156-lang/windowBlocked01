@@ -9,6 +9,7 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
 {
     private const int VisibleTargetCount = 3;
     private readonly ObservableCollection<FocusTargetViewModel> _targets;
+    private readonly RelayCommand<object> _beginAddTaskCommand;
     private FocusTargetViewModel _selectedTarget;
     private bool _isOpen;
     private bool _isCreatingTarget;
@@ -61,7 +62,8 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
         BeginCreateTargetCommand = new RelayCommand<object>(_ => BeginCreateTarget());
         CancelCreateTargetCommand = new RelayCommand<object>(_ => CancelCreateTarget());
         CreateTargetCommand = new RelayCommand<object>(_ => CreateTarget());
-        BeginAddTaskCommand = new RelayCommand<object>(_ => BeginAddTask());
+        _beginAddTaskCommand = new RelayCommand<object>(_ => BeginAddTask(), _ => HasSelectedTarget);
+        BeginAddTaskCommand = _beginAddTaskCommand;
         ConfirmAddTaskCommand = new RelayCommand<object>(_ => ConfirmAddTask());
         ToggleTaskMenuCommand = new RelayCommand<FocusTaskViewModel>(ToggleTaskMenu);
         BeginEditTaskCommand = new RelayCommand<FocusTaskViewModel>(BeginEditTask);
@@ -134,7 +136,20 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
     public bool HasSelectedTarget
     {
         get => _hasSelectedTarget;
-        private set => SetField(ref _hasSelectedTarget, value);
+        private set
+        {
+            if (!SetField(ref _hasSelectedTarget, value))
+            {
+                return;
+            }
+
+            _beginAddTaskCommand.NotifyCanExecuteChanged();
+            if (!value)
+            {
+                IsAddingTask = false;
+                NewTaskName = string.Empty;
+            }
+        }
     }
 
     public string SelectedTargetButtonText => HasSelectedTarget ? SelectedTarget.Name : "选择专注目标(可选)";
@@ -184,6 +199,7 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
 
     public void Open()
     {
+        CancelTaskEdits();
         _selectedTargetBeforeOpen = SelectedTarget;
         _hadSelectedTargetBeforeOpen = HasSelectedTarget;
         IsCreatingTarget = false;
@@ -196,6 +212,7 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
 
     private void Close()
     {
+        CancelTaskEdits();
         RestoreSelectionBeforeOpen();
         CloseModal();
     }
@@ -309,6 +326,11 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
 
     private void BeginAddTask()
     {
+        if (!HasSelectedTarget)
+        {
+            return;
+        }
+
         IsCreatingTarget = false;
         CloseTaskMenus();
         NewTaskName = string.Empty;
@@ -317,6 +339,13 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
 
     private void ConfirmAddTask()
     {
+        if (!HasSelectedTarget)
+        {
+            NewTaskName = string.Empty;
+            IsAddingTask = false;
+            return;
+        }
+
         var name = NewTaskName.Trim();
         if (name.Length > 0)
         {
@@ -377,6 +406,17 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
             foreach (var task in target.Tasks)
             {
                 task.IsMenuOpen = false;
+            }
+        }
+    }
+
+    private void CancelTaskEdits()
+    {
+        foreach (var target in _targets)
+        {
+            foreach (var task in target.Tasks.Where(task => task.IsEditing))
+            {
+                task.CancelEdit();
             }
         }
     }

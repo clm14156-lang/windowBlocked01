@@ -723,15 +723,15 @@
            VerticalOffset="{Binding TooltipOffsetY}"
            PopupAnimation="Fade">
         <Border Width="150"
-                Padding="10,8"
+                Padding="12,9"
                 Background="{DynamicResource SurfacePrimary}"
                 BorderBrush="{DynamicResource BorderPrimary}"
                 BorderThickness="1"
                 CornerRadius="8">
-            <Border.Effect><DropShadowEffect BlurRadius="8" Direction="270" Opacity="0.16" ShadowDepth="2" /></Border.Effect>
+            <Border.Effect><DropShadowEffect BlurRadius="8" Direction="270" Opacity="0.1" ShadowDepth="2" /></Border.Effect>
             <StackPanel DataContext="{Binding HoveredPoint}">
-                <TextBlock HorizontalAlignment="Center" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="{Binding TooltipDateDisplay}" />
-                <TextBlock Margin="0,4,0,0" HorizontalAlignment="Center" FontSize="13" Foreground="{DynamicResource TextSecondary}" Text="{Binding TooltipDurationDisplay}" />
+                <TextBlock FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextUnit}" Text="{Binding TooltipDateDisplay}" />
+                <TextBlock Margin="0,5,0,0" FontSize="15" FontWeight="Medium" Foreground="{DynamicResource AccentPrimary}" Text="{Binding TooltipDurationDisplay}" />
             </StackPanel>
         </Border>
     </Popup>

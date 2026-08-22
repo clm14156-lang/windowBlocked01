@@ -86,7 +86,6 @@
                                 BorderThickness="0"
                                 Focusable="False"
                                 FocusVisualStyle="{x:Null}"
-                                ToolTip="{Binding TooltipText}"
                                 MouseEnter="TrendPoint_MouseEnter"
                                 MouseLeave="TrendPoint_MouseLeave">
                             <Button.Template>
