@@ -93,6 +93,7 @@
     <system:String x:Key="AutomaticRuleAdd">添加</system:String>
     <system:String x:Key="AutomaticRuleEdit">编辑规则</system:String>
     <system:String x:Key="AutomaticRuleDelete">删除规则</system:String>
+    <system:String x:Key="AutomaticRuleMoreActions">规则更多操作</system:String>
     <system:String x:Key="AutomaticRuleMonday">周一</system:String>
     <system:String x:Key="AutomaticRuleTuesday">周二</system:String>
     <system:String x:Key="AutomaticRuleWednesday">周三</system:String>

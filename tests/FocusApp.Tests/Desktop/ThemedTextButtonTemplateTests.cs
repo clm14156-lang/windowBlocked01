@@ -127,6 +127,49 @@ public sealed class ThemedTextButtonTemplateTests
             (string?)setter.Attribute("Value") == "0");
     }
 
+    [Fact]
+    public void SettingsAutomaticRules_UseSwitchAndOverflowMenuPresentation()
+    {
+        var repositoryRoot = FindRepositoryRoot();
+        var settings = XDocument.Load(Path.Combine(repositoryRoot, "src", "FocusApp.Desktop", "Views", "SettingsPage.xaml"));
+
+        var ruleList = Assert.Single(settings.Descendants(Presentation + "ItemsControl")
+            .Where(element => (string?)element.Attribute("ItemsSource") == "{Binding AutomaticRules}"));
+        var ruleTemplate = Assert.Single(ruleList.Elements(Presentation + "ItemsControl.ItemTemplate")
+            .Elements(Presentation + "DataTemplate"));
+
+        Assert.Empty(ruleTemplate.Descendants(Presentation + "CheckBox"));
+        var ruleSwitch = Assert.Single(ruleTemplate.Descendants(Presentation + "ToggleButton")
+            .Where(element => (string?)element.Attribute("IsChecked") == "{Binding IsEnabled, Mode=TwoWay}"));
+        Assert.Equal("{StaticResource SettingsRuleSwitchStyle}", (string?)ruleSwitch.Attribute("Style"));
+
+        var moreButton = Assert.Single(ruleTemplate.Descendants(Presentation + "ToggleButton")
+            .Where(element => (string?)element.Attribute(Xaml + "Name") == "RuleMoreButton"));
+        Assert.Equal("{StaticResource SettingsRuleMoreButtonStyle}", (string?)moreButton.Attribute("Style"));
+
+        var popup = Assert.Single(ruleTemplate.Descendants(Presentation + "Popup"));
+        Assert.Equal("False", (string?)popup.Attribute("StaysOpen"));
+        Assert.Equal("{Binding IsChecked, ElementName=RuleMoreButton, Mode=TwoWay}", (string?)popup.Attribute("IsOpen"));
+
+        var repeatText = Assert.Single(ruleTemplate.Descendants(Presentation + "TextBlock")
+            .Where(element => (string?)element.Attribute("Text") == "{Binding RepeatText}"));
+        Assert.Equal("13", (string?)repeatText.Attribute("FontSize"));
+        Assert.Equal("Medium", (string?)repeatText.Attribute("FontWeight"));
+        Assert.Equal("{DynamicResource TextPrimary}", (string?)repeatText.Attribute("Foreground"));
+
+        var timeText = Assert.Single(ruleTemplate.Descendants(Presentation + "TextBlock")
+            .Where(element => (string?)element.Attribute("Text") == "{Binding TimeRangeText}"));
+        Assert.Equal("12", (string?)timeText.Attribute("FontSize"));
+        Assert.Equal("Normal", (string?)timeText.Attribute("FontWeight"));
+        Assert.Equal("{DynamicResource TextSecondary}", (string?)timeText.Attribute("Foreground"));
+
+        Assert.Single(ruleTemplate.Descendants(Presentation + "Button").Where(button =>
+            ((string?)button.Attribute("Command"))?.Contains("EditRuleCommand", StringComparison.Ordinal) == true));
+        var deleteButton = Assert.Single(ruleTemplate.Descendants(Presentation + "Button").Where(button =>
+            ((string?)button.Attribute("Command"))?.Contains("DeleteRuleCommand", StringComparison.Ordinal) == true));
+        Assert.Equal("{DynamicResource Danger}", (string?)deleteButton.Attribute("Foreground"));
+    }
+
     private static void AssertFooterStyle(XDocument modal, string styleKey, string brushKey)
     {
         var style = FindKeyedElement(modal, "Style", styleKey);
