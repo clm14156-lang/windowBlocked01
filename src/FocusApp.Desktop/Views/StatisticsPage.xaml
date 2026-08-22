@@ -7,6 +7,7 @@
              SnapsToDevicePixels="True">
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <views:CompactDurationConverter x:Key="CompactDurationConverter" />
         <views:GoalTrendLabelOffsetConverter x:Key="GoalTrendLabelOffsetConverter" />
         <Style x:Key="MonthlyTargetInputStyle" TargetType="{x:Type TextBox}">
             <Setter Property="Padding" Value="8,0" />
@@ -616,24 +617,89 @@
                             </ScrollViewer>
                         </DockPanel>
                     </Border>
-                    <Border Grid.Column="2" Height="604" VerticalAlignment="Top" Padding="29,22,24,10" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" CornerRadius="16">
-                        <Grid>
-                            <StackPanel>
-                                <TextBlock Margin="0,0,0,0" FontSize="20" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="{Binding SelectedGoalName}" />
+                    <Border Grid.Column="2" Height="604" VerticalAlignment="Top" Padding="29,10,24,10" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" CornerRadius="16">
+                        <Grid x:Name="GoalDetailsLayout">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="76" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="42" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <StackPanel Margin="0,10,0,0">
+                                <TextBlock FontSize="20" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="{Binding SelectedGoalName}" />
                                 <Grid Margin="0,8,0,0">
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="114" /><ColumnDefinition Width="120" /><ColumnDefinition /></Grid.ColumnDefinitions>
                                     <TextBlock FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding SelectedGoalDurationDisplay}" />
                                     <TextBlock Grid.Column="1" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}"><Run Text="· " /><Run Text="{Binding SelectedGoalProgressDisplay, Mode=OneWay}" /></TextBlock>
                                 </Grid>
-                                <Border Height="0" Background="{DynamicResource TransparentBrush}" />
-                                <Grid Margin="0,13,0,12" Height="30">
-                                    <TextBlock VerticalAlignment="Center" FontSize="15" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="投入趋势" />
-                                    <ComboBox Width="104" Margin="0,0,-1,0" HorizontalAlignment="Right" ItemsSource="{Binding GoalMonths}" SelectedItem="{Binding SelectedGoalMonth}" DisplayMemberPath="Label" Style="{StaticResource StatisticsRangeComboBoxStyle}" />
-                                </Grid>
-                                <Border Height="192" Background="{DynamicResource SurfacePrimary}">
-                                    <Grid Margin="0,8,-1,0">
+                            </StackPanel>
+                            <Grid Grid.Row="1" ClipToBounds="True">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="44" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <Button x:Name="GoalTrendToggleButton" Height="44" Padding="18,0" HorizontalContentAlignment="Stretch" Background="{DynamicResource SurfacePrimary}" BorderThickness="0" FocusVisualStyle="{x:Null}" Command="{Binding ToggleGoalTrendCommand}">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="TrendHeaderBackground" Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}" BorderBrush="{DynamicResource OverlayBorder}" BorderThickness="1" CornerRadius="12">
+                                                <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center" />
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="TrendHeaderBackground" Property="Background" Value="{DynamicResource ControlHoverBackground}" /></Trigger>
+                                                <Trigger Property="IsPressed" Value="True"><Setter TargetName="TrendHeaderBackground" Property="Background" Value="{DynamicResource ControlPressedBackground}" /></Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="20" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="96" />
+                                            <ColumnDefinition Width="18" />
+                                        </Grid.ColumnDefinitions>
+                                        <Path Width="18" Height="18" VerticalAlignment="Center" Data="M 2,3 V 15 H 16 M 4,12 L 8,8 L 11,10 L 16,5" Stroke="{DynamicResource TextSecondary}" StrokeEndLineCap="Round" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeThickness="1.4" />
+                                        <TextBlock Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center" FontSize="15" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="投入趋势" />
+                                        <TextBlock Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding SelectedGoalMonth.Label}" />
+                                        <Grid Grid.Column="3" Width="12" Height="12" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                            <Path Data="M 1,3 L 6,8 L 11,3" Stroke="{DynamicResource TextWeak}" StrokeEndLineCap="Round" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeThickness="1.4">
+                                                <Path.Style><Style TargetType="Path"><Setter Property="Visibility" Value="Visible" /><Style.Triggers><DataTrigger Binding="{Binding IsGoalTrendExpanded}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers></Style></Path.Style>
+                                            </Path>
+                                            <Path Data="M 1,8 L 6,3 L 11,8" Stroke="{DynamicResource TextWeak}" StrokeEndLineCap="Round" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeThickness="1.4">
+                                                <Path.Style><Style TargetType="Path"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding IsGoalTrendExpanded}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></Path.Style>
+                                            </Path>
+                                        </Grid>
+                                    </Grid>
+                                </Button>
+                                <Border x:Name="GoalTrendExpandableContent" Grid.Row="1" ClipToBounds="True" Background="{DynamicResource SurfacePrimary}">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Height" Value="0" />
+                                            <Setter Property="Opacity" Value="0" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsGoalTrendExpanded}" Value="True">
+                                                    <DataTrigger.EnterActions>
+                                                        <BeginStoryboard>
+                                                            <Storyboard>
+                                                                <DoubleAnimation Storyboard.TargetProperty="Height" To="160" Duration="0:0:0.2" />
+                                                                <DoubleAnimation Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.2" />
+                                                            </Storyboard>
+                                                        </BeginStoryboard>
+                                                    </DataTrigger.EnterActions>
+                                                    <DataTrigger.ExitActions>
+                                                        <BeginStoryboard>
+                                                            <Storyboard>
+                                                                <DoubleAnimation Storyboard.TargetProperty="Height" To="0" Duration="0:0:0.2" />
+                                                                <DoubleAnimation Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.16" />
+                                                            </Storyboard>
+                                                        </BeginStoryboard>
+                                                    </DataTrigger.ExitActions>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <Grid Margin="0,12,-1,8">
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition /></Grid.ColumnDefinitions>
-                                        <Grid.RowDefinitions><RowDefinition Height="150" /><RowDefinition Height="26" /></Grid.RowDefinitions>
+                                        <Grid.RowDefinitions><RowDefinition Height="116" /><RowDefinition Height="24" /></Grid.RowDefinitions>
                                         <ItemsControl Grid.Column="0" Margin="0,0,4,0" ItemsSource="{Binding GoalTrendAxisTicks}">
                                             <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                                             <ItemsControl.ItemContainerStyle><Style TargetType="ContentPresenter"><Setter Property="Canvas.Top" Value="{Binding ChartY}" /></Style></ItemsControl.ItemContainerStyle>
@@ -676,7 +742,7 @@
                                                 </ItemsControl.ItemTemplate>
                                             </ItemsControl>
                                         </Grid>
-                                        <ItemsControl Grid.Row="1" Grid.Column="1" Height="26" ClipToBounds="False" ItemsSource="{Binding GoalTrendDateLabels}">
+                                        <ItemsControl Grid.Row="1" Grid.Column="1" Height="24" ClipToBounds="False" ItemsSource="{Binding GoalTrendDateLabels}">
                                             <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                                             <ItemsControl.ItemContainerStyle>
                                                 <Style TargetType="ContentPresenter">
@@ -698,8 +764,10 @@
                                         </TextBlock>
                                     </Grid>
                                 </Border>
-                                <TextBlock Margin="6,21,0,11" FontSize="15" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="推进记录" />
-                                <Grid Height="224">
+                            </Grid>
+                            <TextBlock Grid.Row="2" Margin="6,0,0,0" VerticalAlignment="Center" FontSize="15" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="推进记录" />
+                            <Border x:Name="GoalProgressListBorder" Grid.Row="3" ClipToBounds="True" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource OverlayBorder}" BorderThickness="1" CornerRadius="10">
+                                <Grid>
                                 <ScrollViewer x:Name="GoalProgressScrollViewer" ScrollChanged="GoalProgressScrollViewer_ScrollChanged" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
                                     <ScrollViewer.Resources>
                                         <Style TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource StatisticsThinScrollBarStyle}" />
@@ -707,50 +775,78 @@
                                     <ItemsControl x:Name="GoalDateGroupsControl" AlternationCount="100" ItemsSource="{Binding GoalDateGroups}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate DataType="{x:Type vm:GoalDateGroupViewModel}">
-                                                <StackPanel>
-                                                    <Button Height="44" Margin="6,1,6,1" Padding="12,0" HorizontalContentAlignment="Stretch" FocusVisualStyle="{x:Null}" Command="{Binding DataContext.ToggleGoalDateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
-                                                        <Button.Style>
-                                                            <Style TargetType="Button">
-                                                                <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
-                                                                <Setter Property="BorderBrush" Value="{DynamicResource OverlayBorder}" />
-                                                                <Setter Property="BorderThickness" Value="0,0,0,1" />
-                                                                <Style.Triggers>
-                                                                    <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="{DynamicResource ControlHoverBackground}" /></Trigger>
-                                                                    <DataTrigger Binding="{Binding IsExpanded}" Value="True"><Setter Property="Background" Value="{DynamicResource RecentTargetSelectedBackground}" /></DataTrigger>
-                                                                    <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ContentPresenter}, Path=(ItemsControl.AlternationIndex)}" Value="0"><Setter Property="Background" Value="{DynamicResource RecentTargetSelectedBackground}" /><Setter Property="BorderThickness" Value="0" /></DataTrigger>
-                                                                </Style.Triggers>
-                                                            </Style>
-                                                        </Button.Style>
-                                                        <Button.Template>
-                                                            <ControlTemplate TargetType="Button">
-                                                                <Border x:Name="DateBackground" Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="10"><ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center" /></Border>
-                                                            </ControlTemplate>
-                                                        </Button.Template>
-                                                        <Grid>
-                                                            <Grid.ColumnDefinitions>
-                                                                <ColumnDefinition Width="18" />
-                                                                <ColumnDefinition Width="78" />
-                                                                <ColumnDefinition Width="*" />
-                                                                <ColumnDefinition Width="86" />
-                                                                <ColumnDefinition Width="18" />
-                                                            </Grid.ColumnDefinitions>
-                                                            <Ellipse Grid.Column="0" Width="6" Height="6" HorizontalAlignment="Left" Fill="{DynamicResource AccentPrimary}">
-                                                                <Ellipse.Style><Style TargetType="Ellipse"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ContentPresenter, AncestorLevel=2}, Path=(ItemsControl.AlternationIndex)}" Value="0"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></Ellipse.Style>
-                                                            </Ellipse>
-                                                            <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding DateDisplay}" />
-                                                            <TextBlock Grid.Column="2" VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
-                                                                <Run FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{Binding RepresentativeTaskDisplay, Mode=OneWay}" /><Run FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding TaskCountDisplay, Mode=OneWay}" />
-                                                            </TextBlock>
-                                                            <TextBlock Grid.Column="3" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{Binding DurationDisplay}" />
-                                                            <TextBlock Grid.Column="4" HorizontalAlignment="Right" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="10" Foreground="{DynamicResource TextWeak}" Text="&#xE76C;">
-                                                                <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Opacity" Value="0.62" /><Style.Triggers><DataTrigger Binding="{Binding IsExpanded}" Value="True"><Setter Property="Text" Value="&#xE70D;" /><Setter Property="Opacity" Value="1" /></DataTrigger><DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Button}}" Value="True"><Setter Property="Opacity" Value="1" /></DataTrigger></Style.Triggers></Style></TextBlock.Style>
-                                                            </TextBlock>
+                                                <Border BorderBrush="{DynamicResource OverlayBorder}" BorderThickness="0,0,0,1">
+                                                    <Border.Style>
+                                                        <Style TargetType="Border">
+                                                            <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsExpanded}" Value="True"><Setter Property="Background" Value="{DynamicResource RecentTargetSelectedBackground}" /></DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Border.Style>
+                                                    <StackPanel>
+                                                        <Button Height="50" Padding="12,0" HorizontalContentAlignment="Stretch" FocusVisualStyle="{x:Null}" Command="{Binding DataContext.ToggleGoalDateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
+                                                            <Button.Style>
+                                                                <Style TargetType="Button">
+                                                                    <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+                                                                    <Style.Triggers>
+                                                                        <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="{DynamicResource ControlHoverBackground}" /></Trigger>
+                                                                        <Trigger Property="IsPressed" Value="True"><Setter Property="Background" Value="{DynamicResource BackgroundSecondary}" /></Trigger>
+                                                                        <DataTrigger Binding="{Binding IsExpanded}" Value="True"><Setter Property="Background" Value="{DynamicResource TransparentBrush}" /></DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </Button.Style>
+                                                            <Button.Template>
+                                                                <ControlTemplate TargetType="Button">
+                                                                    <Border x:Name="DateHeaderBackground" Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}">
+                                                                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center" />
+                                                                    </Border>
+                                                                </ControlTemplate>
+                                                            </Button.Template>
+                                                             <Grid>
+                                                                 <Grid.ColumnDefinitions>
+                                                                     <ColumnDefinition Width="*" />
+                                                                     <ColumnDefinition Width="78" />
+                                                                     <ColumnDefinition Width="14" />
+                                                                 </Grid.ColumnDefinitions>
+                                                                <TextBlock Grid.Column="0" VerticalAlignment="Center" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{Binding DateDisplay}" />
+                                                                <TextBlock Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding DurationDisplay}" />
+                                                                <Grid Grid.Column="2" Width="12" Height="12" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                                                    <Path Data="M 3,1 L 8,6 L 3,11" Stroke="{DynamicResource TextWeak}" StrokeEndLineCap="Round" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeThickness="1.4">
+                                                                        <Path.Style><Style TargetType="Path"><Setter Property="Opacity" Value="0.72" /><Style.Triggers><DataTrigger Binding="{Binding IsExpanded}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger><DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Button}}" Value="True"><Setter Property="Opacity" Value="1" /></DataTrigger></Style.Triggers></Style></Path.Style>
+                                                                    </Path>
+                                                                    <Path Data="M 1,3 L 6,8 L 11,3" Stroke="{DynamicResource TextWeak}" StrokeEndLineCap="Round" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeThickness="1.4">
+                                                                        <Path.Style><Style TargetType="Path"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding IsExpanded}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></Path.Style>
+                                                                    </Path>
+                                                                </Grid>
+                                                            </Grid>
+                                                        </Button>
+                                                        <Grid Margin="16,0,12,8" Visibility="{Binding IsExpanded, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                            <ItemsControl ItemsSource="{Binding Sessions}">
+                                                                <ItemsControl.ItemTemplate>
+                                                                    <DataTemplate DataType="{x:Type vm:FocusSessionRecordViewModel}">
+                                                                        <Grid Height="52">
+                                                                            <Grid.ColumnDefinitions>
+                                                                                <ColumnDefinition Width="18" />
+                                                                                <ColumnDefinition Width="*" />
+                                                                                <ColumnDefinition Width="78" />
+                                                                            </Grid.ColumnDefinitions>
+                                                                            <Grid.RowDefinitions>
+                                                                                <RowDefinition Height="29" />
+                                                                                <RowDefinition Height="23" />
+                                                                            </Grid.RowDefinitions>
+                                                                            <Ellipse Grid.RowSpan="2" Grid.Column="0" Width="5" Height="5" Margin="1,12,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Fill="{DynamicResource TextWeak}" Opacity="0.62" />
+                                                                            <Border Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Height="1" VerticalAlignment="Bottom" Background="{DynamicResource OverlayBorder}" />
+                                                                            <TextBlock Grid.Row="0" Grid.Column="1" VerticalAlignment="Bottom" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextUnit}" Text="{Binding TaskName}" TextTrimming="CharacterEllipsis" />
+                                                                            <TextBlock Grid.Row="0" Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Bottom" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding DurationMinutes, Converter={StaticResource CompactDurationConverter}}" />
+                                                                            <TextBlock Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,3,0,0" VerticalAlignment="Top" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding TimeRangeDisplay}" />
+                                                                        </Grid>
+                                                                    </DataTemplate>
+                                                                </ItemsControl.ItemTemplate>
+                                                            </ItemsControl>
                                                         </Grid>
-                                                    </Button>
-                                                    <ItemsControl Margin="12,0,12,6" ItemsSource="{Binding Sessions}" Visibility="{Binding IsExpanded, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                                        <ItemsControl.ItemTemplate><DataTemplate DataType="{x:Type vm:FocusSessionRecordViewModel}"><Border Height="30" Padding="12,0" Background="{DynamicResource BackgroundPrimary}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="0,0,0,1"><Grid><TextBlock VerticalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding TimeRangeDisplay}" /><TextBlock Margin="118,0,74,0" VerticalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextUnit}" TextTrimming="CharacterEllipsis" Text="{Binding TaskName}" /><TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding DurationDisplay}" /></Grid></Border></DataTemplate></ItemsControl.ItemTemplate>
-                                                    </ItemsControl>
-                                                </StackPanel>
+                                                    </StackPanel>
+                                                </Border>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
@@ -759,8 +855,8 @@
                                     <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding HasSelectedGoalRecords}" Value="False"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></TextBlock.Style>
                                 </TextBlock>
                                 </Grid>
-                            </StackPanel>
-                            <Border Background="{DynamicResource SurfacePrimary}">
+                            </Border>
+                            <Border Grid.RowSpan="4" Background="{DynamicResource SurfacePrimary}">
                                 <Border.Style><Style TargetType="Border"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding HasSelectedGoal}" Value="False"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></Border.Style>
                                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"><TextBlock HorizontalAlignment="Center" FontSize="15" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="暂无目标" /><TextBlock Margin="0,8,0,0" HorizontalAlignment="Center" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="当前列表没有可显示的目标" /></StackPanel>
                             </Border>

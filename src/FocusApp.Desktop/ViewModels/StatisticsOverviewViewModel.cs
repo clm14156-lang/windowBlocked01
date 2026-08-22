@@ -20,7 +20,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     private const int PreferredMaximumTrendTickCount = 6;
     private const int MaximumSupportedTrendMinutes = 24 * 60;
     private const double TrendCurveTension = 0.12;
-    internal const double GoalTrendChartHeight = 150;
+    internal const double GoalTrendChartHeight = 116;
     private const int GoalTrendCompactTickIntervalHours = 2;
     private const int GoalTrendExpandedTickIntervalHours = 4;
     private const int GoalTrendPreferredMaximumTickCount = 6;
@@ -34,6 +34,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     private bool _showArchivedGoals;
     private bool _isGoalListMenuOpen;
     private GoalMonthOptionViewModel? _selectedGoalMonth;
+    private bool _isGoalTrendExpanded;
     private GoalDateGroupViewModel? _expandedGoalDate;
     private GoalTrendPointViewModel? _selectedGoalTrendPoint;
     private GoalTrendPointViewModel? _hoveredGoalTrendPoint;
@@ -67,6 +68,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         RestoreGoalCommand = new RelayCommand<GoalOverviewItemViewModel>(RestoreGoal);
         DeleteGoalCommand = new RelayCommand<GoalOverviewItemViewModel>(DeleteGoal);
         SelectGoalMonthCommand = new RelayCommand<GoalMonthOptionViewModel>(SelectGoalMonth);
+        ToggleGoalTrendCommand = new RelayCommand<object>(_ => IsGoalTrendExpanded = !IsGoalTrendExpanded);
         SelectGoalTrendPointCommand = new RelayCommand<GoalTrendPointViewModel>(SelectGoalTrendPoint);
         ToggleGoalDateCommand = new RelayCommand<GoalDateGroupViewModel>(ToggleGoalDate);
         OpenMonthlyFocusTargetCommand = new RelayCommand<object>(_ => OpenMonthlyFocusTarget(false));
@@ -125,6 +127,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     public ICommand AddGoalCommand { get; }
 
     public ICommand SelectGoalMonthCommand { get; }
+    public ICommand ToggleGoalTrendCommand { get; }
     public ICommand SelectGoalTrendPointCommand { get; }
     public ICommand ToggleGoalDateCommand { get; }
 
@@ -192,6 +195,18 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     public ObservableCollection<GoalMonthOptionViewModel> GoalMonths { get; } = [];
     public ObservableCollection<GoalDateGroupViewModel> GoalDateGroups { get; } = [];
+
+    public bool IsGoalTrendExpanded
+    {
+        get => _isGoalTrendExpanded;
+        private set
+        {
+            if (_isGoalTrendExpanded == value) return;
+            _isGoalTrendExpanded = value;
+            if (!value) SetHoveredGoalTrendPoint(null);
+            OnPropertyChanged();
+        }
+    }
 
     public GoalMonthOptionViewModel? SelectedGoalMonth
     {
