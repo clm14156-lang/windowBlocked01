@@ -275,10 +275,14 @@
             <DropShadowEffect BlurRadius="22" Direction="270" Opacity="0.16" ShadowDepth="5" />
         </Border.Effect>
         <Grid>
-            <TextBlock Margin="20,18,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="17" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource AutomaticRuleNewTitle}" />
-            <Button Margin="252,14,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Width="28" Height="28" Foreground="{DynamicResource TextUnit}" AutomationProperties.Name="{DynamicResource AutomaticRuleClose}" Command="{Binding CloseCommand}" Style="{StaticResource AuthCloseButtonStyle}">
-                <TextBlock FontFamily="Segoe MDL2 Assets" FontSize="13" Foreground="{DynamicResource TextUnit}" Text="&#xE8BB;" />
-            </Button>
+            <TextBlock Margin="20,18,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="17" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}">
+                <TextBlock.Style>
+                    <Style TargetType="{x:Type TextBlock}" BasedOn="{StaticResource {x:Type TextBlock}}">
+                        <Setter Property="Text" Value="{DynamicResource AutomaticRuleNewTitle}" />
+                        <Style.Triggers><DataTrigger Binding="{Binding IsEditing}" Value="True"><Setter Property="Text" Value="{DynamicResource AutomaticRuleEditTitle}" /></DataTrigger></Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
             <Border Margin="20,60,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Width="260" Height="1" Background="{DynamicResource BorderPrimary}" />
 
             <TextBlock Margin="20,78,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource AutomaticRuleRepeatTitle}" />
@@ -481,8 +485,17 @@
             <Button HorizontalAlignment="Left" VerticalAlignment="Top" Content="{DynamicResource AutomaticRuleCancel}" Command="{Binding CloseCommand}">
                 <Button.Style><Style TargetType="{x:Type Button}" BasedOn="{StaticResource RuleSecondaryButtonStyle}"><Setter Property="Margin" Value="124,324,0,0" /><Style.Triggers><DataTrigger Binding="{Binding IsCustom}" Value="True"><Setter Property="Margin" Value="124,420,0,0" /></DataTrigger></Style.Triggers></Style></Button.Style>
             </Button>
-            <Button HorizontalAlignment="Left" VerticalAlignment="Top" Content="{DynamicResource AutomaticRuleAdd}" Command="{Binding ConfirmCommand}">
-                <Button.Style><Style TargetType="{x:Type Button}" BasedOn="{StaticResource RulePrimaryButtonStyle}"><Setter Property="Margin" Value="208,324,0,0" /><Style.Triggers><DataTrigger Binding="{Binding IsCustom}" Value="True"><Setter Property="Margin" Value="208,420,0,0" /></DataTrigger></Style.Triggers></Style></Button.Style>
+            <Button HorizontalAlignment="Left" VerticalAlignment="Top" Command="{Binding ConfirmCommand}">
+                <Button.Style>
+                    <Style TargetType="{x:Type Button}" BasedOn="{StaticResource RulePrimaryButtonStyle}">
+                        <Setter Property="Margin" Value="208,324,0,0" />
+                        <Setter Property="Content" Value="{DynamicResource AutomaticRuleAdd}" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsCustom}" Value="True"><Setter Property="Margin" Value="208,420,0,0" /></DataTrigger>
+                            <DataTrigger Binding="{Binding IsEditing}" Value="True"><Setter Property="Content" Value="{DynamicResource AutomaticRuleSave}" /></DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
             </Button>
         </Grid>
     </Border>

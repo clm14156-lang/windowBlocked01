@@ -11,6 +11,7 @@ public sealed class AutomaticRuleModalViewModel : INotifyPropertyChanged
     private const int MinutesPerDay = 24 * 60;
     private const int TimeStepMinutes = 5;
     private bool _isOpen;
+    private bool _isEditing;
     private bool _isCustom;
     private bool _isTimePickerOpen;
     private bool _isPickingStartTime;
@@ -55,7 +56,7 @@ public sealed class AutomaticRuleModalViewModel : INotifyPropertyChanged
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
-    public event EventHandler<AutomaticRuleDraft>? RuleCreated;
+    public event EventHandler<AutomaticRuleDraft>? RuleSubmitted;
 
     public Func<AutomaticRuleDraft, string?>? ValidateRule { get; set; }
 
@@ -89,6 +90,12 @@ public sealed class AutomaticRuleModalViewModel : INotifyPropertyChanged
     {
         get => _isOpen;
         private set => SetField(ref _isOpen, value);
+    }
+
+    public bool IsEditing
+    {
+        get => _isEditing;
+        private set => SetField(ref _isEditing, value);
     }
 
     public bool IsCustom
@@ -230,6 +237,7 @@ public sealed class AutomaticRuleModalViewModel : INotifyPropertyChanged
 
     public void Open()
     {
+        IsEditing = false;
         IsCustom = false;
         IsTimePickerOpen = false;
         ValidationMessage = string.Empty;
@@ -244,6 +252,38 @@ public sealed class AutomaticRuleModalViewModel : INotifyPropertyChanged
             Weekdays[index].IsSelected = index is 0 or 2 or 4;
         }
 
+        IsOpen = true;
+    }
+
+    public void OpenForEdit(
+        bool isCustom,
+        IEnumerable<string> selectedDayKeys,
+        double startMinutes,
+        double endMinutes)
+    {
+        var selectedDays = selectedDayKeys.ToHashSet(StringComparer.Ordinal);
+        IsEditing = true;
+        IsCustom = isCustom;
+        IsTimePickerOpen = false;
+        ValidationMessage = string.Empty;
+        _hasStartTime = true;
+        _hasEndTime = true;
+
+        var snappedStart = SnapToStep(startMinutes);
+        var snappedEnd = SnapToStep(endMinutes);
+        _startValue = Math.Min(snappedStart, snappedEnd);
+        _endValue = Math.Max(snappedStart, snappedEnd);
+        OnPropertyChanged(nameof(StartValue));
+        OnPropertyChanged(nameof(EndValue));
+        SetStartText(FormatTime(_startValue));
+        SetEndText(FormatTime(_endValue));
+
+        foreach (var weekday in Weekdays)
+        {
+            weekday.IsSelected = selectedDays.Contains(weekday.Key);
+        }
+
+        OnPropertyChanged(nameof(SelectedDaysText));
         IsOpen = true;
     }
 
@@ -350,7 +390,7 @@ public sealed class AutomaticRuleModalViewModel : INotifyPropertyChanged
             return;
         }
 
-        RuleCreated?.Invoke(this, draft);
+        RuleSubmitted?.Invoke(this, draft);
         Close();
     }
 

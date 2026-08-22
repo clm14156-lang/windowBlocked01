@@ -173,6 +173,79 @@ public sealed class SettingsPageViewModelTests
     }
 
     [Fact]
+    public void EditRule_LoadsExistingValuesAndUpdatesOriginalItemInPlace()
+    {
+        var automatic = new SettingsToggleItemViewModel("AutomaticBlocking", "Automatic", "Description", "Icon", true);
+        var modal = CreateRuleModal();
+        var viewModel = new SettingsPageViewModel([automatic], [], modal, "每天");
+
+        modal.Open();
+        modal.SelectCustomCommand.Execute(null);
+        modal.EndTimeText = "18:00";
+        modal.StartTimeText = "14:00";
+        modal.ConfirmCommand.Execute(null);
+
+        var originalRule = Assert.Single(viewModel.AutomaticRules);
+        var originalId = originalRule.Id;
+        originalRule.IsEnabled = false;
+
+        viewModel.EditRuleCommand.Execute(originalRule);
+
+        Assert.True(modal.IsOpen);
+        Assert.True(modal.IsEditing);
+        Assert.True(modal.IsCustom);
+        Assert.Equal("周一、周三、周五", modal.SelectedDaysText);
+        Assert.Equal("14:00", modal.StartTimeText);
+        Assert.Equal("18:00", modal.EndTimeText);
+
+        modal.Weekdays.Single(day => day.Key == "Tuesday").IsSelected = true;
+        modal.StartTimeText = "15:00";
+        modal.EndTimeText = "19:00";
+        modal.ConfirmCommand.Execute(null);
+
+        var updatedRule = Assert.Single(viewModel.AutomaticRules);
+        Assert.Same(originalRule, updatedRule);
+        Assert.Equal(originalId, updatedRule.Id);
+        Assert.False(updatedRule.IsEnabled);
+        Assert.True(updatedRule.IsCustom);
+        Assert.Equal("周一 / 周二 / 周三 / 周五", updatedRule.RepeatText);
+        Assert.Equal("15:00 – 19:00", updatedRule.TimeRangeText);
+        Assert.Equal(900, updatedRule.StartMinutes);
+        Assert.Equal(1140, updatedRule.EndMinutes);
+        Assert.False(modal.IsOpen);
+
+        viewModel.OpenRuleModalCommand.Execute(null);
+        Assert.False(modal.IsEditing);
+    }
+
+    [Fact]
+    public void EditRule_UsesSharedValidationAndDoesNotOverwriteOnConflict()
+    {
+        var automatic = new SettingsToggleItemViewModel("AutomaticBlocking", "Automatic", "Description", "Icon", true);
+        var modal = CreateRuleModal();
+        var viewModel = new SettingsPageViewModel([automatic], [], modal, "每天");
+
+        modal.Open();
+        modal.ConfirmCommand.Execute(null);
+        modal.Open();
+        modal.EndTimeText = "18:00";
+        modal.StartTimeText = "14:00";
+        modal.ConfirmCommand.Execute(null);
+
+        var ruleToEdit = viewModel.AutomaticRules[1];
+        viewModel.EditRuleCommand.Execute(ruleToEdit);
+        modal.StartTimeText = "09:00";
+        modal.EndTimeText = "12:00";
+        modal.ConfirmCommand.Execute(null);
+
+        Assert.True(modal.IsOpen);
+        Assert.Equal("已存在相同的自动屏蔽规则", modal.ValidationMessage);
+        Assert.Equal(2, viewModel.AutomaticRules.Count);
+        Assert.Same(ruleToEdit, viewModel.AutomaticRules[1]);
+        Assert.Equal("14:00 – 18:00", ruleToEdit.TimeRangeText);
+    }
+
+    [Fact]
     public void RuleValidation_RejectsDuplicateAndCoveredIntervalsButAllowsPartialOverlap()
     {
         var automatic = new SettingsToggleItemViewModel("AutomaticBlocking", "Automatic", "Description", "Icon", true);

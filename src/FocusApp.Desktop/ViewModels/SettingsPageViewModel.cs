@@ -8,6 +8,7 @@ namespace FocusApp.Desktop.ViewModels;
 public sealed class SettingsPageViewModel : INotifyPropertyChanged
 {
     private SettingsEntryItemViewModel? _activeEntry;
+    private AutomaticRuleItemViewModel? _editingRule;
 
     public SettingsPageViewModel(
         IEnumerable<SettingsToggleItemViewModel> toggleItems,
@@ -24,12 +25,12 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
         RuleModal = ruleModal ?? AutomaticRuleModalViewModel.CreateDefault();
         _dailyLabel = dailyLabel;
         ActivateEntryCommand = new RelayCommand<SettingsEntryItemViewModel>(ActivateEntry);
-        OpenRuleModalCommand = new RelayCommand<object>(_ => RuleModal.Open());
+        OpenRuleModalCommand = new RelayCommand<object>(_ => OpenCreateRule());
         DeleteRuleCommand = new RelayCommand<AutomaticRuleItemViewModel>(DeleteRule);
         ToggleRuleCommand = new RelayCommand<AutomaticRuleItemViewModel>(ToggleRule);
-        EditRuleCommand = new RelayCommand<AutomaticRuleItemViewModel>(_ => { });
+        EditRuleCommand = new RelayCommand<AutomaticRuleItemViewModel>(EditRule);
         RuleModal.ValidateRule = ValidateRule;
-        RuleModal.RuleCreated += RuleModal_RuleCreated;
+        RuleModal.RuleSubmitted += RuleModal_RuleSubmitted;
         if (AutomaticBlockingItem is not null)
         {
             AutomaticBlockingItem.PropertyChanged += AutomaticBlockingItem_PropertyChanged;
@@ -74,11 +75,46 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
 
     public string? LastActivatedEntryKey => _activeEntry?.Key;
 
-    private void RuleModal_RuleCreated(object? sender, AutomaticRuleDraft rule)
+    private void OpenCreateRule()
+    {
+        _editingRule = null;
+        RuleModal.Open();
+    }
+
+    private void EditRule(AutomaticRuleItemViewModel? rule)
+    {
+        if (rule is null)
+        {
+            return;
+        }
+
+        _editingRule = rule;
+        RuleModal.OpenForEdit(
+            rule.IsCustom,
+            rule.DayKeys,
+            rule.StartMinutes,
+            rule.EndMinutes);
+    }
+
+    private void RuleModal_RuleSubmitted(object? sender, AutomaticRuleDraft rule)
     {
         var repeatText = rule.IsCustom
             ? string.Join(" / ", rule.SelectedDays.Select(day => day.DisplayName))
             : _dailyLabel;
+
+        if (_editingRule is not null)
+        {
+            _editingRule.Update(
+                repeatText,
+                $"{rule.StartTime} – {rule.EndTime}",
+                rule.SelectedDays.Select(day => day.Key),
+                rule.StartMinutes,
+                rule.EndMinutes,
+                rule.IsCustom);
+            _editingRule = null;
+            RulesChanged?.Invoke(this, EventArgs.Empty);
+            return;
+        }
 
         var item = new AutomaticRuleItemViewModel(
             Guid.NewGuid(),
@@ -86,7 +122,8 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
             $"{rule.StartTime} – {rule.EndTime}",
             rule.SelectedDays.Select(day => day.Key),
             rule.StartMinutes,
-            rule.EndMinutes);
+            rule.EndMinutes,
+            rule.IsCustom);
         item.PropertyChanged += AutomaticRule_PropertyChanged;
         AutomaticRules.Add(item);
         RulesChanged?.Invoke(this, EventArgs.Empty);
@@ -133,6 +170,11 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
         var newDays = draft.SelectedDays.Select(day => day.Key).ToHashSet(StringComparer.Ordinal);
         foreach (var existing in AutomaticRules)
         {
+            if (ReferenceEquals(existing, _editingRule))
+            {
+                continue;
+            }
+
             if (!existing.IsEnabled || !existing.DayKeys.Any(newDays.Contains))
             {
                 continue;
@@ -180,31 +222,62 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
 public sealed class AutomaticRuleItemViewModel : INotifyPropertyChanged
 {
     private bool _isEnabled = true;
+    private string _repeatText;
+    private string _timeRangeText;
+    private double _startMinutes;
+    private double _endMinutes;
+    private bool _isCustom;
 
     public AutomaticRuleItemViewModel(Guid id, string repeatText, string timeRangeText,
-        IEnumerable<string>? dayKeys = null, double startMinutes = 0, double endMinutes = 0)
+        IEnumerable<string>? dayKeys = null, double startMinutes = 0, double endMinutes = 0, bool isCustom = false)
     {
         Id = id;
-        RepeatText = repeatText;
-        TimeRangeText = timeRangeText;
+        _repeatText = repeatText;
+        _timeRangeText = timeRangeText;
         DayKeys = new HashSet<string>(dayKeys ?? [], StringComparer.Ordinal);
-        StartMinutes = startMinutes;
-        EndMinutes = endMinutes;
+        _startMinutes = startMinutes;
+        _endMinutes = endMinutes;
+        _isCustom = isCustom;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public Guid Id { get; }
 
-    public string RepeatText { get; }
+    public string RepeatText => _repeatText;
 
-    public string TimeRangeText { get; }
+    public string TimeRangeText => _timeRangeText;
 
     public HashSet<string> DayKeys { get; }
 
-    public double StartMinutes { get; }
+    public double StartMinutes => _startMinutes;
 
-    public double EndMinutes { get; }
+    public double EndMinutes => _endMinutes;
+
+    public bool IsCustom => _isCustom;
+
+    public void Update(
+        string repeatText,
+        string timeRangeText,
+        IEnumerable<string> dayKeys,
+        double startMinutes,
+        double endMinutes,
+        bool isCustom)
+    {
+        _repeatText = repeatText;
+        _timeRangeText = timeRangeText;
+        DayKeys.Clear();
+        DayKeys.UnionWith(dayKeys);
+        _startMinutes = startMinutes;
+        _endMinutes = endMinutes;
+        _isCustom = isCustom;
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(RepeatText)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(TimeRangeText)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DayKeys)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(StartMinutes)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(EndMinutes)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsCustom)));
+    }
 
     public bool IsEnabled
     {

@@ -62,6 +62,10 @@ public sealed class ThemedTextButtonTemplateTests
 
         var root = Assert.IsType<XElement>(modal.Root);
         Assert.Equal("300", (string?)root.Attribute("Width"));
+        Assert.DoesNotContain(modal.Descendants(Presentation + "Button"), button =>
+            button.Attributes().Any(attribute =>
+                attribute.Name.LocalName == "AutomationProperties.Name" &&
+                attribute.Value == "{DynamicResource AutomaticRuleClose}"));
         var controlStyle = Assert.Single(root.Elements(Presentation + "UserControl.Style")
             .Elements(Presentation + "Style"));
         Assert.Contains(controlStyle.Elements(Presentation + "Setter"), setter =>
@@ -118,6 +122,17 @@ public sealed class ThemedTextButtonTemplateTests
         Assert.Equal(2, modal.Descendants(Presentation + "Button").Count(button =>
             (string?)button.Attribute("Click") == "TimeSelectorButton_Click" &&
             (string?)button.Attribute("PreviewMouseWheel") == "TimeSelectorButton_PreviewMouseWheel"));
+        var editModeTriggers = modal.Descendants(Presentation + "DataTrigger")
+            .Where(trigger => (string?)trigger.Attribute("Binding") == "{Binding IsEditing}" &&
+                              (string?)trigger.Attribute("Value") == "True")
+            .ToArray();
+        Assert.Equal(2, editModeTriggers.Length);
+        Assert.Contains(editModeTriggers.SelectMany(trigger => trigger.Elements(Presentation + "Setter")), setter =>
+            (string?)setter.Attribute("Property") == "Text" &&
+            (string?)setter.Attribute("Value") == "{DynamicResource AutomaticRuleEditTitle}");
+        Assert.Contains(editModeTriggers.SelectMany(trigger => trigger.Elements(Presentation + "Setter")), setter =>
+            (string?)setter.Attribute("Property") == "Content" &&
+            (string?)setter.Attribute("Value") == "{DynamicResource AutomaticRuleSave}");
         var weekdayStyle = Assert.Single(modal.Descendants(Presentation + "ItemsControl.ItemContainerStyle")
             .Descendants(Presentation + "Style"));
         AssertStyleSetter(weekdayStyle, "Margin", "0,0,7,0");
@@ -132,6 +147,13 @@ public sealed class ThemedTextButtonTemplateTests
     {
         var repositoryRoot = FindRepositoryRoot();
         var settings = XDocument.Load(Path.Combine(repositoryRoot, "src", "FocusApp.Desktop", "Views", "SettingsPage.xaml"));
+
+        var addButtonStyle = FindKeyedElement(settings, "Style", "SettingsAddRuleButtonStyle");
+        AssertStyleSetter(addButtonStyle, "Background", "{DynamicResource TransparentBrush}");
+        AssertStyleSetter(addButtonStyle, "BorderThickness", "0");
+        AssertStyleSetter(addButtonStyle, "Foreground", "{DynamicResource AccentPrimary}");
+        AssertStyleSetter(addButtonStyle, "FontSize", "13");
+        AssertStyleSetter(addButtonStyle, "FontWeight", "Medium");
 
         var ruleList = Assert.Single(settings.Descendants(Presentation + "ItemsControl")
             .Where(element => (string?)element.Attribute("ItemsSource") == "{Binding AutomaticRules}"));
@@ -163,11 +185,20 @@ public sealed class ThemedTextButtonTemplateTests
         Assert.Equal("Normal", (string?)timeText.Attribute("FontWeight"));
         Assert.Equal("{DynamicResource TextSecondary}", (string?)timeText.Attribute("Foreground"));
 
-        Assert.Single(ruleTemplate.Descendants(Presentation + "Button").Where(button =>
+        var editButton = Assert.Single(ruleTemplate.Descendants(Presentation + "Button").Where(button =>
             ((string?)button.Attribute("Command"))?.Contains("EditRuleCommand", StringComparison.Ordinal) == true));
+        Assert.Equal("{DynamicResource AutomaticRuleEdit}", (string?)editButton.Attribute("Content"));
+        Assert.Equal("RuleMenuItem_Click", (string?)editButton.Attribute("Click"));
         var deleteButton = Assert.Single(ruleTemplate.Descendants(Presentation + "Button").Where(button =>
             ((string?)button.Attribute("Command"))?.Contains("DeleteRuleCommand", StringComparison.Ordinal) == true));
+        Assert.Equal("{DynamicResource AutomaticRuleDelete}", (string?)deleteButton.Attribute("Content"));
+        Assert.Equal("RuleMenuItem_Click", (string?)deleteButton.Attribute("Click"));
         Assert.Equal("{DynamicResource Danger}", (string?)deleteButton.Attribute("Foreground"));
+
+        var menuStyle = FindKeyedElement(settings, "Style", "SettingsRuleMenuItemStyle");
+        AssertStyleSetter(menuStyle, "ContentTemplate", "{StaticResource SettingsRuleMenuTextTemplate}");
+        Assert.Empty(editButton.Elements(Presentation + "StackPanel"));
+        Assert.Empty(deleteButton.Elements(Presentation + "StackPanel"));
     }
 
     private static void AssertFooterStyle(XDocument modal, string styleKey, string brushKey)

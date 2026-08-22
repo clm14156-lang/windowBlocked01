@@ -76,7 +76,7 @@
     <system:String x:Key="AutomaticRulesEmpty">暂无规则</system:String>
     <system:String x:Key="AutomaticRuleAddButton">添加规则</system:String>
     <system:String x:Key="AutomaticRuleNewTitle">新建规则</system:String>
-    <system:String x:Key="AutomaticRuleClose">关闭新建规则</system:String>
+    <system:String x:Key="AutomaticRuleEditTitle">编辑规则</system:String>
     <system:String x:Key="AutomaticRuleRepeatTitle">重复频率</system:String>
     <system:String x:Key="AutomaticRuleDaily">每天</system:String>
     <system:String x:Key="AutomaticRuleCustom">自定义</system:String>
@@ -91,8 +91,9 @@
     <system:String x:Key="AutomaticRuleTimePickerConfirm">确定</system:String>
     <system:String x:Key="AutomaticRuleCancel">取消</system:String>
     <system:String x:Key="AutomaticRuleAdd">添加</system:String>
-    <system:String x:Key="AutomaticRuleEdit">编辑规则</system:String>
-    <system:String x:Key="AutomaticRuleDelete">删除规则</system:String>
+    <system:String x:Key="AutomaticRuleSave">保存</system:String>
+    <system:String x:Key="AutomaticRuleEdit">编辑</system:String>
+    <system:String x:Key="AutomaticRuleDelete">删除</system:String>
     <system:String x:Key="AutomaticRuleMoreActions">规则更多操作</system:String>
     <system:String x:Key="AutomaticRuleMonday">周一</system:String>
     <system:String x:Key="AutomaticRuleTuesday">周二</system:String>

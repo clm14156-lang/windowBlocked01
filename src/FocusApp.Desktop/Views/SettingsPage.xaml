@@ -210,9 +210,9 @@
         <Style x:Key="SettingsAddRuleButtonStyle" TargetType="{x:Type Button}">
             <Setter Property="Width" Value="100" />
             <Setter Property="Height" Value="34" />
-            <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
-            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
+            <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}" />
             <Setter Property="FontSize" Value="13" />
             <Setter Property="FontWeight" Value="Medium" />
@@ -220,12 +220,12 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type Button}">
-                        <Border x:Name="ButtonBorder" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8">
+                        <Border x:Name="ButtonBorder" Background="{TemplateBinding Background}" CornerRadius="9">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
                         <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource AccentTint}" /></Trigger>
-                            <Trigger Property="IsPressed" Value="True"><Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource ControlPressedBackground}" /></Trigger>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource RecentTargetSelectedBackground}" /></Trigger>
+                            <Trigger Property="IsPressed" Value="True"><Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource RecentTargetSelectedPressedBackground}" /></Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
@@ -286,6 +286,15 @@
             </Setter>
         </Style>
 
+        <DataTemplate x:Key="SettingsRuleMenuTextTemplate">
+            <TextBlock VerticalAlignment="Center"
+                       FontFamily="{Binding FontFamily, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
+                       FontSize="{Binding FontSize, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
+                       FontWeight="{Binding FontWeight, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
+                       Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
+                       Text="{Binding}" />
+        </DataTemplate>
+
         <Style x:Key="SettingsRuleMenuItemStyle" TargetType="{x:Type Button}" BasedOn="{StaticResource ThemedTextButtonBaseStyle}">
             <Setter Property="Height" Value="36" />
             <Setter Property="Padding" Value="10,0" />
@@ -295,6 +304,7 @@
             <Setter Property="FontSize" Value="13" />
             <Setter Property="FontWeight" Value="Normal" />
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+            <Setter Property="ContentTemplate" Value="{StaticResource SettingsRuleMenuTextTemplate}" />
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Template">
                 <Setter.Value>
@@ -354,7 +364,10 @@
                                 <Grid Height="54">
                                     <TextBlock Margin="22,0,0,0" VerticalAlignment="Center" FontSize="15" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource AutomaticRulesTitle}" />
                                     <Button Margin="0,0,18,0" HorizontalAlignment="Right" AutomationProperties.Name="{DynamicResource AutomaticRuleAddButton}" Command="{Binding OpenRuleModalCommand}" Style="{StaticResource SettingsAddRuleButtonStyle}">
-                                        <StackPanel Orientation="Horizontal"><TextBlock Margin="0,0,7,0" FontSize="17" Text="+" /><TextBlock VerticalAlignment="Center" Text="{DynamicResource AutomaticRuleAddButton}" /></StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Margin="0,0,6,0" VerticalAlignment="Center" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource AccentPrimary}" Text="+" />
+                                            <TextBlock VerticalAlignment="Center" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource AccentPrimary}" Text="{DynamicResource AutomaticRuleAddButton}" />
+                                        </StackPanel>
                                     </Button>
                                 </Grid>
                                 <TextBlock Height="36" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource AutomaticRulesEmpty}">
@@ -429,23 +442,19 @@
                                                                 CornerRadius="10">
                                                             <Border.Effect><DropShadowEffect BlurRadius="12" Direction="270" Opacity="0.10" ShadowDepth="2" /></Border.Effect>
                                                             <StackPanel>
-                                                                <Button Command="{Binding DataContext.EditRuleCommand, Source={x:Reference SettingsPageRoot}}"
+                                                                <Button Click="RuleMenuItem_Click"
+                                                                        Command="{Binding DataContext.EditRuleCommand, Source={x:Reference SettingsPageRoot}}"
                                                                         CommandParameter="{Binding}"
-                                                                        Style="{StaticResource SettingsRuleMenuItemStyle}">
-                                                                    <StackPanel Orientation="Horizontal">
-                                                                        <TextBlock Width="24" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="13" Foreground="{DynamicResource TextPrimary}" Text="&#xE70F;" />
-                                                                        <TextBlock VerticalAlignment="Center" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource AutomaticRuleEdit}" />
-                                                                    </StackPanel>
-                                                                </Button>
-                                                                <Button Command="{Binding DataContext.DeleteRuleCommand, Source={x:Reference SettingsPageRoot}}"
+                                                                        Content="{DynamicResource AutomaticRuleEdit}"
+                                                                        Style="{StaticResource SettingsRuleMenuItemStyle}"
+                                                                        Tag="{Binding ElementName=RuleMoreButton}" />
+                                                                <Button Click="RuleMenuItem_Click"
+                                                                        Command="{Binding DataContext.DeleteRuleCommand, Source={x:Reference SettingsPageRoot}}"
                                                                         CommandParameter="{Binding}"
+                                                                        Content="{DynamicResource AutomaticRuleDelete}"
                                                                         Foreground="{DynamicResource Danger}"
-                                                                        Style="{StaticResource SettingsRuleMenuItemStyle}">
-                                                                    <StackPanel Orientation="Horizontal">
-                                                                        <TextBlock Width="24" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="13" Foreground="{DynamicResource Danger}" Text="&#xE74D;" />
-                                                                        <TextBlock VerticalAlignment="Center" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource Danger}" Text="{DynamicResource AutomaticRuleDelete}" />
-                                                                    </StackPanel>
-                                                                </Button>
+                                                                        Style="{StaticResource SettingsRuleMenuItemStyle}"
+                                                                        Tag="{Binding ElementName=RuleMoreButton}" />
                                                             </StackPanel>
                                                         </Border>
                                                     </Popup>
