@@ -1,70 +1,78 @@
 <UserControl x:Class="FocusApp.Desktop.Views.AddWebsiteModal"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             Width="345"
-             Height="295"
+             Width="380"
+             Height="330"
              HorizontalAlignment="Center"
              VerticalAlignment="Center"
              UseLayoutRounding="True"
              SnapsToDevicePixels="True">
     <UserControl.Resources>
         <Style x:Key="BlockingModalTextBoxStyle" TargetType="{x:Type TextBox}">
-            <Setter Property="Height" Value="40" />
-            <Setter Property="Padding" Value="42,0,12,0" />
+            <Setter Property="Height" Value="44" />
+            <Setter Property="Padding" Value="11,0" />
             <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderPrimary}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource OverlayBorder}" />
             <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+            <Setter Property="CaretBrush" Value="{DynamicResource TextPrimary}" />
             <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="Normal" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type TextBox}">
-                        <Border x:Name="InputBorder" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8">
-                            <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalAlignment="Center" />
+                        <Border x:Name="InputBorder" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="9">
+                            <ScrollViewer x:Name="PART_ContentHost" Margin="0" Padding="{TemplateBinding Padding}" VerticalAlignment="Center" />
                         </Border>
                         <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="InputBorder" Property="BorderBrush" Value="{DynamicResource AccentHover}" /></Trigger>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="InputBorder" Property="BorderBrush" Value="{DynamicResource BorderPrimary}" /></Trigger>
                             <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="InputBorder" Property="BorderBrush" Value="{DynamicResource AccentPrimary}" /><Setter TargetName="InputBorder" Property="BorderThickness" Value="1.5" /></Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
-        <Style x:Key="BlockingModalSecondaryButtonStyle" TargetType="{x:Type Button}">
-            <Setter Property="Width" Value="86" /><Setter Property="Height" Value="38" /><Setter Property="Background" Value="{DynamicResource SurfacePrimary}" /><Setter Property="BorderBrush" Value="{DynamicResource BorderPrimary}" /><Setter Property="BorderThickness" Value="1" /><Setter Property="FontSize" Value="14" /><Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Style x:Key="BlockingModalSecondaryButtonStyle" TargetType="{x:Type Button}" BasedOn="{StaticResource ThemedTextButtonBaseStyle}">
+            <Setter Property="Width" Value="78" /><Setter Property="Height" Value="34" /><Setter Property="Background" Value="{DynamicResource SurfacePrimary}" /><Setter Property="BorderBrush" Value="{DynamicResource BorderPrimary}" /><Setter Property="BorderThickness" Value="1" /><Setter Property="Foreground" Value="{DynamicResource TextUnit}" /><Setter Property="FontSize" Value="13" /><Setter Property="FontWeight" Value="Medium" /><Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="{x:Type Button}"><Border x:Name="ButtonBorder" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" /></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource ControlHoverBackground}" /></Trigger><Trigger Property="IsPressed" Value="True"><Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource ControlPressedBackground}" /></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
         </Style>
         <Style x:Key="BlockingModalPrimaryButtonStyle" TargetType="{x:Type Button}" BasedOn="{StaticResource BlockingModalSecondaryButtonStyle}">
-            <Setter Property="Background" Value="{DynamicResource FocusButtonBackground}" /><Setter Property="BorderThickness" Value="0" /><Setter Property="Foreground" Value="{DynamicResource WhiteText}" /><Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="{x:Type Button}"><Border x:Name="ButtonBorder" Background="{TemplateBinding Background}" CornerRadius="8"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" /></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource FocusButtonHoverBackground}" /></Trigger><Trigger Property="IsPressed" Value="True"><Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource FocusButtonPressedBackground}" /></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
+            <Setter Property="Background" Value="{DynamicResource AccentPrimary}" /><Setter Property="BorderThickness" Value="0" /><Setter Property="Foreground" Value="{DynamicResource WhiteText}" />
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="{x:Type Button}"><Border x:Name="ButtonBorder" Background="{TemplateBinding Background}" CornerRadius="8"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" /></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource AccentHover}" /></Trigger><Trigger Property="IsPressed" Value="True"><Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource AccentPressed}" /></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
         </Style>
     </UserControl.Resources>
 
-    <Border Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" CornerRadius="12" MouseDown="ModalCard_MouseDown">
-        <Grid Margin="20,0">
-            <TextBlock Margin="0,17,0,0" VerticalAlignment="Top" FontSize="18" FontWeight="SemiBold" Text="{DynamicResource BlockingAddWebsiteModalTitle}" />
-            <Button Width="30" Height="30" Margin="0,10,-7,0" HorizontalAlignment="Right" VerticalAlignment="Top" AutomationProperties.Name="{DynamicResource BlockingModalClose}" Command="{Binding CloseCommand}" Style="{StaticResource WindowChromeButtonStyle}"><TextBlock FontFamily="Segoe MDL2 Assets" FontSize="13" Text="&#xE8BB;" /></Button>
-            <TextBlock Margin="0,46,0,0" VerticalAlignment="Top" FontSize="12" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource BlockingAddWebsiteModalDescription}" />
+    <Border Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource OverlayBorder}" BorderThickness="1" CornerRadius="12" MouseDown="ModalCard_MouseDown">
+        <Grid Margin="24,18">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="28" /><RowDefinition Height="18" /><RowDefinition Height="18" />
+                <RowDefinition Height="17" /><RowDefinition Height="8" /><RowDefinition Height="44" />
+                <RowDefinition Height="18" /><RowDefinition Height="17" /><RowDefinition Height="8" />
+                <RowDefinition Height="44" /><RowDefinition Height="6" /><RowDefinition Height="16" />
+                <RowDefinition /><RowDefinition Height="34" />
+            </Grid.RowDefinitions>
 
-            <TextBlock Margin="0,76,0,0" VerticalAlignment="Top" FontSize="12" Text="{DynamicResource BlockingWebsiteNameLabel}" />
-            <Grid Height="40" Margin="0,96,0,0" VerticalAlignment="Top">
-                <TextBox AutomationProperties.Name="{DynamicResource BlockingWebsiteNameLabel}" Text="{Binding WebsiteName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource BlockingModalTextBoxStyle}" />
-                <TextBlock Margin="43,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False" FontSize="13" Foreground="{DynamicResource AuthInputPlaceholder}" Text="{DynamicResource BlockingWebsiteNamePlaceholder}"><TextBlock.Style><Style TargetType="{x:Type TextBlock}" BasedOn="{StaticResource {x:Type TextBlock}}"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding WebsiteName}" Value=""><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
-                <TextBlock Margin="13,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False" FontFamily="Segoe MDL2 Assets" FontSize="16" Foreground="{DynamicResource TextSecondary}" Text="&#xE70F;" />
+            <TextBlock Grid.Row="0" VerticalAlignment="Top" FontSize="17" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource BlockingAddWebsiteModalTitle}" />
+            <TextBlock Grid.Row="1" VerticalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource BlockingAddWebsiteModalDescription}" />
+
+            <TextBlock Grid.Row="3" VerticalAlignment="Center" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource BlockingWebsiteNameLabel}" />
+            <Grid Grid.Row="5">
+                <TextBox x:Name="WebsiteNameTextBox" AutomationProperties.Name="{DynamicResource BlockingWebsiteNameLabel}" Text="{Binding WebsiteName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource BlockingModalTextBoxStyle}" />
+                <TextBlock Margin="11,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextWeak}" Text="{DynamicResource BlockingWebsiteNamePlaceholder}"><TextBlock.Style><Style TargetType="{x:Type TextBlock}" BasedOn="{StaticResource {x:Type TextBlock}}"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding WebsiteName}" Value=""><Setter Property="Visibility" Value="Visible" /></DataTrigger><DataTrigger Binding="{Binding IsKeyboardFocusWithin, ElementName=WebsiteNameTextBox}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
             </Grid>
 
-            <TextBlock Margin="0,145,0,0" VerticalAlignment="Top" FontSize="12" Text="{DynamicResource BlockingWebsiteAddressLabel}" />
-            <Grid Height="40" Margin="0,165,0,0" VerticalAlignment="Top">
-                <TextBox AutomationProperties.Name="{DynamicResource BlockingWebsiteAddressLabel}" Text="{Binding WebsiteAddress, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource BlockingModalTextBoxStyle}" />
-                <TextBlock Margin="43,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False" FontSize="13" Foreground="{DynamicResource AuthInputPlaceholder}" Text="{DynamicResource BlockingWebsiteAddressPlaceholder}"><TextBlock.Style><Style TargetType="{x:Type TextBlock}" BasedOn="{StaticResource {x:Type TextBlock}}"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding WebsiteAddress}" Value=""><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
-                <TextBlock Margin="13,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False" FontFamily="Segoe MDL2 Assets" FontSize="16" Foreground="{DynamicResource TextSecondary}" Text="&#xE774;" />
+            <TextBlock Grid.Row="7" VerticalAlignment="Center" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource BlockingWebsiteAddressLabel}" />
+            <Grid Grid.Row="9">
+                <TextBox x:Name="WebsiteAddressTextBox" AutomationProperties.Name="{DynamicResource BlockingWebsiteAddressLabel}" Text="{Binding WebsiteAddress, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource BlockingModalTextBoxStyle}" />
+                <TextBlock Margin="11,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextWeak}" Text="{DynamicResource BlockingWebsiteAddressPlaceholder}"><TextBlock.Style><Style TargetType="{x:Type TextBlock}" BasedOn="{StaticResource {x:Type TextBlock}}"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding WebsiteAddress}" Value=""><Setter Property="Visibility" Value="Visible" /></DataTrigger><DataTrigger Binding="{Binding IsKeyboardFocusWithin, ElementName=WebsiteAddressTextBox}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
             </Grid>
-            <TextBlock Margin="0,211,0,0" VerticalAlignment="Top" FontSize="12" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource BlockingWebsiteDomainHint}" />
+            <TextBlock Grid.Row="11" VerticalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource BlockingWebsiteDomainHint}" />
 
-            <StackPanel Margin="0,0,0,17" HorizontalAlignment="Right" VerticalAlignment="Bottom" Orientation="Horizontal">
+            <StackPanel Grid.Row="13" HorizontalAlignment="Right" Orientation="Horizontal">
                 <Button AutomationProperties.Name="{DynamicResource BlockingModalCancel}" Command="{Binding CloseCommand}" Content="{DynamicResource BlockingModalCancel}" Style="{StaticResource BlockingModalSecondaryButtonStyle}" />
-                <Button Margin="12,0,0,0" AutomationProperties.Name="{DynamicResource BlockingModalSave}" Command="{Binding SaveCommand}" Content="{DynamicResource BlockingModalSave}" Style="{StaticResource BlockingModalPrimaryButtonStyle}" />
+                <Button Margin="14,0,0,0" AutomationProperties.Name="{DynamicResource BlockingModalSave}" Command="{Binding SaveCommand}" Content="{DynamicResource BlockingModalSave}" Style="{StaticResource BlockingModalPrimaryButtonStyle}" />
             </StackPanel>
         </Grid>
     </Border>

@@ -98,6 +98,23 @@ public sealed class BlockingPageViewModelTests
     }
 
     [Fact]
+    public void DeleteApplication_RemovesOnlyRequestedItemAndRefreshesCount()
+    {
+        var first = new BlockingApplicationItemViewModel(Guid.NewGuid(), "First", "first.exe", true);
+        var second = new BlockingApplicationItemViewModel(Guid.NewGuid(), "Second", "second.exe", true);
+        var viewModel = new BlockingPageViewModel([], [first, second], "Added websites {0}", "Added applications {0}");
+        var changeCount = 0;
+        viewModel.BlockingChanged += (_, _) => changeCount++;
+
+        viewModel.DeleteApplicationCommand.Execute(first);
+
+        Assert.Single(viewModel.Applications);
+        Assert.Same(second, viewModel.Applications[0]);
+        Assert.Equal("Added applications 1", viewModel.ApplicationCountText);
+        Assert.Equal(1, changeCount);
+    }
+
+    [Fact]
     public void HomeAndBlockedModal_UseSameEnabledStateAndModalOnlyDisablesRule()
     {
         var websites = Enumerable.Range(1, 4)

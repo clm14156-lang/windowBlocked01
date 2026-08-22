@@ -109,14 +109,14 @@
             <Setter Property="Height" Value="32" />
             <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
             <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextWeak}" />
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type Button}">
-                        <Border x:Name="IconBackground" Background="{TemplateBinding Background}" CornerRadius="7"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" /></Border>
+                        <Border x:Name="IconBackground" Background="{TemplateBinding Background}" CornerRadius="16"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" /></Border>
                         <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="IconBackground" Property="Background" Value="{DynamicResource ControlHoverBackground}" /><Setter Property="Foreground" Value="{DynamicResource TextPrimary}" /></Trigger>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="IconBackground" Property="Background" Value="{DynamicResource ControlHoverBackground}" /><Setter Property="Foreground" Value="{DynamicResource TextSecondary}" /></Trigger>
                             <Trigger Property="IsPressed" Value="True"><Setter TargetName="IconBackground" Property="Background" Value="{DynamicResource ControlPressedBackground}" /></Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -442,40 +442,20 @@
                                                       AutomationProperties.Name="{Binding Name}"
                                                       IsChecked="{Binding IsEnabled, Mode=TwoWay}"
                                                       Style="{StaticResource BlockingToggleStyle}" />
-                                        <ToggleButton x:Name="ApplicationMoreButton"
-                                                      Grid.Column="2"
-                                                      Margin="64,0,0,0"
-                                                      HorizontalAlignment="Left"
-                                                      VerticalAlignment="Center"
-                                                      AutomationProperties.Name="{DynamicResource BlockingActionsColumn}"
-                                                      Style="{StaticResource BlockingMoreButtonStyle}">
-                                            <TextBlock Margin="0,-7,0,0"
-                                                       FontSize="17"
-                                                       FontWeight="SemiBold"
-                                                       Text="..." />
-                                        </ToggleButton>
-                                        <Popup AllowsTransparency="True"
-                                               IsOpen="{Binding IsChecked, ElementName=ApplicationMoreButton, Mode=TwoWay}"
-                                               Placement="Left"
-                                               PlacementTarget="{Binding ElementName=ApplicationMoreButton}"
-                                               PopupAnimation="Fade"
-                                               StaysOpen="False">
-                                            <Border Width="118"
-                                                    Padding="6"
-                                                    Background="{DynamicResource SurfacePrimary}"
-                                                    BorderBrush="{DynamicResource BorderPrimary}"
-                                                    BorderThickness="1"
-                                                    CornerRadius="12">
-                                                <Border.Effect>
-                                                    <DropShadowEffect BlurRadius="14" Direction="270" Opacity="0.14" ShadowDepth="3" />
-                                                </Border.Effect>
-                                                <Button Command="{Binding DataContext.DeleteApplicationCommand, Source={x:Reference BlockingPageRoot}}"
-                                                        CommandParameter="{Binding}"
-                                                        Content="{DynamicResource BlockingDeleteApplication}"
-                                                        Foreground="{DynamicResource Danger}"
-                                                        Style="{StaticResource BlockingMenuItemStyle}" />
-                                            </Border>
-                                        </Popup>
+                                        <Button Grid.Column="2"
+                                                Margin="64,0,0,0"
+                                                HorizontalAlignment="Left"
+                                                VerticalAlignment="Center"
+                                                AutomationProperties.Name="{DynamicResource BlockingDeleteApplication}"
+                                                Command="{Binding DataContext.DeleteApplicationCommand, Source={x:Reference BlockingPageRoot}}"
+                                                CommandParameter="{Binding}"
+                                                Style="{StaticResource BlockingIconButtonStyle}"
+                                                ToolTip="{DynamicResource BlockingDeleteApplication}">
+                                            <TextBlock FontFamily="Segoe MDL2 Assets"
+                                                       FontSize="15"
+                                                       FontWeight="Normal"
+                                                       Text="&#xE74D;" />
+                                        </Button>
                                     </Grid>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>

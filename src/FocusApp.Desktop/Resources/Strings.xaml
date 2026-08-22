@@ -33,13 +33,13 @@
     <system:String x:Key="BlockingDeleteApplication">删除程序</system:String>
     <system:String x:Key="BlockingWebsiteEmptyTitle">暂无屏蔽网站</system:String>
     <system:String x:Key="BlockingWebsiteEmptyDescription">添加网站后，可在这里管理屏蔽状态和网站列表</system:String>
-    <system:String x:Key="BlockingAddWebsiteModalTitle">添加网址</system:String>
+    <system:String x:Key="BlockingAddWebsiteModalTitle">添加网站</system:String>
     <system:String x:Key="BlockingAddWebsiteModalDescription">添加需要在专注期间屏蔽的网站</system:String>
     <system:String x:Key="BlockingWebsiteNameLabel">网站名称</system:String>
-    <system:String x:Key="BlockingWebsiteNamePlaceholder">网站名称</system:String>
+    <system:String x:Key="BlockingWebsiteNamePlaceholder">输入网站名称</system:String>
     <system:String x:Key="BlockingWebsiteAddressLabel">网站地址</system:String>
     <system:String x:Key="BlockingWebsiteAddressPlaceholder">https://www.example.com</system:String>
-    <system:String x:Key="BlockingWebsiteDomainHint">将屏蔽此域名及其子域名</system:String>
+    <system:String x:Key="BlockingWebsiteDomainHint">将同时屏蔽此域名及其子域名</system:String>
     <system:String x:Key="BlockingModalClose">关闭</system:String>
     <system:String x:Key="BlockingModalCancel">取消</system:String>
     <system:String x:Key="BlockingModalSave">保存</system:String>
