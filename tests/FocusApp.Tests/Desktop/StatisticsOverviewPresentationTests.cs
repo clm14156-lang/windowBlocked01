@@ -44,6 +44,84 @@ public sealed class StatisticsOverviewPresentationTests
         Assert.Null(selector.Attribute("Width"));
     }
 
+    [Fact]
+    public void CalendarFocusRecordsShowOnlyCompletedTasksWithReadOnlyMarkers()
+    {
+        var page = XDocument.Load(Path.Combine(
+            FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
+        var records = Assert.Single(page.Descendants(Presentation + "ItemsControl").Where(element =>
+            (string?)element.Attribute("ItemsSource") == "{Binding SelectedDayRecords}"));
+        var recordTemplate = Assert.Single(records.Elements(Presentation + "ItemsControl.ItemTemplate")
+            .Elements(Presentation + "DataTemplate"));
+
+        Assert.DoesNotContain(recordTemplate.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") is "{Binding CalendarDurationDisplay}" or
+                "{Binding CompletedTaskNamesDisplay}" or "{Binding TimeRangeDisplay}");
+        var time = Assert.Single(recordTemplate.Descendants(Presentation + "TextBlock").Where(text =>
+            text.Elements(Presentation + "Run").Any(run =>
+                ((string?)run.Attribute("Text"))?.Contains("StartTime", StringComparison.Ordinal) == true)));
+        Assert.Contains(time.Elements(Presentation + "Run"), run =>
+            (string?)run.Attribute("Text") == " – ");
+
+        var completedTasks = Assert.Single(recordTemplate.Descendants(Presentation + "ItemsControl").Where(element =>
+            (string?)element.Attribute("ItemsSource") == "{Binding CompletedTaskNames}"));
+        var taskTemplate = Assert.Single(completedTasks.Elements(Presentation + "ItemsControl.ItemTemplate")
+            .Elements(Presentation + "DataTemplate"));
+        var marker = Assert.Single(taskTemplate.Descendants(Presentation + "Border"));
+        Assert.Equal("False", (string?)marker.Attribute("IsHitTestVisible"));
+        Assert.Single(marker.Elements(Presentation + "Path"));
+
+        var taskText = Assert.Single(taskTemplate.Descendants(Presentation + "TextBlock"));
+        Assert.Equal("{Binding}", (string?)taskText.Attribute("Text"));
+        Assert.Equal("Wrap", (string?)taskText.Attribute("TextWrapping"));
+    }
+
+    [Fact]
+    public void CalendarDetailUsesCompactSummaryAndRemainingHeightForRecords()
+    {
+        var page = XDocument.Load(Path.Combine(
+            FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
+        var panel = Assert.Single(page.Descendants(Presentation + "Border").Where(element =>
+            (string?)element.Attribute("Grid.Column") == "2" &&
+            (string?)element.Attribute("Height") == "602"));
+        var layout = Assert.Single(panel.Elements(Presentation + "Grid"));
+        Assert.Equal("*", layout.Elements(Presentation + "Grid.RowDefinitions")
+            .Elements(Presentation + "RowDefinition").Last().Attribute("Height")?.Value);
+
+        var date = Assert.Single(layout.Elements(Presentation + "TextBlock").Where(text =>
+            (string?)text.Attribute("Text") == "{Binding SelectedDateDisplay}"));
+        Assert.Equal("17", (string?)date.Attribute("FontSize"));
+        Assert.Equal("SemiBold", (string?)date.Attribute("FontWeight"));
+
+        var summary = Assert.Single(layout.Elements(Presentation + "TextBlock").Where(text =>
+            text.Elements(Presentation + "Run").Any(run =>
+                ((string?)run.Attribute("Text"))?.Contains("SelectedDayCompletedTasks", StringComparison.Ordinal) == true)));
+        Assert.Contains(summary.Elements(Presentation + "Run"), run =>
+            (string?)run.Attribute("Text") == " 分钟  ·  ");
+        Assert.DoesNotContain(layout.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") is "专注时长" or "推进次数");
+        Assert.DoesNotContain(layout.Descendants(Presentation + "Border"), border =>
+            (string?)border.Attribute("BorderThickness") == "0,0,1,0");
+
+        var heading = Assert.Single(layout.Elements(Presentation + "TextBlock").Where(text =>
+            (string?)text.Attribute("Text") == "专注记录"));
+        Assert.Equal("15", (string?)heading.Attribute("FontSize"));
+        Assert.Equal("SemiBold", (string?)heading.Attribute("FontWeight"));
+
+        var scrollViewer = Assert.Single(layout.Elements(Presentation + "ScrollViewer"));
+        Assert.Equal("4", (string?)scrollViewer.Attribute("Grid.Row"));
+        Assert.Null(scrollViewer.Attribute("MaxHeight"));
+
+        var scrollStyle = Assert.Single(page.Descendants(Presentation + "Style").Where(style =>
+            (string?)style.Attribute(Xaml + "Key") == "StatisticsRecordScrollBarStyle"));
+        Assert.Contains(scrollStyle.Elements(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("Property") == "Width" &&
+            (string?)setter.Attribute("Value") == "5");
+        Assert.Contains(scrollStyle.Descendants(Presentation + "Border"), border =>
+            (string?)border.Attribute(Xaml + "Name") == "ThumbBody" &&
+            (string?)border.Attribute("Width") == "3");
+    }
+
     private static string FindRepositoryRoot()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);

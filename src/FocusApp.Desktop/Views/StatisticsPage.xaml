@@ -250,13 +250,13 @@
             </Setter>
         </Style>
         <Style x:Key="StatisticsRecordScrollBarStyle" TargetType="{x:Type ScrollBar}">
-            <Setter Property="Width" Value="6" />
-            <Setter Property="MinWidth" Value="6" />
+            <Setter Property="Width" Value="5" />
+            <Setter Property="MinWidth" Value="5" />
             <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type ScrollBar}">
-                        <Grid Width="6" Background="{DynamicResource TransparentBrush}">
+                        <Grid Width="5" Background="{DynamicResource TransparentBrush}">
                             <Track x:Name="PART_Track"
                                    Margin="0,3,1,3"
                                    IsDirectionReversed="True"
@@ -273,16 +273,16 @@
                                         <Thumb.Template>
                                             <ControlTemplate TargetType="{x:Type Thumb}">
                                                 <Border x:Name="ThumbBody"
-                                                        Width="4"
+                                                        Width="3"
                                                         HorizontalAlignment="Center"
-                                                        Background="#C7C7CC"
+                                                        Background="#D1D1D6"
                                                         CornerRadius="2" />
                                                 <ControlTemplate.Triggers>
                                                     <Trigger Property="IsMouseOver" Value="True">
-                                                        <Setter TargetName="ThumbBody" Property="Background" Value="#AEAEB2" />
+                                                        <Setter TargetName="ThumbBody" Property="Background" Value="#C7C7CC" />
                                                     </Trigger>
                                                     <Trigger Property="IsDragging" Value="True">
-                                                        <Setter TargetName="ThumbBody" Property="Background" Value="#8E8E93" />
+                                                        <Setter TargetName="ThumbBody" Property="Background" Value="#AEAEB2" />
                                                     </Trigger>
                                                 </ControlTemplate.Triggers>
                                             </ControlTemplate>
@@ -501,37 +501,57 @@
                         </Border>
                     </StackPanel>
                     <Border Grid.Column="2" Height="602" Padding="27,20,24,20" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" CornerRadius="16">
-                        <StackPanel>
-                            <Grid Height="24">
-                                <TextBlock VerticalAlignment="Center" FontSize="17" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{Binding SelectedDateDisplay}" />
-                            </Grid>
-                            <Grid Margin="0,29,0,24">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="1.25*" /><ColumnDefinition Width="1*" /></Grid.ColumnDefinitions>
-                                <StackPanel Margin="0,0,18,0"><TextBlock FontSize="30" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}"><Run Text="{Binding SelectedDayHoursValueDisplay, Mode=OneWay}" /><Run FontSize="15" FontWeight="Normal" Foreground="{DynamicResource TextUnit}" Text="{Binding SelectedDayHoursUnitDisplay, Mode=OneWay}" /><Run Text="{Binding SelectedDayMinutesValueDisplay, Mode=OneWay}" /><Run FontSize="15" FontWeight="Normal" Foreground="{DynamicResource TextUnit}" Text=" 分钟" /></TextBlock><TextBlock Margin="0,7,0,0" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="专注时长" /></StackPanel>
-                                <Border Grid.Column="0" HorizontalAlignment="Right" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="0,0,1,0" />
-                                <StackPanel Grid.Column="1" Margin="34,0,0,0"><TextBlock FontSize="30" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}"><Run Text="{Binding SelectedDayCompletedTasks, Mode=OneWay}" /><Run FontSize="15" FontWeight="Normal" Foreground="{DynamicResource TextUnit}" Text=" 次" /></TextBlock><TextBlock Margin="0,7,0,0" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="推进次数" /></StackPanel>
-                            </Grid>
-                            <Border Height="1" Background="{DynamicResource BorderPrimary}" />
-                            <TextBlock Margin="0,26,0,10" FontSize="15" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="专注记录" />
-                            <ScrollViewer MaxHeight="500" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0" VerticalAlignment="Center" FontSize="17" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="{Binding SelectedDateDisplay}" />
+                            <TextBlock Grid.Row="1" Margin="0,25,0,24" Foreground="{DynamicResource TextPrimary}">
+                                <Run FontSize="20" FontWeight="SemiBold" Text="{Binding SelectedDayHoursValueDisplay, Mode=OneWay}" /><Run FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding SelectedDayHoursUnitDisplay, Mode=OneWay}" /><Run FontSize="20" FontWeight="SemiBold" Text="{Binding SelectedDayMinutesValueDisplay, Mode=OneWay}" /><Run FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text=" 分钟  ·  " /><Run FontSize="20" FontWeight="SemiBold" Text="{Binding SelectedDayCompletedTasks, Mode=OneWay}" /><Run FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text=" 次推进" />
+                            </TextBlock>
+                            <Border Grid.Row="2" Height="1" Background="{DynamicResource BorderPrimary}" />
+                            <TextBlock Grid.Row="3" Margin="0,28,0,16" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="专注记录" />
+                            <ScrollViewer Grid.Row="4" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
                                 <ScrollViewer.Resources>
                                     <Style TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource StatisticsRecordScrollBarStyle}" />
                                 </ScrollViewer.Resources>
                                 <ItemsControl ItemsSource="{Binding SelectedDayRecords}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate DataType="{x:Type vm:FocusSessionRecordViewModel}">
-                                            <Border Padding="0,16" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="0,1,0,0">
+                                            <Border Padding="0,0,0,17" Margin="0,0,0,18" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="0,0,0,1">
                                                 <StackPanel>
-                                                    <Grid><TextBlock FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{Binding TimeRangeDisplay}" /><Border HorizontalAlignment="Right" Padding="9,3" Background="{DynamicResource SuccessTint}" CornerRadius="10"><TextBlock FontSize="12" FontWeight="Normal" Foreground="{DynamicResource Success}" Text="{Binding GoalName}" /></Border></Grid>
-                                                    <TextBlock Margin="0,8,0,0" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextUnit}" Text="{Binding CompletedTaskNamesDisplay}" TextWrapping="Wrap" />
-                                                    <TextBlock Margin="0,4,0,0" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding CalendarDurationDisplay}" />
+                                                    <Grid>
+                                                        <TextBlock VerticalAlignment="Center" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}"><Run Text="{Binding StartTime, StringFormat={}{0:HH:mm}, Mode=OneWay}" /><Run Text=" – " /><Run Text="{Binding EndTime, StringFormat={}{0:HH:mm}, Mode=OneWay}" /></TextBlock>
+                                                        <Border HorizontalAlignment="Right" Padding="8,2" Background="{DynamicResource SuccessTint}" CornerRadius="8"><TextBlock FontSize="12" FontWeight="Normal" Foreground="{DynamicResource Success}" Text="{Binding GoalName}" /></Border>
+                                                    </Grid>
+                                                    <ItemsControl Margin="0,14,0,0" ItemsSource="{Binding CompletedTaskNames}">
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <Grid Margin="0,0,0,7">
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="15" />
+                                                                        <ColumnDefinition Width="8" />
+                                                                        <ColumnDefinition Width="*" />
+                                                                    </Grid.ColumnDefinitions>
+                                                                    <Border Width="14" Height="14" HorizontalAlignment="Left" VerticalAlignment="Center" Background="{DynamicResource TransparentBrush}" BorderBrush="{DynamicResource Success}" BorderThickness="1" CornerRadius="7" IsHitTestVisible="False" Opacity="0.72">
+                                                                        <Path Width="7" Height="5" Data="M 0.8,2.6 L 2.8,4.5 L 6.4,0.8" Stroke="{DynamicResource Success}" StrokeEndLineCap="Round" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeThickness="1.2" />
+                                                                    </Border>
+                                                                    <TextBlock Grid.Column="2" VerticalAlignment="Center" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}" Text="{Binding}" TextWrapping="Wrap" />
+                                                                </Grid>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
                                                 </StackPanel>
                                             </Border>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
                             </ScrollViewer>
-                        </StackPanel>
+                        </Grid>
                     </Border>
                 </Grid>
             </StackPanel>
