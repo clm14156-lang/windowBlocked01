@@ -1,0 +1,195 @@
+<Window x:Class="FocusApp.Desktop.Views.BlockedAccessNotificationWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="{DynamicResource BlockedAccessNotificationTitle}"
+        Width="400"
+        Height="180"
+        MinWidth="400"
+        MinHeight="180"
+        MaxWidth="400"
+        MaxHeight="180"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Focusable="False"
+        Opacity="0"
+        ResizeMode="NoResize"
+        ShowActivated="False"
+        ShowInTaskbar="False"
+        Topmost="True"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        WindowStartupLocation="Manual"
+        WindowStyle="None">
+    <Window.Resources>
+        <Style x:Key="NotificationCloseButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="32" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="CloseHitArea" Background="{TemplateBinding Background}" CornerRadius="16">
+                            <Grid Width="16" Height="16" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <Path Data="M 1,1 L 15,15 M 15,1 L 1,15"
+                                      Stroke="{DynamicResource TextWeak}"
+                                      StrokeEndLineCap="Round"
+                                      StrokeStartLineCap="Round"
+                                      StrokeThickness="1.4" />
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="CloseHitArea" Property="Background" Value="{DynamicResource BackgroundSecondary}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="CloseHitArea" Property="Opacity" Value="0.68" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Border x:Name="RootCard"
+            Margin="5"
+            Background="{DynamicResource SurfacePrimary}"
+            BorderBrush="{DynamicResource OverlayBorder}"
+            BorderThickness="1"
+            CornerRadius="20"
+            RenderTransformOrigin="0.5,0.5">
+        <Border.RenderTransform>
+            <TranslateTransform x:Name="ToastTranslateTransform" X="12" Y="8" />
+        </Border.RenderTransform>
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="16"
+                              Direction="270"
+                              Opacity="0.10"
+                              ShadowDepth="2" />
+        </Border.Effect>
+
+        <Grid Margin="26,10,26,10">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="42" />
+                <RowDefinition Height="3" />
+                <RowDefinition Height="28" />
+                <RowDefinition Height="6" />
+                <RowDefinition Height="60" />
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="18" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <Grid x:Name="ApplicationLogo" Width="44" Height="44">
+                    <Border Width="38"
+                            Height="38"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Top"
+                            BorderBrush="{DynamicResource AccentPrimary}"
+                            BorderThickness="2"
+                            CornerRadius="13">
+                        <TextBlock HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   FontFamily="Segoe MDL2 Assets"
+                                   FontSize="20"
+                                   Foreground="{DynamicResource AccentPrimary}"
+                                   Text="&#xE77B;" />
+                    </Border>
+                    <Border Width="34"
+                            Height="2"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Bottom"
+                            Margin="0,0,0,2"
+                            Background="{DynamicResource AccentPrimary}"
+                            CornerRadius="1" />
+                </Grid>
+
+                <TextBlock Grid.Column="2"
+                           VerticalAlignment="Center"
+                           FontSize="17"
+                           FontWeight="Medium"
+                           Foreground="{DynamicResource TextPrimary}"
+                           Text="{DynamicResource BlockedAccessNotificationBrandName}" />
+
+                <Button Grid.Column="3"
+                        Margin="0,0,-6,0"
+                        AutomationProperties.Name="{DynamicResource BlockedAccessNotificationClose}"
+                        Command="{Binding CloseCommand}"
+                        Style="{StaticResource NotificationCloseButtonStyle}" />
+            </Grid>
+
+            <TextBlock Grid.Row="2"
+                       VerticalAlignment="Center"
+                       FontSize="15"
+                       FontWeight="Normal"
+                       Foreground="{DynamicResource TextSecondary}">
+                <TextBlock.LineHeight>28</TextBlock.LineHeight>
+                <Run Text="{DynamicResource BlockedAccessNotificationFocusPrefix}" /><Run Text="{Binding TargetKindDisplay, Mode=OneWay}" /><Run FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource AccentPrimary}" Text="{DynamicResource BlockedAccessNotificationBlockedSuffix}" />
+            </TextBlock>
+
+            <Border Grid.Row="4"
+                    Background="{DynamicResource SurfacePrimary}"
+                    BorderBrush="{DynamicResource BorderPrimary}"
+                    BorderThickness="1"
+                    CornerRadius="14">
+                <Grid Margin="12,0,18,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="46" />
+                        <ColumnDefinition Width="16" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="32" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border Width="48"
+                            Height="48"
+                            VerticalAlignment="Center"
+                            Background="{DynamicResource BackgroundSecondary}"
+                            BorderBrush="{DynamicResource OverlayBorder}"
+                            BorderThickness="1"
+                            CornerRadius="24">
+                        <Viewbox Width="25" Height="25">
+                            <Grid Width="20" Height="20">
+                                <Ellipse Stroke="{DynamicResource TextSecondary}" StrokeThickness="1.5" />
+                                <Ellipse Margin="5,0" Stroke="{DynamicResource TextSecondary}" StrokeThickness="1.3" />
+                                <Line X1="1" Y1="7" X2="19" Y2="7" Stroke="{DynamicResource TextSecondary}" StrokeThickness="1.2" />
+                                <Line X1="1" Y1="13" X2="19" Y2="13" Stroke="{DynamicResource TextSecondary}" StrokeThickness="1.2" />
+                            </Grid>
+                        </Viewbox>
+                    </Border>
+
+                    <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                        <TextBlock FontSize="15"
+                                   FontWeight="Medium"
+                                   Foreground="{DynamicResource TextPrimary}"
+                                   Text="{Binding Name, Mode=OneWay}" />
+                        <TextBlock Margin="0,-2,0,0"
+                                   FontSize="15"
+                                   FontWeight="Normal"
+                                   Foreground="{DynamicResource TextSecondary}"
+                                   Text="{Binding Address, Mode=OneWay}" />
+                    </StackPanel>
+
+                    <Viewbox Grid.Column="3" Width="32" Height="32" Margin="0,6,0,0" Opacity="0.22">
+                        <Grid Width="28" Height="28">
+                            <Ellipse Stroke="{DynamicResource AccentPrimary}" StrokeThickness="3" />
+                            <Line X1="5" Y1="5" X2="23" Y2="23"
+                                  Stroke="{DynamicResource AccentPrimary}"
+                                  StrokeEndLineCap="Round"
+                                  StrokeStartLineCap="Round"
+                                  StrokeThickness="3" />
+                        </Grid>
+                    </Viewbox>
+                </Grid>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

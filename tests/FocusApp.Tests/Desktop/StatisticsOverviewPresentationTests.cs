@@ -74,6 +74,13 @@ public sealed class StatisticsOverviewPresentationTests
         var taskText = Assert.Single(taskTemplate.Descendants(Presentation + "TextBlock"));
         Assert.Equal("{Binding}", (string?)taskText.Attribute("Text"));
         Assert.Equal("Wrap", (string?)taskText.Attribute("TextWrapping"));
+
+        var goalTag = Assert.Single(recordTemplate.Descendants(Presentation + "Border").Where(border =>
+            border.Elements(Presentation + "TextBlock").Any(text =>
+                (string?)text.Attribute("Text") == "{Binding GoalName}")));
+        Assert.Equal("#F2F2F7", (string?)goalTag.Attribute("Background"));
+        var goalTagText = Assert.Single(goalTag.Descendants(Presentation + "TextBlock"));
+        Assert.Equal("#636366", (string?)goalTagText.Attribute("Foreground"));
     }
 
     [Fact]
@@ -93,11 +100,20 @@ public sealed class StatisticsOverviewPresentationTests
         Assert.Equal("17", (string?)date.Attribute("FontSize"));
         Assert.Equal("SemiBold", (string?)date.Attribute("FontWeight"));
 
-        var summary = Assert.Single(layout.Elements(Presentation + "TextBlock").Where(text =>
-            text.Elements(Presentation + "Run").Any(run =>
-                ((string?)run.Attribute("Text"))?.Contains("SelectedDayCompletedTasks", StringComparison.Ordinal) == true)));
-        Assert.Contains(summary.Elements(Presentation + "Run"), run =>
+        var summary = Assert.Single(layout.Elements(Presentation + "StackPanel").Where(stack =>
+            (string?)stack.Attribute("Grid.Row") == "1"));
+        Assert.Contains(summary.Descendants(Presentation + "Run"), run =>
             (string?)run.Attribute("Text") == " 分钟  ·  ");
+        var icons = summary.Elements(Presentation + "Viewbox").ToArray();
+        Assert.Equal(2, icons.Length);
+        Assert.All(icons, icon =>
+        {
+            Assert.Equal("16", (string?)icon.Attribute("Width"));
+            Assert.Equal("16", (string?)icon.Attribute("Height"));
+            Assert.Equal("0,0,7,0", (string?)icon.Attribute("Margin"));
+        });
+        Assert.Contains(icons, icon => (string?)icon.Attribute(Xaml + "Name") == "CalendarDurationIcon");
+        Assert.Contains(icons, icon => (string?)icon.Attribute(Xaml + "Name") == "CalendarProgressIcon");
         Assert.DoesNotContain(layout.Descendants(Presentation + "TextBlock"), text =>
             (string?)text.Attribute("Text") is "专注时长" or "推进次数");
         Assert.DoesNotContain(layout.Descendants(Presentation + "Border"), border =>

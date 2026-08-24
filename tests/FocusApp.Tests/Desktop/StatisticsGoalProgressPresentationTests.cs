@@ -113,11 +113,11 @@ public sealed class StatisticsGoalProgressPresentationTests
         Assert.Equal("13", (string?)completedMarker.Attribute("Height"));
         Assert.Equal("3", (string?)completedMarker.Attribute("CornerRadius"));
         Assert.Equal("1", (string?)completedMarker.Attribute("BorderThickness"));
-        Assert.Equal("{DynamicResource TextWeak}", (string?)completedMarker.Attribute("BorderBrush"));
+        Assert.Equal("{DynamicResource Success}", (string?)completedMarker.Attribute("BorderBrush"));
         Assert.Equal("False", (string?)completedMarker.Attribute("IsHitTestVisible"));
         var completedCheck = Assert.Single(completedMarker.Elements(Presentation + "Path"));
         Assert.Equal("M 0.8,2.6 L 2.8,4.5 L 6.4,0.8", (string?)completedCheck.Attribute("Data"));
-        Assert.Equal("{DynamicResource TextWeak}", (string?)completedCheck.Attribute("Stroke"));
+        Assert.Equal("{DynamicResource Success}", (string?)completedCheck.Attribute("Stroke"));
         Assert.Empty(completedTaskTemplate.Descendants(Presentation + "Button"));
         Assert.Empty(completedTaskTemplate.Descendants(Presentation + "CheckBox"));
         var timelineDot = Assert.Single(detailTemplate.Descendants(Presentation + "Ellipse"));

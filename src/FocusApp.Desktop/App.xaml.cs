@@ -1,5 +1,8 @@
 using System.IO;
 using System.Windows;
+using System.Windows.Input;
+using FocusApp.Desktop.Models;
+using FocusApp.Desktop.Services;
 using FocusApp.Desktop.ViewModels;
 
 namespace FocusApp.Desktop;
@@ -9,6 +12,13 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+
+#if DEBUG
+        EventManager.RegisterClassHandler(
+            typeof(MainWindow),
+            Keyboard.PreviewKeyDownEvent,
+            new KeyEventHandler(HandleDebugPreviewKeyDown));
+#endif
 
         var primaryNavigationItems = new[]
         {
@@ -34,6 +44,22 @@ public partial class App : Application
         };
         MainWindow.Show();
     }
+
+#if DEBUG
+    private static void HandleDebugPreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.B || Keyboard.Modifiers != ModifierKeys.Control)
+        {
+            return;
+        }
+
+        BlockedAccessNotificationService.Show(new BlockedAccessNotificationData(
+            Name: "百度",
+            Address: "www.baidu.com",
+            Type: "Website"));
+        e.Handled = true;
+    }
+#endif
 
     private HomePageViewModel CreateHomePageViewModel()
     {
