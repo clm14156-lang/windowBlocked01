@@ -27,7 +27,7 @@
     <system:String x:Key="BlockingStatusColumn">屏蔽状态</system:String>
     <system:String x:Key="BlockingActionsColumn">操作</system:String>
     <system:String x:Key="BlockingEditWebsite">编辑网站（暂不可用）</system:String>
-    <system:String x:Key="BlockingRenameWebsite">重命名</system:String>
+    <system:String x:Key="BlockingRenameWebsite">编辑</system:String>
     <system:String x:Key="BlockingWebsiteActions">网站操作</system:String>
     <system:String x:Key="BlockingDeleteWebsite">删除</system:String>
     <system:String x:Key="BlockingDeleteApplication">删除程序</system:String>
@@ -35,6 +35,8 @@
     <system:String x:Key="BlockingWebsiteEmptyDescription">添加网站后，可在这里管理屏蔽状态和网站列表</system:String>
     <system:String x:Key="BlockingAddWebsiteModalTitle">添加网站</system:String>
     <system:String x:Key="BlockingAddWebsiteModalDescription">添加需要在专注期间屏蔽的网站</system:String>
+    <system:String x:Key="BlockingEditWebsiteModalTitle">编辑网站</system:String>
+    <system:String x:Key="BlockingEditWebsiteModalDescription">修改网站名称和地址</system:String>
     <system:String x:Key="BlockingWebsiteNameLabel">网站名称</system:String>
     <system:String x:Key="BlockingWebsiteNamePlaceholder">输入网站名称</system:String>
     <system:String x:Key="BlockingWebsiteAddressLabel">网站地址</system:String>

@@ -54,8 +54,22 @@
                 <RowDefinition /><RowDefinition Height="34" />
             </Grid.RowDefinitions>
 
-            <TextBlock Grid.Row="0" VerticalAlignment="Top" FontSize="17" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource BlockingAddWebsiteModalTitle}" />
-            <TextBlock Grid.Row="1" VerticalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource BlockingAddWebsiteModalDescription}" />
+            <TextBlock Grid.Row="0" VerticalAlignment="Top" FontSize="17" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}">
+                <TextBlock.Style>
+                    <Style TargetType="{x:Type TextBlock}" BasedOn="{StaticResource {x:Type TextBlock}}">
+                        <Setter Property="Text" Value="{DynamicResource BlockingAddWebsiteModalTitle}" />
+                        <Style.Triggers><DataTrigger Binding="{Binding IsEditMode}" Value="True"><Setter Property="Text" Value="{DynamicResource BlockingEditWebsiteModalTitle}" /></DataTrigger></Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+            <TextBlock Grid.Row="1" VerticalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}">
+                <TextBlock.Style>
+                    <Style TargetType="{x:Type TextBlock}" BasedOn="{StaticResource {x:Type TextBlock}}">
+                        <Setter Property="Text" Value="{DynamicResource BlockingAddWebsiteModalDescription}" />
+                        <Style.Triggers><DataTrigger Binding="{Binding IsEditMode}" Value="True"><Setter Property="Text" Value="{DynamicResource BlockingEditWebsiteModalDescription}" /></DataTrigger></Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
 
             <TextBlock Grid.Row="3" VerticalAlignment="Center" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource BlockingWebsiteNameLabel}" />
             <Grid Grid.Row="5">

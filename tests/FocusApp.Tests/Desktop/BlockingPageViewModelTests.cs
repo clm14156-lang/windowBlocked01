@@ -52,6 +52,70 @@ public sealed class BlockingPageViewModelTests
     }
 
     [Fact]
+    public void EditWebsite_UsesSharedModalAndUpdatesOriginalItemWithoutChangingEnabledState()
+    {
+        var website = new BlockingWebsiteItemViewModel(Guid.NewGuid(), "百度", "baidu.com", false);
+        var viewModel = new BlockingPageViewModel([website], [], "Added websites {0}", "Added applications {0}", new EmptyFaviconService());
+        var changeCount = 0;
+        viewModel.BlockingChanged += (_, _) => changeCount++;
+        website.IsActionMenuOpen = true;
+
+        viewModel.EditWebsiteCommand.Execute(website);
+
+        Assert.False(website.IsActionMenuOpen);
+        Assert.True(viewModel.WebsiteModal.IsOpen);
+        Assert.True(viewModel.WebsiteModal.IsEditMode);
+        Assert.Equal("百度", viewModel.WebsiteModal.WebsiteName);
+        Assert.Equal("baidu.com", viewModel.WebsiteModal.WebsiteAddress);
+
+        viewModel.WebsiteModal.WebsiteName = "百度搜索";
+        viewModel.WebsiteModal.WebsiteAddress = "https://www.baidu.com";
+        viewModel.WebsiteModal.SaveCommand.Execute(null);
+
+        Assert.Same(website, Assert.Single(viewModel.Websites));
+        Assert.Equal("百度搜索", website.Name);
+        Assert.Equal("https://www.baidu.com", website.Address);
+        Assert.False(website.IsEnabled);
+        Assert.False(viewModel.WebsiteModal.IsOpen);
+        Assert.Equal(1, changeCount);
+    }
+
+    [Fact]
+    public void EditWebsite_CancelLeavesOriginalItemUnchanged()
+    {
+        var website = new BlockingWebsiteItemViewModel(Guid.NewGuid(), "百度", "baidu.com", true);
+        var viewModel = new BlockingPageViewModel([website], [], "Added websites {0}", "Added applications {0}", new EmptyFaviconService());
+
+        viewModel.EditWebsiteCommand.Execute(website);
+        viewModel.WebsiteModal.WebsiteName = "未保存";
+        viewModel.WebsiteModal.CloseCommand.Execute(null);
+
+        Assert.Equal("百度", website.Name);
+        Assert.Equal("baidu.com", website.Address);
+        Assert.True(website.IsEnabled);
+        Assert.False(viewModel.WebsiteModal.IsOpen);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("not a website")]
+    [InlineData("ftp://example.com")]
+    public void EditWebsite_InvalidAddressDoesNotOverwriteOriginalItem(string address)
+    {
+        var website = new BlockingWebsiteItemViewModel(Guid.NewGuid(), "百度", "baidu.com", true);
+        var viewModel = new BlockingPageViewModel([website], [], "Added websites {0}", "Added applications {0}", new EmptyFaviconService());
+
+        viewModel.EditWebsiteCommand.Execute(website);
+        viewModel.WebsiteModal.WebsiteName = "新名称";
+        viewModel.WebsiteModal.WebsiteAddress = address;
+        viewModel.WebsiteModal.SaveCommand.Execute(null);
+
+        Assert.True(viewModel.WebsiteModal.IsOpen);
+        Assert.Equal("百度", website.Name);
+        Assert.Equal("baidu.com", website.Address);
+    }
+
+    [Fact]
     public async Task WebsiteModal_AddsDefaultItemBeforeFaviconCompletesThenReplacesIt()
     {
         var faviconService = new DeferredFaviconService();

@@ -246,7 +246,7 @@
                                                 </StackPanel>
                                             </StackPanel>
                                             <ToggleButton Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center" AutomationProperties.Name="{Binding Name}" IsChecked="{Binding IsEnabled, Mode=TwoWay}" Style="{StaticResource BlockingToggleStyle}" />
-                                            <ToggleButton x:Name="WebsiteMoreButton" Grid.Column="2" Margin="64,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" AutomationProperties.Name="{DynamicResource BlockingWebsiteActions}" Style="{StaticResource BlockingMoreButtonStyle}" ToolTip="{DynamicResource BlockingWebsiteActions}">
+                                            <ToggleButton x:Name="WebsiteMoreButton" Grid.Column="2" Margin="64,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" AutomationProperties.Name="{DynamicResource BlockingWebsiteActions}" IsChecked="{Binding IsActionMenuOpen, Mode=TwoWay}" Style="{StaticResource BlockingMoreButtonStyle}" ToolTip="{DynamicResource BlockingWebsiteActions}">
                                                 <TextBlock Margin="0,-7,0,0" FontSize="17" FontWeight="SemiBold" Text="..." />
                                             </ToggleButton>
                                             <Popup AllowsTransparency="True" IsOpen="{Binding IsChecked, ElementName=WebsiteMoreButton, Mode=TwoWay}" Placement="Left" PlacementTarget="{Binding ElementName=WebsiteMoreButton}" PopupAnimation="Fade" StaysOpen="False">

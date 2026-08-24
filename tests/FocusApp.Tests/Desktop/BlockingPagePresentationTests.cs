@@ -19,9 +19,12 @@ public sealed class BlockingPagePresentationTests
             .Elements(Presentation + "DataTemplate"));
         var popup = Assert.Single(template.Descendants(Presentation + "Popup"));
         var surface = Assert.Single(popup.Elements(Presentation + "Border"));
+        var moreButton = Assert.Single(template.Descendants(Presentation + "ToggleButton").Where(button =>
+            (string?)button.Attribute(Xaml + "Name") == "WebsiteMoreButton"));
 
         Assert.Equal("False", (string?)popup.Attribute("StaysOpen"));
         Assert.Equal("{Binding ElementName=WebsiteMoreButton}", (string?)popup.Attribute("PlacementTarget"));
+        Assert.Equal("{Binding IsActionMenuOpen, Mode=TwoWay}", (string?)moreButton.Attribute("IsChecked"));
         Assert.Equal("160", (string?)surface.Attribute("Width"));
         Assert.Equal("12", (string?)surface.Attribute("CornerRadius"));
         Assert.Equal("#E5E5EA", (string?)surface.Attribute("BorderBrush"));
@@ -96,10 +99,22 @@ public sealed class BlockingPagePresentationTests
         Assert.Equal("330", (string?)root.Attribute("Height"));
 
         var title = Assert.Single(modal.Descendants(Presentation + "TextBlock").Where(element =>
-            (string?)element.Attribute("Text") == "{DynamicResource BlockingAddWebsiteModalTitle}"));
+            (string?)element.Attribute("Grid.Row") == "0"));
         Assert.Equal("17", (string?)title.Attribute("FontSize"));
         Assert.Equal("SemiBold", (string?)title.Attribute("FontWeight"));
         Assert.Equal("{DynamicResource TextPrimary}", (string?)title.Attribute("Foreground"));
+        Assert.Contains(title.Descendants(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("Property") == "Text" &&
+            (string?)setter.Attribute("Value") == "{DynamicResource BlockingAddWebsiteModalTitle}");
+        Assert.Contains(title.Descendants(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("Property") == "Text" &&
+            (string?)setter.Attribute("Value") == "{DynamicResource BlockingEditWebsiteModalTitle}");
+
+        var description = Assert.Single(modal.Descendants(Presentation + "TextBlock").Where(element =>
+            (string?)element.Attribute("Grid.Row") == "1"));
+        Assert.Contains(description.Descendants(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("Property") == "Text" &&
+            (string?)setter.Attribute("Value") == "{DynamicResource BlockingEditWebsiteModalDescription}");
 
         var fieldLabels = modal.Descendants(Presentation + "TextBlock").Where(element =>
             (string?)element.Attribute("Text") is "{DynamicResource BlockingWebsiteNameLabel}" or

@@ -7,6 +7,7 @@ namespace FocusApp.Desktop.ViewModels;
 public sealed class AddWebsiteModalViewModel : INotifyPropertyChanged
 {
     private bool _isOpen;
+    private Guid? _editingWebsiteId;
     private string _websiteName = string.Empty;
     private string _websiteAddress = string.Empty;
 
@@ -19,6 +20,8 @@ public sealed class AddWebsiteModalViewModel : INotifyPropertyChanged
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public event EventHandler<WebsiteDraft>? WebsiteCreated;
+
+    public event EventHandler<WebsiteEdit>? WebsiteUpdated;
 
     public ICommand CloseCommand { get; }
 
@@ -38,6 +41,8 @@ public sealed class AddWebsiteModalViewModel : INotifyPropertyChanged
             OnPropertyChanged();
         }
     }
+
+    public bool IsEditMode => _editingWebsiteId.HasValue;
 
     public string WebsiteName
     {
@@ -71,8 +76,19 @@ public sealed class AddWebsiteModalViewModel : INotifyPropertyChanged
 
     public void Open()
     {
+        _editingWebsiteId = null;
+        OnPropertyChanged(nameof(IsEditMode));
         WebsiteName = string.Empty;
         WebsiteAddress = string.Empty;
+        IsOpen = true;
+    }
+
+    public void OpenForEdit(Guid websiteId, string name, string address)
+    {
+        _editingWebsiteId = websiteId;
+        OnPropertyChanged(nameof(IsEditMode));
+        WebsiteName = name;
+        WebsiteAddress = address;
         IsOpen = true;
     }
 
@@ -80,13 +96,33 @@ public sealed class AddWebsiteModalViewModel : INotifyPropertyChanged
     {
         var name = WebsiteName.Trim();
         var address = WebsiteAddress.Trim();
-        if (name.Length == 0 || address.Length == 0)
+        if (name.Length == 0 || !IsValidWebsiteAddress(address))
         {
             return;
         }
 
-        WebsiteCreated?.Invoke(this, new WebsiteDraft(name, address));
+        var draft = new WebsiteDraft(name, address);
+        if (_editingWebsiteId is Guid websiteId)
+        {
+            WebsiteUpdated?.Invoke(this, new WebsiteEdit(websiteId, draft));
+        }
+        else
+        {
+            WebsiteCreated?.Invoke(this, draft);
+        }
+
         Close();
+    }
+
+    private static bool IsValidWebsiteAddress(string address)
+    {
+        var value = address.Contains("://", StringComparison.Ordinal)
+            ? address
+            : $"https://{address}";
+
+        return Uri.TryCreate(value, UriKind.Absolute, out var uri)
+            && uri.Scheme is "http" or "https"
+            && Uri.CheckHostName(uri.Host) != UriHostNameType.Unknown;
     }
 
     private void Close()
@@ -101,3 +137,5 @@ public sealed class AddWebsiteModalViewModel : INotifyPropertyChanged
 }
 
 public sealed record WebsiteDraft(string Name, string Address);
+
+public sealed record WebsiteEdit(Guid WebsiteId, WebsiteDraft Draft);

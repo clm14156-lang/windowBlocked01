@@ -41,9 +41,10 @@ public sealed class BlockingPageViewModel : INotifyPropertyChanged
         OpenProgramModalCommand = new RelayCommand<object>(_ => ProgramModal.Open());
         DeleteWebsiteCommand = new RelayCommand<BlockingWebsiteItemViewModel>(DeleteWebsite);
         DeleteApplicationCommand = new RelayCommand<BlockingApplicationItemViewModel>(DeleteApplication);
-        EditWebsiteCommand = new RelayCommand<BlockingWebsiteItemViewModel>(_ => { });
+        EditWebsiteCommand = new RelayCommand<BlockingWebsiteItemViewModel>(EditWebsite);
 
         WebsiteModal.WebsiteCreated += WebsiteModal_WebsiteCreated;
+        WebsiteModal.WebsiteUpdated += WebsiteModal_WebsiteUpdated;
         ProgramModal.ProgramSelected += ProgramModal_ProgramSelected;
         foreach (var website in Websites) website.PropertyChanged += Website_PropertyChanged;
         foreach (var application in Applications) application.PropertyChanged += Application_PropertyChanged;
@@ -110,6 +111,25 @@ public sealed class BlockingPageViewModel : INotifyPropertyChanged
         _ = LoadFaviconAsync(item);
     }
 
+    private void WebsiteModal_WebsiteUpdated(object? sender, WebsiteEdit edit)
+    {
+        var item = Websites.FirstOrDefault(website => website.Id == edit.WebsiteId);
+        if (item is null)
+        {
+            return;
+        }
+
+        var addressChanged = !string.Equals(item.Address, edit.Draft.Address, StringComparison.Ordinal);
+        item.UpdateDetails(edit.Draft.Name, edit.Draft.Address);
+        if (addressChanged)
+        {
+            item.Favicon = null;
+            _ = LoadFaviconAsync(item);
+        }
+
+        BlockingChanged?.Invoke(this, EventArgs.Empty);
+    }
+
     private void ProgramModal_ProgramSelected(object? sender, RecentProgramRecordViewModel program)
     {
         if (Applications.Any(application => string.Equals(application.Path, program.ExePath, StringComparison.OrdinalIgnoreCase)))
@@ -150,6 +170,15 @@ public sealed class BlockingPageViewModel : INotifyPropertyChanged
         }
     }
 
+    private void EditWebsite(BlockingWebsiteItemViewModel? website)
+    {
+        if (website is not null && Websites.Contains(website))
+        {
+            website.IsActionMenuOpen = false;
+            WebsiteModal.OpenForEdit(website.Id, website.Name, website.Address);
+        }
+    }
+
     private void DeleteApplication(BlockingApplicationItemViewModel? application)
     {
         if (application is not null && Applications.Remove(application))
@@ -184,14 +213,17 @@ public sealed class BlockingPageViewModel : INotifyPropertyChanged
 
 public sealed class BlockingWebsiteItemViewModel : INotifyPropertyChanged
 {
+    private string _name;
+    private string _address;
+    private bool _isActionMenuOpen;
     private bool _isEnabled;
     private ImageSource? _favicon;
 
     public BlockingWebsiteItemViewModel(Guid id, string name, string address, bool isEnabled)
     {
         Id = id;
-        Name = name;
-        Address = address;
+        _name = name;
+        _address = address;
         _isEnabled = isEnabled;
     }
 
@@ -199,9 +231,39 @@ public sealed class BlockingWebsiteItemViewModel : INotifyPropertyChanged
 
     public Guid Id { get; }
 
-    public string Name { get; }
+    public string Name => _name;
 
-    public string Address { get; }
+    public string Address => _address;
+
+    public bool IsActionMenuOpen
+    {
+        get => _isActionMenuOpen;
+        set
+        {
+            if (_isActionMenuOpen == value)
+            {
+                return;
+            }
+
+            _isActionMenuOpen = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsActionMenuOpen)));
+        }
+    }
+
+    public void UpdateDetails(string name, string address)
+    {
+        if (_name != name)
+        {
+            _name = name;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Name)));
+        }
+
+        if (_address != address)
+        {
+            _address = address;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Address)));
+        }
+    }
 
     public ImageSource? Favicon
     {

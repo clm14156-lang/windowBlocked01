@@ -504,10 +504,6 @@
                         <StackPanel>
                             <Grid Height="24">
                                 <TextBlock VerticalAlignment="Center" FontSize="17" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{Binding SelectedDateDisplay}" />
-                                <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
-                                    <TextBlock Margin="0,0,16,0" FontFamily="Segoe MDL2 Assets" FontSize="16" Foreground="{DynamicResource TextSecondary}" Text="&#xE76B;" />
-                                    <TextBlock FontFamily="Segoe MDL2 Assets" FontSize="16" Foreground="{DynamicResource TextSecondary}" Text="&#xE76C;" />
-                                </StackPanel>
                             </Grid>
                             <Grid Margin="0,29,0,24">
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="1.25*" /><ColumnDefinition Width="1*" /></Grid.ColumnDefinitions>
