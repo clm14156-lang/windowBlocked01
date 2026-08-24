@@ -59,6 +59,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         PreviousCalendarMonthCommand = new RelayCommand<object>(_ => ChangeCalendarMonth(-1));
         NextCalendarMonthCommand = new RelayCommand<object>(_ => ChangeCalendarMonth(1));
         SelectCalendarDateCommand = new RelayCommand<CalendarDayViewModel>(SelectCalendarDay);
+        ReturnToTodayCommand = new RelayCommand<object>(_ => ReturnToToday());
         SelectGoalCommand = new RelayCommand<GoalOverviewItemViewModel>(SelectGoal);
         SelectGoalListCommand = new RelayCommand<object>(SelectGoalList);
         ToggleGoalListMenuCommand = new RelayCommand<object>(_ => IsGoalListMenuOpen = !IsGoalListMenuOpen);
@@ -107,6 +108,8 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     public ICommand NextCalendarMonthCommand { get; }
 
     public ICommand SelectCalendarDateCommand { get; }
+
+    public ICommand ReturnToTodayCommand { get; }
 
     public ICommand SelectGoalCommand { get; }
 
@@ -323,6 +326,8 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     public string CalendarMonthDisplay => $"{_calendarMonth:yyyy年M月}";
 
     public string SelectedDateDisplay => _selectedCalendarDay is null ? string.Empty : $"{_selectedCalendarDay.Date:M月d日} · {GetWeekday(_selectedCalendarDay.Date)}";
+
+    public bool IsReturnToTodayVisible => _selectedCalendarDay?.Date.Date != DateTime.Today;
 
     public string SelectedDayDurationDisplay => FormatDuration(SelectedDayMinutes);
 
@@ -932,6 +937,13 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         SelectCalendarDayInternal(day.Date);
     }
 
+    private void ReturnToToday()
+    {
+        var today = DateTime.Today;
+        _calendarMonth = new DateTime(today.Year, today.Month, 1);
+        RefreshCalendar(today);
+    }
+
     private void SelectCalendarDayInternal(DateTime date)
     {
         foreach (var item in CalendarDays)
@@ -947,6 +959,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         }
 
         OnPropertyChanged(nameof(SelectedDateDisplay));
+        OnPropertyChanged(nameof(IsReturnToTodayVisible));
         OnPropertyChanged(nameof(SelectedDayDurationDisplay));
         OnPropertyChanged(nameof(SelectedDayHoursValueDisplay));
         OnPropertyChanged(nameof(SelectedDayHoursUnitDisplay));

@@ -138,6 +138,24 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.DoesNotContain(viewModel.CalendarDays, day => day.Date == new DateTime(2026, 2, 28) && day.IsSelected);
     }
 
+    [Fact]
+    public void ReturnToTodaySelectsTheSystemDateAndRefreshesCalendarDetails()
+    {
+        var viewModel = new StatisticsOverviewViewModel();
+        var today = DateTime.Today;
+
+        viewModel.ReturnToTodayCommand.Execute(null);
+
+        Assert.Equal(new DateTime(today.Year, today.Month, 1), viewModel.CalendarMonth);
+        Assert.Contains(viewModel.CalendarDays, day => day.Date == today && day.IsSelected);
+        Assert.Equal($"{today:M月d日}", viewModel.SelectedDateDisplay.Split('·')[0].Trim());
+        Assert.False(viewModel.IsReturnToTodayVisible);
+
+        viewModel.PreviousCalendarMonthCommand.Execute(null);
+
+        Assert.True(viewModel.IsReturnToTodayVisible);
+    }
+
     [Theory]
     [InlineData(1)]
     [InlineData(29)]

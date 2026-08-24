@@ -298,6 +298,7 @@
     <system:String x:Key="StatisticsTodayOverview">今日概览</system:String>
     <system:String x:Key="StatisticsTodayDuration">今日专注时长</system:String>
     <system:String x:Key="StatisticsTodayCount">今日专注次数</system:String>
+    <system:String x:Key="StatisticsReturnToTodayTooltip">回到今天</system:String>
     <system:String x:Key="StatisticsSessionsUnit">次</system:String>
     <system:String x:Key="StatisticsHoursUnit">小时</system:String>
     <system:String x:Key="StatisticsMinutesUnit">分钟</system:String>

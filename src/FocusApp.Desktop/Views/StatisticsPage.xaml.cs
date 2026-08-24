@@ -43,6 +43,9 @@ public partial class StatisticsPage : UserControl
         }
     }
 
+    private void ReturnToTodayButton_Click(object sender, RoutedEventArgs e) =>
+        Dispatcher.BeginInvoke(() => CalendarRecordsScrollViewer.ScrollToTop());
+
     private void UpdateTooltipPlacement()
     {
         if (DataContext is not StatisticsOverviewViewModel viewModel || viewModel.HoveredPoint is null || TrendCard.ActualWidth <= 0 || TrendCard.ActualHeight <= 0)

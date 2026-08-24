@@ -138,6 +138,28 @@ public sealed class StatisticsOverviewPresentationTests
             (string?)border.Attribute("Width") == "3");
     }
 
+    [Fact]
+    public void CalendarDetailProvidesAViewModelDrivenReturnToTodayControl()
+    {
+        var page = XDocument.Load(Path.Combine(
+            FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
+        var button = Assert.Single(page.Descendants(Presentation + "Button").Where(element =>
+            (string?)element.Attribute("Command") == "{Binding ReturnToTodayCommand}"));
+
+        Assert.Equal("40", (string?)button.Attribute("Width"));
+        Assert.Equal("40", (string?)button.Attribute("Height"));
+        Assert.Equal("Right", (string?)button.Attribute("HorizontalAlignment"));
+        Assert.Equal("Bottom", (string?)button.Attribute("VerticalAlignment"));
+        Assert.Equal(
+            "{Binding IsReturnToTodayVisible, Converter={StaticResource BooleanToVisibilityConverter}}",
+            (string?)button.Attribute("Visibility"));
+        Assert.Equal("ReturnToTodayButton_Click", (string?)button.Attribute("Click"));
+
+        var scrollViewer = Assert.Single(page.Descendants(Presentation + "ScrollViewer").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "CalendarRecordsScrollViewer"));
+        Assert.Equal("4", (string?)scrollViewer.Attribute("Grid.Row"));
+    }
+
     private static string FindRepositoryRoot()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
