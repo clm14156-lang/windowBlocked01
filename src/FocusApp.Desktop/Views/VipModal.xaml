@@ -4,6 +4,7 @@
              xmlns:vm="clr-namespace:FocusApp.Desktop.ViewModels"
              Width="440"
              Height="550"
+             TextElement.FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI"
              UseLayoutRounding="True"
              SnapsToDevicePixels="True">
     <UserControl.Resources>
@@ -94,22 +95,10 @@
             </Grid.RowDefinitions>
 
             <Grid>
-                <Button Width="30"
-                        Height="30"
-                        HorizontalAlignment="Right"
-                        VerticalAlignment="Top"
-                        AutomationProperties.Name="{DynamicResource VipModalClose}"
-                        Command="{Binding CloseCommand}"
-                        Style="{StaticResource VipPlainButtonStyle}">
-                    <TextBlock FontFamily="Segoe MDL2 Assets"
-                               FontSize="17"
-                               Foreground="{DynamicResource TextSecondary}"
-                               Text="&#xE8BB;" />
-                </Button>
-
                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                     <StackPanel.RenderTransform><TranslateTransform Y="-2" /></StackPanel.RenderTransform>
-                    <Grid Width="48" Height="42" HorizontalAlignment="Center">
+                    <Viewbox Width="68" Height="59.5" HorizontalAlignment="Center">
+                    <Grid Width="48" Height="42">
                         <Path HorizontalAlignment="Center"
                               VerticalAlignment="Center"
                               Data="M 24,2 L 44,21 L 24,40 L 4,21 Z M 24,2 L 31,21 L 24,40 L 17,21 Z"
@@ -128,27 +117,26 @@
                                    Foreground="{DynamicResource AccentHover}"
                                    Text="✦" />
                     </Grid>
+                    </Viewbox>
                     <TextBlock Margin="0,2,0,0"
                                HorizontalAlignment="Center"
-                               FontSize="25"
-                               FontWeight="Bold"
+                               FontSize="20"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextPrimary}"
                                Text="{DynamicResource VipModalTitle}">
                         <TextBlock.RenderTransform><TranslateTransform Y="-2" /></TextBlock.RenderTransform>
                     </TextBlock>
                 </StackPanel>
             </Grid>
 
-            <Border Grid.Row="1" Background="{DynamicResource BorderPrimary}">
-                <Border.RenderTransform><TranslateTransform Y="-2" /></Border.RenderTransform>
-            </Border>
-
             <TextBlock Grid.Row="2"
                        Margin="4,0,0,0"
                        VerticalAlignment="Center"
-                       FontSize="14"
-                       FontWeight="SemiBold"
+                       FontSize="15"
+                       FontWeight="Medium"
+                       Foreground="{DynamicResource TextPrimary}"
                        Text="{DynamicResource VipModalBenefitsTitle}">
-                <TextBlock.RenderTransform><TranslateTransform Y="3" /></TextBlock.RenderTransform>
+                <TextBlock.RenderTransform><TranslateTransform Y="-7" /></TextBlock.RenderTransform>
             </TextBlock>
 
             <UniformGrid Grid.Row="3" Columns="3" Rows="2">
@@ -160,7 +148,7 @@
                             <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="{DynamicResource AccentPrimary}" Text="&#xE72E;" />
                         </Border>
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                            <TextBlock FontSize="12" FontWeight="SemiBold" Text="{DynamicResource VipBenefitForcedMode}" />
+                            <TextBlock FontSize="12" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource VipBenefitForcedMode}" />
                         </StackPanel>
                     </Grid>
                 </Border>
@@ -171,7 +159,7 @@
                             <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="{DynamicResource AccentPrimary}" Text="&#xEA18;" />
                         </Border>
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                            <TextBlock FontSize="12" FontWeight="SemiBold" Text="{DynamicResource VipBenefitAutoBlocking}" />
+                            <TextBlock FontSize="12" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource VipBenefitAutoBlocking}" />
                         </StackPanel>
                     </Grid>
                 </Border>
@@ -182,7 +170,7 @@
                             <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="{DynamicResource AccentPrimary}" Text="&#xE790;" />
                         </Border>
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                            <TextBlock FontSize="12" FontWeight="SemiBold" Text="{DynamicResource VipBenefitThemes}" />
+                            <TextBlock FontSize="12" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource VipBenefitThemes}" />
                         </StackPanel>
                     </Grid>
                 </Border>
@@ -193,7 +181,7 @@
                             <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="{DynamicResource AccentPrimary}" Text="&#xE8A5;" />
                         </Border>
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                            <TextBlock FontSize="12" FontWeight="SemiBold" Text="{DynamicResource VipBenefitExport}" />
+                            <TextBlock FontSize="12" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource VipBenefitExport}" />
                         </StackPanel>
                     </Grid>
                 </Border>
@@ -204,7 +192,7 @@
                             <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="{DynamicResource AccentPrimary}" Text="&#xE9D2;" />
                         </Border>
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                            <TextBlock FontSize="12" FontWeight="SemiBold" Text="{DynamicResource VipBenefitStatistics}" />
+                            <TextBlock FontSize="12" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource VipBenefitStatistics}" />
                         </StackPanel>
                     </Grid>
                 </Border>
@@ -215,7 +203,7 @@
                             <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="{DynamicResource AccentPrimary}" Text="&#xE753;" />
                         </Border>
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                            <TextBlock FontSize="12" FontWeight="SemiBold" Text="{DynamicResource VipBenefitSync}" />
+                            <TextBlock FontSize="12" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource VipBenefitSync}" />
                         </StackPanel>
                     </Grid>
                 </Border>
@@ -237,11 +225,11 @@
                     </Button.Style>
                     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                         <StackPanel.RenderTransform><TranslateTransform Y="-9" /></StackPanel.RenderTransform>
-                        <TextBlock HorizontalAlignment="Center" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource VipPlanMonthly}" />
+                        <TextBlock HorizontalAlignment="Center" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource VipPlanMonthly}" />
                         <StackPanel Margin="0,8,0,0" HorizontalAlignment="Center" Orientation="Horizontal">
-                            <TextBlock Margin="0,7,2,0" FontSize="12" Text="¥" />
-                            <TextBlock FontSize="26" FontWeight="SemiBold" Text="{DynamicResource VipPlanMonthlyPrice}" />
-                            <TextBlock Margin="3,12,0,0" FontSize="11" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource VipPlanMonthlyUnit}" />
+                            <TextBlock Margin="0,7,2,0" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}" Text="¥" />
+                            <TextBlock FontSize="24" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource VipPlanMonthlyPrice}" />
+                            <TextBlock Margin="3,12,0,0" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource VipPlanMonthlyUnit}" />
                         </StackPanel>
                     </StackPanel>
                 </Button>
@@ -261,17 +249,17 @@
                     <Grid>
                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                             <StackPanel.RenderTransform><TranslateTransform Y="5" /></StackPanel.RenderTransform>
-                            <TextBlock HorizontalAlignment="Center" FontSize="14" FontWeight="SemiBold" Text="{DynamicResource VipPlanYearly}" />
+                            <TextBlock HorizontalAlignment="Center" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource VipPlanYearly}" />
                             <StackPanel Margin="0,6,0,0" HorizontalAlignment="Center" Orientation="Horizontal">
-                                <TextBlock Margin="0,7,2,0" FontSize="12" Text="¥" />
-                                <TextBlock FontSize="26" FontWeight="SemiBold" Text="{DynamicResource VipPlanYearlyPrice}" />
-                                <TextBlock Margin="3,12,0,0" FontSize="11" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource VipPlanYearlyUnit}" />
+                                <TextBlock Margin="0,7,2,0" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}" Text="¥" />
+                                <TextBlock FontSize="24" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource VipPlanYearlyPrice}" />
+                                <TextBlock Margin="3,12,0,0" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource VipPlanYearlyUnit}" />
                             </StackPanel>
-                            <TextBlock Margin="0,4,0,0" HorizontalAlignment="Center" FontSize="11" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource VipPlanYearlyHint}" />
-                            <TextBlock Margin="0,2,0,0" HorizontalAlignment="Center" FontSize="11" FontWeight="Medium" Foreground="{DynamicResource AccentPrimary}" Text="{DynamicResource VipPlanSavings}" />
+                            <TextBlock Margin="0,4,0,0" HorizontalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource VipPlanYearlyHint}" />
+                            <TextBlock Margin="0,2,0,0" HorizontalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource AccentPrimary}" Text="{DynamicResource VipPlanSavings}" />
                         </StackPanel>
                         <Border Height="22" Padding="8,0" HorizontalAlignment="Right" VerticalAlignment="Top" Background="{DynamicResource AccentPrimary}" CornerRadius="0,10,0,9">
-                            <TextBlock VerticalAlignment="Center" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource WhiteText}" Text="{DynamicResource VipPlanRecommended}" />
+                            <TextBlock VerticalAlignment="Center" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource WhiteText}" Text="{DynamicResource VipPlanRecommended}" />
                         </Border>
                     </Grid>
                 </Button>
@@ -290,12 +278,12 @@
                     </Button.Style>
                     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                         <StackPanel.RenderTransform><TranslateTransform Y="2" /></StackPanel.RenderTransform>
-                        <TextBlock HorizontalAlignment="Center" FontSize="14" FontWeight="SemiBold" Text="{DynamicResource VipPlanLifetime}" />
+                        <TextBlock HorizontalAlignment="Center" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource VipPlanLifetime}" />
                         <StackPanel Margin="0,5,0,0" HorizontalAlignment="Center" Orientation="Horizontal">
-                            <TextBlock Margin="0,7,2,0" FontSize="12" Text="¥" />
-                            <TextBlock FontSize="26" FontWeight="SemiBold" Text="{DynamicResource VipPlanLifetimePrice}" />
+                            <TextBlock Margin="0,7,2,0" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}" Text="¥" />
+                            <TextBlock FontSize="24" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource VipPlanLifetimePrice}" />
                         </StackPanel>
-                        <TextBlock Margin="0,11,0,0" HorizontalAlignment="Center" FontSize="11" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource VipPlanLifetimeHint}" />
+                        <TextBlock Margin="0,11,0,0" HorizontalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource VipPlanLifetimeHint}" />
                     </StackPanel>
                 </Button>
             </UniformGrid>
@@ -326,7 +314,7 @@
                             <Ellipse Canvas.Left="17.5" Canvas.Top="3.5" Width="2.5" Height="2.5" Fill="White" />
                         </Canvas>
                     </Viewbox>
-                    <TextBlock VerticalAlignment="Center" FontSize="17" FontWeight="SemiBold" Foreground="{DynamicResource WhiteText}">
+                    <TextBlock VerticalAlignment="Center" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource WhiteText}">
                         <TextBlock.Style>
                             <Style TargetType="{x:Type TextBlock}">
                                 <Setter Property="Text" Value="{DynamicResource VipUpgradeAction}" />
@@ -349,7 +337,7 @@
                     AutomationProperties.Name="{DynamicResource VipLaterAction}"
                     Command="{Binding LaterCommand}"
                     Style="{StaticResource VipPlainButtonStyle}">
-                <TextBlock FontSize="13" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource VipLaterAction}" />
+                <TextBlock FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource VipLaterAction}" />
             </Button>
         </Grid>
     </Border>

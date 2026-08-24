@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              Width="210"
              Height="270"
+             TextElement.FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI"
              UseLayoutRounding="True"
              SnapsToDevicePixels="True">
     <UserControl.Resources>
@@ -111,10 +112,10 @@
 
                 <StackPanel Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center">
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock VerticalAlignment="Center" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource AccountPanelLoggedIn}" />
+                        <TextBlock VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource AccountPanelLoggedIn}" />
                         <Ellipse Width="7" Height="7" Margin="7,1,0,0" VerticalAlignment="Center" Fill="{DynamicResource Success}" />
                     </StackPanel>
-                    <TextBlock Margin="0,4,0,0" FontSize="10.5" Foreground="{DynamicResource TextSecondary}" Text="{Binding CurrentUserEmail}" TextTrimming="CharacterEllipsis" ToolTip="{Binding CurrentUserEmail}" />
+                    <TextBlock Margin="0,4,0,0" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding CurrentUserEmail}" TextTrimming="CharacterEllipsis" ToolTip="{Binding CurrentUserEmail}" />
                 </StackPanel>
             </Grid>
 
@@ -127,7 +128,7 @@
                 <Grid Margin="2,0,4,0">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="35" /><ColumnDefinition /><ColumnDefinition Width="16" /></Grid.ColumnDefinitions>
                     <TextBlock VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="{DynamicResource TextSecondary}" Text="&#xE753;" />
-                    <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="15" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource AccountPanelAccountSync}" />
+                    <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource AccountPanelAccountSync}" />
                     <TextBlock Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="{DynamicResource TextSecondary}" Opacity="0.72" Text="&#xE76C;" />
                 </Grid>
             </Button>
@@ -154,7 +155,7 @@
                         </Canvas>
                     </Viewbox>
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                        <TextBlock FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}">
+                        <TextBlock FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}">
                             <TextBlock.Style>
                                 <Style TargetType="{x:Type TextBlock}">
                                     <Setter Property="Text" Value="{DynamicResource AccountPanelVip}" />
@@ -164,7 +165,7 @@
                                 </Style>
                             </TextBlock.Style>
                         </TextBlock>
-                        <TextBlock Margin="0,3,0,0" FontSize="11" Foreground="{DynamicResource TextSecondary}">
+                        <TextBlock Margin="0,3,0,0" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}">
                             <TextBlock.Style>
                                 <Style TargetType="{x:Type TextBlock}">
                                     <Setter Property="Text" Value="解锁更多专注功能" />
@@ -186,7 +187,7 @@
                 <Grid Margin="2,0,4,0">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="35" /><ColumnDefinition /><ColumnDefinition Width="16" /></Grid.ColumnDefinitions>
                     <TextBlock VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="{DynamicResource TextSecondary}" Text="&#xE8AC;" />
-                    <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="15" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource AccountPanelLogout}" />
+                    <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource AccountPanelLogout}" />
                     <TextBlock Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="{DynamicResource TextSecondary}" Opacity="0.72" Text="&#xE76C;" />
                 </Grid>
             </Button>

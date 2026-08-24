@@ -124,7 +124,7 @@
             CornerRadius="16"
             MouseDown="AuthCard_MouseDown">
         <Grid Margin="28,0">
-            <Grid x:Name="LoginPanel">
+            <Grid x:Name="LoginPanel" TextElement.FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI">
                 <Grid.Style>
                     <Style TargetType="{x:Type Grid}">
                         <Setter Property="Visibility" Value="Visible" />
@@ -142,13 +142,15 @@
                 <TextBlock Margin="0,24,0,0"
                            HorizontalAlignment="Center"
                            VerticalAlignment="Top"
-                           FontSize="22"
+                           FontSize="17"
                            FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextPrimary}"
                            Text="{DynamicResource AuthLoginTitle}" />
                 <TextBlock Margin="0,57,0,0"
                            HorizontalAlignment="Center"
                            VerticalAlignment="Top"
-                           FontSize="13"
+                           FontSize="12"
+                           FontWeight="Normal"
                            Foreground="{DynamicResource TextSecondary}"
                            Text="{DynamicResource AuthLoginSubtitle}" />
 
@@ -172,6 +174,8 @@
                             BorderBrush="{DynamicResource AccentPrimary}"
                             Foreground="{DynamicResource AccentPrimary}">
                         <TextBlock Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
+                                   FontSize="13"
+                                   FontWeight="Medium"
                                    Text="{DynamicResource AuthLoginTab}" />
                     </Button>
                     <Button Grid.Column="1"
@@ -180,6 +184,8 @@
                             Command="{Binding ShowRegisterCommand}"
                             Style="{StaticResource AuthTabButtonStyle}">
                         <TextBlock Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
+                                   FontSize="13"
+                                   FontWeight="Normal"
                                    Text="{DynamicResource AuthRegisterTab}" />
                     </Button>
                 </Grid>
@@ -207,13 +213,16 @@
                                  AutomationProperties.Name="{DynamicResource AuthAccountPlaceholder}"
                                  Background="Transparent"
                                  BorderThickness="0"
-                                 FontSize="16"
+                                 FontSize="13"
+                                 FontWeight="Normal"
+                                 Foreground="{DynamicResource TextPrimary}"
                                  Text="{Binding LoginAccount, UpdateSourceTrigger=PropertyChanged}" />
                         <TextBlock Grid.Column="1"
                                    VerticalAlignment="Center"
                                    IsHitTestVisible="False"
-                                   FontSize="16"
-                                   Foreground="{DynamicResource AuthInputPlaceholder}"
+                                   FontSize="13"
+                                   FontWeight="Normal"
+                                   Foreground="{DynamicResource TextWeak}"
                                    Text="{DynamicResource AuthAccountPlaceholder}">
                             <TextBlock.Style>
                                 <Style TargetType="{x:Type TextBlock}">
@@ -253,7 +262,9 @@
                                      AutomationProperties.Name="{DynamicResource AuthPasswordPlaceholder}"
                                      Background="Transparent"
                                      BorderThickness="0"
-                                     FontSize="16"
+                                     FontSize="13"
+                                     FontWeight="Normal"
+                                     Foreground="{DynamicResource TextPrimary}"
                                      PasswordChanged="LoginPasswordBox_PasswordChanged"
                                      PreviewKeyDown="LoginPasswordBox_PreviewKeyDown" />
                         <TextBox x:Name="LoginPasswordTextBox"
@@ -262,15 +273,18 @@
                                  VerticalContentAlignment="Center"
                                  Background="Transparent"
                                  BorderThickness="0"
-                                 FontSize="16"
+                                 FontSize="13"
+                                 FontWeight="Normal"
+                                 Foreground="{DynamicResource TextPrimary}"
                                  PreviewKeyDown="LoginPasswordBox_PreviewKeyDown"
                                  Text="{Binding LoginPassword, UpdateSourceTrigger=PropertyChanged}"
                                  Visibility="Collapsed" />
                         <TextBlock Grid.Column="1"
                                    VerticalAlignment="Center"
                                    IsHitTestVisible="False"
-                                   FontSize="16"
-                                   Foreground="{DynamicResource AuthInputPlaceholder}"
+                                   FontSize="13"
+                                   FontWeight="Normal"
+                                   Foreground="{DynamicResource TextWeak}"
                                    Text="{DynamicResource AuthPasswordPlaceholder}">
                             <TextBlock.Style>
                                 <Style TargetType="{x:Type TextBlock}">
@@ -308,11 +322,13 @@
                         Style="{StaticResource HomeLinkButtonStyle}">
                     <TextBlock Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
                                FontSize="12"
+                               FontWeight="Medium"
                                Text="{DynamicResource AuthForgotPassword}" />
                 </Button>
                 <TextBlock Margin="3,249,100,0"
                            VerticalAlignment="Top"
                            FontSize="12"
+                           FontWeight="Normal"
                            Foreground="{DynamicResource AuthError}"
                            Text="{DynamicResource AuthLoginError}">
                     <TextBlock.Style>
@@ -333,12 +349,15 @@
                         Command="{Binding LoginCommand}"
                         Style="{StaticResource AuthPrimaryButtonStyle}">
                     <TextBlock Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
+                               FontSize="13"
+                               FontWeight="Medium"
                                Text="{DynamicResource AuthLoginAction}" />
                 </Button>
                 <TextBlock Margin="0,326,0,0"
                            HorizontalAlignment="Center"
                            VerticalAlignment="Top"
-                           FontSize="13"
+                           FontSize="12"
+                           FontWeight="Normal"
                            Foreground="{DynamicResource TextSecondary}"
                            Text="{DynamicResource AuthSyncHint}" />
             </Grid>
@@ -589,7 +608,7 @@
                 </Grid>
             </Grid>
 
-            <Grid x:Name="RegisterPanel">
+            <Grid x:Name="RegisterPanel" TextElement.FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI">
                 <Grid.Style>
                     <Style TargetType="{x:Type Grid}">
                         <Setter Property="Visibility" Value="Collapsed" />
@@ -604,13 +623,15 @@
                 <TextBlock Margin="0,24,0,0"
                            HorizontalAlignment="Center"
                            VerticalAlignment="Top"
-                           FontSize="22"
+                           FontSize="17"
                            FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextPrimary}"
                            Text="{DynamicResource AuthRegisterTitle}" />
                 <TextBlock Margin="0,59,0,0"
                            HorizontalAlignment="Center"
                            VerticalAlignment="Top"
-                           FontSize="13"
+                           FontSize="12"
+                           FontWeight="Normal"
                            Foreground="{DynamicResource TextSecondary}"
                            Text="{DynamicResource AuthRegisterSubtitle}" />
                 <Grid Height="34"
@@ -631,7 +652,8 @@
                             Command="{Binding ShowLoginCommand}"
                             Style="{StaticResource AuthTabButtonStyle}">
                         <TextBlock Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
-                                   FontSize="14"
+                                   FontSize="13"
+                                   FontWeight="Normal"
                                    Text="{DynamicResource AuthLoginTab}" />
                     </Button>
                     <Button Grid.Column="1"
@@ -642,7 +664,8 @@
                             BorderBrush="{DynamicResource AccentPrimary}"
                             Foreground="{DynamicResource AccentPrimary}">
                         <TextBlock Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
-                                   FontSize="14"
+                                   FontSize="13"
+                                   FontWeight="Medium"
                                    Text="{DynamicResource AuthRegisterTab}" />
                     </Button>
                 </Grid>
@@ -665,13 +688,16 @@
                                  AutomationProperties.Name="{DynamicResource AuthEmailInputPlaceholder}"
                                  Background="Transparent"
                                  BorderThickness="0"
-                                 FontSize="14"
+                                 FontSize="13"
+                                 FontWeight="Normal"
+                                 Foreground="{DynamicResource TextPrimary}"
                                  Text="{Binding RegisterEmail, UpdateSourceTrigger=PropertyChanged}" />
                         <TextBlock Margin="24,0,0,0"
                                    VerticalAlignment="Center"
                                    IsHitTestVisible="False"
-                                   FontSize="14"
-                                   Foreground="{DynamicResource AuthInputPlaceholder}"
+                                   FontSize="13"
+                                   FontWeight="Normal"
+                                   Foreground="{DynamicResource TextWeak}"
                                    Text="{DynamicResource AuthEmailInputPlaceholder}">
                             <TextBlock.Style>
                                 <Style TargetType="{x:Type TextBlock}">
@@ -695,7 +721,8 @@
                                Foreground="{DynamicResource AuthError}"
                                Text="&#xE783;" />
                     <TextBlock Margin="6,0,0,0"
-                               FontSize="11"
+                               FontSize="12"
+                               FontWeight="Normal"
                                Foreground="{DynamicResource AuthError}"
                                Text="{DynamicResource AuthEmailError}" />
                 </StackPanel>
@@ -723,13 +750,16 @@
                                  AutomationProperties.Name="{DynamicResource AuthCodePlaceholder}"
                                  Background="Transparent"
                                  BorderThickness="0"
-                                 FontSize="14"
+                                 FontSize="13"
+                                 FontWeight="Normal"
+                                 Foreground="{DynamicResource TextPrimary}"
                                  Text="{Binding RegisterCode, UpdateSourceTrigger=PropertyChanged}" />
                         <TextBlock Grid.Column="1"
                                    VerticalAlignment="Center"
                                    IsHitTestVisible="False"
-                                   FontSize="14"
-                                   Foreground="{DynamicResource AuthInputPlaceholder}"
+                                   FontSize="13"
+                                   FontWeight="Normal"
+                                   Foreground="{DynamicResource TextWeak}"
                                    Text="{DynamicResource AuthCodePlaceholder}">
                             <TextBlock.Style>
                                 <Style TargetType="{x:Type TextBlock}">
@@ -747,7 +777,8 @@
                                 Padding="0"
                                 Style="{StaticResource HomeLinkButtonStyle}">
                             <TextBlock Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
-                                       FontSize="16"
+                                       FontSize="13"
+                                       FontWeight="Medium"
                                        Text="{DynamicResource AuthSendCode}" />
                         </Button>
                     </Grid>
@@ -771,7 +802,9 @@
                                      AutomationProperties.Name="{DynamicResource AuthPasswordInputPlaceholder}"
                                      Background="Transparent"
                                      BorderThickness="0"
-                                     FontSize="14"
+                                     FontSize="13"
+                                     FontWeight="Normal"
+                                     Foreground="{DynamicResource TextPrimary}"
                                      PasswordChanged="RegisterPasswordBox_PasswordChanged" />
                         <TextBox x:Name="RegisterPasswordTextBox"
                                  Margin="24,0,28,0"
@@ -779,14 +812,17 @@
                                  VerticalContentAlignment="Center"
                                  Background="Transparent"
                                  BorderThickness="0"
-                                 FontSize="14"
+                                 FontSize="13"
+                                 FontWeight="Normal"
+                                 Foreground="{DynamicResource TextPrimary}"
                                  Text="{Binding RegisterPassword, UpdateSourceTrigger=PropertyChanged}"
                                  Visibility="Collapsed" />
                         <TextBlock Margin="24,0,28,0"
                                    VerticalAlignment="Center"
                                    IsHitTestVisible="False"
-                                   FontSize="14"
-                                   Foreground="{DynamicResource AuthInputPlaceholder}"
+                                   FontSize="13"
+                                   FontWeight="Normal"
+                                   Foreground="{DynamicResource TextWeak}"
                                    Text="{DynamicResource AuthPasswordInputPlaceholder}">
                             <TextBlock.Style>
                                 <Style TargetType="{x:Type TextBlock}">
@@ -830,7 +866,9 @@
                                      AutomationProperties.Name="{DynamicResource AuthConfirmPasswordPlaceholder}"
                                      Background="Transparent"
                                      BorderThickness="0"
-                                     FontSize="14"
+                                     FontSize="13"
+                                     FontWeight="Normal"
+                                     Foreground="{DynamicResource TextPrimary}"
                                      PasswordChanged="RegisterConfirmPasswordBox_PasswordChanged" />
                         <TextBox x:Name="RegisterConfirmPasswordTextBox"
                                  Margin="24,0,28,0"
@@ -838,14 +876,17 @@
                                  VerticalContentAlignment="Center"
                                  Background="Transparent"
                                  BorderThickness="0"
-                                 FontSize="14"
+                                 FontSize="13"
+                                 FontWeight="Normal"
+                                 Foreground="{DynamicResource TextPrimary}"
                                  Text="{Binding RegisterConfirmPassword, UpdateSourceTrigger=PropertyChanged}"
                                  Visibility="Collapsed" />
                         <TextBlock Margin="24,0,28,0"
                                    VerticalAlignment="Center"
                                    IsHitTestVisible="False"
-                                   FontSize="14"
-                                   Foreground="{DynamicResource AuthInputPlaceholder}"
+                                   FontSize="13"
+                                   FontWeight="Normal"
+                                   Foreground="{DynamicResource TextWeak}"
                                    Text="{DynamicResource AuthConfirmPasswordPlaceholder}">
                             <TextBlock.Style>
                                 <Style TargetType="{x:Type TextBlock}">
@@ -878,23 +919,29 @@
                     <ToggleButton x:Name="RegisterAgreementCheckBox"
                                   Margin="0,0,4,0"
                                   Style="{StaticResource AuthAgreementCheckBoxStyle}" />
-                    <TextBlock FontSize="11"
+                    <TextBlock FontSize="12"
+                               FontWeight="Normal"
+                               Foreground="{DynamicResource TextPrimary}"
                                VerticalAlignment="Center"
                                Text="{DynamicResource AuthAgreementPrefix}" />
                     <Button Padding="0"
                             Style="{StaticResource HomeLinkButtonStyle}">
                         <TextBlock Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
-                                   FontSize="11"
+                                   FontSize="12"
+                                   FontWeight="Medium"
                                    Text="{DynamicResource AuthTerms}" />
                     </Button>
                     <TextBlock Margin="6,0,6,0"
                                VerticalAlignment="Center"
-                               FontSize="11"
+                               FontSize="12"
+                               FontWeight="Normal"
+                               Foreground="{DynamicResource TextPrimary}"
                                Text="{DynamicResource AuthAgreementAnd}" />
                     <Button Padding="0"
                             Style="{StaticResource HomeLinkButtonStyle}">
                         <TextBlock Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
-                                   FontSize="11"
+                                   FontSize="12"
+                                   FontWeight="Medium"
                                    Text="{DynamicResource AuthPrivacy}" />
                     </Button>
                 </StackPanel>
@@ -904,7 +951,8 @@
                         AutomationProperties.Name="{DynamicResource AuthRegisterAction}"
                         Style="{StaticResource AuthPrimaryButtonStyle}">
                         <TextBlock Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
-                                   FontSize="16"
+                                   FontSize="13"
+                                   FontWeight="Medium"
                                    Text="{DynamicResource AuthRegisterAction}" />
                 </Button>
             </Grid>

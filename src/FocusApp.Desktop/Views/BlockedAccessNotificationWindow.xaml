@@ -3,11 +3,11 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="{DynamicResource BlockedAccessNotificationTitle}"
         Width="400"
-        Height="180"
+        Height="190"
         MinWidth="400"
-        MinHeight="180"
+        MinHeight="190"
         MaxWidth="400"
-        MaxHeight="180"
+        MaxHeight="190"
         AllowsTransparency="True"
         Background="Transparent"
         Focusable="False"
@@ -72,10 +72,10 @@
                               ShadowDepth="2" />
         </Border.Effect>
 
-        <Grid Margin="26,10,26,10">
+        <Grid Margin="26,15,26,15">
             <Grid.RowDefinitions>
                 <RowDefinition Height="42" />
-                <RowDefinition Height="3" />
+                <RowDefinition Height="8" />
                 <RowDefinition Height="28" />
                 <RowDefinition Height="6" />
                 <RowDefinition Height="60" />
@@ -149,13 +149,9 @@
                         <ColumnDefinition Width="32" />
                     </Grid.ColumnDefinitions>
 
-                    <Border Width="48"
-                            Height="48"
-                            VerticalAlignment="Center"
-                            Background="{DynamicResource BackgroundSecondary}"
-                            BorderBrush="{DynamicResource OverlayBorder}"
-                            BorderThickness="1"
-                            CornerRadius="24">
+                    <Grid Width="48"
+                          Height="48"
+                          VerticalAlignment="Center">
                         <Viewbox Width="25" Height="25">
                             <Grid Width="20" Height="20">
                                 <Ellipse Stroke="{DynamicResource TextSecondary}" StrokeThickness="1.5" />
@@ -164,15 +160,15 @@
                                 <Line X1="1" Y1="13" X2="19" Y2="13" Stroke="{DynamicResource TextSecondary}" StrokeThickness="1.2" />
                             </Grid>
                         </Viewbox>
-                    </Border>
+                    </Grid>
 
                     <StackPanel Grid.Column="2" VerticalAlignment="Center">
-                        <TextBlock FontSize="15"
+                        <TextBlock FontSize="13"
                                    FontWeight="Medium"
                                    Foreground="{DynamicResource TextPrimary}"
                                    Text="{Binding Name, Mode=OneWay}" />
                         <TextBlock Margin="0,-2,0,0"
-                                   FontSize="15"
+                                   FontSize="13"
                                    FontWeight="Normal"
                                    Foreground="{DynamicResource TextSecondary}"
                                    Text="{Binding Address, Mode=OneWay}" />
