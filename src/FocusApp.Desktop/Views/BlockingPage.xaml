@@ -147,12 +147,13 @@
         </Style>
 
         <Style x:Key="BlockingMenuItemStyle" TargetType="{x:Type Button}">
-            <Setter Property="Height" Value="38" />
-            <Setter Property="Padding" Value="12,0" />
+            <Setter Property="Height" Value="44" />
+            <Setter Property="Padding" Value="15,0" />
             <Setter Property="HorizontalContentAlignment" Value="Left" />
             <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="Normal" />
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Template">
@@ -249,11 +250,21 @@
                                                 <TextBlock Margin="0,-7,0,0" FontSize="17" FontWeight="SemiBold" Text="..." />
                                             </ToggleButton>
                                             <Popup AllowsTransparency="True" IsOpen="{Binding IsChecked, ElementName=WebsiteMoreButton, Mode=TwoWay}" Placement="Left" PlacementTarget="{Binding ElementName=WebsiteMoreButton}" PopupAnimation="Fade" StaysOpen="False">
-                                                <Border Width="118" Padding="6" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" CornerRadius="12">
-                                                    <Border.Effect><DropShadowEffect BlurRadius="14" Direction="270" Opacity="0.14" ShadowDepth="3" /></Border.Effect>
+                                                <Border Width="160" Padding="6" Background="{DynamicResource SurfacePrimary}" BorderBrush="#E5E5EA" BorderThickness="1" CornerRadius="12">
+                                                    <Border.Effect><DropShadowEffect BlurRadius="10" Direction="270" Opacity="0.08" ShadowDepth="2" /></Border.Effect>
                                                     <StackPanel>
-                                                        <Button Command="{Binding DataContext.EditWebsiteCommand, Source={x:Reference BlockingPageRoot}}" CommandParameter="{Binding}" Content="{DynamicResource BlockingRenameWebsite}" Style="{StaticResource BlockingMenuItemStyle}" />
-                                                        <Button Command="{Binding DataContext.DeleteWebsiteCommand, Source={x:Reference BlockingPageRoot}}" CommandParameter="{Binding}" Content="{DynamicResource BlockingDeleteWebsite}" Foreground="{DynamicResource Danger}" Style="{StaticResource BlockingMenuItemStyle}" />
+                                                        <Button AutomationProperties.Name="{DynamicResource BlockingRenameWebsite}" Command="{Binding DataContext.EditWebsiteCommand, Source={x:Reference BlockingPageRoot}}" CommandParameter="{Binding}" Style="{StaticResource BlockingMenuItemStyle}">
+                                                            <StackPanel Orientation="Horizontal">
+                                                                <Path Width="15" Height="15" VerticalAlignment="Center" Data="M 2,13 L 3.5,8.8 L 11.2,1.1 L 14.9,4.8 L 7.2,12.5 Z M 10.2,2.1 L 13.9,5.8 M 2,13 L 6.2,11.8" Stretch="Uniform" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeEndLineCap="Round" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeThickness="1.35" />
+                                                                <TextBlock Margin="10,0,0,0" VerticalAlignment="Center" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Text="{DynamicResource BlockingRenameWebsite}" />
+                                                            </StackPanel>
+                                                        </Button>
+                                                        <Button AutomationProperties.Name="{DynamicResource BlockingDeleteWebsite}" Command="{Binding DataContext.DeleteWebsiteCommand, Source={x:Reference BlockingPageRoot}}" CommandParameter="{Binding}" Foreground="{DynamicResource Danger}" Style="{StaticResource BlockingMenuItemStyle}">
+                                                            <StackPanel Orientation="Horizontal">
+                                                                <Path Width="15" Height="15" VerticalAlignment="Center" Data="M 2,4 H 14 M 5,4 V 2 H 11 V 4 M 4,6 V 14 H 12 V 6 M 7,8 V 12 M 9,8 V 12" Stretch="Uniform" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeEndLineCap="Round" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeThickness="1.35" />
+                                                                <TextBlock Margin="10,0,0,0" VerticalAlignment="Center" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Text="{DynamicResource BlockingDeleteWebsite}" />
+                                                            </StackPanel>
+                                                        </Button>
                                                     </StackPanel>
                                                 </Border>
                                             </Popup>

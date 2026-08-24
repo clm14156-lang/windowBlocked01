@@ -29,7 +29,7 @@
     <system:String x:Key="BlockingEditWebsite">编辑网站（暂不可用）</system:String>
     <system:String x:Key="BlockingRenameWebsite">重命名</system:String>
     <system:String x:Key="BlockingWebsiteActions">网站操作</system:String>
-    <system:String x:Key="BlockingDeleteWebsite">删除网站</system:String>
+    <system:String x:Key="BlockingDeleteWebsite">删除</system:String>
     <system:String x:Key="BlockingDeleteApplication">删除程序</system:String>
     <system:String x:Key="BlockingWebsiteEmptyTitle">暂无屏蔽网站</system:String>
     <system:String x:Key="BlockingWebsiteEmptyDescription">添加网站后，可在这里管理屏蔽状态和网站列表</system:String>

@@ -9,6 +9,52 @@ public sealed class BlockingPagePresentationTests
     private static readonly XNamespace Xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
 
     [Fact]
+    public void WebsiteOverflowMenu_UsesCompactIconRowsWithoutChangingCommands()
+    {
+        var page = XDocument.Load(Path.Combine(
+            FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "BlockingPage.xaml"));
+        var websites = Assert.Single(page.Descendants(Presentation + "ItemsControl")
+            .Where(element => (string?)element.Attribute("ItemsSource") == "{Binding Websites}"));
+        var template = Assert.Single(websites.Elements(Presentation + "ItemsControl.ItemTemplate")
+            .Elements(Presentation + "DataTemplate"));
+        var popup = Assert.Single(template.Descendants(Presentation + "Popup"));
+        var surface = Assert.Single(popup.Elements(Presentation + "Border"));
+
+        Assert.Equal("False", (string?)popup.Attribute("StaysOpen"));
+        Assert.Equal("{Binding ElementName=WebsiteMoreButton}", (string?)popup.Attribute("PlacementTarget"));
+        Assert.Equal("160", (string?)surface.Attribute("Width"));
+        Assert.Equal("12", (string?)surface.Attribute("CornerRadius"));
+        Assert.Equal("#E5E5EA", (string?)surface.Attribute("BorderBrush"));
+
+        var menuStyle = Assert.Single(page.Descendants(Presentation + "Style").Where(style =>
+            (string?)style.Attribute(Xaml + "Key") == "BlockingMenuItemStyle"));
+        Assert.Contains(menuStyle.Elements(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("Property") == "Height" && (string?)setter.Attribute("Value") == "44");
+        Assert.Contains(menuStyle.Elements(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("Property") == "Padding" && (string?)setter.Attribute("Value") == "15,0");
+
+        var rename = Assert.Single(popup.Descendants(Presentation + "Button").Where(button =>
+            ((string?)button.Attribute("Command"))?.Contains("EditWebsiteCommand", StringComparison.Ordinal) == true));
+        var delete = Assert.Single(popup.Descendants(Presentation + "Button").Where(button =>
+            ((string?)button.Attribute("Command"))?.Contains("DeleteWebsiteCommand", StringComparison.Ordinal) == true));
+        Assert.Equal("{Binding}", (string?)rename.Attribute("CommandParameter"));
+        Assert.Equal("{Binding}", (string?)delete.Attribute("CommandParameter"));
+        Assert.Equal("{DynamicResource Danger}", (string?)delete.Attribute("Foreground"));
+        Assert.Single(rename.Descendants(Presentation + "Path"));
+        Assert.Single(delete.Descendants(Presentation + "Path"));
+        Assert.Contains(rename.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "{DynamicResource BlockingRenameWebsite}");
+        Assert.Contains(delete.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "{DynamicResource BlockingDeleteWebsite}");
+
+        var strings = XDocument.Load(Path.Combine(
+            FindRepositoryRoot(), "src", "FocusApp.Desktop", "Resources", "Strings.xaml"));
+        var deleteLabel = Assert.Single(strings.Descendants().Where(element =>
+            (string?)element.Attribute(Xaml + "Key") == "BlockingDeleteWebsite"));
+        Assert.Equal("删除", deleteLabel.Value);
+    }
+
+    [Fact]
     public void ApplicationRows_ExposeSingleDeleteButtonWithoutOverflowMenu()
     {
         var page = XDocument.Load(Path.Combine(

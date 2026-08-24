@@ -155,14 +155,15 @@ public sealed class StatisticsGoalProgressPresentationTests
         Assert.Equal("{DynamicResource TextPrimary}", (string?)pageTitle.Attribute("Foreground"));
 
         var sectionTitles = texts.Where(text =>
-            (string?)text.Attribute("Text") is "{Binding GoalListTitle}" or "投入趋势" or "推进记录").ToArray();
-        Assert.Equal(3, sectionTitles.Length);
+            (string?)text.Attribute("Text") is "{Binding GoalListTitle}" or "投入趋势").ToArray();
+        Assert.Equal(2, sectionTitles.Length);
         Assert.All(sectionTitles, title =>
         {
             Assert.Equal("15", (string?)title.Attribute("FontSize"));
             Assert.Equal("Medium", (string?)title.Attribute("FontWeight"));
             Assert.Equal("{DynamicResource TextPrimary}", (string?)title.Attribute("Foreground"));
         });
+        Assert.DoesNotContain(texts, text => (string?)text.Attribute("Text") == "推进记录");
 
         var goalName = Assert.Single(texts.Where(text => (string?)text.Attribute("Text") == "{Binding Name}"));
         Assert.Equal("13", (string?)goalName.Attribute("FontSize"));
@@ -217,7 +218,7 @@ public sealed class StatisticsGoalProgressPresentationTests
         var animations = expandableContent.Descendants(Presentation + "DoubleAnimation").ToArray();
         var chartLayout = Assert.Single(expandableContent.Elements(Presentation + "Grid"));
 
-        Assert.Equal(new[] { "76", "Auto", "42", "*" }, rowHeights);
+        Assert.Equal(new[] { "76", "Auto", "14", "*" }, rowHeights);
         Assert.Equal("42", (string?)trendToggle.Attribute("Height"));
         Assert.Equal("42", (string?)monthSelector.Attribute("Height"));
         Assert.Equal("{Binding ToggleGoalTrendCommand}", (string?)trendToggle.Attribute("Command"));

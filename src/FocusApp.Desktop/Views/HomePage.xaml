@@ -5,6 +5,9 @@
              Background="{DynamicResource BackgroundPrimary}"
              UseLayoutRounding="True"
              SnapsToDevicePixels="True">
+    <UserControl.Resources>
+        <views:AutomaticBlockingTooltipDetailConverter x:Key="AutomaticBlockingTooltipDetailConverter" />
+    </UserControl.Resources>
     <Grid>
         <StackPanel Margin="0,62,24,0"
                     HorizontalAlignment="Center"
@@ -317,13 +320,85 @@
                                    FontWeight="Medium"
                                    Foreground="{DynamicResource AccentPrimary}"
                                    Text="{Binding NextAutomaticStartDisplay}"
-                                   ToolTip="{Binding NextAutomaticBlockingToolTip}">
+                                   ToolTipService.InitialShowDelay="100"
+                                   ToolTipService.BetweenShowDelay="0"
+                                   ToolTipService.ShowDuration="60000">
                             <TextBlock.Style>
                                 <Style TargetType="{x:Type TextBlock}">
                                     <Setter Property="Visibility" Value="Collapsed" />
                                     <Style.Triggers><DataTrigger Binding="{Binding HasNextAutomaticRule}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers>
                                 </Style>
                             </TextBlock.Style>
+                            <TextBlock.ToolTip>
+                                <ToolTip x:Name="AutomaticBlockingToolTip"
+                                         Padding="0"
+                                         Background="{DynamicResource TransparentBrush}"
+                                         BorderThickness="0"
+                                         DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}"
+                                         HasDropShadow="False"
+                                         OverridesDefaultStyle="True"
+                                         Placement="Custom">
+                                    <ToolTip.Template>
+                                        <ControlTemplate TargetType="{x:Type ToolTip}">
+                                            <ContentPresenter />
+                                        </ControlTemplate>
+                                    </ToolTip.Template>
+                                    <Grid MinWidth="220">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="8" />
+                                        </Grid.RowDefinitions>
+                                        <Border MinHeight="74"
+                                                Padding="16,12"
+                                                Background="{DynamicResource SurfacePrimary}"
+                                                BorderBrush="#E5E5EA"
+                                                BorderThickness="1"
+                                                CornerRadius="11">
+                                            <Border.Effect>
+                                                <DropShadowEffect BlurRadius="8"
+                                                                  Direction="270"
+                                                                  Opacity="0.08"
+                                                                  ShadowDepth="2" />
+                                            </Border.Effect>
+                                            <Grid VerticalAlignment="Center">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="18" />
+                                                    <ColumnDefinition Width="8" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0"
+                                                           VerticalAlignment="Top"
+                                                           FontFamily="Segoe MDL2 Assets"
+                                                           FontSize="16"
+                                                           Foreground="{DynamicResource AccentPrimary}"
+                                                           Text="&#xE823;" />
+                                                <StackPanel Grid.Column="2">
+                                                    <TextBlock FontSize="13"
+                                                               FontWeight="Medium"
+                                                               Foreground="{DynamicResource TextPrimary}">
+                                                        <Run Text="{Binding NextAutomaticStartDisplay, Mode=OneWay}" />
+                                                        <Run Text=" 开始自动屏蔽" />
+                                                    </TextBlock>
+                                                    <TextBlock Margin="0,4,0,0"
+                                                               FontSize="12"
+                                                               FontWeight="Normal"
+                                                               Foreground="{DynamicResource TextSecondary}"
+                                                               Text="{Binding NextAutomaticBlockingToolTip, Mode=OneWay, Converter={StaticResource AutomaticBlockingTooltipDetailConverter}}" />
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+                                        <Grid Grid.Row="1"
+                                              Width="14"
+                                              Height="8"
+                                              Margin="0,-1,0,0"
+                                              HorizontalAlignment="Center"
+                                              Panel.ZIndex="2">
+                                            <Path Data="M 0,0 L 14,0 L 7,8 Z" Fill="#E5E5EA" />
+                                            <Path Margin="1,0,1,1" Data="M 0,0 L 12,0 L 6,6 Z" Fill="{DynamicResource SurfacePrimary}" />
+                                        </Grid>
+                                    </Grid>
+                                </ToolTip>
+                            </TextBlock.ToolTip>
                         </TextBlock>
                     </StackPanel>
                     <TextBlock Margin="0,4,0,0"
