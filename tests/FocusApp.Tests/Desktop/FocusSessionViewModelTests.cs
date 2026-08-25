@@ -254,6 +254,28 @@ public sealed class FocusSessionViewModelTests
     }
 
     [Fact]
+    public void MovePendingTask_ReordersTheTargetCollectionAndPersistsAcrossReopen()
+    {
+        var target = new FocusTargetViewModel("写代码", ["整理需求", "完成交互", "编写测试"]);
+        var viewModel = CreateViewModel();
+        viewModel.Start(25, target);
+        Advance(viewModel, 5);
+
+        var draggedTask = viewModel.PendingTasks[2];
+        var targetTask = viewModel.PendingTasks[0];
+
+        Assert.True(viewModel.MovePendingTask(draggedTask, targetTask, insertAfter: false));
+        Assert.Equal(["编写测试", "整理需求", "完成交互"], target.Tasks.Select(task => task.Name));
+        Assert.Equal(["编写测试", "整理需求", "完成交互"], viewModel.PendingTasks.Select(task => task.Name));
+
+        viewModel.ReturnHomeCommand.Execute(null);
+        viewModel.Start(25, target);
+        Advance(viewModel, 5);
+
+        Assert.Equal(["编写测试", "整理需求", "完成交互"], viewModel.PendingTasks.Select(task => task.Name));
+    }
+
+    [Fact]
     public void StartWithoutTarget_UsesDefaultMode()
     {
         var viewModel = CreateViewModel();

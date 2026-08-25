@@ -9,7 +9,7 @@ public sealed class FocusTaskListPresentationTests
     private static readonly XNamespace Xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
 
     [Fact]
-    public void ActiveTaskList_UsesScopedFivePixelArrowlessScrollBar()
+    public void ActiveTaskList_UsesScopedThinScrollBarAndDragSortingHooks()
     {
         var view = XDocument.Load(Path.Combine(
             FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "FocusFlowView.xaml"));
@@ -35,6 +35,24 @@ public sealed class FocusTaskListPresentationTests
                 (string?)items.Attribute("ItemsSource") == "{Binding PendingTasks}")));
         Assert.Contains(taskList.Descendants(Presentation + "Style"), scopedStyle =>
             (string?)scopedStyle.Attribute("BasedOn") == "{StaticResource FocusTaskThinScrollBarStyle}");
+        Assert.Equal("True", (string?)taskList.Attribute("AllowDrop"));
+        Assert.Equal("TaskList_DragOver", (string?)taskList.Attribute("DragOver"));
+        Assert.Equal("TaskList_Drop", (string?)taskList.Attribute("Drop"));
+
+        var pendingTasks = Assert.Single(taskList.Descendants(Presentation + "ItemsControl").Where(items =>
+            (string?)items.Attribute("ItemsSource") == "{Binding PendingTasks}"));
+        Assert.Equal("PendingTaskList_PreviewMouseLeftButtonDown", (string?)pendingTasks.Attribute("PreviewMouseLeftButtonDown"));
+        Assert.Equal("PendingTaskList_PreviewMouseMove", (string?)pendingTasks.Attribute("PreviewMouseMove"));
+
+        var dragRow = Assert.Single(pendingTasks.Descendants(Presentation + "Grid").Where(grid =>
+            (string?)grid.Attribute(Xaml + "Name") == "TaskDragRow"));
+        Assert.Contains(dragRow.Descendants(Presentation + "DataTrigger"), trigger =>
+            (string?)trigger.Attribute("Binding") == "{Binding IsDragging}" &&
+            trigger.Descendants(Presentation + "DropShadowEffect").Any());
+        Assert.Equal(2, dragRow.Descendants(Presentation + "Border").Count(border =>
+            (string?)border.Attribute("Visibility") is
+                "{Binding ShowDropBefore, Converter={StaticResource BooleanToVisibilityConverter}}" or
+                "{Binding ShowDropAfter, Converter={StaticResource BooleanToVisibilityConverter}}"));
     }
 
     private static string FindRepositoryRoot()

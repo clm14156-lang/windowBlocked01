@@ -226,14 +226,90 @@
                             </StackPanel>
                             <Border Height="1" Margin="0,14,0,0" Background="{DynamicResource BorderPrimary}" />
 
-                            <ScrollViewer Height="212" Margin="0,2,0,0" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                            <ScrollViewer x:Name="TaskListScrollViewer"
+                                          Height="212"
+                                          Margin="0,2,0,0"
+                                          AllowDrop="True"
+                                          DragOver="TaskList_DragOver"
+                                          Drop="TaskList_Drop"
+                                          HorizontalScrollBarVisibility="Disabled"
+                                          VerticalScrollBarVisibility="Auto">
                             <ScrollViewer.Resources>
                                 <Style TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource FocusTaskThinScrollBarStyle}" />
                             </ScrollViewer.Resources>
-                            <ItemsControl ItemsSource="{Binding PendingTasks}">
+                            <ItemsControl x:Name="PendingTaskList"
+                                          ItemsSource="{Binding PendingTasks}"
+                                          PreviewMouseLeftButtonDown="PendingTaskList_PreviewMouseLeftButtonDown"
+                                          PreviewMouseLeftButtonUp="PendingTaskList_PreviewMouseLeftButtonUp"
+                                          PreviewMouseMove="PendingTaskList_PreviewMouseMove">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Grid Height="53">
+                                        <Grid x:Name="TaskDragRow" Height="53">
+                                            <Grid.Style>
+                                                <Style TargetType="{x:Type Grid}">
+                                                    <Setter Property="Opacity" Value="1" />
+                                                    <Setter Property="RenderTransform">
+                                                        <Setter.Value>
+                                                            <TranslateTransform />
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsDragging}" Value="True">
+                                                            <Setter Property="Opacity" Value="0.76" />
+                                                            <Setter Property="Panel.ZIndex" Value="6" />
+                                                            <Setter Property="Effect">
+                                                                <Setter.Value>
+                                                                    <DropShadowEffect BlurRadius="10"
+                                                                                      Direction="270"
+                                                                                      Opacity="0.14"
+                                                                                      ShadowDepth="2"
+                                                                                      Color="#808080" />
+                                                                </Setter.Value>
+                                                            </Setter>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding ShowDropBefore}" Value="True">
+                                                            <DataTrigger.EnterActions>
+                                                                <BeginStoryboard>
+                                                                    <Storyboard>
+                                                                        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)"
+                                                                                         To="4"
+                                                                                         Duration="0:0:0.09" />
+                                                                    </Storyboard>
+                                                                </BeginStoryboard>
+                                                            </DataTrigger.EnterActions>
+                                                            <DataTrigger.ExitActions>
+                                                                <BeginStoryboard>
+                                                                    <Storyboard>
+                                                                        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)"
+                                                                                         To="0"
+                                                                                         Duration="0:0:0.09" />
+                                                                    </Storyboard>
+                                                                </BeginStoryboard>
+                                                            </DataTrigger.ExitActions>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding ShowDropAfter}" Value="True">
+                                                            <DataTrigger.EnterActions>
+                                                                <BeginStoryboard>
+                                                                    <Storyboard>
+                                                                        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)"
+                                                                                         To="-4"
+                                                                                         Duration="0:0:0.09" />
+                                                                    </Storyboard>
+                                                                </BeginStoryboard>
+                                                            </DataTrigger.EnterActions>
+                                                            <DataTrigger.ExitActions>
+                                                                <BeginStoryboard>
+                                                                    <Storyboard>
+                                                                        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)"
+                                                                                         To="0"
+                                                                                         Duration="0:0:0.09" />
+                                                                    </Storyboard>
+                                                                </BeginStoryboard>
+                                                            </DataTrigger.ExitActions>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Grid.Style>
                                             <Border x:Name="TaskRow" CornerRadius="10">
                                                 <Border.Style>
                                                     <Style TargetType="{x:Type Border}">
@@ -270,6 +346,20 @@
                                                 </StackPanel>
                                             </Border>
                                             <Border Grid.Row="0" Height="1" Margin="0,52,0,0" Background="{DynamicResource BorderPrimary}" />
+                                            <Border Height="2"
+                                                    VerticalAlignment="Top"
+                                                    Panel.ZIndex="10"
+                                                    Background="{DynamicResource AccentPrimary}"
+                                                    CornerRadius="1"
+                                                    IsHitTestVisible="False"
+                                                    Visibility="{Binding ShowDropBefore, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                            <Border Height="2"
+                                                    VerticalAlignment="Bottom"
+                                                    Panel.ZIndex="10"
+                                                    Background="{DynamicResource AccentPrimary}"
+                                                    CornerRadius="1"
+                                                    IsHitTestVisible="False"
+                                                    Visibility="{Binding ShowDropAfter, Converter={StaticResource BooleanToVisibilityConverter}}" />
                                         </Grid>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>

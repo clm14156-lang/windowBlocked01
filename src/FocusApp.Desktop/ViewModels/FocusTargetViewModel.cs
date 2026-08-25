@@ -99,6 +99,9 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
     private bool _isEditing;
     private bool _isCompleted;
     private bool _isNew;
+    private bool _isDragging;
+    private bool _showDropBefore;
+    private bool _showDropAfter;
 
     internal FocusTaskViewModel(string targetId, string name, bool isNew = false)
     {
@@ -222,6 +225,51 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
             }
 
             _isCompleted = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool IsDragging
+    {
+        get => _isDragging;
+        internal set
+        {
+            if (_isDragging == value)
+            {
+                return;
+            }
+
+            _isDragging = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool ShowDropBefore
+    {
+        get => _showDropBefore;
+        internal set
+        {
+            if (_showDropBefore == value)
+            {
+                return;
+            }
+
+            _showDropBefore = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool ShowDropAfter
+    {
+        get => _showDropAfter;
+        internal set
+        {
+            if (_showDropAfter == value)
+            {
+                return;
+            }
+
+            _showDropAfter = value;
             OnPropertyChanged();
         }
     }

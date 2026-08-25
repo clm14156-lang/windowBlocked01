@@ -316,6 +316,35 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         UpdatePreparation(_manualPreparationElapsed);
     }
 
+    public bool MovePendingTask(FocusTaskViewModel task, FocusTaskViewModel target, bool insertAfter)
+    {
+        if (Stage != FocusFlowStage.Focusing || ActiveTarget is null ||
+            task.IsCompleted || target.IsCompleted || ReferenceEquals(task, target))
+        {
+            return false;
+        }
+
+        var tasks = ActiveTarget.Tasks;
+        var oldIndex = tasks.IndexOf(task);
+        var targetIndex = tasks.IndexOf(target);
+        if (oldIndex < 0 || targetIndex < 0)
+        {
+            return false;
+        }
+
+        var newIndex = insertAfter
+            ? oldIndex < targetIndex ? targetIndex : targetIndex + 1
+            : oldIndex < targetIndex ? targetIndex - 1 : targetIndex;
+        newIndex = Math.Clamp(newIndex, 0, tasks.Count - 1);
+        if (newIndex == oldIndex)
+        {
+            return false;
+        }
+
+        tasks.Move(oldIndex, newIndex);
+        return true;
+    }
+
     private void OnTimerTick()
     {
         if (Stage == FocusFlowStage.Preparing)
