@@ -18,6 +18,14 @@ public partial class StatisticsPage : UserControl
     private readonly DispatcherTimer _trendVipGuideCloseTimer;
     private bool _isTrendVipHoverTargetHovered;
     private bool _isTrendVipGuideHovered;
+    private readonly DispatcherTimer _dailyFocusRecordVipGuideOpenTimer;
+    private readonly DispatcherTimer _dailyFocusRecordVipGuideCloseTimer;
+    private bool _isDailyFocusRecordVipHoverTargetHovered;
+    private bool _isDailyFocusRecordVipGuideHovered;
+    private readonly DispatcherTimer _goalInvestmentDetailsVipGuideOpenTimer;
+    private readonly DispatcherTimer _goalInvestmentDetailsVipGuideCloseTimer;
+    private bool _isGoalInvestmentDetailsVipHoverTargetHovered;
+    private bool _isGoalInvestmentDetailsVipGuideHovered;
 
     public StatisticsPage()
     {
@@ -25,15 +33,29 @@ public partial class StatisticsPage : UserControl
         _trendVipGuideOpenTimer.Tick += TrendVipGuideOpenTimer_Tick;
         _trendVipGuideCloseTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(150) };
         _trendVipGuideCloseTimer.Tick += TrendVipGuideCloseTimer_Tick;
+        _dailyFocusRecordVipGuideOpenTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(180) };
+        _dailyFocusRecordVipGuideOpenTimer.Tick += DailyFocusRecordVipGuideOpenTimer_Tick;
+        _dailyFocusRecordVipGuideCloseTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(150) };
+        _dailyFocusRecordVipGuideCloseTimer.Tick += DailyFocusRecordVipGuideCloseTimer_Tick;
+        _goalInvestmentDetailsVipGuideOpenTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(180) };
+        _goalInvestmentDetailsVipGuideOpenTimer.Tick += GoalInvestmentDetailsVipGuideOpenTimer_Tick;
+        _goalInvestmentDetailsVipGuideCloseTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(150) };
+        _goalInvestmentDetailsVipGuideCloseTimer.Tick += GoalInvestmentDetailsVipGuideCloseTimer_Tick;
         InitializeComponent();
         MonthlyFocusTargetPopup.CustomPopupPlacementCallback = PlaceMonthlyFocusTargetPopup;
         TrendVipGuidePopup.CustomPopupPlacementCallback = PlaceTrendVipGuidePopup;
+        DailyFocusRecordVipGuidePopup.CustomPopupPlacementCallback = PlaceDailyFocusRecordVipGuidePopup;
+        GoalInvestmentDetailsVipGuidePopup.CustomPopupPlacementCallback = PlaceGoalInvestmentDetailsVipGuidePopup;
         DataContextChanged += StatisticsPage_DataContextChanged;
         Loaded += (_, _) => UpdateTooltipPlacement();
         Unloaded += (_, _) =>
         {
             _trendVipGuideOpenTimer.Stop();
             _trendVipGuideCloseTimer.Stop();
+            _dailyFocusRecordVipGuideOpenTimer.Stop();
+            _dailyFocusRecordVipGuideCloseTimer.Stop();
+            _goalInvestmentDetailsVipGuideOpenTimer.Stop();
+            _goalInvestmentDetailsVipGuideCloseTimer.Stop();
         };
         TrendCard.SizeChanged += (_, _) => UpdateTooltipPlacement();
     }
@@ -119,13 +141,145 @@ public partial class StatisticsPage : UserControl
         e.Handled = true;
     }
 
+    private void DailyFocusRecordVipHoverTarget_MouseEnter(object sender, MouseEventArgs e)
+    {
+        _isDailyFocusRecordVipHoverTargetHovered = true;
+        _dailyFocusRecordVipGuideCloseTimer.Stop();
+        if (DataContext is StatisticsOverviewViewModel { CanViewDailyFocusRecord: false })
+        {
+            _dailyFocusRecordVipGuideOpenTimer.Stop();
+            _dailyFocusRecordVipGuideOpenTimer.Start();
+        }
+    }
+
+    private void DailyFocusRecordVipHoverTarget_MouseLeave(object sender, MouseEventArgs e)
+    {
+        _isDailyFocusRecordVipHoverTargetHovered = false;
+        _dailyFocusRecordVipGuideOpenTimer.Stop();
+        ScheduleDailyFocusRecordVipGuideClose();
+    }
+
+    private void DailyFocusRecordVipGuide_MouseEnter(object sender, MouseEventArgs e)
+    {
+        _isDailyFocusRecordVipGuideHovered = true;
+        _dailyFocusRecordVipGuideCloseTimer.Stop();
+    }
+
+    private void DailyFocusRecordVipGuide_MouseLeave(object sender, MouseEventArgs e)
+    {
+        _isDailyFocusRecordVipGuideHovered = false;
+        ScheduleDailyFocusRecordVipGuideClose();
+    }
+
+    private void DailyFocusRecordVipGuideOpenTimer_Tick(object? sender, EventArgs e)
+    {
+        _dailyFocusRecordVipGuideOpenTimer.Stop();
+        if (_isDailyFocusRecordVipHoverTargetHovered &&
+            DataContext is StatisticsOverviewViewModel { CanViewDailyFocusRecord: false } viewModel)
+        {
+            viewModel.IsDailyFocusRecordVipGuideOpen = true;
+        }
+    }
+
+    private void DailyFocusRecordVipGuideCloseTimer_Tick(object? sender, EventArgs e)
+    {
+        _dailyFocusRecordVipGuideCloseTimer.Stop();
+        if (!_isDailyFocusRecordVipHoverTargetHovered &&
+            !_isDailyFocusRecordVipGuideHovered &&
+            DataContext is StatisticsOverviewViewModel viewModel)
+        {
+            viewModel.IsDailyFocusRecordVipGuideOpen = false;
+        }
+    }
+
+    private void ScheduleDailyFocusRecordVipGuideClose()
+    {
+        _dailyFocusRecordVipGuideCloseTimer.Stop();
+        _dailyFocusRecordVipGuideCloseTimer.Start();
+    }
+
+    private void DailyFocusRecordVipGuideOpenButton_Click(object sender, RoutedEventArgs e)
+    {
+        OpenVipPurchase();
+        e.Handled = true;
+    }
+
+    private void GoalInvestmentDetailsVipHoverTarget_MouseEnter(object sender, MouseEventArgs e)
+    {
+        _isGoalInvestmentDetailsVipHoverTargetHovered = true;
+        _goalInvestmentDetailsVipGuideCloseTimer.Stop();
+        if (DataContext is StatisticsOverviewViewModel { CanViewGoalInvestmentDetails: false })
+        {
+            _goalInvestmentDetailsVipGuideOpenTimer.Stop();
+            _goalInvestmentDetailsVipGuideOpenTimer.Start();
+        }
+    }
+
+    private void GoalInvestmentDetailsVipHoverTarget_MouseLeave(object sender, MouseEventArgs e)
+    {
+        _isGoalInvestmentDetailsVipHoverTargetHovered = false;
+        _goalInvestmentDetailsVipGuideOpenTimer.Stop();
+        ScheduleGoalInvestmentDetailsVipGuideClose();
+    }
+
+    private void GoalInvestmentDetailsVipGuide_MouseEnter(object sender, MouseEventArgs e)
+    {
+        _isGoalInvestmentDetailsVipGuideHovered = true;
+        _goalInvestmentDetailsVipGuideCloseTimer.Stop();
+    }
+
+    private void GoalInvestmentDetailsVipGuide_MouseLeave(object sender, MouseEventArgs e)
+    {
+        _isGoalInvestmentDetailsVipGuideHovered = false;
+        ScheduleGoalInvestmentDetailsVipGuideClose();
+    }
+
+    private void GoalInvestmentDetailsVipGuideOpenTimer_Tick(object? sender, EventArgs e)
+    {
+        _goalInvestmentDetailsVipGuideOpenTimer.Stop();
+        if (_isGoalInvestmentDetailsVipHoverTargetHovered &&
+            DataContext is StatisticsOverviewViewModel { CanViewGoalInvestmentDetails: false } viewModel)
+        {
+            viewModel.IsGoalInvestmentDetailsVipGuideOpen = true;
+        }
+    }
+
+    private void GoalInvestmentDetailsVipGuideCloseTimer_Tick(object? sender, EventArgs e)
+    {
+        _goalInvestmentDetailsVipGuideCloseTimer.Stop();
+        if (!_isGoalInvestmentDetailsVipHoverTargetHovered &&
+            !_isGoalInvestmentDetailsVipGuideHovered &&
+            DataContext is StatisticsOverviewViewModel viewModel)
+        {
+            viewModel.IsGoalInvestmentDetailsVipGuideOpen = false;
+        }
+    }
+
+    private void ScheduleGoalInvestmentDetailsVipGuideClose()
+    {
+        _goalInvestmentDetailsVipGuideCloseTimer.Stop();
+        _goalInvestmentDetailsVipGuideCloseTimer.Start();
+    }
+
+    private void GoalInvestmentDetailsVipGuideOpenButton_Click(object sender, RoutedEventArgs e)
+    {
+        OpenVipPurchase();
+        e.Handled = true;
+    }
+
     private void OpenVipPurchase()
     {
         _trendVipGuideOpenTimer.Stop();
         _trendVipGuideCloseTimer.Stop();
+        _dailyFocusRecordVipGuideOpenTimer.Stop();
+        _dailyFocusRecordVipGuideCloseTimer.Stop();
+        _goalInvestmentDetailsVipGuideOpenTimer.Stop();
+        _goalInvestmentDetailsVipGuideCloseTimer.Stop();
         if (DataContext is StatisticsOverviewViewModel viewModel)
         {
             viewModel.IsTrendVipGuideOpen = false;
+            viewModel.IsDailyFocusRecordVipGuideOpen = false;
+            viewModel.IsGoalInvestmentDetailsVipGuideOpen = false;
         }
 
         if (Window.GetWindow(this)?.DataContext is MainWindowViewModel mainWindowViewModel &&
@@ -138,7 +292,22 @@ public partial class StatisticsPage : UserControl
     private CustomPopupPlacement[] PlaceTrendVipGuidePopup(
         Size popupSize,
         Size targetSize,
-        Point offset)
+        Point offset) => PlaceVipGuidePopup(TrendVipHoverTarget, popupSize, targetSize);
+
+    private CustomPopupPlacement[] PlaceDailyFocusRecordVipGuidePopup(
+        Size popupSize,
+        Size targetSize,
+        Point offset) => PlaceVipGuidePopup(DailyFocusRecordVipHoverTarget, popupSize, targetSize);
+
+    private CustomPopupPlacement[] PlaceGoalInvestmentDetailsVipGuidePopup(
+        Size popupSize,
+        Size targetSize,
+        Point offset) => PlaceVipGuidePopup(GoalInvestmentDetailsVipHoverTarget, popupSize, targetSize);
+
+    private CustomPopupPlacement[] PlaceVipGuidePopup(
+        FrameworkElement target,
+        Size popupSize,
+        Size targetSize)
     {
         const double gap = 8;
         const double boundaryPadding = 8;
@@ -147,7 +316,7 @@ public partial class StatisticsPage : UserControl
         var window = Window.GetWindow(this);
         if (window is not null && window.ActualWidth > 0 && window.ActualHeight > 0)
         {
-            var targetOrigin = TrendVipHoverTarget.TranslatePoint(new Point(0, 0), window);
+            var targetOrigin = target.TranslatePoint(new Point(0, 0), window);
             var clampedLeft = Math.Clamp(
                 targetOrigin.X,
                 boundaryPadding,

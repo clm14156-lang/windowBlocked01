@@ -47,6 +47,8 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     private bool _isLoggedIn;
     private bool _isVip;
     private bool _isTrendVipGuideOpen;
+    private bool _isDailyFocusRecordVipGuideOpen;
+    private bool _isGoalInvestmentDetailsVipGuideOpen;
 
     public StatisticsOverviewViewModel()
     {
@@ -120,6 +122,38 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         }
     }
 
+    public bool IsDailyFocusRecordVipGuideOpen
+    {
+        get => _isDailyFocusRecordVipGuideOpen;
+        set
+        {
+            var effectiveValue = value && !CanViewDailyFocusRecord;
+            if (_isDailyFocusRecordVipGuideOpen == effectiveValue)
+            {
+                return;
+            }
+
+            _isDailyFocusRecordVipGuideOpen = effectiveValue;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool IsGoalInvestmentDetailsVipGuideOpen
+    {
+        get => _isGoalInvestmentDetailsVipGuideOpen;
+        set
+        {
+            var effectiveValue = value && !CanViewGoalInvestmentDetails;
+            if (_isGoalInvestmentDetailsVipGuideOpen == effectiveValue)
+            {
+                return;
+            }
+
+            _isGoalInvestmentDetailsVipGuideOpen = effectiveValue;
+            OnPropertyChanged();
+        }
+    }
+
     public void SetUserAccess(bool isLoggedIn, bool isVip)
     {
         var canViewTrend = CanViewTrend;
@@ -144,6 +178,8 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             if (CanViewTrend)
             {
                 IsTrendVipGuideOpen = false;
+                IsDailyFocusRecordVipGuideOpen = false;
+                IsGoalInvestmentDetailsVipGuideOpen = false;
             }
             if (!CanViewGoalInvestmentDetails)
             {
@@ -495,6 +531,8 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             SetHoveredPoint(null);
             SetHoveredGoalTrendPoint(null);
             IsTrendVipGuideOpen = false;
+            IsDailyFocusRecordVipGuideOpen = false;
+            IsGoalInvestmentDetailsVipGuideOpen = false;
             OnPropertyChanged();
             OnPropertyChanged(nameof(IsOverviewSelected));
             OnPropertyChanged(nameof(IsCalendarSelected));

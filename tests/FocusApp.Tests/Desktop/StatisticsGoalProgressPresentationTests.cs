@@ -265,6 +265,65 @@ public sealed class StatisticsGoalProgressPresentationTests
     }
 
     [Fact]
+    public void LockedGoalInvestmentDetailsVipGuideMatchesTheDailyRecordHoverBehavior()
+    {
+        var repositoryRoot = FindRepositoryRoot();
+        var page = XDocument.Load(Path.Combine(
+            repositoryRoot, "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
+        var locked = Assert.Single(page.Descendants(Presentation + "Grid").Where(grid =>
+            (string?)grid.Attribute(Xaml + "Name") == "GoalInvestmentDetailsLockedPlaceholder"));
+        Assert.Null(locked.Attribute("Cursor"));
+        Assert.Null(locked.Attribute("MouseLeftButtonUp"));
+
+        var hoverTarget = Assert.Single(locked.Descendants(Presentation + "Border").Where(border =>
+            (string?)border.Attribute(Xaml + "Name") == "GoalInvestmentDetailsVipHoverTarget"));
+        Assert.Null(hoverTarget.Attribute("Cursor"));
+        Assert.Equal("GoalInvestmentDetailsVipHoverTarget_MouseEnter", (string?)hoverTarget.Attribute("MouseEnter"));
+        Assert.Equal("GoalInvestmentDetailsVipHoverTarget_MouseLeave", (string?)hoverTarget.Attribute("MouseLeave"));
+        Assert.Equal("10,0,0,0", (string?)hoverTarget.Attribute("Margin"));
+        Assert.Null(hoverTarget.Attribute("Padding"));
+        Assert.Contains(hoverTarget.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "VIP专享");
+        Assert.Contains(hoverTarget.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("FontFamily") == "Segoe MDL2 Assets" &&
+            (string?)text.Attribute("Text") == "\uE72E");
+
+        var popup = Assert.Single(page.Descendants(Presentation + "Popup").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "GoalInvestmentDetailsVipGuidePopup"));
+        Assert.Equal("300", (string?)popup.Attribute("Width"));
+        Assert.Equal("170", (string?)popup.Attribute("Height"));
+        Assert.Equal("Custom", (string?)popup.Attribute("Placement"));
+        Assert.Equal("{Binding ElementName=GoalInvestmentDetailsVipHoverTarget}", (string?)popup.Attribute("PlacementTarget"));
+        Assert.Equal("{Binding IsGoalInvestmentDetailsVipGuideOpen, Mode=TwoWay}", (string?)popup.Attribute("IsOpen"));
+        var guide = Assert.Single(popup.Elements(Presentation + "Border"));
+        Assert.Equal("GoalInvestmentDetailsVipGuide_MouseEnter", (string?)guide.Attribute("MouseEnter"));
+        Assert.Equal("GoalInvestmentDetailsVipGuide_MouseLeave", (string?)guide.Attribute("MouseLeave"));
+        Assert.Contains(guide.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "解锁目标投入详情");
+        Assert.Contains(guide.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "VIP");
+        Assert.Contains(guide.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "开通 VIP 后可查看当前目标的详细记录、投入趋势和任务记录。");
+        var openButton = Assert.Single(guide.Descendants(Presentation + "Button"));
+        Assert.Equal("立即开通", (string?)openButton.Attribute("Content"));
+        Assert.Equal("GoalInvestmentDetailsVipGuideOpenButton_Click", (string?)openButton.Attribute("Click"));
+        Assert.Equal("{DynamicResource WhiteText}", (string?)openButton.Attribute("Foreground"));
+        var contentPresenter = Assert.Single(openButton.Descendants(Presentation + "ContentPresenter"));
+        Assert.Equal(
+            "{TemplateBinding Foreground}",
+            (string?)contentPresenter.Attribute("TextElement.Foreground"));
+
+        var codeBehind = File.ReadAllText(Path.Combine(
+            repositoryRoot, "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml.cs"));
+        Assert.Contains("_goalInvestmentDetailsVipGuideOpenTimer", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("TimeSpan.FromMilliseconds(180)", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("_goalInvestmentDetailsVipGuideCloseTimer", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("TimeSpan.FromMilliseconds(150)", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("PlaceGoalInvestmentDetailsVipGuidePopup", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("mainWindowViewModel.OpenVipCommand.Execute(null)", codeBehind, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void GoalTrendHeaderSeparatesTrendToggleFromMonthSelection()
     {
         var viewModel = new StatisticsOverviewViewModel();

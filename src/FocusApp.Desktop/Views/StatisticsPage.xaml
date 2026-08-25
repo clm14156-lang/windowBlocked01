@@ -867,10 +867,18 @@
                                 </Grid.RowDefinitions>
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock VerticalAlignment="Center" FontSize="17" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="当日专注记录" />
-                                    <Border Width="24" Height="24" Margin="10,0,7,0" Background="{DynamicResource AccentTint}" CornerRadius="12">
-                                        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="{DynamicResource AccentPrimary}" Text="&#xE72E;" />
+                                    <Border x:Name="DailyFocusRecordVipHoverTarget"
+                                            Margin="10,0,0,0"
+                                            Background="{DynamicResource TransparentBrush}"
+                                            MouseEnter="DailyFocusRecordVipHoverTarget_MouseEnter"
+                                            MouseLeave="DailyFocusRecordVipHoverTarget_MouseLeave">
+                                        <StackPanel Orientation="Horizontal">
+                                            <Border Width="24" Height="24" Background="{DynamicResource AccentTint}" CornerRadius="12">
+                                                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="{DynamicResource AccentPrimary}" Text="&#xE72E;" />
+                                            </Border>
+                                            <TextBlock Margin="7,0,0,0" VerticalAlignment="Center" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource TextSecondary}" Text="VIP专享" />
+                                        </StackPanel>
                                     </Border>
-                                    <TextBlock VerticalAlignment="Center" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource TextSecondary}" Text="VIP专享" />
                                 </StackPanel>
                                 <StackPanel Grid.Row="1" Margin="0,25,0,24">
                                     <Border Width="118" Height="12" HorizontalAlignment="Left" Background="{DynamicResource BorderPrimary}" CornerRadius="6" />
@@ -930,6 +938,58 @@
                         </Grid>
                     </Border>
                 </Grid>
+
+                <Popup x:Name="DailyFocusRecordVipGuidePopup"
+                       Width="300"
+                       Height="170"
+                       AllowsTransparency="True"
+                       IsOpen="{Binding IsDailyFocusRecordVipGuideOpen, Mode=TwoWay}"
+                       Placement="Custom"
+                       PlacementTarget="{Binding ElementName=DailyFocusRecordVipHoverTarget}"
+                       PopupAnimation="Fade"
+                       StaysOpen="True">
+                    <Border Width="300"
+                            Height="170"
+                            Padding="18"
+                            Background="{DynamicResource SurfacePrimary}"
+                            BorderBrush="{DynamicResource BorderPrimary}"
+                            BorderThickness="1"
+                            CornerRadius="12"
+                            MouseEnter="DailyFocusRecordVipGuide_MouseEnter"
+                            MouseLeave="DailyFocusRecordVipGuide_MouseLeave">
+                        <Border.Effect><DropShadowEffect BlurRadius="18" Direction="270" Opacity="0.12" ShadowDepth="4" /></Border.Effect>
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="56" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                            <Border Width="54" Height="54" HorizontalAlignment="Left" VerticalAlignment="Top" Background="{DynamicResource AccentTint}" CornerRadius="27">
+                                <Viewbox Width="29" Height="25">
+                                    <Path Data="M 2,6 L 8,13 L 14,4 L 20,13 L 26,6 L 23,22 L 5,22 Z M 5,18 L 23,18" Fill="{DynamicResource TransparentBrush}" Stroke="{DynamicResource AccentPrimary}" StrokeEndLineCap="Round" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeThickness="2" />
+                                </Viewbox>
+                            </Border>
+                            <StackPanel Grid.Column="1" Margin="14,0,0,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock VerticalAlignment="Center" FontSize="15" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="解锁当日专注记录" />
+                                    <Border Margin="9,0,0,0" Padding="8,2" Background="{DynamicResource AccentTint}" BorderBrush="{DynamicResource AccentSoftBorder}" BorderThickness="1" CornerRadius="9">
+                                        <TextBlock FontSize="12" FontWeight="Medium" Foreground="{DynamicResource AccentPrimary}" Text="VIP" />
+                                    </Border>
+                                </StackPanel>
+                                <TextBlock Margin="0,12,0,0" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" LineHeight="19" Text="开通 VIP 后可查看每日的详细任务记录、专注次数和任务记录。" TextWrapping="Wrap" />
+                                <Button Width="120" Height="34" Margin="0,12,0,0" HorizontalAlignment="Left" Padding="0" Background="{DynamicResource AccentPrimary}" BorderThickness="0" Click="DailyFocusRecordVipGuideOpenButton_Click" Cursor="Hand" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource WhiteText}" Content="立即开通">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="{x:Type Button}">
+                                            <Border x:Name="GuideButtonBackground" Background="{TemplateBinding Background}" CornerRadius="9">
+                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="GuideButtonBackground" Property="Opacity" Value="0.9" /></Trigger>
+                                                <Trigger Property="IsPressed" Value="True"><Setter TargetName="GuideButtonBackground" Property="Opacity" Value="0.78" /></Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </Popup>
             </StackPanel>
             <StackPanel x:Name="GoalsPageLayout" Margin="14,0,11,0" TextElement.FontFamily="Segoe UI Variable, Segoe UI" Visibility="{Binding IsGoalsSelected, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <Grid Height="604" Margin="0" VerticalAlignment="Top" HorizontalAlignment="Stretch">
@@ -1363,10 +1423,18 @@
                             <StackPanel Margin="0,10,0,0">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock VerticalAlignment="Center" FontSize="17" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="目标投入详情" />
-                                    <Border Width="24" Height="24" Margin="10,0,7,0" Background="{DynamicResource AccentTint}" CornerRadius="12">
-                                        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="{DynamicResource AccentPrimary}" Text="&#xE72E;" />
+                                    <Border x:Name="GoalInvestmentDetailsVipHoverTarget"
+                                            Margin="10,0,0,0"
+                                            Background="{DynamicResource TransparentBrush}"
+                                            MouseEnter="GoalInvestmentDetailsVipHoverTarget_MouseEnter"
+                                            MouseLeave="GoalInvestmentDetailsVipHoverTarget_MouseLeave">
+                                        <StackPanel Orientation="Horizontal">
+                                            <Border Width="24" Height="24" Background="{DynamicResource AccentTint}" CornerRadius="12">
+                                                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="{DynamicResource AccentPrimary}" Text="&#xE72E;" />
+                                            </Border>
+                                            <TextBlock Margin="7,0,0,0" VerticalAlignment="Center" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource TextSecondary}" Text="VIP专享" />
+                                        </StackPanel>
                                     </Border>
-                                    <TextBlock VerticalAlignment="Center" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource TextSecondary}" Text="VIP专享" />
                                 </StackPanel>
                                 <StackPanel Margin="8,10,0,0" Orientation="Horizontal">
                                     <Border Width="74" Height="10" Margin="0,1,8,0" Background="{DynamicResource BorderPrimary}" CornerRadius="5" />
@@ -1446,6 +1514,58 @@
                         </Grid>
                     </Border>
                 </Grid>
+
+                <Popup x:Name="GoalInvestmentDetailsVipGuidePopup"
+                       Width="300"
+                       Height="170"
+                       AllowsTransparency="True"
+                       IsOpen="{Binding IsGoalInvestmentDetailsVipGuideOpen, Mode=TwoWay}"
+                       Placement="Custom"
+                       PlacementTarget="{Binding ElementName=GoalInvestmentDetailsVipHoverTarget}"
+                       PopupAnimation="Fade"
+                       StaysOpen="True">
+                    <Border Width="300"
+                            Height="170"
+                            Padding="18"
+                            Background="{DynamicResource SurfacePrimary}"
+                            BorderBrush="{DynamicResource BorderPrimary}"
+                            BorderThickness="1"
+                            CornerRadius="12"
+                            MouseEnter="GoalInvestmentDetailsVipGuide_MouseEnter"
+                            MouseLeave="GoalInvestmentDetailsVipGuide_MouseLeave">
+                        <Border.Effect><DropShadowEffect BlurRadius="18" Direction="270" Opacity="0.12" ShadowDepth="4" /></Border.Effect>
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="56" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                            <Border Width="54" Height="54" HorizontalAlignment="Left" VerticalAlignment="Top" Background="{DynamicResource AccentTint}" CornerRadius="27">
+                                <Viewbox Width="29" Height="25">
+                                    <Path Data="M 2,6 L 8,13 L 14,4 L 20,13 L 26,6 L 23,22 L 5,22 Z M 5,18 L 23,18" Fill="{DynamicResource TransparentBrush}" Stroke="{DynamicResource AccentPrimary}" StrokeEndLineCap="Round" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeThickness="2" />
+                                </Viewbox>
+                            </Border>
+                            <StackPanel Grid.Column="1" Margin="14,0,0,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock VerticalAlignment="Center" FontSize="15" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="解锁目标投入详情" />
+                                    <Border Margin="9,0,0,0" Padding="8,2" Background="{DynamicResource AccentTint}" BorderBrush="{DynamicResource AccentSoftBorder}" BorderThickness="1" CornerRadius="9">
+                                        <TextBlock FontSize="12" FontWeight="Medium" Foreground="{DynamicResource AccentPrimary}" Text="VIP" />
+                                    </Border>
+                                </StackPanel>
+                                <TextBlock Margin="0,12,0,0" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" LineHeight="19" Text="开通 VIP 后可查看当前目标的详细记录、投入趋势和任务记录。" TextWrapping="Wrap" />
+                                <Button Width="120" Height="34" Margin="0,12,0,0" HorizontalAlignment="Left" Padding="0" Background="{DynamicResource AccentPrimary}" BorderThickness="0" Click="GoalInvestmentDetailsVipGuideOpenButton_Click" Cursor="Hand" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource WhiteText}" Content="立即开通">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="{x:Type Button}">
+                                            <Border x:Name="GuideButtonBackground" Background="{TemplateBinding Background}" CornerRadius="9">
+                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" TextElement.Foreground="{TemplateBinding Foreground}" />
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="GuideButtonBackground" Property="Opacity" Value="0.9" /></Trigger>
+                                                <Trigger Property="IsPressed" Value="True"><Setter TargetName="GuideButtonBackground" Property="Opacity" Value="0.78" /></Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </Popup>
             </StackPanel>
         </StackPanel>
     </ScrollViewer>

@@ -285,6 +285,60 @@ public sealed class StatisticsOverviewPresentationTests
     }
 
     [Fact]
+    public void LockedDailyFocusRecordVipGuideMatchesTheTrendHoverBehavior()
+    {
+        var repositoryRoot = FindRepositoryRoot();
+        var page = XDocument.Load(Path.Combine(
+            repositoryRoot, "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
+        var locked = Assert.Single(page.Descendants(Presentation + "Grid").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "DailyFocusRecordLockedPlaceholder"));
+        Assert.Null(locked.Attribute("Cursor"));
+        Assert.Null(locked.Attribute("MouseLeftButtonUp"));
+
+        var hoverTarget = Assert.Single(locked.Descendants(Presentation + "Border").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "DailyFocusRecordVipHoverTarget"));
+        Assert.Null(hoverTarget.Attribute("Cursor"));
+        Assert.Equal("DailyFocusRecordVipHoverTarget_MouseEnter", (string?)hoverTarget.Attribute("MouseEnter"));
+        Assert.Equal("DailyFocusRecordVipHoverTarget_MouseLeave", (string?)hoverTarget.Attribute("MouseLeave"));
+        Assert.Equal("10,0,0,0", (string?)hoverTarget.Attribute("Margin"));
+        Assert.Null(hoverTarget.Attribute("Padding"));
+        Assert.Contains(hoverTarget.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "VIP专享");
+        Assert.Contains(hoverTarget.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("FontFamily") == "Segoe MDL2 Assets" &&
+            (string?)text.Attribute("Text") == "\uE72E");
+
+        var popup = Assert.Single(page.Descendants(Presentation + "Popup").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "DailyFocusRecordVipGuidePopup"));
+        Assert.Equal("300", (string?)popup.Attribute("Width"));
+        Assert.Equal("170", (string?)popup.Attribute("Height"));
+        Assert.Equal("Custom", (string?)popup.Attribute("Placement"));
+        Assert.Equal("{Binding ElementName=DailyFocusRecordVipHoverTarget}", (string?)popup.Attribute("PlacementTarget"));
+        Assert.Equal("{Binding IsDailyFocusRecordVipGuideOpen, Mode=TwoWay}", (string?)popup.Attribute("IsOpen"));
+        var guide = Assert.Single(popup.Elements(Presentation + "Border"));
+        Assert.Equal("DailyFocusRecordVipGuide_MouseEnter", (string?)guide.Attribute("MouseEnter"));
+        Assert.Equal("DailyFocusRecordVipGuide_MouseLeave", (string?)guide.Attribute("MouseLeave"));
+        Assert.Contains(guide.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "解锁当日专注记录");
+        Assert.Contains(guide.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "VIP");
+        Assert.Contains(guide.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "开通 VIP 后可查看每日的详细任务记录、专注次数和任务记录。");
+        var openButton = Assert.Single(guide.Descendants(Presentation + "Button"));
+        Assert.Equal("立即开通", (string?)openButton.Attribute("Content"));
+        Assert.Equal("DailyFocusRecordVipGuideOpenButton_Click", (string?)openButton.Attribute("Click"));
+
+        var codeBehind = File.ReadAllText(Path.Combine(
+            repositoryRoot, "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml.cs"));
+        Assert.Contains("_dailyFocusRecordVipGuideOpenTimer", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("TimeSpan.FromMilliseconds(180)", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("_dailyFocusRecordVipGuideCloseTimer", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("TimeSpan.FromMilliseconds(150)", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("PlaceDailyFocusRecordVipGuidePopup", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("mainWindowViewModel.OpenVipCommand.Execute(null)", codeBehind, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void CalendarDetailProvidesAViewModelDrivenReturnToTodayControl()
     {
         var page = XDocument.Load(Path.Combine(
