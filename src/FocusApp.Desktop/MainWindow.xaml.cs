@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
@@ -373,6 +374,13 @@ public partial class MainWindow : Window
             return;
         }
 
+        var editingTask = viewModel.HomePage.FocusSession.PendingTasks.FirstOrDefault(task => task.IsEditing);
+        var clickedTextBox = FindVisualAncestor<TextBox>(e.OriginalSource as DependencyObject);
+        if (editingTask is not null && !ReferenceEquals(clickedTextBox?.DataContext, editingTask))
+        {
+            viewModel.HomePage.FocusSession.ConfirmEditTaskCommand.Execute(editingTask);
+        }
+
         if (viewModel.HomePage.CustomTimeModal.IsOpen && !CustomTimeModalControl.IsMouseOver)
         {
             viewModel.HomePage.CustomTimeModal.CancelCommand.Execute(null);
@@ -392,5 +400,22 @@ public partial class MainWindow : Window
         {
             viewModel.CloseAccountPanel();
         }
+    }
+
+    private static T? FindVisualAncestor<T>(DependencyObject? source) where T : DependencyObject
+    {
+        while (source is not null)
+        {
+            if (source is T match)
+            {
+                return match;
+            }
+
+            source = source is Visual or System.Windows.Media.Media3D.Visual3D
+                ? VisualTreeHelper.GetParent(source)
+                : LogicalTreeHelper.GetParent(source);
+        }
+
+        return null;
     }
 }

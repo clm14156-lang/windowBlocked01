@@ -149,7 +149,52 @@ public sealed class FocusSessionViewModelTests
     }
 
     [Fact]
-    public void ReturnHome_LeavesTheSelectedDurationUnchanged()
+    public void FocusAgain_StartsANewSessionWithTheOriginalPresetDuration()
+    {
+        var first = new HomeDurationOptionViewModel("25 分钟", string.Empty, true, 25);
+        var second = new HomeDurationOptionViewModel("50 分钟", string.Empty, false, 50);
+        var home = new HomePageViewModel([first, second]);
+        home.SelectDurationCommand.Execute(second);
+
+        home.StartFocusCommand.Execute(null);
+        Advance(home.FocusSession, 5);
+        Advance(home.FocusSession, 10);
+        home.FocusSession.RequestEndCommand.Execute(null);
+        home.FocusSession.ConfirmEndCommand.Execute(null);
+        home.FocusSession.FocusAgainCommand.Execute(null);
+
+        Assert.Equal(FocusFlowStage.Focusing, home.FocusSession.Stage);
+        Assert.Equal(50 * 60, home.FocusSession.TotalFocusSeconds);
+        Assert.Equal(50 * 60, home.FocusSession.RemainingFocusSeconds);
+        Assert.Equal("0 分 10 秒", home.FocusSession.TodayTotalDisplay);
+        Assert.True(first.IsSelected);
+        Assert.False(second.IsSelected);
+        Assert.False(first.IsCurrent);
+        Assert.True(second.IsCurrent);
+    }
+
+    [Fact]
+    public void FocusAgain_ReusesTheOriginalCustomDurationInsteadOfElapsedTime()
+    {
+        var customDuration = new HomeDurationOptionViewModel("37 分钟", string.Empty, true, 37);
+        var customEntry = new HomeDurationOptionViewModel("自定义", "\uE823");
+        var home = new HomePageViewModel([customDuration, customEntry]);
+
+        home.StartFocusCommand.Execute(null);
+        Advance(home.FocusSession, 5);
+        Advance(home.FocusSession, 10);
+        home.FocusSession.RequestEndCommand.Execute(null);
+        home.FocusSession.ConfirmEndCommand.Execute(null);
+        home.FocusSession.FocusAgainCommand.Execute(null);
+
+        Assert.Equal(FocusFlowStage.Focusing, home.FocusSession.Stage);
+        Assert.Equal(37 * 60, home.FocusSession.TotalFocusSeconds);
+        Assert.Equal(37 * 60, home.FocusSession.RemainingFocusSeconds);
+        Assert.Equal("0 分 10 秒", home.FocusSession.TodayTotalDisplay);
+    }
+
+    [Fact]
+    public void ReturnHome_StillReturnsToIdleWithoutChangingTheSelectedDuration()
     {
         var first = new HomeDurationOptionViewModel("25 分钟", string.Empty, true, 25);
         var second = new HomeDurationOptionViewModel("50 分钟", string.Empty, false, 50);
@@ -160,11 +205,9 @@ public sealed class FocusSessionViewModelTests
         Advance(home.FocusSession, 5);
         home.FocusSession.RequestEndCommand.Execute(null);
         home.FocusSession.ConfirmEndCommand.Execute(null);
-        home.FocusSession.FocusAgainCommand.Execute(null);
+        home.FocusSession.ReturnHomeCommand.Execute(null);
 
         Assert.Equal(FocusFlowStage.Idle, home.FocusSession.Stage);
-        Assert.True(first.IsSelected);
-        Assert.False(second.IsSelected);
         Assert.False(first.IsCurrent);
         Assert.True(second.IsCurrent);
     }

@@ -191,7 +191,7 @@
                                                 <TextBlock FontFamily="Segoe MDL2 Assets" FontSize="16" Foreground="{DynamicResource WhiteText}" Text="&#xE73E;" Visibility="Collapsed" />
                                             </Button>
                                             <Grid Margin="38,0,38,0" VerticalAlignment="Center">
-                                                <TextBox AutomationProperties.Name="任务名称" IsVisibleChanged="Editor_IsVisibleChanged" KeyDown="TargetTaskTextBox_KeyDown" Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}" Visibility="{Binding IsEditing, Converter={StaticResource BooleanToVisibilityConverter}}" Style="{StaticResource TargetTaskEditorStyle}" />
+                                                <TextBox AutomationProperties.Name="任务名称" IsVisibleChanged="Editor_IsVisibleChanged" KeyDown="TargetTaskTextBox_KeyDown" LostKeyboardFocus="TargetTaskTextBox_LostKeyboardFocus" Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}" Visibility="{Binding IsEditing, Converter={StaticResource BooleanToVisibilityConverter}}" Style="{StaticResource TargetTaskEditorStyle}" />
                                                 <TextBlock FontSize="15" Text="{Binding Name}">
                                                     <TextBlock.Style>
                                                         <Style TargetType="{x:Type TextBlock}">

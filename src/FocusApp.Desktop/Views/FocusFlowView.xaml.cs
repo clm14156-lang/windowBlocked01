@@ -73,6 +73,23 @@ public partial class FocusFlowView : UserControl
         }
     }
 
+    private void TargetTaskTextBox_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        if (sender is TextBox textBox)
+        {
+            CommitTaskEdit(textBox);
+        }
+    }
+
+    private void CommitTaskEdit(TextBox textBox)
+    {
+        if (textBox.DataContext is FocusTaskViewModel { IsEditing: true } task &&
+            DataContext is FocusSessionViewModel viewModel)
+        {
+            viewModel.ConfirmEditTaskCommand.Execute(task);
+        }
+    }
+
     private void TargetMode_MouseDown(object sender, MouseButtonEventArgs e)
     {
         if (IsWithinButton(e.OriginalSource as DependencyObject))

@@ -42,7 +42,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         RequestEndCommand = new RelayCommand<object>(_ => OpenEndConfirmation());
         ContinueFocusCommand = new RelayCommand<object>(_ => ContinueFocus());
         ConfirmEndCommand = new RelayCommand<object>(_ => CompleteFocus());
-        FocusAgainCommand = new RelayCommand<object>(_ => ReturnHome());
+        FocusAgainCommand = new RelayCommand<object>(_ => FocusAgain());
         ReturnHomeCommand = new RelayCommand<object>(_ => ReturnHome());
         AddTaskCommand = new RelayCommand<object>(_ => AddTask());
         ToggleTaskCompletedCommand = new RelayCommand<FocusTaskViewModel>(ToggleTaskCompleted);
@@ -438,6 +438,18 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         IsEndConfirmationOpen = false;
         IsForcedModeActive = false;
         Stage = FocusFlowStage.Idle;
+    }
+
+    private void FocusAgain()
+    {
+        if (Stage != FocusFlowStage.Completed)
+        {
+            return;
+        }
+
+        var configuredMinutes = _totalFocusSeconds / 60;
+        Start(configuredMinutes, ActiveTarget, IsForcedModeActive);
+        BeginFocus();
     }
 
     private void AddTask()
