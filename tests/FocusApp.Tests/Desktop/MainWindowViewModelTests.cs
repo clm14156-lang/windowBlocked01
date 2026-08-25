@@ -258,6 +258,7 @@ public sealed class MainWindowViewModelTests
 
         Assert.Equal(expectedMembership, viewModel.MembershipType);
         Assert.Equal(expectedVip, viewModel.IsVipMember);
+        Assert.Equal(expectedVip, viewModel.StatisticsPage.CanViewTrend);
 
         viewModel.OpenAuthCommand.Execute(null);
         viewModel.OpenVipCommand.Execute(null);
@@ -290,6 +291,7 @@ public sealed class MainWindowViewModelTests
         Assert.False(viewModel.IsLoggedIn);
         Assert.Equal(MembershipType.Normal, viewModel.MembershipType);
         Assert.False(viewModel.IsVipMember);
+        Assert.False(viewModel.StatisticsPage.CanViewTrend);
     }
 
     [Fact]

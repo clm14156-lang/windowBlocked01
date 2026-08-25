@@ -44,6 +44,8 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     private bool _isMonthlyFocusTargetPopupOpen;
     private bool _isMonthlyFocusTargetMenuOpen;
     private string _monthlyFocusTargetInput = string.Empty;
+    private bool _isLoggedIn;
+    private bool _isVip;
 
     public StatisticsOverviewViewModel()
     {
@@ -90,6 +92,34 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
+
+    public bool IsLoggedIn => _isLoggedIn;
+
+    public bool IsVip => _isVip;
+
+    public bool CanViewTrend => IsLoggedIn && IsVip;
+
+    public void SetUserAccess(bool isLoggedIn, bool isVip)
+    {
+        var canViewTrend = CanViewTrend;
+
+        if (_isLoggedIn != isLoggedIn)
+        {
+            _isLoggedIn = isLoggedIn;
+            OnPropertyChanged(nameof(IsLoggedIn));
+        }
+
+        if (_isVip != isVip)
+        {
+            _isVip = isVip;
+            OnPropertyChanged(nameof(IsVip));
+        }
+
+        if (canViewTrend != CanViewTrend)
+        {
+            OnPropertyChanged(nameof(CanViewTrend));
+        }
+    }
 
     public ObservableCollection<StatisticsRangeOptionViewModel> RangeOptions { get; }
 
@@ -298,7 +328,11 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             OnPropertyChanged();
             OnPropertyChanged(nameof(SelectedGoalName));
             OnPropertyChanged(nameof(SelectedGoalDurationDisplay));
+            OnPropertyChanged(nameof(SelectedGoalHoursValueDisplay));
+            OnPropertyChanged(nameof(SelectedGoalHoursUnitDisplay));
+            OnPropertyChanged(nameof(SelectedGoalMinutesValueDisplay));
             OnPropertyChanged(nameof(SelectedGoalProgressDisplay));
+            OnPropertyChanged(nameof(SelectedGoalProgressValueDisplay));
             OnPropertyChanged(nameof(HasSelectedGoal));
             OnPropertyChanged(nameof(HasSelectedGoalRecords));
         }
@@ -308,7 +342,21 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     public string SelectedGoalDurationDisplay => SelectedGoal is null ? string.Empty : FormatDuration(SelectedGoal.TotalMinutes);
 
+    public string SelectedGoalHoursValueDisplay => SelectedGoal is not null && SelectedGoal.TotalMinutes >= 60
+        ? (SelectedGoal.TotalMinutes / 60).ToString()
+        : string.Empty;
+
+    public string SelectedGoalHoursUnitDisplay => SelectedGoal is not null && SelectedGoal.TotalMinutes >= 60
+        ? " 小时 "
+        : string.Empty;
+
+    public string SelectedGoalMinutesValueDisplay => SelectedGoal is null
+        ? string.Empty
+        : (SelectedGoal.TotalMinutes % 60).ToString();
+
     public string SelectedGoalProgressDisplay => SelectedGoal is null ? string.Empty : $"{SelectedGoal.ProgressCount} 次推进";
+
+    public string SelectedGoalProgressValueDisplay => SelectedGoal?.ProgressCount.ToString() ?? string.Empty;
 
     public bool HasSelectedGoal => SelectedGoal is not null;
 
@@ -838,7 +886,11 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         RefreshGoalMonths();
         RefreshGoalDateGroups();
         OnPropertyChanged(nameof(SelectedGoalDurationDisplay));
+        OnPropertyChanged(nameof(SelectedGoalHoursValueDisplay));
+        OnPropertyChanged(nameof(SelectedGoalHoursUnitDisplay));
+        OnPropertyChanged(nameof(SelectedGoalMinutesValueDisplay));
         OnPropertyChanged(nameof(SelectedGoalProgressDisplay));
+        OnPropertyChanged(nameof(SelectedGoalProgressValueDisplay));
         OnPropertyChanged(nameof(HasSelectedGoalRecords));
     }
 

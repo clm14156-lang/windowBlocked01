@@ -39,9 +39,62 @@ public sealed class StatisticsOverviewPresentationTests
         var toggle = Assert.Single(contentGrid.Elements(Presentation + "ToggleButton"));
         Assert.Equal("2", (string?)toggle.Attribute("Grid.ColumnSpan"));
 
-        var selector = Assert.Single(page.Descendants(Presentation + "ComboBox").Where(element =>
+        var vipContent = Assert.Single(page.Descendants(Presentation + "Grid").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "VipTrendContent"));
+        var selector = Assert.Single(vipContent.Descendants(Presentation + "ComboBox").Where(element =>
             (string?)element.Attribute("ItemsSource") == "{Binding RangeOptions}"));
         Assert.Null(selector.Attribute("Width"));
+    }
+
+    [Fact]
+    public void TrendCardSwitchesBetweenVipContentAndLockedPlaceholderWithoutChangingItsFrame()
+    {
+        var page = XDocument.Load(Path.Combine(
+            FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
+        var trendCard = Assert.Single(page.Descendants(Presentation + "Border").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "TrendCard"));
+
+        Assert.Equal("350", (string?)trendCard.Attribute("Height"));
+        Assert.Equal("24,13,24,14", (string?)trendCard.Attribute("Padding"));
+        Assert.Equal("16", (string?)trendCard.Attribute("CornerRadius"));
+
+        var vipContent = Assert.Single(trendCard.Descendants(Presentation + "Grid").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "VipTrendContent"));
+        Assert.Single(vipContent.Descendants().Where(element => element.Name.LocalName == "TrendChart"));
+        Assert.Contains(vipContent.Descendants(Presentation + "DataTrigger"), trigger =>
+            (string?)trigger.Attribute("Binding") == "{Binding CanViewTrend}" &&
+            (string?)trigger.Attribute("Value") == "True" &&
+            trigger.Descendants(Presentation + "Setter").Any(setter =>
+                (string?)setter.Attribute("Property") == "Visibility" &&
+                (string?)setter.Attribute("Value") == "Visible"));
+
+        var locked = Assert.Single(trendCard.Descendants(Presentation + "Grid").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "VipLockedPlaceholder"));
+        Assert.Empty(locked.Descendants().Where(element => element.Name.LocalName == "TrendChart"));
+        Assert.Contains(locked.Descendants(Presentation + "DataTrigger"), trigger =>
+            (string?)trigger.Attribute("Binding") == "{Binding CanViewTrend}" &&
+            (string?)trigger.Attribute("Value") == "True" &&
+            trigger.Descendants(Presentation + "Setter").Any(setter =>
+                (string?)setter.Attribute("Property") == "Visibility" &&
+                (string?)setter.Attribute("Value") == "Collapsed"));
+        Assert.Contains(locked.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "推进轨迹");
+        Assert.Contains(locked.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "VIP专享");
+        Assert.Contains(locked.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("FontFamily") == "Segoe MDL2 Assets" &&
+            (string?)text.Attribute("Text") == "\uE72E");
+
+        var lockedSelector = Assert.Single(locked.Descendants(Presentation + "ComboBox"));
+        Assert.Equal("False", (string?)lockedSelector.Attribute("IsHitTestVisible"));
+        Assert.Equal("False", (string?)lockedSelector.Attribute("Focusable"));
+        Assert.Single(locked.Descendants(Presentation + "Grid").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "LockedTrendSkeletonChart"));
+        var lockedSummary = Assert.Single(locked.Descendants(Presentation + "Border").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "LockedTrendSummary"));
+        Assert.DoesNotContain(lockedSummary.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") is "{Binding PeriodTotalDisplay}" or
+                "{Binding AverageDurationDisplay}" or "{Binding ComparisonDisplay}");
     }
 
     [Fact]

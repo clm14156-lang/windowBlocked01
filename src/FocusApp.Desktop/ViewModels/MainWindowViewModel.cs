@@ -34,6 +34,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         AccountNavigationItem = accountNavigationItem;
         HomePage = homePage;
         StatisticsPage = statisticsPage ?? new StatisticsOverviewViewModel();
+        StatisticsPage.SetUserAccess(IsLoggedIn, IsVipMember);
         SettingsPage = settingsPage ?? new SettingsPageViewModel([], []);
         HomePage.SetForcedModeEnabled(SettingsPage.ForcedModeItem?.IsEnabled == true);
         if (SettingsPage.ForcedModeItem is not null)
@@ -140,6 +141,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
             _isLoggedIn = value;
             OnPropertyChanged();
+            StatisticsPage.SetUserAccess(IsLoggedIn, IsVipMember);
         }
     }
 
@@ -173,6 +175,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(IsVipMember));
             OnPropertyChanged(nameof(IsAnnualMember));
             OnPropertyChanged(nameof(IsLifetimeMember));
+            StatisticsPage.SetUserAccess(IsLoggedIn, IsVipMember);
         }
     }
 

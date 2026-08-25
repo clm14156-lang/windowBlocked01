@@ -175,11 +175,28 @@ public sealed class StatisticsGoalProgressPresentationTests
         Assert.Equal("Normal", (string?)status.Attribute("FontWeight"));
         Assert.Equal("{DynamicResource TextWeak}", (string?)status.Attribute("Foreground"));
 
-        var totalDuration = Assert.Single(texts.Where(text =>
-            (string?)text.Attribute("Text") == "{Binding SelectedGoalDurationDisplay}"));
+        var totalDuration = Assert.Single(texts.Where(text => text.Descendants(Presentation + "Run").Any(run =>
+            (string?)run.Attribute("Text") == "{Binding SelectedGoalHoursValueDisplay, Mode=OneWay}")));
         Assert.Equal("12", (string?)totalDuration.Attribute("FontSize"));
         Assert.Equal("Normal", (string?)totalDuration.Attribute("FontWeight"));
         Assert.Equal("{DynamicResource TextSecondary}", (string?)totalDuration.Attribute("Foreground"));
+        var durationRuns = totalDuration.Elements(Presentation + "Run").ToArray();
+        Assert.Equal(4, durationRuns.Length);
+        Assert.Equal("SemiBold", (string?)durationRuns[0].Attribute("FontWeight"));
+        Assert.Null(durationRuns[1].Attribute("FontWeight"));
+        Assert.Equal("SemiBold", (string?)durationRuns[2].Attribute("FontWeight"));
+        Assert.Null(durationRuns[3].Attribute("FontWeight"));
+
+        var progress = Assert.Single(texts.Where(text => text.Descendants(Presentation + "Run").Any(run =>
+            (string?)run.Attribute("Text") == "{Binding SelectedGoalProgressValueDisplay, Mode=OneWay}")));
+        Assert.Equal("12", (string?)progress.Attribute("FontSize"));
+        Assert.Equal("Normal", (string?)progress.Attribute("FontWeight"));
+        Assert.Equal("{DynamicResource TextSecondary}", (string?)progress.Attribute("Foreground"));
+        var progressRuns = progress.Elements(Presentation + "Run").ToArray();
+        Assert.Equal(3, progressRuns.Length);
+        Assert.Null(progressRuns[0].Attribute("FontWeight"));
+        Assert.Equal("SemiBold", (string?)progressRuns[1].Attribute("FontWeight"));
+        Assert.Null(progressRuns[2].Attribute("FontWeight"));
 
         Assert.DoesNotContain(texts, text => (string?)text.Attribute("FontWeight") == "Bold");
         Assert.DoesNotContain(texts, text => (string?)text.Attribute("FontSize") is "11" or "14" or "16");

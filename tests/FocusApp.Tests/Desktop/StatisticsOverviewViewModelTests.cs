@@ -7,6 +7,30 @@ namespace FocusApp.Tests.Desktop;
 public sealed class StatisticsOverviewViewModelTests
 {
     [Fact]
+    public void TrendAccessRequiresLoggedInVipState()
+    {
+        var viewModel = new StatisticsOverviewViewModel();
+
+        Assert.False(viewModel.IsLoggedIn);
+        Assert.False(viewModel.IsVip);
+        Assert.False(viewModel.CanViewTrend);
+
+        viewModel.SetUserAccess(true, false);
+
+        Assert.True(viewModel.IsLoggedIn);
+        Assert.False(viewModel.IsVip);
+        Assert.False(viewModel.CanViewTrend);
+
+        viewModel.SetUserAccess(true, true);
+
+        Assert.True(viewModel.CanViewTrend);
+
+        viewModel.SetUserAccess(false, true);
+
+        Assert.False(viewModel.CanViewTrend);
+    }
+
+    [Fact]
     public void DefaultsToSevenDaysAndExposesEveryDailyPoint()
     {
         var viewModel = new StatisticsOverviewViewModel();
@@ -562,7 +586,11 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.Equal(0, viewModel.GoalTrendPoints.Single(point => point.Date == new DateTime(2026, 7, 14)).Minutes);
         Assert.DoesNotContain(viewModel.GoalDateGroups, group => group.Date == new DateTime(2026, 7, 14));
         Assert.Equal("28 小时 30 分钟", viewModel.SelectedGoalDurationDisplay);
+        Assert.Equal("28", viewModel.SelectedGoalHoursValueDisplay);
+        Assert.Equal(" 小时 ", viewModel.SelectedGoalHoursUnitDisplay);
+        Assert.Equal("30", viewModel.SelectedGoalMinutesValueDisplay);
         Assert.Equal("42 次推进", viewModel.SelectedGoalProgressDisplay);
+        Assert.Equal("42", viewModel.SelectedGoalProgressValueDisplay);
     }
 
     [Fact]
