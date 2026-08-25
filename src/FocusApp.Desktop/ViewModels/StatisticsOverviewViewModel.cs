@@ -46,6 +46,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     private string _monthlyFocusTargetInput = string.Empty;
     private bool _isLoggedIn;
     private bool _isVip;
+    private bool _isTrendVipGuideOpen;
 
     public StatisticsOverviewViewModel()
     {
@@ -103,6 +104,22 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     public bool CanViewGoalInvestmentDetails => IsLoggedIn && IsVip;
 
+    public bool IsTrendVipGuideOpen
+    {
+        get => _isTrendVipGuideOpen;
+        set
+        {
+            var effectiveValue = value && !CanViewTrend;
+            if (_isTrendVipGuideOpen == effectiveValue)
+            {
+                return;
+            }
+
+            _isTrendVipGuideOpen = effectiveValue;
+            OnPropertyChanged();
+        }
+    }
+
     public void SetUserAccess(bool isLoggedIn, bool isVip)
     {
         var canViewTrend = CanViewTrend;
@@ -124,6 +141,10 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(CanViewTrend));
             OnPropertyChanged(nameof(CanViewDailyFocusRecord));
             OnPropertyChanged(nameof(CanViewGoalInvestmentDetails));
+            if (CanViewTrend)
+            {
+                IsTrendVipGuideOpen = false;
+            }
             if (!CanViewGoalInvestmentDetails)
             {
                 IsGoalMonthMenuOpen = false;
@@ -473,6 +494,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             _selectedTab = value;
             SetHoveredPoint(null);
             SetHoveredGoalTrendPoint(null);
+            IsTrendVipGuideOpen = false;
             OnPropertyChanged();
             OnPropertyChanged(nameof(IsOverviewSelected));
             OnPropertyChanged(nameof(IsCalendarSelected));

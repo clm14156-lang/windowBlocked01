@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Controls.Primitives;
+using System.Windows.Threading;
 using FocusApp.Desktop.ViewModels;
 
 namespace FocusApp.Desktop.Views;
@@ -13,12 +14,27 @@ public partial class StatisticsPage : UserControl
     private bool _monthlyFocusTargetPopupWasOpenOnAnchorPress;
     private bool _monthlyFocusTargetMenuWasOpenOnAnchorPress;
     private bool _goalMonthMenuWasOpenOnAnchorPress;
+    private readonly DispatcherTimer _trendVipGuideOpenTimer;
+    private readonly DispatcherTimer _trendVipGuideCloseTimer;
+    private bool _isTrendVipHoverTargetHovered;
+    private bool _isTrendVipGuideHovered;
+
     public StatisticsPage()
     {
+        _trendVipGuideOpenTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(180) };
+        _trendVipGuideOpenTimer.Tick += TrendVipGuideOpenTimer_Tick;
+        _trendVipGuideCloseTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(150) };
+        _trendVipGuideCloseTimer.Tick += TrendVipGuideCloseTimer_Tick;
         InitializeComponent();
         MonthlyFocusTargetPopup.CustomPopupPlacementCallback = PlaceMonthlyFocusTargetPopup;
+        TrendVipGuidePopup.CustomPopupPlacementCallback = PlaceTrendVipGuidePopup;
         DataContextChanged += StatisticsPage_DataContextChanged;
         Loaded += (_, _) => UpdateTooltipPlacement();
+        Unloaded += (_, _) =>
+        {
+            _trendVipGuideOpenTimer.Stop();
+            _trendVipGuideCloseTimer.Stop();
+        };
         TrendCard.SizeChanged += (_, _) => UpdateTooltipPlacement();
     }
 
@@ -41,6 +57,109 @@ public partial class StatisticsPage : UserControl
         {
             Dispatcher.BeginInvoke(UpdateTooltipPlacement);
         }
+    }
+
+    private void TrendVipHoverTarget_MouseEnter(object sender, MouseEventArgs e)
+    {
+        _isTrendVipHoverTargetHovered = true;
+        _trendVipGuideCloseTimer.Stop();
+        if (DataContext is StatisticsOverviewViewModel { CanViewTrend: false })
+        {
+            _trendVipGuideOpenTimer.Stop();
+            _trendVipGuideOpenTimer.Start();
+        }
+    }
+
+    private void TrendVipHoverTarget_MouseLeave(object sender, MouseEventArgs e)
+    {
+        _isTrendVipHoverTargetHovered = false;
+        _trendVipGuideOpenTimer.Stop();
+        ScheduleTrendVipGuideClose();
+    }
+
+    private void TrendVipGuide_MouseEnter(object sender, MouseEventArgs e)
+    {
+        _isTrendVipGuideHovered = true;
+        _trendVipGuideCloseTimer.Stop();
+    }
+
+    private void TrendVipGuide_MouseLeave(object sender, MouseEventArgs e)
+    {
+        _isTrendVipGuideHovered = false;
+        ScheduleTrendVipGuideClose();
+    }
+
+    private void TrendVipGuideOpenTimer_Tick(object? sender, EventArgs e)
+    {
+        _trendVipGuideOpenTimer.Stop();
+        if (_isTrendVipHoverTargetHovered && DataContext is StatisticsOverviewViewModel { CanViewTrend: false } viewModel)
+        {
+            viewModel.IsTrendVipGuideOpen = true;
+        }
+    }
+
+    private void TrendVipGuideCloseTimer_Tick(object? sender, EventArgs e)
+    {
+        _trendVipGuideCloseTimer.Stop();
+        if (!_isTrendVipHoverTargetHovered && !_isTrendVipGuideHovered && DataContext is StatisticsOverviewViewModel viewModel)
+        {
+            viewModel.IsTrendVipGuideOpen = false;
+        }
+    }
+
+    private void ScheduleTrendVipGuideClose()
+    {
+        _trendVipGuideCloseTimer.Stop();
+        _trendVipGuideCloseTimer.Start();
+    }
+
+    private void TrendVipGuideOpenButton_Click(object sender, RoutedEventArgs e)
+    {
+        OpenVipPurchase();
+        e.Handled = true;
+    }
+
+    private void OpenVipPurchase()
+    {
+        _trendVipGuideOpenTimer.Stop();
+        _trendVipGuideCloseTimer.Stop();
+        if (DataContext is StatisticsOverviewViewModel viewModel)
+        {
+            viewModel.IsTrendVipGuideOpen = false;
+        }
+
+        if (Window.GetWindow(this)?.DataContext is MainWindowViewModel mainWindowViewModel &&
+            mainWindowViewModel.OpenVipCommand.CanExecute(null))
+        {
+            mainWindowViewModel.OpenVipCommand.Execute(null);
+        }
+    }
+
+    private CustomPopupPlacement[] PlaceTrendVipGuidePopup(
+        Size popupSize,
+        Size targetSize,
+        Point offset)
+    {
+        const double gap = 8;
+        const double boundaryPadding = 8;
+        var x = 0d;
+        var y = targetSize.Height + gap;
+        var window = Window.GetWindow(this);
+        if (window is not null && window.ActualWidth > 0 && window.ActualHeight > 0)
+        {
+            var targetOrigin = TrendVipHoverTarget.TranslatePoint(new Point(0, 0), window);
+            var clampedLeft = Math.Clamp(
+                targetOrigin.X,
+                boundaryPadding,
+                Math.Max(boundaryPadding, window.ActualWidth - popupSize.Width - boundaryPadding));
+            x = clampedLeft - targetOrigin.X;
+            if (targetOrigin.Y + y + popupSize.Height > window.ActualHeight - boundaryPadding)
+            {
+                y = -popupSize.Height - gap;
+            }
+        }
+
+        return [new CustomPopupPlacement(new Point(x, y), PopupPrimaryAxis.Horizontal)];
     }
 
     private void ReturnToTodayButton_Click(object sender, RoutedEventArgs e) =>

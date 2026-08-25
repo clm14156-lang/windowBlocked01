@@ -96,6 +96,54 @@ public sealed class StatisticsOverviewPresentationTests
     }
 
     [Fact]
+    public void LockedTrendVipGuideUsesHoverDelaysAndRoutesClicksToTheMembershipEntry()
+    {
+        var repositoryRoot = FindRepositoryRoot();
+        var page = XDocument.Load(Path.Combine(
+            repositoryRoot, "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
+        var locked = Assert.Single(page.Descendants(Presentation + "Grid").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "VipLockedPlaceholder"));
+        Assert.Null(locked.Attribute("Cursor"));
+        Assert.Null(locked.Attribute("MouseLeftButtonUp"));
+
+        var hoverTarget = Assert.Single(locked.Descendants(Presentation + "Border").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "TrendVipHoverTarget"));
+        Assert.Null(hoverTarget.Attribute("Cursor"));
+        Assert.Equal("TrendVipHoverTarget_MouseEnter", (string?)hoverTarget.Attribute("MouseEnter"));
+        Assert.Equal("TrendVipHoverTarget_MouseLeave", (string?)hoverTarget.Attribute("MouseLeave"));
+        Assert.Equal("10,0,0,0", (string?)hoverTarget.Attribute("Margin"));
+        Assert.Null(hoverTarget.Attribute("Padding"));
+
+        var popup = Assert.Single(page.Descendants(Presentation + "Popup").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "TrendVipGuidePopup"));
+        Assert.Equal("300", (string?)popup.Attribute("Width"));
+        Assert.Equal("170", (string?)popup.Attribute("Height"));
+        Assert.Equal("Custom", (string?)popup.Attribute("Placement"));
+        Assert.Equal("{Binding ElementName=TrendVipHoverTarget}", (string?)popup.Attribute("PlacementTarget"));
+        Assert.Equal("{Binding IsTrendVipGuideOpen, Mode=TwoWay}", (string?)popup.Attribute("IsOpen"));
+        var guide = Assert.Single(popup.Elements(Presentation + "Border"));
+        Assert.Equal("TrendVipGuide_MouseEnter", (string?)guide.Attribute("MouseEnter"));
+        Assert.Equal("TrendVipGuide_MouseLeave", (string?)guide.Attribute("MouseLeave"));
+        Assert.Contains(guide.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "解锁推进轨迹");
+        Assert.Contains(guide.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "VIP");
+        Assert.Contains(guide.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "开通 VIP 后可查看每日投入趋势、日均时长和统计分析。");
+        var openButton = Assert.Single(guide.Descendants(Presentation + "Button"));
+        Assert.Equal("立即开通", (string?)openButton.Attribute("Content"));
+        Assert.Equal("TrendVipGuideOpenButton_Click", (string?)openButton.Attribute("Click"));
+
+        var codeBehind = File.ReadAllText(Path.Combine(
+            repositoryRoot, "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml.cs"));
+        Assert.Contains("TimeSpan.FromMilliseconds(180)", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("TimeSpan.FromMilliseconds(150)", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("mainWindowViewModel.OpenVipCommand.Execute(null)", codeBehind, StringComparison.Ordinal);
+        Assert.DoesNotContain("LockedTrendArea_MouseLeftButtonUp", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("Math.Clamp", codeBehind, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void CalendarFocusRecordsShowOnlyCompletedTasksWithReadOnlyMarkers()
     {
         var page = XDocument.Load(Path.Combine(

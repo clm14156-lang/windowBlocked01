@@ -16,6 +16,7 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.False(viewModel.CanViewTrend);
         Assert.False(viewModel.CanViewDailyFocusRecord);
         Assert.False(viewModel.CanViewGoalInvestmentDetails);
+        Assert.False(viewModel.IsTrendVipGuideOpen);
 
         viewModel.SetUserAccess(true, false);
 
@@ -24,12 +25,17 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.False(viewModel.CanViewTrend);
         Assert.False(viewModel.CanViewDailyFocusRecord);
         Assert.False(viewModel.CanViewGoalInvestmentDetails);
+        viewModel.IsTrendVipGuideOpen = true;
+        Assert.True(viewModel.IsTrendVipGuideOpen);
 
         viewModel.SetUserAccess(true, true);
 
         Assert.True(viewModel.CanViewTrend);
         Assert.True(viewModel.CanViewDailyFocusRecord);
         Assert.True(viewModel.CanViewGoalInvestmentDetails);
+        Assert.False(viewModel.IsTrendVipGuideOpen);
+        viewModel.IsTrendVipGuideOpen = true;
+        Assert.False(viewModel.IsTrendVipGuideOpen);
         viewModel.IsGoalMonthMenuOpen = true;
         viewModel.SetHoveredGoalTrendPoint(viewModel.GoalTrendPoints[0]);
 
