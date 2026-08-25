@@ -42,6 +42,62 @@
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
         </Style>
 
+        <Style x:Key="FocusTaskThinScrollBarStyle" TargetType="{x:Type ScrollBar}">
+            <Setter Property="Width" Value="5" />
+            <Setter Property="MinWidth" Value="5" />
+            <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ScrollBar}">
+                        <Grid Width="5" Background="{DynamicResource TransparentBrush}">
+                            <Track x:Name="PART_Track"
+                                   Margin="0,3,0,3"
+                                   IsDirectionReversed="True"
+                                   Orientation="{TemplateBinding Orientation}">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Background="{DynamicResource TransparentBrush}"
+                                                  BorderThickness="0"
+                                                  Command="{x:Static ScrollBar.PageUpCommand}"
+                                                  CommandTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}"
+                                                  Focusable="False"
+                                                  Opacity="0" />
+                                </Track.DecreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb MinHeight="28">
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="{x:Type Thumb}">
+                                                <Border x:Name="ThumbBody"
+                                                        Width="3"
+                                                        HorizontalAlignment="Center"
+                                                        Background="#D1D1D6"
+                                                        CornerRadius="2" />
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="ThumbBody" Property="Background" Value="#C7C7CC" />
+                                                    </Trigger>
+                                                    <Trigger Property="IsDragging" Value="True">
+                                                        <Setter TargetName="ThumbBody" Property="Background" Value="#AEAEB2" />
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Background="{DynamicResource TransparentBrush}"
+                                                  BorderThickness="0"
+                                                  Command="{x:Static ScrollBar.PageDownCommand}"
+                                                  CommandTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}"
+                                                  Focusable="False"
+                                                  Opacity="0" />
+                                </Track.IncreaseRepeatButton>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="FocusFlowOutlineButton" TargetType="{x:Type Button}">
             <Setter Property="Height" Value="46" />
             <Setter Property="Padding" Value="20,0" />
@@ -171,6 +227,9 @@
                             <Border Height="1" Margin="0,14,0,0" Background="{DynamicResource BorderPrimary}" />
 
                             <ScrollViewer Height="212" Margin="0,2,0,0" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                            <ScrollViewer.Resources>
+                                <Style TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource FocusTaskThinScrollBarStyle}" />
+                            </ScrollViewer.Resources>
                             <ItemsControl ItemsSource="{Binding PendingTasks}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
