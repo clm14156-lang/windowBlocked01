@@ -398,7 +398,6 @@
                                     </Border>
                                     <TextBlock VerticalAlignment="Center" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource TextSecondary}" Text="VIP专享" />
                                 </StackPanel>
-                                <ComboBox x:Name="LockedTrendRangeSelector" HorizontalAlignment="Right" VerticalAlignment="Top" Focusable="False" IsHitTestVisible="False" ItemsSource="{Binding RangeOptions}" SelectedItem="{Binding SelectedRange}" DisplayMemberPath="Label" Style="{StaticResource StatisticsRangeComboBoxStyle}" />
                             </Grid>
                             <Grid x:Name="LockedTrendSkeletonChart" Height="206" Margin="0,11,0,0">
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="34" /><ColumnDefinition /></Grid.ColumnDefinitions>
@@ -684,102 +683,194 @@
                             </StackPanel>
                         </Border>
                     </StackPanel>
-                    <Border Grid.Column="2" Height="602" Padding="27,20,24,20" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" CornerRadius="16">
+                    <Border x:Name="DailyFocusRecordCard" Grid.Column="2" Height="602" Padding="27,20,24,20" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" CornerRadius="16">
                         <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="*" />
-                            </Grid.RowDefinitions>
-                            <TextBlock Grid.Row="0" VerticalAlignment="Center" FontSize="17" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{Binding SelectedDateDisplay}" />
-                            <StackPanel Grid.Row="1" Margin="0,25,0,24" Orientation="Horizontal">
-                                <Viewbox x:Name="CalendarDurationIcon" Width="16" Height="16" Margin="0,0,7,0" VerticalAlignment="Center" Opacity="0.72">
-                                    <Grid Width="16" Height="16">
-                                        <Ellipse Fill="{DynamicResource TransparentBrush}" Stroke="{DynamicResource AccentPrimary}" StrokeThickness="1.4" />
-                                        <Path Data="M 8,3.5 L 8,8 L 11,10" Stroke="{DynamicResource AccentPrimary}" StrokeEndLineCap="Round" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeThickness="1.4" />
-                                    </Grid>
-                                </Viewbox>
-                                <TextBlock Foreground="{DynamicResource TextPrimary}"><Run FontSize="20" FontWeight="Medium" Text="{Binding SelectedDayHoursValueDisplay, Mode=OneWay}" /><Run FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding SelectedDayHoursUnitDisplay, Mode=OneWay}" /><Run FontSize="20" FontWeight="Medium" Text="{Binding SelectedDayMinutesValueDisplay, Mode=OneWay}" /><Run FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text=" 分钟  ·  " /></TextBlock>
-                                <Viewbox x:Name="CalendarProgressIcon" Width="16" Height="16" Margin="0,0,7,0" VerticalAlignment="Center" Opacity="0.72">
-                                    <Path Width="16" Height="16" Data="M 2,14 L 2,10 M 8,14 L 8,6 M 14,14 L 14,2" Stretch="None" Stroke="{DynamicResource AccentPrimary}" StrokeEndLineCap="Round" StrokeStartLineCap="Round" StrokeThickness="2.4" />
-                                </Viewbox>
-                                <TextBlock Foreground="{DynamicResource TextPrimary}"><Run FontSize="20" FontWeight="Medium" Text="{Binding SelectedDayCompletedTasks, Mode=OneWay}" /><Run FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text=" 次推进" /></TextBlock>
-                            </StackPanel>
-                            <Border Grid.Row="2" Height="1" Background="{DynamicResource BorderPrimary}" />
-                            <ScrollViewer x:Name="CalendarRecordsScrollViewer" Grid.Row="4" Margin="0,10,0,0" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-                                <ScrollViewer.Resources>
-                                    <Style TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource StatisticsRecordScrollBarStyle}" />
-                                </ScrollViewer.Resources>
-                                <ItemsControl ItemsSource="{Binding SelectedDayRecords}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate DataType="{x:Type vm:FocusSessionRecordViewModel}">
-                                            <Border Padding="0,0,0,17" Margin="0,0,0,18" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="0,0,0,1">
-                                                <StackPanel>
-                                                    <Grid>
-                                                        <TextBlock VerticalAlignment="Center" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}"><Run Text="{Binding StartTime, StringFormat={}{0:HH:mm}, Mode=OneWay}" /><Run Text=" – " /><Run Text="{Binding EndTime, StringFormat={}{0:HH:mm}, Mode=OneWay}" /></TextBlock>
-                                                        <Border HorizontalAlignment="Right" Padding="8,2" Background="#F2F2F7" CornerRadius="8"><TextBlock FontSize="12" FontWeight="Normal" Foreground="#636366" Text="{Binding GoalName}" /></Border>
-                                                    </Grid>
-                                                    <ItemsControl Margin="0,14,0,0" ItemsSource="{Binding CompletedTaskNames}">
-                                                        <ItemsControl.ItemTemplate>
-                                                            <DataTemplate>
-                                                                <Grid Margin="0,0,0,7">
-                                                                    <Grid.ColumnDefinitions>
-                                                                        <ColumnDefinition Width="15" />
-                                                                        <ColumnDefinition Width="8" />
-                                                                        <ColumnDefinition Width="*" />
-                                                                    </Grid.ColumnDefinitions>
-                                                                    <Border Width="14" Height="14" HorizontalAlignment="Left" VerticalAlignment="Center" Background="{DynamicResource TransparentBrush}" BorderBrush="{DynamicResource Success}" BorderThickness="1" CornerRadius="3" IsHitTestVisible="False" Opacity="0.72">
-                                                                        <Path Width="7" Height="5" Data="M 0.8,2.6 L 2.8,4.5 L 6.4,0.8" Stroke="{DynamicResource Success}" StrokeEndLineCap="Round" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeThickness="1.2" />
-                                                                    </Border>
-                                                                    <TextBlock Grid.Column="2" VerticalAlignment="Center" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}" Text="{Binding}" TextWrapping="Wrap" />
-                                                                </Grid>
-                                                            </DataTemplate>
-                                                        </ItemsControl.ItemTemplate>
-                                                    </ItemsControl>
-                                                </StackPanel>
+                            <Grid x:Name="DailyFocusRecordContent">
+                                <Grid.Style>
+                                    <Style TargetType="{x:Type Grid}">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding CanViewDailyFocusRecord}" Value="True">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Grid.Style>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" VerticalAlignment="Center" FontSize="17" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{Binding SelectedDateDisplay}" />
+                                <StackPanel Grid.Row="1" Margin="0,25,0,24" Orientation="Horizontal">
+                                    <Viewbox x:Name="CalendarDurationIcon" Width="16" Height="16" Margin="0,0,7,0" VerticalAlignment="Center" Opacity="0.72">
+                                        <Grid Width="16" Height="16">
+                                            <Ellipse Fill="{DynamicResource TransparentBrush}" Stroke="{DynamicResource AccentPrimary}" StrokeThickness="1.4" />
+                                            <Path Data="M 8,3.5 L 8,8 L 11,10" Stroke="{DynamicResource AccentPrimary}" StrokeEndLineCap="Round" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeThickness="1.4" />
+                                        </Grid>
+                                    </Viewbox>
+                                    <TextBlock Foreground="{DynamicResource TextPrimary}"><Run FontSize="20" FontWeight="Medium" Text="{Binding SelectedDayHoursValueDisplay, Mode=OneWay}" /><Run FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding SelectedDayHoursUnitDisplay, Mode=OneWay}" /><Run FontSize="20" FontWeight="Medium" Text="{Binding SelectedDayMinutesValueDisplay, Mode=OneWay}" /><Run FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text=" 分钟  ·  " /></TextBlock>
+                                    <Viewbox x:Name="CalendarProgressIcon" Width="16" Height="16" Margin="0,0,7,0" VerticalAlignment="Center" Opacity="0.72">
+                                        <Path Width="16" Height="16" Data="M 2,14 L 2,10 M 8,14 L 8,6 M 14,14 L 14,2" Stretch="None" Stroke="{DynamicResource AccentPrimary}" StrokeEndLineCap="Round" StrokeStartLineCap="Round" StrokeThickness="2.4" />
+                                    </Viewbox>
+                                    <TextBlock Foreground="{DynamicResource TextPrimary}"><Run FontSize="20" FontWeight="Medium" Text="{Binding SelectedDayCompletedTasks, Mode=OneWay}" /><Run FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text=" 次推进" /></TextBlock>
+                                </StackPanel>
+                                <Border Grid.Row="2" Height="1" Background="{DynamicResource BorderPrimary}" />
+                                <ScrollViewer x:Name="CalendarRecordsScrollViewer" Grid.Row="4" Margin="0,10,0,0" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                                    <ScrollViewer.Resources>
+                                        <Style TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource StatisticsRecordScrollBarStyle}" />
+                                    </ScrollViewer.Resources>
+                                    <ItemsControl ItemsSource="{Binding SelectedDayRecords}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type vm:FocusSessionRecordViewModel}">
+                                                <Border Padding="0,0,0,17" Margin="0,0,0,18" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="0,0,0,1">
+                                                    <StackPanel>
+                                                        <Grid>
+                                                            <TextBlock VerticalAlignment="Center" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}"><Run Text="{Binding StartTime, StringFormat={}{0:HH:mm}, Mode=OneWay}" /><Run Text=" – " /><Run Text="{Binding EndTime, StringFormat={}{0:HH:mm}, Mode=OneWay}" /></TextBlock>
+                                                            <Border HorizontalAlignment="Right" Padding="8,2" Background="#F2F2F7" CornerRadius="8"><TextBlock FontSize="12" FontWeight="Normal" Foreground="#636366" Text="{Binding GoalName}" /></Border>
+                                                        </Grid>
+                                                        <ItemsControl Margin="0,14,0,0" ItemsSource="{Binding CompletedTaskNames}">
+                                                            <ItemsControl.ItemTemplate>
+                                                                <DataTemplate>
+                                                                    <Grid Margin="0,0,0,7">
+                                                                        <Grid.ColumnDefinitions>
+                                                                            <ColumnDefinition Width="15" />
+                                                                            <ColumnDefinition Width="8" />
+                                                                            <ColumnDefinition Width="*" />
+                                                                        </Grid.ColumnDefinitions>
+                                                                        <Border Width="14" Height="14" HorizontalAlignment="Left" VerticalAlignment="Center" Background="{DynamicResource TransparentBrush}" BorderBrush="{DynamicResource Success}" BorderThickness="1" CornerRadius="3" IsHitTestVisible="False" Opacity="0.72">
+                                                                            <Path Width="7" Height="5" Data="M 0.8,2.6 L 2.8,4.5 L 6.4,0.8" Stroke="{DynamicResource Success}" StrokeEndLineCap="Round" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeThickness="1.2" />
+                                                                        </Border>
+                                                                        <TextBlock Grid.Column="2" VerticalAlignment="Center" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}" Text="{Binding}" TextWrapping="Wrap" />
+                                                                    </Grid>
+                                                                </DataTemplate>
+                                                            </ItemsControl.ItemTemplate>
+                                                        </ItemsControl>
+                                                    </StackPanel>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                                <Button Grid.RowSpan="5"
+                                        Width="40"
+                                        Height="40"
+                                        Margin="0,0,-8,-4"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Bottom"
+                                        Panel.ZIndex="2"
+                                        AutomationProperties.Name="{DynamicResource StatisticsReturnToTodayTooltip}"
+                                        Click="ReturnToTodayButton_Click"
+                                        Command="{Binding ReturnToTodayCommand}"
+                                        Style="{StaticResource CalendarReturnToTodayButtonStyle}"
+                                        ToolTipService.InitialShowDelay="350"
+                                        Visibility="{Binding IsReturnToTodayVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                    <Button.ToolTip>
+                                        <ToolTip Padding="0" Background="{DynamicResource TransparentBrush}" BorderThickness="0" Placement="Top">
+                                            <Border Padding="10,6" Background="#3A3A3C" CornerRadius="7">
+                                                <TextBlock FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI"
+                                                           FontSize="13"
+                                                           FontWeight="Medium"
+                                                           Foreground="{DynamicResource WhiteText}"
+                                                           Text="{DynamicResource StatisticsReturnToTodayTooltip}" />
                                             </Border>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </ScrollViewer>
-                            <Button Grid.RowSpan="5"
-                                    Width="40"
-                                    Height="40"
-                                    Margin="0,0,-8,-4"
-                                    HorizontalAlignment="Right"
-                                    VerticalAlignment="Bottom"
-                                    Panel.ZIndex="2"
-                                    AutomationProperties.Name="{DynamicResource StatisticsReturnToTodayTooltip}"
-                                    Click="ReturnToTodayButton_Click"
-                                    Command="{Binding ReturnToTodayCommand}"
-                                    Style="{StaticResource CalendarReturnToTodayButtonStyle}"
-                                    ToolTipService.InitialShowDelay="350"
-                                    Visibility="{Binding IsReturnToTodayVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                <Button.ToolTip>
-                                    <ToolTip Padding="0" Background="{DynamicResource TransparentBrush}" BorderThickness="0" Placement="Top">
-                                        <Border Padding="10,6" Background="#3A3A3C" CornerRadius="7">
-                                            <TextBlock FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI"
-                                                       FontSize="13"
-                                                       FontWeight="Medium"
-                                                       Foreground="{DynamicResource WhiteText}"
-                                                       Text="{DynamicResource StatisticsReturnToTodayTooltip}" />
+                                        </ToolTip>
+                                    </Button.ToolTip>
+                                    <Viewbox Width="22" Height="22" IsHitTestVisible="False">
+                                        <Grid Width="24" Height="24">
+                                            <Ellipse Width="12" Height="12" Stroke="{DynamicResource AccentPrimary}" StrokeThickness="1.8" />
+                                            <Ellipse Width="3.5" Height="3.5" Fill="{DynamicResource AccentPrimary}" />
+                                            <Path Data="M 12,1 L 12,5 M 23,12 L 19,12 M 12,23 L 12,19 M 1,12 L 5,12"
+                                                  Stroke="{DynamicResource AccentPrimary}"
+                                                  StrokeEndLineCap="Round"
+                                                  StrokeStartLineCap="Round"
+                                                  StrokeThickness="1.8" />
+                                        </Grid>
+                                    </Viewbox>
+                                </Button>
+                            </Grid>
+
+                            <Grid x:Name="DailyFocusRecordLockedPlaceholder">
+                                <Grid.Style>
+                                    <Style TargetType="{x:Type Grid}">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding CanViewDailyFocusRecord}" Value="True">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Grid.Style>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock VerticalAlignment="Center" FontSize="17" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="当日专注记录" />
+                                    <Border Width="24" Height="24" Margin="10,0,7,0" Background="{DynamicResource AccentTint}" CornerRadius="12">
+                                        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="{DynamicResource AccentPrimary}" Text="&#xE72E;" />
+                                    </Border>
+                                    <TextBlock VerticalAlignment="Center" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource TextSecondary}" Text="VIP专享" />
+                                </StackPanel>
+                                <StackPanel Grid.Row="1" Margin="0,25,0,24">
+                                    <Border Width="118" Height="12" HorizontalAlignment="Left" Background="{DynamicResource BorderPrimary}" CornerRadius="6" />
+                                    <StackPanel Margin="0,18,0,0" Orientation="Horizontal">
+                                        <Ellipse Width="16" Height="16" Margin="0,0,8,0" Fill="{DynamicResource BorderPrimary}" />
+                                        <Border Width="52" Height="10" Margin="0,3,0,0" Background="{DynamicResource BorderPrimary}" CornerRadius="5" />
+                                        <Border Width="32" Height="10" Margin="7,3,12,0" Background="{DynamicResource BorderPrimary}" CornerRadius="5" />
+                                        <Border Width="16" Height="16" Margin="0,0,8,0" Background="{DynamicResource BorderPrimary}" CornerRadius="3" />
+                                        <Border Width="48" Height="10" Margin="0,3,0,0" Background="{DynamicResource BorderPrimary}" CornerRadius="5" />
+                                    </StackPanel>
+                                </StackPanel>
+                                <Border Grid.Row="2" Height="1" Background="{DynamicResource BorderPrimary}" />
+                                <ScrollViewer x:Name="DailyFocusRecordLockedScrollViewer" Grid.Row="3" Margin="0,10,0,0" HorizontalScrollBarVisibility="Disabled" IsHitTestVisible="False" VerticalScrollBarVisibility="Hidden">
+                                    <StackPanel>
+                                        <Border Padding="0,3,0,17" Margin="0,0,0,18" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="0,0,0,1">
+                                            <StackPanel>
+                                                <Grid><Border Width="110" Height="10" HorizontalAlignment="Left" Background="{DynamicResource BorderPrimary}" CornerRadius="5" /><Border Width="52" Height="18" HorizontalAlignment="Right" Background="{DynamicResource BorderPrimary}" CornerRadius="9" /></Grid>
+                                                <StackPanel Margin="0,14,0,0">
+                                                    <Grid Height="27"><Border Width="14" Height="14" HorizontalAlignment="Left" Background="{DynamicResource BorderPrimary}" CornerRadius="3" /><Border Width="216" Height="10" Margin="23,2,0,0" HorizontalAlignment="Left" Background="{DynamicResource BorderPrimary}" CornerRadius="5" /></Grid>
+                                                    <Grid Height="27"><Border Width="14" Height="14" HorizontalAlignment="Left" Background="{DynamicResource BorderPrimary}" CornerRadius="3" /><Border Width="184" Height="10" Margin="23,2,0,0" HorizontalAlignment="Left" Background="{DynamicResource BorderPrimary}" CornerRadius="5" /></Grid>
+                                                    <Grid Height="20"><Border Width="14" Height="14" HorizontalAlignment="Left" Background="{DynamicResource BorderPrimary}" CornerRadius="3" /><Border Width="226" Height="10" Margin="23,2,0,0" HorizontalAlignment="Left" Background="{DynamicResource BorderPrimary}" CornerRadius="5" /></Grid>
+                                                </StackPanel>
+                                            </StackPanel>
                                         </Border>
-                                    </ToolTip>
-                                </Button.ToolTip>
-                                <Viewbox Width="22" Height="22" IsHitTestVisible="False">
-                                    <Grid Width="24" Height="24">
-                                        <Ellipse Width="12" Height="12" Stroke="{DynamicResource AccentPrimary}" StrokeThickness="1.8" />
-                                        <Ellipse Width="3.5" Height="3.5" Fill="{DynamicResource AccentPrimary}" />
-                                        <Path Data="M 12,1 L 12,5 M 23,12 L 19,12 M 12,23 L 12,19 M 1,12 L 5,12"
-                                              Stroke="{DynamicResource AccentPrimary}"
-                                              StrokeEndLineCap="Round"
-                                              StrokeStartLineCap="Round"
-                                              StrokeThickness="1.8" />
-                                    </Grid>
-                                </Viewbox>
-                            </Button>
+                                        <Border Padding="0,3,0,17" Margin="0,0,0,18" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="0,0,0,1">
+                                            <StackPanel>
+                                                <Grid><Border Width="106" Height="10" HorizontalAlignment="Left" Background="{DynamicResource BorderPrimary}" CornerRadius="5" /><Border Width="52" Height="18" HorizontalAlignment="Right" Background="{DynamicResource BorderPrimary}" CornerRadius="9" /></Grid>
+                                                <StackPanel Margin="0,14,0,0">
+                                                    <Grid Height="27"><Border Width="14" Height="14" HorizontalAlignment="Left" Background="{DynamicResource BorderPrimary}" CornerRadius="3" /><Border Width="204" Height="10" Margin="23,2,0,0" HorizontalAlignment="Left" Background="{DynamicResource BorderPrimary}" CornerRadius="5" /></Grid>
+                                                    <Grid Height="27"><Border Width="14" Height="14" HorizontalAlignment="Left" Background="{DynamicResource BorderPrimary}" CornerRadius="3" /><Border Width="232" Height="10" Margin="23,2,0,0" HorizontalAlignment="Left" Background="{DynamicResource BorderPrimary}" CornerRadius="5" /></Grid>
+                                                    <Grid Height="20"><Border Width="14" Height="14" HorizontalAlignment="Left" Background="{DynamicResource BorderPrimary}" CornerRadius="3" /><Border Width="176" Height="10" Margin="23,2,0,0" HorizontalAlignment="Left" Background="{DynamicResource BorderPrimary}" CornerRadius="5" /></Grid>
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </Border>
+                                        <Border Padding="0,3,0,17" Margin="0,0,0,18" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="0,0,0,1">
+                                            <StackPanel>
+                                                <Grid><Border Width="112" Height="10" HorizontalAlignment="Left" Background="{DynamicResource BorderPrimary}" CornerRadius="5" /><Border Width="52" Height="18" HorizontalAlignment="Right" Background="{DynamicResource BorderPrimary}" CornerRadius="9" /></Grid>
+                                                <StackPanel Margin="0,14,0,0">
+                                                    <Grid Height="27"><Border Width="14" Height="14" HorizontalAlignment="Left" Background="{DynamicResource BorderPrimary}" CornerRadius="3" /><Border Width="190" Height="10" Margin="23,2,0,0" HorizontalAlignment="Left" Background="{DynamicResource BorderPrimary}" CornerRadius="5" /></Grid>
+                                                    <Grid Height="27"><Border Width="14" Height="14" HorizontalAlignment="Left" Background="{DynamicResource BorderPrimary}" CornerRadius="3" /><Border Width="220" Height="10" Margin="23,2,0,0" HorizontalAlignment="Left" Background="{DynamicResource BorderPrimary}" CornerRadius="5" /></Grid>
+                                                    <Grid Height="20"><Border Width="14" Height="14" HorizontalAlignment="Left" Background="{DynamicResource BorderPrimary}" CornerRadius="3" /><Border Width="168" Height="10" Margin="23,2,0,0" HorizontalAlignment="Left" Background="{DynamicResource BorderPrimary}" CornerRadius="5" /></Grid>
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </Border>
+                                        <Border Padding="0,3,0,17" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="0,0,0,1">
+                                            <StackPanel>
+                                                <Grid><Border Width="108" Height="10" HorizontalAlignment="Left" Background="{DynamicResource BorderPrimary}" CornerRadius="5" /><Border Width="52" Height="18" HorizontalAlignment="Right" Background="{DynamicResource BorderPrimary}" CornerRadius="9" /></Grid>
+                                                <StackPanel Margin="0,14,0,0">
+                                                    <Grid Height="27"><Border Width="14" Height="14" HorizontalAlignment="Left" Background="{DynamicResource BorderPrimary}" CornerRadius="3" /><Border Width="212" Height="10" Margin="23,2,0,0" HorizontalAlignment="Left" Background="{DynamicResource BorderPrimary}" CornerRadius="5" /></Grid>
+                                                    <Grid Height="20"><Border Width="14" Height="14" HorizontalAlignment="Left" Background="{DynamicResource BorderPrimary}" CornerRadius="3" /><Border Width="180" Height="10" Margin="23,2,0,0" HorizontalAlignment="Left" Background="{DynamicResource BorderPrimary}" CornerRadius="5" /></Grid>
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </Border>
+                                    </StackPanel>
+                                </ScrollViewer>
+                            </Grid>
                         </Grid>
                     </Border>
                 </Grid>
@@ -867,7 +958,19 @@
                             </ScrollViewer>
                         </DockPanel>
                     </Border>
-                    <Border Grid.Column="2" Height="604" VerticalAlignment="Top" Padding="29,10,24,10" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" CornerRadius="16">
+                    <Border x:Name="GoalInvestmentDetailsCard" Grid.Column="2" Height="604" VerticalAlignment="Top" Padding="29,10,24,10" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" CornerRadius="16">
+                        <Grid>
+                        <Grid x:Name="GoalInvestmentDetailsContent">
+                            <Grid.Style>
+                                <Style TargetType="{x:Type Grid}">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding CanViewGoalInvestmentDetails}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Grid.Style>
                         <Grid x:Name="GoalDetailsLayout">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="76" />
@@ -1181,6 +1284,109 @@
                                 <Border.Style><Style TargetType="Border"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding HasSelectedGoal}" Value="False"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></Border.Style>
                                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"><TextBlock HorizontalAlignment="Center" FontSize="15" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="暂无目标" /><TextBlock Margin="0,8,0,0" HorizontalAlignment="Center" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextWeak}" Text="当前列表没有可显示的目标" /></StackPanel>
                             </Border>
+                        </Grid>
+                        </Grid>
+
+                        <Grid x:Name="GoalInvestmentDetailsLockedPlaceholder">
+                            <Grid.Style>
+                                <Style TargetType="{x:Type Grid}">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding CanViewGoalInvestmentDetails}" Value="True">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Grid.Style>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="76" />
+                                <RowDefinition Height="250" />
+                                <RowDefinition Height="14" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <StackPanel Margin="0,10,0,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock VerticalAlignment="Center" FontSize="17" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="目标投入详情" />
+                                    <Border Width="24" Height="24" Margin="10,0,7,0" Background="{DynamicResource AccentTint}" CornerRadius="12">
+                                        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="{DynamicResource AccentPrimary}" Text="&#xE72E;" />
+                                    </Border>
+                                    <TextBlock VerticalAlignment="Center" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource TextSecondary}" Text="VIP专享" />
+                                </StackPanel>
+                                <StackPanel Margin="8,10,0,0" Orientation="Horizontal">
+                                    <Border Width="74" Height="10" Margin="0,1,8,0" Background="{DynamicResource BorderPrimary}" CornerRadius="5" />
+                                    <TextBlock FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="投入总时长" />
+                                    <Border Width="74" Height="10" Margin="20,1,8,0" Background="{DynamicResource BorderPrimary}" CornerRadius="5" />
+                                    <TextBlock FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="推进次数" />
+                                </StackPanel>
+                            </StackPanel>
+                            <Grid Grid.Row="1">
+                                <Grid.RowDefinitions><RowDefinition Height="44" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                                <Border Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource OverlayBorder}" BorderThickness="1" CornerRadius="12">
+                                    <Grid Margin="17,0">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="20" /><ColumnDefinition Width="Auto" /><ColumnDefinition /><ColumnDefinition Width="100" /><ColumnDefinition Width="14" /></Grid.ColumnDefinitions>
+                                        <Path Width="18" Height="18" VerticalAlignment="Center" Data="M 2,3 V 15 H 16 M 4,12 L 8,8 L 11,10 L 16,5" Stroke="{DynamicResource TextSecondary}" StrokeEndLineCap="Round" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeThickness="1.4" />
+                                        <TextBlock Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center" FontSize="15" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="投入趋势" />
+                                        <Border Grid.Column="3" Width="70" Height="10" HorizontalAlignment="Right" VerticalAlignment="Center" Background="{DynamicResource BorderPrimary}" CornerRadius="5" />
+                                        <Path Grid.Column="4" Width="10" Height="6" HorizontalAlignment="Right" VerticalAlignment="Center" Data="M 1,1 L 5,5 L 9,1" Stroke="{DynamicResource TextWeak}" StrokeEndLineCap="Round" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeThickness="1.4" />
+                                    </Grid>
+                                </Border>
+                                <Grid Grid.Row="1" Margin="0,14,0,8">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                                    <UniformGrid Margin="0,0,5,25" Rows="4">
+                                        <Border Width="25" Height="8" HorizontalAlignment="Left" VerticalAlignment="Center" Background="{DynamicResource BorderPrimary}" CornerRadius="4" />
+                                        <Border Width="25" Height="8" HorizontalAlignment="Left" VerticalAlignment="Center" Background="{DynamicResource BorderPrimary}" CornerRadius="4" />
+                                        <Border Width="25" Height="8" HorizontalAlignment="Left" VerticalAlignment="Center" Background="{DynamicResource BorderPrimary}" CornerRadius="4" />
+                                        <Border Width="25" Height="8" HorizontalAlignment="Left" VerticalAlignment="Center" Background="{DynamicResource BorderPrimary}" CornerRadius="4" />
+                                    </UniformGrid>
+                                    <Grid Grid.Column="1">
+                                        <Grid.RowDefinitions><RowDefinition /><RowDefinition Height="25" /></Grid.RowDefinitions>
+                                        <UniformGrid Margin="8,0,8,0" Columns="20" VerticalAlignment="Bottom">
+                                            <Border Height="22" Margin="3,0" VerticalAlignment="Bottom" Background="{DynamicResource BorderPrimary}" CornerRadius="3,3,0,0" />
+                                            <Border Height="34" Margin="3,0" VerticalAlignment="Bottom" Background="{DynamicResource BorderPrimary}" CornerRadius="3,3,0,0" />
+                                            <Border Height="18" Margin="3,0" VerticalAlignment="Bottom" Background="{DynamicResource BorderPrimary}" CornerRadius="3,3,0,0" />
+                                            <Border Height="52" Margin="3,0" VerticalAlignment="Bottom" Background="{DynamicResource BorderPrimary}" CornerRadius="3,3,0,0" />
+                                            <Border Height="26" Margin="3,0" VerticalAlignment="Bottom" Background="{DynamicResource BorderPrimary}" CornerRadius="3,3,0,0" />
+                                            <Border Height="40" Margin="3,0" VerticalAlignment="Bottom" Background="{DynamicResource BorderPrimary}" CornerRadius="3,3,0,0" />
+                                            <Border Height="20" Margin="3,0" VerticalAlignment="Bottom" Background="{DynamicResource BorderPrimary}" CornerRadius="3,3,0,0" />
+                                            <Border Height="66" Margin="3,0" VerticalAlignment="Bottom" Background="{DynamicResource BorderPrimary}" CornerRadius="3,3,0,0" />
+                                            <Border Height="48" Margin="3,0" VerticalAlignment="Bottom" Background="{DynamicResource BorderPrimary}" CornerRadius="3,3,0,0" />
+                                            <Border Height="30" Margin="3,0" VerticalAlignment="Bottom" Background="{DynamicResource BorderPrimary}" CornerRadius="3,3,0,0" />
+                                            <Border Height="44" Margin="3,0" VerticalAlignment="Bottom" Background="{DynamicResource BorderPrimary}" CornerRadius="3,3,0,0" />
+                                            <Border Height="25" Margin="3,0" VerticalAlignment="Bottom" Background="{DynamicResource BorderPrimary}" CornerRadius="3,3,0,0" />
+                                            <Border Height="58" Margin="3,0" VerticalAlignment="Bottom" Background="{DynamicResource BorderPrimary}" CornerRadius="3,3,0,0" />
+                                            <Border Height="38" Margin="3,0" VerticalAlignment="Bottom" Background="{DynamicResource BorderPrimary}" CornerRadius="3,3,0,0" />
+                                            <Border Height="28" Margin="3,0" VerticalAlignment="Bottom" Background="{DynamicResource BorderPrimary}" CornerRadius="3,3,0,0" />
+                                            <Border Height="50" Margin="3,0" VerticalAlignment="Bottom" Background="{DynamicResource BorderPrimary}" CornerRadius="3,3,0,0" />
+                                            <Border Height="24" Margin="3,0" VerticalAlignment="Bottom" Background="{DynamicResource BorderPrimary}" CornerRadius="3,3,0,0" />
+                                            <Border Height="72" Margin="3,0" VerticalAlignment="Bottom" Background="{DynamicResource BorderPrimary}" CornerRadius="3,3,0,0" />
+                                            <Border Height="42" Margin="3,0" VerticalAlignment="Bottom" Background="{DynamicResource BorderPrimary}" CornerRadius="3,3,0,0" />
+                                            <Border Height="62" Margin="3,0" VerticalAlignment="Bottom" Background="{DynamicResource BorderPrimary}" CornerRadius="3,3,0,0" />
+                                        </UniformGrid>
+                                        <UniformGrid Grid.Row="1" Columns="6">
+                                            <Border Width="38" Height="8" HorizontalAlignment="Center" VerticalAlignment="Center" Background="{DynamicResource BorderPrimary}" CornerRadius="4" />
+                                            <Border Width="38" Height="8" HorizontalAlignment="Center" VerticalAlignment="Center" Background="{DynamicResource BorderPrimary}" CornerRadius="4" />
+                                            <Border Width="38" Height="8" HorizontalAlignment="Center" VerticalAlignment="Center" Background="{DynamicResource BorderPrimary}" CornerRadius="4" />
+                                            <Border Width="38" Height="8" HorizontalAlignment="Center" VerticalAlignment="Center" Background="{DynamicResource BorderPrimary}" CornerRadius="4" />
+                                            <Border Width="38" Height="8" HorizontalAlignment="Center" VerticalAlignment="Center" Background="{DynamicResource BorderPrimary}" CornerRadius="4" />
+                                            <Border Width="38" Height="8" HorizontalAlignment="Center" VerticalAlignment="Center" Background="{DynamicResource BorderPrimary}" CornerRadius="4" />
+                                        </UniformGrid>
+                                    </Grid>
+                                </Grid>
+                            </Grid>
+                            <Border Grid.Row="3" ClipToBounds="True" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource OverlayBorder}" BorderThickness="1" CornerRadius="10">
+                                <StackPanel>
+                                    <Grid Height="50" Margin="12,0"><Border Width="104" Height="10" HorizontalAlignment="Left" VerticalAlignment="Center" Background="{DynamicResource BorderPrimary}" CornerRadius="5" /><Border Width="70" Height="10" HorizontalAlignment="Right" VerticalAlignment="Center" Background="{DynamicResource BorderPrimary}" CornerRadius="5" /></Grid>
+                                    <Border Height="1" Background="{DynamicResource OverlayBorder}" />
+                                    <Grid Height="50" Margin="12,0"><Border Width="92" Height="10" HorizontalAlignment="Left" VerticalAlignment="Center" Background="{DynamicResource BorderPrimary}" CornerRadius="5" /><Border Width="64" Height="10" HorizontalAlignment="Right" VerticalAlignment="Center" Background="{DynamicResource BorderPrimary}" CornerRadius="5" /></Grid>
+                                    <Border Height="1" Background="{DynamicResource OverlayBorder}" />
+                                    <Grid Height="50" Margin="12,0"><Border Width="108" Height="10" HorizontalAlignment="Left" VerticalAlignment="Center" Background="{DynamicResource BorderPrimary}" CornerRadius="5" /><Border Width="68" Height="10" HorizontalAlignment="Right" VerticalAlignment="Center" Background="{DynamicResource BorderPrimary}" CornerRadius="5" /></Grid>
+                                    <Border Height="1" Background="{DynamicResource OverlayBorder}" />
+                                    <Grid Height="50" Margin="12,0"><Border Width="98" Height="10" HorizontalAlignment="Left" VerticalAlignment="Center" Background="{DynamicResource BorderPrimary}" CornerRadius="5" /><Border Width="62" Height="10" HorizontalAlignment="Right" VerticalAlignment="Center" Background="{DynamicResource BorderPrimary}" CornerRadius="5" /></Grid>
+                                    <Border Height="1" Background="{DynamicResource OverlayBorder}" />
+                                    <Grid Height="50" Margin="12,0"><Border Width="102" Height="10" HorizontalAlignment="Left" VerticalAlignment="Center" Background="{DynamicResource BorderPrimary}" CornerRadius="5" /><Border Width="66" Height="10" HorizontalAlignment="Right" VerticalAlignment="Center" Background="{DynamicResource BorderPrimary}" CornerRadius="5" /></Grid>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
                         </Grid>
                     </Border>
                 </Grid>

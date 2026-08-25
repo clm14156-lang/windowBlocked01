@@ -7,27 +7,40 @@ namespace FocusApp.Tests.Desktop;
 public sealed class StatisticsOverviewViewModelTests
 {
     [Fact]
-    public void TrendAccessRequiresLoggedInVipState()
+    public void PremiumStatisticsAccessRequiresLoggedInVipState()
     {
         var viewModel = new StatisticsOverviewViewModel();
 
         Assert.False(viewModel.IsLoggedIn);
         Assert.False(viewModel.IsVip);
         Assert.False(viewModel.CanViewTrend);
+        Assert.False(viewModel.CanViewDailyFocusRecord);
+        Assert.False(viewModel.CanViewGoalInvestmentDetails);
 
         viewModel.SetUserAccess(true, false);
 
         Assert.True(viewModel.IsLoggedIn);
         Assert.False(viewModel.IsVip);
         Assert.False(viewModel.CanViewTrend);
+        Assert.False(viewModel.CanViewDailyFocusRecord);
+        Assert.False(viewModel.CanViewGoalInvestmentDetails);
 
         viewModel.SetUserAccess(true, true);
 
         Assert.True(viewModel.CanViewTrend);
+        Assert.True(viewModel.CanViewDailyFocusRecord);
+        Assert.True(viewModel.CanViewGoalInvestmentDetails);
+        viewModel.IsGoalMonthMenuOpen = true;
+        viewModel.SetHoveredGoalTrendPoint(viewModel.GoalTrendPoints[0]);
 
         viewModel.SetUserAccess(false, true);
 
         Assert.False(viewModel.CanViewTrend);
+        Assert.False(viewModel.CanViewDailyFocusRecord);
+        Assert.False(viewModel.CanViewGoalInvestmentDetails);
+        Assert.False(viewModel.IsGoalMonthMenuOpen);
+        Assert.Null(viewModel.HoveredGoalTrendPoint);
+        Assert.False(viewModel.IsGoalTrendTooltipOpen);
     }
 
     [Fact]

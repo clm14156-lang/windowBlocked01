@@ -144,7 +144,11 @@ public sealed class StatisticsGoalProgressPresentationTests
             FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
         var goalsPage = Assert.Single(page.Descendants(Presentation + "StackPanel").Where(panel =>
             (string?)panel.Attribute(Xaml + "Name") == "GoalsPageLayout"));
-        var texts = goalsPage.Descendants(Presentation + "TextBlock").ToArray();
+        var lockedPlaceholder = Assert.Single(goalsPage.Descendants(Presentation + "Grid").Where(grid =>
+            (string?)grid.Attribute(Xaml + "Name") == "GoalInvestmentDetailsLockedPlaceholder"));
+        var texts = goalsPage.Descendants(Presentation + "TextBlock")
+            .Where(text => !text.Ancestors().Contains(lockedPlaceholder))
+            .ToArray();
 
         Assert.Equal("Segoe UI Variable, Segoe UI", (string?)goalsPage.Attribute("TextElement.FontFamily"));
 
@@ -201,6 +205,63 @@ public sealed class StatisticsGoalProgressPresentationTests
         Assert.DoesNotContain(texts, text => (string?)text.Attribute("FontWeight") == "Bold");
         Assert.DoesNotContain(texts, text => (string?)text.Attribute("FontSize") is "11" or "14" or "16");
         Assert.DoesNotContain(texts, text => (string?)text.Attribute("Foreground") == "#000000");
+    }
+
+    [Fact]
+    public void GoalInvestmentDetailsCardSwitchesBetweenVipContentAndLockedSkeletonWithoutChangingItsFrame()
+    {
+        var page = XDocument.Load(Path.Combine(
+            FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
+        var card = Assert.Single(page.Descendants(Presentation + "Border").Where(border =>
+            (string?)border.Attribute(Xaml + "Name") == "GoalInvestmentDetailsCard"));
+
+        Assert.Equal("2", (string?)card.Attribute("Grid.Column"));
+        Assert.Equal("604", (string?)card.Attribute("Height"));
+        Assert.Equal("29,10,24,10", (string?)card.Attribute("Padding"));
+        Assert.Equal("16", (string?)card.Attribute("CornerRadius"));
+
+        var content = Assert.Single(card.Descendants(Presentation + "Grid").Where(grid =>
+            (string?)grid.Attribute(Xaml + "Name") == "GoalInvestmentDetailsContent"));
+        Assert.Contains(content.Descendants(Presentation + "DataTrigger"), trigger =>
+            (string?)trigger.Attribute("Binding") == "{Binding CanViewGoalInvestmentDetails}" &&
+            (string?)trigger.Attribute("Value") == "True" &&
+            trigger.Descendants(Presentation + "Setter").Any(setter =>
+                (string?)setter.Attribute("Property") == "Visibility" &&
+                (string?)setter.Attribute("Value") == "Visible"));
+        Assert.Contains(content.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "{Binding SelectedGoalName}");
+        Assert.Contains(content.Descendants(Presentation + "ItemsControl"), control =>
+            (string?)control.Attribute("ItemsSource") == "{Binding GoalTrendPoints}");
+        Assert.Contains(content.Descendants(Presentation + "ItemsControl"), control =>
+            (string?)control.Attribute("ItemsSource") == "{Binding GoalDateGroups}");
+        Assert.Contains(content.Descendants(Presentation + "Popup"), popup =>
+            (string?)popup.Attribute(Xaml + "Name") == "GoalMonthPopup");
+
+        var locked = Assert.Single(card.Descendants(Presentation + "Grid").Where(grid =>
+            (string?)grid.Attribute(Xaml + "Name") == "GoalInvestmentDetailsLockedPlaceholder"));
+        Assert.Contains(locked.Descendants(Presentation + "DataTrigger"), trigger =>
+            (string?)trigger.Attribute("Binding") == "{Binding CanViewGoalInvestmentDetails}" &&
+            (string?)trigger.Attribute("Value") == "True" &&
+            trigger.Descendants(Presentation + "Setter").Any(setter =>
+                (string?)setter.Attribute("Property") == "Visibility" &&
+                (string?)setter.Attribute("Value") == "Collapsed"));
+        Assert.Contains(locked.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "目标投入详情");
+        Assert.Contains(locked.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "VIP专享");
+        Assert.Contains(locked.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("FontFamily") == "Segoe MDL2 Assets" &&
+            (string?)text.Attribute("Text") == "\uE72E");
+        Assert.DoesNotContain(locked.Descendants(), element =>
+            element.Attributes().Any(attribute =>
+                attribute.Value.Contains("SelectedGoal", StringComparison.Ordinal) ||
+                attribute.Value.Contains("GoalTrend", StringComparison.Ordinal) ||
+                attribute.Value.Contains("GoalDateGroups", StringComparison.Ordinal)));
+        Assert.Empty(locked.Descendants(Presentation + "Button"));
+        Assert.Empty(locked.Descendants(Presentation + "Popup"));
+        Assert.Empty(locked.Descendants(Presentation + "ItemsControl"));
+        Assert.DoesNotContain(locked.Descendants(Presentation + "Path"), path =>
+            (string?)path.Attribute("Data") == "M 1,1 L 6,6 L 1,11");
     }
 
     [Fact]

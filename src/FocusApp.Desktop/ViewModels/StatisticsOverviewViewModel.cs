@@ -99,6 +99,10 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     public bool CanViewTrend => IsLoggedIn && IsVip;
 
+    public bool CanViewDailyFocusRecord => IsLoggedIn && IsVip;
+
+    public bool CanViewGoalInvestmentDetails => IsLoggedIn && IsVip;
+
     public void SetUserAccess(bool isLoggedIn, bool isVip)
     {
         var canViewTrend = CanViewTrend;
@@ -118,6 +122,13 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         if (canViewTrend != CanViewTrend)
         {
             OnPropertyChanged(nameof(CanViewTrend));
+            OnPropertyChanged(nameof(CanViewDailyFocusRecord));
+            OnPropertyChanged(nameof(CanViewGoalInvestmentDetails));
+            if (!CanViewGoalInvestmentDetails)
+            {
+                IsGoalMonthMenuOpen = false;
+                SetHoveredGoalTrendPoint(null);
+            }
         }
     }
 

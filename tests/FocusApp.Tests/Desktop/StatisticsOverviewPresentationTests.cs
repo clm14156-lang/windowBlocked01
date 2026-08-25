@@ -85,9 +85,7 @@ public sealed class StatisticsOverviewPresentationTests
             (string?)text.Attribute("FontFamily") == "Segoe MDL2 Assets" &&
             (string?)text.Attribute("Text") == "\uE72E");
 
-        var lockedSelector = Assert.Single(locked.Descendants(Presentation + "ComboBox"));
-        Assert.Equal("False", (string?)lockedSelector.Attribute("IsHitTestVisible"));
-        Assert.Equal("False", (string?)lockedSelector.Attribute("Focusable"));
+        Assert.Empty(locked.Descendants(Presentation + "ComboBox"));
         Assert.Single(locked.Descendants(Presentation + "Grid").Where(element =>
             (string?)element.Attribute(Xaml + "Name") == "LockedTrendSkeletonChart"));
         var lockedSummary = Assert.Single(locked.Descendants(Presentation + "Border").Where(element =>
@@ -142,9 +140,9 @@ public sealed class StatisticsOverviewPresentationTests
         var page = XDocument.Load(Path.Combine(
             FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
         var panel = Assert.Single(page.Descendants(Presentation + "Border").Where(element =>
-            (string?)element.Attribute("Grid.Column") == "2" &&
-            (string?)element.Attribute("Height") == "602"));
-        var layout = Assert.Single(panel.Elements(Presentation + "Grid"));
+            (string?)element.Attribute(Xaml + "Name") == "DailyFocusRecordCard"));
+        var layout = Assert.Single(panel.Descendants(Presentation + "Grid").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "DailyFocusRecordContent"));
         Assert.Equal("*", layout.Elements(Presentation + "Grid.RowDefinitions")
             .Elements(Presentation + "RowDefinition").Last().Attribute("Height")?.Value);
 
@@ -188,6 +186,54 @@ public sealed class StatisticsOverviewPresentationTests
         Assert.Contains(scrollStyle.Descendants(Presentation + "Border"), border =>
             (string?)border.Attribute(Xaml + "Name") == "ThumbBody" &&
             (string?)border.Attribute("Width") == "3");
+    }
+
+    [Fact]
+    public void DailyFocusRecordCardSwitchesBetweenVipContentAndLockedSkeletonWithoutChangingItsFrame()
+    {
+        var page = XDocument.Load(Path.Combine(
+            FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
+        var card = Assert.Single(page.Descendants(Presentation + "Border").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "DailyFocusRecordCard"));
+
+        Assert.Equal("2", (string?)card.Attribute("Grid.Column"));
+        Assert.Equal("602", (string?)card.Attribute("Height"));
+        Assert.Equal("27,20,24,20", (string?)card.Attribute("Padding"));
+        Assert.Equal("16", (string?)card.Attribute("CornerRadius"));
+
+        var content = Assert.Single(card.Descendants(Presentation + "Grid").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "DailyFocusRecordContent"));
+        Assert.Contains(content.Descendants(Presentation + "DataTrigger"), trigger =>
+            (string?)trigger.Attribute("Binding") == "{Binding CanViewDailyFocusRecord}" &&
+            (string?)trigger.Attribute("Value") == "True" &&
+            trigger.Descendants(Presentation + "Setter").Any(setter =>
+                (string?)setter.Attribute("Property") == "Visibility" &&
+                (string?)setter.Attribute("Value") == "Visible"));
+        Assert.Contains(content.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "{Binding SelectedDateDisplay}");
+        Assert.Contains(content.Descendants(Presentation + "ItemsControl"), control =>
+            (string?)control.Attribute("ItemsSource") == "{Binding SelectedDayRecords}");
+
+        var locked = Assert.Single(card.Descendants(Presentation + "Grid").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "DailyFocusRecordLockedPlaceholder"));
+        Assert.Contains(locked.Descendants(Presentation + "DataTrigger"), trigger =>
+            (string?)trigger.Attribute("Binding") == "{Binding CanViewDailyFocusRecord}" &&
+            (string?)trigger.Attribute("Value") == "True" &&
+            trigger.Descendants(Presentation + "Setter").Any(setter =>
+                (string?)setter.Attribute("Property") == "Visibility" &&
+                (string?)setter.Attribute("Value") == "Collapsed"));
+        Assert.Contains(locked.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "当日专注记录");
+        Assert.Contains(locked.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "VIP专享");
+        Assert.Contains(locked.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("FontFamily") == "Segoe MDL2 Assets" &&
+            (string?)text.Attribute("Text") == "\uE72E");
+        Assert.DoesNotContain(locked.Descendants(), element =>
+            element.Attributes().Any(attribute => attribute.Value.Contains("SelectedDay", StringComparison.Ordinal)));
+        Assert.DoesNotContain(locked.Descendants(Presentation + "ItemsControl"), _ => true);
+        var lockedScrollViewer = Assert.Single(locked.Descendants(Presentation + "ScrollViewer"));
+        Assert.Equal("False", (string?)lockedScrollViewer.Attribute("IsHitTestVisible"));
     }
 
     [Fact]

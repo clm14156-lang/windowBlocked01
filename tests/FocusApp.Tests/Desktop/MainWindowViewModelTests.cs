@@ -259,6 +259,8 @@ public sealed class MainWindowViewModelTests
         Assert.Equal(expectedMembership, viewModel.MembershipType);
         Assert.Equal(expectedVip, viewModel.IsVipMember);
         Assert.Equal(expectedVip, viewModel.StatisticsPage.CanViewTrend);
+        Assert.Equal(expectedVip, viewModel.StatisticsPage.CanViewDailyFocusRecord);
+        Assert.Equal(expectedVip, viewModel.StatisticsPage.CanViewGoalInvestmentDetails);
 
         viewModel.OpenAuthCommand.Execute(null);
         viewModel.OpenVipCommand.Execute(null);
@@ -292,6 +294,8 @@ public sealed class MainWindowViewModelTests
         Assert.Equal(MembershipType.Normal, viewModel.MembershipType);
         Assert.False(viewModel.IsVipMember);
         Assert.False(viewModel.StatisticsPage.CanViewTrend);
+        Assert.False(viewModel.StatisticsPage.CanViewDailyFocusRecord);
+        Assert.False(viewModel.StatisticsPage.CanViewGoalInvestmentDetails);
     }
 
     [Fact]
