@@ -29,6 +29,7 @@ public sealed class ThemePanelViewModelTests
         viewModel.SelectThemeCommand.Execute("Blue");
 
         Assert.Equal("Blue", viewModel.SelectedThemeKey);
+        Assert.Equal("Blue", viewModel.VisualSelectedThemeKey);
         Assert.Equal("Blue", previewedTheme);
     }
 
@@ -94,6 +95,7 @@ public sealed class ThemePanelViewModelTests
         Assert.Equal("Orange", viewModel.OriginalThemeKey);
         Assert.Equal("Starry", viewModel.PreviewThemeKey);
         Assert.Equal("Orange", viewModel.SelectedThemeKey);
+        Assert.Null(viewModel.VisualSelectedThemeKey);
         Assert.Equal("正在预览：星空主题", viewModel.PreviewStatusDisplay);
         Assert.Equal(["Starry"], appliedThemes);
 
@@ -110,6 +112,7 @@ public sealed class ThemePanelViewModelTests
         Assert.Null(viewModel.OriginalThemeKey);
         Assert.Null(viewModel.PreviewThemeKey);
         Assert.Equal("Orange", viewModel.SelectedThemeKey);
+        Assert.Equal("Orange", viewModel.VisualSelectedThemeKey);
         Assert.Equal(["Starry", "Mountain", "Orange"], appliedThemes);
     }
 

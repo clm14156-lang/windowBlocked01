@@ -24,6 +24,18 @@
         <SolidColorBrush x:Key="ThemeOrangeBrush" Color="#FF8500" />
         <SolidColorBrush x:Key="ThemeBlueBrush" Color="#3989EF" />
         <SolidColorBrush x:Key="ThemeCyanBrush" Color="#39C4CC" />
+        <SolidColorBrush x:Key="ThemeOrangeHoverBrush" Color="#FF8500" />
+        <SolidColorBrush x:Key="ThemeBlueHoverBrush" Color="#3989EF" />
+        <SolidColorBrush x:Key="ThemeCyanHoverBrush" Color="#39C4CC" />
+        <SolidColorBrush x:Key="ThemeDarkHoverBrush" Color="#2A2A2A" />
+        <SolidColorBrush x:Key="ThemeWarmHoverBrush" Color="#FF7578" />
+        <SolidColorBrush x:Key="ThemeSkyHoverBrush" Color="#4A93EF" />
+        <SolidColorBrush x:Key="ThemeDreamHoverBrush" Color="#8659E8" />
+        <SolidColorBrush x:Key="ThemeFreshHoverBrush" Color="#35BDA8" />
+        <SolidColorBrush x:Key="ThemeStarryHoverBrush" Color="#30206E" />
+        <SolidColorBrush x:Key="ThemeMountainHoverBrush" Color="#A66C52" />
+        <SolidColorBrush x:Key="ThemeForestHoverBrush" Color="#347154" />
+        <SolidColorBrush x:Key="ThemeSnowHoverBrush" Color="#62A9D8" />
         <LinearGradientBrush x:Key="ThemeDarkBrush" StartPoint="0,0" EndPoint="1,1">
             <GradientStop Offset="0" Color="#353535" />
             <GradientStop Offset="1" Color="#161616" />
@@ -74,7 +86,7 @@
             <Setter Property="Width" Value="97.5" />
             <Setter Property="Height" Value="102" />
             <Setter Property="BorderBrush" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="1.5" />
+            <Setter Property="BorderThickness" Value="2" />
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
             <Setter Property="FontSize" Value="13" />
             <Setter Property="FontWeight" Value="Normal" />
@@ -82,16 +94,15 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type RadioButton}">
-                        <Grid Width="97.5" Height="102">
-                            <Border x:Name="SelectionBorder"
-                                    Width="75"
-                                    Height="75"
-                                    HorizontalAlignment="Center"
-                                    VerticalAlignment="Top"
-                                    Padding="3.75,1.5,3.75,3.75"
-                                    BorderBrush="{TemplateBinding BorderBrush}"
-                                    BorderThickness="{TemplateBinding BorderThickness}"
-                                    CornerRadius="12.75">
+                        <Grid Width="97.5" Height="102" ClipToBounds="False">
+                            <Grid x:Name="ThumbnailFrame"
+                                  Width="75"
+                                  Height="75"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Top"
+                                  ClipToBounds="False"
+                                  UseLayoutRounding="False"
+                                  SnapsToDevicePixels="False">
                                 <Grid x:Name="ThumbnailClip"
                                       Width="64.5"
                                       Height="66.75"
@@ -105,10 +116,11 @@
                                             Background="{TemplateBinding Background}"
                                             CornerRadius="10.5" />
                                     <Border x:Name="ThumbnailHoverBorder"
-                                            BorderBrush="Transparent"
+                                            BorderBrush="{TemplateBinding BorderBrush}"
                                             BorderThickness="1.5"
                                             CornerRadius="10.5"
-                                            IsHitTestVisible="False" />
+                                            IsHitTestVisible="False"
+                                            Visibility="Collapsed" />
                                     <Button x:Name="PreviewThemeButton"
                                             Width="45"
                                             Height="23.25"
@@ -186,43 +198,51 @@
                                                    Text="&#xE72E;" />
                                     </Border>
                                 </Grid>
-                            </Border>
-                            <Border x:Name="PreviewSelectionBorder"
-                                    Width="75"
-                                    Height="75"
-                                    HorizontalAlignment="Center"
-                                    VerticalAlignment="Top"
-                                    BorderBrush="{DynamicResource AccentPrimary}"
-                                    BorderThickness="1.5"
-                                    CornerRadius="12.75"
-                                    IsHitTestVisible="False">
-                                <Border.Visibility>
-                                    <MultiBinding Converter="{StaticResource ThemePreviewVisualVisibilityConverter}" ConverterParameter="Previewing">
-                                        <Binding Path="DataContext.CanUsePremiumThemes" RelativeSource="{RelativeSource TemplatedParent}" />
-                                        <Binding Path="CommandParameter" RelativeSource="{RelativeSource TemplatedParent}" />
-                                        <Binding ElementName="ThumbnailClip" Path="IsMouseOver" />
-                                        <Binding Path="DataContext.PreviewThemeKey" RelativeSource="{RelativeSource TemplatedParent}" />
-                                    </MultiBinding>
-                                </Border.Visibility>
-                            </Border>
-                            <Border x:Name="CheckBadge"
-                                    Width="21.75"
-                                    Height="21.75"
-                                    Margin="0,-3.75,5.25,0"
-                                    HorizontalAlignment="Right"
-                                    VerticalAlignment="Top"
-                                    Background="{DynamicResource AccentPrimary}"
-                                    BorderBrush="{DynamicResource SurfacePrimary}"
-                                    BorderThickness="2.25"
-                                    CornerRadius="11.25"
-                                    Visibility="Collapsed">
-                                <TextBlock HorizontalAlignment="Center"
-                                           VerticalAlignment="Center"
-                                           FontFamily="Segoe MDL2 Assets"
-                                           FontSize="10.5"
-                                           Foreground="{DynamicResource WhiteText}"
-                                           Text="&#xE73E;" />
-                            </Border>
+                                <Border x:Name="SelectionBorder"
+                                        BorderBrush="Transparent"
+                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                        CornerRadius="12.75"
+                                        IsHitTestVisible="False" />
+                                <Border x:Name="PreviewSelectionBorder"
+                                        BorderBrush="{DynamicResource AccentPrimary}"
+                                        BorderThickness="2"
+                                        CornerRadius="12.75"
+                                        IsHitTestVisible="False">
+                                    <Border.Visibility>
+                                        <MultiBinding Converter="{StaticResource ThemePreviewVisualVisibilityConverter}" ConverterParameter="Previewing">
+                                            <Binding Path="DataContext.CanUsePremiumThemes" RelativeSource="{RelativeSource TemplatedParent}" />
+                                            <Binding Path="CommandParameter" RelativeSource="{RelativeSource TemplatedParent}" />
+                                            <Binding ElementName="ThumbnailClip" Path="IsMouseOver" />
+                                            <Binding Path="DataContext.PreviewThemeKey" RelativeSource="{RelativeSource TemplatedParent}" />
+                                        </MultiBinding>
+                                    </Border.Visibility>
+                                </Border>
+                            </Grid>
+                            <Grid x:Name="CheckBadgeLayer"
+                                  Width="87"
+                                  Height="75"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Top"
+                                  ClipToBounds="False"
+                                  IsHitTestVisible="False">
+                                <Border x:Name="CheckBadge"
+                                        Width="21.75"
+                                        Height="21.75"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Top"
+                                        Background="{DynamicResource AccentPrimary}"
+                                        BorderBrush="{DynamicResource SurfacePrimary}"
+                                        BorderThickness="2.25"
+                                        CornerRadius="11.25"
+                                        Visibility="Collapsed">
+                                    <TextBlock HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"
+                                               FontFamily="Segoe MDL2 Assets"
+                                               FontSize="10.5"
+                                               Foreground="{DynamicResource WhiteText}"
+                                               Text="&#xE73E;" />
+                                </Border>
+                            </Grid>
                             <TextBlock Margin="0,78,0,0"
                                        HorizontalAlignment="Center"
                                        VerticalAlignment="Top"
@@ -233,7 +253,7 @@
                         </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="ThumbnailHoverBorder" Property="BorderBrush" Value="{DynamicResource AccentHover}" />
+                                <Setter TargetName="ThumbnailHoverBorder" Property="Visibility" Value="Visible" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter Property="Opacity" Value="0.82" />
@@ -242,6 +262,10 @@
                                 <Setter TargetName="SelectionBorder" Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
                                 <Setter TargetName="CheckBadge" Property="Visibility" Value="Visible" />
                             </Trigger>
+                            <DataTrigger Binding="{Binding DataContext.IsThemePreviewing, RelativeSource={RelativeSource TemplatedParent}}" Value="True">
+                                <Setter TargetName="SelectionBorder" Property="BorderBrush" Value="Transparent" />
+                                <Setter TargetName="CheckBadge" Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
@@ -293,26 +317,26 @@
                        Foreground="{DynamicResource TextPrimary}"
                        Text="{DynamicResource ThemePanelTitle}" />
             <StackPanel Canvas.Left="13.5" Canvas.Top="64.5" Orientation="Horizontal">
-                <RadioButton GroupName="ThemePanelThemes" Tag="{DynamicResource ThemeOrange}" Background="{StaticResource ThemeOrangeBrush}" Command="{Binding SelectThemeCommand}" CommandParameter="Orange" IsChecked="{Binding SelectedThemeKey, Converter={StaticResource ThemeKeyEqualityConverter}, ConverterParameter=Orange, Mode=OneWay}" Style="{StaticResource ThemeOptionStyle}" />
-                <RadioButton GroupName="ThemePanelThemes" Tag="{DynamicResource ThemeBlue}" Background="{StaticResource ThemeBlueBrush}" Command="{Binding SelectThemeCommand}" CommandParameter="Blue" IsChecked="{Binding SelectedThemeKey, Converter={StaticResource ThemeKeyEqualityConverter}, ConverterParameter=Blue, Mode=OneWay}" Style="{StaticResource ThemeOptionStyle}" />
-                <RadioButton GroupName="ThemePanelThemes" Tag="{DynamicResource ThemeCyan}" Background="{StaticResource ThemeCyanBrush}" Command="{Binding SelectThemeCommand}" CommandParameter="Cyan" IsChecked="{Binding SelectedThemeKey, Converter={StaticResource ThemeKeyEqualityConverter}, ConverterParameter=Cyan, Mode=OneWay}" Style="{StaticResource ThemeOptionStyle}" />
-                <RadioButton GroupName="ThemePanelThemes" Tag="{DynamicResource ThemeDark}" Background="{StaticResource ThemeDarkBrush}" Command="{Binding SelectThemeCommand}" CommandParameter="Dark" IsChecked="{Binding SelectedThemeKey, Converter={StaticResource ThemeKeyEqualityConverter}, ConverterParameter=Dark, Mode=OneWay}" Style="{StaticResource ThemeOptionStyle}" />
+                <RadioButton GroupName="ThemePanelThemes" Tag="{DynamicResource ThemeOrange}" Background="{StaticResource ThemeOrangeBrush}" BorderBrush="{StaticResource ThemeOrangeHoverBrush}" Command="{Binding SelectThemeCommand}" CommandParameter="Orange" IsChecked="{Binding VisualSelectedThemeKey, Converter={StaticResource ThemeKeyEqualityConverter}, ConverterParameter=Orange, Mode=OneWay}" Style="{StaticResource ThemeOptionStyle}" />
+                <RadioButton GroupName="ThemePanelThemes" Tag="{DynamicResource ThemeBlue}" Background="{StaticResource ThemeBlueBrush}" BorderBrush="{StaticResource ThemeBlueHoverBrush}" Command="{Binding SelectThemeCommand}" CommandParameter="Blue" IsChecked="{Binding VisualSelectedThemeKey, Converter={StaticResource ThemeKeyEqualityConverter}, ConverterParameter=Blue, Mode=OneWay}" Style="{StaticResource ThemeOptionStyle}" />
+                <RadioButton GroupName="ThemePanelThemes" Tag="{DynamicResource ThemeCyan}" Background="{StaticResource ThemeCyanBrush}" BorderBrush="{StaticResource ThemeCyanHoverBrush}" Command="{Binding SelectThemeCommand}" CommandParameter="Cyan" IsChecked="{Binding VisualSelectedThemeKey, Converter={StaticResource ThemeKeyEqualityConverter}, ConverterParameter=Cyan, Mode=OneWay}" Style="{StaticResource ThemeOptionStyle}" />
+                <RadioButton GroupName="ThemePanelThemes" Tag="{DynamicResource ThemeDark}" Background="{StaticResource ThemeDarkBrush}" BorderBrush="{StaticResource ThemeDarkHoverBrush}" Command="{Binding SelectThemeCommand}" CommandParameter="Dark" IsChecked="{Binding VisualSelectedThemeKey, Converter={StaticResource ThemeKeyEqualityConverter}, ConverterParameter=Dark, Mode=OneWay}" Style="{StaticResource ThemeOptionStyle}" />
             </StackPanel>
             <Border Canvas.Left="18" Canvas.Top="175.5" Width="384" Height="1" Background="{DynamicResource BorderPrimary}" Opacity="0.7" />
 
             <StackPanel Canvas.Left="13.5" Canvas.Top="194.25" Orientation="Horizontal">
-                <RadioButton GroupName="ThemePanelThemes" Tag="{DynamicResource ThemeWarm}" Background="{StaticResource ThemeWarmBrush}" Command="{Binding SelectThemeCommand}" CommandParameter="Warm" IsChecked="{Binding SelectedThemeKey, Converter={StaticResource ThemeKeyEqualityConverter}, ConverterParameter=Warm, Mode=OneWay}" Style="{StaticResource ThemePremiumOptionStyle}" />
-                <RadioButton GroupName="ThemePanelThemes" Tag="{DynamicResource ThemeSky}" Background="{StaticResource ThemeSkyBrush}" Command="{Binding SelectThemeCommand}" CommandParameter="Sky" IsChecked="{Binding SelectedThemeKey, Converter={StaticResource ThemeKeyEqualityConverter}, ConverterParameter=Sky, Mode=OneWay}" Style="{StaticResource ThemePremiumOptionStyle}" />
-                <RadioButton GroupName="ThemePanelThemes" Tag="{DynamicResource ThemeDream}" Background="{StaticResource ThemeDreamBrush}" Command="{Binding SelectThemeCommand}" CommandParameter="Dream" IsChecked="{Binding SelectedThemeKey, Converter={StaticResource ThemeKeyEqualityConverter}, ConverterParameter=Dream, Mode=OneWay}" Style="{StaticResource ThemePremiumOptionStyle}" />
-                <RadioButton GroupName="ThemePanelThemes" Tag="{DynamicResource ThemeFresh}" Background="{StaticResource ThemeFreshBrush}" Command="{Binding SelectThemeCommand}" CommandParameter="Fresh" IsChecked="{Binding SelectedThemeKey, Converter={StaticResource ThemeKeyEqualityConverter}, ConverterParameter=Fresh, Mode=OneWay}" Style="{StaticResource ThemePremiumOptionStyle}" />
+                <RadioButton GroupName="ThemePanelThemes" Tag="{DynamicResource ThemeWarm}" Background="{StaticResource ThemeWarmBrush}" BorderBrush="{StaticResource ThemeWarmHoverBrush}" Command="{Binding SelectThemeCommand}" CommandParameter="Warm" IsChecked="{Binding VisualSelectedThemeKey, Converter={StaticResource ThemeKeyEqualityConverter}, ConverterParameter=Warm, Mode=OneWay}" Style="{StaticResource ThemePremiumOptionStyle}" />
+                <RadioButton GroupName="ThemePanelThemes" Tag="{DynamicResource ThemeSky}" Background="{StaticResource ThemeSkyBrush}" BorderBrush="{StaticResource ThemeSkyHoverBrush}" Command="{Binding SelectThemeCommand}" CommandParameter="Sky" IsChecked="{Binding VisualSelectedThemeKey, Converter={StaticResource ThemeKeyEqualityConverter}, ConverterParameter=Sky, Mode=OneWay}" Style="{StaticResource ThemePremiumOptionStyle}" />
+                <RadioButton GroupName="ThemePanelThemes" Tag="{DynamicResource ThemeDream}" Background="{StaticResource ThemeDreamBrush}" BorderBrush="{StaticResource ThemeDreamHoverBrush}" Command="{Binding SelectThemeCommand}" CommandParameter="Dream" IsChecked="{Binding VisualSelectedThemeKey, Converter={StaticResource ThemeKeyEqualityConverter}, ConverterParameter=Dream, Mode=OneWay}" Style="{StaticResource ThemePremiumOptionStyle}" />
+                <RadioButton GroupName="ThemePanelThemes" Tag="{DynamicResource ThemeFresh}" Background="{StaticResource ThemeFreshBrush}" BorderBrush="{StaticResource ThemeFreshHoverBrush}" Command="{Binding SelectThemeCommand}" CommandParameter="Fresh" IsChecked="{Binding VisualSelectedThemeKey, Converter={StaticResource ThemeKeyEqualityConverter}, ConverterParameter=Fresh, Mode=OneWay}" Style="{StaticResource ThemePremiumOptionStyle}" />
             </StackPanel>
             <Border Canvas.Left="18" Canvas.Top="308.25" Width="384" Height="1" Background="{DynamicResource BorderPrimary}" Opacity="0.7" />
 
             <StackPanel Canvas.Left="13.5" Canvas.Top="329.25" Orientation="Horizontal">
-                <RadioButton GroupName="ThemePanelThemes" Tag="{DynamicResource ThemeStarry}" Background="{StaticResource ThemeStarryBrush}" Command="{Binding SelectThemeCommand}" CommandParameter="Starry" IsChecked="{Binding SelectedThemeKey, Converter={StaticResource ThemeKeyEqualityConverter}, ConverterParameter=Starry, Mode=OneWay}" Style="{StaticResource ThemePremiumOptionStyle}" />
-                <RadioButton GroupName="ThemePanelThemes" Tag="{DynamicResource ThemeMountain}" Background="{StaticResource ThemeMountainBrush}" Command="{Binding SelectThemeCommand}" CommandParameter="Mountain" IsChecked="{Binding SelectedThemeKey, Converter={StaticResource ThemeKeyEqualityConverter}, ConverterParameter=Mountain, Mode=OneWay}" Style="{StaticResource ThemePremiumOptionStyle}" />
-                <RadioButton GroupName="ThemePanelThemes" Tag="{DynamicResource ThemeForest}" Background="{StaticResource ThemeForestBrush}" Command="{Binding SelectThemeCommand}" CommandParameter="Forest" IsChecked="{Binding SelectedThemeKey, Converter={StaticResource ThemeKeyEqualityConverter}, ConverterParameter=Forest, Mode=OneWay}" Style="{StaticResource ThemePremiumOptionStyle}" />
-                <RadioButton GroupName="ThemePanelThemes" Tag="{DynamicResource ThemeSnow}" Background="{StaticResource ThemeSnowBrush}" Command="{Binding SelectThemeCommand}" CommandParameter="Snow" IsChecked="{Binding SelectedThemeKey, Converter={StaticResource ThemeKeyEqualityConverter}, ConverterParameter=Snow, Mode=OneWay}" Style="{StaticResource ThemePremiumOptionStyle}" />
+                <RadioButton GroupName="ThemePanelThemes" Tag="{DynamicResource ThemeStarry}" Background="{StaticResource ThemeStarryBrush}" BorderBrush="{StaticResource ThemeStarryHoverBrush}" Command="{Binding SelectThemeCommand}" CommandParameter="Starry" IsChecked="{Binding VisualSelectedThemeKey, Converter={StaticResource ThemeKeyEqualityConverter}, ConverterParameter=Starry, Mode=OneWay}" Style="{StaticResource ThemePremiumOptionStyle}" />
+                <RadioButton GroupName="ThemePanelThemes" Tag="{DynamicResource ThemeMountain}" Background="{StaticResource ThemeMountainBrush}" BorderBrush="{StaticResource ThemeMountainHoverBrush}" Command="{Binding SelectThemeCommand}" CommandParameter="Mountain" IsChecked="{Binding VisualSelectedThemeKey, Converter={StaticResource ThemeKeyEqualityConverter}, ConverterParameter=Mountain, Mode=OneWay}" Style="{StaticResource ThemePremiumOptionStyle}" />
+                <RadioButton GroupName="ThemePanelThemes" Tag="{DynamicResource ThemeForest}" Background="{StaticResource ThemeForestBrush}" BorderBrush="{StaticResource ThemeForestHoverBrush}" Command="{Binding SelectThemeCommand}" CommandParameter="Forest" IsChecked="{Binding VisualSelectedThemeKey, Converter={StaticResource ThemeKeyEqualityConverter}, ConverterParameter=Forest, Mode=OneWay}" Style="{StaticResource ThemePremiumOptionStyle}" />
+                <RadioButton GroupName="ThemePanelThemes" Tag="{DynamicResource ThemeSnow}" Background="{StaticResource ThemeSnowBrush}" BorderBrush="{StaticResource ThemeSnowHoverBrush}" Command="{Binding SelectThemeCommand}" CommandParameter="Snow" IsChecked="{Binding VisualSelectedThemeKey, Converter={StaticResource ThemeKeyEqualityConverter}, ConverterParameter=Snow, Mode=OneWay}" Style="{StaticResource ThemePremiumOptionStyle}" />
             </StackPanel>
             <Border x:Name="ThemePreviewStatusDivider"
                     Canvas.Left="18"
@@ -452,6 +476,7 @@
                             Background="{DynamicResource AccentPrimary}"
                             BorderThickness="0"
                             Command="{Binding OpenVipCommand}"
+                            ContentTemplate="{StaticResource ThemedButtonTextContentTemplate}"
                             Cursor="Hand"
                             FontSize="13"
                             FontWeight="Medium"

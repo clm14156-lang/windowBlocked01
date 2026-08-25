@@ -54,6 +54,8 @@ public sealed class ThemePanelViewModel : INotifyPropertyChanged
 
     public bool IsThemePreviewing => !string.IsNullOrWhiteSpace(PreviewThemeKey);
 
+    public string? VisualSelectedThemeKey => IsThemePreviewing ? null : SelectedThemeKey;
+
     public string? OriginalThemeKey
     {
         get => _originalThemeKey;
@@ -82,6 +84,7 @@ public sealed class ThemePanelViewModel : INotifyPropertyChanged
             _previewThemeKey = value;
             OnPropertyChanged();
             OnPropertyChanged(nameof(IsThemePreviewing));
+            OnPropertyChanged(nameof(VisualSelectedThemeKey));
             OnPropertyChanged(nameof(PreviewStatusDisplay));
         }
     }
@@ -117,6 +120,7 @@ public sealed class ThemePanelViewModel : INotifyPropertyChanged
 
             _selectedThemeKey = value;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(VisualSelectedThemeKey));
         }
     }
 

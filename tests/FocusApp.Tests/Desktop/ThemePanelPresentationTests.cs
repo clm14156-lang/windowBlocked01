@@ -51,6 +51,28 @@ public sealed class ThemePanelPresentationTests
             "Mode=OneWay",
             (string?)option.Attribute("IsChecked"),
             StringComparison.Ordinal));
+        Assert.All(options, option => Assert.Contains(
+            "VisualSelectedThemeKey",
+            (string?)option.Attribute("IsChecked"),
+            StringComparison.Ordinal));
+        var expectedHoverBrushes = new Dictionary<string, string>
+        {
+            ["Orange"] = "{StaticResource ThemeOrangeHoverBrush}",
+            ["Blue"] = "{StaticResource ThemeBlueHoverBrush}",
+            ["Cyan"] = "{StaticResource ThemeCyanHoverBrush}",
+            ["Dark"] = "{StaticResource ThemeDarkHoverBrush}",
+            ["Warm"] = "{StaticResource ThemeWarmHoverBrush}",
+            ["Sky"] = "{StaticResource ThemeSkyHoverBrush}",
+            ["Dream"] = "{StaticResource ThemeDreamHoverBrush}",
+            ["Fresh"] = "{StaticResource ThemeFreshHoverBrush}",
+            ["Starry"] = "{StaticResource ThemeStarryHoverBrush}",
+            ["Mountain"] = "{StaticResource ThemeMountainHoverBrush}",
+            ["Forest"] = "{StaticResource ThemeForestHoverBrush}",
+            ["Snow"] = "{StaticResource ThemeSnowHoverBrush}"
+        };
+        Assert.All(options, option => Assert.Equal(
+            expectedHoverBrushes[Assert.IsType<string>(option.Attribute("CommandParameter")?.Value)],
+            (string?)option.Attribute("BorderBrush")));
 
         var premiumStyle = Assert.Single(panel.Descendants(Presentation + "Style").Where(style =>
             (string?)style.Attribute(Xaml + "Key") == "ThemePremiumOptionStyle"));
@@ -62,6 +84,9 @@ public sealed class ThemePanelPresentationTests
         Assert.Contains(optionStyle.Elements(Presentation + "Setter"), setter =>
             (string?)setter.Attribute("Property") == "FontWeight" &&
             (string?)setter.Attribute("Value") == "Normal");
+        Assert.Contains(optionStyle.Elements(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("Property") == "BorderThickness" &&
+            (string?)setter.Attribute("Value") == "2");
         var permissionTrigger = Assert.Single(premiumStyle.Descendants(Presentation + "DataTrigger"));
         Assert.Equal("{Binding CanUsePremiumThemes}", (string?)permissionTrigger.Attribute("Binding"));
         Assert.Equal("False", (string?)permissionTrigger.Attribute("Value"));
@@ -74,6 +99,13 @@ public sealed class ThemePanelPresentationTests
         var lockBadge = Assert.Single(panel.Descendants(Presentation + "Border").Where(border =>
             (string?)border.Attribute(Xaml + "Name") == "LockBadge"));
         Assert.Equal("0,3,3,0", (string?)lockBadge.Attribute("Margin"));
+        var checkBadge = Assert.Single(panel.Descendants(Presentation + "Border").Where(border =>
+            (string?)border.Attribute(Xaml + "Name") == "CheckBadge"));
+        Assert.Null(checkBadge.Attribute("Margin"));
+        var checkBadgeLayer = Assert.IsType<XElement>(checkBadge.Parent);
+        Assert.Equal("CheckBadgeLayer", (string?)checkBadgeLayer.Attribute(Xaml + "Name"));
+        Assert.Equal("87", (string?)checkBadgeLayer.Attribute("Width"));
+        Assert.Equal("Center", (string?)checkBadgeLayer.Attribute("HorizontalAlignment"));
         var thumbnailClip = Assert.IsType<XElement>(lockBadge.Parent);
         Assert.Equal("ThumbnailClip", (string?)thumbnailClip.Attribute(Xaml + "Name"));
         Assert.Equal("64.5", (string?)thumbnailClip.Attribute("Width"));
@@ -94,13 +126,16 @@ public sealed class ThemePanelPresentationTests
             (string?)themeThumbnail.Attribute("CornerRadius"),
             (string?)thumbnailHoverBorder.Attribute("CornerRadius"));
         Assert.Equal("False", (string?)thumbnailHoverBorder.Attribute("IsHitTestVisible"));
+        Assert.Equal("Collapsed", (string?)thumbnailHoverBorder.Attribute("Visibility"));
+        Assert.Equal("{TemplateBinding BorderBrush}", (string?)thumbnailHoverBorder.Attribute("BorderBrush"));
         var hoverSetter = Assert.Single(optionStyle.Descendants(Presentation + "Trigger")
             .Where(trigger =>
                 (string?)trigger.Attribute("Property") == "IsMouseOver" &&
                 (string?)trigger.Attribute("Value") == "True")
             .SelectMany(trigger => trigger.Elements(Presentation + "Setter"))
-            .Where(setter => (string?)setter.Attribute("Property") == "BorderBrush"));
+            .Where(setter => (string?)setter.Attribute("Property") == "Visibility"));
         Assert.Equal("ThumbnailHoverBorder", (string?)hoverSetter.Attribute("TargetName"));
+        Assert.Equal("Visible", (string?)hoverSetter.Attribute("Value"));
         var lockVisibility = Assert.Single(lockBadge.Elements(Presentation + "Border.Visibility")
             .Elements(Presentation + "MultiBinding"));
         Assert.Equal("{StaticResource ThemeLockVisibilityConverter}",
@@ -118,8 +153,45 @@ public sealed class ThemePanelPresentationTests
 
         var previewSelection = Assert.Single(panel.Descendants(Presentation + "Border").Where(border =>
             (string?)border.Attribute(Xaml + "Name") == "PreviewSelectionBorder"));
-        Assert.Equal("75", (string?)previewSelection.Attribute("Width"));
-        Assert.Equal("75", (string?)previewSelection.Attribute("Height"));
+        var selectionBorder = Assert.Single(panel.Descendants(Presentation + "Border").Where(border =>
+            (string?)border.Attribute(Xaml + "Name") == "SelectionBorder"));
+        var thumbnailFrame = Assert.IsType<XElement>(selectionBorder.Parent);
+        Assert.Equal("ThumbnailFrame", (string?)thumbnailFrame.Attribute(Xaml + "Name"));
+        Assert.Equal("75", (string?)thumbnailFrame.Attribute("Width"));
+        Assert.Equal("75", (string?)thumbnailFrame.Attribute("Height"));
+        Assert.Equal("False", (string?)thumbnailFrame.Attribute("ClipToBounds"));
+        Assert.Equal("False", (string?)thumbnailFrame.Attribute("UseLayoutRounding"));
+        Assert.Equal("False", (string?)thumbnailFrame.Attribute("SnapsToDevicePixels"));
+        Assert.Same(thumbnailFrame, thumbnailClip.Parent);
+        Assert.DoesNotContain(thumbnailFrame.Elements(Presentation + "Border"), border =>
+            (string?)border.Attribute(Xaml + "Name") == "ThumbnailContentLayout");
+        Assert.Same(thumbnailFrame, previewSelection.Parent);
+        Assert.Null(selectionBorder.Attribute("Margin"));
+        Assert.Equal("Transparent", (string?)selectionBorder.Attribute("BorderBrush"));
+        Assert.Equal("{TemplateBinding BorderThickness}", (string?)selectionBorder.Attribute("BorderThickness"));
+        var selectedVisualTrigger = Assert.Single(optionStyle.Descendants(Presentation + "Trigger").Where(trigger =>
+            (string?)trigger.Attribute("Property") == "IsChecked" &&
+            (string?)trigger.Attribute("Value") == "True"));
+        Assert.Contains(selectedVisualTrigger.Elements(Presentation + "Setter"), setter =>
+                (string?)setter.Attribute("TargetName") == "SelectionBorder" &&
+                (string?)setter.Attribute("Property") == "BorderBrush" &&
+                (string?)setter.Attribute("Value") == "{DynamicResource AccentPrimary}");
+        Assert.Contains(selectedVisualTrigger.Elements(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("TargetName") == "CheckBadge" &&
+            (string?)setter.Attribute("Property") == "Visibility" &&
+            (string?)setter.Attribute("Value") == "Visible");
+        var previewVisualOverride = Assert.Single(optionStyle.Descendants(Presentation + "DataTrigger").Where(trigger =>
+            (string?)trigger.Attribute("Binding") == "{Binding DataContext.IsThemePreviewing, RelativeSource={RelativeSource TemplatedParent}}" &&
+            (string?)trigger.Attribute("Value") == "True"));
+        Assert.Contains(previewVisualOverride.Elements(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("TargetName") == "SelectionBorder" &&
+            (string?)setter.Attribute("Property") == "BorderBrush" &&
+            (string?)setter.Attribute("Value") == "Transparent");
+        Assert.Contains(previewVisualOverride.Elements(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("TargetName") == "CheckBadge" &&
+            (string?)setter.Attribute("Property") == "Visibility" &&
+            (string?)setter.Attribute("Value") == "Collapsed");
+        Assert.Equal("2", (string?)previewSelection.Attribute("BorderThickness"));
         Assert.Equal("{DynamicResource AccentPrimary}", (string?)previewSelection.Attribute("BorderBrush"));
         Assert.Contains(previewSelection.Descendants(Presentation + "MultiBinding"), binding =>
             (string?)binding.Attribute("ConverterParameter") == "Previewing");
@@ -179,6 +251,10 @@ public sealed class ThemePanelPresentationTests
         Assert.Equal("125.5", (string?)upgradeButton.Attribute("Width"));
         Assert.Equal("37", (string?)upgradeButton.Attribute("Height"));
         Assert.Equal("Left", (string?)upgradeButton.Attribute("HorizontalAlignment"));
+        Assert.Equal("{DynamicResource WhiteText}", (string?)upgradeButton.Attribute("Foreground"));
+        Assert.Equal(
+            "{StaticResource ThemedButtonTextContentTemplate}",
+            (string?)upgradeButton.Attribute("ContentTemplate"));
 
         var previewingLabel = Assert.Single(panel.Descendants(Presentation + "TextBlock").Where(text =>
             (string?)text.Attribute("Text") == "预览中"));
