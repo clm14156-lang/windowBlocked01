@@ -261,6 +261,7 @@ public sealed class MainWindowViewModelTests
         Assert.Equal(expectedVip, viewModel.StatisticsPage.CanViewTrend);
         Assert.Equal(expectedVip, viewModel.StatisticsPage.CanViewDailyFocusRecord);
         Assert.Equal(expectedVip, viewModel.StatisticsPage.CanViewGoalInvestmentDetails);
+        Assert.Equal(expectedVip, viewModel.ThemePanel.CanUsePremiumThemes);
 
         viewModel.OpenAuthCommand.Execute(null);
         viewModel.OpenVipCommand.Execute(null);
@@ -275,6 +276,22 @@ public sealed class MainWindowViewModelTests
             Assert.True(viewModel.VipModal.IsOpen);
             Assert.False(viewModel.MembershipCenter.IsOpen);
         }
+    }
+
+    [Fact]
+    public void GuestThemeVipEntryClosesThemePanelAndOpensVipGuide()
+    {
+        var home = new NavigationItemViewModel(NavigationPage.Home, "Home", "H");
+        var accountNavigation = new NavigationItemViewModel(NavigationPage.Account, "Account", "A");
+        var homePage = new HomePageViewModel([new HomeDurationOptionViewModel("25 minutes", string.Empty)]);
+        var viewModel = new MainWindowViewModel([home], accountNavigation, homePage);
+        viewModel.ToggleThemePanelCommand.Execute(null);
+
+        viewModel.ThemePanel.OpenVipCommand.Execute(null);
+
+        Assert.False(viewModel.ThemePanel.IsOpen);
+        Assert.True(viewModel.VipModal.IsOpen);
+        Assert.False(viewModel.MembershipCenter.IsOpen);
     }
 
     [Fact]
@@ -296,6 +313,7 @@ public sealed class MainWindowViewModelTests
         Assert.False(viewModel.StatisticsPage.CanViewTrend);
         Assert.False(viewModel.StatisticsPage.CanViewDailyFocusRecord);
         Assert.False(viewModel.StatisticsPage.CanViewGoalInvestmentDetails);
+        Assert.False(viewModel.ThemePanel.CanUsePremiumThemes);
     }
 
     [Fact]

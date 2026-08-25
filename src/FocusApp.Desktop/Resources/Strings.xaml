@@ -166,6 +166,9 @@
     <system:String x:Key="ThemeForest">森林</system:String>
     <system:String x:Key="ThemeSnow">雪山</system:String>
     <system:String x:Key="ThemeMoon">月光</system:String>
+    <system:String x:Key="ThemePanelVipUnlockPrefix">开通 </system:String>
+    <system:String x:Key="ThemePanelVipUnlockLabel">VIP</system:String>
+    <system:String x:Key="ThemePanelVipUnlockSuffix"> 可以解锁全部主题</system:String>
     <system:String x:Key="HomeMinimizeButton">最小化</system:String>
     <system:String x:Key="FocusFloatingStatus">专注中</system:String>
     <system:String x:Key="FocusFloatingExpandButton">展开专注窗口</system:String>
