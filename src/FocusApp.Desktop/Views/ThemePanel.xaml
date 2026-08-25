@@ -4,6 +4,7 @@
              xmlns:views="clr-namespace:FocusApp.Desktop.Views"
              Width="420"
              Background="Transparent"
+             TextElement.FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI"
              UseLayoutRounding="True"
              SnapsToDevicePixels="True">
     <UserControl.Style>
@@ -70,36 +71,47 @@
         </RadialGradientBrush>
 
         <Style x:Key="ThemeOptionStyle" TargetType="{x:Type RadioButton}">
-            <Setter Property="Width" Value="130" />
-            <Setter Property="Height" Value="136" />
+            <Setter Property="Width" Value="97.5" />
+            <Setter Property="Height" Value="102" />
             <Setter Property="BorderBrush" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="2" />
+            <Setter Property="BorderThickness" Value="1.5" />
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-            <Setter Property="FontSize" Value="16" />
-            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="Normal" />
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type RadioButton}">
-                        <Grid Width="130" Height="136">
+                        <Grid Width="97.5" Height="102">
                             <Border x:Name="SelectionBorder"
-                                    Width="100"
-                                    Height="100"
+                                    Width="75"
+                                    Height="75"
                                     HorizontalAlignment="Center"
                                     VerticalAlignment="Top"
-                                    Padding="5,2,5,5"
+                                    Padding="3.75,1.5,3.75,3.75"
                                     BorderBrush="{TemplateBinding BorderBrush}"
                                     BorderThickness="{TemplateBinding BorderThickness}"
-                                    CornerRadius="17">
-                                <Grid x:Name="ThumbnailClip" ClipToBounds="True">
+                                    CornerRadius="12.75">
+                                <Grid x:Name="ThumbnailClip"
+                                      Width="64.5"
+                                      Height="66.75"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"
+                                      ClipToBounds="True">
                                     <Grid.Clip>
-                                        <RectangleGeometry Rect="0,0,86,89" RadiusX="14" RadiusY="14" />
+                                        <RectangleGeometry Rect="0,0,64.5,66.75" RadiusX="10.5" RadiusY="10.5" />
                                     </Grid.Clip>
-                                    <Border Background="{TemplateBinding Background}"
-                                            CornerRadius="14" />
+                                    <Border x:Name="ThemeThumbnail"
+                                            Background="{TemplateBinding Background}"
+                                            CornerRadius="10.5" />
+                                    <Border x:Name="ThumbnailHoverBorder"
+                                            BorderBrush="Transparent"
+                                            BorderThickness="1.5"
+                                            CornerRadius="10.5"
+                                            IsHitTestVisible="False" />
                                     <Button x:Name="PreviewThemeButton"
-                                            Width="60"
-                                            Height="31"
+                                            Width="45"
+                                            Height="23.25"
                                             HorizontalAlignment="Center"
                                             VerticalAlignment="Center"
                                             Background="#80000000"
@@ -124,8 +136,8 @@
                                                         Background="{TemplateBinding Background}"
                                                         BorderBrush="{TemplateBinding BorderBrush}"
                                                         BorderThickness="{TemplateBinding BorderThickness}"
-                                                        CornerRadius="8">
-                                                    <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="16" FontWeight="Medium" Foreground="{TemplateBinding Foreground}" Text="预览" />
+                                                        CornerRadius="6">
+                                                    <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="13" FontWeight="Medium" Foreground="{TemplateBinding Foreground}" Text="预览" />
                                                 </Border>
                                                 <ControlTemplate.Triggers>
                                                     <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="PreviewButtonBackground" Property="Background" Value="#A6000000" /></Trigger>
@@ -135,11 +147,11 @@
                                         </Button.Template>
                                     </Button>
                                     <Border x:Name="PreviewingBadge"
-                                            Height="27"
-                                            Margin="6,0,6,6"
+                                            Height="20.25"
+                                            Margin="4.5,0,4.5,4.5"
                                             VerticalAlignment="Bottom"
                                             Background="#B3FFFFFF"
-                                            CornerRadius="7">
+                                            CornerRadius="5.25">
                                         <Border.Visibility>
                                             <MultiBinding Converter="{StaticResource ThemePreviewVisualVisibilityConverter}" ConverterParameter="Previewing">
                                                 <Binding Path="DataContext.CanUsePremiumThemes" RelativeSource="{RelativeSource TemplatedParent}" />
@@ -148,16 +160,16 @@
                                                 <Binding Path="DataContext.PreviewThemeKey" RelativeSource="{RelativeSource TemplatedParent}" />
                                             </MultiBinding>
                                         </Border.Visibility>
-                                        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource AccentPrimary}" Text="预览中" />
+                                        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource AccentPrimary}" Text="预览中" />
                                     </Border>
                                     <Border x:Name="LockBadge"
-                                            Width="31"
-                                            Height="31"
-                                            Margin="0,4,4,0"
+                                            Width="23.25"
+                                            Height="23.25"
+                                            Margin="0,3,3,0"
                                             HorizontalAlignment="Right"
                                             VerticalAlignment="Top"
                                             Background="#66000000"
-                                            CornerRadius="10">
+                                            CornerRadius="7.5">
                                         <Border.Visibility>
                                             <MultiBinding Converter="{StaticResource ThemeLockVisibilityConverter}">
                                                 <Binding Path="DataContext.CanUsePremiumThemes" RelativeSource="{RelativeSource TemplatedParent}" />
@@ -169,20 +181,20 @@
                                         <TextBlock HorizontalAlignment="Center"
                                                    VerticalAlignment="Center"
                                                    FontFamily="Segoe MDL2 Assets"
-                                                   FontSize="15"
+                                                   FontSize="11.25"
                                                    Foreground="{DynamicResource WhiteText}"
                                                    Text="&#xE72E;" />
                                     </Border>
                                 </Grid>
                             </Border>
                             <Border x:Name="PreviewSelectionBorder"
-                                    Width="100"
-                                    Height="100"
+                                    Width="75"
+                                    Height="75"
                                     HorizontalAlignment="Center"
                                     VerticalAlignment="Top"
                                     BorderBrush="{DynamicResource AccentPrimary}"
-                                    BorderThickness="2"
-                                    CornerRadius="17"
+                                    BorderThickness="1.5"
+                                    CornerRadius="12.75"
                                     IsHitTestVisible="False">
                                 <Border.Visibility>
                                     <MultiBinding Converter="{StaticResource ThemePreviewVisualVisibilityConverter}" ConverterParameter="Previewing">
@@ -194,24 +206,24 @@
                                 </Border.Visibility>
                             </Border>
                             <Border x:Name="CheckBadge"
-                                    Width="29"
-                                    Height="29"
-                                    Margin="0,-5,7,0"
+                                    Width="21.75"
+                                    Height="21.75"
+                                    Margin="0,-3.75,5.25,0"
                                     HorizontalAlignment="Right"
                                     VerticalAlignment="Top"
                                     Background="{DynamicResource AccentPrimary}"
                                     BorderBrush="{DynamicResource SurfacePrimary}"
-                                    BorderThickness="3"
-                                    CornerRadius="15"
+                                    BorderThickness="2.25"
+                                    CornerRadius="11.25"
                                     Visibility="Collapsed">
                                 <TextBlock HorizontalAlignment="Center"
                                            VerticalAlignment="Center"
                                            FontFamily="Segoe MDL2 Assets"
-                                           FontSize="14"
+                                           FontSize="10.5"
                                            Foreground="{DynamicResource WhiteText}"
                                            Text="&#xE73E;" />
                             </Border>
-                            <TextBlock Margin="0,104,0,0"
+                            <TextBlock Margin="0,78,0,0"
                                        HorizontalAlignment="Center"
                                        VerticalAlignment="Top"
                                        FontSize="{TemplateBinding FontSize}"
@@ -221,7 +233,7 @@
                         </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="SelectionBorder" Property="BorderBrush" Value="{DynamicResource AccentHover}" />
+                                <Setter TargetName="ThumbnailHoverBorder" Property="BorderBrush" Value="{DynamicResource AccentHover}" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter Property="Opacity" Value="0.82" />
@@ -252,9 +264,13 @@
         </Style>
     </UserControl.Resources>
 
-    <Viewbox Width="420" Stretch="Uniform">
-        <Viewbox.Style>
-            <Style TargetType="{x:Type Viewbox}">
+    <Border Width="420"
+                Background="{DynamicResource SurfacePrimary}"
+                BorderBrush="{DynamicResource OverlayBorder}"
+                BorderThickness="1"
+                CornerRadius="13.5">
+        <Border.Style>
+            <Style TargetType="{x:Type Border}">
                 <Setter Property="Height" Value="510" />
                 <Style.Triggers>
                     <DataTrigger Binding="{Binding CanUsePremiumThemes}" Value="True">
@@ -262,61 +278,69 @@
                     </DataTrigger>
                 </Style.Triggers>
             </Style>
-        </Viewbox.Style>
-        <Border Width="560"
-                Background="{DynamicResource SurfacePrimary}"
-                BorderBrush="{DynamicResource OverlayBorder}"
-                BorderThickness="1"
-                CornerRadius="18">
-        <Border.Style>
-            <Style TargetType="{x:Type Border}">
-                <Setter Property="Height" Value="680" />
-                <Style.Triggers>
-                    <DataTrigger Binding="{Binding CanUsePremiumThemes}" Value="True">
-                        <Setter Property="Height" Value="600" />
-                    </DataTrigger>
-                </Style.Triggers>
-            </Style>
         </Border.Style>
         <Border.Effect>
-            <DropShadowEffect BlurRadius="20"
+            <DropShadowEffect BlurRadius="15"
                               Direction="270"
                               Opacity="0.12"
-                              ShadowDepth="5" />
+                              ShadowDepth="3.75" />
         </Border.Effect>
         <Canvas>
-            <TextBlock Canvas.Left="31"
-                       Canvas.Top="29"
-                       FontSize="28"
-                       FontWeight="Bold"
+            <TextBlock Canvas.Left="23.25"
+                       Canvas.Top="21.75"
+                       FontSize="17"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextPrimary}"
                        Text="{DynamicResource ThemePanelTitle}" />
-            <StackPanel Canvas.Left="18" Canvas.Top="86" Orientation="Horizontal">
+            <StackPanel Canvas.Left="13.5" Canvas.Top="64.5" Orientation="Horizontal">
                 <RadioButton GroupName="ThemePanelThemes" Tag="{DynamicResource ThemeOrange}" Background="{StaticResource ThemeOrangeBrush}" Command="{Binding SelectThemeCommand}" CommandParameter="Orange" IsChecked="{Binding SelectedThemeKey, Converter={StaticResource ThemeKeyEqualityConverter}, ConverterParameter=Orange, Mode=OneWay}" Style="{StaticResource ThemeOptionStyle}" />
                 <RadioButton GroupName="ThemePanelThemes" Tag="{DynamicResource ThemeBlue}" Background="{StaticResource ThemeBlueBrush}" Command="{Binding SelectThemeCommand}" CommandParameter="Blue" IsChecked="{Binding SelectedThemeKey, Converter={StaticResource ThemeKeyEqualityConverter}, ConverterParameter=Blue, Mode=OneWay}" Style="{StaticResource ThemeOptionStyle}" />
                 <RadioButton GroupName="ThemePanelThemes" Tag="{DynamicResource ThemeCyan}" Background="{StaticResource ThemeCyanBrush}" Command="{Binding SelectThemeCommand}" CommandParameter="Cyan" IsChecked="{Binding SelectedThemeKey, Converter={StaticResource ThemeKeyEqualityConverter}, ConverterParameter=Cyan, Mode=OneWay}" Style="{StaticResource ThemeOptionStyle}" />
                 <RadioButton GroupName="ThemePanelThemes" Tag="{DynamicResource ThemeDark}" Background="{StaticResource ThemeDarkBrush}" Command="{Binding SelectThemeCommand}" CommandParameter="Dark" IsChecked="{Binding SelectedThemeKey, Converter={StaticResource ThemeKeyEqualityConverter}, ConverterParameter=Dark, Mode=OneWay}" Style="{StaticResource ThemeOptionStyle}" />
             </StackPanel>
-            <Border Canvas.Left="24" Canvas.Top="234" Width="512" Height="1" Background="{DynamicResource BorderPrimary}" Opacity="0.7" />
+            <Border Canvas.Left="18" Canvas.Top="175.5" Width="384" Height="1" Background="{DynamicResource BorderPrimary}" Opacity="0.7" />
 
-            <StackPanel Canvas.Left="18" Canvas.Top="259" Orientation="Horizontal">
+            <StackPanel Canvas.Left="13.5" Canvas.Top="194.25" Orientation="Horizontal">
                 <RadioButton GroupName="ThemePanelThemes" Tag="{DynamicResource ThemeWarm}" Background="{StaticResource ThemeWarmBrush}" Command="{Binding SelectThemeCommand}" CommandParameter="Warm" IsChecked="{Binding SelectedThemeKey, Converter={StaticResource ThemeKeyEqualityConverter}, ConverterParameter=Warm, Mode=OneWay}" Style="{StaticResource ThemePremiumOptionStyle}" />
                 <RadioButton GroupName="ThemePanelThemes" Tag="{DynamicResource ThemeSky}" Background="{StaticResource ThemeSkyBrush}" Command="{Binding SelectThemeCommand}" CommandParameter="Sky" IsChecked="{Binding SelectedThemeKey, Converter={StaticResource ThemeKeyEqualityConverter}, ConverterParameter=Sky, Mode=OneWay}" Style="{StaticResource ThemePremiumOptionStyle}" />
                 <RadioButton GroupName="ThemePanelThemes" Tag="{DynamicResource ThemeDream}" Background="{StaticResource ThemeDreamBrush}" Command="{Binding SelectThemeCommand}" CommandParameter="Dream" IsChecked="{Binding SelectedThemeKey, Converter={StaticResource ThemeKeyEqualityConverter}, ConverterParameter=Dream, Mode=OneWay}" Style="{StaticResource ThemePremiumOptionStyle}" />
                 <RadioButton GroupName="ThemePanelThemes" Tag="{DynamicResource ThemeFresh}" Background="{StaticResource ThemeFreshBrush}" Command="{Binding SelectThemeCommand}" CommandParameter="Fresh" IsChecked="{Binding SelectedThemeKey, Converter={StaticResource ThemeKeyEqualityConverter}, ConverterParameter=Fresh, Mode=OneWay}" Style="{StaticResource ThemePremiumOptionStyle}" />
             </StackPanel>
-            <Border Canvas.Left="24" Canvas.Top="411" Width="512" Height="1" Background="{DynamicResource BorderPrimary}" Opacity="0.7" />
+            <Border Canvas.Left="18" Canvas.Top="308.25" Width="384" Height="1" Background="{DynamicResource BorderPrimary}" Opacity="0.7" />
 
-            <StackPanel Canvas.Left="18" Canvas.Top="439" Orientation="Horizontal">
+            <StackPanel Canvas.Left="13.5" Canvas.Top="329.25" Orientation="Horizontal">
                 <RadioButton GroupName="ThemePanelThemes" Tag="{DynamicResource ThemeStarry}" Background="{StaticResource ThemeStarryBrush}" Command="{Binding SelectThemeCommand}" CommandParameter="Starry" IsChecked="{Binding SelectedThemeKey, Converter={StaticResource ThemeKeyEqualityConverter}, ConverterParameter=Starry, Mode=OneWay}" Style="{StaticResource ThemePremiumOptionStyle}" />
                 <RadioButton GroupName="ThemePanelThemes" Tag="{DynamicResource ThemeMountain}" Background="{StaticResource ThemeMountainBrush}" Command="{Binding SelectThemeCommand}" CommandParameter="Mountain" IsChecked="{Binding SelectedThemeKey, Converter={StaticResource ThemeKeyEqualityConverter}, ConverterParameter=Mountain, Mode=OneWay}" Style="{StaticResource ThemePremiumOptionStyle}" />
                 <RadioButton GroupName="ThemePanelThemes" Tag="{DynamicResource ThemeForest}" Background="{StaticResource ThemeForestBrush}" Command="{Binding SelectThemeCommand}" CommandParameter="Forest" IsChecked="{Binding SelectedThemeKey, Converter={StaticResource ThemeKeyEqualityConverter}, ConverterParameter=Forest, Mode=OneWay}" Style="{StaticResource ThemePremiumOptionStyle}" />
                 <RadioButton GroupName="ThemePanelThemes" Tag="{DynamicResource ThemeSnow}" Background="{StaticResource ThemeSnowBrush}" Command="{Binding SelectThemeCommand}" CommandParameter="Snow" IsChecked="{Binding SelectedThemeKey, Converter={StaticResource ThemeKeyEqualityConverter}, ConverterParameter=Snow, Mode=OneWay}" Style="{StaticResource ThemePremiumOptionStyle}" />
             </StackPanel>
+            <Border x:Name="ThemePreviewStatusDivider"
+                    Canvas.Left="18"
+                    Canvas.Top="444.75"
+                    Width="384"
+                    Height="1"
+                    Background="{DynamicResource BorderPrimary}"
+                    Opacity="0.7">
+                <Border.Style>
+                    <Style TargetType="{x:Type Border}">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding CanUsePremiumThemes}" Value="False" />
+                                    <Condition Binding="{Binding IsThemePreviewing}" Value="True" />
+                                </MultiDataTrigger.Conditions>
+                                <Setter Property="Visibility" Value="Visible" />
+                            </MultiDataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+            </Border>
             <Button x:Name="ThemeVipUnlockButton"
-                    Canvas.Left="24"
-                    Canvas.Top="607"
-                    Width="512"
-                    Height="54"
+                    Canvas.Left="18"
+                    Canvas.Top="455.25"
+                    Width="384"
+                    Height="40.5"
                     Background="{DynamicResource SurfaceSecondary}"
                     BorderBrush="{DynamicResource BorderPrimary}"
                     BorderThickness="1"
@@ -343,16 +367,16 @@
                                 Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="12">
-                            <Grid Margin="20,0">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="28" /><ColumnDefinition /><ColumnDefinition Width="24" /></Grid.ColumnDefinitions>
-                                <Viewbox Width="22" Height="19" HorizontalAlignment="Left">
+                                CornerRadius="9">
+                            <Grid Margin="15,0">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="21" /><ColumnDefinition /><ColumnDefinition Width="18" /></Grid.ColumnDefinitions>
+                                <Viewbox Width="16.5" Height="14.25" HorizontalAlignment="Left">
                                     <Path Data="M 2,6 L 8,13 L 14,4 L 20,13 L 26,6 L 23,22 L 5,22 Z M 5,18 L 23,18" Fill="{DynamicResource TransparentBrush}" Stroke="{DynamicResource AccentPrimary}" StrokeEndLineCap="Round" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeThickness="2" />
                                 </Viewbox>
-                                <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="16" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}">
-                                    <Run Text="{DynamicResource ThemePanelVipUnlockPrefix}" /><Run FontWeight="SemiBold" Foreground="{DynamicResource AccentPrimary}" Text="{DynamicResource ThemePanelVipUnlockLabel}" /><Run Text="{DynamicResource ThemePanelVipUnlockSuffix}" />
+                                <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}">
+                                    <Run Text="{DynamicResource ThemePanelVipUnlockPrefix}" /><Run FontWeight="Medium" Foreground="{DynamicResource AccentPrimary}" Text="{DynamicResource ThemePanelVipUnlockLabel}" /><Run Text="{DynamicResource ThemePanelVipUnlockSuffix}" />
                                 </TextBlock>
-                                <TextBlock Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="{DynamicResource TextSecondary}" Text="&#xE76C;" />
+                                <TextBlock Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="11.25" Foreground="{DynamicResource TextSecondary}" Text="&#xE76C;" />
                             </Grid>
                         </Border>
                         <ControlTemplate.Triggers>
@@ -367,14 +391,12 @@
                 </Button.Template>
             </Button>
             <Border x:Name="ThemePreviewStatusBar"
-                    Canvas.Left="24"
-                    Canvas.Top="607"
-                    Width="512"
-                    Height="54"
-                    Background="{DynamicResource SurfaceSecondary}"
-                    BorderBrush="{DynamicResource BorderPrimary}"
-                    BorderThickness="1"
-                    CornerRadius="12">
+                    Canvas.Left="18"
+                    Canvas.Top="455.25"
+                    Width="384"
+                    Height="40.5"
+                    Background="{DynamicResource TransparentBrush}"
+                    BorderThickness="0">
                 <Border.Style>
                     <Style TargetType="{x:Type Border}">
                         <Setter Property="Visibility" Value="Collapsed" />
@@ -389,15 +411,17 @@
                         </Style.Triggers>
                     </Style>
                 </Border.Style>
-                <Grid Margin="16,0,10,0">
-                    <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="116" /><ColumnDefinition Width="154" /></Grid.ColumnDefinitions>
+                <Grid Margin="6,0">
+                    <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="97" /><ColumnDefinition Width="125.5" /></Grid.ColumnDefinitions>
                     <StackPanel VerticalAlignment="Center">
-                        <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="{Binding PreviewStatusDisplay}" />
-                        <TextBlock Margin="0,4,0,0" FontSize="11" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource ThemePanelPreviewHint}" />
+                        <TextBlock FontSize="12" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{Binding PreviewStatusDisplay}" />
+                        <TextBlock Margin="0,3,0,0" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource ThemePanelPreviewHint}" />
                     </StackPanel>
                     <Button Grid.Column="1"
-                            Height="36"
-                            Margin="4,0,6,0"
+                            Width="89.5"
+                            Height="37"
+                            Margin="3,0,4.5,0"
+                            HorizontalAlignment="Right"
                             VerticalAlignment="Center"
                             Background="{DynamicResource SurfacePrimary}"
                             BorderBrush="{DynamicResource BorderPrimary}"
@@ -410,7 +434,7 @@
                             Content="{DynamicResource ThemePanelRestoreOriginal}">
                         <Button.Template>
                             <ControlTemplate TargetType="{x:Type Button}">
-                                <Border x:Name="RestoreBackground" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="9">
+                                <Border x:Name="RestoreBackground" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6.75">
                                     <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" TextElement.Foreground="{TemplateBinding Foreground}" />
                                 </Border>
                                 <ControlTemplate.Triggers>
@@ -421,7 +445,9 @@
                         </Button.Template>
                     </Button>
                     <Button Grid.Column="2"
-                            Height="36"
+                            Width="125.5"
+                            Height="37"
+                            HorizontalAlignment="Left"
                             VerticalAlignment="Center"
                             Background="{DynamicResource AccentPrimary}"
                             BorderThickness="0"
@@ -433,7 +459,7 @@
                             Content="{DynamicResource ThemePanelUpgradeAndApply}">
                         <Button.Template>
                             <ControlTemplate TargetType="{x:Type Button}">
-                                <Border x:Name="UpgradeBackground" Background="{TemplateBinding Background}" CornerRadius="9">
+                                <Border x:Name="UpgradeBackground" Background="{TemplateBinding Background}" CornerRadius="6.75">
                                     <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" TextElement.Foreground="{TemplateBinding Foreground}" />
                                 </Border>
                                 <ControlTemplate.Triggers>
@@ -446,6 +472,5 @@
                 </Grid>
             </Border>
         </Canvas>
-        </Border>
-    </Viewbox>
+    </Border>
 </UserControl>

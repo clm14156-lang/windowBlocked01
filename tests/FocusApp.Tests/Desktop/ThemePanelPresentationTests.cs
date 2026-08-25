@@ -16,6 +16,18 @@ public sealed class ThemePanelPresentationTests
         var root = Assert.IsType<XElement>(panel.Root);
         Assert.Equal("420", (string?)root.Attribute("Width"));
         Assert.Null(root.Attribute("Height"));
+        Assert.Equal(
+            "Segoe UI Variable, Microsoft YaHei UI, Segoe UI",
+            (string?)root.Attribute("TextElement.FontFamily"));
+        Assert.Empty(root.Elements(Presentation + "Viewbox"));
+        var panelBorder = Assert.Single(root.Elements(Presentation + "Border"));
+        Assert.Equal("420", (string?)panelBorder.Attribute("Width"));
+
+        var title = Assert.Single(panel.Descendants(Presentation + "TextBlock").Where(text =>
+            (string?)text.Attribute("Text") == "{DynamicResource ThemePanelTitle}"));
+        Assert.Equal("17", (string?)title.Attribute("FontSize"));
+        Assert.Equal("SemiBold", (string?)title.Attribute("FontWeight"));
+        Assert.Equal("{DynamicResource TextPrimary}", (string?)title.Attribute("Foreground"));
 
         var rootStyle = Assert.Single(root.Elements(Presentation + "UserControl.Style")
             .Elements(Presentation + "Style"));
@@ -42,6 +54,14 @@ public sealed class ThemePanelPresentationTests
 
         var premiumStyle = Assert.Single(panel.Descendants(Presentation + "Style").Where(style =>
             (string?)style.Attribute(Xaml + "Key") == "ThemePremiumOptionStyle"));
+        var optionStyle = Assert.Single(panel.Descendants(Presentation + "Style").Where(style =>
+            (string?)style.Attribute(Xaml + "Key") == "ThemeOptionStyle"));
+        Assert.Contains(optionStyle.Elements(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("Property") == "FontSize" &&
+            (string?)setter.Attribute("Value") == "13");
+        Assert.Contains(optionStyle.Elements(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("Property") == "FontWeight" &&
+            (string?)setter.Attribute("Value") == "Normal");
         var permissionTrigger = Assert.Single(premiumStyle.Descendants(Presentation + "DataTrigger"));
         Assert.Equal("{Binding CanUsePremiumThemes}", (string?)permissionTrigger.Attribute("Binding"));
         Assert.Equal("False", (string?)permissionTrigger.Attribute("Value"));
@@ -53,15 +73,34 @@ public sealed class ThemePanelPresentationTests
 
         var lockBadge = Assert.Single(panel.Descendants(Presentation + "Border").Where(border =>
             (string?)border.Attribute(Xaml + "Name") == "LockBadge"));
-        Assert.Equal("0,4,4,0", (string?)lockBadge.Attribute("Margin"));
+        Assert.Equal("0,3,3,0", (string?)lockBadge.Attribute("Margin"));
         var thumbnailClip = Assert.IsType<XElement>(lockBadge.Parent);
         Assert.Equal("ThumbnailClip", (string?)thumbnailClip.Attribute(Xaml + "Name"));
+        Assert.Equal("64.5", (string?)thumbnailClip.Attribute("Width"));
+        Assert.Equal("66.75", (string?)thumbnailClip.Attribute("Height"));
+        Assert.Equal("Center", (string?)thumbnailClip.Attribute("HorizontalAlignment"));
+        Assert.Equal("Center", (string?)thumbnailClip.Attribute("VerticalAlignment"));
         Assert.Equal("True", (string?)thumbnailClip.Attribute("ClipToBounds"));
         var clipGeometry = Assert.Single(thumbnailClip.Elements(Presentation + "Grid.Clip")
             .Elements(Presentation + "RectangleGeometry"));
-        Assert.Equal("0,0,86,89", (string?)clipGeometry.Attribute("Rect"));
-        Assert.Equal("14", (string?)clipGeometry.Attribute("RadiusX"));
-        Assert.Equal("14", (string?)clipGeometry.Attribute("RadiusY"));
+        Assert.Equal("0,0,64.5,66.75", (string?)clipGeometry.Attribute("Rect"));
+        Assert.Equal("10.5", (string?)clipGeometry.Attribute("RadiusX"));
+        Assert.Equal("10.5", (string?)clipGeometry.Attribute("RadiusY"));
+        var themeThumbnail = Assert.Single(thumbnailClip.Elements(Presentation + "Border").Where(border =>
+            (string?)border.Attribute(Xaml + "Name") == "ThemeThumbnail"));
+        var thumbnailHoverBorder = Assert.Single(thumbnailClip.Elements(Presentation + "Border").Where(border =>
+            (string?)border.Attribute(Xaml + "Name") == "ThumbnailHoverBorder"));
+        Assert.Equal(
+            (string?)themeThumbnail.Attribute("CornerRadius"),
+            (string?)thumbnailHoverBorder.Attribute("CornerRadius"));
+        Assert.Equal("False", (string?)thumbnailHoverBorder.Attribute("IsHitTestVisible"));
+        var hoverSetter = Assert.Single(optionStyle.Descendants(Presentation + "Trigger")
+            .Where(trigger =>
+                (string?)trigger.Attribute("Property") == "IsMouseOver" &&
+                (string?)trigger.Attribute("Value") == "True")
+            .SelectMany(trigger => trigger.Elements(Presentation + "Setter"))
+            .Where(setter => (string?)setter.Attribute("Property") == "BorderBrush"));
+        Assert.Equal("ThumbnailHoverBorder", (string?)hoverSetter.Attribute("TargetName"));
         var lockVisibility = Assert.Single(lockBadge.Elements(Presentation + "Border.Visibility")
             .Elements(Presentation + "MultiBinding"));
         Assert.Equal("{StaticResource ThemeLockVisibilityConverter}",
@@ -79,8 +118,8 @@ public sealed class ThemePanelPresentationTests
 
         var previewSelection = Assert.Single(panel.Descendants(Presentation + "Border").Where(border =>
             (string?)border.Attribute(Xaml + "Name") == "PreviewSelectionBorder"));
-        Assert.Equal("100", (string?)previewSelection.Attribute("Width"));
-        Assert.Equal("100", (string?)previewSelection.Attribute("Height"));
+        Assert.Equal("75", (string?)previewSelection.Attribute("Width"));
+        Assert.Equal("75", (string?)previewSelection.Attribute("Height"));
         Assert.Equal("{DynamicResource AccentPrimary}", (string?)previewSelection.Attribute("BorderBrush"));
         Assert.Contains(previewSelection.Descendants(Presentation + "MultiBinding"), binding =>
             (string?)binding.Attribute("ConverterParameter") == "Previewing");
@@ -105,8 +144,24 @@ public sealed class ThemePanelPresentationTests
 
         var previewStatus = Assert.Single(panel.Descendants(Presentation + "Border").Where(border =>
             (string?)border.Attribute(Xaml + "Name") == "ThemePreviewStatusBar"));
-        Assert.Equal("512", (string?)previewStatus.Attribute("Width"));
-        Assert.Equal("54", (string?)previewStatus.Attribute("Height"));
+        Assert.Equal("384", (string?)previewStatus.Attribute("Width"));
+        Assert.Equal("40.5", (string?)previewStatus.Attribute("Height"));
+        Assert.Equal("{DynamicResource TransparentBrush}", (string?)previewStatus.Attribute("Background"));
+        Assert.Equal("0", (string?)previewStatus.Attribute("BorderThickness"));
+        Assert.Null(previewStatus.Attribute("CornerRadius"));
+        var previewStatusColumns = Assert.Single(previewStatus.Elements(Presentation + "Grid"))
+            .Elements(Presentation + "Grid.ColumnDefinitions")
+            .Elements(Presentation + "ColumnDefinition")
+            .ToList();
+        Assert.Equal("97", (string?)previewStatusColumns[1].Attribute("Width"));
+        Assert.Equal("125.5", (string?)previewStatusColumns[2].Attribute("Width"));
+        var previewStatusDivider = Assert.Single(panel.Descendants(Presentation + "Border").Where(border =>
+            (string?)border.Attribute(Xaml + "Name") == "ThemePreviewStatusDivider"));
+        Assert.Equal("384", (string?)previewStatusDivider.Attribute("Width"));
+        Assert.Equal("1", (string?)previewStatusDivider.Attribute("Height"));
+        Assert.Contains(previewStatusDivider.Descendants(Presentation + "Condition"), condition =>
+            (string?)condition.Attribute("Binding") == "{Binding IsThemePreviewing}" &&
+            (string?)condition.Attribute("Value") == "True");
         Assert.Contains(previewStatus.Descendants(Presentation + "Condition"), condition =>
             (string?)condition.Attribute("Binding") == "{Binding IsThemePreviewing}" &&
             (string?)condition.Attribute("Value") == "True");
@@ -114,6 +169,47 @@ public sealed class ThemePanelPresentationTests
             (string?)button.Attribute("Command") == "{Binding RestoreOriginalThemeCommand}");
         Assert.Contains(previewStatus.Descendants(Presentation + "Button"), button =>
             (string?)button.Attribute("Command") == "{Binding OpenVipCommand}");
+        var restoreButton = Assert.Single(previewStatus.Descendants(Presentation + "Button").Where(button =>
+            (string?)button.Attribute("Command") == "{Binding RestoreOriginalThemeCommand}"));
+        Assert.Equal("89.5", (string?)restoreButton.Attribute("Width"));
+        Assert.Equal("37", (string?)restoreButton.Attribute("Height"));
+        Assert.Equal("Right", (string?)restoreButton.Attribute("HorizontalAlignment"));
+        var upgradeButton = Assert.Single(previewStatus.Descendants(Presentation + "Button").Where(button =>
+            (string?)button.Attribute("Command") == "{Binding OpenVipCommand}"));
+        Assert.Equal("125.5", (string?)upgradeButton.Attribute("Width"));
+        Assert.Equal("37", (string?)upgradeButton.Attribute("Height"));
+        Assert.Equal("Left", (string?)upgradeButton.Attribute("HorizontalAlignment"));
+
+        var previewingLabel = Assert.Single(panel.Descendants(Presentation + "TextBlock").Where(text =>
+            (string?)text.Attribute("Text") == "预览中"));
+        Assert.Equal("12", (string?)previewingLabel.Attribute("FontSize"));
+        Assert.Equal("Medium", (string?)previewingLabel.Attribute("FontWeight"));
+        var previewStatusTitle = Assert.Single(previewStatus.Descendants(Presentation + "TextBlock").Where(text =>
+            (string?)text.Attribute("Text") == "{Binding PreviewStatusDisplay}"));
+        Assert.Equal("12", (string?)previewStatusTitle.Attribute("FontSize"));
+        Assert.Equal("Medium", (string?)previewStatusTitle.Attribute("FontWeight"));
+        Assert.Equal("{DynamicResource TextPrimary}", (string?)previewStatusTitle.Attribute("Foreground"));
+        var previewHint = Assert.Single(previewStatus.Descendants(Presentation + "TextBlock").Where(text =>
+            (string?)text.Attribute("Text") == "{DynamicResource ThemePanelPreviewHint}"));
+        Assert.Equal("12", (string?)previewHint.Attribute("FontSize"));
+        Assert.Equal("Normal", (string?)previewHint.Attribute("FontWeight"));
+        Assert.Equal("{DynamicResource TextSecondary}", (string?)previewHint.Attribute("Foreground"));
+        Assert.All(previewStatus.Descendants(Presentation + "Button"), button =>
+        {
+            Assert.Equal("13", (string?)button.Attribute("FontSize"));
+            Assert.Equal("Medium", (string?)button.Attribute("FontWeight"));
+        });
+
+        var ordinaryText = panel.Descendants(Presentation + "TextBlock").Where(text =>
+            (string?)text.Attribute("FontFamily") != "Segoe MDL2 Assets");
+        Assert.DoesNotContain(ordinaryText, text =>
+            text.Ancestors(Presentation + "Viewbox").Any());
+        Assert.DoesNotContain(ordinaryText, text =>
+            (string?)text.Attribute("FontSize") is "11" or "14" or "16" or "18" or "19");
+        Assert.DoesNotContain(ordinaryText, text =>
+            (string?)text.Attribute("FontWeight") == "Bold");
+        Assert.DoesNotContain(ordinaryText, text =>
+            (string?)text.Attribute("Foreground") == "#000000");
     }
 
     private static string FindRepositoryRoot()
