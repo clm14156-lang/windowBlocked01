@@ -169,6 +169,9 @@
     <system:String x:Key="ThemePanelVipUnlockPrefix">开通 </system:String>
     <system:String x:Key="ThemePanelVipUnlockLabel">VIP</system:String>
     <system:String x:Key="ThemePanelVipUnlockSuffix"> 可以解锁全部主题</system:String>
+    <system:String x:Key="ThemePanelPreviewHint">仅供预览，关闭后将恢复原主题</system:String>
+    <system:String x:Key="ThemePanelRestoreOriginal">恢复原主题</system:String>
+    <system:String x:Key="ThemePanelUpgradeAndApply">开通会员并应用</system:String>
     <system:String x:Key="HomeMinimizeButton">最小化</system:String>
     <system:String x:Key="FocusFloatingStatus">专注中</system:String>
     <system:String x:Key="FocusFloatingExpandButton">展开专注窗口</system:String>

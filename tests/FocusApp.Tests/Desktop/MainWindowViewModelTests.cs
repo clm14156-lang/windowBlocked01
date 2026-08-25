@@ -279,7 +279,7 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
-    public void GuestThemeVipEntryClosesThemePanelAndOpensVipGuide()
+    public void GuestThemeVipEntryKeepsThemePanelOpenAndOpensVipGuide()
     {
         var home = new NavigationItemViewModel(NavigationPage.Home, "Home", "H");
         var accountNavigation = new NavigationItemViewModel(NavigationPage.Account, "Account", "A");
@@ -289,7 +289,7 @@ public sealed class MainWindowViewModelTests
 
         viewModel.ThemePanel.OpenVipCommand.Execute(null);
 
-        Assert.False(viewModel.ThemePanel.IsOpen);
+        Assert.True(viewModel.ThemePanel.IsOpen);
         Assert.True(viewModel.VipModal.IsOpen);
         Assert.False(viewModel.MembershipCenter.IsOpen);
     }

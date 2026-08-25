@@ -379,6 +379,7 @@ public partial class MainWindow : Window
         }
 
         if (viewModel.ThemePanel.IsOpen &&
+            !viewModel.VipModal.IsOpen &&
             !ThemePanelControl.IsMouseOver &&
             !ThemeButton.IsMouseOver)
         {

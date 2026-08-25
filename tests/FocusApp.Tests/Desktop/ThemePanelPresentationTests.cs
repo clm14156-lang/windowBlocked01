@@ -45,9 +45,11 @@ public sealed class ThemePanelPresentationTests
         var permissionTrigger = Assert.Single(premiumStyle.Descendants(Presentation + "DataTrigger"));
         Assert.Equal("{Binding CanUsePremiumThemes}", (string?)permissionTrigger.Attribute("Binding"));
         Assert.Equal("False", (string?)permissionTrigger.Attribute("Value"));
-        Assert.Contains(permissionTrigger.Elements(Presentation + "Setter"), setter =>
-            (string?)setter.Attribute("Property") == "IsHitTestVisible" &&
-            (string?)setter.Attribute("Value") == "False");
+        Assert.DoesNotContain(permissionTrigger.Elements(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("Property") == "IsHitTestVisible");
+        Assert.Contains(premiumStyle.Elements(Presentation + "EventSetter"), setter =>
+            (string?)setter.Attribute("Event") == "PreviewMouseLeftButtonDown" &&
+            (string?)setter.Attribute("Handler") == "PremiumThemeOption_PreviewMouseLeftButtonDown");
 
         var lockBadge = Assert.Single(panel.Descendants(Presentation + "Border").Where(border =>
             (string?)border.Attribute(Xaml + "Name") == "LockBadge"));
@@ -64,20 +66,54 @@ public sealed class ThemePanelPresentationTests
             .Elements(Presentation + "MultiBinding"));
         Assert.Equal("{StaticResource ThemeLockVisibilityConverter}",
             (string?)lockVisibility.Attribute("Converter"));
+        Assert.Equal(4, lockVisibility.Elements(Presentation + "Binding").Count());
+
+        var previewButton = Assert.Single(panel.Descendants(Presentation + "Button").Where(button =>
+            (string?)button.Attribute(Xaml + "Name") == "PreviewThemeButton"));
+        Assert.Equal(
+            "{Binding DataContext.PreviewThemeCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}",
+            (string?)previewButton.Attribute("Command"));
+        Assert.Equal("Hand", (string?)previewButton.Attribute("Cursor"));
+        Assert.Contains(previewButton.Descendants(Presentation + "MultiBinding"), binding =>
+            (string?)binding.Attribute("ConverterParameter") == "PreviewButton");
+
+        var previewSelection = Assert.Single(panel.Descendants(Presentation + "Border").Where(border =>
+            (string?)border.Attribute(Xaml + "Name") == "PreviewSelectionBorder"));
+        Assert.Equal("100", (string?)previewSelection.Attribute("Width"));
+        Assert.Equal("100", (string?)previewSelection.Attribute("Height"));
+        Assert.Equal("{DynamicResource AccentPrimary}", (string?)previewSelection.Attribute("BorderBrush"));
+        Assert.Contains(previewSelection.Descendants(Presentation + "MultiBinding"), binding =>
+            (string?)binding.Attribute("ConverterParameter") == "Previewing");
 
         var vipEntry = Assert.Single(panel.Descendants(Presentation + "Button").Where(button =>
             (string?)button.Attribute(Xaml + "Name") == "ThemeVipUnlockButton"));
         Assert.Equal("{Binding OpenVipCommand}", (string?)vipEntry.Attribute("Command"));
         Assert.Equal("Hand", (string?)vipEntry.Attribute("Cursor"));
-        Assert.Contains(vipEntry.Descendants(Presentation + "DataTrigger"), trigger =>
-            (string?)trigger.Attribute("Binding") == "{Binding CanUsePremiumThemes}" &&
-            (string?)trigger.Attribute("Value") == "True" &&
+        Assert.Contains(vipEntry.Descendants(Presentation + "MultiDataTrigger"), trigger =>
+            trigger.Descendants(Presentation + "Condition").Any(condition =>
+                (string?)condition.Attribute("Binding") == "{Binding CanUsePremiumThemes}" &&
+                (string?)condition.Attribute("Value") == "False") &&
+            trigger.Descendants(Presentation + "Condition").Any(condition =>
+                (string?)condition.Attribute("Binding") == "{Binding IsThemePreviewing}" &&
+                (string?)condition.Attribute("Value") == "False") &&
             trigger.Elements(Presentation + "Setter").Any(setter =>
                 (string?)setter.Attribute("Property") == "Visibility" &&
-                (string?)setter.Attribute("Value") == "Collapsed"));
+                (string?)setter.Attribute("Value") == "Visible"));
         Assert.Contains(vipEntry.Descendants(Presentation + "Run"), run =>
             (string?)run.Attribute("Text") == "{DynamicResource ThemePanelVipUnlockLabel}" &&
             (string?)run.Attribute("Foreground") == "{DynamicResource AccentPrimary}");
+
+        var previewStatus = Assert.Single(panel.Descendants(Presentation + "Border").Where(border =>
+            (string?)border.Attribute(Xaml + "Name") == "ThemePreviewStatusBar"));
+        Assert.Equal("512", (string?)previewStatus.Attribute("Width"));
+        Assert.Equal("54", (string?)previewStatus.Attribute("Height"));
+        Assert.Contains(previewStatus.Descendants(Presentation + "Condition"), condition =>
+            (string?)condition.Attribute("Binding") == "{Binding IsThemePreviewing}" &&
+            (string?)condition.Attribute("Value") == "True");
+        Assert.Contains(previewStatus.Descendants(Presentation + "Button"), button =>
+            (string?)button.Attribute("Command") == "{Binding RestoreOriginalThemeCommand}");
+        Assert.Contains(previewStatus.Descendants(Presentation + "Button"), button =>
+            (string?)button.Attribute("Command") == "{Binding OpenVipCommand}");
     }
 
     private static string FindRepositoryRoot()

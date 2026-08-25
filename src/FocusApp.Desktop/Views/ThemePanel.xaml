@@ -19,6 +19,7 @@
     <UserControl.Resources>
         <views:ThemeKeyEqualityConverter x:Key="ThemeKeyEqualityConverter" />
         <views:ThemeLockVisibilityConverter x:Key="ThemeLockVisibilityConverter" />
+        <views:ThemePreviewVisualVisibilityConverter x:Key="ThemePreviewVisualVisibilityConverter" />
         <SolidColorBrush x:Key="ThemeOrangeBrush" Color="#FF8500" />
         <SolidColorBrush x:Key="ThemeBlueBrush" Color="#3989EF" />
         <SolidColorBrush x:Key="ThemeCyanBrush" Color="#39C4CC" />
@@ -96,6 +97,59 @@
                                     </Grid.Clip>
                                     <Border Background="{TemplateBinding Background}"
                                             CornerRadius="14" />
+                                    <Button x:Name="PreviewThemeButton"
+                                            Width="60"
+                                            Height="31"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"
+                                            Background="#80000000"
+                                            BorderBrush="{DynamicResource WhiteText}"
+                                            BorderThickness="1"
+                                            Command="{Binding DataContext.PreviewThemeCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
+                                            CommandParameter="{Binding CommandParameter, RelativeSource={RelativeSource TemplatedParent}}"
+                                            Cursor="Hand"
+                                            FocusVisualStyle="{x:Null}"
+                                            Foreground="{DynamicResource WhiteText}">
+                                        <Button.Visibility>
+                                            <MultiBinding Converter="{StaticResource ThemePreviewVisualVisibilityConverter}" ConverterParameter="PreviewButton">
+                                                <Binding Path="DataContext.CanUsePremiumThemes" RelativeSource="{RelativeSource TemplatedParent}" />
+                                                <Binding Path="CommandParameter" RelativeSource="{RelativeSource TemplatedParent}" />
+                                                <Binding ElementName="ThumbnailClip" Path="IsMouseOver" />
+                                                <Binding Path="DataContext.PreviewThemeKey" RelativeSource="{RelativeSource TemplatedParent}" />
+                                            </MultiBinding>
+                                        </Button.Visibility>
+                                        <Button.Template>
+                                            <ControlTemplate TargetType="{x:Type Button}">
+                                                <Border x:Name="PreviewButtonBackground"
+                                                        Background="{TemplateBinding Background}"
+                                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                                        CornerRadius="8">
+                                                    <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="16" FontWeight="Medium" Foreground="{TemplateBinding Foreground}" Text="预览" />
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="PreviewButtonBackground" Property="Background" Value="#A6000000" /></Trigger>
+                                                    <Trigger Property="IsPressed" Value="True"><Setter TargetName="PreviewButtonBackground" Property="Opacity" Value="0.76" /></Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Button.Template>
+                                    </Button>
+                                    <Border x:Name="PreviewingBadge"
+                                            Height="27"
+                                            Margin="6,0,6,6"
+                                            VerticalAlignment="Bottom"
+                                            Background="#B3FFFFFF"
+                                            CornerRadius="7">
+                                        <Border.Visibility>
+                                            <MultiBinding Converter="{StaticResource ThemePreviewVisualVisibilityConverter}" ConverterParameter="Previewing">
+                                                <Binding Path="DataContext.CanUsePremiumThemes" RelativeSource="{RelativeSource TemplatedParent}" />
+                                                <Binding Path="CommandParameter" RelativeSource="{RelativeSource TemplatedParent}" />
+                                                <Binding ElementName="ThumbnailClip" Path="IsMouseOver" />
+                                                <Binding Path="DataContext.PreviewThemeKey" RelativeSource="{RelativeSource TemplatedParent}" />
+                                            </MultiBinding>
+                                        </Border.Visibility>
+                                        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource AccentPrimary}" Text="预览中" />
+                                    </Border>
                                     <Border x:Name="LockBadge"
                                             Width="31"
                                             Height="31"
@@ -108,6 +162,8 @@
                                             <MultiBinding Converter="{StaticResource ThemeLockVisibilityConverter}">
                                                 <Binding Path="DataContext.CanUsePremiumThemes" RelativeSource="{RelativeSource TemplatedParent}" />
                                                 <Binding Path="CommandParameter" RelativeSource="{RelativeSource TemplatedParent}" />
+                                                <Binding ElementName="ThumbnailClip" Path="IsMouseOver" />
+                                                <Binding Path="DataContext.PreviewThemeKey" RelativeSource="{RelativeSource TemplatedParent}" />
                                             </MultiBinding>
                                         </Border.Visibility>
                                         <TextBlock HorizontalAlignment="Center"
@@ -118,6 +174,24 @@
                                                    Text="&#xE72E;" />
                                     </Border>
                                 </Grid>
+                            </Border>
+                            <Border x:Name="PreviewSelectionBorder"
+                                    Width="100"
+                                    Height="100"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Top"
+                                    BorderBrush="{DynamicResource AccentPrimary}"
+                                    BorderThickness="2"
+                                    CornerRadius="17"
+                                    IsHitTestVisible="False">
+                                <Border.Visibility>
+                                    <MultiBinding Converter="{StaticResource ThemePreviewVisualVisibilityConverter}" ConverterParameter="Previewing">
+                                        <Binding Path="DataContext.CanUsePremiumThemes" RelativeSource="{RelativeSource TemplatedParent}" />
+                                        <Binding Path="CommandParameter" RelativeSource="{RelativeSource TemplatedParent}" />
+                                        <Binding ElementName="ThumbnailClip" Path="IsMouseOver" />
+                                        <Binding Path="DataContext.PreviewThemeKey" RelativeSource="{RelativeSource TemplatedParent}" />
+                                    </MultiBinding>
+                                </Border.Visibility>
                             </Border>
                             <Border x:Name="CheckBadge"
                                     Width="29"
@@ -169,9 +243,9 @@
         <Style x:Key="ThemePremiumOptionStyle"
                TargetType="{x:Type RadioButton}"
                BasedOn="{StaticResource ThemeOptionStyle}">
+            <EventSetter Event="PreviewMouseLeftButtonDown" Handler="PremiumThemeOption_PreviewMouseLeftButtonDown" />
             <Style.Triggers>
                 <DataTrigger Binding="{Binding CanUsePremiumThemes}" Value="False">
-                    <Setter Property="IsHitTestVisible" Value="False" />
                     <Setter Property="Focusable" Value="False" />
                 </DataTrigger>
             </Style.Triggers>
@@ -251,11 +325,15 @@
                     FocusVisualStyle="{x:Null}">
                 <Button.Style>
                     <Style TargetType="{x:Type Button}">
-                        <Setter Property="Visibility" Value="Visible" />
+                        <Setter Property="Visibility" Value="Collapsed" />
                         <Style.Triggers>
-                            <DataTrigger Binding="{Binding CanUsePremiumThemes}" Value="True">
-                                <Setter Property="Visibility" Value="Collapsed" />
-                            </DataTrigger>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding CanUsePremiumThemes}" Value="False" />
+                                    <Condition Binding="{Binding IsThemePreviewing}" Value="False" />
+                                </MultiDataTrigger.Conditions>
+                                <Setter Property="Visibility" Value="Visible" />
+                            </MultiDataTrigger>
                         </Style.Triggers>
                     </Style>
                 </Button.Style>
@@ -288,6 +366,85 @@
                     </ControlTemplate>
                 </Button.Template>
             </Button>
+            <Border x:Name="ThemePreviewStatusBar"
+                    Canvas.Left="24"
+                    Canvas.Top="607"
+                    Width="512"
+                    Height="54"
+                    Background="{DynamicResource SurfaceSecondary}"
+                    BorderBrush="{DynamicResource BorderPrimary}"
+                    BorderThickness="1"
+                    CornerRadius="12">
+                <Border.Style>
+                    <Style TargetType="{x:Type Border}">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding CanUsePremiumThemes}" Value="False" />
+                                    <Condition Binding="{Binding IsThemePreviewing}" Value="True" />
+                                </MultiDataTrigger.Conditions>
+                                <Setter Property="Visibility" Value="Visible" />
+                            </MultiDataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <Grid Margin="16,0,10,0">
+                    <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="116" /><ColumnDefinition Width="154" /></Grid.ColumnDefinitions>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="{Binding PreviewStatusDisplay}" />
+                        <TextBlock Margin="0,4,0,0" FontSize="11" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource ThemePanelPreviewHint}" />
+                    </StackPanel>
+                    <Button Grid.Column="1"
+                            Height="36"
+                            Margin="4,0,6,0"
+                            VerticalAlignment="Center"
+                            Background="{DynamicResource SurfacePrimary}"
+                            BorderBrush="{DynamicResource BorderPrimary}"
+                            BorderThickness="1"
+                            Command="{Binding RestoreOriginalThemeCommand}"
+                            Cursor="Hand"
+                            FontSize="13"
+                            FontWeight="Medium"
+                            Foreground="{DynamicResource TextPrimary}"
+                            Content="{DynamicResource ThemePanelRestoreOriginal}">
+                        <Button.Template>
+                            <ControlTemplate TargetType="{x:Type Button}">
+                                <Border x:Name="RestoreBackground" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="9">
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" TextElement.Foreground="{TemplateBinding Foreground}" />
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="RestoreBackground" Property="Background" Value="{DynamicResource ControlHoverBackground}" /></Trigger>
+                                    <Trigger Property="IsPressed" Value="True"><Setter TargetName="RestoreBackground" Property="Opacity" Value="0.76" /></Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                    <Button Grid.Column="2"
+                            Height="36"
+                            VerticalAlignment="Center"
+                            Background="{DynamicResource AccentPrimary}"
+                            BorderThickness="0"
+                            Command="{Binding OpenVipCommand}"
+                            Cursor="Hand"
+                            FontSize="13"
+                            FontWeight="Medium"
+                            Foreground="{DynamicResource WhiteText}"
+                            Content="{DynamicResource ThemePanelUpgradeAndApply}">
+                        <Button.Template>
+                            <ControlTemplate TargetType="{x:Type Button}">
+                                <Border x:Name="UpgradeBackground" Background="{TemplateBinding Background}" CornerRadius="9">
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" TextElement.Foreground="{TemplateBinding Foreground}" />
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="UpgradeBackground" Property="Opacity" Value="0.9" /></Trigger>
+                                    <Trigger Property="IsPressed" Value="True"><Setter TargetName="UpgradeBackground" Property="Opacity" Value="0.76" /></Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                </Grid>
+            </Border>
         </Canvas>
         </Border>
     </Viewbox>
