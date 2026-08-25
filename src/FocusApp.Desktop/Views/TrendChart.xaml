@@ -54,6 +54,15 @@
                 </LinearGradientBrush>
             </Path.Fill>
         </Path>
+        <Line X1="31"
+              X2="537"
+              Y1="{Binding TrendAverageY}"
+              Y2="{Binding TrendAverageY}"
+              IsHitTestVisible="False"
+              Opacity="0.72"
+              Stroke="{DynamicResource TextWeak}"
+              StrokeDashArray="5,4"
+              StrokeThickness="1" />
         <Path Data="{Binding TrendCurveGeometry}"
               Stroke="{DynamicResource AccentPrimary}"
               StrokeThickness="1.35"
@@ -61,6 +70,25 @@
               StrokeStartLineCap="Round"
               StrokeEndLineCap="Round"
               IsHitTestVisible="False" />
+
+        <Canvas Panel.ZIndex="3" IsHitTestVisible="False">
+            <StackPanel Canvas.Left="541"
+                        Canvas.Top="{Binding TrendAverageLabelTop}"
+                        Width="68">
+                <TextBlock FontSize="12"
+                           FontWeight="Normal"
+                           Foreground="{DynamicResource TextSecondary}"
+                           LineHeight="18"
+                           LineStackingStrategy="BlockLineHeight"
+                           Text="{DynamicResource StatisticsDailyAverageInvestment}" />
+                <TextBlock FontSize="12"
+                           FontWeight="Normal"
+                           Foreground="{DynamicResource TextSecondary}"
+                           LineHeight="18"
+                           LineStackingStrategy="BlockLineHeight"
+                           Text="{Binding TrendAverageDurationDisplay}" />
+            </StackPanel>
+        </Canvas>
 
         <ItemsControl Panel.ZIndex="1" ItemsSource="{Binding TrendPoints}">
             <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas /></ItemsPanelTemplate></ItemsControl.ItemsPanel>

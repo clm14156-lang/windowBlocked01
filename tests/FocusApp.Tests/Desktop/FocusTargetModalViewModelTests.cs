@@ -52,6 +52,7 @@ public sealed class FocusTargetModalViewModelTests
         var initialTarget = viewModel.VisibleTargets.Single(target => target.Name == "学习");
 
         Assert.False(viewModel.HasSelectedTarget);
+        Assert.Empty(viewModel.CurrentTasks);
         viewModel.SelectTargetCommand.Execute(initialTarget);
 
         Assert.True(viewModel.HasSelectedTarget);
@@ -61,6 +62,7 @@ public sealed class FocusTargetModalViewModelTests
 
         Assert.False(viewModel.HasSelectedTarget);
         Assert.False(initialTarget.IsSelected);
+        Assert.Empty(viewModel.CurrentTasks);
         Assert.Equal("选择专注目标(可选)", viewModel.SelectedTargetButtonText);
     }
 
@@ -171,6 +173,7 @@ public sealed class FocusTargetModalViewModelTests
 
         Assert.False(viewModel.IsAddingTask);
         Assert.Equal("完成交互验收", viewModel.CurrentTasks[0].Name);
+        Assert.Equal(viewModel.SelectedTarget.TargetId, viewModel.CurrentTasks[0].TargetId);
     }
 
     [Fact]
@@ -199,6 +202,7 @@ public sealed class FocusTargetModalViewModelTests
         viewModel.BeginAddTaskCommand.CanExecuteChanged += (_, _) => canExecuteChangedCount++;
 
         Assert.False(viewModel.BeginAddTaskCommand.CanExecute(null));
+        Assert.Empty(viewModel.CurrentTasks);
         viewModel.BeginAddTaskCommand.Execute(null);
         Assert.False(viewModel.IsAddingTask);
 
@@ -211,18 +215,50 @@ public sealed class FocusTargetModalViewModelTests
         viewModel.ConfirmAddTaskCommand.Execute(null);
         Assert.Equal(initialTaskCount + 1, coding.Tasks.Count);
         Assert.Equal("只属于写代码", coding.Tasks[0].Name);
+        Assert.Equal(coding.TargetId, coding.Tasks[0].TargetId);
 
         viewModel.SelectTargetCommand.Execute(coding);
         Assert.False(viewModel.HasSelectedTarget);
         Assert.False(viewModel.BeginAddTaskCommand.CanExecute(null));
         Assert.False(viewModel.IsAddingTask);
+        Assert.Empty(viewModel.CurrentTasks);
         Assert.Equal(2, canExecuteChangedCount);
+    }
+
+    [Fact]
+    public void SwitchingTargets_ShowsOnlyTasksBoundToTheCurrentTarget()
+    {
+        var viewModel = new FocusTargetModalViewModel();
+        var coding = viewModel.VisibleTargets.Single(target => target.Name == "写代码");
+        var learning = viewModel.VisibleTargets.Single(target => target.Name == "学习");
+
+        viewModel.SelectTargetCommand.Execute(coding);
+        Assert.Same(coding.Tasks, viewModel.CurrentTasks);
+        Assert.All(viewModel.CurrentTasks, task => Assert.Equal(coding.TargetId, task.TargetId));
+
+        viewModel.SelectTargetCommand.Execute(learning);
+        Assert.Same(learning.Tasks, viewModel.CurrentTasks);
+        Assert.All(viewModel.CurrentTasks, task => Assert.Equal(learning.TargetId, task.TargetId));
+        Assert.DoesNotContain(viewModel.CurrentTasks, task => task.TargetId == coding.TargetId);
+    }
+
+    [Fact]
+    public void TargetTaskCollection_RejectsTaskOwnedByAnotherTarget()
+    {
+        var coding = new FocusTargetViewModel("写代码", ["整理需求"]);
+        var learning = new FocusTargetViewModel("学习");
+        var codingTask = coding.Tasks[0];
+
+        Assert.Throws<InvalidOperationException>(() => learning.Tasks.Add(codingTask));
+        Assert.Empty(learning.Tasks);
+        Assert.Contains(codingTask, coding.Tasks);
     }
 
     [Fact]
     public void TaskMenu_EditAndDelete_UpdateOnlyCurrentInMemoryTasks()
     {
         var viewModel = new FocusTargetModalViewModel();
+        viewModel.SelectTargetCommand.Execute(viewModel.VisibleTargets.Single(target => target.Name == "学习"));
         var task = viewModel.CurrentTasks[0];
 
         viewModel.ToggleTaskMenuCommand.Execute(task);
@@ -241,6 +277,7 @@ public sealed class FocusTargetModalViewModelTests
     public void EditingTask_CommitIsIdempotentAndEmptyContentRestoresOriginalName()
     {
         var viewModel = new FocusTargetModalViewModel();
+        viewModel.SelectTargetCommand.Execute(viewModel.VisibleTargets.Single(target => target.Name == "学习"));
         var task = viewModel.CurrentTasks[0];
 
         viewModel.BeginEditTaskCommand.Execute(task);
@@ -264,6 +301,7 @@ public sealed class FocusTargetModalViewModelTests
     public void ClosingModal_CancelsPendingTaskEditAndReopenHasNoEditingState()
     {
         var viewModel = new FocusTargetModalViewModel();
+        viewModel.SelectTargetCommand.Execute(viewModel.VisibleTargets.Single(target => target.Name == "学习"));
         var task = viewModel.CurrentTasks[0];
         var originalName = task.Name;
         viewModel.Open();
@@ -286,7 +324,8 @@ public sealed class FocusTargetModalViewModelTests
     [Fact]
     public void TaskMenuButton_VisibleOnlyOnHoverOrWhileMenuIsOpen()
     {
-        var task = new FocusTaskViewModel("任务");
+        var target = new FocusTargetViewModel("目标", ["任务"]);
+        var task = target.Tasks[0];
 
         Assert.False(task.IsMenuButtonVisible);
 

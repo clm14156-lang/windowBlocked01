@@ -387,8 +387,72 @@
                     </Grid>
                     <Grid x:Name="MonthlyFocusTargetSetState"><Grid.Style><Style TargetType="Grid"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding HasMonthlyFocusTarget}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></Grid.Style>
                         <Grid.ColumnDefinitions><ColumnDefinition Width="290" /><ColumnDefinition /><ColumnDefinition Width="55" /></Grid.ColumnDefinitions>
-                        <StackPanel VerticalAlignment="Top"><StackPanel Orientation="Horizontal"><TextBlock FontSize="36" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}" Text="{Binding MonthlyFocusCompletedHours}" /><TextBlock Margin="8,20,0,0" FontSize="15" FontWeight="Normal" Foreground="{DynamicResource TextUnit}" Text="{DynamicResource StatisticsHoursUnit}" /><TextBlock Margin="16,20,0,0" FontSize="15" FontWeight="Normal" Foreground="{DynamicResource TextUnit}" Text="/" /><TextBlock Margin="16,20,0,0" FontSize="15" FontWeight="Normal" Foreground="{DynamicResource TextUnit}" Text="{Binding MonthlyFocusTargetDisplay}" /></StackPanel><TextBlock Margin="0,2,0,0" FontSize="13" Foreground="{DynamicResource TextSecondary}"><Run Text="距离目标还差 " /><Run Text="{Binding MonthlyFocusRemainingDisplay, Mode=OneWay}" /></TextBlock></StackPanel>
-                        <ProgressBar Grid.Column="1" Margin="8,0,5,0" VerticalAlignment="Center" Maximum="1" Value="{Binding MonthlyFocusProgressRatio, Mode=OneWay}" Style="{StaticResource StatisticsProgressBarStyle}" />
+                        <StackPanel VerticalAlignment="Top">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock FontSize="36" FontWeight="Normal" Text="{Binding MonthlyFocusCompletedHours}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="{x:Type TextBlock}" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                            <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsMonthlyFocusTargetCompleted}" Value="True">
+                                                    <Setter Property="Foreground" Value="{DynamicResource SuccessPositive}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <TextBlock Margin="8,20,0,0" FontSize="15" FontWeight="Normal" Foreground="{DynamicResource TextUnit}" Text="{DynamicResource StatisticsHoursUnit}" />
+                                <TextBlock Margin="16,20,0,0" FontSize="15" FontWeight="Normal" Foreground="{DynamicResource TextUnit}" Text="/" />
+                                <TextBlock Margin="16,20,0,0" FontSize="15" FontWeight="Normal" Foreground="{DynamicResource TextUnit}" Text="{Binding MonthlyFocusTargetDisplay}" />
+                            </StackPanel>
+                            <Grid Margin="0,2,0,0">
+                                <TextBlock FontSize="13" Foreground="{DynamicResource TextSecondary}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="{x:Type TextBlock}" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsMonthlyFocusTargetCompleted}" Value="True">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                    <Run Text="距离目标还差 " /><Run Foreground="{DynamicResource AccentPrimary}" Text="{Binding MonthlyFocusRemainingDisplay, Mode=OneWay}" />
+                                </TextBlock>
+                                <StackPanel x:Name="MonthlyFocusTargetCompletedMessage" Orientation="Horizontal">
+                                    <StackPanel.Style>
+                                        <Style TargetType="{x:Type StackPanel}">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsMonthlyFocusTargetCompleted}" Value="True">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </StackPanel.Style>
+                                    <Grid x:Name="MonthlyFocusTargetCompletedIcon" Width="16" Height="16" Margin="0,0,5,0" VerticalAlignment="Center">
+                                        <Ellipse Width="15" Height="15" Stroke="{DynamicResource SuccessPositive}" StrokeThickness="1.5" />
+                                        <Path Data="M 4,8.2 L 6.8,11 L 12.2,5.4"
+                                              Stroke="{DynamicResource SuccessPositive}"
+                                              StrokeThickness="1.5"
+                                              StrokeStartLineCap="Round"
+                                              StrokeEndLineCap="Round"
+                                              StrokeLineJoin="Round" />
+                                    </Grid>
+                                    <TextBlock VerticalAlignment="Center" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource SuccessPositive}" Text="本日专注目标已完成" />
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                        <ProgressBar Grid.Column="1" Margin="8,0,5,0" VerticalAlignment="Center" Maximum="1" Value="{Binding MonthlyFocusProgressRatio, Mode=OneWay}">
+                            <ProgressBar.Style>
+                                <Style TargetType="{x:Type ProgressBar}" BasedOn="{StaticResource StatisticsProgressBarStyle}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsMonthlyFocusTargetCompleted}" Value="True">
+                                            <Setter Property="Foreground" Value="{DynamicResource SuccessPositive}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ProgressBar.Style>
+                        </ProgressBar>
                         <Grid Grid.Column="2">
                             <Button x:Name="EditMonthlyFocusTargetButton"
                                     Width="34"
@@ -548,7 +612,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="*" />
                             </Grid.RowDefinitions>
-                            <TextBlock Grid.Row="0" VerticalAlignment="Center" FontSize="17" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="{Binding SelectedDateDisplay}" />
+                            <TextBlock Grid.Row="0" VerticalAlignment="Center" FontSize="17" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{Binding SelectedDateDisplay}" />
                             <StackPanel Grid.Row="1" Margin="0,25,0,24" Orientation="Horizontal">
                                 <Viewbox x:Name="CalendarDurationIcon" Width="16" Height="16" Margin="0,0,7,0" VerticalAlignment="Center" Opacity="0.72">
                                     <Grid Width="16" Height="16">
@@ -563,8 +627,7 @@
                                 <TextBlock Foreground="{DynamicResource TextPrimary}"><Run FontSize="20" FontWeight="Medium" Text="{Binding SelectedDayCompletedTasks, Mode=OneWay}" /><Run FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text=" 次推进" /></TextBlock>
                             </StackPanel>
                             <Border Grid.Row="2" Height="1" Background="{DynamicResource BorderPrimary}" />
-                            <TextBlock Grid.Row="3" Margin="0,28,0,16" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="专注记录" />
-                            <ScrollViewer x:Name="CalendarRecordsScrollViewer" Grid.Row="4" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                            <ScrollViewer x:Name="CalendarRecordsScrollViewer" Grid.Row="4" Margin="0,10,0,0" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
                                 <ScrollViewer.Resources>
                                     <Style TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource StatisticsRecordScrollBarStyle}" />
                                 </ScrollViewer.Resources>

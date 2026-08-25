@@ -393,6 +393,8 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     public int MonthlyFocusProgressPercent => !HasMonthlyFocusTarget
         ? 0
         : Math.Min(100, (int)Math.Round(MonthlyFocusCompletedMinutes / (MonthlyFocusTargetHours * 60d) * 100));
+    public bool IsMonthlyFocusTargetCompleted => HasMonthlyFocusTarget &&
+        MonthlyFocusCompletedMinutes >= MonthlyFocusTargetHours * 60;
     public string MonthlyFocusTargetDisplay => $"{MonthlyFocusTargetHours} 小时";
     public string MonthlyFocusRemainingDisplay => FormatHours(Math.Max(0, MonthlyFocusTargetHours * 60 - MonthlyFocusCompletedMinutes));
     public double MonthlyFocusProgressRatio => !HasMonthlyFocusTarget
@@ -814,6 +816,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(MonthlyFocusCompletedHours));
         OnPropertyChanged(nameof(MonthlyFocusCompletedDisplay));
         OnPropertyChanged(nameof(MonthlyFocusProgressPercent));
+        OnPropertyChanged(nameof(IsMonthlyFocusTargetCompleted));
         OnPropertyChanged(nameof(MonthlyFocusTargetDisplay));
         OnPropertyChanged(nameof(MonthlyFocusRemainingDisplay));
         OnPropertyChanged(nameof(MonthlyFocusProgressRatio));
@@ -1046,6 +1049,14 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     public string AverageDurationDisplay { get; private set; } = string.Empty;
 
+    public int TrendAverageMinutes { get; private set; }
+
+    public double TrendAverageY { get; private set; }
+
+    public double TrendAverageLabelTop => TrendAverageY - 18;
+
+    public string TrendAverageDurationDisplay { get; private set; } = string.Empty;
+
     public string ComparisonDisplay { get; private set; } = string.Empty;
 
     public string TodayDateDisplay => "5月15日 周三";
@@ -1135,14 +1146,22 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         UpdateTrendGeometry();
 
         var totalMinutes = data.Sum(point => point.Minutes);
+        var averageMinutes = (int)Math.Round(totalMinutes / (double)data.Length);
         var previousTotalMinutes = SelectedRange.Days == 7 ? 720 : 2400;
         PeriodTotalDisplay = SelectedRange.Days == 7 ? "14 小时 20 分钟" : FormatDuration(totalMinutes);
-        AverageDurationDisplay = SelectedRange.Days == 7 ? "2 小时 2 分钟" : FormatDuration((int)Math.Round(totalMinutes / (double)data.Length));
+        AverageDurationDisplay = SelectedRange.Days == 7 ? "2 小时 2 分钟" : FormatDuration(averageMinutes);
+        TrendAverageMinutes = averageMinutes;
+        TrendAverageY = MapTrendValueToY(averageMinutes, scaleMaximumMinutes);
+        TrendAverageDurationDisplay = FormatCompactDuration(averageMinutes);
         ComparisonDisplay = SelectedRange.Days == 7 ? "+35 分钟" : $"+{FormatDuration((int)Math.Round((totalMinutes - previousTotalMinutes) / (double)data.Length))}";
         OnPropertyChanged(nameof(PeriodTotalLabel));
         OnPropertyChanged(nameof(ComparisonLabel));
         OnPropertyChanged(nameof(PeriodTotalDisplay));
         OnPropertyChanged(nameof(AverageDurationDisplay));
+        OnPropertyChanged(nameof(TrendAverageMinutes));
+        OnPropertyChanged(nameof(TrendAverageY));
+        OnPropertyChanged(nameof(TrendAverageLabelTop));
+        OnPropertyChanged(nameof(TrendAverageDurationDisplay));
         OnPropertyChanged(nameof(ComparisonDisplay));
         OnPropertyChanged(nameof(TrendCurveGeometry));
         OnPropertyChanged(nameof(TrendAreaGeometry));
@@ -1246,6 +1265,13 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         return totalMinutes >= 60
             ? $"{totalMinutes / 60} 小时 {totalMinutes % 60} 分钟"
             : $"{totalMinutes} 分钟";
+    }
+
+    private static string FormatCompactDuration(int totalMinutes)
+    {
+        return totalMinutes >= 60
+            ? $"{totalMinutes / 60}小时{totalMinutes % 60}分钟"
+            : $"{totalMinutes}分钟";
     }
 
     internal static string FormatDurationForDisplay(int totalMinutes) => FormatDuration(totalMinutes);

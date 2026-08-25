@@ -53,6 +53,10 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.Equal(zeroHourTick.ChartY, areaFigure.StartPoint.Y);
         Assert.Equal(zeroHourTick.ChartY, ((LineSegment)areaFigure.Segments[^1]).Point.Y);
         Assert.Equal("14 小时 20 分钟", viewModel.PeriodTotalDisplay);
+        Assert.Equal(293, viewModel.TrendAverageMinutes);
+        Assert.Equal("4小时53分钟", viewModel.TrendAverageDurationDisplay);
+        Assert.Equal(126.6479166667, viewModel.TrendAverageY, 5);
+        Assert.Equal(viewModel.TrendAverageY - 18, viewModel.TrendAverageLabelTop, 5);
     }
 
     [Fact]
@@ -69,6 +73,9 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.Equal(7, viewModel.TrendPoints.Count(point => point.IsKeyPoint));
         Assert.Equal(new[] { "4h", "2h", "0h" }, viewModel.YAxisTicks.Select(tick => tick.Label));
         Assert.NotEqual("14 小时 20 分钟", viewModel.PeriodTotalDisplay);
+        Assert.Equal(94, viewModel.TrendAverageMinutes);
+        Assert.Equal("1小时34分钟", viewModel.TrendAverageDurationDisplay);
+        Assert.Equal(96.725, viewModel.TrendAverageY, 5);
     }
 
     [Fact]
@@ -357,6 +364,7 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.Equal(completedMinutes / 60, viewModel.MonthlyFocusCompletedHours);
         Assert.Equal(Math.Min(100, (int)Math.Round(completedMinutes / 3600d * 100)), viewModel.MonthlyFocusProgressPercent);
         Assert.Equal(Math.Min(1, completedMinutes / 3600d), viewModel.MonthlyFocusProgressRatio);
+        Assert.False(viewModel.IsMonthlyFocusTargetCompleted);
 
         viewModel.ToggleMonthlyFocusTargetMenuCommand.Execute(null);
         Assert.True(viewModel.IsMonthlyFocusTargetMenuOpen);
@@ -368,6 +376,8 @@ public sealed class StatisticsOverviewViewModelTests
         viewModel.SaveMonthlyFocusTargetCommand.Execute(null);
         Assert.Equal(4, viewModel.MonthlyFocusTargetHours);
         Assert.Equal(100, viewModel.MonthlyFocusProgressPercent);
+        Assert.Equal(1, viewModel.MonthlyFocusProgressRatio);
+        Assert.True(viewModel.IsMonthlyFocusTargetCompleted);
         Assert.Equal("0 小时", viewModel.MonthlyFocusRemainingDisplay);
 
         viewModel.ToggleMonthlyFocusTargetMenuCommand.Execute(null);

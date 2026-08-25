@@ -21,9 +21,9 @@ public sealed class FocusFloatingWindowViewModelTests
     [Fact]
     public void Adapter_ShowsTheFirstPendingTaskAndMovesToTheNextOne()
     {
-        var first = new FocusTaskViewModel("第一个任务");
-        var second = new FocusTaskViewModel("第二个任务");
-        var target = new FocusTargetViewModel("学习", [first, second]);
+        var target = new FocusTargetViewModel("学习", ["第一个任务", "第二个任务"]);
+        var first = target.Tasks[0];
+        var second = target.Tasks[1];
         var session = CreateFocusingSession(25, target);
         using var viewModel = new FocusFloatingWindowViewModel(session);
 
@@ -38,8 +38,8 @@ public sealed class FocusFloatingWindowViewModelTests
     [Fact]
     public void Adapter_HidesTaskAreaWhenAllTasksAreCompleted()
     {
-        var task = new FocusTaskViewModel("唯一任务");
-        var target = new FocusTargetViewModel("学习", [task]);
+        var target = new FocusTargetViewModel("学习", ["唯一任务"]);
+        var task = target.Tasks[0];
         var session = CreateFocusingSession(25, target);
         using var viewModel = new FocusFloatingWindowViewModel(session);
 
@@ -52,9 +52,9 @@ public sealed class FocusFloatingWindowViewModelTests
     [Fact]
     public void Adapter_CompletionCommandUpdatesTheSharedTaskState()
     {
-        var first = new FocusTaskViewModel("第一个任务");
-        var second = new FocusTaskViewModel("第二个任务");
-        var target = new FocusTargetViewModel("学习", [first, second]);
+        var target = new FocusTargetViewModel("学习", ["第一个任务", "第二个任务"]);
+        var first = target.Tasks[0];
+        var second = target.Tasks[1];
         var session = CreateFocusingSession(25, target);
         using var viewModel = new FocusFloatingWindowViewModel(session);
 

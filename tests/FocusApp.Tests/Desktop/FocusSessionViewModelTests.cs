@@ -165,8 +165,8 @@ public sealed class FocusSessionViewModelTests
     public void Start_WithTarget_ExposesTargetModeAndGroupsPendingTasks()
     {
         var target = new FocusTargetViewModel("学习 Blender", [
-            new FocusTaskViewModel("学习建模基础"),
-            new FocusTaskViewModel("完成材质练习")
+            "学习建模基础",
+            "完成材质练习"
         ]);
         var viewModel = CreateViewModel();
 
@@ -182,7 +182,7 @@ public sealed class FocusSessionViewModelTests
     [Fact]
     public void TargetTasks_CanCompleteAddRenameAndDeleteInMemory()
     {
-        var target = new FocusTargetViewModel("学习 Blender", [new FocusTaskViewModel("原任务")]);
+        var target = new FocusTargetViewModel("学习 Blender", ["原任务"]);
         var viewModel = CreateViewModel();
         viewModel.Start(25, target);
         Advance(viewModel, 5);
@@ -217,12 +217,13 @@ public sealed class FocusSessionViewModelTests
     [Fact]
     public void TargetCompletion_TracksOnlyTasksCompletedDuringCurrentSession()
     {
-        var alreadyCompleted = new FocusTaskViewModel("已完成任务") { IsCompleted = true };
         var target = new FocusTargetViewModel("学习 Blender", [
-            alreadyCompleted,
-            new FocusTaskViewModel("本次任务一"),
-            new FocusTaskViewModel("本次任务二")
+            "已完成任务",
+            "本次任务一",
+            "本次任务二"
         ]);
+        var alreadyCompleted = target.Tasks[0];
+        alreadyCompleted.IsCompleted = true;
         var viewModel = CreateViewModel();
         viewModel.Start(1, target);
         Advance(viewModel, 5);
@@ -241,7 +242,7 @@ public sealed class FocusSessionViewModelTests
     [Fact]
     public void TargetCompletion_WithZeroTasksStillUsesTargetCompletionState()
     {
-        var target = new FocusTargetViewModel("学习 Blender", [new FocusTaskViewModel("待完成任务")]);
+        var target = new FocusTargetViewModel("学习 Blender", ["待完成任务"]);
         var viewModel = CreateViewModel();
         viewModel.Start(1, target);
         Advance(viewModel, 5);

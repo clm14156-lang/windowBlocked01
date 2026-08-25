@@ -304,6 +304,7 @@
     <system:String x:Key="StatisticsMinutesUnit">分钟</system:String>
     <system:String x:Key="StatisticsPeriodTotal">本周期总计</system:String>
     <system:String x:Key="StatisticsAverageDuration">日均时长</system:String>
+    <system:String x:Key="StatisticsDailyAverageInvestment">日均投入</system:String>
     <system:String x:Key="StatisticsComparison">较上周期日均</system:String>
     <system:String x:Key="StatisticsGoalTitle">设定本月专注目标</system:String>
     <system:String x:Key="StatisticsGoalDescription">设置专注目标，跟踪进度，保持高效专注</system:String>

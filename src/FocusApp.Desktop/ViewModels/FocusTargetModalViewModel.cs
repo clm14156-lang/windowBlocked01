@@ -9,6 +9,7 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
 {
     private const int VisibleTargetCount = 3;
     private readonly ObservableCollection<FocusTargetViewModel> _targets;
+    private readonly ObservableCollection<FocusTaskViewModel> _emptyTasks = [];
     private readonly RelayCommand<object> _beginAddTaskCommand;
     private FocusTargetViewModel _selectedTarget;
     private bool _isOpen;
@@ -27,24 +28,24 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
         [
             new FocusTargetViewModel("写代码",
             [
-                new FocusTaskViewModel("整理功能需求"),
-                new FocusTaskViewModel("完成页面交互")
+                "整理功能需求",
+                "完成页面交互"
             ]),
             new FocusTargetViewModel("学习",
             [
-                new FocusTaskViewModel("完成角色建模教程"),
-                new FocusTaskViewModel("练习材质节点"),
-                new FocusTaskViewModel("学习渲染基础"),
-                new FocusTaskViewModel("学习 UV 展开")
+                "完成角色建模教程",
+                "练习材质节点",
+                "学习渲染基础",
+                "学习 UV 展开"
             ]),
             new FocusTargetViewModel("做设计",
             [
-                new FocusTaskViewModel("整理界面参考"),
-                new FocusTaskViewModel("完成首页草图")
+                "整理界面参考",
+                "完成首页草图"
             ]),
             new FocusTargetViewModel("阅读",
             [
-                new FocusTaskViewModel("阅读一章专业书")
+                "阅读一章专业书"
             ])
         ];
 
@@ -75,7 +76,8 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
 
     public ObservableCollection<FocusTargetViewModel> VisibleTargets { get; }
 
-    public ObservableCollection<FocusTaskViewModel> CurrentTasks => SelectedTarget.Tasks;
+    public ObservableCollection<FocusTaskViewModel> CurrentTasks =>
+        HasSelectedTarget ? SelectedTarget.Tasks : _emptyTasks;
 
     public ICommand OpenCommand { get; }
 
@@ -144,6 +146,7 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
             }
 
             _beginAddTaskCommand.NotifyCanExecuteChanged();
+            OnPropertyChanged(nameof(CurrentTasks));
             if (!value)
             {
                 IsAddingTask = false;
@@ -349,7 +352,7 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
         var name = NewTaskName.Trim();
         if (name.Length > 0)
         {
-            SelectedTarget.Tasks.Insert(0, new FocusTaskViewModel(name));
+            SelectedTarget.AddTask(name, insertAtTop: true);
         }
 
         NewTaskName = string.Empty;
@@ -363,29 +366,46 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
             return;
         }
 
-        foreach (var item in SelectedTarget.Tasks)
+        if (!HasSelectedTarget || task.TargetId != SelectedTarget.TargetId)
+        {
+            return;
+        }
+
+        foreach (var item in CurrentTasks)
         {
             item.IsMenuOpen = ReferenceEquals(item, task) && !item.IsMenuOpen;
         }
     }
 
-    private static void BeginEditTask(FocusTaskViewModel? task)
+    private void BeginEditTask(FocusTaskViewModel? task)
     {
-        task?.BeginEdit();
+        if (IsCurrentTask(task))
+        {
+            task!.BeginEdit();
+        }
     }
 
-    private static void ConfirmEditTask(FocusTaskViewModel? task)
+    private void ConfirmEditTask(FocusTaskViewModel? task)
     {
-        task?.CommitEdit();
+        if (IsCurrentTask(task))
+        {
+            task!.CommitEdit();
+        }
     }
 
     private void DeleteTask(FocusTaskViewModel? task)
     {
-        if (task is not null)
+        if (IsCurrentTask(task))
         {
-            SelectedTarget.Tasks.Remove(task);
+            SelectedTarget.RemoveTask(task!);
         }
     }
+
+    private bool IsCurrentTask(FocusTaskViewModel? task) =>
+        task is not null &&
+        HasSelectedTarget &&
+        task.TargetId == SelectedTarget.TargetId &&
+        CurrentTasks.Contains(task);
 
     private void RefreshVisibleTargets()
     {

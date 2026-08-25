@@ -436,8 +436,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         }
 
         CloseTaskMenus();
-        var task = new FocusTaskViewModel("新任务", isNew: true);
-        ActiveTarget!.Tasks.Add(task);
+        var task = ActiveTarget!.AddTask("新任务", isNew: true);
         task.BeginEdit();
         RefreshTaskGroups();
     }
@@ -483,7 +482,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         {
             if (task.IsNew)
             {
-                ActiveTarget?.Tasks.Remove(task);
+                ActiveTarget?.RemoveTask(task);
             }
             else
             {
@@ -502,7 +501,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     {
         if (task is not null)
         {
-            ActiveTarget?.Tasks.Remove(task);
+            ActiveTarget?.RemoveTask(task);
             _sessionCompletedTaskSet.Remove(task);
             SessionCompletedTasks.Remove(task);
             OnPropertyChanged(nameof(SessionCompletedTaskCount));

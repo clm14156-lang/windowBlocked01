@@ -98,7 +98,7 @@ public sealed class StatisticsOverviewPresentationTests
         var date = Assert.Single(layout.Elements(Presentation + "TextBlock").Where(text =>
             (string?)text.Attribute("Text") == "{Binding SelectedDateDisplay}"));
         Assert.Equal("17", (string?)date.Attribute("FontSize"));
-        Assert.Equal("SemiBold", (string?)date.Attribute("FontWeight"));
+        Assert.Equal("Medium", (string?)date.Attribute("FontWeight"));
 
         var summary = Assert.Single(layout.Elements(Presentation + "StackPanel").Where(stack =>
             (string?)stack.Attribute("Grid.Row") == "1"));
@@ -119,13 +119,12 @@ public sealed class StatisticsOverviewPresentationTests
         Assert.DoesNotContain(layout.Descendants(Presentation + "Border"), border =>
             (string?)border.Attribute("BorderThickness") == "0,0,1,0");
 
-        var heading = Assert.Single(layout.Elements(Presentation + "TextBlock").Where(text =>
-            (string?)text.Attribute("Text") == "专注记录"));
-        Assert.Equal("15", (string?)heading.Attribute("FontSize"));
-        Assert.Equal("SemiBold", (string?)heading.Attribute("FontWeight"));
+        Assert.DoesNotContain(layout.Elements(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "专注记录");
 
         var scrollViewer = Assert.Single(layout.Elements(Presentation + "ScrollViewer"));
         Assert.Equal("4", (string?)scrollViewer.Attribute("Grid.Row"));
+        Assert.Equal("0,10,0,0", (string?)scrollViewer.Attribute("Margin"));
         Assert.Null(scrollViewer.Attribute("MaxHeight"));
 
         var scrollStyle = Assert.Single(page.Descendants(Presentation + "Style").Where(style =>

@@ -8,17 +8,42 @@ public sealed class FocusTargetViewModel : INotifyPropertyChanged
 {
     private bool _isSelected;
 
-    public FocusTargetViewModel(string name, IEnumerable<FocusTaskViewModel>? tasks = null)
+    public FocusTargetViewModel(string name, IEnumerable<string>? taskNames = null)
     {
+        TargetId = Guid.NewGuid().ToString("N");
         Name = name;
-        Tasks = new ObservableCollection<FocusTaskViewModel>(tasks ?? []);
+        Tasks = new TargetTaskCollection(TargetId);
+        foreach (var taskName in taskNames ?? [])
+        {
+            AddTask(taskName);
+        }
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public string Name { get; }
 
+    public string TargetId { get; }
+
     public ObservableCollection<FocusTaskViewModel> Tasks { get; }
+
+    public FocusTaskViewModel AddTask(string name, bool isNew = false, bool insertAtTop = false)
+    {
+        var task = new FocusTaskViewModel(TargetId, name, isNew);
+        if (insertAtTop)
+        {
+            Tasks.Insert(0, task);
+        }
+        else
+        {
+            Tasks.Add(task);
+        }
+
+        return task;
+    }
+
+    public bool RemoveTask(FocusTaskViewModel task) =>
+        task.TargetId == TargetId && Tasks.Remove(task);
 
     public bool IsSelected
     {
@@ -39,6 +64,29 @@ public sealed class FocusTargetViewModel : INotifyPropertyChanged
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
+
+    private sealed class TargetTaskCollection(string targetId) : ObservableCollection<FocusTaskViewModel>
+    {
+        protected override void InsertItem(int index, FocusTaskViewModel item)
+        {
+            EnsureBelongsToTarget(item);
+            base.InsertItem(index, item);
+        }
+
+        protected override void SetItem(int index, FocusTaskViewModel item)
+        {
+            EnsureBelongsToTarget(item);
+            base.SetItem(index, item);
+        }
+
+        private void EnsureBelongsToTarget(FocusTaskViewModel task)
+        {
+            if (task.TargetId != targetId)
+            {
+                throw new InvalidOperationException("任务必须属于当前目标。");
+            }
+        }
+    }
 }
 
 public sealed class FocusTaskViewModel : INotifyPropertyChanged
@@ -52,14 +100,22 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
     private bool _isCompleted;
     private bool _isNew;
 
-    public FocusTaskViewModel(string name, bool isNew = false)
+    internal FocusTaskViewModel(string targetId, string name, bool isNew = false)
     {
+        if (string.IsNullOrWhiteSpace(targetId))
+        {
+            throw new ArgumentException("任务必须绑定目标。", nameof(targetId));
+        }
+
+        TargetId = targetId;
         _name = name;
         _editName = name;
         _isNew = isNew;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
+
+    public string TargetId { get; }
 
     public string Name
     {
