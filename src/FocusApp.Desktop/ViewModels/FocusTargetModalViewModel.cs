@@ -19,8 +19,8 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
     private string _newTaskName = string.Empty;
     private int _visibleTargetStart;
     private bool _hasSelectedTarget;
-    private FocusTargetViewModel? _selectedTargetBeforeOpen;
-    private bool _hadSelectedTargetBeforeOpen;
+    private FocusTargetViewModel _draftSelectedTarget;
+    private bool _hasDraftSelectedTarget;
 
     public FocusTargetModalViewModel()
     {
@@ -50,6 +50,7 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
         ];
 
         _selectedTarget = _targets[1];
+        _draftSelectedTarget = _selectedTarget;
         VisibleTargets = new ObservableCollection<FocusTargetViewModel>();
         RefreshVisibleTargets();
 
@@ -63,7 +64,7 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
         BeginCreateTargetCommand = new RelayCommand<object>(_ => BeginCreateTarget());
         CancelCreateTargetCommand = new RelayCommand<object>(_ => CancelCreateTarget());
         CreateTargetCommand = new RelayCommand<object>(_ => CreateTarget());
-        _beginAddTaskCommand = new RelayCommand<object>(_ => BeginAddTask(), _ => HasSelectedTarget);
+        _beginAddTaskCommand = new RelayCommand<object>(_ => BeginAddTask(), _ => HasActiveSelectedTarget);
         BeginAddTaskCommand = _beginAddTaskCommand;
         ConfirmAddTaskCommand = new RelayCommand<object>(_ => ConfirmAddTask());
         ToggleTaskMenuCommand = new RelayCommand<FocusTaskViewModel>(ToggleTaskMenu);
@@ -77,7 +78,7 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
     public ObservableCollection<FocusTargetViewModel> VisibleTargets { get; }
 
     public ObservableCollection<FocusTaskViewModel> CurrentTasks =>
-        HasSelectedTarget ? SelectedTarget.Tasks : _emptyTasks;
+        HasActiveSelectedTarget ? ActiveSelectedTarget.Tasks : _emptyTasks;
 
     public ICommand OpenCommand { get; }
 
@@ -155,6 +156,26 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
         }
     }
 
+    public bool HasDraftSelectedTarget
+    {
+        get => _hasDraftSelectedTarget;
+        private set
+        {
+            if (!SetField(ref _hasDraftSelectedTarget, value))
+            {
+                return;
+            }
+
+            _beginAddTaskCommand.NotifyCanExecuteChanged();
+            OnPropertyChanged(nameof(CurrentTasks));
+            if (!value)
+            {
+                IsAddingTask = false;
+                NewTaskName = string.Empty;
+            }
+        }
+    }
+
     public string SelectedTargetButtonText => HasSelectedTarget ? SelectedTarget.Name : "选择专注目标(可选)";
 
     public FocusTargetViewModel SelectedTarget
@@ -180,6 +201,30 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
         }
     }
 
+    public FocusTargetViewModel DraftSelectedTarget
+    {
+        get => _draftSelectedTarget;
+        private set
+        {
+            if (ReferenceEquals(_draftSelectedTarget, value))
+            {
+                return;
+            }
+
+            CloseTaskMenus();
+            _draftSelectedTarget = value;
+            HasDraftSelectedTarget = true;
+            IsAddingTask = false;
+            NewTaskName = string.Empty;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(CurrentTasks));
+        }
+    }
+
+    private bool HasActiveSelectedTarget => IsOpen ? HasDraftSelectedTarget : HasSelectedTarget;
+
+    private FocusTargetViewModel ActiveSelectedTarget => IsOpen ? DraftSelectedTarget : SelectedTarget;
+
     public string NewTargetName
     {
         get => _newTargetName;
@@ -203,20 +248,30 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
     public void Open()
     {
         CancelTaskEdits();
-        _selectedTargetBeforeOpen = SelectedTarget;
-        _hadSelectedTargetBeforeOpen = HasSelectedTarget;
+        _draftSelectedTarget = SelectedTarget;
+        _hasDraftSelectedTarget = HasSelectedTarget;
         IsCreatingTarget = false;
         IsAddingTask = false;
         NewTargetName = string.Empty;
         NewTaskName = string.Empty;
         CloseTaskMenus();
         IsOpen = true;
+        RefreshTargetSelectionVisuals();
+        _beginAddTaskCommand.NotifyCanExecuteChanged();
+        OnPropertyChanged(nameof(DraftSelectedTarget));
+        OnPropertyChanged(nameof(HasDraftSelectedTarget));
+        OnPropertyChanged(nameof(CurrentTasks));
     }
 
     private void Close()
     {
+        if (!IsOpen)
+        {
+            return;
+        }
+
         CancelTaskEdits();
-        RestoreSelectionBeforeOpen();
+        CommitDraftSelection();
         CloseModal();
     }
 
@@ -230,32 +285,42 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
 
     private void CancelSelection()
     {
-        HasSelectedTarget = false;
-        SelectedTarget.IsSelected = false;
+        if (IsOpen)
+        {
+            HasDraftSelectedTarget = false;
+        }
+        else
+        {
+            HasSelectedTarget = false;
+        }
+
+        ActiveSelectedTarget.IsSelected = false;
         CloseTaskMenus();
         IsCreatingTarget = false;
         IsAddingTask = false;
-        _selectedTargetBeforeOpen = SelectedTarget;
-        _hadSelectedTargetBeforeOpen = false;
-        OnPropertyChanged(nameof(SelectedTargetButtonText));
+        if (!IsOpen)
+        {
+            OnPropertyChanged(nameof(SelectedTargetButtonText));
+        }
     }
 
     private void ConfirmSelection()
     {
-        if (HasSelectedTarget)
+        if (HasDraftSelectedTarget)
         {
+            CommitDraftSelection();
             CloseModal();
         }
     }
 
-    private void RestoreSelectionBeforeOpen()
+    private void CommitDraftSelection()
     {
-        if (_selectedTargetBeforeOpen is not null && !ReferenceEquals(SelectedTarget, _selectedTargetBeforeOpen))
+        if (!ReferenceEquals(SelectedTarget, DraftSelectedTarget))
         {
-            SelectedTarget = _selectedTargetBeforeOpen;
+            SelectedTarget = DraftSelectedTarget;
         }
 
-        HasSelectedTarget = _hadSelectedTargetBeforeOpen;
+        HasSelectedTarget = HasDraftSelectedTarget;
         SelectedTarget.IsSelected = HasSelectedTarget;
         OnPropertyChanged(nameof(SelectedTargetButtonText));
     }
@@ -267,16 +332,36 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
             IsCreatingTarget = false;
             NewTargetName = string.Empty;
 
-            if (ReferenceEquals(SelectedTarget, target))
+            var selectedTarget = ActiveSelectedTarget;
+            var hasSelectedTarget = HasActiveSelectedTarget;
+            if (ReferenceEquals(selectedTarget, target))
             {
-                HasSelectedTarget = !HasSelectedTarget;
-                target.IsSelected = HasSelectedTarget;
+                if (IsOpen)
+                {
+                    HasDraftSelectedTarget = !hasSelectedTarget;
+                    target.IsSelected = HasDraftSelectedTarget;
+                }
+                else
+                {
+                    HasSelectedTarget = !hasSelectedTarget;
+                    target.IsSelected = HasSelectedTarget;
+                    OnPropertyChanged(nameof(SelectedTargetButtonText));
+                }
+
                 CloseTaskMenus();
-                OnPropertyChanged(nameof(SelectedTargetButtonText));
                 return;
             }
 
-            SelectedTarget = target;
+            if (IsOpen)
+            {
+                DraftSelectedTarget = target;
+                HasDraftSelectedTarget = true;
+                RefreshTargetSelectionVisuals();
+            }
+            else
+            {
+                SelectedTarget = target;
+            }
         }
     }
 
@@ -319,7 +404,15 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
         _targets.Insert(0, target);
         _visibleTargetStart = 0;
         RefreshVisibleTargets();
-        SelectedTarget = target;
+        if (IsOpen)
+        {
+            DraftSelectedTarget = target;
+            RefreshTargetSelectionVisuals();
+        }
+        else
+        {
+            SelectedTarget = target;
+        }
         IsCreatingTarget = false;
         NewTargetName = string.Empty;
         OnPropertyChanged(nameof(HasMoreTargets));
@@ -329,7 +422,7 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
 
     private void BeginAddTask()
     {
-        if (!HasSelectedTarget)
+        if (!HasActiveSelectedTarget)
         {
             return;
         }
@@ -342,7 +435,7 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
 
     private void ConfirmAddTask()
     {
-        if (!HasSelectedTarget)
+        if (!HasActiveSelectedTarget)
         {
             NewTaskName = string.Empty;
             IsAddingTask = false;
@@ -352,7 +445,7 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
         var name = NewTaskName.Trim();
         if (name.Length > 0)
         {
-            SelectedTarget.AddTask(name, insertAtTop: true);
+            ActiveSelectedTarget.AddTask(name, insertAtTop: true);
         }
 
         NewTaskName = string.Empty;
@@ -366,7 +459,7 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
             return;
         }
 
-        if (!HasSelectedTarget || task.TargetId != SelectedTarget.TargetId)
+        if (!HasActiveSelectedTarget || task.TargetId != ActiveSelectedTarget.TargetId)
         {
             return;
         }
@@ -397,15 +490,23 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
     {
         if (IsCurrentTask(task))
         {
-            SelectedTarget.RemoveTask(task!);
+            ActiveSelectedTarget.RemoveTask(task!);
         }
     }
 
     private bool IsCurrentTask(FocusTaskViewModel? task) =>
         task is not null &&
-        HasSelectedTarget &&
-        task.TargetId == SelectedTarget.TargetId &&
+        HasActiveSelectedTarget &&
+        task.TargetId == ActiveSelectedTarget.TargetId &&
         CurrentTasks.Contains(task);
+
+    private void RefreshTargetSelectionVisuals()
+    {
+        foreach (var target in _targets)
+        {
+            target.IsSelected = HasDraftSelectedTarget && ReferenceEquals(target, DraftSelectedTarget);
+        }
+    }
 
     private void RefreshVisibleTargets()
     {

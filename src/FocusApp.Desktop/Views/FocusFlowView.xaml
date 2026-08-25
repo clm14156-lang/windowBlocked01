@@ -334,15 +334,15 @@
                     <Rectangle Width="7" Height="7" Margin="0,12,8,0" HorizontalAlignment="Right" VerticalAlignment="Top" Fill="{DynamicResource SuccessBright}" RenderTransformOrigin="0.5,0.5"><Rectangle.RenderTransform><RotateTransform Angle="45" /></Rectangle.RenderTransform></Rectangle>
                 </Grid>
 
-                <TextBlock Margin="0,8,0,0" HorizontalAlignment="Center" FontSize="30" FontWeight="SemiBold" Text="{DynamicResource FocusCompletedTitle}" />
-                <TextBlock Margin="0,5,0,0" HorizontalAlignment="Center" FontFamily="{DynamicResource FontFamilyNumeric}" FontSize="44" FontWeight="SemiBold" Foreground="{DynamicResource AccentPrimary}" Text="{Binding CompletedDurationDisplay}" />
+                <TextBlock Margin="0,8,0,0" HorizontalAlignment="Center" FontSize="20" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource FocusCompletedTitle}" />
+                <TextBlock Margin="0,5,0,0" HorizontalAlignment="Center" FontFamily="{DynamicResource FontFamilyNumeric}" Foreground="{DynamicResource AccentPrimary}"><Run FontSize="44" FontWeight="SemiBold" Text="{Binding CompletedDurationPrimaryValue, Mode=OneWay}" /><Run FontFamily="{DynamicResource FontFamilyPrimary}" FontSize="20" FontWeight="Normal" Text="{Binding CompletedDurationPrimaryUnit, Mode=OneWay}" /><Run FontSize="44" FontWeight="SemiBold" Text="{Binding CompletedDurationSecondaryValue, Mode=OneWay}" /><Run FontFamily="{DynamicResource FontFamilyPrimary}" FontSize="20" FontWeight="Normal" Text="{Binding CompletedDurationSecondaryUnit, Mode=OneWay}" /></TextBlock>
 
                 <Border Width="438" Margin="0,22,0,0" Padding="26,14,26,15" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource OverlayBorder}" BorderThickness="1" CornerRadius="16">
                     <Border.Effect><DropShadowEffect BlurRadius="18" Direction="270" Opacity="0.07" ShadowDepth="4" /></Border.Effect>
                     <StackPanel>
                         <Grid Height="36">
-                            <TextBlock VerticalAlignment="Center" FontSize="15" FontWeight="SemiBold" Text="{DynamicResource FocusSessionCompletedTitle}" />
-                            <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="15" FontWeight="SemiBold">
+                            <TextBlock VerticalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource FocusSessionCompletedTitle}" />
+                            <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}">
                                 <Run Text="{Binding SessionCompletedTaskCount, Mode=OneWay}" /><Run Text="{DynamicResource FocusSessionCompletedSuffix}" />
                             </TextBlock>
                         </Grid>
@@ -353,7 +353,7 @@
                                     <Grid Height="38">
                                         <Ellipse Width="22" Height="22" HorizontalAlignment="Left" VerticalAlignment="Center" Fill="{DynamicResource SuccessBright}" />
                                         <TextBlock Margin="4,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="13" Foreground="{DynamicResource WhiteText}" Text="&#xE73E;" />
-                                        <TextBlock Margin="36,0,0,0" VerticalAlignment="Center" FontSize="14" Text="{Binding Name}" />
+                                        <TextBlock Margin="36,0,0,0" VerticalAlignment="Center" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}" Text="{Binding Name}" />
                                     </Grid>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
@@ -362,14 +362,14 @@
                         <Grid Height="52">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                             <TextBlock VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="19" Foreground="{DynamicResource SuccessBright}" Text="&#xE787;" />
-                            <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="14" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource FocusTodayTotal}" />
-                            <TextBlock Grid.Column="2" VerticalAlignment="Center" FontSize="16" FontWeight="SemiBold" Text="{Binding TodayTotalDisplay}" />
+                            <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource FocusTodayTotal}" />
+                            <TextBlock Grid.Column="2" VerticalAlignment="Center" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{Binding TodayTotalDisplay}" />
                         </Grid>
                         <Grid Height="52">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                             <TextBlock VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="19" Foreground="{DynamicResource TextSecondary}" Text="&#xE823;" />
-                            <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="14" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource FocusCompletedAt}" />
-                            <TextBlock Grid.Column="2" VerticalAlignment="Center" FontSize="16" FontWeight="SemiBold" Text="{Binding CompletedAtDisplay}" />
+                            <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource FocusCompletedAt}" />
+                            <TextBlock Grid.Column="2" VerticalAlignment="Center" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{Binding CompletedAtDisplay}" />
                         </Grid>
                     </StackPanel>
                 </Border>
@@ -380,9 +380,9 @@
                 </StackPanel>
 
                 <StackPanel Margin="0,20,0,0" Orientation="Horizontal">
-                    <Button Width="194" AutomationProperties.Name="{DynamicResource FocusAgain}" Command="{Binding FocusAgainCommand}" Content="{DynamicResource FocusAgain}" Foreground="{DynamicResource AccentPrimary}" BorderBrush="{DynamicResource AccentPrimary}" Style="{StaticResource FocusFlowOutlineButton}" />
+                    <Button Width="194" AutomationProperties.Name="{DynamicResource FocusAgain}" Command="{Binding FocusAgainCommand}" Content="{DynamicResource FocusAgain}" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource AccentPrimary}" BorderBrush="{DynamicResource AccentPrimary}" Style="{StaticResource FocusFlowOutlineButton}" />
                     <Button Width="194" Margin="20,0,0,0" AutomationProperties.Name="{DynamicResource FocusReturnHome}" Command="{Binding ReturnHomeCommand}" Style="{StaticResource FocusFlowAccentButton}">
-                        <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource WhiteText}" Text="{DynamicResource FocusReturnHome}" />
+                        <TextBlock FontSize="13" FontWeight="Medium" Foreground="{DynamicResource WhiteText}" Text="{DynamicResource FocusReturnHome}" />
                     </Button>
                 </StackPanel>
             </StackPanel>
@@ -413,14 +413,11 @@
                     <Rectangle Width="7" Height="7" Margin="0,12,8,0" HorizontalAlignment="Right" VerticalAlignment="Top" Fill="{DynamicResource SuccessBright}" RenderTransformOrigin="0.5,0.5"><Rectangle.RenderTransform><RotateTransform Angle="45" /></Rectangle.RenderTransform></Rectangle>
                 </Grid>
 
-                <TextBlock Margin="0,10,0,0" HorizontalAlignment="Center" FontSize="32" FontWeight="SemiBold" Text="{DynamicResource FocusCompletedTitle}" />
+                <TextBlock Margin="0,10,0,0" HorizontalAlignment="Center" FontSize="20" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource FocusCompletedTitle}" />
                 <TextBlock Margin="0,8,0,0"
                            HorizontalAlignment="Center"
                            FontFamily="{DynamicResource FontFamilyNumeric}"
-                           FontSize="48"
-                           FontWeight="SemiBold"
-                           Foreground="{DynamicResource AccentPrimary}"
-                           Text="{Binding CompletedDurationDisplay}" />
+                           Foreground="{DynamicResource AccentPrimary}"><Run FontSize="48" FontWeight="SemiBold" Text="{Binding CompletedDurationPrimaryValue, Mode=OneWay}" /><Run FontFamily="{DynamicResource FontFamilyPrimary}" FontSize="20" FontWeight="Normal" Text="{Binding CompletedDurationPrimaryUnit, Mode=OneWay}" /><Run FontSize="48" FontWeight="SemiBold" Text="{Binding CompletedDurationSecondaryValue, Mode=OneWay}" /><Run FontFamily="{DynamicResource FontFamilyPrimary}" FontSize="20" FontWeight="Normal" Text="{Binding CompletedDurationSecondaryUnit, Mode=OneWay}" /></TextBlock>
 
                 <Border Width="438" Height="146" Margin="0,55,0,0" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource OverlayBorder}" BorderThickness="1" CornerRadius="16">
                     <Border.Effect><DropShadowEffect BlurRadius="18" Direction="270" Opacity="0.07" ShadowDepth="4" /></Border.Effect>
@@ -429,15 +426,15 @@
                         <Grid Grid.Row="0">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="19" Foreground="{DynamicResource SuccessBright}" Text="&#xE787;" />
-                            <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="14" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource FocusTodayTotal}" />
-                            <TextBlock Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="16" FontWeight="SemiBold" Text="{Binding TodayTotalDisplay}" />
+                            <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource FocusTodayTotal}" />
+                            <TextBlock Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{Binding TodayTotalDisplay}" />
                         </Grid>
                         <Border Grid.Row="1" Background="{DynamicResource BorderPrimary}" />
                         <Grid Grid.Row="2">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="19" Foreground="{DynamicResource TextSecondary}" Text="&#xE823;" />
-                            <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="14" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource FocusCompletedAt}" />
-                            <TextBlock Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="16" FontWeight="SemiBold" Text="{Binding CompletedAtDisplay}" />
+                            <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource FocusCompletedAt}" />
+                            <TextBlock Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{Binding CompletedAtDisplay}" />
                         </Grid>
                     </Grid>
                 </Border>
@@ -452,6 +449,8 @@
                             AutomationProperties.Name="{DynamicResource FocusAgain}"
                             Command="{Binding FocusAgainCommand}"
                             Content="{DynamicResource FocusAgain}"
+                            FontSize="13"
+                            FontWeight="Medium"
                             Foreground="{DynamicResource AccentPrimary}"
                             BorderBrush="{DynamicResource AccentPrimary}"
                             Style="{StaticResource FocusFlowOutlineButton}" />
@@ -460,7 +459,7 @@
                             AutomationProperties.Name="{DynamicResource FocusReturnHome}"
                             Command="{Binding ReturnHomeCommand}"
                             Style="{StaticResource FocusFlowAccentButton}">
-                        <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource WhiteText}" Text="{DynamicResource FocusReturnHome}" />
+                        <TextBlock FontSize="13" FontWeight="Medium" Foreground="{DynamicResource WhiteText}" Text="{DynamicResource FocusReturnHome}" />
                     </Button>
                 </StackPanel>
             </StackPanel>

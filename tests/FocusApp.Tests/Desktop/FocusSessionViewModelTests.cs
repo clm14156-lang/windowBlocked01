@@ -111,6 +111,10 @@ public sealed class FocusSessionViewModelTests
 
         Assert.Equal(FocusFlowStage.Completed, viewModel.Stage);
         Assert.Equal("0 分 10 秒", viewModel.CompletedDurationDisplay);
+        Assert.Equal("0", viewModel.CompletedDurationPrimaryValue);
+        Assert.Equal("分", viewModel.CompletedDurationPrimaryUnit);
+        Assert.Equal("10", viewModel.CompletedDurationSecondaryValue);
+        Assert.Equal("秒", viewModel.CompletedDurationSecondaryUnit);
         Assert.Equal("0 分 10 秒", viewModel.TodayTotalDisplay);
         Assert.Equal("8月17日 14:26", viewModel.CompletedAtDisplay);
     }
@@ -126,6 +130,10 @@ public sealed class FocusSessionViewModelTests
 
         Assert.Equal(FocusFlowStage.Completed, viewModel.Stage);
         Assert.Equal("1 分钟", viewModel.CompletedDurationDisplay);
+        Assert.Equal("1", viewModel.CompletedDurationPrimaryValue);
+        Assert.Equal("分钟", viewModel.CompletedDurationPrimaryUnit);
+        Assert.Empty(viewModel.CompletedDurationSecondaryValue);
+        Assert.Empty(viewModel.CompletedDurationSecondaryUnit);
         Assert.Equal("1 分钟", viewModel.TodayTotalDisplay);
     }
 

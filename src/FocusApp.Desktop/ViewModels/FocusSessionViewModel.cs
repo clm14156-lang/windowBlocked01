@@ -228,6 +228,14 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
 
     public string CompletedDurationDisplay => FormatDuration(_completedFocusSeconds);
 
+    public string CompletedDurationPrimaryValue => GetCompletedDurationParts().PrimaryValue;
+
+    public string CompletedDurationPrimaryUnit => GetCompletedDurationParts().PrimaryUnit;
+
+    public string CompletedDurationSecondaryValue => GetCompletedDurationParts().SecondaryValue;
+
+    public string CompletedDurationSecondaryUnit => GetCompletedDurationParts().SecondaryUnit;
+
     public string TodayTotalDisplay => FormatDuration(_todayTotalSeconds);
 
     public string CompletedAtDisplay => _completedAt == default ? string.Empty : _completedAt.ToString("M月d日 HH:mm");
@@ -415,6 +423,10 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         _todayTotalSeconds += _completedFocusSeconds;
         _completedAt = _nowProvider();
         OnPropertyChanged(nameof(CompletedDurationDisplay));
+        OnPropertyChanged(nameof(CompletedDurationPrimaryValue));
+        OnPropertyChanged(nameof(CompletedDurationPrimaryUnit));
+        OnPropertyChanged(nameof(CompletedDurationSecondaryValue));
+        OnPropertyChanged(nameof(CompletedDurationSecondaryUnit));
         OnPropertyChanged(nameof(TodayTotalDisplay));
         OnPropertyChanged(nameof(CompletedAtDisplay));
         Stage = FocusFlowStage.Completed;
@@ -633,6 +645,22 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         }
 
         return $"{duration.Minutes} 分 {duration.Seconds:00} 秒";
+    }
+
+    private (string PrimaryValue, string PrimaryUnit, string SecondaryValue, string SecondaryUnit) GetCompletedDurationParts()
+    {
+        var duration = TimeSpan.FromSeconds(Math.Max(0, _completedFocusSeconds));
+        if (duration.TotalHours >= 1)
+        {
+            return ($"{(int)duration.TotalHours}", "小时", $"{duration.Minutes}", "分钟");
+        }
+
+        if (duration.TotalMinutes >= 1 && duration.Seconds == 0)
+        {
+            return ($"{duration.Minutes}", "分钟", string.Empty, string.Empty);
+        }
+
+        return ($"{duration.Minutes}", "分", $"{duration.Seconds:00}", "秒");
     }
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null)

@@ -559,7 +559,7 @@
                                 <DataTrigger Binding="{Binding IsCreatingTarget}" Value="True">
                                     <Setter Property="Visibility" Value="Collapsed" />
                                 </DataTrigger>
-                                <DataTrigger Binding="{Binding HasSelectedTarget}" Value="True">
+                                <DataTrigger Binding="{Binding HasDraftSelectedTarget}" Value="True">
                                     <Setter Property="Visibility" Value="Collapsed" />
                                 </DataTrigger>
                             </Style.Triggers>
@@ -613,7 +613,7 @@
                         <Style TargetType="{x:Type Grid}">
                             <Setter Property="Visibility" Value="Collapsed" />
                             <Style.Triggers>
-                                <DataTrigger Binding="{Binding HasSelectedTarget}" Value="True">
+                                <DataTrigger Binding="{Binding HasDraftSelectedTarget}" Value="True">
                                     <Setter Property="Visibility" Value="Visible" />
                                 </DataTrigger>
                             </Style.Triggers>

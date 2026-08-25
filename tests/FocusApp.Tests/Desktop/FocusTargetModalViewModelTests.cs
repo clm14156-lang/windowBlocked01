@@ -83,7 +83,7 @@ public sealed class FocusTargetModalViewModelTests
     }
 
     [Fact]
-    public void ClosingModal_RestoresSelectionFromBeforeOpen()
+    public void ClosingModal_CommitsTemporarySelection()
     {
         var viewModel = new FocusTargetModalViewModel();
         var learning = viewModel.VisibleTargets.Single(target => target.Name == "学习");
@@ -96,9 +96,33 @@ public sealed class FocusTargetModalViewModelTests
 
         Assert.False(viewModel.IsOpen);
         Assert.True(viewModel.HasSelectedTarget);
+        Assert.Same(coding, viewModel.SelectedTarget);
+        Assert.False(learning.IsSelected);
+        Assert.True(coding.IsSelected);
+    }
+
+    [Fact]
+    public void ScrimClose_CommitsClearedTemporarySelectionToHomeState()
+    {
+        var viewModel = new FocusTargetModalViewModel();
+        var learning = viewModel.VisibleTargets.Single(target => target.Name == "学习");
+        viewModel.SelectTargetCommand.Execute(learning);
+        viewModel.Open();
+
+        viewModel.SelectTargetCommand.Execute(learning);
+
+        Assert.True(viewModel.HasSelectedTarget);
         Assert.Same(learning, viewModel.SelectedTarget);
-        Assert.True(learning.IsSelected);
-        Assert.False(coding.IsSelected);
+        Assert.False(viewModel.HasDraftSelectedTarget);
+        Assert.Empty(viewModel.CurrentTasks);
+
+        viewModel.CloseCommand.Execute(null);
+
+        Assert.False(viewModel.IsOpen);
+        Assert.False(viewModel.HasSelectedTarget);
+        Assert.False(learning.IsSelected);
+        Assert.Equal("选择专注目标(可选)", viewModel.SelectedTargetButtonText);
+        Assert.Empty(viewModel.CurrentTasks);
     }
 
     [Fact]
@@ -127,6 +151,7 @@ public sealed class FocusTargetModalViewModelTests
         viewModel.CancelSelectionCommand.Execute(null);
 
         Assert.True(viewModel.IsOpen);
+        Assert.False(viewModel.HasDraftSelectedTarget);
         Assert.False(viewModel.HasSelectedTarget);
         Assert.False(coding.IsSelected);
         Assert.Equal("选择专注目标(可选)", viewModel.SelectedTargetButtonText);
