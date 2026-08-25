@@ -9,6 +9,8 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
 {
     private SettingsEntryItemViewModel? _activeEntry;
     private AutomaticRuleItemViewModel? _editingRule;
+    private bool _isLoggedIn;
+    private bool _isVip;
 
     public SettingsPageViewModel(
         IEnumerable<SettingsToggleItemViewModel> toggleItems,
@@ -35,6 +37,12 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
         {
             AutomaticBlockingItem.PropertyChanged += AutomaticBlockingItem_PropertyChanged;
         }
+
+        if (ForcedModeItem is not null)
+        {
+            ForcedModeItem.PropertyChanged += ForcedModeItem_PropertyChanged;
+            EnsureForcedModeAccessState();
+        }
     }
 
     private readonly string _dailyLabel;
@@ -59,6 +67,8 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
 
     public SettingsToggleItemViewModel? ForcedModeItem { get; }
 
+    public bool CanUseForcedMode => _isLoggedIn && _isVip;
+
     public AutomaticRuleModalViewModel RuleModal { get; }
 
     public ObservableCollection<AutomaticRuleItemViewModel> AutomaticRules { get; } = [];
@@ -74,6 +84,20 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
     public ICommand EditRuleCommand { get; }
 
     public string? LastActivatedEntryKey => _activeEntry?.Key;
+
+    public void SetUserAccess(bool isLoggedIn, bool isVip)
+    {
+        var couldUseForcedMode = CanUseForcedMode;
+        _isLoggedIn = isLoggedIn;
+        _isVip = isVip;
+
+        if (couldUseForcedMode != CanUseForcedMode)
+        {
+            OnPropertyChanged(nameof(CanUseForcedMode));
+        }
+
+        EnsureForcedModeAccessState();
+    }
 
     private void OpenCreateRule()
     {
@@ -153,6 +177,28 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
         {
             OnPropertyChanged(nameof(IsAutomaticBlockingEnabled));
             RulesChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    private void ForcedModeItem_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(SettingsToggleItemViewModel.IsEnabled))
+        {
+            EnsureForcedModeAccessState();
+        }
+    }
+
+    private void EnsureForcedModeAccessState()
+    {
+        if (ForcedModeItem is null)
+        {
+            return;
+        }
+
+        ForcedModeItem.IsVipRestricted = !CanUseForcedMode;
+        if (!CanUseForcedMode && ForcedModeItem.IsEnabled)
+        {
+            ForcedModeItem.IsEnabled = false;
         }
     }
 
@@ -298,6 +344,7 @@ public sealed class AutomaticRuleItemViewModel : INotifyPropertyChanged
 public sealed class SettingsToggleItemViewModel : INotifyPropertyChanged
 {
     private bool _isEnabled;
+    private bool _isVipRestricted;
 
     public SettingsToggleItemViewModel(
         string key,
@@ -326,6 +373,21 @@ public sealed class SettingsToggleItemViewModel : INotifyPropertyChanged
     public string Icon { get; }
 
     public bool HasSeparator { get; }
+
+    public bool IsVipRestricted
+    {
+        get => _isVipRestricted;
+        internal set
+        {
+            if (_isVipRestricted == value)
+            {
+                return;
+            }
+
+            _isVipRestricted = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsVipRestricted)));
+        }
+    }
 
     public bool IsEnabled
     {

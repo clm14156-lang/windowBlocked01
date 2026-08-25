@@ -30,6 +30,37 @@ public sealed class SettingsPageViewModelTests
     }
 
     [Fact]
+    public void ForcedMode_RequiresLoggedInVipAccessAndStaysOffWithoutIt()
+    {
+        var forcedMode = new SettingsToggleItemViewModel("ForcedMode", "Forced mode", "Description", "Icon", true, false);
+        var viewModel = new SettingsPageViewModel([forcedMode], []);
+
+        Assert.False(viewModel.CanUseForcedMode);
+        Assert.False(forcedMode.IsEnabled);
+        Assert.True(forcedMode.IsVipRestricted);
+
+        viewModel.SetUserAccess(true, false);
+        forcedMode.IsEnabled = true;
+
+        Assert.False(viewModel.CanUseForcedMode);
+        Assert.False(forcedMode.IsEnabled);
+        Assert.True(forcedMode.IsVipRestricted);
+
+        viewModel.SetUserAccess(true, true);
+        forcedMode.IsEnabled = true;
+
+        Assert.True(viewModel.CanUseForcedMode);
+        Assert.True(forcedMode.IsEnabled);
+        Assert.False(forcedMode.IsVipRestricted);
+
+        viewModel.SetUserAccess(false, true);
+
+        Assert.False(viewModel.CanUseForcedMode);
+        Assert.False(forcedMode.IsEnabled);
+        Assert.True(forcedMode.IsVipRestricted);
+    }
+
+    [Fact]
     public void ActivateEntryCommand_TracksLatestClickedEntry()
     {
         var export = new SettingsEntryItemViewModel("Export", "Export", "Description", "Icon");

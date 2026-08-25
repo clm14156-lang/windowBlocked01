@@ -262,6 +262,7 @@ public sealed class MainWindowViewModelTests
         Assert.Equal(expectedVip, viewModel.StatisticsPage.CanViewDailyFocusRecord);
         Assert.Equal(expectedVip, viewModel.StatisticsPage.CanViewGoalInvestmentDetails);
         Assert.Equal(expectedVip, viewModel.ThemePanel.CanUsePremiumThemes);
+        Assert.Equal(expectedVip, viewModel.SettingsPage.CanUseForcedMode);
 
         viewModel.OpenAuthCommand.Execute(null);
         viewModel.OpenVipCommand.Execute(null);
@@ -314,6 +315,7 @@ public sealed class MainWindowViewModelTests
         Assert.False(viewModel.StatisticsPage.CanViewDailyFocusRecord);
         Assert.False(viewModel.StatisticsPage.CanViewGoalInvestmentDetails);
         Assert.False(viewModel.ThemePanel.CanUsePremiumThemes);
+        Assert.False(viewModel.SettingsPage.CanUseForcedMode);
     }
 
     [Fact]

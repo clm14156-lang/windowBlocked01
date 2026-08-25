@@ -77,6 +77,9 @@
     <system:String x:Key="SettingsAutomaticBlockingDescription">自动识别并屏蔽分散注意力的应用与网站</system:String>
     <system:String x:Key="SettingsForcedMode">强制模式</system:String>
     <system:String x:Key="SettingsForcedModeDescription">专注期间无法主动退出</system:String>
+    <system:String x:Key="SettingsVipExclusive">VIP专享</system:String>
+    <system:String x:Key="SettingsForcedModeVipGuideTitle">强制模式</system:String>
+    <system:String x:Key="SettingsForcedModeVipGuideDescription">专注期间无法主动退出，&#x0a;关闭或重启应用后仍会&#x0a;恢复本次专注。</system:String>
     <system:String x:Key="SettingsExportRecords">导出记录</system:String>
     <system:String x:Key="SettingsExportRecordsDescription">导出您的专注记录</system:String>
     <system:String x:Key="SettingsAbout">关于应用</system:String>

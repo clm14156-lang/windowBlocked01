@@ -45,10 +45,29 @@
                                            Text="{Binding Icon}" />
                             </Border>
                             <StackPanel Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center">
-                                <TextBlock FontSize="13"
-                                           FontWeight="Medium"
-                                           Foreground="{DynamicResource TextPrimary}"
-                                           Text="{Binding Title}" />
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock FontSize="13"
+                                               FontWeight="Medium"
+                                               Foreground="{DynamicResource TextPrimary}"
+                                               Text="{Binding Title}" />
+                                    <StackPanel x:Name="VipRestrictionBadge"
+                                                Margin="8,0,0,0"
+                                                VerticalAlignment="Center"
+                                                Orientation="Horizontal"
+                                                Visibility="{Binding IsVipRestricted, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <TextBlock VerticalAlignment="Center"
+                                                   FontFamily="Segoe MDL2 Assets"
+                                                   FontSize="12"
+                                                   Foreground="{DynamicResource TextTertiary}"
+                                                   Text="&#xE72E;" />
+                                        <TextBlock Margin="4,0,0,0"
+                                                   VerticalAlignment="Center"
+                                                   FontSize="12"
+                                                   FontWeight="Medium"
+                                                   Foreground="{DynamicResource TextSecondary}"
+                                                   Text="{DynamicResource SettingsVipExclusive}" />
+                                    </StackPanel>
+                                </StackPanel>
                                 <TextBlock Margin="0,2,0,0"
                                            FontSize="12"
                                            FontWeight="Normal"
@@ -115,6 +134,12 @@
                                 </MultiTrigger.Conditions>
                                 <Setter TargetName="ToggleTrack" Property="Background" Value="{DynamicResource AccentHover}" />
                             </MultiTrigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Cursor" Value="Arrow" />
+                                <Setter TargetName="ToggleTrack" Property="Background" Value="{DynamicResource BackgroundSecondary}" />
+                                <Setter TargetName="ToggleTrack" Property="Opacity" Value="0.55" />
+                                <Setter TargetName="ToggleThumb" Property="Opacity" Value="0.68" />
+                            </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
@@ -466,7 +491,119 @@
                             </StackPanel>
                         </Border>
 
-                        <ToggleButton AutomationProperties.Name="{Binding ForcedModeItem.Title}" DataContext="{Binding ForcedModeItem}" IsChecked="{Binding IsEnabled, Mode=TwoWay}" Style="{StaticResource SettingsToggleRowStyle}" />
+                        <Grid Height="63">
+                            <ToggleButton AutomationProperties.Name="{Binding ForcedModeItem.Title}"
+                                          DataContext="{Binding ForcedModeItem}"
+                                          IsChecked="{Binding IsEnabled, Mode=TwoWay}"
+                                          IsEnabled="{Binding DataContext.CanUseForcedMode, ElementName=SettingsPageRoot}"
+                                          IsHitTestVisible="{Binding DataContext.CanUseForcedMode, ElementName=SettingsPageRoot}"
+                                          Style="{StaticResource SettingsToggleRowStyle}" />
+                            <Border x:Name="ForcedModeVipHoverTarget"
+                                    Width="138"
+                                    Height="22"
+                                    Margin="72,11,0,0"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Top"
+                                    Background="{DynamicResource TransparentBrush}"
+                                    MouseEnter="ForcedModeVipHoverTarget_MouseEnter"
+                                    MouseLeave="ForcedModeVipHoverTarget_MouseLeave">
+                                <Border.Style>
+                                    <Style TargetType="{x:Type Border}">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding CanUseForcedMode}" Value="False">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                            </Border>
+                            <Popup x:Name="ForcedModeVipGuidePopup"
+                                   Width="250"
+                                   Height="120"
+                                   AllowsTransparency="True"
+                                   Placement="Custom"
+                                   PlacementTarget="{Binding ElementName=ForcedModeVipHoverTarget}"
+                                   PopupAnimation="Fade"
+                                   StaysOpen="True">
+                                <Grid Width="250"
+                                      Height="120"
+                                      MouseEnter="ForcedModeVipGuide_MouseEnter"
+                                      MouseLeave="ForcedModeVipGuide_MouseLeave">
+                                    <Border x:Name="ForcedModeVipGuideCard"
+                                            Width="250"
+                                            Height="112"
+                                            Padding="16"
+                                            VerticalAlignment="Bottom"
+                                            Background="{DynamicResource SurfacePrimary}"
+                                            BorderBrush="{DynamicResource BorderPrimary}"
+                                            BorderThickness="1"
+                                            CornerRadius="10">
+                                        <Border.Effect>
+                                            <DropShadowEffect BlurRadius="14" Direction="270" Opacity="0.11" ShadowDepth="3" />
+                                        </Border.Effect>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="48" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border Width="42"
+                                                    Height="42"
+                                                    HorizontalAlignment="Left"
+                                                    VerticalAlignment="Top"
+                                                    Background="{DynamicResource AccentTint}"
+                                                    CornerRadius="21">
+                                                <Viewbox Width="22" Height="24">
+                                                    <Path Data="M 12,2 L 21,6 V 13 C 21,19 17,23 12,26 C 7,23 3,19 3,13 V 6 Z M 12,8 V 17"
+                                                          Fill="{DynamicResource TransparentBrush}"
+                                                          Stroke="{DynamicResource AccentPrimary}"
+                                                          StrokeEndLineCap="Round"
+                                                          StrokeLineJoin="Round"
+                                                          StrokeStartLineCap="Round"
+                                                          StrokeThickness="1.8" />
+                                                </Viewbox>
+                                            </Border>
+                                            <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                                                <TextBlock FontSize="15"
+                                                           FontWeight="Medium"
+                                                           Foreground="{DynamicResource TextPrimary}"
+                                                           Text="{DynamicResource SettingsForcedModeVipGuideTitle}" />
+                                                <TextBlock Margin="0,9,0,0"
+                                                           Width="160"
+                                                           MaxWidth="160"
+                                                           FontSize="12"
+                                                           FontWeight="Normal"
+                                                           Foreground="{DynamicResource TextSecondary}"
+                                                           LineHeight="18"
+                                                           Text="{DynamicResource SettingsForcedModeVipGuideDescription}"
+                                                           TextAlignment="Left"
+                                                           TextTrimming="None"
+                                                           TextWrapping="Wrap" />
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                    <Polygon x:Name="ForcedModeVipGuideTopArrow"
+                                             Width="16"
+                                             Height="8"
+                                             HorizontalAlignment="Center"
+                                             VerticalAlignment="Top"
+                                             Fill="{DynamicResource SurfacePrimary}"
+                                             Points="0,8 8,0 16,8"
+                                             Stroke="{DynamicResource BorderPrimary}"
+                                             StrokeThickness="1" />
+                                    <Polygon x:Name="ForcedModeVipGuideBottomArrow"
+                                             Width="16"
+                                             Height="8"
+                                             HorizontalAlignment="Center"
+                                             VerticalAlignment="Bottom"
+                                             Fill="{DynamicResource SurfacePrimary}"
+                                             Points="0,0 8,8 16,0"
+                                             Stroke="{DynamicResource BorderPrimary}"
+                                             StrokeThickness="1"
+                                             Visibility="Collapsed" />
+                                </Grid>
+                            </Popup>
+                        </Grid>
                     </StackPanel>
                 </Border>
 
