@@ -41,14 +41,20 @@ public sealed class FocusTaskListPresentationTests
 
         var pendingTasks = Assert.Single(taskList.Descendants(Presentation + "ItemsControl").Where(items =>
             (string?)items.Attribute("ItemsSource") == "{Binding PendingTasks}"));
-        Assert.Equal("PendingTaskList_PreviewMouseLeftButtonDown", (string?)pendingTasks.Attribute("PreviewMouseLeftButtonDown"));
-        Assert.Equal("PendingTaskList_PreviewMouseMove", (string?)pendingTasks.Attribute("PreviewMouseMove"));
 
         var dragRow = Assert.Single(pendingTasks.Descendants(Presentation + "Grid").Where(grid =>
             (string?)grid.Attribute(Xaml + "Name") == "TaskDragRow"));
+        Assert.Equal("Transparent", (string?)dragRow.Attribute("Background"));
+        Assert.Equal("PendingTaskList_PreviewMouseLeftButtonDown", (string?)dragRow.Attribute("PreviewMouseLeftButtonDown"));
+        Assert.Equal("PendingTaskList_PreviewMouseMove", (string?)dragRow.Attribute("PreviewMouseMove"));
         Assert.Contains(dragRow.Descendants(Presentation + "DataTrigger"), trigger =>
             (string?)trigger.Attribute("Binding") == "{Binding IsDragging}" &&
             trigger.Descendants(Presentation + "DropShadowEffect").Any());
+        Assert.Contains(dragRow.Descendants(Presentation + "DataTrigger"), trigger =>
+            (string?)trigger.Attribute("Binding") == "{Binding IsMouseOver, ElementName=TaskDragRow}" &&
+            trigger.Descendants(Presentation + "Setter").Any(setter =>
+                (string?)setter.Attribute("Property") == "Background" &&
+                (string?)setter.Attribute("Value") == "{DynamicResource ControlHoverBackground}"));
         Assert.Equal(2, dragRow.Descendants(Presentation + "Border").Count(border =>
             (string?)border.Attribute("Visibility") is
                 "{Binding ShowDropBefore, Converter={StaticResource BooleanToVisibilityConverter}}" or

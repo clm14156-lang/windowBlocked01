@@ -238,13 +238,15 @@
                                 <Style TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource FocusTaskThinScrollBarStyle}" />
                             </ScrollViewer.Resources>
                             <ItemsControl x:Name="PendingTaskList"
-                                          ItemsSource="{Binding PendingTasks}"
-                                          PreviewMouseLeftButtonDown="PendingTaskList_PreviewMouseLeftButtonDown"
-                                          PreviewMouseLeftButtonUp="PendingTaskList_PreviewMouseLeftButtonUp"
-                                          PreviewMouseMove="PendingTaskList_PreviewMouseMove">
+                                          ItemsSource="{Binding PendingTasks}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Grid x:Name="TaskDragRow" Height="53">
+                                        <Grid x:Name="TaskDragRow"
+                                              Height="53"
+                                              Background="Transparent"
+                                              PreviewMouseLeftButtonDown="PendingTaskList_PreviewMouseLeftButtonDown"
+                                              PreviewMouseLeftButtonUp="PendingTaskList_PreviewMouseLeftButtonUp"
+                                              PreviewMouseMove="PendingTaskList_PreviewMouseMove">
                                             <Grid.Style>
                                                 <Style TargetType="{x:Type Grid}">
                                                     <Setter Property="Opacity" Value="1" />
@@ -315,9 +317,9 @@
                                                     <Style TargetType="{x:Type Border}">
                                                         <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
                                                         <Style.Triggers>
-                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                            <DataTrigger Binding="{Binding IsMouseOver, ElementName=TaskDragRow}" Value="True">
                                                                 <Setter Property="Background" Value="{DynamicResource ControlHoverBackground}" />
-                                                            </Trigger>
+                                                            </DataTrigger>
                                                         </Style.Triggers>
                                                     </Style>
                                                 </Border.Style>

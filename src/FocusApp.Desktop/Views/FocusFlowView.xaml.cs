@@ -11,6 +11,7 @@ public partial class FocusFlowView : UserControl
 {
     private Point _taskDragStartPoint;
     private FocusTaskViewModel? _taskDragCandidate;
+    private FrameworkElement? _taskDragSourceRow;
     private FocusTaskViewModel? _dropTargetTask;
     private bool _dropAfterTarget;
     private bool _isTaskDragInProgress;
@@ -117,15 +118,15 @@ public partial class FocusFlowView : UserControl
             return;
         }
 
-        var container = ItemsControl.ContainerFromElement(PendingTaskList, e.OriginalSource as DependencyObject) as FrameworkElement;
-        if (container?.DataContext is not FocusTaskViewModel { IsEditing: false } task)
+        if (sender is not FrameworkElement { DataContext: FocusTaskViewModel { IsEditing: false } task } row)
         {
             return;
         }
 
         _taskDragCandidate = task;
+        _taskDragSourceRow = row;
         _taskDragStartPoint = e.GetPosition(PendingTaskList);
-        PendingTaskList.CaptureMouse();
+        row.CaptureMouse();
     }
 
     private void PendingTaskList_PreviewMouseMove(object sender, MouseEventArgs e)
@@ -149,9 +150,10 @@ public partial class FocusFlowView : UserControl
         }
 
         var draggedTask = _taskDragCandidate;
+        var dragSourceRow = _taskDragSourceRow;
         _isTaskDragInProgress = true;
         draggedTask.IsDragging = true;
-        PendingTaskList.ReleaseMouseCapture();
+        dragSourceRow?.ReleaseMouseCapture();
         if (DataContext is FocusSessionViewModel viewModel)
         {
             viewModel.DismissTaskMenusCommand.Execute(null);
@@ -159,7 +161,7 @@ public partial class FocusFlowView : UserControl
 
         try
         {
-            DragDrop.DoDragDrop(PendingTaskList, draggedTask, DragDropEffects.Move);
+            DragDrop.DoDragDrop(dragSourceRow ?? PendingTaskList, draggedTask, DragDropEffects.Move);
         }
         finally
         {
@@ -279,12 +281,13 @@ public partial class FocusFlowView : UserControl
 
     private void ResetDragCandidate()
     {
-        if (PendingTaskList.IsMouseCaptured)
+        if (_taskDragSourceRow?.IsMouseCaptured == true)
         {
-            PendingTaskList.ReleaseMouseCapture();
+            _taskDragSourceRow.ReleaseMouseCapture();
         }
 
         _taskDragCandidate = null;
+        _taskDragSourceRow = null;
     }
 
     private static bool IsWithinTaskControl(DependencyObject? source) =>
