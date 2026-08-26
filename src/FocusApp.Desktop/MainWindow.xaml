@@ -606,6 +606,25 @@
                 </Border>
             </Grid>
 
+            <Grid Grid.ColumnSpan="2" Panel.ZIndex="153">
+                <Grid.Style>
+                    <Style TargetType="{x:Type Grid}">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding SettingsPage.ExportRecordsModal.IsOpen}" Value="True">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
+                <Border Background="{DynamicResource ModalScrim}"
+                        MouseDown="ExportRecordsScrim_MouseDown">
+                    <views:ExportRecordsModal HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              DataContext="{Binding SettingsPage.ExportRecordsModal}" />
+                </Border>
+            </Grid>
+
             <views:FocusFlowView Grid.ColumnSpan="2"
                                  Panel.ZIndex="200"
                                  MinimizeRequested="FocusFlowView_MinimizeRequested"

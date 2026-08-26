@@ -25,6 +25,7 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
         AutomaticBlockingItem = ToggleItems.FirstOrDefault(item => item.Key == "AutomaticBlocking");
         ForcedModeItem = ToggleItems.FirstOrDefault(item => item.Key == "ForcedMode");
         RuleModal = ruleModal ?? AutomaticRuleModalViewModel.CreateDefault();
+        ExportRecordsModal = new ExportRecordsModalViewModel();
         _dailyLabel = dailyLabel;
         ActivateEntryCommand = new RelayCommand<SettingsEntryItemViewModel>(ActivateEntry);
         OpenRuleModalCommand = new RelayCommand<object>(_ => OpenCreateRule());
@@ -70,6 +71,8 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
     public bool CanUseForcedMode => _isLoggedIn && _isVip;
 
     public AutomaticRuleModalViewModel RuleModal { get; }
+
+    public ExportRecordsModalViewModel ExportRecordsModal { get; }
 
     public ObservableCollection<AutomaticRuleItemViewModel> AutomaticRules { get; } = [];
 
@@ -257,6 +260,11 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
         _activeEntry = entry;
         _activeEntry.IsActive = true;
         OnPropertyChanged(nameof(LastActivatedEntryKey));
+
+        if (entry.Key == "ExportRecords")
+        {
+            ExportRecordsModal.Open();
+        }
     }
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null)

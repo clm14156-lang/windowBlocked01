@@ -76,6 +76,18 @@ public sealed class SettingsPageViewModelTests
     }
 
     [Fact]
+    public void ExportRecordsEntry_OpensTheUiOnlyExportModal()
+    {
+        var export = new SettingsEntryItemViewModel("ExportRecords", "Export", "Description", "Icon");
+        var viewModel = new SettingsPageViewModel([], [export]);
+
+        viewModel.ActivateEntryCommand.Execute(export);
+
+        Assert.True(viewModel.ExportRecordsModal.IsOpen);
+        Assert.Equal("ExportRecords", viewModel.LastActivatedEntryKey);
+    }
+
+    [Fact]
     public void RuleModal_OpenAndCustomMode_ResetExpectedDefaults()
     {
         var modal = CreateRuleModal();
