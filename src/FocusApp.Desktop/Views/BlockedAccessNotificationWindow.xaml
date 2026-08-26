@@ -133,7 +133,7 @@
                        FontWeight="Normal"
                        Foreground="{DynamicResource TextSecondary}">
                 <TextBlock.LineHeight>28</TextBlock.LineHeight>
-                <Run Text="{DynamicResource BlockedAccessNotificationFocusPrefix}" /><Run Text="{Binding TargetKindDisplay, Mode=OneWay}" /><Run FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource AccentPrimary}" Text="{DynamicResource BlockedAccessNotificationBlockedSuffix}" />
+                <Run Text="{DynamicResource BlockedAccessNotificationFocusPrefix}" /><Run Text="{Binding TargetKindDisplay, Mode=OneWay}" /><Run FontSize="15" FontWeight="Medium" Foreground="{DynamicResource AutomaticRuleValidationText}" Text="{DynamicResource BlockedAccessNotificationBlockedSuffix}" />
             </TextBlock>
 
             <Border Grid.Row="4"

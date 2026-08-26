@@ -3,6 +3,8 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
+using System.Windows.Interop;
+using FocusApp.Desktop.Services;
 using FocusApp.Desktop.ViewModels;
 using FocusApp.Desktop.Views;
 
@@ -10,6 +12,10 @@ namespace FocusApp.Desktop;
 
 public partial class MainWindow : Window
 {
+    private const int ToastHotKeyId = 0x5241;
+    private const uint ModControl = 0x0002;
+    private const uint VirtualKeyQ = 0x51;
+    private HwndSource? _hotKeySource;
     private FocusFloatingWindow? _focusFloatingWindow;
     private FocusFloatingWindowViewModel? _focusFloatingViewModel;
     private bool _isClosing;
@@ -25,6 +31,25 @@ public partial class MainWindow : Window
         _guestLoginHintCloseTimer.Tick += GuestLoginHintCloseTimer_Tick;
         DataContextChanged += MainWindow_DataContextChanged;
         Closed += MainWindow_Closed;
+    }
+
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+        _hotKeySource = (HwndSource)PresentationSource.FromVisual(this)!;
+        _hotKeySource.AddHook(MainWindowHook);
+        NativeMethods.RegisterHotKey(_hotKeySource.Handle, ToastHotKeyId, ModControl, VirtualKeyQ);
+    }
+
+    private IntPtr MainWindowHook(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        if (msg == NativeMethods.WmHotKey && wParam.ToInt32() == ToastHotKeyId)
+        {
+            AutomaticBlockingToastService.Show();
+            handled = true;
+        }
+
+        return IntPtr.Zero;
     }
 
     private void MainWindow_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
@@ -232,6 +257,12 @@ public partial class MainWindow : Window
 
     private void MainWindow_Closed(object? sender, EventArgs e)
     {
+        if (_hotKeySource is not null)
+        {
+            NativeMethods.UnregisterHotKey(_hotKeySource.Handle, ToastHotKeyId);
+            _hotKeySource.RemoveHook(MainWindowHook);
+            _hotKeySource = null;
+        }
         _isClosing = true;
         _guestLoginHintCloseTimer.Stop();
         var floatingWindow = _focusFloatingWindow;
@@ -239,6 +270,17 @@ public partial class MainWindow : Window
         _focusFloatingViewModel?.Dispose();
         _focusFloatingViewModel = null;
         floatingWindow?.Close();
+    }
+
+    private static class NativeMethods
+    {
+        public const int WmHotKey = 0x0312;
+
+        [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
+        public static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
+        public static extern bool UnregisterHotKey(IntPtr hWnd, int id);
     }
 
     private void GuestAccountHint_MouseEnter(object sender, MouseEventArgs e)

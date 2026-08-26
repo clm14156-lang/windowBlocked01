@@ -216,6 +216,19 @@ public sealed class SettingsPageViewModelTests
     }
 
     [Fact]
+    public void NewRule_IsDisabledUntilTheUserExplicitlyEnablesIt()
+    {
+        var automatic = new SettingsToggleItemViewModel("AutomaticBlocking", "Automatic", "Description", "Icon", true);
+        var modal = CreateRuleModal();
+        var viewModel = new SettingsPageViewModel([automatic], [], modal, "每天");
+
+        modal.Open();
+        modal.ConfirmCommand.Execute(null);
+
+        Assert.False(Assert.Single(viewModel.AutomaticRules).IsEnabled);
+    }
+
+    [Fact]
     public void EditRule_LoadsExistingValuesAndUpdatesOriginalItemInPlace()
     {
         var automatic = new SettingsToggleItemViewModel("AutomaticBlocking", "Automatic", "Description", "Icon", true);

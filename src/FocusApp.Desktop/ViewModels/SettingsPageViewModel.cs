@@ -172,14 +172,13 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
         var mergedEnd = draft.EndMinutes;
         var matches = new List<AutomaticRuleItemViewModel>();
 
-        // Expand the candidate range until every connected enabled rule in the same
+        // Expand the candidate range until every connected rule in the same
         // recurrence scope has been included. This handles one new interval joining
         // several existing intervals in a single operation.
         while (true)
         {
             var newlyConnected = AutomaticRules
-                .Where(existing => existing.IsEnabled
-                    && !matches.Contains(existing)
+                .Where(existing => !matches.Contains(existing)
                     && HasSameRepeatScope(existing, draft, selectedDays)
                     && IntervalsTouch(existing.StartMinutes, existing.EndMinutes, mergedStart, mergedEnd))
                 .ToList();
@@ -205,6 +204,7 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
                 mergedStart,
                 mergedEnd,
                 draft.IsCustom);
+            item.IsEnabled = false;
             item.PropertyChanged += AutomaticRule_PropertyChanged;
             AutomaticRules.Add(item);
             return;
@@ -386,7 +386,7 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
                 continue;
             }
 
-            if (!existing.IsEnabled || !existing.DayKeys.Any(newDays.Contains))
+            if (!existing.DayKeys.Any(newDays.Contains))
             {
                 continue;
             }
