@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using System.Windows.Media;
+using FocusApp.Core;
 using FocusApp.Desktop.Services;
 
 namespace FocusApp.Desktop.ViewModels;
@@ -18,6 +19,7 @@ public sealed class BlockingPageViewModel : INotifyPropertyChanged
     private readonly string _websiteCountTemplate;
     private readonly string _applicationCountTemplate;
     private readonly IFaviconService _faviconService;
+    private readonly AccessControlService _accessControlService;
     private BlockingTab _selectedTab = BlockingTab.Websites;
 
     public BlockingPageViewModel(
@@ -26,13 +28,15 @@ public sealed class BlockingPageViewModel : INotifyPropertyChanged
         string websiteCountTemplate,
         string applicationCountTemplate,
         IFaviconService? faviconService = null,
-        IEnumerable<RecentProgramRecord>? recentPrograms = null)
+        IEnumerable<RecentProgramRecord>? recentPrograms = null,
+        AccessControlService? accessControlService = null)
     {
         Websites = new ObservableCollection<BlockingWebsiteItemViewModel>(websites);
         Applications = new ObservableCollection<BlockingApplicationItemViewModel>(applications);
         _websiteCountTemplate = websiteCountTemplate;
         _applicationCountTemplate = applicationCountTemplate;
         _faviconService = faviconService ?? new FaviconService();
+        _accessControlService = accessControlService ?? new AccessControlService();
         ProgramModal = new AddProgramModalViewModel(recentPrograms);
 
         SelectWebsitesCommand = new RelayCommand<object>(_ => SelectedTab = BlockingTab.Websites);
@@ -100,6 +104,29 @@ public sealed class BlockingPageViewModel : INotifyPropertyChanged
     public string WebsiteCountText => string.Format(_websiteCountTemplate, Websites.Count);
 
     public string ApplicationCountText => string.Format(_applicationCountTemplate, Applications.Count);
+
+    /// <summary>
+    /// Evaluates the current in-memory website rules for a UI or host caller.
+    /// No browser, proxy, or notification side effect is performed here.
+    /// </summary>
+    public BlockedAccessResult EvaluateWebsiteAccess(string address)
+        => _accessControlService.EvaluateWebsite(
+            address,
+            Websites.Select(item => new WebsiteAccessRule(item.Id, item.Name, item.Address, item.IsEnabled)));
+
+    /// <summary>
+    /// Evaluates the current in-memory application rules for a UI or host caller.
+    /// </summary>
+    public BlockedAccessResult EvaluateApplicationAccess(string path)
+        => _accessControlService.EvaluateApplication(
+            path,
+            Applications.Select(item => new ApplicationAccessRule(item.Id, item.Name, item.Path, item.IsEnabled)));
+
+    public BlockedAccessResult EvaluateAccess(AccessRequest request)
+        => _accessControlService.Evaluate(
+            request,
+            Websites.Select(item => new WebsiteAccessRule(item.Id, item.Name, item.Address, item.IsEnabled)),
+            Applications.Select(item => new ApplicationAccessRule(item.Id, item.Name, item.Path, item.IsEnabled)));
 
     private void WebsiteModal_WebsiteCreated(object? sender, WebsiteDraft draft)
     {
