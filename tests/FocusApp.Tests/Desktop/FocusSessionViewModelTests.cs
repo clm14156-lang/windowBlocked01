@@ -138,6 +138,38 @@ public sealed class FocusSessionViewModelTests
     }
 
     [Fact]
+    public void CompletionHistory_StoresNaturalCompletionOnce()
+    {
+        var viewModel = CreateViewModel();
+        viewModel.Start(1);
+        Advance(viewModel, 5);
+
+        Advance(viewModel, 60);
+        viewModel.AdvanceOneSecond();
+
+        var completion = Assert.Single(viewModel.CompletionHistory);
+        Assert.Equal(TimeSpan.FromMinutes(1), completion.ConfiguredDuration);
+        Assert.Equal(TimeSpan.FromMinutes(1), completion.ActualDuration);
+        Assert.Equal(FocusApp.Core.FocusCompletionKind.Natural, completion.CompletionKind);
+        Assert.Same(completion, viewModel.LastCompletion);
+    }
+
+    [Fact]
+    public void CompletionHistory_StoresEarlyCompletionWithActualDuration()
+    {
+        var viewModel = CreateFocusingViewModel();
+        Advance(viewModel, 10);
+
+        viewModel.RequestEndCommand.Execute(null);
+        viewModel.ConfirmEndCommand.Execute(null);
+
+        var completion = Assert.Single(viewModel.CompletionHistory);
+        Assert.Equal(TimeSpan.FromMinutes(25), completion.ConfiguredDuration);
+        Assert.Equal(TimeSpan.FromSeconds(10), completion.ActualDuration);
+        Assert.Equal(FocusApp.Core.FocusCompletionKind.EarlyEnd, completion.CompletionKind);
+    }
+
+    [Fact]
     public void RemainingTime_ShowsTotalMinutesBeyondOneHour()
     {
         var viewModel = CreateViewModel();

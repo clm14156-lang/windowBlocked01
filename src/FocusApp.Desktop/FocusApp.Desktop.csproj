@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\FocusApp.Core\FocusApp.Core.csproj" />
     <ProjectReference Include="..\FocusApp.Contracts\FocusApp.Contracts.csproj" />
   </ItemGroup>
 

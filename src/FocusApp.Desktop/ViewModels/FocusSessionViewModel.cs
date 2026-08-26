@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using System.Windows.Threading;
+using FocusApp.Core;
 
 namespace FocusApp.Desktop.ViewModels;
 
@@ -12,11 +13,14 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     private const int PreparationDurationSeconds = 5;
     private readonly DispatcherTimer _timer;
     private readonly Func<DateTime> _nowProvider;
+    private readonly FocusSessionEngine _engine;
     private readonly Stopwatch _preparationStopwatch = new();
+    private readonly Stopwatch _focusStopwatch = new();
     private FocusFlowStage _stage;
     private int _preparationSeconds = PreparationDurationSeconds;
     private double _preparationProgress;
-    private TimeSpan _manualPreparationElapsed;
+    private TimeSpan _lastPreparationElapsed;
+    private TimeSpan _lastFocusElapsed;
     private int _totalFocusSeconds;
     private int _remainingFocusSeconds;
     private int _completedFocusSeconds;
@@ -27,10 +31,13 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     private bool _isCompletedTasksExpanded;
     private bool _isForcedModeActive;
     private readonly HashSet<FocusTaskViewModel> _sessionCompletedTaskSet = [];
+    private readonly List<FocusSessionRecord> _completionHistory = [];
+    private FocusSessionRecord? _lastRecordedCompletion;
 
     public FocusSessionViewModel(Func<DateTime>? nowProvider = null, bool runTimer = true)
     {
         _nowProvider = nowProvider ?? (() => DateTime.Now);
+        _engine = new FocusSessionEngine(_nowProvider);
         _timer = new DispatcherTimer(DispatcherPriority.Normal)
         {
             Interval = TimeSpan.FromMilliseconds(16)
@@ -81,6 +88,12 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     public ObservableCollection<FocusTaskViewModel> CompletedTasks { get; } = [];
 
     public ObservableCollection<FocusTaskViewModel> SessionCompletedTasks { get; } = [];
+
+    public IReadOnlyList<FocusSessionRecord> CompletionHistory => _completionHistory;
+
+    public FocusSessionRecord? LastCompletion => _completionHistory.Count == 0
+        ? null
+        : _completionHistory[^1];
 
     public int SessionCompletedTaskCount => SessionCompletedTasks.Count;
 
@@ -264,20 +277,14 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
 
     public void Start(int minutes, FocusTargetViewModel? target = null, bool forcedMode = false)
     {
-        if (minutes <= 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(minutes));
-        }
-
         _timer.Stop();
         _preparationStopwatch.Reset();
-        _manualPreparationElapsed = TimeSpan.Zero;
-        PreparationSeconds = PreparationDurationSeconds;
-        PreparationProgress = 0;
-        _totalFocusSeconds = checked(minutes * 60);
-        RemainingFocusSeconds = _totalFocusSeconds;
-        IsEndConfirmationOpen = false;
-        IsForcedModeActive = forcedMode;
+        _focusStopwatch.Reset();
+        _lastPreparationElapsed = TimeSpan.Zero;
+        _lastFocusElapsed = TimeSpan.Zero;
+        _engine.Start(minutes, forcedMode);
+        _lastRecordedCompletion = null;
+        SyncFromEngine();
         ActiveTarget = target;
         _sessionCompletedTaskSet.Clear();
         SessionCompletedTasks.Clear();
@@ -302,7 +309,11 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             return;
         }
 
-        AdvanceFocusOneSecond();
+        if (Stage == FocusFlowStage.Focusing)
+        {
+            _engine.AdvanceFocusBy(TimeSpan.FromSeconds(1));
+            SyncFromEngine();
+        }
     }
 
     public void AdvancePreparationBy(TimeSpan elapsed)
@@ -312,8 +323,14 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             return;
         }
 
-        _manualPreparationElapsed += elapsed;
-        UpdatePreparation(_manualPreparationElapsed);
+        _engine.AdvancePreparationBy(elapsed);
+        SyncFromEngine();
+        if (_engine.State == FocusSessionState.Focusing)
+        {
+            _preparationStopwatch.Stop();
+            _focusStopwatch.Start();
+            _lastFocusElapsed = TimeSpan.Zero;
+        }
     }
 
     public bool MovePendingTask(FocusTaskViewModel task, FocusTaskViewModel target, bool insertAfter)
@@ -349,58 +366,21 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     {
         if (Stage == FocusFlowStage.Preparing)
         {
-            UpdatePreparation(_preparationStopwatch.Elapsed);
+            var preparationElapsed = _preparationStopwatch.Elapsed - _lastPreparationElapsed;
+            _lastPreparationElapsed = _preparationStopwatch.Elapsed;
+            AdvancePreparationBy(preparationElapsed);
             return;
         }
-
-        AdvanceFocusOneSecond();
-    }
-
-    private void AdvanceFocusOneSecond()
-    {
 
         if (Stage != FocusFlowStage.Focusing || IsEndConfirmationOpen)
         {
             return;
         }
 
-        if (RemainingFocusSeconds > 1)
-        {
-            RemainingFocusSeconds--;
-            return;
-        }
-
-        RemainingFocusSeconds = 0;
-        CompleteFocus();
-    }
-
-    private void UpdatePreparation(TimeSpan elapsed)
-    {
-        var elapsedSeconds = elapsed.TotalSeconds;
-        PreparationProgress = Math.Clamp(elapsedSeconds / PreparationDurationSeconds, 0d, 1d);
-
-        if (elapsedSeconds >= PreparationDurationSeconds)
-        {
-            BeginFocus();
-            return;
-        }
-
-        PreparationSeconds = Math.Clamp(
-            (int)Math.Ceiling(PreparationDurationSeconds - elapsedSeconds),
-            1,
-            PreparationDurationSeconds);
-    }
-
-    private void BeginFocus()
-    {
-        _preparationStopwatch.Stop();
-        PreparationProgress = 1;
-        RemainingFocusSeconds = _totalFocusSeconds;
-        Stage = FocusFlowStage.Focusing;
-        if (RunTimer)
-        {
-            _timer.Interval = TimeSpan.FromSeconds(1);
-        }
+        var focusElapsed = _focusStopwatch.Elapsed - _lastFocusElapsed;
+        _lastFocusElapsed = _focusStopwatch.Elapsed;
+        _engine.AdvanceFocusBy(focusElapsed);
+        SyncFromEngine();
     }
 
     private void CancelPreparation()
@@ -412,24 +392,23 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
 
         _timer.Stop();
         _preparationStopwatch.Reset();
-        IsForcedModeActive = false;
-        Stage = FocusFlowStage.Idle;
+        _focusStopwatch.Reset();
+        _engine.CancelPreparation();
+        SyncFromEngine();
     }
 
     private void OpenEndConfirmation()
     {
-        if (Stage != FocusFlowStage.Focusing || IsEndConfirmationOpen || IsForcedModeActive)
+        if (_engine.RequestEnd())
         {
-            return;
+            IsEndConfirmationOpen = true;
+            _timer.Stop();
         }
-
-        IsEndConfirmationOpen = true;
-        _timer.Stop();
     }
 
     private void ContinueFocus()
     {
-        if (!IsEndConfirmationOpen)
+        if (!_engine.ContinueFocus())
         {
             return;
         }
@@ -440,17 +419,15 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
 
     private void CompleteFocus()
     {
-        if (Stage != FocusFlowStage.Focusing)
+        if (!_engine.ConfirmEnd())
         {
             return;
         }
 
         _timer.Stop();
         _preparationStopwatch.Reset();
-        IsEndConfirmationOpen = false;
-        _completedFocusSeconds = _totalFocusSeconds - RemainingFocusSeconds;
-        _todayTotalSeconds += _completedFocusSeconds;
-        _completedAt = _nowProvider();
+        _focusStopwatch.Stop();
+        SyncFromEngine();
         OnPropertyChanged(nameof(CompletedDurationDisplay));
         OnPropertyChanged(nameof(CompletedDurationPrimaryValue));
         OnPropertyChanged(nameof(CompletedDurationPrimaryUnit));
@@ -464,8 +441,12 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     private void ReturnHome()
     {
         _timer.Stop();
+        _preparationStopwatch.Reset();
+        _focusStopwatch.Reset();
         IsEndConfirmationOpen = false;
         IsForcedModeActive = false;
+        _engine.ReturnHome();
+        SyncFromEngine();
         Stage = FocusFlowStage.Idle;
     }
 
@@ -478,7 +459,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
 
         var configuredMinutes = _totalFocusSeconds / 60;
         Start(configuredMinutes, ActiveTarget, IsForcedModeActive);
-        BeginFocus();
+        AdvancePreparationBy(FocusSessionEngine.PreparationDuration);
     }
 
     private void AddTask()
@@ -678,8 +659,49 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     {
         if (RunTimer)
         {
+            _focusStopwatch.Start();
+            _lastFocusElapsed = _focusStopwatch.Elapsed;
             _timer.Start();
         }
+    }
+
+    private void SyncFromEngine()
+    {
+        _totalFocusSeconds = _engine.ConfiguredSeconds;
+        OnPropertyChanged(nameof(TotalFocusSeconds));
+        PreparationSeconds = _engine.PreparationSeconds;
+        PreparationProgress = _engine.PreparationProgress;
+        RemainingFocusSeconds = _engine.RemainingFocusSeconds;
+        IsForcedModeActive = _engine.IsForcedMode;
+        IsEndConfirmationOpen = _engine.IsEndConfirmationOpen;
+
+        if (_engine.State == FocusSessionState.Completed &&
+            _engine.Completion is not null &&
+            !ReferenceEquals(_lastRecordedCompletion, _engine.Completion))
+        {
+            _lastRecordedCompletion = _engine.Completion;
+            _completedFocusSeconds = _engine.ElapsedFocusSeconds;
+            _todayTotalSeconds += _completedFocusSeconds;
+            _completedAt = _engine.CompletedAt ?? _nowProvider();
+            _completionHistory.Add(_engine.Completion);
+            OnPropertyChanged(nameof(CompletedDurationDisplay));
+            OnPropertyChanged(nameof(CompletedDurationPrimaryValue));
+            OnPropertyChanged(nameof(CompletedDurationPrimaryUnit));
+            OnPropertyChanged(nameof(CompletedDurationSecondaryValue));
+            OnPropertyChanged(nameof(CompletedDurationSecondaryUnit));
+            OnPropertyChanged(nameof(TodayTotalDisplay));
+            OnPropertyChanged(nameof(CompletedAtDisplay));
+            OnPropertyChanged(nameof(LastCompletion));
+            OnPropertyChanged(nameof(CompletionHistory));
+        }
+
+        Stage = _engine.State switch
+        {
+            FocusSessionState.Preparing => FocusFlowStage.Preparing,
+            FocusSessionState.Focusing => FocusFlowStage.Focusing,
+            FocusSessionState.Completed => FocusFlowStage.Completed,
+            _ => FocusFlowStage.Idle
+        };
     }
 
     private static string FormatDuration(int totalSeconds)
