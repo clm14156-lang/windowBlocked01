@@ -15,8 +15,17 @@ public sealed class FocusTaskRenamePresentationTests
 
         var editor = Assert.Single(view.Descendants(Presentation + "TextBox").Where(textBox =>
             (string?)textBox.Attribute("AutomationProperties.Name") == "任务名称"));
-        Assert.Equal("TargetTaskTextBox_KeyDown", (string?)editor.Attribute("KeyDown"));
+        Assert.Equal("Editor_Loaded", (string?)editor.Attribute("Loaded"));
         Assert.Equal("TargetTaskTextBox_LostKeyboardFocus", (string?)editor.Attribute("LostKeyboardFocus"));
+        Assert.Null(editor.Attribute("KeyDown"));
+        Assert.Null(editor.Attribute("PreviewKeyDown"));
+        Assert.Equal("FocusFlowView_PreviewKeyDown", (string?)view.Root!.Attribute("PreviewKeyDown"));
+
+        var addTaskButton = Assert.Single(view.Descendants(Presentation + "Button").Where(button =>
+            (string?)button.Attribute("Command") == "{Binding AddTaskCommand}"));
+        Assert.Equal("False", (string?)addTaskButton.Attribute("Focusable"));
+        Assert.Equal("False", (string?)addTaskButton.Attribute("IsTabStop"));
+        Assert.Equal("False", (string?)addTaskButton.Attribute("IsDefault"));
 
         var mainWindow = XDocument.Load(Path.Combine(
             FindRepositoryRoot(), "src", "FocusApp.Desktop", "MainWindow.xaml"));

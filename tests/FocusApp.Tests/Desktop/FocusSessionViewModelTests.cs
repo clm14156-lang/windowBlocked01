@@ -254,6 +254,48 @@ public sealed class FocusSessionViewModelTests
     }
 
     [Fact]
+    public void AddTaskCommand_WhenAnEditIsActive_CommitsThatEditWithoutCreatingAnotherTask()
+    {
+        var target = new FocusTargetViewModel("写代码");
+        var viewModel = CreateViewModel();
+        viewModel.Start(25, target);
+        Advance(viewModel, 5);
+
+        viewModel.AddTaskCommand.Execute(null);
+        var task = Assert.Single(target.Tasks);
+        task.EditName = "完成接口";
+
+        // This is the defensive path used when Enter reaches the add button
+        // before the editor has acquired keyboard focus.
+        viewModel.AddTaskCommand.Execute(null);
+
+        Assert.Single(target.Tasks);
+        Assert.Equal("完成接口", task.Name);
+        Assert.False(task.IsEditing);
+    }
+
+    [Fact]
+    public void CompletedTaskGroup_TogglesVisibilityStateWithoutChangingCompletion()
+    {
+        var target = new FocusTargetViewModel("学习 Blender", ["已完成任务"]);
+        var viewModel = CreateViewModel();
+        viewModel.Start(25, target);
+        Advance(viewModel, 5);
+
+        var task = viewModel.PendingTasks[0];
+        viewModel.ToggleTaskCompletedCommand.Execute(task);
+
+        Assert.True(task.IsCompleted);
+        Assert.False(viewModel.IsCompletedTasksExpanded);
+        viewModel.ToggleCompletedTasksCommand.Execute(null);
+        Assert.True(viewModel.IsCompletedTasksExpanded);
+        Assert.Single(viewModel.CompletedTasks);
+        viewModel.ToggleCompletedTasksCommand.Execute(null);
+        Assert.False(viewModel.IsCompletedTasksExpanded);
+        Assert.True(task.IsCompleted);
+    }
+
+    [Fact]
     public void MovePendingTask_ReordersTheTargetCollectionAndPersistsAcrossReopen()
     {
         var target = new FocusTargetViewModel("写代码", ["整理需求", "完成交互", "编写测试"]);

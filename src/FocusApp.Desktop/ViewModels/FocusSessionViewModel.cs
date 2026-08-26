@@ -488,6 +488,16 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             return;
         }
 
+        // An Enter key can still reach the add button if the editor has not
+        // acquired keyboard focus yet. Commit that edit instead of creating
+        // a second task for the same interaction.
+        var editingTask = ActiveTarget!.Tasks.FirstOrDefault(task => task.IsEditing);
+        if (editingTask is not null)
+        {
+            ConfirmEditTask(editingTask);
+            return;
+        }
+
         CloseTaskMenus();
         var task = ActiveTarget!.AddTask("新任务", isNew: true);
         task.BeginEdit();

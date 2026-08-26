@@ -4,6 +4,7 @@
              xmlns:views="clr-namespace:FocusApp.Desktop.Views"
              xmlns:local="clr-namespace:FocusApp.Desktop.Views"
              Background="{DynamicResource SurfacePrimary}"
+             PreviewKeyDown="FocusFlowView_PreviewKeyDown"
              UseLayoutRounding="True"
              SnapsToDevicePixels="True">
     <UserControl.Resources>
@@ -237,8 +238,9 @@
                             <ScrollViewer.Resources>
                                 <Style TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource FocusTaskThinScrollBarStyle}" />
                             </ScrollViewer.Resources>
-                            <ItemsControl x:Name="PendingTaskList"
-                                          ItemsSource="{Binding PendingTasks}">
+                            <StackPanel Background="{DynamicResource TransparentBrush}">
+                                <ItemsControl x:Name="PendingTaskList"
+                                              ItemsSource="{Binding PendingTasks}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <Grid x:Name="TaskDragRow"
@@ -328,7 +330,7 @@
                                                 <TextBlock FontFamily="Segoe MDL2 Assets" FontSize="16" Foreground="{DynamicResource WhiteText}" Text="&#xE73E;" Visibility="Collapsed" />
                                             </Button>
                                             <Grid Margin="38,0,38,0" VerticalAlignment="Center">
-                                                <TextBox AutomationProperties.Name="任务名称" IsVisibleChanged="Editor_IsVisibleChanged" KeyDown="TargetTaskTextBox_KeyDown" LostKeyboardFocus="TargetTaskTextBox_LostKeyboardFocus" Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}" Visibility="{Binding IsEditing, Converter={StaticResource BooleanToVisibilityConverter}}" Style="{StaticResource TargetTaskEditorStyle}" />
+                                                <TextBox AutomationProperties.Name="任务名称" IsVisibleChanged="Editor_IsVisibleChanged" Loaded="Editor_Loaded" LostKeyboardFocus="TargetTaskTextBox_LostKeyboardFocus" Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}" Visibility="{Binding IsEditing, Converter={StaticResource BooleanToVisibilityConverter}}" Style="{StaticResource TargetTaskEditorStyle}" />
                                                 <TextBlock FontSize="15" Text="{Binding Name}">
                                                     <TextBlock.Style>
                                                         <Style TargetType="{x:Type TextBlock}">
@@ -365,23 +367,51 @@
                                         </Grid>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                            </ScrollViewer>
+                                </ItemsControl>
 
-                            <Button Height="42" Margin="0,1,0,0" HorizontalContentAlignment="Left" Command="{Binding AddTaskCommand}" Style="{StaticResource FocusFlowPlainButton}">
-                                <StackPanel Orientation="Horizontal"><TextBlock Margin="0,0,10,0" FontSize="23" Foreground="{DynamicResource AccentPrimary}" Text="+" /><TextBlock VerticalAlignment="Center" FontSize="14" Foreground="{DynamicResource AccentPrimary}" Text="{DynamicResource FocusAddTask}" /></StackPanel>
-                            </Button>
-
-                            <Button Height="44" HorizontalContentAlignment="Left" Command="{Binding ToggleCompletedTasksCommand}" Style="{StaticResource FocusFlowPlainButton}" Visibility="{Binding CompletedTasks.Count, Mode=OneWay, Converter={StaticResource PositiveIntToVisibilityConverter}}">
-                                <StackPanel Orientation="Horizontal"><TextBlock Margin="0,0,10,0" FontSize="14" Foreground="{DynamicResource TextSecondary}" Text="›" /><TextBlock FontSize="14" Foreground="{DynamicResource TextSecondary}"><Run Text="{DynamicResource FocusCompletedTasksPrefix}" /><Run Text="{Binding CompletedTasks.Count, Mode=OneWay}" /><Run Text="{DynamicResource FocusCompletedTasksSuffix}" /></TextBlock></StackPanel>
-                            </Button>
-                            <ItemsControl ItemsSource="{Binding CompletedTasks}" Visibility="{Binding IsCompletedTasksExpanded, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <Button Height="44"
+                                    HorizontalContentAlignment="Stretch"
+                                    Background="{DynamicResource TransparentBrush}"
+                                    Command="{Binding DataContext.ToggleCompletedTasksCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
+                                    Style="{StaticResource FocusFlowPlainButton}"
+                                    Visibility="{Binding CompletedTasks.Count, Mode=OneWay, Converter={StaticResource PositiveIntToVisibilityConverter}}">
+                                <StackPanel Orientation="Horizontal">
+                                    <Border Width="24" Height="24" Margin="0,0,10,0" HorizontalAlignment="Center" VerticalAlignment="Center" BorderBrush="{DynamicResource TextSecondary}" BorderThickness="1.5" CornerRadius="12">
+                                        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{DynamicResource TextSecondary}" Text="&#xE73E;" />
+                                    </Border>
+                                    <TextBlock VerticalAlignment="Center" FontSize="14" Foreground="{DynamicResource TextSecondary}"><Run Text="{DynamicResource FocusCompletedTasksPrefix}" /><Run Text="{Binding CompletedTasks.Count, Mode=OneWay}" /><Run Text="{DynamicResource FocusCompletedTasksSuffix}" /></TextBlock>
+                                    <TextBlock Margin="10,0,0,0" VerticalAlignment="Center" FontSize="20" Foreground="{DynamicResource TextSecondary}" Text="›">
+                                        <TextBlock.Style>
+                                            <Style TargetType="{x:Type TextBlock}">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding DataContext.IsCompletedTasksExpanded, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}" Value="True">
+                                                        <Setter Property="Text" Value="⌄" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </StackPanel>
+                                </Button>
+                                <ItemsControl ItemsSource="{Binding CompletedTasks}" Visibility="{Binding IsCompletedTasksExpanded, Converter={StaticResource BooleanToVisibilityConverter}}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Grid Height="50"><TextBlock Margin="44,0,0,0" VerticalAlignment="Center" FontSize="15" Foreground="{DynamicResource TextSecondary}" TextDecorations="Strikethrough" Text="{Binding Name}" /><TextBlock Margin="0,0,0,0" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="17" Foreground="{DynamicResource Success}" Text="&#xE73E;" /></Grid>
+                                        <Grid Height="50">
+                                            <Border Width="24" Height="24" Margin="0,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" BorderBrush="{DynamicResource TextWeak}" BorderThickness="1.5" CornerRadius="6">
+                                                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{DynamicResource TextWeak}" Text="&#xE73E;" />
+                                            </Border>
+                                            <TextBlock Margin="38,0,0,0" VerticalAlignment="Center" FontSize="15" Foreground="{DynamicResource TextWeak}" TextDecorations="Strikethrough" Text="{Binding Name}" />
+                                            <Border Height="1" Margin="38,49,0,0" Background="{DynamicResource BorderPrimary}" />
+                                        </Grid>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
-                            </ItemsControl>
+                                </ItemsControl>
+                            </StackPanel>
+                            </ScrollViewer>
+
+                            <Button Height="42" Margin="0,1,0,0" HorizontalContentAlignment="Left" Focusable="False" IsTabStop="False" IsDefault="False" Command="{Binding AddTaskCommand}" Style="{StaticResource FocusFlowPlainButton}">
+                                <StackPanel Orientation="Horizontal"><TextBlock Margin="0,0,10,0" FontSize="23" Foreground="{DynamicResource AccentPrimary}" Text="+" /><TextBlock VerticalAlignment="Center" FontSize="14" Foreground="{DynamicResource AccentPrimary}" Text="{DynamicResource FocusAddTask}" /></StackPanel>
+                            </Button>
                         </StackPanel>
                     </Border>
 

@@ -59,6 +59,35 @@ public sealed class FocusTaskListPresentationTests
             (string?)border.Attribute("Visibility") is
                 "{Binding ShowDropBefore, Converter={StaticResource BooleanToVisibilityConverter}}" or
                 "{Binding ShowDropAfter, Converter={StaticResource BooleanToVisibilityConverter}}"));
+
+        var taskStack = Assert.Single(taskList.Ancestors(Presentation + "StackPanel").Where(stackPanel =>
+            stackPanel.Elements(Presentation + "ScrollViewer").Any() &&
+            stackPanel.Elements(Presentation + "Button").Any(button =>
+                (string?)button.Attribute("Command") == "{Binding AddTaskCommand}")));
+        var scrollContent = Assert.Single(taskList.Elements(Presentation + "StackPanel"));
+        var completedToggle = Assert.Single(scrollContent.Elements(Presentation + "Button").Where(button =>
+            ((string?)button.Attribute("Command"))?.Contains("ToggleCompletedTasksCommand", StringComparison.Ordinal) == true));
+        Assert.Equal("Stretch", (string?)completedToggle.Attribute("HorizontalContentAlignment"));
+        Assert.Equal("{DynamicResource TransparentBrush}", (string?)completedToggle.Attribute("Background"));
+        var completedItems = Assert.Single(scrollContent.Elements(Presentation + "ItemsControl").Where(items =>
+            (string?)items.Attribute("ItemsSource") == "{Binding CompletedTasks}"));
+        var addTask = Assert.Single(taskStack.Elements(Presentation + "Button").Where(button =>
+            (string?)button.Attribute("Command") == "{Binding AddTaskCommand}"));
+        Assert.Contains(completedItems, scrollContent.Elements());
+        Assert.Contains(completedToggle, scrollContent.Elements());
+        Assert.DoesNotContain(addTask, scrollContent.Elements());
+        Assert.Equal(scrollContent, completedToggle.Parent);
+        Assert.Equal(scrollContent, completedItems.Parent);
+        Assert.Equal(taskStack, addTask.Parent);
+        Assert.Equal("{Binding IsCompletedTasksExpanded, Converter={StaticResource BooleanToVisibilityConverter}}", (string?)completedItems.Attribute("Visibility"));
+
+        var completedRow = Assert.Single(completedItems.Descendants(Presentation + "DataTemplate").Descendants(Presentation + "Grid"));
+        Assert.Contains(completedRow.Descendants(Presentation + "TextBlock"), textBlock =>
+            (string?)textBlock.Attribute("Text") == "{Binding Name}" &&
+            (string?)textBlock.Attribute("Foreground") == "{DynamicResource TextWeak}");
+        Assert.Contains(completedRow.Descendants(Presentation + "TextBlock"), textBlock =>
+            (string?)textBlock.Attribute("Text") == "\uE73E" &&
+            (string?)textBlock.Attribute("Foreground") == "{DynamicResource TextWeak}");
     }
 
     private static string FindRepositoryRoot()

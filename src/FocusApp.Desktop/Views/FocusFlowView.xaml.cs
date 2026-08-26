@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
 using FocusApp.Desktop.ViewModels;
 
 namespace FocusApp.Desktop.Views;
@@ -15,6 +16,7 @@ public partial class FocusFlowView : UserControl
     private FocusTaskViewModel? _dropTargetTask;
     private bool _dropAfterTarget;
     private bool _isTaskDragInProgress;
+    private FocusTaskViewModel? _pendingEnterCommit;
 
     public FocusFlowView()
     {
@@ -62,23 +64,69 @@ public partial class FocusFlowView : UserControl
     {
         if (sender is TextBox { IsVisible: true } textBox)
         {
-            Dispatcher.BeginInvoke(() =>
-            {
-                textBox.Focus();
-                textBox.SelectAll();
-            });
+            FocusTaskEditor(textBox);
         }
     }
 
-    private void TargetTaskTextBox_KeyDown(object sender, KeyEventArgs e)
+    private void Editor_Loaded(object sender, RoutedEventArgs e)
     {
-        if (e.Key == Key.Enter &&
-            sender is TextBox { DataContext: FocusTaskViewModel task } &&
-            DataContext is FocusSessionViewModel viewModel)
+        if (sender is TextBox { IsVisible: true } textBox)
         {
-            viewModel.ConfirmEditTaskCommand.Execute(task);
-            e.Handled = true;
+            FocusTaskEditor(textBox);
         }
+    }
+
+    private void FocusTaskEditor(TextBox textBox)
+    {
+        Dispatcher.BeginInvoke(DispatcherPriority.ContextIdle, () =>
+        {
+            if (!textBox.IsVisible || !textBox.IsEnabled || !textBox.Focusable)
+            {
+                return;
+            }
+
+            if (!textBox.IsKeyboardFocusWithin && Keyboard.Focus(textBox) == textBox)
+            {
+                textBox.SelectAll();
+            }
+        });
+    }
+
+    private void FocusFlowView_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key is not (Key.Enter or Key.Return))
+        {
+            return;
+        }
+
+        if (DataContext is not FocusSessionViewModel viewModel ||
+            viewModel.ActiveTarget?.Tasks.FirstOrDefault(task => task.IsEditing) is not { } editingTask)
+        {
+            return;
+        }
+
+        // Mark the routed event before changing IsEditing. The commit is
+        // deferred until this key route finishes so focus cannot move to the
+        // add button and execute AddTask for the same Enter press.
+        e.Handled = true;
+        if (ReferenceEquals(_pendingEnterCommit, editingTask))
+        {
+            return;
+        }
+
+        _pendingEnterCommit = editingTask;
+        Dispatcher.BeginInvoke(DispatcherPriority.ContextIdle, () =>
+        {
+            if (ReferenceEquals(_pendingEnterCommit, editingTask))
+            {
+                _pendingEnterCommit = null;
+            }
+
+            if (editingTask.IsEditing)
+            {
+                viewModel.ConfirmEditTaskCommand.Execute(editingTask);
+            }
+        });
     }
 
     private void TargetTaskTextBox_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
