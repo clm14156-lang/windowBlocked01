@@ -214,7 +214,8 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
         var newlyExecuted = false;
         foreach (var rule in activeRules)
         {
-            newlyExecuted |= _automaticCompletedRuleKeys.Add(GetAutomaticRuleKey(rule, current.Date));
+            newlyExecuted |= _automaticCompletedRuleKeys.Add(
+                GetAutomaticRuleKey(rule, AutomaticRuleSchedule.GetActiveOccurrenceDate(rule, current)));
         }
 
         if (newlyExecuted)
@@ -237,13 +238,7 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
 
         bool IsActiveRule(AutomaticRuleItemViewModel rule)
         {
-            if (!rule.IsEnabled || !rule.DayKeys.Contains(GetDayKey(current.DayOfWeek)))
-            {
-                return false;
-            }
-
-            var minute = current.TimeOfDay.TotalMinutes;
-            return minute >= rule.StartMinutes && minute < rule.EndMinutes;
+            return AutomaticRuleSchedule.IsActive(rule, current);
         }
     }
 

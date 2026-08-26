@@ -474,6 +474,26 @@
             </Grid>
 
             <Grid Grid.ColumnSpan="2"
+                  Panel.ZIndex="102">
+                <Grid.Style>
+                    <Style TargetType="{x:Type Grid}">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding SettingsPage.RuleActivationModal.IsOpen}" Value="True">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
+                <Border Background="{DynamicResource ModalScrim}"
+                        MouseDown="RuleActivationScrim_MouseDown">
+                    <views:AutomaticRuleActivationModal HorizontalAlignment="Center"
+                                                        VerticalAlignment="Center"
+                                                        DataContext="{Binding SettingsPage.RuleActivationModal}" />
+                </Border>
+            </Grid>
+
+            <Grid Grid.ColumnSpan="2"
                   Panel.ZIndex="90">
                 <Grid.Style>
                     <Style TargetType="{x:Type Grid}">
@@ -622,6 +642,82 @@
                     <views:ExportRecordsModal HorizontalAlignment="Center"
                                               VerticalAlignment="Center"
                                               DataContext="{Binding SettingsPage.ExportRecordsModal}" />
+                </Border>
+            </Grid>
+
+            <Grid Grid.ColumnSpan="2"
+                  Panel.ZIndex="180"
+                  HorizontalAlignment="Center"
+                  VerticalAlignment="Top"
+                  IsHitTestVisible="True">
+                <Border Margin="0,62,0,0"
+                        Padding="12,10,8,10"
+                        Width="360"
+                        Background="{DynamicResource SurfacePrimary}"
+                        BorderBrush="{DynamicResource BorderPrimary}"
+                        BorderThickness="1"
+                        CornerRadius="10">
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="16" Direction="270" Opacity="0.12" ShadowDepth="3" />
+                    </Border.Effect>
+                    <Border.Style>
+                        <Style TargetType="{x:Type Border}">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding SettingsPage.IsRuleMergeToastVisible}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="38" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="24" />
+                        </Grid.ColumnDefinitions>
+                        <Border Width="30"
+                                Height="30"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Top"
+                                Background="{DynamicResource SuccessTint}"
+                                CornerRadius="15">
+                            <TextBlock HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       FontFamily="Segoe MDL2 Assets"
+                                       FontSize="16"
+                                       Foreground="{DynamicResource Success}"
+                                       Text="&#xE73E;" />
+                        </Border>
+                        <StackPanel Grid.Column="1" Margin="8,0,4,0">
+                            <TextBlock FontSize="15"
+                                       FontWeight="Medium"
+                                       Foreground="{DynamicResource TextPrimary}"
+                                       Text="{DynamicResource AutomaticRuleMergedTitle}" />
+                            <TextBlock Margin="0,4,0,0"
+                                       FontSize="12"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       TextWrapping="Wrap">
+                                <Run Text="{DynamicResource AutomaticRuleMergedMessagePrefix}" />
+                                <Run Text=" " />
+                                <Run Text="{Binding SettingsPage.RuleMergeToastRange, Mode=OneWay}" />
+                            </TextBlock>
+                        </StackPanel>
+                        <Button Grid.Column="2"
+                                Width="24"
+                                Height="24"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Top"
+                                AutomationProperties.Name="{DynamicResource AutomaticRuleMergedClose}"
+                                Command="{Binding SettingsPage.CloseRuleMergeToastCommand}"
+                                Style="{StaticResource WindowChromeButtonStyle}"
+                                ToolTip="{DynamicResource AutomaticRuleMergedClose}">
+                            <TextBlock FontFamily="Segoe MDL2 Assets"
+                                       FontSize="12"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       Text="&#xE8BB;" />
+                        </Button>
+                    </Grid>
                 </Border>
             </Grid>
 

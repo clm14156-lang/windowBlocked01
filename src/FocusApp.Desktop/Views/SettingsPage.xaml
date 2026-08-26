@@ -443,7 +443,8 @@
                                                                   HorizontalAlignment="Center"
                                                                   VerticalAlignment="Center"
                                                                   AutomationProperties.Name="{Binding RepeatText}"
-                                                                  IsChecked="{Binding IsEnabled, Mode=TwoWay}"
+                                                                  IsChecked="{Binding IsEnabled}"
+                                                                  PreviewMouseLeftButtonDown="RuleSwitch_PreviewMouseLeftButtonDown"
                                                                   Style="{StaticResource SettingsRuleSwitchStyle}" />
                                                     <ToggleButton x:Name="RuleMoreButton"
                                                                   Grid.Column="3"

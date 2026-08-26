@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
+using System.Windows.Threading;
 
 namespace FocusApp.Desktop.ViewModels;
 
@@ -11,13 +12,19 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
     private AutomaticRuleItemViewModel? _editingRule;
     private bool _isLoggedIn;
     private bool _isVip;
+    private DispatcherTimer? _ruleMergeToastTimer;
+    private bool _isRuleMergeToastVisible;
+    private string _ruleMergeToastRange = string.Empty;
+    private readonly Func<DateTime> _clock;
 
     public SettingsPageViewModel(
         IEnumerable<SettingsToggleItemViewModel> toggleItems,
         IEnumerable<SettingsEntryItemViewModel> entryItems,
         AutomaticRuleModalViewModel? ruleModal = null,
-        string dailyLabel = "Daily")
+        string dailyLabel = "Daily",
+        Func<DateTime>? clock = null)
     {
+        _clock = clock ?? (() => DateTime.Now);
         ToggleItems = new ReadOnlyCollection<SettingsToggleItemViewModel>(toggleItems.ToList());
         EntryItems = new ReadOnlyCollection<SettingsEntryItemViewModel>(entryItems.ToList());
         GeneralToggleItems = new ReadOnlyCollection<SettingsToggleItemViewModel>(ToggleItems.Take(5).ToList());
@@ -25,6 +32,7 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
         AutomaticBlockingItem = ToggleItems.FirstOrDefault(item => item.Key == "AutomaticBlocking");
         ForcedModeItem = ToggleItems.FirstOrDefault(item => item.Key == "ForcedMode");
         RuleModal = ruleModal ?? AutomaticRuleModalViewModel.CreateDefault();
+        RuleActivationModal = new AutomaticRuleActivationModalViewModel();
         ExportRecordsModal = new ExportRecordsModalViewModel();
         _dailyLabel = dailyLabel;
         ActivateEntryCommand = new RelayCommand<SettingsEntryItemViewModel>(ActivateEntry);
@@ -32,8 +40,10 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
         DeleteRuleCommand = new RelayCommand<AutomaticRuleItemViewModel>(DeleteRule);
         ToggleRuleCommand = new RelayCommand<AutomaticRuleItemViewModel>(ToggleRule);
         EditRuleCommand = new RelayCommand<AutomaticRuleItemViewModel>(EditRule);
+        CloseRuleMergeToastCommand = new RelayCommand<object>(_ => CloseRuleMergeToast());
         RuleModal.ValidateRule = ValidateRule;
         RuleModal.RuleSubmitted += RuleModal_RuleSubmitted;
+        RuleActivationModal.ActivationConfirmed += RuleActivationModal_ActivationConfirmed;
         if (AutomaticBlockingItem is not null)
         {
             AutomaticBlockingItem.PropertyChanged += AutomaticBlockingItem_PropertyChanged;
@@ -72,6 +82,8 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
 
     public AutomaticRuleModalViewModel RuleModal { get; }
 
+    public AutomaticRuleActivationModalViewModel RuleActivationModal { get; }
+
     public ExportRecordsModalViewModel ExportRecordsModal { get; }
 
     public ObservableCollection<AutomaticRuleItemViewModel> AutomaticRules { get; } = [];
@@ -85,6 +97,12 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
     public ICommand ToggleRuleCommand { get; }
 
     public ICommand EditRuleCommand { get; }
+
+    public ICommand CloseRuleMergeToastCommand { get; }
+
+    public bool IsRuleMergeToastVisible => _isRuleMergeToastVisible;
+
+    public string RuleMergeToastRange => _ruleMergeToastRange;
 
     public string? LastActivatedEntryKey => _activeEntry?.Key;
 
@@ -143,17 +161,120 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
             return;
         }
 
-        var item = new AutomaticRuleItemViewModel(
-            Guid.NewGuid(),
-            repeatText,
-            $"{rule.StartTime} – {rule.EndTime}",
-            rule.SelectedDays.Select(day => day.Key),
-            rule.StartMinutes,
-            rule.EndMinutes,
-            rule.IsCustom);
-        item.PropertyChanged += AutomaticRule_PropertyChanged;
-        AutomaticRules.Add(item);
+        AddOrMergeRule(rule, repeatText);
         RulesChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void AddOrMergeRule(AutomaticRuleDraft draft, string repeatText)
+    {
+        var selectedDays = draft.SelectedDays.Select(day => day.Key).ToHashSet(StringComparer.Ordinal);
+        var mergedStart = draft.StartMinutes;
+        var mergedEnd = draft.EndMinutes;
+        var matches = new List<AutomaticRuleItemViewModel>();
+
+        // Expand the candidate range until every connected enabled rule in the same
+        // recurrence scope has been included. This handles one new interval joining
+        // several existing intervals in a single operation.
+        while (true)
+        {
+            var newlyConnected = AutomaticRules
+                .Where(existing => existing.IsEnabled
+                    && !matches.Contains(existing)
+                    && HasSameRepeatScope(existing, draft, selectedDays)
+                    && IntervalsTouch(existing.StartMinutes, existing.EndMinutes, mergedStart, mergedEnd))
+                .ToList();
+
+            if (newlyConnected.Count == 0)
+            {
+                break;
+            }
+
+            matches.AddRange(newlyConnected);
+            mergedStart = Math.Min(mergedStart, newlyConnected.Min(item => item.StartMinutes));
+            mergedEnd = Math.Max(mergedEnd, newlyConnected.Max(item => item.EndMinutes));
+        }
+
+        if (matches.Count == 0)
+        {
+            CloseRuleMergeToast();
+            var item = new AutomaticRuleItemViewModel(
+                Guid.NewGuid(),
+                repeatText,
+                FormatRuleRange(mergedStart, mergedEnd),
+                selectedDays,
+                mergedStart,
+                mergedEnd,
+                draft.IsCustom);
+            item.PropertyChanged += AutomaticRule_PropertyChanged;
+            AutomaticRules.Add(item);
+            return;
+        }
+
+        var keeper = matches[0];
+        foreach (var redundant in matches.Skip(1))
+        {
+            redundant.PropertyChanged -= AutomaticRule_PropertyChanged;
+            AutomaticRules.Remove(redundant);
+        }
+
+        keeper.Update(
+            repeatText,
+            FormatRuleRange(mergedStart, mergedEnd),
+            selectedDays,
+            mergedStart,
+            mergedEnd,
+            draft.IsCustom);
+        ShowRuleMergeToast(FormatRuleRange(mergedStart, mergedEnd));
+    }
+
+    private static bool HasSameRepeatScope(
+        AutomaticRuleItemViewModel existing,
+        AutomaticRuleDraft draft,
+        HashSet<string> selectedDays)
+        => existing.IsCustom == draft.IsCustom && existing.DayKeys.SetEquals(selectedDays);
+
+    private static bool IntervalsTouch(double firstStart, double firstEnd, double secondStart, double secondEnd)
+        => firstStart <= secondEnd && firstEnd >= secondStart;
+
+    private static string FormatRuleRange(double startMinutes, double endMinutes)
+        => $"{FormatRuleTime(startMinutes)} – {FormatRuleTime(endMinutes)}";
+
+    private static string FormatRuleTime(double minutes)
+    {
+        var totalMinutes = (int)Math.Round(minutes);
+        return $"{totalMinutes / 60:00}:{totalMinutes % 60:00}";
+    }
+
+    private void ShowRuleMergeToast(string range)
+    {
+        _ruleMergeToastRange = range;
+        _isRuleMergeToastVisible = true;
+        OnPropertyChanged(nameof(RuleMergeToastRange));
+        OnPropertyChanged(nameof(IsRuleMergeToastVisible));
+
+        _ruleMergeToastTimer ??= new DispatcherTimer(DispatcherPriority.Normal)
+        {
+            Interval = TimeSpan.FromSeconds(2.5)
+        };
+        _ruleMergeToastTimer.Stop();
+        _ruleMergeToastTimer.Tick -= RuleMergeToastTimer_Tick;
+        _ruleMergeToastTimer.Tick += RuleMergeToastTimer_Tick;
+        _ruleMergeToastTimer.Start();
+    }
+
+    private void RuleMergeToastTimer_Tick(object? sender, EventArgs e)
+        => CloseRuleMergeToast();
+
+    private void CloseRuleMergeToast()
+    {
+        _ruleMergeToastTimer?.Stop();
+        if (!_isRuleMergeToastVisible)
+        {
+            return;
+        }
+
+        _isRuleMergeToastVisible = false;
+        OnPropertyChanged(nameof(IsRuleMergeToastVisible));
     }
 
     private void DeleteRule(AutomaticRuleItemViewModel? rule)
@@ -207,15 +328,56 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
 
     private void ToggleRule(AutomaticRuleItemViewModel? rule)
     {
-        if (rule is not null)
+        if (rule is null)
         {
-            rule.IsEnabled = !rule.IsEnabled;
-            RulesChanged?.Invoke(this, EventArgs.Empty);
+            return;
         }
+
+        if (rule.IsEnabled)
+        {
+            rule.IsEnabled = false;
+            RulesChanged?.Invoke(this, EventArgs.Empty);
+            return;
+        }
+
+        var now = _clock();
+        var willImmediatelyBlock = IsAutomaticBlockingEnabled &&
+                                   AutomaticRuleSchedule.IsWithinSchedule(rule, now) &&
+                                   !AutomaticRules.Any(existing =>
+                                       !ReferenceEquals(existing, rule) &&
+                                       AutomaticRuleSchedule.IsActive(existing, now));
+        if (willImmediatelyBlock)
+        {
+            RuleActivationModal.Open(rule);
+            return;
+        }
+
+        EnableRule(rule);
+    }
+
+    private void RuleActivationModal_ActivationConfirmed(object? sender, AutomaticRuleItemViewModel rule)
+    {
+        if (AutomaticRules.Contains(rule) && !rule.IsEnabled)
+        {
+            EnableRule(rule);
+        }
+    }
+
+    private void EnableRule(AutomaticRuleItemViewModel rule)
+    {
+        rule.IsEnabled = true;
+        RulesChanged?.Invoke(this, EventArgs.Empty);
     }
 
     private string? ValidateRule(AutomaticRuleDraft draft)
     {
+        // New rules are normalized by AddOrMergeRule. Keep validation for edits,
+        // where the existing conflict feedback and in-place update are expected.
+        if (_editingRule is null)
+        {
+            return null;
+        }
+
         var newDays = draft.SelectedDays.Select(day => day.Key).ToHashSet(StringComparer.Ordinal);
         foreach (var existing in AutomaticRules)
         {

@@ -290,9 +290,14 @@ public sealed class FocusSessionViewModelTests
         viewModel.ToggleCompletedTasksCommand.Execute(null);
         Assert.True(viewModel.IsCompletedTasksExpanded);
         Assert.Single(viewModel.CompletedTasks);
+        viewModel.ToggleTaskCompletedCommand.Execute(task);
+        Assert.False(task.IsCompleted);
+        Assert.Single(viewModel.PendingTasks);
+        Assert.Empty(viewModel.CompletedTasks);
+        Assert.Equal(1, viewModel.PendingTaskCount);
         viewModel.ToggleCompletedTasksCommand.Execute(null);
         Assert.False(viewModel.IsCompletedTasksExpanded);
-        Assert.True(task.IsCompleted);
+        Assert.False(task.IsCompleted);
     }
 
     [Fact]

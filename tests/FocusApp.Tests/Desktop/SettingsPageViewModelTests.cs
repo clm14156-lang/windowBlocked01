@@ -289,7 +289,7 @@ public sealed class SettingsPageViewModelTests
     }
 
     [Fact]
-    public void RuleValidation_RejectsDuplicateAndCoveredIntervalsButAllowsPartialOverlap()
+    public void RuleCreation_MergesOverlappingContainingAndTouchingIntervals()
     {
         var automatic = new SettingsToggleItemViewModel("AutomaticBlocking", "Automatic", "Description", "Icon", true);
         var modal = CreateRuleModal();
@@ -300,21 +300,145 @@ public sealed class SettingsPageViewModelTests
         Assert.Single(viewModel.AutomaticRules);
 
         modal.Open();
+        modal.StartTimeText = "11:00";
+        modal.EndTimeText = "14:25";
         modal.ConfirmCommand.Execute(null);
-        Assert.Equal("已存在相同的自动屏蔽规则", modal.ValidationMessage);
         Assert.Single(viewModel.AutomaticRules);
+        Assert.Equal("09:00 – 14:25", viewModel.AutomaticRules[0].TimeRangeText);
+        Assert.True(viewModel.IsRuleMergeToastVisible);
+        Assert.Equal("09:00 – 14:25", viewModel.RuleMergeToastRange);
+
+        viewModel.CloseRuleMergeToastCommand.Execute(null);
+        modal.Open();
+        modal.StartTimeText = "10:00";
+        modal.EndTimeText = "12:00";
+        modal.ConfirmCommand.Execute(null);
+        Assert.Single(viewModel.AutomaticRules);
+        Assert.Equal("09:00 – 14:25", viewModel.AutomaticRules[0].TimeRangeText);
 
         modal.Open();
+        modal.EndTimeText = "16:00";
+        modal.StartTimeText = "15:00";
+        modal.ConfirmCommand.Execute(null);
+        Assert.Equal(2, viewModel.AutomaticRules.Count);
+        Assert.False(viewModel.IsRuleMergeToastVisible);
+    }
+
+    [Fact]
+    public void RuleCreation_MergesAllConnectedIntervalsInOnePass()
+    {
+        var automatic = new SettingsToggleItemViewModel("AutomaticBlocking", "Automatic", "Description", "Icon", true);
+        var modal = CreateRuleModal();
+        var viewModel = new SettingsPageViewModel([automatic], [], modal, "每天");
+
+        modal.Open();
+        modal.StartTimeText = "09:00";
         modal.EndTimeText = "10:00";
         modal.ConfirmCommand.Execute(null);
-        Assert.Equal("该时间段已被现有规则覆盖", modal.ValidationMessage);
-        Assert.Single(viewModel.AutomaticRules);
+        modal.Open();
+        modal.StartTimeText = "11:00";
+        modal.EndTimeText = "12:00";
+        modal.ConfirmCommand.Execute(null);
+        Assert.Equal(2, viewModel.AutomaticRules.Count);
 
         modal.Open();
         modal.StartTimeText = "10:00";
-        modal.EndTimeText = "14:00";
+        modal.EndTimeText = "11:00";
         modal.ConfirmCommand.Execute(null);
-        Assert.Equal(2, viewModel.AutomaticRules.Count);
+
+        var merged = Assert.Single(viewModel.AutomaticRules);
+        Assert.Equal("09:00 – 12:00", merged.TimeRangeText);
+    }
+
+    [Fact]
+    public void EnablingAnActiveRule_RequiresConfirmationBeforeItStartsBlocking()
+    {
+        var automatic = new SettingsToggleItemViewModel("AutomaticBlocking", "Automatic", "Description", "Icon", true);
+        var now = new DateTime(2026, 8, 17, 18, 0, 0);
+        var viewModel = new SettingsPageViewModel([automatic], [], clock: () => now);
+        var rule = CreateRule("09:00 – 19:55", 540, 1195, isEnabled: false);
+        viewModel.AutomaticRules.Add(rule);
+
+        viewModel.ToggleRuleCommand.Execute(rule);
+
+        Assert.True(viewModel.RuleActivationModal.IsOpen);
+        Assert.False(rule.IsEnabled);
+
+        viewModel.RuleActivationModal.ConfirmCommand.Execute(null);
+
+        Assert.False(viewModel.RuleActivationModal.IsOpen);
+        Assert.True(rule.IsEnabled);
+    }
+
+    [Fact]
+    public void CancellingActiveRuleConfirmation_LeavesRuleDisabled()
+    {
+        var automatic = new SettingsToggleItemViewModel("AutomaticBlocking", "Automatic", "Description", "Icon", true);
+        var now = new DateTime(2026, 8, 17, 18, 0, 0);
+        var viewModel = new SettingsPageViewModel([automatic], [], clock: () => now);
+        var rule = CreateRule("09:00 – 19:55", 540, 1195, isEnabled: false);
+        viewModel.AutomaticRules.Add(rule);
+
+        viewModel.ToggleRuleCommand.Execute(rule);
+        viewModel.RuleActivationModal.CloseCommand.Execute(null);
+
+        Assert.False(viewModel.RuleActivationModal.IsOpen);
+        Assert.False(rule.IsEnabled);
+    }
+
+    [Fact]
+    public void EnablingRule_DoesNotConfirmWhenAutomaticBlockingIsOffOrAnotherRuleIsActive()
+    {
+        var now = new DateTime(2026, 8, 17, 18, 0, 0);
+        var disabledAutomatic = new SettingsToggleItemViewModel("AutomaticBlocking", "Automatic", "Description", "Icon", false);
+        var disabledViewModel = new SettingsPageViewModel([disabledAutomatic], [], clock: () => now);
+        var disabledRule = CreateRule("09:00 – 19:55", 540, 1195, isEnabled: false);
+        disabledViewModel.AutomaticRules.Add(disabledRule);
+
+        disabledViewModel.ToggleRuleCommand.Execute(disabledRule);
+
+        Assert.False(disabledViewModel.RuleActivationModal.IsOpen);
+        Assert.True(disabledRule.IsEnabled);
+
+        var automatic = new SettingsToggleItemViewModel("AutomaticBlocking", "Automatic", "Description", "Icon", true);
+        var activeViewModel = new SettingsPageViewModel([automatic], [], clock: () => now);
+        var activeRule = CreateRule("09:00 – 19:55", 540, 1195);
+        var pendingRule = CreateRule("17:00 – 20:00", 1020, 1200, isEnabled: false);
+        activeViewModel.AutomaticRules.Add(activeRule);
+        activeViewModel.AutomaticRules.Add(pendingRule);
+
+        activeViewModel.ToggleRuleCommand.Execute(pendingRule);
+
+        Assert.False(activeViewModel.RuleActivationModal.IsOpen);
+        Assert.True(pendingRule.IsEnabled);
+    }
+
+    [Fact]
+    public void EnablingCustomAndOvernightRules_UsesTheApplicableRuleDay()
+    {
+        var tuesdayAtOne = new DateTime(2026, 8, 18, 1, 0, 0);
+        var automatic = new SettingsToggleItemViewModel("AutomaticBlocking", "Automatic", "Description", "Icon", true);
+        var viewModel = new SettingsPageViewModel([automatic], [], clock: () => tuesdayAtOne);
+        var mondayOvernight = CreateRule(
+            "21:00 – 02:00", 1260, 120, isEnabled: false, isCustom: true, dayKeys: ["Monday"]);
+        viewModel.AutomaticRules.Add(mondayOvernight);
+
+        viewModel.ToggleRuleCommand.Execute(mondayOvernight);
+
+        Assert.True(viewModel.RuleActivationModal.IsOpen);
+        Assert.False(mondayOvernight.IsEnabled);
+
+        var tuesdayAtThree = new DateTime(2026, 8, 18, 3, 0, 0);
+        var outsideWindowViewModel = new SettingsPageViewModel(
+            [automatic], [], clock: () => tuesdayAtThree);
+        var outsideWindowRule = CreateRule(
+            "21:00 – 02:00", 1260, 120, isEnabled: false, isCustom: true, dayKeys: ["Monday"]);
+        outsideWindowViewModel.AutomaticRules.Add(outsideWindowRule);
+
+        outsideWindowViewModel.ToggleRuleCommand.Execute(outsideWindowRule);
+
+        Assert.False(outsideWindowViewModel.RuleActivationModal.IsOpen);
+        Assert.True(outsideWindowRule.IsEnabled);
     }
 
     [Fact]
@@ -424,5 +548,25 @@ public sealed class SettingsPageViewModelTests
             new("Saturday", "周六", "六", false),
             new("Sunday", "周日", "日", false)
         ]);
+    }
+
+    private static AutomaticRuleItemViewModel CreateRule(
+        string range,
+        double startMinutes,
+        double endMinutes,
+        bool isEnabled = true,
+        bool isCustom = false,
+        IEnumerable<string>? dayKeys = null)
+    {
+        var rule = new AutomaticRuleItemViewModel(
+            Guid.NewGuid(),
+            isCustom ? "自定义" : "每天",
+            range,
+            dayKeys ?? ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+            startMinutes,
+            endMinutes,
+            isCustom);
+        rule.IsEnabled = isEnabled;
+        return rule;
     }
 }

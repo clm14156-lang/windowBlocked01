@@ -303,6 +303,15 @@ public partial class MainWindow : Window
         }
     }
 
+    private void RuleActivationScrim_MouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (ReferenceEquals(e.OriginalSource, sender) &&
+            DataContext is ViewModels.MainWindowViewModel viewModel)
+        {
+            viewModel.SettingsPage.RuleActivationModal.CloseCommand.Execute(null);
+        }
+    }
+
     private void WebsiteScrim_MouseDown(object sender, MouseButtonEventArgs e)
     {
         if (ReferenceEquals(e.OriginalSource, sender) &&

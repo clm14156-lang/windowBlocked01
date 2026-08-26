@@ -129,6 +129,14 @@
     <system:String x:Key="AutomaticRuleEdit">编辑</system:String>
     <system:String x:Key="AutomaticRuleDelete">删除</system:String>
     <system:String x:Key="AutomaticRuleMoreActions">规则更多操作</system:String>
+    <system:String x:Key="AutomaticRuleMergedTitle">规则已自动合并</system:String>
+    <system:String x:Key="AutomaticRuleMergedMessagePrefix">已将重叠时间段合并为</system:String>
+    <system:String x:Key="AutomaticRuleMergedClose">关闭规则合并提示</system:String>
+    <system:String x:Key="AutomaticRuleActivationTitle">当前处于该规则的生效时间段</system:String>
+    <system:String x:Key="AutomaticRuleActivationDescription">开启后将立即开始自动屏蔽。</system:String>
+    <system:String x:Key="AutomaticRuleActivationCancel">取消</system:String>
+    <system:String x:Key="AutomaticRuleActivationConfirm">开启并开始屏蔽</system:String>
+    <system:String x:Key="AutomaticRuleActivationClose">关闭规则开启确认</system:String>
     <system:String x:Key="AutomaticRuleMonday">周一</system:String>
     <system:String x:Key="AutomaticRuleTuesday">周二</system:String>
     <system:String x:Key="AutomaticRuleWednesday">周三</system:String>

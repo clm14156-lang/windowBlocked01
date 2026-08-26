@@ -166,4 +166,14 @@ public partial class SettingsPage : UserControl
             moreButton.IsChecked = false;
         }
     }
+
+    private void RuleSwitch_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is ToggleButton { DataContext: AutomaticRuleItemViewModel rule } &&
+            DataContext is SettingsPageViewModel viewModel)
+        {
+            viewModel.ToggleRuleCommand.Execute(rule);
+            e.Handled = true;
+        }
+    }
 }

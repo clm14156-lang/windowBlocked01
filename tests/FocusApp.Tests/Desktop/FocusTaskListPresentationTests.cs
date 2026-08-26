@@ -69,6 +69,8 @@ public sealed class FocusTaskListPresentationTests
             ((string?)button.Attribute("Command"))?.Contains("ToggleCompletedTasksCommand", StringComparison.Ordinal) == true));
         Assert.Equal("Stretch", (string?)completedToggle.Attribute("HorizontalContentAlignment"));
         Assert.Equal("{DynamicResource TransparentBrush}", (string?)completedToggle.Attribute("Background"));
+        Assert.DoesNotContain(completedToggle.Descendants(Presentation + "TextBlock"), textBlock =>
+            (string?)textBlock.Attribute("Text") == "\uE73E");
         var completedItems = Assert.Single(scrollContent.Elements(Presentation + "ItemsControl").Where(items =>
             (string?)items.Attribute("ItemsSource") == "{Binding CompletedTasks}"));
         var addTask = Assert.Single(taskStack.Elements(Presentation + "Button").Where(button =>
@@ -82,6 +84,9 @@ public sealed class FocusTaskListPresentationTests
         Assert.Equal("{Binding IsCompletedTasksExpanded, Converter={StaticResource BooleanToVisibilityConverter}}", (string?)completedItems.Attribute("Visibility"));
 
         var completedRow = Assert.Single(completedItems.Descendants(Presentation + "DataTemplate").Descendants(Presentation + "Grid"));
+        var completedToggleButton = Assert.Single(completedRow.Elements(Presentation + "Button"));
+        Assert.Contains("ToggleTaskCompletedCommand", (string?)completedToggleButton.Attribute("Command"), StringComparison.Ordinal);
+        Assert.Equal("{Binding}", (string?)completedToggleButton.Attribute("CommandParameter"));
         Assert.Contains(completedRow.Descendants(Presentation + "TextBlock"), textBlock =>
             (string?)textBlock.Attribute("Text") == "{Binding Name}" &&
             (string?)textBlock.Attribute("Foreground") == "{DynamicResource TextWeak}");

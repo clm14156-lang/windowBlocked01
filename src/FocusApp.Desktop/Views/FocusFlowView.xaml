@@ -376,9 +376,6 @@
                                     Style="{StaticResource FocusFlowPlainButton}"
                                     Visibility="{Binding CompletedTasks.Count, Mode=OneWay, Converter={StaticResource PositiveIntToVisibilityConverter}}">
                                 <StackPanel Orientation="Horizontal">
-                                    <Border Width="24" Height="24" Margin="0,0,10,0" HorizontalAlignment="Center" VerticalAlignment="Center" BorderBrush="{DynamicResource TextSecondary}" BorderThickness="1.5" CornerRadius="12">
-                                        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{DynamicResource TextSecondary}" Text="&#xE73E;" />
-                                    </Border>
                                     <TextBlock VerticalAlignment="Center" FontSize="14" Foreground="{DynamicResource TextSecondary}"><Run Text="{DynamicResource FocusCompletedTasksPrefix}" /><Run Text="{Binding CompletedTasks.Count, Mode=OneWay}" /><Run Text="{DynamicResource FocusCompletedTasksSuffix}" /></TextBlock>
                                     <TextBlock Margin="10,0,0,0" VerticalAlignment="Center" FontSize="20" Foreground="{DynamicResource TextSecondary}" Text="›">
                                         <TextBlock.Style>
@@ -397,9 +394,9 @@
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <Grid Height="50">
-                                            <Border Width="24" Height="24" Margin="0,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" BorderBrush="{DynamicResource TextWeak}" BorderThickness="1.5" CornerRadius="6">
-                                                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{DynamicResource TextWeak}" Text="&#xE73E;" />
-                                            </Border>
+                                            <Button Width="24" Height="24" Margin="0,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Command="{Binding DataContext.ToggleTaskCompletedCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}" CommandParameter="{Binding}" Style="{StaticResource FocusFlowOutlineButton}" Padding="0" BorderBrush="{DynamicResource TextWeak}" Foreground="{DynamicResource TextWeak}">
+                                                <TextBlock FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{DynamicResource TextWeak}" Text="&#xE73E;" />
+                                            </Button>
                                             <TextBlock Margin="38,0,0,0" VerticalAlignment="Center" FontSize="15" Foreground="{DynamicResource TextWeak}" TextDecorations="Strikethrough" Text="{Binding Name}" />
                                             <Border Height="1" Margin="38,49,0,0" Background="{DynamicResource BorderPrimary}" />
                                         </Grid>
