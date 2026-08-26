@@ -91,5 +91,34 @@ public sealed class FocusSessionEngineTests
         Assert.Equal(1490, engine.RemainingFocusSeconds);
     }
 
+    [Fact]
+    public void Completion_PreservesTargetContextAndCompletedTaskIds()
+    {
+        var engine = CreateEngine();
+        engine.Start(1, target: new FocusSessionTargetContext("target-1", "学习 Blender"));
+        engine.UpdateCompletedTaskIds(["task-1", "task-2", "task-1"]);
+        engine.AdvancePreparationBy(TimeSpan.FromSeconds(5));
+        engine.AdvanceFocusBy(TimeSpan.FromMinutes(1));
+
+        Assert.NotNull(engine.Completion);
+        var completion = engine.Completion!;
+        Assert.Equal("target-1", completion.TargetId);
+        Assert.Equal("学习 Blender", completion.TargetName);
+        Assert.Equal(["task-1", "task-2"], completion.CompletedTaskIds);
+    }
+
+    [Fact]
+    public void CancelPreparation_DoesNotRetainTargetContextOrTaskIds()
+    {
+        var engine = CreateEngine();
+        engine.Start(25, target: new FocusSessionTargetContext("target-1", "学习 Blender"));
+        engine.UpdateCompletedTaskIds(["task-1"]);
+
+        Assert.True(engine.CancelPreparation());
+        Assert.Null(engine.TargetId);
+        Assert.Empty(engine.CompletedTaskIds);
+        Assert.Null(engine.Completion);
+    }
+
     private static FocusSessionEngine CreateEngine() => new(() => FixedNow);
 }

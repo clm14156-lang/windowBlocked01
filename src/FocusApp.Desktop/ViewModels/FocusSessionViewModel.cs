@@ -33,6 +33,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     private readonly HashSet<FocusTaskViewModel> _sessionCompletedTaskSet = [];
     private readonly List<FocusSessionRecord> _completionHistory = [];
     private FocusSessionRecord? _lastRecordedCompletion;
+    private FocusTargetViewModel? _sessionTarget;
 
     public FocusSessionViewModel(Func<DateTime>? nowProvider = null, bool runTimer = true)
     {
@@ -116,6 +117,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             OnPropertyChanged();
             OnPropertyChanged(nameof(HasTarget));
             OnPropertyChanged(nameof(TargetName));
+            OnPropertyChanged(nameof(ActiveTargetId));
             OnPropertyChanged(nameof(PendingTaskCount));
             OnPropertyChanged(nameof(PendingTaskSummary));
         }
@@ -124,6 +126,8 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     public bool HasTarget => ActiveTarget is not null;
 
     public string TargetName => ActiveTarget?.Name ?? string.Empty;
+
+    public string? ActiveTargetId => ActiveTarget?.TargetId;
 
     public int PendingTaskCount => PendingTasks.Count;
 
@@ -282,7 +286,11 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         _focusStopwatch.Reset();
         _lastPreparationElapsed = TimeSpan.Zero;
         _lastFocusElapsed = TimeSpan.Zero;
-        _engine.Start(minutes, forcedMode);
+        _sessionTarget = target;
+        _engine.Start(
+            minutes,
+            forcedMode,
+            target is null ? null : new FocusSessionTargetContext(target.TargetId, target.Name));
         _lastRecordedCompletion = null;
         SyncFromEngine();
         ActiveTarget = target;
@@ -311,6 +319,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
 
         if (Stage == FocusFlowStage.Focusing)
         {
+            SyncCompletedTaskIdsToEngine();
             _engine.AdvanceFocusBy(TimeSpan.FromSeconds(1));
             SyncFromEngine();
         }
@@ -323,6 +332,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             return;
         }
 
+        SyncCompletedTaskIdsToEngine();
         _engine.AdvancePreparationBy(elapsed);
         SyncFromEngine();
         if (_engine.State == FocusSessionState.Focusing)
@@ -379,6 +389,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
 
         var focusElapsed = _focusStopwatch.Elapsed - _lastFocusElapsed;
         _lastFocusElapsed = _focusStopwatch.Elapsed;
+        SyncCompletedTaskIdsToEngine();
         _engine.AdvanceFocusBy(focusElapsed);
         SyncFromEngine();
     }
@@ -419,6 +430,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
 
     private void CompleteFocus()
     {
+        SyncCompletedTaskIdsToEngine();
         if (!_engine.ConfirmEnd())
         {
             return;
@@ -446,6 +458,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         IsEndConfirmationOpen = false;
         IsForcedModeActive = false;
         _engine.ReturnHome();
+        _sessionTarget = null;
         SyncFromEngine();
         Stage = FocusFlowStage.Idle;
     }
@@ -684,6 +697,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             _todayTotalSeconds += _completedFocusSeconds;
             _completedAt = _engine.CompletedAt ?? _nowProvider();
             _completionHistory.Add(_engine.Completion);
+            _sessionTarget?.AddFocusDuration(_engine.Completion.ActualDuration);
             OnPropertyChanged(nameof(CompletedDurationDisplay));
             OnPropertyChanged(nameof(CompletedDurationPrimaryValue));
             OnPropertyChanged(nameof(CompletedDurationPrimaryUnit));
@@ -702,6 +716,11 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             FocusSessionState.Completed => FocusFlowStage.Completed,
             _ => FocusFlowStage.Idle
         };
+    }
+
+    private void SyncCompletedTaskIdsToEngine()
+    {
+        _engine.UpdateCompletedTaskIds(SessionCompletedTasks.Select(task => task.TaskId));
     }
 
     private static string FormatDuration(int totalSeconds)

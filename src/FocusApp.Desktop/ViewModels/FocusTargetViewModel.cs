@@ -7,6 +7,7 @@ namespace FocusApp.Desktop.ViewModels;
 public sealed class FocusTargetViewModel : INotifyPropertyChanged
 {
     private bool _isSelected;
+    private int _totalFocusSeconds;
 
     public FocusTargetViewModel(string name, IEnumerable<string>? taskNames = null)
     {
@@ -26,6 +27,38 @@ public sealed class FocusTargetViewModel : INotifyPropertyChanged
     public string TargetId { get; }
 
     public ObservableCollection<FocusTaskViewModel> Tasks { get; }
+
+    public int TotalFocusSeconds
+    {
+        get => _totalFocusSeconds;
+        private set
+        {
+            if (_totalFocusSeconds == value)
+            {
+                return;
+            }
+
+            _totalFocusSeconds = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(TotalFocusDuration));
+        }
+    }
+
+    public TimeSpan TotalFocusDuration => TimeSpan.FromSeconds(TotalFocusSeconds);
+
+    public int AccumulatedFocusSeconds => TotalFocusSeconds;
+
+    public TimeSpan AccumulatedFocusDuration => TotalFocusDuration;
+
+    public void AddFocusDuration(TimeSpan duration)
+    {
+        if (duration <= TimeSpan.Zero)
+        {
+            return;
+        }
+
+        TotalFocusSeconds = checked(TotalFocusSeconds + (int)Math.Floor(duration.TotalSeconds));
+    }
 
     public FocusTaskViewModel AddTask(string name, bool isNew = false, bool insertAtTop = false)
     {
@@ -111,6 +144,7 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
         }
 
         TargetId = targetId;
+        TaskId = Guid.NewGuid().ToString("N");
         _name = name;
         _editName = name;
         _isNew = isNew;
@@ -119,6 +153,8 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public string TargetId { get; }
+
+    public string TaskId { get; }
 
     public string Name
     {

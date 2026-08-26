@@ -257,6 +257,7 @@ public sealed class FocusSessionViewModelTests
         Advance(viewModel, 5);
 
         Assert.True(viewModel.HasTarget);
+        Assert.Equal(target.TargetId, viewModel.ActiveTargetId);
         Assert.Equal("学习 Blender", viewModel.TargetName);
         Assert.Equal(2, viewModel.PendingTaskCount);
         Assert.Empty(viewModel.CompletedTasks);
@@ -404,6 +405,95 @@ public sealed class FocusSessionViewModelTests
         Assert.True(viewModel.HasTarget);
         Assert.Equal(0, viewModel.SessionCompletedTaskCount);
         Assert.Empty(viewModel.SessionCompletedTasks);
+    }
+
+    [Fact]
+    public void TargetCompletion_WritesTargetAndTaskSnapshotAndAccumulatesOnce()
+    {
+        var target = new FocusTargetViewModel("学习 Blender", ["本次任务一", "本次任务二"]);
+        var firstTask = target.Tasks[0];
+        var secondTask = target.Tasks[1];
+        var viewModel = CreateViewModel();
+        viewModel.Start(1, target);
+        Advance(viewModel, 5);
+
+        viewModel.ToggleTaskCompletedCommand.Execute(firstTask);
+        viewModel.ToggleTaskCompletedCommand.Execute(secondTask);
+        Advance(viewModel, 10);
+        viewModel.RequestEndCommand.Execute(null);
+        viewModel.ConfirmEndCommand.Execute(null);
+        viewModel.AdvanceOneSecond();
+
+        var completion = Assert.Single(viewModel.CompletionHistory);
+        Assert.Equal(target.TargetId, completion.TargetId);
+        Assert.Equal(target.Name, completion.TargetName);
+        Assert.Equal([firstTask.TaskId, secondTask.TaskId], completion.CompletedTaskIds);
+        Assert.Equal(10, target.TotalFocusSeconds);
+
+        viewModel.ReturnHomeCommand.Execute(null);
+        Assert.Equal(10, target.TotalFocusSeconds);
+    }
+
+    [Fact]
+    public void TargetCompletion_NaturalEndAccumulatesConfiguredDurationOnce()
+    {
+        var target = new FocusTargetViewModel("学习 Blender", ["任务"]);
+        var viewModel = CreateViewModel();
+        viewModel.Start(1, target);
+        Advance(viewModel, 5);
+
+        Advance(viewModel, 60);
+        viewModel.AdvanceOneSecond();
+
+        Assert.Equal(60, target.TotalFocusSeconds);
+        Assert.Equal(TimeSpan.FromMinutes(1), target.TotalFocusDuration);
+        Assert.Single(viewModel.CompletionHistory);
+    }
+
+    [Fact]
+    public void CancelPreparation_WithTargetDoesNotAccumulateTargetTime()
+    {
+        var target = new FocusTargetViewModel("学习 Blender", ["任务"]);
+        var viewModel = CreateViewModel();
+        viewModel.Start(25, target);
+
+        viewModel.CancelPreparationCommand.Execute(null);
+
+        Assert.Equal(FocusFlowStage.Idle, viewModel.Stage);
+        Assert.Equal(0, target.TotalFocusSeconds);
+        Assert.Empty(viewModel.CompletionHistory);
+    }
+
+    [Fact]
+    public void NoTargetCompletion_DoesNotMutateAnyTargetData()
+    {
+        var target = new FocusTargetViewModel("未选择目标", ["任务"]);
+        var viewModel = CreateViewModel();
+        viewModel.Start(1);
+        Advance(viewModel, 5);
+        viewModel.RequestEndCommand.Execute(null);
+        viewModel.ConfirmEndCommand.Execute(null);
+
+        Assert.Null(viewModel.LastCompletion!.TargetId);
+        Assert.Empty(viewModel.LastCompletion.CompletedTaskIds);
+        Assert.Equal(0, target.TotalFocusSeconds);
+    }
+
+    [Fact]
+    public void TargetAndTaskIdsRemainStableAcrossEdits()
+    {
+        var target = new FocusTargetViewModel("学习 Blender", ["任务"]);
+        var task = target.Tasks[0];
+        var targetId = target.TargetId;
+        var taskId = task.TaskId;
+
+        task.BeginEdit();
+        task.EditName = "重命名任务";
+        task.CommitEdit();
+
+        Assert.Equal(targetId, target.TargetId);
+        Assert.Equal(taskId, task.TaskId);
+        Assert.Equal(target.TargetId, task.TargetId);
     }
 
     private static FocusSessionViewModel CreateFocusingViewModel()

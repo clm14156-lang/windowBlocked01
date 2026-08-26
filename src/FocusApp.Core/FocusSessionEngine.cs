@@ -9,6 +9,8 @@ public sealed class FocusSessionEngine
     private TimeSpan _focusElapsed;
     private DateTime _startedAt;
     private DateTime _focusStartedAt;
+    private FocusSessionTargetContext? _targetContext;
+    private readonly List<string> _completedTaskIds = [];
 
     public FocusSessionEngine(Func<DateTime>? nowProvider = null)
     {
@@ -47,7 +49,13 @@ public sealed class FocusSessionEngine
 
     public FocusSessionRecord? Completion { get; private set; }
 
-    public void Start(int minutes, bool forcedMode = false)
+    public string? TargetId => _targetContext?.TargetId;
+
+    public string? TargetName => _targetContext?.TargetName;
+
+    public IReadOnlyList<string> CompletedTaskIds => _completedTaskIds.ToArray();
+
+    public void Start(int minutes, bool forcedMode = false, FocusSessionTargetContext? target = null)
     {
         if (minutes <= 0)
         {
@@ -56,6 +64,8 @@ public sealed class FocusSessionEngine
 
         ConfiguredSeconds = checked(minutes * 60);
         IsForcedMode = forcedMode;
+        _targetContext = target;
+        _completedTaskIds.Clear();
         IsEndConfirmationOpen = false;
         _preparationElapsed = TimeSpan.Zero;
         _focusElapsed = TimeSpan.Zero;
@@ -64,6 +74,33 @@ public sealed class FocusSessionEngine
         CompletedAt = null;
         Completion = null;
         State = FocusSessionState.Preparing;
+    }
+
+    public void Start(int minutes, FocusSessionTargetContext targetContext, bool forcedMode = false)
+    {
+        Start(minutes, forcedMode, targetContext);
+    }
+
+    public void UpdateCompletedTaskIds(IEnumerable<string>? taskIds)
+    {
+        if (State is not (FocusSessionState.Preparing or FocusSessionState.Focusing))
+        {
+            return;
+        }
+
+        _completedTaskIds.Clear();
+        if (taskIds is null)
+        {
+            return;
+        }
+
+        foreach (var taskId in taskIds.Where(id => !string.IsNullOrWhiteSpace(id)))
+        {
+            if (!_completedTaskIds.Contains(taskId, StringComparer.Ordinal))
+            {
+                _completedTaskIds.Add(taskId);
+            }
+        }
     }
 
     public bool AdvancePreparationBy(TimeSpan elapsed)
@@ -181,7 +218,12 @@ public sealed class FocusSessionEngine
             _startedAt,
             completedAt,
             completionKind,
-            IsForcedMode);
+            IsForcedMode)
+        {
+            TargetId = _targetContext?.TargetId,
+            TargetName = _targetContext?.TargetName,
+            CompletedTaskIds = _completedTaskIds.ToArray()
+        };
         State = FocusSessionState.Completed;
     }
 
@@ -192,6 +234,8 @@ public sealed class FocusSessionEngine
         IsEndConfirmationOpen = false;
         _preparationElapsed = TimeSpan.Zero;
         _focusElapsed = TimeSpan.Zero;
+        _targetContext = null;
+        _completedTaskIds.Clear();
         CompletedAt = null;
         Completion = null;
     }
