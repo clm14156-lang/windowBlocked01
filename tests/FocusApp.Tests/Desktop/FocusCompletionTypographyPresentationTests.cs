@@ -6,6 +6,7 @@ namespace FocusApp.Tests.Desktop;
 public sealed class FocusCompletionTypographyPresentationTests
 {
     private static readonly XNamespace Presentation = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
+    private static readonly XNamespace Xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
 
     [Fact]
     public void CompletionStates_UseTheSharedTypographyHierarchy()
@@ -47,6 +48,15 @@ public sealed class FocusCompletionTypographyPresentationTests
 
         var completedTasks = Assert.Single(view.Descendants(Presentation + "ItemsControl").Where(items =>
             (string?)items.Attribute("ItemsSource") == "{Binding SessionCompletedTasks}"));
+        var completedTasksScrollViewer = Assert.Single(view.Descendants(Presentation + "ScrollViewer").Where(scrollViewer =>
+            (string?)scrollViewer.Attribute(Xaml + "Name") == "SessionCompletedTasksScrollViewer"));
+        Assert.Equal("158", (string?)completedTasksScrollViewer.Attribute("MaxHeight"));
+        Assert.Equal("Auto", (string?)completedTasksScrollViewer.Attribute("VerticalScrollBarVisibility"));
+        Assert.Equal("Disabled", (string?)completedTasksScrollViewer.Attribute("HorizontalScrollBarVisibility"));
+        Assert.Contains(completedTasksScrollViewer.Descendants(Presentation + "Style"), style =>
+            (string?)style.Attribute("BasedOn") == "{StaticResource FocusTaskThinScrollBarStyle}");
+        Assert.Contains(completedTasksScrollViewer.Descendants(Presentation + "ItemsControl"), items =>
+            ReferenceEquals(items, completedTasks));
         AssertPrimaryData(completedTasks, "{Binding Name}", 1, "Normal");
         AssertPrimaryData(view, "{Binding TodayTotalDisplay}", 2, "Medium");
         AssertPrimaryData(view, "{Binding CompletedAtDisplay}", 2, "Medium");

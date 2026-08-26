@@ -528,17 +528,26 @@
                             </TextBlock>
                         </Grid>
                         <Border Height="1" Background="{DynamicResource BorderPrimary}" />
-                        <ItemsControl Margin="0,3,0,3" ItemsSource="{Binding SessionCompletedTasks}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Grid Height="38">
-                                        <Ellipse Width="22" Height="22" HorizontalAlignment="Left" VerticalAlignment="Center" Fill="{DynamicResource SuccessBright}" />
-                                        <TextBlock Margin="4,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="13" Foreground="{DynamicResource WhiteText}" Text="&#xE73E;" />
-                                        <TextBlock Margin="36,0,0,0" VerticalAlignment="Center" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}" Text="{Binding Name}" />
-                                    </Grid>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
+                        <ScrollViewer x:Name="SessionCompletedTasksScrollViewer"
+                                      MaxHeight="158"
+                                      Margin="0,3,0,3"
+                                      HorizontalScrollBarVisibility="Disabled"
+                                      VerticalScrollBarVisibility="Auto">
+                            <ScrollViewer.Resources>
+                                <Style TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource FocusTaskThinScrollBarStyle}" />
+                            </ScrollViewer.Resources>
+                            <ItemsControl ItemsSource="{Binding SessionCompletedTasks}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Height="38">
+                                            <Ellipse Width="22" Height="22" HorizontalAlignment="Left" VerticalAlignment="Center" Fill="{DynamicResource SuccessBright}" />
+                                            <TextBlock Margin="4,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="13" Foreground="{DynamicResource WhiteText}" Text="&#xE73E;" />
+                                            <TextBlock Margin="36,0,0,0" VerticalAlignment="Center" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}" Text="{Binding Name}" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
                         <Border Height="1" Background="{DynamicResource BorderPrimary}" />
                         <Grid Height="52">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
@@ -554,11 +563,6 @@
                         </Grid>
                     </StackPanel>
                 </Border>
-
-                <StackPanel Margin="0,18,0,0" HorizontalAlignment="Center" Orientation="Horizontal">
-                    <TextBlock Margin="0,0,8,0" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="16" Foreground="{DynamicResource TextSecondary}" Text="&#xE753;" />
-                    <TextBlock FontSize="13" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource FocusRecordSaved}" />
-                </StackPanel>
 
                 <StackPanel Margin="0,20,0,0" Orientation="Horizontal">
                     <Button Width="194" AutomationProperties.Name="{DynamicResource FocusAgain}" Command="{Binding FocusAgainCommand}" Content="{DynamicResource FocusAgain}" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource AccentPrimary}" BorderBrush="{DynamicResource AccentPrimary}" Style="{StaticResource FocusFlowOutlineButton}" />
@@ -619,11 +623,6 @@
                         </Grid>
                     </Grid>
                 </Border>
-
-                <StackPanel Margin="0,24,0,0" HorizontalAlignment="Center" Orientation="Horizontal">
-                    <TextBlock Margin="0,0,8,0" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="16" Foreground="{DynamicResource TextSecondary}" Text="&#xE753;" />
-                    <TextBlock FontSize="13" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource FocusRecordSaved}" />
-                </StackPanel>
 
                 <StackPanel Margin="0,28,0,0" Orientation="Horizontal">
                     <Button Width="194"
