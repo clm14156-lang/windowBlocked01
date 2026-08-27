@@ -8,6 +8,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\FocusApp.Contracts\FocusApp.Contracts.csproj" />
     <ProjectReference Include="..\FocusApp.Core\FocusApp.Core.csproj" />
   </ItemGroup>
 </Project>

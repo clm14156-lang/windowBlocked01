@@ -1,0 +1,14 @@
+[2026-08-27 12:50:54.313] [0002B670] === Logging started ===
+[2026-08-27 12:50:54.335] [0002B670] Executing: "C:\Program Files\dotnet\dotnet.exe" test tests\FocusApp.Tests\FocusApp.Tests.csproj --no-restore -p:BaseOutputPath=artifacts\access-control-hardening\ --filter FullyQualifiedName~AccessControl, PID: 177776, PPID: 153948
+[2026-08-27 12:50:54.339] [0002B670] IsElevated: False
+[2026-08-27 12:50:54.339] [0002B670] Is64BitProcess: True
+[2026-08-27 12:50:54.339] [0002B670] RebootPending: False
+[2026-08-27 12:50:54.339] [0002B670] ProcessorArchitecture: amd64
+[2026-08-27 12:50:54.339] [0002B670] HostArchitecture: x64
+[2026-08-27 12:50:54.339] [0002B670] SdkDirectory: 8.0.303
+[2026-08-27 12:50:54.339] [0002B670] VerifySignatures: False
+[2026-08-27 12:50:54.339] [0002B670] SDK feature band: 8.0.300
+[2026-08-27 12:51:20.690] [0002B670] Shutting down
+[2026-08-27 12:51:20.691] [0002B670] Shutdown completed.
+[2026-08-27 12:51:20.691] [0002B670] Restart required: False
+[2026-08-27 12:51:20.691] [0002B670] === Logging ended ===

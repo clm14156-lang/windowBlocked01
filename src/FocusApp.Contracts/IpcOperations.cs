@@ -10,7 +10,15 @@ public static class IpcOperations
     public const string ReplaceApplicationRules = "rules.applications.replace";
     public const string ReplaceAutomaticRules = "rules.automatic.replace";
     public const string SaveSettings = "settings.save";
+    public const string ActivateAccessControl = "access-control.activate";
+    public const string DeactivateAccessControl = "access-control.deactivate";
+    public const string GetAccessControlStatus = "access-control.status.get";
+    public const string AgentProxyActionResult = "agent.proxy-action.result";
+    public const string UpdateAccessControlUpstream = "access-control.upstream.update";
     public const string StateChanged = "state.changed";
+    public const string AccessControlStateChanged = "access-control.state-changed";
+    public const string AccessBlocked = "access-control.blocked";
+    public const string AgentProxyActionRequested = "agent.proxy-action.requested";
 }
 
 public sealed record EmptyPayload;
@@ -38,6 +46,81 @@ public sealed record SaveSettingsCommand(
     IReadOnlyList<LocalMonthlyFocusTargetDto> MonthlyFocusTargets);
 
 public sealed record MutationResult(long Revision, LocalDataSnapshotDto State);
+
+public sealed record ActivateAccessControlCommand(DateTimeOffset ExpiresAtUtc);
+
+public sealed record DeactivateAccessControlCommand;
+
+public enum AccessControlRuntimeState
+{
+    Inactive,
+    Activating,
+    Active,
+    PartiallyActive,
+    ProxyConflict,
+    Deactivating,
+    Faulted
+}
+
+public sealed record AccessControlStatusDto(
+    AccessControlRuntimeState State,
+    bool WebsiteProtectionActive,
+    bool ApplicationProtectionActive,
+    int? LocalProxyPort,
+    DateTimeOffset? ExpiresAtUtc,
+    string? LastError);
+
+public sealed record AccessControlStateChangedEvent(AccessControlStatusDto Status);
+
+public enum BlockedTargetKind
+{
+    Website,
+    Application
+}
+
+public sealed record AccessBlockedEvent(
+    BlockedTargetKind Kind,
+    Guid RuleId,
+    string RuleName,
+    string Target,
+    DateTimeOffset ObservedAtUtc);
+
+public enum AgentProxyActionKind
+{
+    Prepare,
+    Apply,
+    Restore
+}
+
+public enum UpstreamProxyKind
+{
+    Http,
+    Socks5
+}
+
+public sealed record UpstreamProxyEndpointDto(
+    UpstreamProxyKind Kind,
+    string Host,
+    int Port);
+
+public sealed record UpstreamProxyConfigurationDto(
+    UpstreamProxyEndpointDto? Http,
+    UpstreamProxyEndpointDto? Https);
+
+public sealed record AgentProxyActionRequestedEvent(
+    Guid ActionId,
+    AgentProxyActionKind Kind,
+    int? LocalProxyPort);
+
+public sealed record AgentProxyActionResultCommand(
+    Guid ActionId,
+    bool Succeeded,
+    string? ErrorMessage,
+    bool ConflictDetected = false,
+    UpstreamProxyConfigurationDto? UpstreamProxy = null);
+
+public sealed record UpdateAccessControlUpstreamCommand(
+    UpstreamProxyConfigurationDto? UpstreamProxy);
 
 public sealed record LocalDataSnapshotDto(
     long Revision,

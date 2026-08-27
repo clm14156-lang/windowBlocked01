@@ -128,6 +128,9 @@ public sealed class NamedPipeServiceWorker : BackgroundService
     {
         ServiceStateCoordinator? coordinator = null;
         EventHandler<StateChangedEvent>? stateChangedHandler = null;
+        EventHandler<AccessControlStateChangedEvent>? accessControlStateChangedHandler = null;
+        EventHandler<AccessBlockedEvent>? accessBlockedHandler = null;
+        EventHandler<AgentProxyActionRequestedEvent>? agentProxyActionHandler = null;
         var writeGate = new SemaphoreSlim(1, 1);
         try
         {
@@ -153,6 +156,33 @@ public sealed class NamedPipeServiceWorker : BackgroundService
                 _ = WriteSafeAsync(pipe, writeGate, envelope, stoppingToken);
             };
             coordinator.StateChanged += stateChangedHandler;
+            accessControlStateChangedHandler = (_, stateChanged) =>
+            {
+                var envelope = IpcEnvelope.CreateEvent(
+                    IpcOperations.AccessControlStateChanged,
+                    Interlocked.Increment(ref eventSequence),
+                    stateChanged);
+                _ = WriteSafeAsync(pipe, writeGate, envelope, stoppingToken);
+            };
+            accessBlockedHandler = (_, blocked) =>
+            {
+                var envelope = IpcEnvelope.CreateEvent(
+                    IpcOperations.AccessBlocked,
+                    Interlocked.Increment(ref eventSequence),
+                    blocked);
+                _ = WriteSafeAsync(pipe, writeGate, envelope, stoppingToken);
+            };
+            agentProxyActionHandler = (_, action) =>
+            {
+                var envelope = IpcEnvelope.CreateEvent(
+                    IpcOperations.AgentProxyActionRequested,
+                    Interlocked.Increment(ref eventSequence),
+                    action);
+                _ = WriteSafeAsync(pipe, writeGate, envelope, stoppingToken);
+            };
+            coordinator.AccessControlStateChanged += accessControlStateChangedHandler;
+            coordinator.AccessBlocked += accessBlockedHandler;
+            coordinator.AgentProxyActionRequested += agentProxyActionHandler;
 
             while (!stoppingToken.IsCancellationRequested && pipe.IsConnected)
             {
@@ -189,6 +219,21 @@ public sealed class NamedPipeServiceWorker : BackgroundService
                 coordinator.StateChanged -= stateChangedHandler;
             }
 
+            if (coordinator is not null && accessControlStateChangedHandler is not null)
+            {
+                coordinator.AccessControlStateChanged -= accessControlStateChangedHandler;
+            }
+
+            if (coordinator is not null && accessBlockedHandler is not null)
+            {
+                coordinator.AccessBlocked -= accessBlockedHandler;
+            }
+
+            if (coordinator is not null && agentProxyActionHandler is not null)
+            {
+                coordinator.AgentProxyActionRequested -= agentProxyActionHandler;
+            }
+
             writeGate.Dispose();
             await pipe.DisposeAsync();
         }
@@ -209,7 +254,12 @@ public sealed class NamedPipeServiceWorker : BackgroundService
         }
 
         if (request.ClientRole == IpcClientRole.Agent &&
-            request.Operation is not (IpcOperations.Ping or IpcOperations.GetState))
+            request.Operation is not (
+                IpcOperations.Ping or
+                IpcOperations.GetState or
+                IpcOperations.GetAccessControlStatus or
+                IpcOperations.AgentProxyActionResult or
+                IpcOperations.UpdateAccessControlUpstream))
         {
             return new IpcErrorResult(IpcErrorCode.UnauthorizedClient, "Agent 无权修改核心业务数据。");
         }

@@ -128,6 +128,42 @@ public sealed class BlockingPageViewModel : INotifyPropertyChanged
             Websites.Select(item => new WebsiteAccessRule(item.Id, item.Name, item.Address, item.IsEnabled)),
             Applications.Select(item => new ApplicationAccessRule(item.Id, item.Name, item.Path, item.IsEnabled)));
 
+    public void ReplaceRules(
+        IEnumerable<BlockingWebsiteItemViewModel> websites,
+        IEnumerable<BlockingApplicationItemViewModel> applications)
+    {
+        ArgumentNullException.ThrowIfNull(websites);
+        ArgumentNullException.ThrowIfNull(applications);
+        foreach (var website in Websites)
+        {
+            website.PropertyChanged -= Website_PropertyChanged;
+        }
+
+        foreach (var application in Applications)
+        {
+            application.PropertyChanged -= Application_PropertyChanged;
+        }
+
+        Websites.Clear();
+        Applications.Clear();
+        foreach (var website in websites)
+        {
+            website.PropertyChanged += Website_PropertyChanged;
+            Websites.Add(website);
+            _ = LoadFaviconAsync(website);
+        }
+
+        foreach (var application in applications)
+        {
+            application.PropertyChanged += Application_PropertyChanged;
+            Applications.Add(application);
+        }
+
+        OnPropertyChanged(nameof(WebsiteCountText));
+        OnPropertyChanged(nameof(ApplicationCountText));
+        BlockingChanged?.Invoke(this, EventArgs.Empty);
+    }
+
     private void WebsiteModal_WebsiteCreated(object? sender, WebsiteDraft draft)
     {
         var item = new BlockingWebsiteItemViewModel(Guid.NewGuid(), draft.Name, draft.Address, true);

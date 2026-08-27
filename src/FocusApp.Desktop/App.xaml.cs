@@ -1,6 +1,7 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Input;
+using FocusApp.Contracts;
 using FocusApp.Desktop.Models;
 using FocusApp.Desktop.Services;
 using FocusApp.Desktop.ViewModels;
@@ -10,6 +11,7 @@ namespace FocusApp.Desktop;
 public partial class App : Application
 {
     private DesktopServiceConnection? _serviceConnection;
+    private DesktopAccessControlBridge? _accessControlBridge;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -35,17 +37,24 @@ public partial class App : Application
             "NavigationAccountIcon");
 
         _serviceConnection = new DesktopServiceConnection();
+        _serviceConnection.AccessBlocked += ServiceConnection_AccessBlocked;
+
+        var mainViewModel = new MainWindowViewModel(
+            primaryNavigationItems,
+            accountNavigationItem,
+            CreateHomePageViewModel(),
+            CreateSettingsPageViewModel(),
+            CreateBlockingPageViewModel(),
+            new StatisticsOverviewViewModel(),
+            _serviceConnection);
+        _accessControlBridge = new DesktopAccessControlBridge(
+            mainViewModel.HomePage.FocusSession,
+            mainViewModel.BlockingPage,
+            _serviceConnection);
 
         MainWindow = new MainWindow
         {
-            DataContext = new MainWindowViewModel(
-                primaryNavigationItems,
-                accountNavigationItem,
-                CreateHomePageViewModel(),
-                CreateSettingsPageViewModel(),
-                CreateBlockingPageViewModel(),
-                new StatisticsOverviewViewModel(),
-                _serviceConnection)
+            DataContext = mainViewModel
         };
         MainWindow.Show();
 
@@ -54,12 +63,21 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        _accessControlBridge?.Dispose();
         if (_serviceConnection is not null)
         {
             _serviceConnection.DisposeAsync().AsTask().GetAwaiter().GetResult();
         }
 
         base.OnExit(e);
+    }
+
+    private static void ServiceConnection_AccessBlocked(object? sender, AccessBlockedEvent e)
+    {
+        BlockedAccessNotificationService.Show(new BlockedAccessNotificationData(
+            e.RuleName,
+            e.Target,
+            e.Kind == BlockedTargetKind.Website ? "Website" : "Application"));
     }
 
 #if DEBUG
@@ -91,26 +109,8 @@ public partial class App : Application
 
     private BlockingPageViewModel CreateBlockingPageViewModel()
     {
-        var websiteData = new[]
-        {
-            ("百度", "baidu.com", true),
-            ("知乎", "zhihu.com", true),
-            ("微博", "weibo.com", false),
-            ("YouTube", "youtube.com", true),
-            ("豆瓣", "douban.com", false),
-            ("Bilibili", "bilibili.com", false),
-            ("腾讯新闻", "news.qq.com", true),
-            ("凤凰网", "ifeng.com", false)
-        };
-        var applicationData = new[]
-        {
-            ("Xmind.exe", @"E:\Xmind\Xmind.exe", true),
-            ("Xmind.exe", @"E:\Xmind\Xmind.exe", true),
-            ("Xmind.exe", @"E:\Xmind\Xmind.exe", false),
-            ("Xmind.exe", @"E:\Xmind\Xmind.exe", true),
-            ("Xmind.exe", @"E:\Xmind\Xmind.exe", false),
-            ("Xmind.exe", @"E:\Xmind\Xmind.exe", false)
-        };
+        IEnumerable<(string Name, string Address, bool Enabled)> websiteData = [];
+        IEnumerable<(string Name, string Path, bool Enabled)> applicationData = [];
         var now = DateTime.Now;
         var recentProgramData = new[]
         {

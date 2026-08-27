@@ -1,0 +1,14 @@
+[2026-08-27 12:34:59.525] [000045F4] === Logging started ===
+[2026-08-27 12:34:59.536] [000045F4] Executing: "C:\Program Files\dotnet\dotnet.exe" test tests\FocusApp.Tests\FocusApp.Tests.csproj --no-restore -p:BaseOutputPath=artifacts\access-control-resume\ --filter FullyQualifiedName~AccessControl, PID: 17908, PPID: 177828
+[2026-08-27 12:34:59.539] [000045F4] IsElevated: False
+[2026-08-27 12:34:59.540] [000045F4] Is64BitProcess: True
+[2026-08-27 12:34:59.540] [000045F4] RebootPending: False
+[2026-08-27 12:34:59.540] [000045F4] ProcessorArchitecture: amd64
+[2026-08-27 12:34:59.540] [000045F4] HostArchitecture: x64
+[2026-08-27 12:34:59.540] [000045F4] SdkDirectory: 8.0.303
+[2026-08-27 12:34:59.540] [000045F4] VerifySignatures: False
+[2026-08-27 12:34:59.540] [000045F4] SDK feature band: 8.0.300
+[2026-08-27 12:35:23.498] [000045F4] Shutting down
+[2026-08-27 12:35:23.498] [000045F4] Shutdown completed.
+[2026-08-27 12:35:23.498] [000045F4] Restart required: False
+[2026-08-27 12:35:23.498] [000045F4] === Logging ended ===

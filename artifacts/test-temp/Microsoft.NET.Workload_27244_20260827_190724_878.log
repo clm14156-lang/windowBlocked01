@@ -1,0 +1,14 @@
+[2026-08-27 19:07:24.888] [00006A6C] === Logging started ===
+[2026-08-27 19:07:24.897] [00006A6C] Executing: "C:\Program Files\dotnet\dotnet.exe" test tests\FocusApp.Tests\FocusApp.Tests.csproj --filter FullyQualifiedName~AccessControlExecutionTests|FullyQualifiedName~AccessControlCoordinatorTests -p:BaseOutputPath=artifacts\upstream-proxy-fix\ --no-restore, PID: 27244, PPID: 12224
+[2026-08-27 19:07:24.902] [00006A6C] IsElevated: False
+[2026-08-27 19:07:24.902] [00006A6C] Is64BitProcess: True
+[2026-08-27 19:07:24.902] [00006A6C] RebootPending: False
+[2026-08-27 19:07:24.902] [00006A6C] ProcessorArchitecture: amd64
+[2026-08-27 19:07:24.902] [00006A6C] HostArchitecture: x64
+[2026-08-27 19:07:24.902] [00006A6C] SdkDirectory: 8.0.303
+[2026-08-27 19:07:24.902] [00006A6C] VerifySignatures: False
+[2026-08-27 19:07:24.902] [00006A6C] SDK feature band: 8.0.300
+[2026-08-27 19:07:35.585] [00006A6C] Shutting down
+[2026-08-27 19:07:35.585] [00006A6C] Shutdown completed.
+[2026-08-27 19:07:35.585] [00006A6C] Restart required: False
+[2026-08-27 19:07:35.586] [00006A6C] === Logging ended ===

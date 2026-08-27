@@ -1,0 +1,14 @@
+[2026-08-27 18:14:27.262] [00002C98] === Logging started ===
+[2026-08-27 18:14:27.270] [00002C98] Executing: "C:\Program Files\dotnet\dotnet.exe" test tests\FocusApp.Tests\FocusApp.Tests.csproj -p:BaseOutputPath=artifacts\vpn-proxy-fix\ --no-restore, PID: 11416, PPID: 11896
+[2026-08-27 18:14:27.274] [00002C98] IsElevated: False
+[2026-08-27 18:14:27.274] [00002C98] Is64BitProcess: True
+[2026-08-27 18:14:27.274] [00002C98] RebootPending: False
+[2026-08-27 18:14:27.274] [00002C98] ProcessorArchitecture: amd64
+[2026-08-27 18:14:27.274] [00002C98] HostArchitecture: x64
+[2026-08-27 18:14:27.274] [00002C98] SdkDirectory: 8.0.303
+[2026-08-27 18:14:27.274] [00002C98] VerifySignatures: False
+[2026-08-27 18:14:27.274] [00002C98] SDK feature band: 8.0.300
+[2026-08-27 18:14:46.601] [00002C98] Shutting down
+[2026-08-27 18:14:46.601] [00002C98] Shutdown completed.
+[2026-08-27 18:14:46.601] [00002C98] Restart required: False
+[2026-08-27 18:14:46.601] [00002C98] === Logging ended ===

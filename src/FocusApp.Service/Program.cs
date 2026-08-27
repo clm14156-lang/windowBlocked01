@@ -14,6 +14,7 @@ internal static class Program
             options.ServiceName = "FocusApp Service";
         });
         builder.Services.AddSingleton<ILocalDataPathProvider, LocalDataPathProvider>();
+        builder.Services.AddSingleton<IAccessControlExecutionHostFactory, AccessControlExecutionHostFactory>();
         builder.Services.AddSingleton<IUserStateCoordinatorProvider, UserStateCoordinatorProvider>();
         builder.Services.AddSingleton<IClientIdentityResolver, NamedPipeClientIdentityResolver>();
         builder.Services.AddHostedService<NamedPipeServiceWorker>();

@@ -2,6 +2,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
   </PropertyGroup>
 
   <ItemGroup>
@@ -10,5 +11,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\FocusApp.Contracts\FocusApp.Contracts.csproj" />
+    <ProjectReference Include="..\FocusApp.Infrastructure\FocusApp.Infrastructure.csproj" />
   </ItemGroup>
 </Project>

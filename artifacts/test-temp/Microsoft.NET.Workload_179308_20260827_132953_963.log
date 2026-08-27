@@ -1,0 +1,14 @@
+[2026-08-27 13:29:53.976] [0002BC6C] === Logging started ===
+[2026-08-27 13:29:54.020] [0002BC6C] Executing: "C:\Program Files\dotnet\dotnet.exe" build src\FocusApp.Agent\FocusApp.Agent.csproj -p:BaseOutputPath=artifacts\notification-fix\ --no-restore, PID: 179308, PPID: 181976
+[2026-08-27 13:29:54.024] [0002BC6C] IsElevated: False
+[2026-08-27 13:29:54.024] [0002BC6C] Is64BitProcess: True
+[2026-08-27 13:29:54.024] [0002BC6C] RebootPending: False
+[2026-08-27 13:29:54.024] [0002BC6C] ProcessorArchitecture: amd64
+[2026-08-27 13:29:54.024] [0002BC6C] HostArchitecture: x64
+[2026-08-27 13:29:54.024] [0002BC6C] SdkDirectory: 8.0.303
+[2026-08-27 13:29:54.024] [0002BC6C] VerifySignatures: False
+[2026-08-27 13:29:54.024] [0002BC6C] SDK feature band: 8.0.300
+[2026-08-27 13:29:57.968] [0002BC6C] Shutting down
+[2026-08-27 13:29:57.969] [0002BC6C] Shutdown completed.
+[2026-08-27 13:29:57.969] [0002BC6C] Restart required: False
+[2026-08-27 13:29:58.000] [0002BC6C] === Logging ended ===

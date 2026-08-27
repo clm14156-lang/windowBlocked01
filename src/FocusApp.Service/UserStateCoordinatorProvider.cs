@@ -8,15 +8,19 @@ public interface IUserStateCoordinatorProvider
     ServiceStateCoordinator GetForIdentity(string windowsIdentity);
 }
 
-public sealed class UserStateCoordinatorProvider : IUserStateCoordinatorProvider
+public sealed class UserStateCoordinatorProvider : IUserStateCoordinatorProvider, IAsyncDisposable
 {
     private readonly ILocalDataPathProvider _pathProvider;
+    private readonly IAccessControlExecutionHostFactory _accessControlFactory;
     private readonly ConcurrentDictionary<string, ServiceStateCoordinator> _coordinators =
         new(StringComparer.OrdinalIgnoreCase);
 
-    public UserStateCoordinatorProvider(ILocalDataPathProvider pathProvider)
+    public UserStateCoordinatorProvider(
+        ILocalDataPathProvider pathProvider,
+        IAccessControlExecutionHostFactory accessControlFactory)
     {
         _pathProvider = pathProvider;
+        _accessControlFactory = accessControlFactory;
     }
 
     public ServiceStateCoordinator GetForIdentity(string windowsIdentity)
@@ -29,6 +33,15 @@ public sealed class UserStateCoordinatorProvider : IUserStateCoordinatorProvider
         return _coordinators.GetOrAdd(
             windowsIdentity,
             identity => new ServiceStateCoordinator(
-                new SqliteLocalDataStore(_pathProvider.GetDatabasePath(identity))));
+                new SqliteLocalDataStore(_pathProvider.GetDatabasePath(identity)),
+                _accessControlFactory.Create(identity)));
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        foreach (var coordinator in _coordinators.Values)
+        {
+            await coordinator.DisposeAsync();
+        }
     }
 }

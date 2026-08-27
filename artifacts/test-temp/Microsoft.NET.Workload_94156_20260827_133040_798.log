@@ -1,0 +1,14 @@
+[2026-08-27 13:30:40.813] [00016FCC] === Logging started ===
+[2026-08-27 13:30:40.822] [00016FCC] Executing: "C:\Program Files\dotnet\dotnet.exe" test tests\FocusApp.Tests\FocusApp.Tests.csproj --no-build --filter FullyQualifiedName~BlockedAccessSystemNotificationTests -p:BaseOutputPath=artifacts\notification-fix\, PID: 94156, PPID: 163184
+[2026-08-27 13:30:40.827] [00016FCC] IsElevated: False
+[2026-08-27 13:30:40.827] [00016FCC] Is64BitProcess: True
+[2026-08-27 13:30:40.827] [00016FCC] RebootPending: False
+[2026-08-27 13:30:40.827] [00016FCC] ProcessorArchitecture: amd64
+[2026-08-27 13:30:40.827] [00016FCC] HostArchitecture: x64
+[2026-08-27 13:30:40.827] [00016FCC] SdkDirectory: 8.0.303
+[2026-08-27 13:30:40.827] [00016FCC] VerifySignatures: False
+[2026-08-27 13:30:40.827] [00016FCC] SDK feature band: 8.0.300
+[2026-08-27 13:30:42.583] [00016FCC] Shutting down
+[2026-08-27 13:30:42.583] [00016FCC] Shutdown completed.
+[2026-08-27 13:30:42.583] [00016FCC] Restart required: False
+[2026-08-27 13:30:42.583] [00016FCC] === Logging ended ===

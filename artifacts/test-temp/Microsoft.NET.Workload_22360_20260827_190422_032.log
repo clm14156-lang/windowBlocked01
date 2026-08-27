@@ -1,0 +1,14 @@
+[2026-08-27 19:04:22.043] [00005758] === Logging started ===
+[2026-08-27 19:04:22.053] [00005758] Executing: "C:\Program Files\dotnet\dotnet.exe" build FocusApp.sln -p:BaseOutputPath=artifacts\upstream-proxy-fix\ --no-restore, PID: 22360, PPID: 12804
+[2026-08-27 19:04:22.059] [00005758] IsElevated: False
+[2026-08-27 19:04:22.059] [00005758] Is64BitProcess: True
+[2026-08-27 19:04:22.059] [00005758] RebootPending: False
+[2026-08-27 19:04:22.059] [00005758] ProcessorArchitecture: amd64
+[2026-08-27 19:04:22.059] [00005758] HostArchitecture: x64
+[2026-08-27 19:04:22.059] [00005758] SdkDirectory: 8.0.303
+[2026-08-27 19:04:22.059] [00005758] VerifySignatures: False
+[2026-08-27 19:04:22.059] [00005758] SDK feature band: 8.0.300
+[2026-08-27 19:04:33.537] [00005758] Shutting down
+[2026-08-27 19:04:33.537] [00005758] Shutdown completed.
+[2026-08-27 19:04:33.537] [00005758] Restart required: False
+[2026-08-27 19:04:33.537] [00005758] === Logging ended ===

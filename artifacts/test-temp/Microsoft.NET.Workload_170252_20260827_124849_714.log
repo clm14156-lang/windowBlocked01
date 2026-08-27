@@ -1,0 +1,14 @@
+[2026-08-27 12:48:49.727] [0002990C] === Logging started ===
+[2026-08-27 12:48:49.737] [0002990C] Executing: "C:\Program Files\dotnet\dotnet.exe" build FocusApp.sln --no-restore -p:BaseOutputPath=artifacts\access-control-hardening\, PID: 170252, PPID: 164348
+[2026-08-27 12:48:49.741] [0002990C] IsElevated: False
+[2026-08-27 12:48:49.741] [0002990C] Is64BitProcess: True
+[2026-08-27 12:48:49.741] [0002990C] RebootPending: False
+[2026-08-27 12:48:49.741] [0002990C] ProcessorArchitecture: amd64
+[2026-08-27 12:48:49.741] [0002990C] HostArchitecture: x64
+[2026-08-27 12:48:49.741] [0002990C] SdkDirectory: 8.0.303
+[2026-08-27 12:48:49.741] [0002990C] VerifySignatures: False
+[2026-08-27 12:48:49.741] [0002990C] SDK feature band: 8.0.300
+[2026-08-27 12:49:10.153] [0002990C] Shutting down
+[2026-08-27 12:49:10.154] [0002990C] Shutdown completed.
+[2026-08-27 12:49:10.154] [0002990C] Restart required: False
+[2026-08-27 12:49:10.154] [0002990C] === Logging ended ===

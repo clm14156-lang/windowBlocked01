@@ -26,6 +26,7 @@ public sealed class DesktopServiceConnection : INotifyPropertyChanged, IAsyncDis
     private DesktopServiceConnectionStatus _status;
     private LocalDataSnapshotDto? _state;
     private IpcErrorResult? _lastError;
+    private AccessControlStatusDto? _accessControlStatus;
     private bool _disposed;
 
     public DesktopServiceConnection(
@@ -50,6 +51,10 @@ public sealed class DesktopServiceConnection : INotifyPropertyChanged, IAsyncDis
 
     public event EventHandler<LocalDataSnapshotDto>? StateChanged;
 
+    public event EventHandler<AccessControlStatusDto>? AccessControlStateChanged;
+
+    public event EventHandler<AccessBlockedEvent>? AccessBlocked;
+
     public DesktopServiceConnectionStatus Status
     {
         get => _status;
@@ -69,6 +74,12 @@ public sealed class DesktopServiceConnection : INotifyPropertyChanged, IAsyncDis
     }
 
     public bool IsConnected => Status == DesktopServiceConnectionStatus.Connected;
+
+    public AccessControlStatusDto? AccessControlStatus
+    {
+        get => _accessControlStatus;
+        private set => SetField(ref _accessControlStatus, value);
+    }
 
     public Task StartAsync()
     {
@@ -125,6 +136,47 @@ public sealed class DesktopServiceConnection : INotifyPropertyChanged, IAsyncDis
         return state;
     }
 
+    public async Task<AccessControlStatusDto> ActivateAccessControlAsync(
+        DateTimeOffset expiresAtUtc,
+        CancellationToken cancellationToken = default,
+        Guid? requestId = null)
+    {
+        var status = await GetConnectedClient().SendAsync<ActivateAccessControlCommand, AccessControlStatusDto>(
+            IpcOperations.ActivateAccessControl,
+            new ActivateAccessControlCommand(expiresAtUtc),
+            _requestTimeout,
+            cancellationToken,
+            requestId);
+        PublishAccessControlStatus(status);
+        return status;
+    }
+
+    public async Task<AccessControlStatusDto> DeactivateAccessControlAsync(
+        CancellationToken cancellationToken = default,
+        Guid? requestId = null)
+    {
+        var status = await GetConnectedClient().SendAsync<DeactivateAccessControlCommand, AccessControlStatusDto>(
+            IpcOperations.DeactivateAccessControl,
+            new DeactivateAccessControlCommand(),
+            _requestTimeout,
+            cancellationToken,
+            requestId);
+        PublishAccessControlStatus(status);
+        return status;
+    }
+
+    public async Task<AccessControlStatusDto> RefreshAccessControlStatusAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var status = await GetConnectedClient().SendAsync<EmptyPayload, AccessControlStatusDto>(
+            IpcOperations.GetAccessControlStatus,
+            new EmptyPayload(),
+            _requestTimeout,
+            cancellationToken);
+        PublishAccessControlStatus(status);
+        return status;
+    }
+
     public async ValueTask DisposeAsync()
     {
         if (_disposed)
@@ -179,11 +231,17 @@ public sealed class DesktopServiceConnection : INotifyPropertyChanged, IAsyncDis
                     new EmptyPayload(),
                     _requestTimeout,
                     cancellationToken);
+                var accessControlStatus = await client.SendAsync<EmptyPayload, AccessControlStatusDto>(
+                    IpcOperations.GetAccessControlStatus,
+                    new EmptyPayload(),
+                    _requestTimeout,
+                    cancellationToken);
                 SetOnContext(() =>
                 {
                     LastError = null;
                     Status = DesktopServiceConnectionStatus.Connected;
                     PublishState(state);
+                    PublishAccessControlStatus(accessControlStatus);
                 });
                 retryDelay = _initialRetryDelay;
                 await disconnected.Task.WaitAsync(cancellationToken);
@@ -254,15 +312,23 @@ public sealed class DesktopServiceConnection : INotifyPropertyChanged, IAsyncDis
 
     private void Client_EventReceived(object? sender, IpcEnvelope envelope)
     {
-        if (envelope.Operation != IpcOperations.StateChanged)
-        {
-            return;
-        }
-
         try
         {
-            var stateChanged = envelope.ReadPayload<StateChangedEvent>();
-            SetOnContext(() => PublishState(stateChanged.State));
+            switch (envelope.Operation)
+            {
+                case IpcOperations.StateChanged:
+                    var stateChanged = envelope.ReadPayload<StateChangedEvent>();
+                    SetOnContext(() => PublishState(stateChanged.State));
+                    break;
+                case IpcOperations.AccessControlStateChanged:
+                    var accessControlChanged = envelope.ReadPayload<AccessControlStateChangedEvent>();
+                    SetOnContext(() => PublishAccessControlStatus(accessControlChanged.Status));
+                    break;
+                case IpcOperations.AccessBlocked:
+                    var blocked = envelope.ReadPayload<AccessBlockedEvent>();
+                    SetOnContext(() => AccessBlocked?.Invoke(this, blocked));
+                    break;
+            }
         }
         catch (IpcProtocolException exception)
         {
@@ -281,6 +347,12 @@ public sealed class DesktopServiceConnection : INotifyPropertyChanged, IAsyncDis
 
         State = state;
         StateChanged?.Invoke(this, state);
+    }
+
+    private void PublishAccessControlStatus(AccessControlStatusDto status)
+    {
+        AccessControlStatus = status;
+        AccessControlStateChanged?.Invoke(this, status);
     }
 
     private void SetOnContext(Action action)
