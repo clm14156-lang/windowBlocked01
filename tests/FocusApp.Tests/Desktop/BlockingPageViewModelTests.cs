@@ -245,6 +245,78 @@ public sealed class BlockingPageViewModelTests
     }
 
     [Fact]
+    public void ChooseProgramCommand_RequestsNativePickerWithoutChangingSelectionWhenCancelled()
+    {
+        var modal = new AddProgramModalViewModel();
+        var requestCount = 0;
+        modal.ChooseProgramRequested += (_, _) => requestCount++;
+        modal.Open();
+
+        modal.ChooseProgramCommand.Execute(null);
+
+        Assert.Equal(1, requestCount);
+        Assert.Null(modal.SelectedProgram);
+        Assert.Empty(modal.RecentPrograms);
+    }
+
+    [Fact]
+    public void ApplyingExeSelection_ShowsAndSelectsProgramInCurrentModal()
+    {
+        var modal = new AddProgramModalViewModel();
+        modal.Open();
+
+        modal.ApplyProgramSelection(new ProgramFileSelection(
+            @"C:\Apps\Editor.exe",
+            "Editor.exe",
+            "Editor"));
+
+        var selected = Assert.IsType<RecentProgramRecordViewModel>(modal.SelectedProgram);
+        Assert.Equal("Editor", selected.DisplayName);
+        Assert.Equal(@"C:\Apps\Editor.exe", selected.ExePath);
+        Assert.Same(selected, Assert.Single(modal.RecentPrograms));
+    }
+
+    [Fact]
+    public void ApplyingNonExeSelection_DoesNotChangeModal()
+    {
+        var modal = new AddProgramModalViewModel();
+        modal.Open();
+
+        modal.ApplyProgramSelection(new ProgramFileSelection(
+            @"C:\Apps\Readme.txt",
+            "Readme.txt",
+            "Readme"));
+
+        Assert.Null(modal.SelectedProgram);
+        Assert.Empty(modal.RecentPrograms);
+    }
+
+    [Fact]
+    public void SavingSelectedExe_AddsOnceByFullPathAndUpdatesCount()
+    {
+        var viewModel = CreateViewModel();
+        viewModel.OpenProgramModalCommand.Execute(null);
+        viewModel.ProgramModal.ApplyProgramSelection(new ProgramFileSelection(
+            @"C:\Apps\Editor.exe",
+            "Editor.exe",
+            "Editor"));
+        viewModel.ProgramModal.SaveCommand.Execute(null);
+
+        Assert.Equal("Added applications 1", viewModel.ApplicationCountText);
+        Assert.Equal(@"C:\Apps\Editor.exe", Assert.Single(viewModel.Applications).Path);
+
+        viewModel.OpenProgramModalCommand.Execute(null);
+        viewModel.ProgramModal.ApplyProgramSelection(new ProgramFileSelection(
+            "c:/apps/EDITOR.EXE",
+            "EDITOR.EXE",
+            "Editor duplicate"));
+        viewModel.ProgramModal.SaveCommand.Execute(null);
+
+        Assert.Single(viewModel.Applications);
+        Assert.Equal("Added applications 1", viewModel.ApplicationCountText);
+    }
+
+    [Fact]
     public void RecentPrograms_AreDeduplicatedFilteredAndSortedByLastRun()
     {
         var now = new DateTime(2026, 8, 19, 12, 0, 0);

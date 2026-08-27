@@ -1,0 +1,14 @@
+[2026-08-27 21:31:20.144] [00006D4C] === Logging started ===
+[2026-08-27 21:31:20.152] [00006D4C] Executing: "C:\Program Files\dotnet\dotnet.exe" test tests\FocusApp.Tests\FocusApp.Tests.csproj -p:BaseOutputPath=artifacts\program-picker\ --no-restore, PID: 27980, PPID: 29648
+[2026-08-27 21:31:20.156] [00006D4C] IsElevated: False
+[2026-08-27 21:31:20.156] [00006D4C] Is64BitProcess: True
+[2026-08-27 21:31:20.156] [00006D4C] RebootPending: False
+[2026-08-27 21:31:20.156] [00006D4C] ProcessorArchitecture: amd64
+[2026-08-27 21:31:20.156] [00006D4C] HostArchitecture: x64
+[2026-08-27 21:31:20.156] [00006D4C] SdkDirectory: 8.0.303
+[2026-08-27 21:31:20.156] [00006D4C] VerifySignatures: False
+[2026-08-27 21:31:20.156] [00006D4C] SDK feature band: 8.0.300
+[2026-08-27 21:31:40.477] [00006D4C] Shutting down
+[2026-08-27 21:31:40.477] [00006D4C] Shutdown completed.
+[2026-08-27 21:31:40.477] [00006D4C] Restart required: False
+[2026-08-27 21:31:40.477] [00006D4C] === Logging ended ===

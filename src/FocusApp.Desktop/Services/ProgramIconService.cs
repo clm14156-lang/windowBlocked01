@@ -8,7 +8,12 @@ using System.Windows.Media.Imaging;
 
 namespace FocusApp.Desktop.Services;
 
-internal sealed class ProgramIconService
+public interface IProgramIconService
+{
+    Task<ImageSource?> GetIconAsync(string exePath);
+}
+
+public sealed class ProgramIconService : IProgramIconService
 {
     private readonly ConcurrentDictionary<string, Lazy<Task<ImageSource?>>> _cache = new(StringComparer.OrdinalIgnoreCase);
 

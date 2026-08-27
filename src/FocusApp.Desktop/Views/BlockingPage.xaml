@@ -428,12 +428,26 @@
                                                     Height="24"
                                                     Background="{DynamicResource AccentTint}"
                                                     CornerRadius="6">
-                                                <TextBlock HorizontalAlignment="Center"
-                                                           VerticalAlignment="Center"
-                                                           FontFamily="Segoe MDL2 Assets"
-                                                           FontSize="14"
-                                                           Foreground="{DynamicResource AccentPrimary}"
-                                                           Text="&#xE71D;" />
+                                                <Grid>
+                                                    <Image Width="22" Height="22" Source="{Binding Icon}" Stretch="Uniform" />
+                                                    <TextBlock HorizontalAlignment="Center"
+                                                               VerticalAlignment="Center"
+                                                               FontFamily="Segoe MDL2 Assets"
+                                                               FontSize="14"
+                                                               Foreground="{DynamicResource AccentPrimary}"
+                                                               Text="&#xE71D;">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="{x:Type TextBlock}">
+                                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding Icon}" Value="{x:Null}">
+                                                                        <Setter Property="Visibility" Value="Visible" />
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
+                                                </Grid>
                                             </Border>
                                             <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
                                                 <TextBlock FontSize="13"

@@ -1,7 +1,9 @@
 using System.ComponentModel;
+using System.IO;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using System.Windows.Media;
+using FocusApp.Desktop.Services;
 
 namespace FocusApp.Desktop.ViewModels;
 
@@ -25,7 +27,7 @@ public sealed class AddProgramModalViewModel : INotifyPropertyChanged
     {
         CloseCommand = new RelayCommand<object>(_ => Close());
         SaveCommand = new RelayCommand<object>(_ => Save());
-        ChooseProgramCommand = new RelayCommand<object>(_ => WasChooseProgramPressed = true);
+        ChooseProgramCommand = new RelayCommand<object>(_ => RequestProgramSelection());
         SelectProgramCommand = new RelayCommand<RecentProgramRecordViewModel>(program => SelectedProgram = program);
 
         foreach (var program in recentPrograms ?? []) RecordProgramRun(program);
@@ -33,6 +35,7 @@ public sealed class AddProgramModalViewModel : INotifyPropertyChanged
 
     public event PropertyChangedEventHandler? PropertyChanged;
     public event EventHandler<RecentProgramRecordViewModel>? ProgramSelected;
+    public event EventHandler? ChooseProgramRequested;
     public ICommand CloseCommand { get; }
     public ICommand SaveCommand { get; }
     public ICommand ChooseProgramCommand { get; }
@@ -85,12 +88,42 @@ public sealed class AddProgramModalViewModel : INotifyPropertyChanged
     public void RecordProgramRun(RecentProgramRecord program)
     {
         if (string.IsNullOrWhiteSpace(program.ExePath) || IsIgnoredProcess(program.ProcessName)) return;
+        UpsertProgram(program);
+    }
+
+    private void UpsertProgram(RecentProgramRecord program)
+    {
         var existing = _recentPrograms.FirstOrDefault(item => string.Equals(item.ExePath, program.ExePath, StringComparison.OrdinalIgnoreCase));
         if (existing is null) _recentPrograms.Add(new RecentProgramRecordViewModel(program));
         else if (program.LastRunTime > existing.LastRunTime) existing.UpdateLastRunTime(program.LastRunTime);
         OnPropertyChanged(nameof(RecentPrograms));
         OnPropertyChanged(nameof(HasRecentPrograms));
         OnPropertyChanged(nameof(HasVisibleRecentPrograms));
+    }
+
+    public void ApplyProgramSelection(ProgramFileSelection selection)
+    {
+        ArgumentNullException.ThrowIfNull(selection);
+        var path = Path.GetFullPath(selection.ExePath);
+        if (!string.Equals(Path.GetExtension(path), ".exe", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        SearchText = string.Empty;
+        UpsertProgram(new RecentProgramRecord(
+            path,
+            selection.ProcessName,
+            selection.DisplayName,
+            DateTime.Now));
+        SelectedProgram = _recentPrograms.FirstOrDefault(program =>
+            string.Equals(program.ExePath, path, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private void RequestProgramSelection()
+    {
+        WasChooseProgramPressed = true;
+        ChooseProgramRequested?.Invoke(this, EventArgs.Empty);
     }
 
     private static bool IsIgnoredProcess(string processName)

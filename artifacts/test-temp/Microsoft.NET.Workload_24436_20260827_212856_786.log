@@ -1,0 +1,14 @@
+[2026-08-27 21:28:56.795] [00005F74] === Logging started ===
+[2026-08-27 21:28:56.803] [00005F74] Executing: "C:\Program Files\dotnet\dotnet.exe" test tests\FocusApp.Tests\FocusApp.Tests.csproj --filter FullyQualifiedName~BlockingPageViewModelTests|FullyQualifiedName~BlockingPagePresentationTests -p:BaseOutputPath=artifacts\program-picker\ --no-restore, PID: 24436, PPID: 28508
+[2026-08-27 21:28:56.806] [00005F74] IsElevated: False
+[2026-08-27 21:28:56.806] [00005F74] Is64BitProcess: True
+[2026-08-27 21:28:56.806] [00005F74] RebootPending: False
+[2026-08-27 21:28:56.806] [00005F74] ProcessorArchitecture: amd64
+[2026-08-27 21:28:56.806] [00005F74] HostArchitecture: x64
+[2026-08-27 21:28:56.806] [00005F74] SdkDirectory: 8.0.303
+[2026-08-27 21:28:56.806] [00005F74] VerifySignatures: False
+[2026-08-27 21:28:56.806] [00005F74] SDK feature band: 8.0.300
+[2026-08-27 21:29:05.130] [00005F74] Shutting down
+[2026-08-27 21:29:05.130] [00005F74] Shutdown completed.
+[2026-08-27 21:29:05.130] [00005F74] Restart required: False
+[2026-08-27 21:29:05.130] [00005F74] === Logging ended ===

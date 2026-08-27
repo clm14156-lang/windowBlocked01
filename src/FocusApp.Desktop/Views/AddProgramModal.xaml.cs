@@ -9,6 +9,7 @@ namespace FocusApp.Desktop.Views;
 public partial class AddProgramModal : UserControl
 {
     private readonly ProgramIconService _programIconService = new();
+    private readonly IProgramFilePicker _programFilePicker = new ProgramFilePicker();
 
     public AddProgramModal()
     {
@@ -21,11 +22,22 @@ public partial class AddProgramModal : UserControl
         if (e.OldValue is AddProgramModalViewModel oldViewModel)
         {
             oldViewModel.PropertyChanged -= ProgramModal_PropertyChanged;
+            oldViewModel.ChooseProgramRequested -= ProgramModal_ChooseProgramRequested;
         }
 
         if (e.NewValue is AddProgramModalViewModel newViewModel)
         {
             newViewModel.PropertyChanged += ProgramModal_PropertyChanged;
+            newViewModel.ChooseProgramRequested += ProgramModal_ChooseProgramRequested;
+        }
+    }
+
+    private void ProgramModal_ChooseProgramRequested(object? sender, EventArgs e)
+    {
+        var selection = _programFilePicker.PickProgram();
+        if (selection is not null && sender is AddProgramModalViewModel viewModel)
+        {
+            viewModel.ApplyProgramSelection(selection);
         }
     }
 

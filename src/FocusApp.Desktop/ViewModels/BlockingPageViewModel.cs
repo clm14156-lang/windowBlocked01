@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.IO;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -19,6 +20,7 @@ public sealed class BlockingPageViewModel : INotifyPropertyChanged
     private readonly string _websiteCountTemplate;
     private readonly string _applicationCountTemplate;
     private readonly IFaviconService _faviconService;
+    private readonly IProgramIconService _programIconService;
     private readonly AccessControlService _accessControlService;
     private BlockingTab _selectedTab = BlockingTab.Websites;
 
@@ -29,13 +31,15 @@ public sealed class BlockingPageViewModel : INotifyPropertyChanged
         string applicationCountTemplate,
         IFaviconService? faviconService = null,
         IEnumerable<RecentProgramRecord>? recentPrograms = null,
-        AccessControlService? accessControlService = null)
+        AccessControlService? accessControlService = null,
+        IProgramIconService? programIconService = null)
     {
         Websites = new ObservableCollection<BlockingWebsiteItemViewModel>(websites);
         Applications = new ObservableCollection<BlockingApplicationItemViewModel>(applications);
         _websiteCountTemplate = websiteCountTemplate;
         _applicationCountTemplate = applicationCountTemplate;
         _faviconService = faviconService ?? new FaviconService();
+        _programIconService = programIconService ?? new ProgramIconService();
         _accessControlService = accessControlService ?? new AccessControlService();
         ProgramModal = new AddProgramModalViewModel(recentPrograms);
 
@@ -51,7 +55,11 @@ public sealed class BlockingPageViewModel : INotifyPropertyChanged
         WebsiteModal.WebsiteUpdated += WebsiteModal_WebsiteUpdated;
         ProgramModal.ProgramSelected += ProgramModal_ProgramSelected;
         foreach (var website in Websites) website.PropertyChanged += Website_PropertyChanged;
-        foreach (var application in Applications) application.PropertyChanged += Application_PropertyChanged;
+        foreach (var application in Applications)
+        {
+            application.PropertyChanged += Application_PropertyChanged;
+            _ = LoadProgramIconAsync(application);
+        }
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -157,6 +165,7 @@ public sealed class BlockingPageViewModel : INotifyPropertyChanged
         {
             application.PropertyChanged += Application_PropertyChanged;
             Applications.Add(application);
+            _ = LoadProgramIconAsync(application);
         }
 
         OnPropertyChanged(nameof(WebsiteCountText));
@@ -195,16 +204,55 @@ public sealed class BlockingPageViewModel : INotifyPropertyChanged
 
     private void ProgramModal_ProgramSelected(object? sender, RecentProgramRecordViewModel program)
     {
-        if (Applications.Any(application => string.Equals(application.Path, program.ExePath, StringComparison.OrdinalIgnoreCase)))
+        if (Applications.Any(application => AreSameExecutablePath(application.Path, program.ExePath)))
         {
             return;
         }
 
         var item = new BlockingApplicationItemViewModel(Guid.NewGuid(), program.DisplayName, program.ExePath, true);
+        item.Icon = program.Icon;
         item.PropertyChanged += Application_PropertyChanged;
         Applications.Add(item);
         OnPropertyChanged(nameof(ApplicationCountText));
         BlockingChanged?.Invoke(this, EventArgs.Empty);
+        if (item.Icon is null)
+        {
+            _ = LoadProgramIconAsync(item);
+        }
+    }
+
+    private static bool AreSameExecutablePath(string left, string right)
+    {
+        try
+        {
+            return string.Equals(
+                Path.GetFullPath(left),
+                Path.GetFullPath(right),
+                StringComparison.OrdinalIgnoreCase);
+        }
+        catch (Exception exception) when (exception is ArgumentException or NotSupportedException)
+        {
+            return string.Equals(
+                left.Replace('/', Path.DirectorySeparatorChar),
+                right.Replace('/', Path.DirectorySeparatorChar),
+                StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    private async Task LoadProgramIconAsync(BlockingApplicationItemViewModel item)
+    {
+        try
+        {
+            var icon = await _programIconService.GetIconAsync(item.Path);
+            if (icon is not null && Applications.Contains(item))
+            {
+                item.Icon = icon;
+            }
+        }
+        catch
+        {
+            // The null icon keeps the default program glyph visible.
+        }
     }
 
     private async Task LoadFaviconAsync(BlockingWebsiteItemViewModel item)
@@ -362,6 +410,7 @@ public sealed class BlockingWebsiteItemViewModel : INotifyPropertyChanged
 public sealed class BlockingApplicationItemViewModel : INotifyPropertyChanged
 {
     private bool _isEnabled;
+    private ImageSource? _icon;
 
     public BlockingApplicationItemViewModel(Guid id, string name, string path, bool isEnabled)
     {
@@ -378,6 +427,21 @@ public sealed class BlockingApplicationItemViewModel : INotifyPropertyChanged
     public string Name { get; }
 
     public string Path { get; }
+
+    public ImageSource? Icon
+    {
+        get => _icon;
+        set
+        {
+            if (ReferenceEquals(_icon, value))
+            {
+                return;
+            }
+
+            _icon = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Icon)));
+        }
+    }
 
     public bool IsEnabled
     {
