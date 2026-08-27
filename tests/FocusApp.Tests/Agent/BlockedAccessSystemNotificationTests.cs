@@ -5,16 +5,18 @@ namespace FocusApp.Tests.Agent;
 public sealed class BlockedAccessSystemNotificationTests
 {
     [Fact]
-    public void AgentWorker_SendsSystemNotificationOnlyForApplicationBlocks()
+    public void Agent_DoesNotSendSystemNotificationsForBlockedAccess()
     {
-        var source = File.ReadAllText(Path.Combine(
+        var agentWorkerSource = File.ReadAllText(Path.Combine(
             FindRepositoryRoot(), "src", "FocusApp.Agent", "AgentWorker.cs"));
+        var programSource = File.ReadAllText(Path.Combine(
+            FindRepositoryRoot(), "src", "FocusApp.Agent", "Program.cs"));
 
-        Assert.Contains(
-            "if (blocked.Kind == BlockedTargetKind.Application)",
-            source,
-            StringComparison.Ordinal);
-        Assert.Contains("_notifier.Show(blocked);", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("IBlockedAccessNotifier", agentWorkerSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("_notifier.Show", agentWorkerSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("IBlockedAccessNotifier", programSource, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(
+            FindRepositoryRoot(), "src", "FocusApp.Agent", "BlockedAccessNotifier.cs")));
     }
 
     private static string FindRepositoryRoot()

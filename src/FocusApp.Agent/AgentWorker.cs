@@ -12,16 +12,13 @@ internal sealed class AgentWorker : BackgroundService
     private static readonly TimeSpan ProxyMonitorInterval = TimeSpan.FromSeconds(2);
     private readonly ILogger<AgentWorker> _logger;
     private readonly IUserProxyManager _proxyManager;
-    private readonly IBlockedAccessNotifier _notifier;
 
     public AgentWorker(
         ILogger<AgentWorker> logger,
-        IUserProxyManager proxyManager,
-        IBlockedAccessNotifier notifier)
+        IUserProxyManager proxyManager)
     {
         _logger = logger;
         _proxyManager = proxyManager;
-        _notifier = notifier;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -53,10 +50,6 @@ internal sealed class AgentWorker : BackgroundService
                             blocked.Kind,
                             blocked.Target,
                             blocked.RuleName);
-                        if (blocked.Kind == BlockedTargetKind.Application)
-                        {
-                            _notifier.Show(blocked);
-                        }
                     }
                 };
                 client.EventReceived += eventHandler;

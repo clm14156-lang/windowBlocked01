@@ -10,7 +10,6 @@ internal static class Program
     {
         var builder = Host.CreateApplicationBuilder(args);
         builder.Services.AddSingleton<IUserProxyManager, UserProxyManager>();
-        builder.Services.AddSingleton<IBlockedAccessNotifier, WindowsTrayBlockedAccessNotifier>();
         builder.Services.AddHostedService<AgentWorker>();
 
         using var host = builder.Build();
