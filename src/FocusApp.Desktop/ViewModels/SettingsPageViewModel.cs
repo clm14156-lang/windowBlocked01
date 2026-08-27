@@ -79,7 +79,7 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
 
     public SettingsToggleItemViewModel? ForcedModeItem { get; }
 
-    public bool CanUseForcedMode => _isLoggedIn && _isVip;
+    public bool CanUseForcedMode => ForcedModeAccessPolicy.CanUseForcedMode(_isLoggedIn, _isVip);
 
     public AutomaticRuleModalViewModel RuleModal { get; }
 

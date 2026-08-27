@@ -15,7 +15,10 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
     private DateTime _nextAutomaticStart;
     private readonly AutomaticBlockingScheduler _automaticBlockingScheduler;
     private int _enabledBlockingCount;
-    private bool _forcedModeEnabled;
+    private bool _isLoggedIn;
+    private bool _isVip;
+    private bool _isForcedModeRequested;
+    private FocusStartModeDecision _lastFocusStartDecision = FocusStartModeDecision.Normal;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -55,6 +58,9 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
         CustomTimeModal = new CustomTimeModalViewModel(ConfirmCustomTime, commonOptions, ToggleCommonTimeVisibility, DeleteCommonTime);
         FocusTargetModal = new FocusTargetModalViewModel();
         FocusSession = focusSession ?? new FocusSessionViewModel();
+        FocusSession.SetForcedModeStartPermission(() =>
+            ForcedModeAccessPolicy.EvaluateStart(_isLoggedIn, _isVip, _isForcedModeRequested) ==
+            FocusStartModeDecision.Forced);
         BlockedContentModal = new BlockedContentModalViewModel();
         SelectDurationCommand = new RelayCommand<HomeDurationOptionViewModel>(SelectDuration);
         StartFocusCommand = new RelayCommand<object>(_ => StartFocus());
@@ -84,7 +90,44 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
 
     public BlockedContentModalViewModel BlockedContentModal { get; }
 
-    public void SetForcedModeEnabled(bool enabled) => _forcedModeEnabled = enabled;
+    public FocusStartModeDecision LastFocusStartDecision
+    {
+        get => _lastFocusStartDecision;
+        private set
+        {
+            if (_lastFocusStartDecision == value)
+            {
+                return;
+            }
+
+            _lastFocusStartDecision = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool IsForcedModeRequested => _isForcedModeRequested;
+
+    public void SetUserAccess(bool isLoggedIn, bool isVip)
+    {
+        if (_isLoggedIn == isLoggedIn && _isVip == isVip)
+        {
+            return;
+        }
+
+        _isLoggedIn = isLoggedIn;
+        _isVip = isVip;
+    }
+
+    public void SetForcedModeEnabled(bool enabled)
+    {
+        if (_isForcedModeRequested == enabled)
+        {
+            return;
+        }
+
+        _isForcedModeRequested = enabled;
+        OnPropertyChanged(nameof(IsForcedModeRequested));
+    }
 
     public ObservableCollection<BlockingContentItemViewModel> BlockingPreviewItems { get; } = [];
 
@@ -257,11 +300,21 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
 
     private void StartFocus(int? minutes = null)
     {
+        var decision = ForcedModeAccessPolicy.EvaluateStart(
+            _isLoggedIn,
+            _isVip,
+            _isForcedModeRequested);
+        LastFocusStartDecision = decision;
+        if (!ForcedModeAccessPolicy.CanStart(decision))
+        {
+            return;
+        }
+
         var selectedDuration = _currentDurationOption;
         FocusSession.Start(
             minutes ?? selectedDuration.Minutes,
             FocusTargetModal.HasSelectedTarget ? FocusTargetModal.SelectedTarget : null,
-            _forcedModeEnabled);
+            decision == FocusStartModeDecision.Forced);
     }
 
     private void SelectOnly(HomeDurationOptionViewModel option)

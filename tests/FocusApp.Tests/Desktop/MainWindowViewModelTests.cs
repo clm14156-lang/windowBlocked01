@@ -6,6 +6,41 @@ namespace FocusApp.Tests.Desktop;
 public sealed class MainWindowViewModelTests
 {
     [Fact]
+    public void ForcedMode_StartRequiresTheCurrentVipAccessAndDoesNotFallBackToNormalFocus()
+    {
+        var duration = new HomeDurationOptionViewModel("25 minutes", string.Empty, true, 25);
+        var homePage = new HomePageViewModel([duration]);
+        var home = new NavigationItemViewModel(NavigationPage.Home, "Home", "H");
+        var account = new NavigationItemViewModel(NavigationPage.Account, "Account", "A");
+        var forcedMode = new SettingsToggleItemViewModel("ForcedMode", "Forced", "Description", "Icon", false);
+        var settings = new SettingsPageViewModel([forcedMode], []);
+        var viewModel = new MainWindowViewModel([home], account, homePage, settings);
+
+        homePage.SetForcedModeEnabled(true);
+        homePage.StartFocusCommand.Execute(null);
+
+        Assert.Equal(FocusApp.Core.FocusStartModeDecision.LoginRequired, homePage.LastFocusStartDecision);
+        Assert.Equal(FocusFlowStage.Idle, homePage.FocusSession.Stage);
+
+        viewModel.AuthModal.LoginAccount = "123";
+        viewModel.AuthModal.LoginPassword = "123";
+        viewModel.AuthModal.LoginCommand.Execute(null);
+        homePage.StartFocusCommand.Execute(null);
+
+        Assert.Equal(FocusApp.Core.FocusStartModeDecision.VipRequired, homePage.LastFocusStartDecision);
+        Assert.Equal(FocusFlowStage.Idle, homePage.FocusSession.Stage);
+
+        viewModel.AuthModal.LoginAccount = "456";
+        viewModel.AuthModal.LoginPassword = "456";
+        viewModel.AuthModal.LoginCommand.Execute(null);
+        homePage.SetForcedModeEnabled(true);
+        homePage.StartFocusCommand.Execute(null);
+
+        Assert.Equal(FocusApp.Core.FocusStartModeDecision.Forced, homePage.LastFocusStartDecision);
+        Assert.True(homePage.FocusSession.IsForcedModeActive);
+    }
+
+    [Fact]
     public void CompletedFocusSession_IsAddedToTheInMemoryStatisticsSource()
     {
         var now = new DateTime(2026, 8, 27, 10, 0, 0);

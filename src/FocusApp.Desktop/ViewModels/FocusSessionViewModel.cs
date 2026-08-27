@@ -34,6 +34,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     private readonly List<FocusSessionRecord> _completionHistory = [];
     private FocusSessionRecord? _lastRecordedCompletion;
     private FocusTargetViewModel? _sessionTarget;
+    private Func<bool> _canStartForcedMode = static () => true;
 
     public FocusSessionViewModel(Func<DateTime>? nowProvider = null, bool runTimer = true)
     {
@@ -281,8 +282,23 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
 
     private bool RunTimer { get; }
 
-    public void Start(int minutes, FocusTargetViewModel? target = null, bool forcedMode = false)
+    public void SetForcedModeStartPermission(Func<bool> canStartForcedMode)
     {
+        _canStartForcedMode = canStartForcedMode ?? throw new ArgumentNullException(nameof(canStartForcedMode));
+    }
+
+    public bool Start(int minutes, FocusTargetViewModel? target = null, bool forcedMode = false)
+    {
+        if (IsForcedModeActive && Stage is (FocusFlowStage.Preparing or FocusFlowStage.Focusing))
+        {
+            return false;
+        }
+
+        if (forcedMode && !_canStartForcedMode())
+        {
+            return false;
+        }
+
         _timer.Stop();
         _preparationStopwatch.Reset();
         _focusStopwatch.Reset();
@@ -309,6 +325,8 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             _timer.Interval = TimeSpan.FromMilliseconds(16);
             _timer.Start();
         }
+
+        return true;
     }
 
     public void AdvanceOneSecond()
@@ -454,6 +472,11 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
 
     private void ReturnHome()
     {
+        if (IsForcedModeActive && Stage is (FocusFlowStage.Preparing or FocusFlowStage.Focusing))
+        {
+            return;
+        }
+
         _timer.Stop();
         _preparationStopwatch.Reset();
         _focusStopwatch.Reset();
@@ -473,7 +496,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         }
 
         var configuredMinutes = _totalFocusSeconds / 60;
-        Start(configuredMinutes, ActiveTarget, IsForcedModeActive);
+        Start(configuredMinutes, ActiveTarget, IsForcedModeActive && _canStartForcedMode());
         AdvancePreparationBy(FocusSessionEngine.PreparationDuration);
     }
 

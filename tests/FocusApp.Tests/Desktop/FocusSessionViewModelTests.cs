@@ -98,6 +98,40 @@ public sealed class FocusSessionViewModelTests
     }
 
     [Fact]
+    public void ForcedMode_CannotBeInterruptedByReturningHomeOrStartingAnotherSession()
+    {
+        var viewModel = CreateViewModel();
+        viewModel.Start(25, forcedMode: true);
+        Advance(viewModel, 5);
+        var remaining = viewModel.RemainingFocusSeconds;
+
+        viewModel.ReturnHomeCommand.Execute(null);
+        var restarted = viewModel.Start(50);
+
+        Assert.False(restarted);
+        Assert.Equal(FocusFlowStage.Focusing, viewModel.Stage);
+        Assert.True(viewModel.IsForcedModeActive);
+        Assert.Equal(remaining, viewModel.RemainingFocusSeconds);
+    }
+
+    [Fact]
+    public void ForcedMode_FocusAgainUsesCurrentPermissionForTheNewSession()
+    {
+        var canStartForcedMode = true;
+        var viewModel = CreateViewModel();
+        viewModel.SetForcedModeStartPermission(() => canStartForcedMode);
+        viewModel.Start(1, forcedMode: true);
+        Advance(viewModel, 5);
+        Advance(viewModel, 60);
+        canStartForcedMode = false;
+
+        viewModel.FocusAgainCommand.Execute(null);
+
+        Assert.Equal(FocusFlowStage.Focusing, viewModel.Stage);
+        Assert.False(viewModel.IsForcedModeActive);
+    }
+
+    [Fact]
     public void ConfirmEnd_CompletesWithActualElapsedTimeAndFixedCompletionTime()
     {
         var completedAt = new DateTime(2026, 8, 17, 14, 26, 0);
