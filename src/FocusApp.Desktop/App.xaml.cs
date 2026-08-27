@@ -9,6 +9,8 @@ namespace FocusApp.Desktop;
 
 public partial class App : Application
 {
+    private DesktopServiceConnection? _serviceConnection;
+
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
@@ -32,6 +34,8 @@ public partial class App : Application
             "NavigationAccount",
             "NavigationAccountIcon");
 
+        _serviceConnection = new DesktopServiceConnection();
+
         MainWindow = new MainWindow
         {
             DataContext = new MainWindowViewModel(
@@ -40,9 +44,22 @@ public partial class App : Application
                 CreateHomePageViewModel(),
                 CreateSettingsPageViewModel(),
                 CreateBlockingPageViewModel(),
-                new StatisticsOverviewViewModel())
+                new StatisticsOverviewViewModel(),
+                _serviceConnection)
         };
         MainWindow.Show();
+
+        _ = _serviceConnection.StartAsync();
+    }
+
+    protected override void OnExit(ExitEventArgs e)
+    {
+        if (_serviceConnection is not null)
+        {
+            _serviceConnection.DisposeAsync().AsTask().GetAwaiter().GetResult();
+        }
+
+        base.OnExit(e);
     }
 
 #if DEBUG

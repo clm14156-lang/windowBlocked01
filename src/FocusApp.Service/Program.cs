@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using FocusApp.Infrastructure.Persistence;
 
 namespace FocusApp.Service;
 
@@ -12,7 +13,10 @@ internal static class Program
         {
             options.ServiceName = "FocusApp Service";
         });
-        builder.Services.AddHostedService<ServiceWorker>();
+        builder.Services.AddSingleton<ILocalDataPathProvider, LocalDataPathProvider>();
+        builder.Services.AddSingleton<IUserStateCoordinatorProvider, UserStateCoordinatorProvider>();
+        builder.Services.AddSingleton<IClientIdentityResolver, NamedPipeClientIdentityResolver>();
+        builder.Services.AddHostedService<NamedPipeServiceWorker>();
 
         using var host = builder.Build();
         await host.RunAsync();

@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using System.Windows.Threading;
+using FocusApp.Desktop.Services;
 
 namespace FocusApp.Desktop.ViewModels;
 
@@ -21,7 +22,8 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         HomePageViewModel homePage,
         SettingsPageViewModel? settingsPage = null,
         BlockingPageViewModel? blockingPage = null,
-        StatisticsOverviewViewModel? statisticsPage = null)
+        StatisticsOverviewViewModel? statisticsPage = null,
+        DesktopServiceConnection? serviceConnection = null)
     {
         PrimaryNavigationItems = new ReadOnlyCollection<NavigationItemViewModel>(
             primaryNavigationItems.ToList());
@@ -39,6 +41,11 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         ThemePanel.VipRequested += (_, _) => OpenVip();
         SettingsPage = settingsPage ?? new SettingsPageViewModel([], []);
         BlockingPage = blockingPage ?? new BlockingPageViewModel([], [], "Added websites: {0}", "Added applications: {0}");
+        ServiceConnection = serviceConnection;
+        if (ServiceConnection is not null)
+        {
+            ServiceConnection.PropertyChanged += ServiceConnection_PropertyChanged;
+        }
         StateCoordinator = new FocusStateCoordinator(HomePage, SettingsPage, BlockingPage, StatisticsPage);
         SettingsPage.SetUserAccess(IsLoggedIn, IsVipMember);
         HomePage.SetUserAccess(IsLoggedIn, IsVipMember);
@@ -98,6 +105,15 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     public BlockingPageViewModel BlockingPage { get; }
 
     public FocusStateCoordinator StateCoordinator { get; }
+
+    public DesktopServiceConnection? ServiceConnection { get; }
+
+    public bool IsBackendAvailable => ServiceConnection?.IsConnected == true;
+
+    public DesktopServiceConnectionStatus BackendStatus =>
+        ServiceConnection?.Status ?? DesktopServiceConnectionStatus.Disconnected;
+
+    public string BackendErrorMessage => ServiceConnection?.LastError?.Message ?? string.Empty;
 
     public string CurrentPageTitle => _currentNavigationItem.Title;
 
@@ -256,6 +272,20 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         _currentNavigationItem.IsSelected = true;
         OnPropertyChanged(nameof(CurrentPageTitle));
         OnPropertyChanged(nameof(CurrentPage));
+    }
+
+    private void ServiceConnection_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(DesktopServiceConnection.Status) or nameof(DesktopServiceConnection.IsConnected))
+        {
+            OnPropertyChanged(nameof(IsBackendAvailable));
+            OnPropertyChanged(nameof(BackendStatus));
+        }
+
+        if (e.PropertyName == nameof(DesktopServiceConnection.LastError))
+        {
+            OnPropertyChanged(nameof(BackendErrorMessage));
+        }
     }
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
