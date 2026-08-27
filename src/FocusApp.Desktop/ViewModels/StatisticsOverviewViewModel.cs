@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Input;
+using FocusApp.Core;
 
 namespace FocusApp.Desktop.ViewModels;
 
@@ -49,6 +50,8 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     private bool _isTrendVipGuideOpen;
     private bool _isDailyFocusRecordVipGuideOpen;
     private bool _isGoalInvestmentDetailsVipGuideOpen;
+    private bool _usesRuntimeFocusData;
+    private DateTime _trendReferenceDate = new(2024, 5, 15);
 
     public StatisticsOverviewViewModel()
     {
@@ -457,11 +460,51 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     public string SelectedDayTasksDisplay => $"{SelectedDayCompletedTasks} 个任务";
 
-    public int SelectedDayMinutes => SelectedDayRecords.Sum(record => record.DurationMinutes);
+    public int SelectedDayMinutes => _selectedCalendarDay is null
+        ? 0
+        : GetDailySummary(_selectedCalendarDay.Date).FocusMinutes;
 
-    public int SelectedDayCompletedTasks => SelectedDayRecords.Sum(record => record.CompletedTaskCount);
+    public int SelectedDayCompletedTasks => _selectedCalendarDay is null
+        ? 0
+        : GetDailySummary(_selectedCalendarDay.Date).CompletedTaskCount;
 
     public int MonthlyTotalMinutes => GoalDistributions.Sum(item => item.Minutes);
+
+    /// <summary>
+    /// Adds one completed in-memory focus session to the statistics source.
+    /// No storage or background processing is involved.
+    /// </summary>
+    public void AddCompletedFocusSession(
+        FocusSessionRecord record,
+        IReadOnlyList<string>? completedTaskNames = null)
+    {
+        if (!FocusStatisticsCalculator.TryGetFocusInterval(record, out var startsAt, out var endsAt))
+        {
+            return;
+        }
+
+        var goalId = string.IsNullOrWhiteSpace(record.TargetId) ? "goal-unassigned" : record.TargetId;
+        var goalName = string.IsNullOrWhiteSpace(record.TargetName) ? "未关联目标" : record.TargetName;
+        if (Goals.All(goal => goal.GoalId != goalId))
+        {
+            Goals.Add(new GoalOverviewItemViewModel(goalId!, goalName!, "尚未推进", "暂无记录", false, false));
+            OnPropertyChanged(nameof(VisibleGoals));
+        }
+
+        var taskNames = completedTaskNames ?? [];
+        FocusSessionRecords.Add(new FocusSessionRecordViewModel(
+            startsAt,
+            endsAt,
+            goalId!,
+            goalName!,
+            taskNames.FirstOrDefault() ?? string.Empty,
+            taskNames.Count,
+            taskNames));
+        _usesRuntimeFocusData = true;
+        _trendReferenceDate = endsAt.Date;
+        OnPropertyChanged(nameof(TodayDateDisplay));
+        RefreshTrend();
+    }
 
     public bool HasMonthlyFocusTarget => _monthlyFocusTargetHours is > 0;
     public int MonthlyFocusTargetHours => _monthlyFocusTargetHours ?? 0;
@@ -871,6 +914,10 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         RefreshSelectedGoalProgressData();
         RefreshCalendar(_selectedCalendarDay?.Date);
         NotifyMonthlyFocusTargetChanged();
+        if (_usesRuntimeFocusData)
+        {
+            RefreshTrend();
+        }
     }
 
     private void OpenMonthlyFocusTarget(bool editing)
@@ -943,10 +990,18 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     private void RefreshGoalSummaries()
     {
+        var summaries = FocusStatisticsCalculator.GetGoalSummaries(GetCoreFocusSessionRecords())
+            .ToDictionary(summary => summary.TargetId, StringComparer.Ordinal);
         foreach (var goal in Goals)
         {
-            var records = GetRecordsForGoal(goal.GoalId);
-            goal.UpdateProgressSummary(records.Sum(record => record.DurationMinutes), records.Count());
+            if (summaries.TryGetValue(goal.GoalId, out var summary))
+            {
+                goal.UpdateProgressSummary(summary.FocusMinutes, summary.SessionCount);
+            }
+            else
+            {
+                goal.UpdateProgressSummary(0, 0);
+            }
         }
     }
 
@@ -997,11 +1052,14 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
         var month = SelectedGoalMonth.Date;
         var daysInMonth = DateTime.DaysInMonth(month.Year, month.Month);
-        var values = Enumerable.Range(1, daysInMonth)
-            .Select(day => SelectedGoal is null ? 0 : GetRecordsForGoal(SelectedGoal.GoalId)
-                .Where(record => record.StartTime.Date == new DateTime(month.Year, month.Month, day))
-                .Sum(record => record.DurationMinutes))
-            .ToArray();
+        var values = SelectedGoal is null
+            ? new int[daysInMonth]
+            : FocusStatisticsCalculator.GetDailySummaries(
+                    GetCoreFocusSessionRecords().Where(record => record.TargetId == SelectedGoal.GoalId),
+                    month,
+                    daysInMonth)
+                .Select(summary => summary.FocusMinutes)
+                .ToArray();
         var highestHours = Math.Clamp((int)Math.Ceiling(values.Max() / 60d), 0, GoalTrendMaximumHours);
         var compactMaximumHours = RoundUpToInterval(
             Math.Max(highestHours, GoalTrendCompactTickIntervalHours),
@@ -1103,7 +1161,10 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         for (var index = 0; index < 42; index++)
         {
             var date = start.AddDays(index);
-            CalendarDays.Add(new CalendarDayViewModel(date, date.Month == _calendarMonth.Month, GetRecordsForDate(date).Sum(record => record.DurationMinutes)));
+            CalendarDays.Add(new CalendarDayViewModel(
+                date,
+                date.Month == _calendarMonth.Month,
+                GetDailySummary(date).FocusMinutes));
         }
 
         var selectedDate = preferredDate?.Year == _calendarMonth.Year && preferredDate?.Month == _calendarMonth.Month
@@ -1139,6 +1200,23 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     private IEnumerable<FocusSessionRecordViewModel> GetRecordsForMonth(DateTime month) =>
         FocusSessionRecords.Where(record => record.StartTime.Year == month.Year && record.StartTime.Month == month.Month);
+
+    private FocusDailySummary GetDailySummary(DateTime date) =>
+        FocusStatisticsCalculator.GetDailySummaries(GetCoreFocusSessionRecords(), date, 1)[0];
+
+    private IEnumerable<FocusSessionRecord> GetCoreFocusSessionRecords() => FocusSessionRecords.Select(record =>
+        new FocusSessionRecord(
+            record.EndTime - record.StartTime,
+            record.EndTime - record.StartTime,
+            record.StartTime,
+            record.EndTime,
+            FocusCompletionKind.Natural,
+            false)
+        {
+            TargetId = record.GoalId,
+            TargetName = record.GoalName,
+            CompletedTaskIds = record.CompletedTaskNames
+        });
 
     private static string GetWeekday(DateTime date) => new[] { "周日", "周一", "周二", "周三", "周四", "周五", "周六" }[(int)date.DayOfWeek];
 
@@ -1182,7 +1260,9 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     public string ComparisonDisplay { get; private set; } = string.Empty;
 
-    public string TodayDateDisplay => "5月15日 周三";
+    public string TodayDateDisplay => _usesRuntimeFocusData
+        ? $"{_trendReferenceDate:M月d日} {GetWeekday(_trendReferenceDate)}"
+        : "5月15日 周三";
 
     public string TodayFocusDuration => "2 小时 15 分钟";
 
@@ -1236,7 +1316,9 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     private void RefreshTrend()
     {
         SetHoveredPoint(null);
-        var data = SelectedRange.Days == 7 ? SevenDayData : ThirtyDayData;
+        var data = _usesRuntimeFocusData
+            ? GetRuntimeTrendData(SelectedRange.Days)
+            : SelectedRange.Days == 7 ? SevenDayData : ThirtyDayData;
         TrendPoints.Clear();
         TrendLinePoints.Clear();
         YAxisTicks.Clear();
@@ -1270,13 +1352,17 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
         var totalMinutes = data.Sum(point => point.Minutes);
         var averageMinutes = (int)Math.Round(totalMinutes / (double)data.Length);
-        var previousTotalMinutes = SelectedRange.Days == 7 ? 720 : 2400;
-        PeriodTotalDisplay = SelectedRange.Days == 7 ? "14 小时 20 分钟" : FormatDuration(totalMinutes);
-        AverageDurationDisplay = SelectedRange.Days == 7 ? "2 小时 2 分钟" : FormatDuration(averageMinutes);
+        var previousTotalMinutes = _usesRuntimeFocusData
+            ? GetRuntimeTrendData(SelectedRange.Days, -SelectedRange.Days).Sum(point => point.Minutes)
+            : SelectedRange.Days == 7 ? 720 : 2400;
+        PeriodTotalDisplay = !_usesRuntimeFocusData && SelectedRange.Days == 7 ? "14 小时 20 分钟" : FormatDuration(totalMinutes);
+        AverageDurationDisplay = !_usesRuntimeFocusData && SelectedRange.Days == 7 ? "2 小时 2 分钟" : FormatDuration(averageMinutes);
         TrendAverageMinutes = averageMinutes;
         TrendAverageY = MapTrendValueToY(averageMinutes, scaleMaximumMinutes);
         TrendAverageDurationDisplay = FormatCompactDuration(averageMinutes);
-        ComparisonDisplay = SelectedRange.Days == 7 ? "+35 分钟" : $"+{FormatDuration((int)Math.Round((totalMinutes - previousTotalMinutes) / (double)data.Length))}";
+        ComparisonDisplay = !_usesRuntimeFocusData && SelectedRange.Days == 7
+            ? "+35 分钟"
+            : FormatComparison((int)Math.Round((totalMinutes - previousTotalMinutes) / (double)data.Length));
         OnPropertyChanged(nameof(PeriodTotalLabel));
         OnPropertyChanged(nameof(ComparisonLabel));
         OnPropertyChanged(nameof(PeriodTotalDisplay));
@@ -1398,6 +1484,18 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     }
 
     internal static string FormatDurationForDisplay(int totalMinutes) => FormatDuration(totalMinutes);
+
+    private TrendMockData[] GetRuntimeTrendData(int days, int offsetDays = 0)
+    {
+        var startDate = _trendReferenceDate.Date.AddDays(1 - days + offsetDays);
+        return FocusStatisticsCalculator.GetDailySummaries(GetCoreFocusSessionRecords(), startDate, days)
+            .Select(summary => new TrendMockData(summary.Date, summary.FocusMinutes, summary.SessionCount))
+            .ToArray();
+    }
+
+    private static string FormatComparison(int averageDifferenceMinutes) => averageDifferenceMinutes >= 0
+        ? $"+{FormatDuration(averageDifferenceMinutes)}"
+        : $"-{FormatDuration(Math.Abs(averageDifferenceMinutes))}";
 
     private static string FormatHours(int totalMinutes) => totalMinutes % 60 == 0
         ? $"{totalMinutes / 60} 小时"

@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
+using FocusApp.Core;
 
 namespace FocusApp.Desktop.ViewModels;
 
@@ -12,15 +13,18 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
     private HomeDurationOptionViewModel _currentDurationOption;
     private AutomaticRuleItemViewModel? _nextAutomaticRule;
     private DateTime _nextAutomaticStart;
-    private bool _automaticBlockingIntervalActive;
-    private readonly HashSet<string> _automaticCompletedRuleKeys = [];
+    private readonly AutomaticBlockingScheduler _automaticBlockingScheduler;
     private int _enabledBlockingCount;
     private bool _forcedModeEnabled;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
-    public HomePageViewModel(IEnumerable<HomeDurationOptionViewModel> durationOptions)
+    public HomePageViewModel(
+        IEnumerable<HomeDurationOptionViewModel> durationOptions,
+        AutomaticBlockingScheduler? automaticBlockingScheduler = null,
+        FocusSessionViewModel? focusSession = null)
     {
+        _automaticBlockingScheduler = automaticBlockingScheduler ?? new AutomaticBlockingScheduler();
         var suppliedOptions = durationOptions.ToList();
         _customDurationOption = suppliedOptions.FirstOrDefault(option => !string.IsNullOrEmpty(option.Icon))
             ?? new HomeDurationOptionViewModel("自定义", "\uE823");
@@ -50,7 +54,7 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
 
         CustomTimeModal = new CustomTimeModalViewModel(ConfirmCustomTime, commonOptions, ToggleCommonTimeVisibility, DeleteCommonTime);
         FocusTargetModal = new FocusTargetModalViewModel();
-        FocusSession = new FocusSessionViewModel();
+        FocusSession = focusSession ?? new FocusSessionViewModel();
         BlockedContentModal = new BlockedContentModalViewModel();
         SelectDurationCommand = new RelayCommand<HomeDurationOptionViewModel>(SelectDuration);
         StartFocusCommand = new RelayCommand<object>(_ => StartFocus());
@@ -144,23 +148,18 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
 
         foreach (var rule in rules.Where(item => item.IsEnabled))
         {
-            var date = current.Date;
-            if (_automaticCompletedRuleKeys.Contains(GetAutomaticRuleKey(rule, date)) ||
-                !rule.DayKeys.Contains(GetDayKey(date.DayOfWeek)))
+            var candidate = AutomaticBlockingSchedule.GetOccurrenceStartingOn(
+                AutomaticBlockingRuleMapper.ToRule(rule),
+                current.Date);
+            if (candidate is null || candidate.StartsAt <= current)
             {
                 continue;
             }
 
-            var candidate = date.AddMinutes(rule.StartMinutes);
-            if (candidate <= current)
-            {
-                continue;
-            }
-
-            if (_nextAutomaticRule is null || candidate < _nextAutomaticStart)
+            if (_nextAutomaticRule is null || candidate.StartsAt < _nextAutomaticStart)
             {
                 _nextAutomaticRule = rule;
-                _nextAutomaticStart = candidate;
+                _nextAutomaticStart = candidate.StartsAt;
             }
         }
 
@@ -200,45 +199,16 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
         DateTime? now = null)
     {
         var current = now ?? DateTime.Now;
-        var activeRules = isAutomaticBlockingEnabled
-            ? rules.Where(IsActiveRule).ToList()
-            : new List<AutomaticRuleItemViewModel>();
-        var isActiveWindow = activeRules.Count > 0;
+        var ruleList = rules.ToList();
+        var evaluation = _automaticBlockingScheduler.Evaluate(
+            ruleList.Select(AutomaticBlockingRuleMapper.ToRule),
+            isAutomaticBlockingEnabled,
+            current);
 
-        if (!isActiveWindow)
+        UpdateAutomaticRules(ruleList, isAutomaticBlockingEnabled, current);
+        if (evaluation.StartRequest is not null && !FocusSession.IsActive)
         {
-            _automaticBlockingIntervalActive = false;
-            return;
-        }
-
-        var newlyExecuted = false;
-        foreach (var rule in activeRules)
-        {
-            newlyExecuted |= _automaticCompletedRuleKeys.Add(
-                GetAutomaticRuleKey(rule, AutomaticRuleSchedule.GetActiveOccurrenceDate(rule, current)));
-        }
-
-        if (newlyExecuted)
-        {
-            UpdateAutomaticRules(rules, isAutomaticBlockingEnabled, current);
-        }
-
-        if (_automaticBlockingIntervalActive)
-        {
-            return;
-        }
-
-        // Mark the interval before starting so overlapping rules and re-entrant
-        // timer ticks cannot launch a second session.
-        _automaticBlockingIntervalActive = true;
-        if (!FocusSession.IsActive)
-        {
-            StartFocus();
-        }
-
-        bool IsActiveRule(AutomaticRuleItemViewModel rule)
-        {
-            return AutomaticRuleSchedule.IsActive(rule, current);
+            StartFocus(evaluation.StartRequest.FocusMinutes);
         }
     }
 
@@ -285,11 +255,11 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
         return true;
     }
 
-    private void StartFocus()
+    private void StartFocus(int? minutes = null)
     {
         var selectedDuration = _currentDurationOption;
         FocusSession.Start(
-            selectedDuration.Minutes,
+            minutes ?? selectedDuration.Minutes,
             FocusTargetModal.HasSelectedTarget ? FocusTargetModal.SelectedTarget : null,
             _forcedModeEnabled);
     }
@@ -364,23 +334,13 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(VisibleDurationOptions));
     }
 
-    private static string GetDayKey(DayOfWeek day) => day switch
-    {
-        DayOfWeek.Monday => "Monday",
-        DayOfWeek.Tuesday => "Tuesday",
-        DayOfWeek.Wednesday => "Wednesday",
-        DayOfWeek.Thursday => "Thursday",
-        DayOfWeek.Friday => "Friday",
-        DayOfWeek.Saturday => "Saturday",
-        _ => "Sunday"
-    };
-
-    private static string GetAutomaticRuleKey(AutomaticRuleItemViewModel rule, DateTime date)
-        => $"{rule.Id:N}:{date:yyyy-MM-dd}";
-
     private static string FormatRuleDuration(AutomaticRuleItemViewModel rule)
     {
-        var minutes = Math.Max(0, (int)(rule.EndMinutes - rule.StartMinutes));
+        var minutes = (int)Math.Round(rule.EndMinutes - rule.StartMinutes);
+        if (minutes < 0)
+        {
+            minutes += 24 * 60;
+        }
         return minutes % 60 == 0 ? $"{minutes / 60} 小时" : $"{minutes / 60} 小时 {minutes % 60} 分钟";
     }
 

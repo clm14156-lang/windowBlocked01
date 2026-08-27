@@ -6,6 +6,35 @@ namespace FocusApp.Tests.Desktop;
 public sealed class MainWindowViewModelTests
 {
     [Fact]
+    public void CompletedFocusSession_IsAddedToTheInMemoryStatisticsSource()
+    {
+        var now = new DateTime(2026, 8, 27, 10, 0, 0);
+        var session = new FocusSessionViewModel(() => now, false);
+        var homePage = new HomePageViewModel(
+            [new HomeDurationOptionViewModel("1 minute", string.Empty, true, 1)],
+            focusSession: session);
+        var home = new NavigationItemViewModel(NavigationPage.Home, "Home", "H");
+        var statistics = new NavigationItemViewModel(NavigationPage.Statistics, "Statistics", "S");
+        var account = new NavigationItemViewModel(NavigationPage.Account, "Account", "A");
+        var viewModel = new MainWindowViewModel([home, statistics], account, homePage);
+        var recordCount = viewModel.StatisticsPage.FocusSessionRecords.Count;
+
+        session.Start(1);
+        session.AdvancePreparationBy(TimeSpan.FromSeconds(5));
+        now = now.AddMinutes(1).AddSeconds(5);
+        for (var index = 0; index < 60; index++)
+        {
+            session.AdvanceOneSecond();
+        }
+
+        var added = Assert.Single(viewModel.StatisticsPage.FocusSessionRecords.Skip(recordCount));
+        Assert.Equal(1, added.DurationMinutes);
+        Assert.Equal(1, viewModel.StatisticsPage.TrendPoints.Sum(point => point.SessionCount));
+        Assert.Equal(1, viewModel.StatisticsPage.TrendPoints.Sum(point => point.Minutes));
+        Assert.Equal("8月27日 周四", viewModel.StatisticsPage.TodayDateDisplay);
+    }
+
+    [Fact]
     public void NavigateCommand_SelectsDestinationAndUpdatesTitle()
     {
         var home = new NavigationItemViewModel(NavigationPage.Home, "Home", "H");

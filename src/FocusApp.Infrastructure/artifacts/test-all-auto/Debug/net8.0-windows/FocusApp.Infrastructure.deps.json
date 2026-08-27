@@ -1,0 +1,36 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v8.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v8.0": {
+      "FocusApp.Infrastructure/1.0.0": {
+        "dependencies": {
+          "FocusApp.Core": "1.0.0"
+        },
+        "runtime": {
+          "FocusApp.Infrastructure.dll": {}
+        }
+      },
+      "FocusApp.Core/1.0.0": {
+        "runtime": {
+          "FocusApp.Core.dll": {}
+        }
+      }
+    }
+  },
+  "libraries": {
+    "FocusApp.Infrastructure/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "FocusApp.Core/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}

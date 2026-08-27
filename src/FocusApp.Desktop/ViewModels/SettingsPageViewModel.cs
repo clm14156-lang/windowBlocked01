@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using System.Windows.Threading;
+using FocusApp.Core;
 
 namespace FocusApp.Desktop.ViewModels;
 
@@ -342,10 +343,10 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
 
         var now = _clock();
         var willImmediatelyBlock = IsAutomaticBlockingEnabled &&
-                                   AutomaticRuleSchedule.IsWithinSchedule(rule, now) &&
+                                   AutomaticBlockingSchedule.IsWithinSchedule(AutomaticBlockingRuleMapper.ToRule(rule), now) &&
                                    !AutomaticRules.Any(existing =>
                                        !ReferenceEquals(existing, rule) &&
-                                       AutomaticRuleSchedule.IsActive(existing, now));
+                                       AutomaticBlockingSchedule.IsActive(AutomaticBlockingRuleMapper.ToRule(existing), now));
         if (willImmediatelyBlock)
         {
             RuleActivationModal.Open(rule);

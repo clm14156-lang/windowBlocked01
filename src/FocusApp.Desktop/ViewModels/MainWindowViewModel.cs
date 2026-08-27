@@ -34,6 +34,8 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         AccountNavigationItem = accountNavigationItem;
         HomePage = homePage;
         StatisticsPage = statisticsPage ?? new StatisticsOverviewViewModel();
+        HomePage.FocusSession.CompletionRecorded += (_, args) =>
+            StatisticsPage.AddCompletedFocusSession(args.Record, args.CompletedTaskNames);
         StatisticsPage.SetUserAccess(IsLoggedIn, IsVipMember);
         ThemePanel.SetUserAccess(IsLoggedIn, IsVipMember);
         ThemePanel.VipRequested += (_, _) => OpenVip();

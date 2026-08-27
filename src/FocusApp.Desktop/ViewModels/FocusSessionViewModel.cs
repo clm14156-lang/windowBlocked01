@@ -64,6 +64,8 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
+    public event EventHandler<FocusSessionCompletedEventArgs>? CompletionRecorded;
+
     public ICommand CancelPreparationCommand { get; }
 
     public ICommand RequestEndCommand { get; }
@@ -698,6 +700,11 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             _completedAt = _engine.CompletedAt ?? _nowProvider();
             _completionHistory.Add(_engine.Completion);
             _sessionTarget?.AddFocusDuration(_engine.Completion.ActualDuration);
+            CompletionRecorded?.Invoke(
+                this,
+                new FocusSessionCompletedEventArgs(
+                    _engine.Completion,
+                    SessionCompletedTasks.Select(task => task.Name).ToArray()));
             OnPropertyChanged(nameof(CompletedDurationDisplay));
             OnPropertyChanged(nameof(CompletedDurationPrimaryValue));
             OnPropertyChanged(nameof(CompletedDurationPrimaryUnit));
@@ -759,4 +766,13 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
+}
+
+public sealed class FocusSessionCompletedEventArgs(
+    FocusSessionRecord record,
+    IReadOnlyList<string> completedTaskNames) : EventArgs
+{
+    public FocusSessionRecord Record { get; } = record;
+
+    public IReadOnlyList<string> CompletedTaskNames { get; } = completedTaskNames;
 }

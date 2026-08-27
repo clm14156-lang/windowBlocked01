@@ -527,6 +527,22 @@ public sealed class SettingsPageViewModelTests
     }
 
     [Fact]
+    public void AutomaticBlocking_UsesTheRemainingRuleDurationForTheFocusSession()
+    {
+        var home = new HomePageViewModel([new HomeDurationOptionViewModel("25 分钟", "", true, 25)]);
+        var rule = new AutomaticRuleItemViewModel(
+            Guid.NewGuid(), "每天", "09:00 – 10:00",
+            ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"], 540, 600);
+
+        home.EvaluateAutomaticBlocking(
+            [rule], true, new DateTime(2026, 8, 17, 9, 30, 0));
+
+        Assert.True(home.FocusSession.IsPreparing);
+        Assert.Equal(30 * 60, home.FocusSession.TotalFocusSeconds);
+        home.FocusSession.CancelPreparationCommand.Execute(null);
+    }
+
+    [Fact]
     public void AutomaticBlocking_HidesCompletedRuleForTheRestOfTheDay()
     {
         var home = new HomePageViewModel([new HomeDurationOptionViewModel("25 分钟", "", true, 25)]);
