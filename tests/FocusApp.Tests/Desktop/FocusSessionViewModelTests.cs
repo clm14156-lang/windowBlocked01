@@ -115,6 +115,23 @@ public sealed class FocusSessionViewModelTests
     }
 
     [Fact]
+    public void ActiveRegularFocus_CannotBeReplacedByAnotherStartRequest()
+    {
+        var viewModel = CreateViewModel();
+        viewModel.Start(25);
+        Advance(viewModel, 5);
+        var remaining = viewModel.RemainingFocusSeconds;
+
+        var restarted = viewModel.Start(50);
+
+        Assert.False(restarted);
+        Assert.Equal(FocusFlowStage.Focusing, viewModel.Stage);
+        Assert.False(viewModel.IsForcedModeActive);
+        Assert.Equal(25 * 60, viewModel.TotalFocusSeconds);
+        Assert.Equal(remaining, viewModel.RemainingFocusSeconds);
+    }
+
+    [Fact]
     public void ForcedMode_FocusAgainUsesCurrentPermissionForTheNewSession()
     {
         var canStartForcedMode = true;

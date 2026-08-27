@@ -289,7 +289,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
 
     public bool Start(int minutes, FocusTargetViewModel? target = null, bool forcedMode = false)
     {
-        if (IsForcedModeActive && Stage is (FocusFlowStage.Preparing or FocusFlowStage.Focusing))
+        if (Stage is FocusFlowStage.Preparing or FocusFlowStage.Focusing)
         {
             return false;
         }

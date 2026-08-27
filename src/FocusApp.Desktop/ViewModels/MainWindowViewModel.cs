@@ -34,51 +34,20 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         AccountNavigationItem = accountNavigationItem;
         HomePage = homePage;
         StatisticsPage = statisticsPage ?? new StatisticsOverviewViewModel();
-        HomePage.FocusSession.CompletionRecorded += (_, args) =>
-            StatisticsPage.AddCompletedFocusSession(args.Record, args.CompletedTaskNames);
         StatisticsPage.SetUserAccess(IsLoggedIn, IsVipMember);
         ThemePanel.SetUserAccess(IsLoggedIn, IsVipMember);
         ThemePanel.VipRequested += (_, _) => OpenVip();
         SettingsPage = settingsPage ?? new SettingsPageViewModel([], []);
+        BlockingPage = blockingPage ?? new BlockingPageViewModel([], [], "Added websites: {0}", "Added applications: {0}");
+        StateCoordinator = new FocusStateCoordinator(HomePage, SettingsPage, BlockingPage, StatisticsPage);
         SettingsPage.SetUserAccess(IsLoggedIn, IsVipMember);
         HomePage.SetUserAccess(IsLoggedIn, IsVipMember);
-        HomePage.SetForcedModeEnabled(SettingsPage.ForcedModeItem?.IsEnabled == true);
-        if (SettingsPage.ForcedModeItem is not null)
-        {
-            SettingsPage.ForcedModeItem.PropertyChanged += (_, args) =>
-            {
-                if (args.PropertyName == nameof(SettingsToggleItemViewModel.IsEnabled))
-                {
-                    HomePage.SetForcedModeEnabled(SettingsPage.ForcedModeItem.IsEnabled);
-                }
-            };
-        }
-        SettingsPage.RulesChanged += (_, _) =>
-        {
-            HomePage.UpdateAutomaticRules(
-                SettingsPage.AutomaticRules,
-                SettingsPage.IsAutomaticBlockingEnabled);
-            HomePage.EvaluateAutomaticBlocking(
-                SettingsPage.AutomaticRules,
-                SettingsPage.IsAutomaticBlockingEnabled);
-        };
-        HomePage.UpdateAutomaticRules(
-            SettingsPage.AutomaticRules,
-            SettingsPage.IsAutomaticBlockingEnabled);
-        HomePage.EvaluateAutomaticBlocking(
-            SettingsPage.AutomaticRules,
-            SettingsPage.IsAutomaticBlockingEnabled);
         _automaticBlockingTimer = new DispatcherTimer(DispatcherPriority.Normal)
         {
             Interval = TimeSpan.FromSeconds(1)
         };
-        _automaticBlockingTimer.Tick += (_, _) => HomePage.EvaluateAutomaticBlocking(
-            SettingsPage.AutomaticRules,
-            SettingsPage.IsAutomaticBlockingEnabled);
+        _automaticBlockingTimer.Tick += (_, _) => StateCoordinator.EvaluateAutomaticBlocking();
         _automaticBlockingTimer.Start();
-        BlockingPage = blockingPage ?? new BlockingPageViewModel([], [], "Added websites: {0}", "Added applications: {0}");
-        BlockingPage.BlockingChanged += (_, _) => RefreshBlockingContent();
-        RefreshBlockingContent();
         AuthModal = new AuthModalViewModel();
         AuthModal.LoginSucceeded += AuthModal_LoginSucceeded;
         AccountSyncModal.AccountDeletionConfirmed += AccountSyncModal_AccountDeletionConfirmed;
@@ -128,12 +97,11 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     public BlockingPageViewModel BlockingPage { get; }
 
+    public FocusStateCoordinator StateCoordinator { get; }
+
     public string CurrentPageTitle => _currentNavigationItem.Title;
 
     public NavigationPage CurrentPage => _currentNavigationItem.Page;
-
-    private void RefreshBlockingContent()
-        => HomePage.UpdateBlockingContent(BlockingPage.Websites, BlockingPage.Applications);
 
     public bool IsLoggedIn
     {
