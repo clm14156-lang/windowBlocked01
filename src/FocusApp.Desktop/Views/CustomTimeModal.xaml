@@ -98,6 +98,9 @@
                                 <Setter TargetName="PrimaryButtonBorder" Property="Background" Value="{DynamicResource AccentPressed}" />
                                 <Setter TargetName="PrimaryButtonBorder" Property="BorderBrush" Value="{DynamicResource AccentPressed}" />
                             </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.4" />
+                            </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
@@ -160,6 +163,16 @@
                        Foreground="{DynamicResource TextPrimary}"
                        Text="{DynamicResource CustomTimeDurationLabel}" />
 
+            <TextBlock Canvas.Left="198"
+                       Canvas.Top="64"
+                       Width="102"
+                       FontSize="12"
+                       FontWeight="Normal"
+                       Foreground="{DynamicResource TextSecondary}"
+                       IsHitTestVisible="False"
+                       Text="{DynamicResource CustomTimeDurationRange}"
+                       TextAlignment="Right" />
+
             <Border Canvas.Left="20"
                     Canvas.Top="85"
                     Width="280"
@@ -185,7 +198,7 @@
                              IsVisibleChanged="MinutesTextBox_IsVisibleChanged"
                              KeyDown="MinutesTextBox_KeyDown"
                              PreviewTextInput="MinutesTextBox_PreviewTextInput"
-                             Text="{Binding Minutes, UpdateSourceTrigger=PropertyChanged}"
+                             Text="{Binding MinutesInput, UpdateSourceTrigger=PropertyChanged}"
                              TextAlignment="Center" />
                     <TextBlock Margin="0,0,18,0"
                                HorizontalAlignment="Right"
@@ -313,7 +326,7 @@
                     AutomationProperties.Name="{DynamicResource CustomTimeConfirm}"
                     Command="{Binding ConfirmCommand}"
                     Style="{StaticResource CustomTimePrimaryButtonStyle}">
-                <TextBlock Foreground="{DynamicResource WhiteText}"
+                <TextBlock Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
                            Text="{DynamicResource CustomTimeConfirm}" />
             </Button>
         </Canvas>

@@ -169,6 +169,7 @@
     <system:String x:Key="HomeDurationCustom">自定义</system:String>
     <system:String x:Key="CustomTimeTitle">添加专注时间</system:String>
     <system:String x:Key="CustomTimeDurationLabel">专注时长</system:String>
+    <system:String x:Key="CustomTimeDurationRange">5&#x2013;480 分钟</system:String>
     <system:String x:Key="CustomTimeUnit">分钟</system:String>
     <system:String x:Key="CustomTimeCommonLabel">常用时间</system:String>
     <system:String x:Key="CustomTimePreset15">15分钟</system:String>

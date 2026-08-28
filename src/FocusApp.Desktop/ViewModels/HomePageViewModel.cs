@@ -350,7 +350,7 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
 
     private bool ConfirmCustomTime(int minutes)
     {
-        if (minutes <= 0 || DurationOptions.Count(item => !ReferenceEquals(item, _customDurationOption)) >= 9 ||
+        if (minutes is < 5 or > 480 || DurationOptions.Count(item => !ReferenceEquals(item, _customDurationOption)) >= 9 ||
             DurationOptions.Any(option => option.Minutes == minutes && !ReferenceEquals(option, _customDurationOption)))
         {
             return false;

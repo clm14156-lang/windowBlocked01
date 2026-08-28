@@ -127,6 +127,67 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
+    public void CustomDuration_OpensWithFiveMinutesAndValidatesBoundariesInRealTime()
+    {
+        var viewModel = new HomePageViewModel(
+            [
+                new HomeDurationOptionViewModel("30", string.Empty, true, 30),
+                new HomeDurationOptionViewModel("Custom", "clock")
+            ]);
+
+        viewModel.CustomTimeModal.Open();
+
+        Assert.Equal("5", viewModel.CustomTimeModal.MinutesInput);
+        Assert.True(viewModel.CustomTimeModal.IsDurationValid);
+        Assert.True(viewModel.CustomTimeModal.ConfirmCommand.CanExecute(null));
+
+        viewModel.CustomTimeModal.MinutesInput = string.Empty;
+        Assert.False(viewModel.CustomTimeModal.IsDurationValid);
+        Assert.False(viewModel.CustomTimeModal.ConfirmCommand.CanExecute(null));
+
+        viewModel.CustomTimeModal.MinutesInput = "4";
+        Assert.False(viewModel.CustomTimeModal.ConfirmCommand.CanExecute(null));
+
+        viewModel.CustomTimeModal.MinutesInput = "5";
+        Assert.True(viewModel.CustomTimeModal.ConfirmCommand.CanExecute(null));
+
+        viewModel.CustomTimeModal.MinutesInput = "480";
+        Assert.True(viewModel.CustomTimeModal.ConfirmCommand.CanExecute(null));
+
+        viewModel.CustomTimeModal.MinutesInput = "481";
+        Assert.False(viewModel.CustomTimeModal.ConfirmCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public void CustomDuration_InvalidDirectExecutionDoesNotCreateAnOption()
+    {
+        var common = new HomeDurationOptionViewModel("30", string.Empty, true, 30);
+        var custom = new HomeDurationOptionViewModel("Custom", "clock");
+        var viewModel = new HomePageViewModel([common, custom]);
+        viewModel.CustomTimeModal.Open();
+        viewModel.CustomTimeModal.MinutesInput = "481";
+
+        viewModel.CustomTimeModal.ConfirmCommand.Execute(null);
+
+        Assert.DoesNotContain(viewModel.DurationOptions, option => option.Minutes == 481);
+        Assert.Equal("481", viewModel.CustomTimeModal.MinutesInput);
+    }
+
+    [Fact]
+    public void CustomDuration_SelectingCommonTimeUpdatesTheInput()
+    {
+        var common = new HomeDurationOptionViewModel("60", string.Empty, false, 60);
+        var custom = new HomeDurationOptionViewModel("Custom", "clock");
+        var viewModel = new HomePageViewModel([common, custom]);
+        viewModel.CustomTimeModal.Open();
+
+        viewModel.CustomTimeModal.SelectTimeCommand.Execute(common);
+
+        Assert.Equal("60", viewModel.CustomTimeModal.MinutesInput);
+        Assert.True(viewModel.CustomTimeModal.ConfirmCommand.CanExecute(null));
+    }
+
+    [Fact]
     public void HomeShowsSelectedCommonDurationsAndAlwaysKeepsCustomEntry()
     {
         var first = new HomeDurationOptionViewModel("25 minutes", string.Empty, true, 25);

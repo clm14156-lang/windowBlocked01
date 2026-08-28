@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 
@@ -10,8 +11,9 @@ public sealed class CustomTimeModalViewModel : INotifyPropertyChanged
     private readonly Func<int, bool> _confirm;
     private readonly Action<int> _toggleVisibility;
     private readonly Action<int> _deleteTime;
+    private readonly RelayCommand<object> _confirmCommand;
     private bool _isOpen;
-    private int _minutes;
+    private string _minutesInput = "5";
 
     public CustomTimeModalViewModel(Func<int, bool> confirm, IEnumerable<HomeDurationOptionViewModel>? commonTimes = null, Action<int>? toggleVisibility = null, Action<int>? deleteTime = null)
     {
@@ -20,7 +22,8 @@ public sealed class CustomTimeModalViewModel : INotifyPropertyChanged
         _toggleVisibility = toggleVisibility ?? (_ => { });
         _deleteTime = deleteTime ?? (_ => { });
         CancelCommand = new RelayCommand<object>(_ => Close());
-        ConfirmCommand = new RelayCommand<object>(_ => Confirm());
+        _confirmCommand = new RelayCommand<object>(_ => Confirm(), _ => IsDurationValid);
+        ConfirmCommand = _confirmCommand;
         ToggleEditCommand = new RelayCommand<object>(_ => IsEditing = !IsEditing);
         CompleteEditCommand = new RelayCommand<object>(_ => IsEditing = false);
         DeleteTimeCommand = new RelayCommand<HomeDurationOptionViewModel>(DeleteTime);
@@ -67,22 +70,33 @@ public sealed class CustomTimeModalViewModel : INotifyPropertyChanged
 
     public int Minutes
     {
-        get => _minutes;
+        get => int.TryParse(MinutesInput, NumberStyles.None, CultureInfo.InvariantCulture, out var minutes)
+            ? minutes
+            : 0;
+        set => MinutesInput = value.ToString(CultureInfo.InvariantCulture);
+    }
+
+    public string MinutesInput
+    {
+        get => _minutesInput;
         set
         {
-            if (_minutes == value)
-            {
-                return;
-            }
-
-            _minutes = value;
+            value ??= string.Empty;
+            if (_minutesInput == value) return;
+            _minutesInput = value;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(Minutes));
+            OnPropertyChanged(nameof(IsDurationValid));
+            _confirmCommand.NotifyCanExecuteChanged();
         }
     }
+
+    public bool IsDurationValid => Minutes is >= 5 and <= 480;
 
     public void Open()
     {
         IsEditing = false;
+        Minutes = 5;
         IsOpen = true;
     }
 
@@ -94,9 +108,10 @@ public sealed class CustomTimeModalViewModel : INotifyPropertyChanged
 
     private void Confirm()
     {
-        if (Minutes is >= 1 and <= 999)
+        var minutes = Minutes;
+        if (minutes is >= 5 and <= 480)
         {
-            if (_confirm(Minutes))
+            if (_confirm(minutes))
             {
                 Minutes = 0;
                 InputResetRequested?.Invoke(this, EventArgs.Empty);
@@ -107,6 +122,7 @@ public sealed class CustomTimeModalViewModel : INotifyPropertyChanged
     private void SelectTime(HomeDurationOptionViewModel? option)
     {
         if (option is null || IsEditing) return;
+        Minutes = option.Minutes;
         _toggleVisibility(option.Minutes);
     }
 
