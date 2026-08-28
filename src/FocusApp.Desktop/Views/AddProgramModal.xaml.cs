@@ -8,7 +8,7 @@ namespace FocusApp.Desktop.Views;
 
 public partial class AddProgramModal : UserControl
 {
-    private readonly ProgramIconService _programIconService = new();
+    private readonly IProgramIconService _programIconService = new IconService();
     private readonly IProgramFilePicker _programFilePicker = new ProgramFilePicker();
 
     public AddProgramModal()

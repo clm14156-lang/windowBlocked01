@@ -7,7 +7,7 @@ internal sealed class SqliteDatabaseInitializer(
     string databasePath,
     SqliteLocalDataStoreOptions options)
 {
-    public const int CurrentSchemaVersion = 1;
+    public const int CurrentSchemaVersion = 2;
 
     private const string MigrationV1 = """
         CREATE TABLE focus_sessions (
@@ -127,6 +127,34 @@ internal sealed class SqliteDatabaseInitializer(
         );
         """;
 
+    private const string MigrationV2 = """
+        CREATE TABLE focus_session_website_rules (
+            session_id TEXT NOT NULL,
+            rule_id TEXT NOT NULL,
+            name TEXT NOT NULL,
+            address TEXT NOT NULL,
+            is_enabled INTEGER NOT NULL CHECK (is_enabled IN (0, 1)),
+            sort_order INTEGER NOT NULL CHECK (sort_order >= 0),
+            PRIMARY KEY (session_id, rule_id),
+            FOREIGN KEY (session_id) REFERENCES focus_sessions(session_id) ON DELETE CASCADE
+        );
+        CREATE INDEX ix_focus_session_website_rules_sort
+            ON focus_session_website_rules (session_id, sort_order);
+
+        CREATE TABLE focus_session_application_rules (
+            session_id TEXT NOT NULL,
+            rule_id TEXT NOT NULL,
+            name TEXT NOT NULL,
+            path TEXT NOT NULL,
+            is_enabled INTEGER NOT NULL CHECK (is_enabled IN (0, 1)),
+            sort_order INTEGER NOT NULL CHECK (sort_order >= 0),
+            PRIMARY KEY (session_id, rule_id),
+            FOREIGN KEY (session_id) REFERENCES focus_sessions(session_id) ON DELETE CASCADE
+        );
+        CREATE INDEX ix_focus_session_application_rules_sort
+            ON focus_session_application_rules (session_id, sort_order);
+        """;
+
     public async Task InitializeAsync(CancellationToken cancellationToken)
     {
         var directory = Path.GetDirectoryName(databasePath)
@@ -244,6 +272,7 @@ internal sealed class SqliteDatabaseInitializer(
         var sql = targetVersion switch
         {
             1 => MigrationV1,
+            2 => MigrationV2,
             _ => throw new InvalidOperationException($"缺少数据库版本 {targetVersion} 的迁移。")
         };
 

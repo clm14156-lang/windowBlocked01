@@ -7,9 +7,9 @@ namespace FocusApp.Contracts;
 
 public static class IpcProtocol
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 2;
     public const int MaximumFrameBytes = 1024 * 1024;
-    public const string DefaultPipeName = "FocusApp.Service.v1";
+    public const string DefaultPipeName = "FocusApp.Service.v2";
 
     public static JsonSerializerOptions JsonOptions { get; } = CreateJsonOptions();
 

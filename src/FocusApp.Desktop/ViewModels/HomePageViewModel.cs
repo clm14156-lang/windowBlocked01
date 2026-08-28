@@ -19,6 +19,9 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
     private bool _isVip;
     private bool _isForcedModeRequested;
     private FocusStartModeDecision _lastFocusStartDecision = FocusStartModeDecision.Normal;
+    private Func<int, FocusTargetViewModel?, Guid?, DateTimeOffset?, Task<bool>>? _forcedFocusStarter;
+    private bool _isStartingForcedFocus;
+    private string _focusStartError = string.Empty;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -106,6 +109,32 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
     }
 
     public bool IsForcedModeRequested => _isForcedModeRequested;
+
+    public bool IsStartingForcedFocus
+    {
+        get => _isStartingForcedFocus;
+        private set
+        {
+            if (_isStartingForcedFocus == value) return;
+            _isStartingForcedFocus = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public string FocusStartError
+    {
+        get => _focusStartError;
+        private set
+        {
+            if (_focusStartError == value) return;
+            _focusStartError = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public void SetForcedFocusStarter(
+        Func<int, FocusTargetViewModel?, Guid?, DateTimeOffset?, Task<bool>> starter)
+        => _forcedFocusStarter = starter ?? throw new ArgumentNullException(nameof(starter));
 
     public void SetUserAccess(bool isLoggedIn, bool isVip)
     {
@@ -251,7 +280,10 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
         UpdateAutomaticRules(ruleList, isAutomaticBlockingEnabled, current);
         if (evaluation.StartRequest is not null && !FocusSession.IsActive)
         {
-            StartFocus(evaluation.StartRequest.FocusMinutes);
+            StartFocus(
+                evaluation.StartRequest.FocusMinutes,
+                evaluation.StartRequest.RuleId,
+                new DateTimeOffset(evaluation.StartRequest.OccurrenceStartsAt).ToUniversalTime());
         }
     }
 
@@ -298,7 +330,10 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
         return true;
     }
 
-    private void StartFocus(int? minutes = null)
+    private void StartFocus(
+        int? minutes = null,
+        Guid? automaticRuleId = null,
+        DateTimeOffset? automaticOccurrenceStartedAtUtc = null)
     {
         var decision = ForcedModeAccessPolicy.EvaluateStart(
             _isLoggedIn,
@@ -311,10 +346,54 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
         }
 
         var selectedDuration = _currentDurationOption;
+        var focusMinutes = minutes ?? selectedDuration.Minutes;
+        var target = FocusTargetModal.HasSelectedTarget ? FocusTargetModal.SelectedTarget : null;
+        if (decision == FocusStartModeDecision.Forced && _forcedFocusStarter is not null)
+        {
+            if (!IsStartingForcedFocus)
+            {
+                _ = StartForcedFocusAsync(
+                    focusMinutes,
+                    target,
+                    automaticRuleId,
+                    automaticOccurrenceStartedAtUtc);
+            }
+            return;
+        }
+
         FocusSession.Start(
-            minutes ?? selectedDuration.Minutes,
-            FocusTargetModal.HasSelectedTarget ? FocusTargetModal.SelectedTarget : null,
+            focusMinutes,
+            target,
             decision == FocusStartModeDecision.Forced);
+    }
+
+    private async Task StartForcedFocusAsync(
+        int minutes,
+        FocusTargetViewModel? target,
+        Guid? automaticRuleId,
+        DateTimeOffset? automaticOccurrenceStartedAtUtc)
+    {
+        IsStartingForcedFocus = true;
+        FocusStartError = string.Empty;
+        try
+        {
+            if (!await _forcedFocusStarter!(
+                    minutes,
+                    target,
+                    automaticRuleId,
+                    automaticOccurrenceStartedAtUtc))
+            {
+                FocusStartError = "后台未能启动强制专注。";
+            }
+        }
+        catch (Exception exception)
+        {
+            FocusStartError = exception.Message;
+        }
+        finally
+        {
+            IsStartingForcedFocus = false;
+        }
     }
 
     private void SelectOnly(HomeDurationOptionViewModel option)

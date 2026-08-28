@@ -110,16 +110,29 @@ internal sealed class AgentWorker : BackgroundService
         CancellationToken cancellationToken)
     {
         ProxyOperationResult result;
+        AgentProxyActionKind actionKind;
         if (status.State is (AccessControlRuntimeState.Active or AccessControlRuntimeState.PartiallyActive) &&
             status.WebsiteProtectionActive &&
             status.LocalProxyPort is int port)
         {
+            actionKind = AgentProxyActionKind.Apply;
             result = await EnsureProxyAppliedAsync(client, port, cancellationToken);
         }
         else
         {
+            actionKind = AgentProxyActionKind.Restore;
             result = await _proxyManager.RestoreAsync(cancellationToken);
         }
+
+        await client.SendAsync<AgentProxyReconciliationResultCommand, AccessControlStatusDto>(
+            IpcOperations.AgentProxyReconciliationResult,
+            new AgentProxyReconciliationResultCommand(
+                actionKind,
+                result.Succeeded,
+                result.ErrorMessage,
+                result.ConflictDetected),
+            RequestTimeout,
+            cancellationToken);
 
         if (!result.Succeeded)
         {

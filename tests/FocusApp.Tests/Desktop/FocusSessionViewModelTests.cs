@@ -1,3 +1,4 @@
+using FocusApp.Contracts;
 using FocusApp.Desktop.ViewModels;
 using Xunit;
 
@@ -5,6 +6,57 @@ namespace FocusApp.Tests.Desktop;
 
 public sealed class FocusSessionViewModelTests
 {
+    [Fact]
+    public void AuthoritativeForcedSession_ProjectsServiceTimesWithoutCreatingALocalSession()
+    {
+        var now = new DateTimeOffset(2026, 8, 27, 8, 0, 0, TimeSpan.Zero);
+        var session = CreateAuthoritativeSession(
+            LocalFocusSessionStatusDto.Preparing,
+            now,
+            now.AddSeconds(5),
+            now.AddSeconds(65));
+        var viewModel = CreateViewModel();
+
+        viewModel.ApplyAuthoritativeSession(session, nowUtc: now.AddSeconds(2));
+
+        Assert.True(viewModel.IsServiceOwnedForcedSession);
+        Assert.Equal(session.SessionId, viewModel.AuthoritativeSessionId);
+        Assert.Equal(FocusFlowStage.Preparing, viewModel.Stage);
+        Assert.Equal(3, viewModel.PreparationSeconds);
+        Assert.Equal(60, viewModel.RemainingFocusSeconds);
+
+        viewModel.ApplyAuthoritativeSession(
+            session with { Status = LocalFocusSessionStatusDto.Focusing },
+            nowUtc: now.AddSeconds(15));
+
+        Assert.Equal(FocusFlowStage.Focusing, viewModel.Stage);
+        Assert.Equal(50, viewModel.RemainingFocusSeconds);
+    }
+
+    [Fact]
+    public void AuthoritativeCompletion_IsRecordedOnlyOnceWhenStateIsReplayed()
+    {
+        var now = new DateTimeOffset(2026, 8, 27, 9, 0, 0, TimeSpan.Zero);
+        var completed = CreateAuthoritativeSession(
+            LocalFocusSessionStatusDto.Completed,
+            now,
+            now.AddSeconds(5),
+            now.AddSeconds(65)) with
+        {
+            ActualSeconds = 60,
+            CompletedAtUtc = now.AddSeconds(65),
+            CompletionKind = FocusCompletionKindDto.Natural
+        };
+        var viewModel = CreateViewModel();
+
+        viewModel.ApplyAuthoritativeSession(completed, nowUtc: now.AddSeconds(70));
+        viewModel.ApplyAuthoritativeSession(completed, nowUtc: now.AddSeconds(70));
+
+        Assert.Equal(FocusFlowStage.Completed, viewModel.Stage);
+        Assert.Single(viewModel.CompletionHistory);
+        Assert.Equal(60, viewModel.LastCompletion!.ActualDuration.TotalSeconds);
+    }
+
     [Fact]
     public void Preparation_CountsDownFromFiveAndTransitionsToFocus()
     {
@@ -554,6 +606,29 @@ public sealed class FocusSessionViewModelTests
         Advance(viewModel, 5);
         return viewModel;
     }
+
+    private static LocalFocusSessionDto CreateAuthoritativeSession(
+        LocalFocusSessionStatusDto status,
+        DateTimeOffset preparationStartedAtUtc,
+        DateTimeOffset focusStartedAtUtc,
+        DateTimeOffset plannedEndAtUtc)
+        => new(
+            Guid.NewGuid(),
+            status,
+            true,
+            60,
+            0,
+            preparationStartedAtUtc,
+            focusStartedAtUtc,
+            plannedEndAtUtc,
+            null,
+            null,
+            null,
+            null,
+            false,
+            null,
+            null,
+            []);
 
     private static FocusSessionViewModel CreateViewModel(DateTime? now = null)
     {

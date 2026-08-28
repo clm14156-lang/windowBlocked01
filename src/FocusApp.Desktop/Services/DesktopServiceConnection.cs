@@ -27,6 +27,7 @@ public sealed class DesktopServiceConnection : INotifyPropertyChanged, IAsyncDis
     private LocalDataSnapshotDto? _state;
     private IpcErrorResult? _lastError;
     private AccessControlStatusDto? _accessControlStatus;
+    private FocusRuntimeStatusDto? _focusRuntimeStatus;
     private bool _disposed;
 
     public DesktopServiceConnection(
@@ -52,6 +53,8 @@ public sealed class DesktopServiceConnection : INotifyPropertyChanged, IAsyncDis
     public event EventHandler<LocalDataSnapshotDto>? StateChanged;
 
     public event EventHandler<AccessControlStatusDto>? AccessControlStateChanged;
+
+    public event EventHandler<FocusRuntimeStatusDto>? FocusRuntimeStateChanged;
 
     public event EventHandler<AccessBlockedEvent>? AccessBlocked;
 
@@ -79,6 +82,12 @@ public sealed class DesktopServiceConnection : INotifyPropertyChanged, IAsyncDis
     {
         get => _accessControlStatus;
         private set => SetField(ref _accessControlStatus, value);
+    }
+
+    public FocusRuntimeStatusDto? FocusRuntimeStatus
+    {
+        get => _focusRuntimeStatus;
+        private set => SetField(ref _focusRuntimeStatus, value);
     }
 
     public Task StartAsync()
@@ -177,6 +186,48 @@ public sealed class DesktopServiceConnection : INotifyPropertyChanged, IAsyncDis
         return status;
     }
 
+    public async Task<FocusSessionMutationResult> StartForcedFocusAsync(
+        StartForcedFocusCommand command,
+        CancellationToken cancellationToken = default,
+        Guid? requestId = null)
+    {
+        var result = await GetConnectedClient().SendAsync<StartForcedFocusCommand, FocusSessionMutationResult>(
+            IpcOperations.StartForcedFocus,
+            command,
+            _requestTimeout,
+            cancellationToken,
+            requestId);
+        SetOnContext(() => PublishFocusMutation(result));
+        return result;
+    }
+
+    public async Task<FocusSessionMutationResult> UpdateForcedFocusTasksAsync(
+        UpdateForcedFocusTasksCommand command,
+        CancellationToken cancellationToken = default,
+        Guid? requestId = null)
+    {
+        var result = await GetConnectedClient().SendAsync<UpdateForcedFocusTasksCommand, FocusSessionMutationResult>(
+            IpcOperations.UpdateForcedFocusTasks,
+            command,
+            _requestTimeout,
+            cancellationToken,
+            requestId);
+        SetOnContext(() => PublishFocusMutation(result));
+        return result;
+    }
+
+    public async Task<FocusRuntimeStatusDto> RefreshFocusRuntimeStatusAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var status = await GetConnectedClient().SendAsync<EmptyPayload, FocusRuntimeStatusDto>(
+            IpcOperations.GetFocusRuntimeStatus,
+            new EmptyPayload(),
+            _requestTimeout,
+            cancellationToken);
+        PublishFocusRuntimeStatus(status);
+        return status;
+    }
+
     public async ValueTask DisposeAsync()
     {
         if (_disposed)
@@ -236,12 +287,18 @@ public sealed class DesktopServiceConnection : INotifyPropertyChanged, IAsyncDis
                     new EmptyPayload(),
                     _requestTimeout,
                     cancellationToken);
+                var focusRuntimeStatus = await client.SendAsync<EmptyPayload, FocusRuntimeStatusDto>(
+                    IpcOperations.GetFocusRuntimeStatus,
+                    new EmptyPayload(),
+                    _requestTimeout,
+                    cancellationToken);
                 SetOnContext(() =>
                 {
                     LastError = null;
                     Status = DesktopServiceConnectionStatus.Connected;
                     PublishState(state);
                     PublishAccessControlStatus(accessControlStatus);
+                    PublishFocusRuntimeStatus(focusRuntimeStatus);
                 });
                 retryDelay = _initialRetryDelay;
                 await disconnected.Task.WaitAsync(cancellationToken);
@@ -324,6 +381,10 @@ public sealed class DesktopServiceConnection : INotifyPropertyChanged, IAsyncDis
                     var accessControlChanged = envelope.ReadPayload<AccessControlStateChangedEvent>();
                     SetOnContext(() => PublishAccessControlStatus(accessControlChanged.Status));
                     break;
+                case IpcOperations.FocusRuntimeStateChanged:
+                    var focusChanged = envelope.ReadPayload<FocusRuntimeStateChangedEvent>();
+                    SetOnContext(() => PublishFocusRuntimeStatus(focusChanged.Status));
+                    break;
                 case IpcOperations.AccessBlocked:
                     var blocked = envelope.ReadPayload<AccessBlockedEvent>();
                     SetOnContext(() => AccessBlocked?.Invoke(this, blocked));
@@ -353,6 +414,19 @@ public sealed class DesktopServiceConnection : INotifyPropertyChanged, IAsyncDis
     {
         AccessControlStatus = status;
         AccessControlStateChanged?.Invoke(this, status);
+    }
+
+    private void PublishFocusMutation(FocusSessionMutationResult result)
+    {
+        PublishState(result.State);
+        PublishFocusRuntimeStatus(result.FocusStatus);
+        PublishAccessControlStatus(result.AccessControlStatus);
+    }
+
+    private void PublishFocusRuntimeStatus(FocusRuntimeStatusDto status)
+    {
+        FocusRuntimeStatus = status;
+        FocusRuntimeStateChanged?.Invoke(this, status);
     }
 
     private void SetOnContext(Action action)

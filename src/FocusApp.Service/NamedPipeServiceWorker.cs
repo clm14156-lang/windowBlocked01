@@ -128,6 +128,7 @@ public sealed class NamedPipeServiceWorker : BackgroundService
     {
         ServiceStateCoordinator? coordinator = null;
         EventHandler<StateChangedEvent>? stateChangedHandler = null;
+        EventHandler<FocusRuntimeStateChangedEvent>? focusRuntimeStateChangedHandler = null;
         EventHandler<AccessControlStateChangedEvent>? accessControlStateChangedHandler = null;
         EventHandler<AccessBlockedEvent>? accessBlockedHandler = null;
         EventHandler<AgentProxyActionRequestedEvent>? agentProxyActionHandler = null;
@@ -156,6 +157,15 @@ public sealed class NamedPipeServiceWorker : BackgroundService
                 _ = WriteSafeAsync(pipe, writeGate, envelope, stoppingToken);
             };
             coordinator.StateChanged += stateChangedHandler;
+            focusRuntimeStateChangedHandler = (_, stateChanged) =>
+            {
+                var envelope = IpcEnvelope.CreateEvent(
+                    IpcOperations.FocusRuntimeStateChanged,
+                    Interlocked.Increment(ref eventSequence),
+                    stateChanged);
+                _ = WriteSafeAsync(pipe, writeGate, envelope, stoppingToken);
+            };
+            coordinator.FocusRuntimeStateChanged += focusRuntimeStateChangedHandler;
             accessControlStateChangedHandler = (_, stateChanged) =>
             {
                 var envelope = IpcEnvelope.CreateEvent(
@@ -224,6 +234,11 @@ public sealed class NamedPipeServiceWorker : BackgroundService
                 coordinator.AccessControlStateChanged -= accessControlStateChangedHandler;
             }
 
+            if (coordinator is not null && focusRuntimeStateChangedHandler is not null)
+            {
+                coordinator.FocusRuntimeStateChanged -= focusRuntimeStateChangedHandler;
+            }
+
             if (coordinator is not null && accessBlockedHandler is not null)
             {
                 coordinator.AccessBlocked -= accessBlockedHandler;
@@ -258,7 +273,9 @@ public sealed class NamedPipeServiceWorker : BackgroundService
                 IpcOperations.Ping or
                 IpcOperations.GetState or
                 IpcOperations.GetAccessControlStatus or
+                IpcOperations.GetFocusRuntimeStatus or
                 IpcOperations.AgentProxyActionResult or
+                IpcOperations.AgentProxyReconciliationResult or
                 IpcOperations.UpdateAccessControlUpstream))
         {
             return new IpcErrorResult(IpcErrorCode.UnauthorizedClient, "Agent 无权修改核心业务数据。");

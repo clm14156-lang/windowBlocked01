@@ -23,7 +23,12 @@ public sealed record LocalFocusSession(
     bool BlockingEnabled,
     Guid? AutomaticRuleId,
     DateTimeOffset? AutomaticOccurrenceStartedAtUtc,
-    IReadOnlyList<LocalFocusSessionTaskSnapshot> CompletedTasks);
+    IReadOnlyList<LocalFocusSessionTaskSnapshot> CompletedTasks)
+{
+    public IReadOnlyList<LocalWebsiteRule> WebsiteRuleSnapshots { get; init; } = [];
+
+    public IReadOnlyList<LocalApplicationRule> ApplicationRuleSnapshots { get; init; } = [];
+}
 
 public sealed record LocalFocusSessionTaskSnapshot(
     string TaskId,

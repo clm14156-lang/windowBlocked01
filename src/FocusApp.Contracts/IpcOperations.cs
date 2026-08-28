@@ -13,9 +13,14 @@ public static class IpcOperations
     public const string ActivateAccessControl = "access-control.activate";
     public const string DeactivateAccessControl = "access-control.deactivate";
     public const string GetAccessControlStatus = "access-control.status.get";
+    public const string StartForcedFocus = "focus.forced.start";
+    public const string UpdateForcedFocusTasks = "focus.forced.tasks.update";
+    public const string GetFocusRuntimeStatus = "focus.runtime-status.get";
     public const string AgentProxyActionResult = "agent.proxy-action.result";
+    public const string AgentProxyReconciliationResult = "agent.proxy-reconciliation.result";
     public const string UpdateAccessControlUpstream = "access-control.upstream.update";
     public const string StateChanged = "state.changed";
+    public const string FocusRuntimeStateChanged = "focus.runtime-state-changed";
     public const string AccessControlStateChanged = "access-control.state-changed";
     public const string AccessBlocked = "access-control.blocked";
     public const string AgentProxyActionRequested = "agent.proxy-action.requested";
@@ -50,6 +55,41 @@ public sealed record MutationResult(long Revision, LocalDataSnapshotDto State);
 public sealed record ActivateAccessControlCommand(DateTimeOffset ExpiresAtUtc);
 
 public sealed record DeactivateAccessControlCommand;
+
+public sealed record StartForcedFocusCommand(
+    int ConfiguredSeconds,
+    string? TargetId,
+    string? TargetNameSnapshot,
+    IReadOnlyList<LocalFocusSessionTaskSnapshotDto> CompletedTasks,
+    Guid? AutomaticRuleId = null,
+    DateTimeOffset? AutomaticOccurrenceStartedAtUtc = null);
+
+public sealed record UpdateForcedFocusTasksCommand(
+    Guid SessionId,
+    IReadOnlyList<LocalFocusSessionTaskSnapshotDto> CompletedTasks);
+
+public enum FocusRuntimeState
+{
+    Idle,
+    Preparing,
+    Focusing,
+    Completing,
+    Faulted
+}
+
+public sealed record FocusRuntimeStatusDto(
+    FocusRuntimeState State,
+    Guid? SessionId,
+    DateTimeOffset? PlannedEndAtUtc,
+    string? LastError);
+
+public sealed record FocusRuntimeStateChangedEvent(FocusRuntimeStatusDto Status);
+
+public sealed record FocusSessionMutationResult(
+    long Revision,
+    LocalDataSnapshotDto State,
+    FocusRuntimeStatusDto FocusStatus,
+    AccessControlStatusDto AccessControlStatus);
 
 public enum AccessControlRuntimeState
 {
@@ -119,6 +159,12 @@ public sealed record AgentProxyActionResultCommand(
     bool ConflictDetected = false,
     UpstreamProxyConfigurationDto? UpstreamProxy = null);
 
+public sealed record AgentProxyReconciliationResultCommand(
+    AgentProxyActionKind Kind,
+    bool Succeeded,
+    string? ErrorMessage,
+    bool ConflictDetected = false);
+
 public sealed record UpdateAccessControlUpstreamCommand(
     UpstreamProxyConfigurationDto? UpstreamProxy);
 
@@ -163,7 +209,12 @@ public sealed record LocalFocusSessionDto(
     bool BlockingEnabled,
     Guid? AutomaticRuleId,
     DateTimeOffset? AutomaticOccurrenceStartedAtUtc,
-    IReadOnlyList<LocalFocusSessionTaskSnapshotDto> CompletedTasks);
+    IReadOnlyList<LocalFocusSessionTaskSnapshotDto> CompletedTasks)
+{
+    public IReadOnlyList<LocalWebsiteRuleDto> WebsiteRuleSnapshots { get; init; } = [];
+
+    public IReadOnlyList<LocalApplicationRuleDto> ApplicationRuleSnapshots { get; init; } = [];
+}
 
 public sealed record LocalFocusSessionTaskSnapshotDto(string TaskId, string TaskNameSnapshot, int SortOrder);
 

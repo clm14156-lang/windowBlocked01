@@ -8,7 +8,7 @@ namespace FocusApp.Tests.Infrastructure;
 public sealed class SqliteLocalDataStoreTests
 {
     [Fact]
-    public async Task Initialize_CreatesVersionOneAndReturnsAnEmptySnapshot()
+    public async Task Initialize_CreatesVersionTwoAndReturnsAnEmptySnapshot()
     {
         using var database = new TemporaryDatabase();
         var store = database.CreateStore();
@@ -16,11 +16,33 @@ public sealed class SqliteLocalDataStoreTests
         await store.InitializeAsync();
         var snapshot = await store.LoadAsync();
 
-        Assert.Equal(1, await ReadUserVersionAsync(database.Path));
+        Assert.Equal(2, await ReadUserVersionAsync(database.Path));
         Assert.Empty(snapshot.FocusSessions);
         Assert.Empty(snapshot.Targets);
         Assert.Empty(snapshot.Tasks);
         Assert.Equal(LocalAppSettings.Default, snapshot.Settings);
+    }
+
+    [Fact]
+    public async Task VersionOneDatabase_MigratesToVersionTwoRuleSnapshotTables()
+    {
+        using var database = new TemporaryDatabase();
+        await using (var connection = new SqliteConnection($"Data Source={database.Path}"))
+        {
+            await connection.OpenAsync();
+            await using var command = connection.CreateCommand();
+            command.CommandText = """
+                CREATE TABLE focus_sessions (session_id TEXT NOT NULL PRIMARY KEY);
+                PRAGMA user_version = 1;
+                """;
+            await command.ExecuteNonQueryAsync();
+        }
+
+        await database.CreateStore().InitializeAsync();
+
+        Assert.Equal(2, await ReadUserVersionAsync(database.Path));
+        Assert.True(await TableExistsAsync(database.Path, "focus_session_website_rules"));
+        Assert.True(await TableExistsAsync(database.Path, "focus_session_application_rules"));
     }
 
     [Fact]
@@ -72,7 +94,11 @@ public sealed class SqliteLocalDataStoreTests
             true,
             automaticRuleId,
             now.AddMinutes(-2),
-            [new LocalFocusSessionTaskSnapshot(task.TaskId, task.Name, 0)]),
+            [new LocalFocusSessionTaskSnapshot(task.TaskId, task.Name, 0)])
+        {
+            WebsiteRuleSnapshots = [new LocalWebsiteRule(websiteRuleId, "示例", "example.com", true, 0)],
+            ApplicationRuleSnapshots = [new LocalApplicationRule(applicationRuleId, "编辑器", @"C:\Apps\Editor.exe", false, 0)]
+        },
             [task.TaskId]);
 
         var reopened = database.CreateStore();
@@ -94,6 +120,8 @@ public sealed class SqliteLocalDataStoreTests
         Assert.Equal(sessionId, session.SessionId);
         Assert.Equal(FocusCompletionKind.EarlyEnd, session.CompletionKind);
         Assert.Equal("实现持久化", Assert.Single(session.CompletedTasks).TaskNameSnapshot);
+        Assert.Equal(websiteRuleId, Assert.Single(session.WebsiteRuleSnapshots).Id);
+        Assert.Equal(applicationRuleId, Assert.Single(session.ApplicationRuleSnapshots).Id);
     }
 
     [Fact]
@@ -269,6 +297,16 @@ public sealed class SqliteLocalDataStoreTests
         await using var command = connection.CreateCommand();
         command.CommandText = sql;
         return Convert.ToString(await command.ExecuteScalarAsync());
+    }
+
+    private static async Task<bool> TableExistsAsync(string path, string tableName)
+    {
+        await using var connection = new SqliteConnection($"Data Source={path};Mode=ReadOnly");
+        await connection.OpenAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = $name;";
+        command.Parameters.AddWithValue("$name", tableName);
+        return Convert.ToInt32(await command.ExecuteScalarAsync()) == 1;
     }
 
     private sealed class TemporaryDatabase : IDisposable

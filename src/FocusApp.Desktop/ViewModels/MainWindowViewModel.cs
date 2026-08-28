@@ -113,7 +113,11 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     public DesktopServiceConnectionStatus BackendStatus =>
         ServiceConnection?.Status ?? DesktopServiceConnectionStatus.Disconnected;
 
-    public string BackendErrorMessage => ServiceConnection?.LastError?.Message ?? string.Empty;
+    public string BackendErrorMessage =>
+        ServiceConnection?.FocusRuntimeStatus?.LastError ??
+        ServiceConnection?.AccessControlStatus?.LastError ??
+        ServiceConnection?.LastError?.Message ??
+        string.Empty;
 
     public string CurrentPageTitle => _currentNavigationItem.Title;
 
@@ -282,7 +286,10 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(BackendStatus));
         }
 
-        if (e.PropertyName == nameof(DesktopServiceConnection.LastError))
+        if (e.PropertyName is
+            nameof(DesktopServiceConnection.LastError) or
+            nameof(DesktopServiceConnection.FocusRuntimeStatus) or
+            nameof(DesktopServiceConnection.AccessControlStatus))
         {
             OnPropertyChanged(nameof(BackendErrorMessage));
         }

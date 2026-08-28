@@ -51,8 +51,8 @@ internal static class LocalDataContractMapper
     public static LocalMonthlyFocusTarget ToCore(LocalMonthlyFocusTargetDto source)
         => new(source.Month, source.TargetMinutes);
 
-    private static LocalFocusSessionDto ToDto(LocalFocusSession source)
-        => new(
+    internal static LocalFocusSessionDto ToDto(LocalFocusSession source)
+        => new LocalFocusSessionDto(
             source.SessionId,
             (LocalFocusSessionStatusDto)source.Status,
             source.IsForcedMode,
@@ -71,7 +71,15 @@ internal static class LocalDataContractMapper
             source.CompletedTasks.Select(task => new LocalFocusSessionTaskSnapshotDto(
                 task.TaskId,
                 task.TaskNameSnapshot,
-                task.SortOrder)).ToArray());
+                task.SortOrder)).ToArray())
+        {
+            WebsiteRuleSnapshots = source.Status == LocalFocusSessionStatus.Completed
+                ? []
+                : source.WebsiteRuleSnapshots.Select(ToDto).ToArray(),
+            ApplicationRuleSnapshots = source.Status == LocalFocusSessionStatus.Completed
+                ? []
+                : source.ApplicationRuleSnapshots.Select(ToDto).ToArray()
+        };
 
     private static LocalTargetDto ToDto(LocalTarget source)
         => new(source.TargetId, source.Name, source.IsArchived, source.SortOrder, source.CreatedAtUtc, source.UpdatedAtUtc);

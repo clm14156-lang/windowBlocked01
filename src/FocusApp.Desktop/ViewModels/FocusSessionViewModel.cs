@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using System.Windows.Threading;
+using FocusApp.Contracts;
 using FocusApp.Core;
 
 namespace FocusApp.Desktop.ViewModels;
@@ -35,6 +36,10 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     private FocusSessionRecord? _lastRecordedCompletion;
     private FocusTargetViewModel? _sessionTarget;
     private Func<bool> _canStartForcedMode = static () => true;
+    private Guid? _authoritativeSessionId;
+    private LocalFocusSessionDto? _authoritativeSession;
+    private Guid? _lastAuthoritativeCompletionSessionId;
+    private bool _applyingAuthoritativeSession;
 
     public FocusSessionViewModel(Func<DateTime>? nowProvider = null, bool runTimer = true)
     {
@@ -66,6 +71,8 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public event EventHandler<FocusSessionCompletedEventArgs>? CompletionRecorded;
+
+    public event EventHandler? AuthoritativeTasksChanged;
 
     public ICommand CancelPreparationCommand { get; }
 
@@ -173,6 +180,10 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     }
 
     public bool IsActive => Stage != FocusFlowStage.Idle;
+
+    public bool IsServiceOwnedForcedSession => _authoritativeSessionId is not null;
+
+    public Guid? AuthoritativeSessionId => _authoritativeSessionId;
 
     public bool IsForcedModeActive
     {
@@ -329,8 +340,75 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         return true;
     }
 
+    public void ApplyAuthoritativeSession(
+        LocalFocusSessionDto session,
+        FocusTargetViewModel? target = null,
+        DateTimeOffset? nowUtc = null)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        if (!session.IsForcedMode)
+        {
+            throw new ArgumentException("只能将后台强制会话投影到强制模式界面。", nameof(session));
+        }
+
+        _timer.Stop();
+        _preparationStopwatch.Reset();
+        _focusStopwatch.Reset();
+        _authoritativeSessionId = session.SessionId;
+        _authoritativeSession = session;
+        OnPropertyChanged(nameof(IsServiceOwnedForcedSession));
+        OnPropertyChanged(nameof(AuthoritativeSessionId));
+        _totalFocusSeconds = session.ConfiguredSeconds;
+        OnPropertyChanged(nameof(TotalFocusSeconds));
+        IsForcedModeActive = true;
+        IsEndConfirmationOpen = false;
+
+        var projectedTarget = target;
+        if (projectedTarget is null && !string.IsNullOrWhiteSpace(session.TargetNameSnapshot))
+        {
+            projectedTarget = new FocusTargetViewModel(
+                session.TargetNameSnapshot,
+                session.CompletedTasks.OrderBy(task => task.SortOrder).Select(task => task.TaskNameSnapshot));
+            foreach (var task in projectedTarget.Tasks)
+            {
+                task.IsCompleted = true;
+            }
+        }
+
+        _applyingAuthoritativeSession = true;
+        try
+        {
+            _sessionTarget = projectedTarget;
+            ActiveTarget = projectedTarget;
+            SynchronizeAuthoritativeCompletedTasks(session);
+        }
+        finally
+        {
+            _applyingAuthoritativeSession = false;
+        }
+        RefreshAuthoritativeTime(nowUtc ?? DateTimeOffset.UtcNow);
+
+        if (session.Status == LocalFocusSessionStatusDto.Completed)
+        {
+            RecordAuthoritativeCompletion(session);
+            _timer.Stop();
+        }
+        else if (RunTimer)
+        {
+            _timer.Interval = TimeSpan.FromMilliseconds(250);
+            _timer.Start();
+        }
+    }
+
     public void AdvanceOneSecond()
     {
+        if (_authoritativeSession is not null &&
+            _authoritativeSession.Status != LocalFocusSessionStatusDto.Completed)
+        {
+            RefreshAuthoritativeTime(DateTimeOffset.UtcNow.AddSeconds(1));
+            return;
+        }
+
         if (Stage == FocusFlowStage.Preparing)
         {
             AdvancePreparationBy(TimeSpan.FromSeconds(1));
@@ -394,6 +472,13 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
 
     private void OnTimerTick()
     {
+        if (_authoritativeSession is not null &&
+            _authoritativeSession.Status != LocalFocusSessionStatusDto.Completed)
+        {
+            RefreshAuthoritativeTime(DateTimeOffset.UtcNow);
+            return;
+        }
+
         if (Stage == FocusFlowStage.Preparing)
         {
             var preparationElapsed = _preparationStopwatch.Elapsed - _lastPreparationElapsed;
@@ -483,6 +568,10 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         IsEndConfirmationOpen = false;
         IsForcedModeActive = false;
         _engine.ReturnHome();
+        _authoritativeSessionId = null;
+        _authoritativeSession = null;
+        OnPropertyChanged(nameof(IsServiceOwnedForcedSession));
+        OnPropertyChanged(nameof(AuthoritativeSessionId));
         _sessionTarget = null;
         SyncFromEngine();
         Stage = FocusFlowStage.Idle;
@@ -490,7 +579,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
 
     private void FocusAgain()
     {
-        if (Stage != FocusFlowStage.Completed)
+        if (Stage != FocusFlowStage.Completed || IsServiceOwnedForcedSession)
         {
             return;
         }
@@ -584,11 +673,15 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         if (task is not null)
         {
             ActiveTarget?.RemoveTask(task);
-            _sessionCompletedTaskSet.Remove(task);
+            var removedFromSession = _sessionCompletedTaskSet.Remove(task);
             SessionCompletedTasks.Remove(task);
             OnPropertyChanged(nameof(SessionCompletedTaskCount));
             OnPropertyChanged(nameof(SessionCompletedTaskSummary));
             RefreshTaskGroups();
+            if (removedFromSession && IsServiceOwnedForcedSession)
+            {
+                AuthoritativeTasksChanged?.Invoke(this, EventArgs.Empty);
+            }
         }
     }
 
@@ -665,6 +758,15 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         if (e.PropertyName is nameof(FocusTaskViewModel.IsCompleted) or nameof(FocusTaskViewModel.Name) or nameof(FocusTaskViewModel.IsEditing))
         {
             RefreshTaskGroups();
+        }
+
+        if (!_applyingAuthoritativeSession && IsServiceOwnedForcedSession &&
+            (e.PropertyName == nameof(FocusTaskViewModel.IsCompleted) ||
+             e.PropertyName == nameof(FocusTaskViewModel.Name) &&
+             sender is FocusTaskViewModel renamedTask &&
+             _sessionCompletedTaskSet.Contains(renamedTask)))
+        {
+            AuthoritativeTasksChanged?.Invoke(this, EventArgs.Empty);
         }
     }
 
@@ -751,6 +853,114 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     private void SyncCompletedTaskIdsToEngine()
     {
         _engine.UpdateCompletedTaskIds(SessionCompletedTasks.Select(task => task.TaskId));
+    }
+
+    private void RefreshAuthoritativeTime(DateTimeOffset nowUtc)
+    {
+        if (_authoritativeSession is not { } session)
+        {
+            return;
+        }
+
+        var current = nowUtc.ToUniversalTime();
+        if (session.Status == LocalFocusSessionStatusDto.Completed)
+        {
+            PreparationSeconds = 0;
+            PreparationProgress = 1;
+            RemainingFocusSeconds = 0;
+            Stage = FocusFlowStage.Completed;
+            return;
+        }
+
+        if (session.Status == LocalFocusSessionStatusDto.Preparing &&
+            session.FocusStartedAtUtc is { } focusStartsAt && current < focusStartsAt)
+        {
+            var preparationRemaining = focusStartsAt - current;
+            PreparationSeconds = Math.Clamp((int)Math.Ceiling(preparationRemaining.TotalSeconds), 1, 5);
+            PreparationProgress = Math.Clamp(
+                1d - preparationRemaining.TotalSeconds / FocusSessionEngine.PreparationDuration.TotalSeconds,
+                0d,
+                1d);
+            RemainingFocusSeconds = session.ConfiguredSeconds;
+            Stage = FocusFlowStage.Preparing;
+            return;
+        }
+
+        PreparationSeconds = 0;
+        PreparationProgress = 1;
+        var remaining = session.PlannedEndAtUtc is { } plannedEnd
+            ? (int)Math.Ceiling((plannedEnd - current).TotalSeconds)
+            : 0;
+        RemainingFocusSeconds = Math.Clamp(remaining, 0, session.ConfiguredSeconds);
+        Stage = FocusFlowStage.Focusing;
+    }
+
+    private void SynchronizeAuthoritativeCompletedTasks(LocalFocusSessionDto session)
+    {
+        _sessionCompletedTaskSet.Clear();
+        SessionCompletedTasks.Clear();
+        if (ActiveTarget is not null)
+        {
+            var completedIds = session.CompletedTasks.Select(task => task.TaskId).ToHashSet(StringComparer.Ordinal);
+            var completedNames = session.CompletedTasks.Select(task => task.TaskNameSnapshot).ToHashSet(StringComparer.Ordinal);
+            foreach (var task in ActiveTarget.Tasks)
+            {
+                var isCompleted = completedIds.Contains(task.TaskId) || completedNames.Contains(task.Name);
+                if (isCompleted)
+                {
+                    task.IsCompleted = true;
+                    _sessionCompletedTaskSet.Add(task);
+                    SessionCompletedTasks.Add(task);
+                }
+            }
+        }
+
+        OnPropertyChanged(nameof(SessionCompletedTaskCount));
+        OnPropertyChanged(nameof(SessionCompletedTaskSummary));
+        RefreshTaskGroups();
+    }
+
+    private void RecordAuthoritativeCompletion(LocalFocusSessionDto session)
+    {
+        if (_lastAuthoritativeCompletionSessionId == session.SessionId ||
+            session.CompletedAtUtc is null ||
+            session.CompletionKind is null)
+        {
+            return;
+        }
+
+        _lastAuthoritativeCompletionSessionId = session.SessionId;
+        _completedFocusSeconds = session.ActualSeconds;
+        _todayTotalSeconds += _completedFocusSeconds;
+        _completedAt = session.CompletedAtUtc.Value.LocalDateTime;
+        var record = new FocusSessionRecord(
+            TimeSpan.FromSeconds(session.ConfiguredSeconds),
+            TimeSpan.FromSeconds(session.ActualSeconds),
+            session.PreparationStartedAtUtc.LocalDateTime,
+            session.CompletedAtUtc.Value.LocalDateTime,
+            (FocusCompletionKind)session.CompletionKind.Value,
+            true)
+        {
+            TargetId = session.TargetId,
+            TargetName = session.TargetNameSnapshot,
+            CompletedTaskIds = session.CompletedTasks.Select(task => task.TaskId).ToArray()
+        };
+        _completionHistory.Add(record);
+        _sessionTarget?.AddFocusDuration(record.ActualDuration);
+        CompletionRecorded?.Invoke(
+            this,
+            new FocusSessionCompletedEventArgs(
+                record,
+                session.CompletedTasks.Select(task => task.TaskNameSnapshot).ToArray()));
+        OnPropertyChanged(nameof(CompletedDurationDisplay));
+        OnPropertyChanged(nameof(CompletedDurationPrimaryValue));
+        OnPropertyChanged(nameof(CompletedDurationPrimaryUnit));
+        OnPropertyChanged(nameof(CompletedDurationSecondaryValue));
+        OnPropertyChanged(nameof(CompletedDurationSecondaryUnit));
+        OnPropertyChanged(nameof(TodayTotalDisplay));
+        OnPropertyChanged(nameof(CompletedAtDisplay));
+        OnPropertyChanged(nameof(LastCompletion));
+        OnPropertyChanged(nameof(CompletionHistory));
     }
 
     private static string FormatDuration(int totalSeconds)

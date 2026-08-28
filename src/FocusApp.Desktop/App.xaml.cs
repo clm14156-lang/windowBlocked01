@@ -12,6 +12,8 @@ public partial class App : Application
 {
     private DesktopServiceConnection? _serviceConnection;
     private DesktopAccessControlBridge? _accessControlBridge;
+    private DesktopFocusSessionBridge? _focusSessionBridge;
+    private IconService? _iconService;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -38,6 +40,7 @@ public partial class App : Application
 
         _serviceConnection = new DesktopServiceConnection();
         _serviceConnection.AccessBlocked += ServiceConnection_AccessBlocked;
+        _iconService = new IconService();
 
         var mainViewModel = new MainWindowViewModel(
             primaryNavigationItems,
@@ -51,6 +54,10 @@ public partial class App : Application
             mainViewModel.HomePage.FocusSession,
             mainViewModel.BlockingPage,
             _serviceConnection);
+        _focusSessionBridge = new DesktopFocusSessionBridge(
+            mainViewModel.HomePage,
+            _serviceConnection,
+            _accessControlBridge);
 
         MainWindow = new MainWindow
         {
@@ -63,6 +70,7 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        _focusSessionBridge?.Dispose();
         _accessControlBridge?.Dispose();
         if (_serviceConnection is not null)
         {
@@ -128,7 +136,9 @@ public partial class App : Application
             applicationData.Select(item => new BlockingApplicationItemViewModel(Guid.NewGuid(), item.Item1, item.Item2, item.Item3)),
             (string)FindResource("BlockingWebsiteCountTemplate"),
             (string)FindResource("BlockingApplicationCountTemplate"),
-            recentPrograms: recentProgramData);
+            recentPrograms: recentProgramData,
+            faviconService: _iconService,
+            programIconService: _iconService);
     }
 
     private SettingsPageViewModel CreateSettingsPageViewModel()

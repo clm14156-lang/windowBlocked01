@@ -31,6 +31,9 @@ public sealed class DesktopAccessControlBridge : IDisposable
 
     public event EventHandler<string>? ExecutionFailed;
 
+    public Task PersistRulesNowAsync(CancellationToken cancellationToken = default)
+        => PersistRulesAsync(cancellationToken);
+
     public void Dispose()
     {
         if (_disposed)
@@ -128,6 +131,11 @@ public sealed class DesktopAccessControlBridge : IDisposable
         await _reconcileGate.WaitAsync(cancellationToken);
         try
         {
+            if (_focusSession.IsServiceOwnedForcedSession)
+            {
+                return;
+            }
+
             if (_focusSession.Stage == FocusFlowStage.Focusing)
             {
                 await PersistRulesAsync(cancellationToken);

@@ -66,7 +66,14 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
         {
             await using var connection = await OpenConnectionAsync(cancellationToken);
             var sessionTasks = await LoadSessionTasksAsync(connection, cancellationToken);
-            var sessions = await LoadFocusSessionsAsync(connection, sessionTasks, cancellationToken);
+            var sessionWebsiteRules = await LoadSessionWebsiteRulesAsync(connection, cancellationToken);
+            var sessionApplicationRules = await LoadSessionApplicationRulesAsync(connection, cancellationToken);
+            var sessions = await LoadFocusSessionsAsync(
+                connection,
+                sessionTasks,
+                sessionWebsiteRules,
+                sessionApplicationRules,
+                cancellationToken);
             var targets = await LoadTargetsAsync(connection, cancellationToken);
             var tasks = await LoadTasksAsync(connection, cancellationToken);
             var websiteRules = await LoadWebsiteRulesAsync(connection, cancellationToken);
@@ -193,6 +200,56 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
                 command.Parameters.AddWithValue("$taskId", snapshot.TaskId);
                 command.Parameters.AddWithValue("$name", snapshot.TaskNameSnapshot);
                 command.Parameters.AddWithValue("$sort", snapshot.SortOrder);
+                await command.ExecuteNonQueryAsync(cancellationToken);
+            }
+
+            await using (var deleteWebsiteSnapshots = CreateCommand(
+                             connection,
+                             transaction,
+                             "DELETE FROM focus_session_website_rules WHERE session_id = $sessionId;"))
+            {
+                deleteWebsiteSnapshots.Parameters.AddWithValue("$sessionId", FormatGuid(session.SessionId));
+                await deleteWebsiteSnapshots.ExecuteNonQueryAsync(cancellationToken);
+            }
+
+            foreach (var rule in session.WebsiteRuleSnapshots.OrderBy(item => item.SortOrder))
+            {
+                await using var command = CreateCommand(connection, transaction, """
+                    INSERT INTO focus_session_website_rules (
+                        session_id, rule_id, name, address, is_enabled, sort_order)
+                    VALUES ($sessionId, $ruleId, $name, $address, $enabled, $sort);
+                    """);
+                command.Parameters.AddWithValue("$sessionId", FormatGuid(session.SessionId));
+                command.Parameters.AddWithValue("$ruleId", FormatGuid(rule.Id));
+                command.Parameters.AddWithValue("$name", rule.Name);
+                command.Parameters.AddWithValue("$address", rule.Address);
+                command.Parameters.AddWithValue("$enabled", ToInteger(rule.IsEnabled));
+                command.Parameters.AddWithValue("$sort", rule.SortOrder);
+                await command.ExecuteNonQueryAsync(cancellationToken);
+            }
+
+            await using (var deleteApplicationSnapshots = CreateCommand(
+                             connection,
+                             transaction,
+                             "DELETE FROM focus_session_application_rules WHERE session_id = $sessionId;"))
+            {
+                deleteApplicationSnapshots.Parameters.AddWithValue("$sessionId", FormatGuid(session.SessionId));
+                await deleteApplicationSnapshots.ExecuteNonQueryAsync(cancellationToken);
+            }
+
+            foreach (var rule in session.ApplicationRuleSnapshots.OrderBy(item => item.SortOrder))
+            {
+                await using var command = CreateCommand(connection, transaction, """
+                    INSERT INTO focus_session_application_rules (
+                        session_id, rule_id, name, path, is_enabled, sort_order)
+                    VALUES ($sessionId, $ruleId, $name, $path, $enabled, $sort);
+                    """);
+                command.Parameters.AddWithValue("$sessionId", FormatGuid(session.SessionId));
+                command.Parameters.AddWithValue("$ruleId", FormatGuid(rule.Id));
+                command.Parameters.AddWithValue("$name", rule.Name);
+                command.Parameters.AddWithValue("$path", rule.Path);
+                command.Parameters.AddWithValue("$enabled", ToInteger(rule.IsEnabled));
+                command.Parameters.AddWithValue("$sort", rule.SortOrder);
                 await command.ExecuteNonQueryAsync(cancellationToken);
             }
 
@@ -577,6 +634,8 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
     private static async Task<IReadOnlyList<LocalFocusSession>> LoadFocusSessionsAsync(
         SqliteConnection connection,
         IReadOnlyDictionary<Guid, IReadOnlyList<LocalFocusSessionTaskSnapshot>> sessionTasks,
+        IReadOnlyDictionary<Guid, IReadOnlyList<LocalWebsiteRule>> sessionWebsiteRules,
+        IReadOnlyDictionary<Guid, IReadOnlyList<LocalApplicationRule>> sessionApplicationRules,
         CancellationToken cancellationToken)
     {
         var sessions = new List<LocalFocusSession>();
@@ -609,10 +668,86 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
                 reader.GetBoolean(12),
                 reader.IsDBNull(13) ? null : ParseGuid(reader.GetString(13)),
                 ReadNullableDateTime(reader, 14),
-                sessionTasks.TryGetValue(sessionId, out var snapshots) ? snapshots : []));
+                sessionTasks.TryGetValue(sessionId, out var snapshots) ? snapshots : [])
+            {
+                WebsiteRuleSnapshots = sessionWebsiteRules.TryGetValue(sessionId, out var websiteRules)
+                    ? websiteRules
+                    : [],
+                ApplicationRuleSnapshots = sessionApplicationRules.TryGetValue(sessionId, out var applicationRules)
+                    ? applicationRules
+                    : []
+            });
         }
 
         return sessions;
+    }
+
+    private static async Task<IReadOnlyDictionary<Guid, IReadOnlyList<LocalWebsiteRule>>> LoadSessionWebsiteRulesAsync(
+        SqliteConnection connection,
+        CancellationToken cancellationToken)
+    {
+        var result = new Dictionary<Guid, List<LocalWebsiteRule>>();
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT session_id, rule_id, name, address, is_enabled, sort_order
+            FROM focus_session_website_rules
+            ORDER BY session_id, sort_order, rule_id;
+            """;
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            var sessionId = ParseGuid(reader.GetString(0));
+            if (!result.TryGetValue(sessionId, out var rules))
+            {
+                rules = [];
+                result.Add(sessionId, rules);
+            }
+
+            rules.Add(new LocalWebsiteRule(
+                ParseGuid(reader.GetString(1)),
+                reader.GetString(2),
+                reader.GetString(3),
+                reader.GetBoolean(4),
+                reader.GetInt32(5)));
+        }
+
+        return result.ToDictionary(
+            pair => pair.Key,
+            pair => (IReadOnlyList<LocalWebsiteRule>)pair.Value);
+    }
+
+    private static async Task<IReadOnlyDictionary<Guid, IReadOnlyList<LocalApplicationRule>>> LoadSessionApplicationRulesAsync(
+        SqliteConnection connection,
+        CancellationToken cancellationToken)
+    {
+        var result = new Dictionary<Guid, List<LocalApplicationRule>>();
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT session_id, rule_id, name, path, is_enabled, sort_order
+            FROM focus_session_application_rules
+            ORDER BY session_id, sort_order, rule_id;
+            """;
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            var sessionId = ParseGuid(reader.GetString(0));
+            if (!result.TryGetValue(sessionId, out var rules))
+            {
+                rules = [];
+                result.Add(sessionId, rules);
+            }
+
+            rules.Add(new LocalApplicationRule(
+                ParseGuid(reader.GetString(1)),
+                reader.GetString(2),
+                reader.GetString(3),
+                reader.GetBoolean(4),
+                reader.GetInt32(5)));
+        }
+
+        return result.ToDictionary(
+            pair => pair.Key,
+            pair => (IReadOnlyList<LocalApplicationRule>)pair.Value);
     }
 
     private static async Task<IReadOnlyList<LocalTarget>> LoadTargetsAsync(
@@ -882,6 +1017,18 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
                 task.SortOrder < 0))
         {
             throw new ArgumentException("专注任务快照数据无效。", nameof(session));
+        }
+
+        EnsureUnique(session.WebsiteRuleSnapshots.Select(rule => rule.Id), nameof(session));
+        foreach (var rule in session.WebsiteRuleSnapshots)
+        {
+            ValidateRule(rule.Id, rule.Name, rule.Address, rule.SortOrder, nameof(session));
+        }
+
+        EnsureUnique(session.ApplicationRuleSnapshots.Select(rule => rule.Id), nameof(session));
+        foreach (var rule in session.ApplicationRuleSnapshots)
+        {
+            ValidateRule(rule.Id, rule.Name, rule.Path, rule.SortOrder, nameof(session));
         }
     }
 
