@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using System.Windows.Threading;
 using FocusApp.Contracts;
+using FocusApp.Core;
 using FocusApp.Desktop.Services;
 
 namespace FocusApp.Desktop.ViewModels;
@@ -16,6 +17,11 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private string _currentAccount = string.Empty;
     private MembershipType _membershipType = MembershipType.Normal;
     private readonly DispatcherTimer _automaticBlockingTimer;
+    private readonly SemaphoreSlim _targetPersistenceGate = new(1, 1);
+    private readonly SemaphoreSlim _settingsPersistenceGate = new(1, 1);
+    private readonly SemaphoreSlim _normalFocusPersistenceGate = new(1, 1);
+    private Guid? _normalFocusSessionId;
+    private DateTimeOffset? _normalFocusStartedAtUtc;
 
     public MainWindowViewModel(
         IEnumerable<NavigationItemViewModel> primaryNavigationItems,
@@ -51,6 +57,15 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         SettingsPage.LaunchAtStartupChanged += SettingsPage_LaunchAtStartupChanged;
         SettingsPage.WindowsNotificationsChanged += SettingsPage_WindowsNotificationsChanged;
         HomePage.DurationOptionsChanged += HomePage_DurationOptionsChanged;
+        HomePage.FocusTargetModal.TargetChanged += FocusTargetModal_TargetChanged;
+        HomePage.FocusTargetModal.SelectionChanged += FocusTargetModal_SelectionChanged;
+        HomePage.FocusSession.CompletionRecorded += FocusSession_CompletionRecorded;
+        HomePage.FocusSession.TargetTasksChanged += FocusTargetModal_TargetChanged;
+        HomePage.FocusSession.TargetTasksChanged += FocusSession_TargetTasksChanged;
+        HomePage.FocusSession.PropertyChanged += FocusSession_PropertyChanged;
+        StatisticsPage.GoalChanged += StatisticsPage_GoalChanged;
+        StatisticsPage.GoalDeleted += StatisticsPage_GoalDeleted;
+        StatisticsPage.MonthlyFocusTargetChanged += StatisticsPage_MonthlyFocusTargetChanged;
         StateCoordinator = new FocusStateCoordinator(HomePage, SettingsPage, BlockingPage, StatisticsPage);
         SettingsPage.SetUserAccess(IsLoggedIn, IsVipMember);
         HomePage.SetUserAccess(IsLoggedIn, IsVipMember);
@@ -324,6 +339,234 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         SettingsPage.ApplyLaunchAtStartupState(state.Settings.LaunchAtStartup);
         SettingsPage.ApplyWindowsNotificationsState(state.Settings.WindowsNotificationsEnabled);
         HomePage.ApplyDurationPresets(state.DurationPresets);
+        HomePage.FocusTargetModal.ApplyState(state.Targets, state.Tasks, state.Settings.SelectedTargetId);
+        StatisticsPage.ApplyState(state);
+    }
+
+    private async void FocusTargetModal_TargetChanged(object? sender, FocusTargetViewModel target)
+    {
+        if (ServiceConnection is null || !ServiceConnection.IsConnected) return;
+        var now = DateTimeOffset.UtcNow;
+        var existingTarget = ServiceConnection.State?.Targets.FirstOrDefault(item => item.TargetId == target.TargetId);
+        var existingTasks = ServiceConnection.State?.Tasks.ToDictionary(item => item.TaskId, StringComparer.Ordinal)
+            ?? new Dictionary<string, LocalTaskDto>(StringComparer.Ordinal);
+        var targetDto = new LocalTargetDto(
+            target.TargetId, target.Name, target.IsArchived,
+            existingTarget?.SortOrder ?? ServiceConnection.State?.Targets.Count ?? 0,
+            existingTarget?.CreatedAtUtc ?? now, now)
+        {
+            ArchivedAtUtc = target.IsArchived ? existingTarget?.ArchivedAtUtc ?? now : null
+        };
+        var tasks = target.Tasks.Select((task, index) =>
+        {
+            existingTasks.TryGetValue(task.TaskId, out var existing);
+            return new LocalTaskDto(task.TaskId, target.TargetId, task.Name, task.IsCompleted, index, existing?.CreatedAtUtc ?? now, now)
+            {
+                CompletedAtUtc = task.IsCompleted ? existing?.CompletedAtUtc ?? now : null
+            };
+        }).ToArray();
+        await PersistTargetAsync(new SaveTargetCommand(targetDto, tasks));
+    }
+
+    private async void FocusSession_CompletionRecorded(object? sender, FocusSessionCompletedEventArgs e)
+    {
+        if (e.Record.IsForcedMode || ServiceConnection is null || !ServiceConnection.IsConnected) return;
+        await _normalFocusPersistenceGate.WaitAsync();
+        try
+        {
+            var record = e.Record;
+            var completedAt = new DateTimeOffset(record.CompletedAt).ToUniversalTime();
+            var focusStartedAt = _normalFocusStartedAtUtc ?? completedAt - record.ActualDuration;
+            var target = HomePage.FocusTargetModal.Targets.FirstOrDefault(item => item.TargetId == record.TargetId);
+            var persistedSnapshots = ServiceConnection.State?.FocusSessions
+                .FirstOrDefault(item => item.SessionId == _normalFocusSessionId)?.CompletedTasks
+                .ToDictionary(item => item.TaskId, StringComparer.Ordinal)
+                ?? new Dictionary<string, LocalFocusSessionTaskSnapshotDto>(StringComparer.Ordinal);
+            var snapshots = record.CompletedTaskIds.Select((taskId, index) =>
+            {
+                var task = target?.Tasks.FirstOrDefault(item => item.TaskId == taskId);
+                var name = task?.Name ?? e.CompletedTaskNames.ElementAtOrDefault(index) ?? string.Empty;
+                persistedSnapshots.TryGetValue(taskId, out var persisted);
+                return new LocalFocusSessionTaskSnapshotDto(taskId, name, index)
+                {
+                    CompletedAtUtc = persisted?.CompletedAtUtc ?? completedAt
+                };
+            }).ToArray();
+            var session = new LocalFocusSessionDto(
+                _normalFocusSessionId ?? Guid.NewGuid(), LocalFocusSessionStatusDto.Completed, false,
+                checked((int)record.ConfiguredDuration.TotalSeconds),
+                checked((int)record.ActualDuration.TotalSeconds),
+                new DateTimeOffset(record.StartedAt).ToUniversalTime(),
+                focusStartedAt,
+                focusStartedAt + record.ConfiguredDuration,
+                completedAt,
+                (FocusCompletionKindDto)record.CompletionKind,
+                record.TargetId,
+                record.TargetName,
+                false,
+                null,
+                null,
+                snapshots);
+            try { await ServiceConnection.RecordCompletedFocusAsync(session); }
+            catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException) { }
+            finally
+            {
+                _normalFocusSessionId = null;
+                _normalFocusStartedAtUtc = null;
+            }
+        }
+        finally { _normalFocusPersistenceGate.Release(); }
+    }
+
+    private async void FocusSession_TargetTasksChanged(object? sender, FocusTargetViewModel target)
+    {
+        if (_normalFocusSessionId is not { } sessionId ||
+            HomePage.FocusSession.Stage != FocusFlowStage.Focusing ||
+            HomePage.FocusSession.IsForcedModeActive ||
+            ServiceConnection is null || !ServiceConnection.IsConnected)
+            return;
+
+        var now = DateTimeOffset.UtcNow;
+        var persistedSnapshots = ServiceConnection.State?.FocusSessions
+            .FirstOrDefault(item => item.SessionId == sessionId)?.CompletedTasks
+            .ToDictionary(item => item.TaskId, StringComparer.Ordinal)
+            ?? new Dictionary<string, LocalFocusSessionTaskSnapshotDto>(StringComparer.Ordinal);
+        var snapshots = HomePage.FocusSession.SessionCompletedTasks.Select((task, index) =>
+        {
+            persistedSnapshots.TryGetValue(task.TaskId, out var persisted);
+            return new LocalFocusSessionTaskSnapshotDto(task.TaskId, task.Name, index)
+            {
+                CompletedAtUtc = persisted?.CompletedAtUtc ?? now
+            };
+        }).ToArray();
+
+        await _normalFocusPersistenceGate.WaitAsync();
+        try
+        {
+            if (_normalFocusSessionId != sessionId) return;
+            try
+            {
+                await ServiceConnection.UpdateFocusTasksAsync(
+                    new UpdateFocusTasksCommand(sessionId, snapshots));
+            }
+            catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException) { }
+        }
+        finally { _normalFocusPersistenceGate.Release(); }
+    }
+
+    private async void FocusSession_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(FocusSessionViewModel.Stage) ||
+            HomePage.FocusSession.Stage != FocusFlowStage.Focusing ||
+            HomePage.FocusSession.IsForcedModeActive ||
+            _normalFocusSessionId is not null ||
+            ServiceConnection is null || !ServiceConnection.IsConnected)
+            return;
+
+        await _normalFocusPersistenceGate.WaitAsync();
+        try
+        {
+            if (_normalFocusSessionId is not null) return;
+            var now = DateTimeOffset.UtcNow;
+            _normalFocusSessionId = Guid.NewGuid();
+            _normalFocusStartedAtUtc = now;
+            var target = HomePage.FocusSession.ActiveTarget;
+            var session = new LocalFocusSessionDto(
+                _normalFocusSessionId.Value, LocalFocusSessionStatusDto.Focusing, false,
+                HomePage.FocusSession.TotalFocusSeconds, 0,
+                now - FocusSessionEngine.PreparationDuration, now,
+                now.AddSeconds(HomePage.FocusSession.TotalFocusSeconds), null, null,
+                target?.TargetId, target?.Name, false, null, null, []);
+            try { await ServiceConnection.StartNormalFocusAsync(session); }
+            catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException)
+            {
+                _normalFocusSessionId = null;
+                _normalFocusStartedAtUtc = null;
+            }
+        }
+        finally { _normalFocusPersistenceGate.Release(); }
+    }
+
+    private async void FocusTargetModal_SelectionChanged(object? sender, string? targetId)
+    {
+        await PersistSettingsAsync(state => new SaveSettingsCommand(
+            state.Settings with { SelectedTargetId = targetId, UpdatedAtUtc = DateTimeOffset.UtcNow },
+            state.DurationPresets,
+            state.MonthlyFocusTargets));
+    }
+
+    private async void StatisticsPage_GoalChanged(object? sender, GoalOverviewItemViewModel goal)
+    {
+        if (ServiceConnection?.State is not { } state || !ServiceConnection.IsConnected) return;
+        var now = DateTimeOffset.UtcNow;
+        var existing = state.Targets.FirstOrDefault(item => item.TargetId == goal.GoalId);
+        var target = new LocalTargetDto(
+            goal.GoalId, goal.Name, goal.IsArchived,
+            existing?.SortOrder ?? state.Targets.Count,
+            existing?.CreatedAtUtc ?? now, now)
+        {
+            ArchivedAtUtc = goal.IsArchived ? existing?.ArchivedAtUtc ?? now : null
+        };
+        var tasks = state.Tasks.Where(item => item.TargetId == goal.GoalId).ToArray();
+        await PersistTargetAsync(new SaveTargetCommand(target, tasks));
+    }
+
+    private async void StatisticsPage_GoalDeleted(object? sender, string targetId)
+    {
+        if (ServiceConnection is null || !ServiceConnection.IsConnected) return;
+        await _targetPersistenceGate.WaitAsync();
+        try
+        {
+            try { await ServiceConnection.DeleteTargetAsync(new DeleteTargetCommand(targetId)); }
+            catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException) { }
+        }
+        finally { _targetPersistenceGate.Release(); }
+    }
+
+    private async Task PersistTargetAsync(SaveTargetCommand command)
+    {
+        if (ServiceConnection is null || !ServiceConnection.IsConnected) return;
+        await _targetPersistenceGate.WaitAsync();
+        try
+        {
+            try { await ServiceConnection.SaveTargetAsync(command); }
+            catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException) { }
+        }
+        finally { _targetPersistenceGate.Release(); }
+    }
+
+    private async void StatisticsPage_MonthlyFocusTargetChanged(object? sender, EventArgs e)
+    {
+        var currentMonth = new DateOnly(DateTime.Today.Year, DateTime.Today.Month, 1);
+        var targetMinutes = StatisticsPage.HasMonthlyFocusTarget
+            ? checked(StatisticsPage.MonthlyFocusTargetHours * 60)
+            : (int?)null;
+        await PersistSettingsAsync(state =>
+        {
+            var targets = state.MonthlyFocusTargets.Where(item => item.Month != currentMonth).ToList();
+            if (targetMinutes is not null)
+            {
+                targets.Add(new LocalMonthlyFocusTargetDto(currentMonth, targetMinutes.Value));
+            }
+
+            return new SaveSettingsCommand(
+                state.Settings with { UpdatedAtUtc = DateTimeOffset.UtcNow },
+                state.DurationPresets,
+                targets);
+        });
+    }
+
+    private async Task PersistSettingsAsync(Func<LocalDataSnapshotDto, SaveSettingsCommand> createCommand)
+    {
+        if (ServiceConnection is null || !ServiceConnection.IsConnected) return;
+        await _settingsPersistenceGate.WaitAsync();
+        try
+        {
+            if (ServiceConnection.State is not { } state || !ServiceConnection.IsConnected) return;
+            try { await ServiceConnection.SaveSettingsAsync(createCommand(state)); }
+            catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException) { }
+        }
+        finally { _settingsPersistenceGate.Release(); }
     }
 
     private async void HomePage_DurationOptionsChanged(object? sender, EventArgs e)

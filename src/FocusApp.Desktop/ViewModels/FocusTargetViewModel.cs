@@ -9,10 +9,15 @@ public sealed class FocusTargetViewModel : INotifyPropertyChanged
     private bool _isSelected;
     private int _totalFocusSeconds;
 
-    public FocusTargetViewModel(string name, IEnumerable<string>? taskNames = null)
+    public FocusTargetViewModel(
+        string name,
+        IEnumerable<string>? taskNames = null,
+        string? targetId = null,
+        bool isArchived = false)
     {
-        TargetId = Guid.NewGuid().ToString("N");
+        TargetId = string.IsNullOrWhiteSpace(targetId) ? Guid.NewGuid().ToString("N") : targetId;
         Name = name;
+        IsArchived = isArchived;
         Tasks = new TargetTaskCollection(TargetId);
         foreach (var taskName in taskNames ?? [])
         {
@@ -22,9 +27,11 @@ public sealed class FocusTargetViewModel : INotifyPropertyChanged
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
-    public string Name { get; }
+    public string Name { get; private set; }
 
     public string TargetId { get; }
+
+    public bool IsArchived { get; private set; }
 
     public ObservableCollection<FocusTaskViewModel> Tasks { get; }
 
@@ -73,6 +80,26 @@ public sealed class FocusTargetViewModel : INotifyPropertyChanged
         }
 
         return task;
+    }
+
+    public FocusTaskViewModel AddTask(
+        string taskId,
+        string name,
+        bool isCompleted,
+        bool insertAtTop = false)
+    {
+        var task = new FocusTaskViewModel(TargetId, name, false, taskId) { IsCompleted = isCompleted };
+        if (insertAtTop) Tasks.Insert(0, task); else Tasks.Add(task);
+        return task;
+    }
+
+    public void ApplyArchived(bool archived) => IsArchived = archived;
+
+    public void ApplyName(string name)
+    {
+        if (Name == name) return;
+        Name = name;
+        OnPropertyChanged(nameof(Name));
     }
 
     public bool RemoveTask(FocusTaskViewModel task) =>
@@ -136,7 +163,7 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
     private bool _showDropBefore;
     private bool _showDropAfter;
 
-    internal FocusTaskViewModel(string targetId, string name, bool isNew = false)
+    internal FocusTaskViewModel(string targetId, string name, bool isNew = false, string? taskId = null)
     {
         if (string.IsNullOrWhiteSpace(targetId))
         {
@@ -144,7 +171,7 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
         }
 
         TargetId = targetId;
-        TaskId = Guid.NewGuid().ToString("N");
+        TaskId = string.IsNullOrWhiteSpace(taskId) ? Guid.NewGuid().ToString("N") : taskId;
         _name = name;
         _editName = name;
         _isNew = isNew;
@@ -351,6 +378,13 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
     {
         EditName = Name;
         IsEditing = false;
+    }
+
+    internal void ApplyName(string name)
+    {
+        if (Name == name) return;
+        Name = name;
+        EditName = name;
     }
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null)

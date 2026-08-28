@@ -17,7 +17,10 @@ public static class IpcOperations
     public const string DeactivateAccessControl = "access-control.deactivate";
     public const string GetAccessControlStatus = "access-control.status.get";
     public const string StartForcedFocus = "focus.forced.start";
+    public const string StartNormalFocus = "focus.normal.start";
+    public const string UpdateFocusTasks = "focus.tasks.update";
     public const string UpdateForcedFocusTasks = "focus.forced.tasks.update";
+    public const string RecordCompletedFocus = "focus.completed.record";
     public const string GetFocusRuntimeStatus = "focus.runtime-status.get";
     public const string AgentProxyActionResult = "agent.proxy-action.result";
     public const string AgentStartupRegistrationActionResult = "agent.startup-registration.result";
@@ -84,9 +87,17 @@ public sealed record StartForcedFocusCommand(
     Guid? AutomaticRuleId = null,
     DateTimeOffset? AutomaticOccurrenceStartedAtUtc = null);
 
+public sealed record StartNormalFocusCommand(LocalFocusSessionDto Session);
+
+public sealed record UpdateFocusTasksCommand(
+    Guid SessionId,
+    IReadOnlyList<LocalFocusSessionTaskSnapshotDto> CompletedTasks);
+
 public sealed record UpdateForcedFocusTasksCommand(
     Guid SessionId,
     IReadOnlyList<LocalFocusSessionTaskSnapshotDto> CompletedTasks);
+
+public sealed record RecordCompletedFocusCommand(LocalFocusSessionDto Session);
 
 public enum FocusRuntimeState
 {
@@ -236,7 +247,10 @@ public sealed record LocalFocusSessionDto(
     public IReadOnlyList<LocalApplicationRuleDto> ApplicationRuleSnapshots { get; init; } = [];
 }
 
-public sealed record LocalFocusSessionTaskSnapshotDto(string TaskId, string TaskNameSnapshot, int SortOrder);
+public sealed record LocalFocusSessionTaskSnapshotDto(string TaskId, string TaskNameSnapshot, int SortOrder)
+{
+    public DateTimeOffset? CompletedAtUtc { get; init; }
+}
 
 public sealed record LocalTargetDto(
     string TargetId,
@@ -244,7 +258,10 @@ public sealed record LocalTargetDto(
     bool IsArchived,
     int SortOrder,
     DateTimeOffset CreatedAtUtc,
-    DateTimeOffset UpdatedAtUtc);
+    DateTimeOffset UpdatedAtUtc)
+{
+    public DateTimeOffset? ArchivedAtUtc { get; init; }
+}
 
 public sealed record LocalTaskDto(
     string TaskId,
@@ -253,7 +270,10 @@ public sealed record LocalTaskDto(
     bool IsCompleted,
     int SortOrder,
     DateTimeOffset CreatedAtUtc,
-    DateTimeOffset UpdatedAtUtc);
+    DateTimeOffset UpdatedAtUtc)
+{
+    public DateTimeOffset? CompletedAtUtc { get; init; }
+}
 
 public sealed record LocalWebsiteRuleDto(Guid Id, string Name, string Address, bool IsEnabled, int SortOrder);
 

@@ -19,10 +19,12 @@ internal static class LocalDataContractMapper
             source.MonthlyFocusTargets.Select(ToDto).ToArray());
 
     public static LocalTarget ToCore(LocalTargetDto source)
-        => new(source.TargetId, source.Name, source.IsArchived, source.SortOrder, source.CreatedAtUtc, source.UpdatedAtUtc);
+        => new LocalTarget(source.TargetId, source.Name, source.IsArchived, source.SortOrder, source.CreatedAtUtc, source.UpdatedAtUtc)
+        { ArchivedAtUtc = source.ArchivedAtUtc };
 
     public static LocalTask ToCore(LocalTaskDto source)
-        => new(source.TaskId, source.TargetId, source.Name, source.IsCompleted, source.SortOrder, source.CreatedAtUtc, source.UpdatedAtUtc);
+        => new LocalTask(source.TaskId, source.TargetId, source.Name, source.IsCompleted, source.SortOrder, source.CreatedAtUtc, source.UpdatedAtUtc)
+        { CompletedAtUtc = source.CompletedAtUtc };
 
     public static LocalWebsiteRule ToCore(LocalWebsiteRuleDto source)
         => new(source.Id, source.Name, source.Address, source.IsEnabled, source.SortOrder);
@@ -51,6 +53,26 @@ internal static class LocalDataContractMapper
     public static LocalMonthlyFocusTarget ToCore(LocalMonthlyFocusTargetDto source)
         => new(source.Month, source.TargetMinutes);
 
+    public static LocalFocusSession ToCore(LocalFocusSessionDto source)
+        => new(
+            source.SessionId,
+            (LocalFocusSessionStatus)source.Status,
+            source.IsForcedMode,
+            source.ConfiguredSeconds,
+            source.ActualSeconds,
+            source.PreparationStartedAtUtc,
+            source.FocusStartedAtUtc,
+            source.PlannedEndAtUtc,
+            source.CompletedAtUtc,
+            source.CompletionKind is null ? null : (FocusCompletionKind)source.CompletionKind.Value,
+            source.TargetId,
+            source.TargetNameSnapshot,
+            source.BlockingEnabled,
+            source.AutomaticRuleId,
+            source.AutomaticOccurrenceStartedAtUtc,
+            source.CompletedTasks.Select(task => new LocalFocusSessionTaskSnapshot(
+                task.TaskId, task.TaskNameSnapshot, task.SortOrder) { CompletedAtUtc = task.CompletedAtUtc }).ToArray());
+
     internal static LocalFocusSessionDto ToDto(LocalFocusSession source)
         => new LocalFocusSessionDto(
             source.SessionId,
@@ -71,7 +93,7 @@ internal static class LocalDataContractMapper
             source.CompletedTasks.Select(task => new LocalFocusSessionTaskSnapshotDto(
                 task.TaskId,
                 task.TaskNameSnapshot,
-                task.SortOrder)).ToArray())
+                task.SortOrder) { CompletedAtUtc = task.CompletedAtUtc }).ToArray())
         {
             WebsiteRuleSnapshots = source.Status == LocalFocusSessionStatus.Completed
                 ? []
@@ -82,10 +104,12 @@ internal static class LocalDataContractMapper
         };
 
     private static LocalTargetDto ToDto(LocalTarget source)
-        => new(source.TargetId, source.Name, source.IsArchived, source.SortOrder, source.CreatedAtUtc, source.UpdatedAtUtc);
+        => new LocalTargetDto(source.TargetId, source.Name, source.IsArchived, source.SortOrder, source.CreatedAtUtc, source.UpdatedAtUtc)
+        { ArchivedAtUtc = source.ArchivedAtUtc };
 
     private static LocalTaskDto ToDto(LocalTask source)
-        => new(source.TaskId, source.TargetId, source.Name, source.IsCompleted, source.SortOrder, source.CreatedAtUtc, source.UpdatedAtUtc);
+        => new LocalTaskDto(source.TaskId, source.TargetId, source.Name, source.IsCompleted, source.SortOrder, source.CreatedAtUtc, source.UpdatedAtUtc)
+        { CompletedAtUtc = source.CompletedAtUtc };
 
     private static LocalWebsiteRuleDto ToDto(LocalWebsiteRule source)
         => new(source.Id, source.Name, source.Address, source.IsEnabled, source.SortOrder);

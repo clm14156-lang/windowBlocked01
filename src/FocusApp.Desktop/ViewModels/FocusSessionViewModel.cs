@@ -74,6 +74,8 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
 
     public event EventHandler? AuthoritativeTasksChanged;
 
+    public event EventHandler<FocusTargetViewModel>? TargetTasksChanged;
+
     public ICommand CancelPreparationCommand { get; }
 
     public ICommand RequestEndCommand { get; }
@@ -732,6 +734,10 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         }
 
         RefreshTaskGroups();
+        if (!_applyingAuthoritativeSession && ActiveTarget is not null)
+        {
+            TargetTasksChanged?.Invoke(this, ActiveTarget);
+        }
     }
 
     private void Task_PropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -758,6 +764,10 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         if (e.PropertyName is nameof(FocusTaskViewModel.IsCompleted) or nameof(FocusTaskViewModel.Name) or nameof(FocusTaskViewModel.IsEditing))
         {
             RefreshTaskGroups();
+            if (!_applyingAuthoritativeSession && e.PropertyName != nameof(FocusTaskViewModel.IsEditing) && ActiveTarget is not null)
+            {
+                TargetTasksChanged?.Invoke(this, ActiveTarget);
+            }
         }
 
         if (!_applyingAuthoritativeSession && IsServiceOwnedForcedSession &&

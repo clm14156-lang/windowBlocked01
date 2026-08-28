@@ -8,7 +8,7 @@ namespace FocusApp.Tests.Infrastructure;
 public sealed class SqliteLocalDataStoreTests
 {
     [Fact]
-    public async Task Initialize_CreatesVersionTwoAndReturnsAnEmptySnapshot()
+    public async Task Initialize_CreatesCurrentVersionAndReturnsAnEmptySnapshot()
     {
         using var database = new TemporaryDatabase();
         var store = database.CreateStore();
@@ -16,7 +16,7 @@ public sealed class SqliteLocalDataStoreTests
         await store.InitializeAsync();
         var snapshot = await store.LoadAsync();
 
-        Assert.Equal(2, await ReadUserVersionAsync(database.Path));
+        Assert.Equal(3, await ReadUserVersionAsync(database.Path));
         Assert.Empty(snapshot.FocusSessions);
         Assert.Empty(snapshot.Targets);
         Assert.Empty(snapshot.Tasks);
@@ -24,7 +24,7 @@ public sealed class SqliteLocalDataStoreTests
     }
 
     [Fact]
-    public async Task VersionOneDatabase_MigratesToVersionTwoRuleSnapshotTables()
+    public async Task VersionOneDatabase_MigratesThroughCurrentSchema()
     {
         using var database = new TemporaryDatabase();
         await using (var connection = new SqliteConnection($"Data Source={database.Path}"))
@@ -33,6 +33,12 @@ public sealed class SqliteLocalDataStoreTests
             await using var command = connection.CreateCommand();
             command.CommandText = """
                 CREATE TABLE focus_sessions (session_id TEXT NOT NULL PRIMARY KEY);
+                CREATE TABLE targets (target_id TEXT NOT NULL PRIMARY KEY);
+                CREATE TABLE tasks (task_id TEXT NOT NULL PRIMARY KEY);
+                CREATE TABLE focus_session_tasks (
+                    session_id TEXT NOT NULL,
+                    task_id TEXT NOT NULL,
+                    PRIMARY KEY (session_id, task_id));
                 PRAGMA user_version = 1;
                 """;
             await command.ExecuteNonQueryAsync();
@@ -40,7 +46,7 @@ public sealed class SqliteLocalDataStoreTests
 
         await database.CreateStore().InitializeAsync();
 
-        Assert.Equal(2, await ReadUserVersionAsync(database.Path));
+        Assert.Equal(3, await ReadUserVersionAsync(database.Path));
         Assert.True(await TableExistsAsync(database.Path, "focus_session_website_rules"));
         Assert.True(await TableExistsAsync(database.Path, "focus_session_application_rules"));
     }
@@ -50,8 +56,16 @@ public sealed class SqliteLocalDataStoreTests
     {
         using var database = new TemporaryDatabase();
         var now = new DateTimeOffset(2026, 8, 27, 1, 2, 3, TimeSpan.Zero);
-        var target = new LocalTarget("target-1", "写代码", false, 0, now, now);
-        var task = new LocalTask("task-1", target.TargetId, "实现持久化", false, 0, now, now);
+        var archivedAt = now.AddMinutes(1);
+        var taskCompletedAt = now.AddMinutes(2);
+        var target = new LocalTarget("target-1", "写代码", true, 0, now, now)
+        {
+            ArchivedAtUtc = archivedAt
+        };
+        var task = new LocalTask("task-1", target.TargetId, "实现持久化", true, 0, now, now)
+        {
+            CompletedAtUtc = taskCompletedAt
+        };
         var websiteRuleId = Guid.NewGuid();
         var applicationRuleId = Guid.NewGuid();
         var automaticRuleId = Guid.NewGuid();
@@ -94,7 +108,8 @@ public sealed class SqliteLocalDataStoreTests
             true,
             automaticRuleId,
             now.AddMinutes(-2),
-            [new LocalFocusSessionTaskSnapshot(task.TaskId, task.Name, 0)])
+            [new LocalFocusSessionTaskSnapshot(task.TaskId, task.Name, 0)
+                { CompletedAtUtc = taskCompletedAt }])
         {
             WebsiteRuleSnapshots = [new LocalWebsiteRule(websiteRuleId, "示例", "example.com", true, 0)],
             ApplicationRuleSnapshots = [new LocalApplicationRule(applicationRuleId, "编辑器", @"C:\Apps\Editor.exe", false, 0)]
@@ -105,7 +120,12 @@ public sealed class SqliteLocalDataStoreTests
         var snapshot = await reopened.LoadAsync();
 
         Assert.Equal(target, Assert.Single(snapshot.Targets));
-        Assert.True(Assert.Single(snapshot.Tasks).IsCompleted);
+        var loadedTask = Assert.Single(snapshot.Tasks);
+        Assert.Equal(task.TaskId, loadedTask.TaskId);
+        Assert.Equal(task.TargetId, loadedTask.TargetId);
+        Assert.Equal(task.Name, loadedTask.Name);
+        Assert.True(loadedTask.IsCompleted);
+        Assert.Equal(task.CompletedAtUtc, loadedTask.CompletedAtUtc);
         Assert.Equal(websiteRuleId, Assert.Single(snapshot.WebsiteRules).Id);
         Assert.Equal(applicationRuleId, Assert.Single(snapshot.ApplicationRules).Id);
         var automaticRule = Assert.Single(snapshot.AutomaticRules);
@@ -119,7 +139,9 @@ public sealed class SqliteLocalDataStoreTests
         var session = Assert.Single(snapshot.FocusSessions);
         Assert.Equal(sessionId, session.SessionId);
         Assert.Equal(FocusCompletionKind.EarlyEnd, session.CompletionKind);
-        Assert.Equal("实现持久化", Assert.Single(session.CompletedTasks).TaskNameSnapshot);
+        var completedTask = Assert.Single(session.CompletedTasks);
+        Assert.Equal("实现持久化", completedTask.TaskNameSnapshot);
+        Assert.Equal(taskCompletedAt, completedTask.CompletedAtUtc);
         Assert.Equal(websiteRuleId, Assert.Single(session.WebsiteRuleSnapshots).Id);
         Assert.Equal(applicationRuleId, Assert.Single(session.ApplicationRuleSnapshots).Id);
     }

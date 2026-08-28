@@ -344,6 +344,59 @@ public sealed class NamedPipeCommunicationTests
         Assert.Equal(monthlyTarget, Assert.Single(state.MonthlyFocusTargets));
     }
 
+    [Fact]
+    public async Task NormalFocus_RoundTripsAndMarksCompletedTasks()
+    {
+        await using var fixture = await ServiceFixture.StartAsync();
+        await using var client = await fixture.ConnectAsync(IpcClientRole.Desktop);
+        var now = DateTimeOffset.UtcNow;
+        var target = new LocalTargetDto("target-normal", "写代码", false, 0, now, now);
+        var task = new LocalTaskDto("task-normal", target.TargetId, "整理需求", false, 0, now, now);
+        await client.SendAsync<SaveTargetCommand, MutationResult>(
+            IpcOperations.SaveTarget, new SaveTargetCommand(target, [task]), RequestTimeout);
+        var sessionId = Guid.NewGuid();
+        var running = new LocalFocusSessionDto(
+            sessionId, LocalFocusSessionStatusDto.Focusing, false,
+            60, 0, now, now.AddSeconds(5), now.AddSeconds(65), null, null,
+            target.TargetId, target.Name, false, null, null, []);
+
+        await client.SendAsync<StartNormalFocusCommand, MutationResult>(
+            IpcOperations.StartNormalFocus, new StartNormalFocusCommand(running), RequestTimeout);
+        var taskCompletedAt = now.AddSeconds(20);
+        await client.SendAsync<UpdateFocusTasksCommand, MutationResult>(
+            IpcOperations.UpdateFocusTasks,
+            new UpdateFocusTasksCommand(
+                sessionId,
+                [new LocalFocusSessionTaskSnapshotDto(task.TaskId, task.Name, 0)
+                    { CompletedAtUtc = taskCompletedAt }]),
+            RequestTimeout);
+        var activeState = await client.SendAsync<EmptyPayload, LocalDataSnapshotDto>(
+            IpcOperations.GetState, new EmptyPayload(), RequestTimeout);
+        Assert.True(Assert.Single(activeState.Tasks).IsCompleted);
+        Assert.Equal(
+            taskCompletedAt,
+            Assert.Single(Assert.Single(activeState.FocusSessions).CompletedTasks).CompletedAtUtc);
+        var completed = running with
+        {
+            Status = LocalFocusSessionStatusDto.Completed,
+            ActualSeconds = 60,
+            CompletedAtUtc = now.AddSeconds(65),
+            CompletionKind = FocusCompletionKindDto.Natural,
+            CompletedTasks = [new LocalFocusSessionTaskSnapshotDto(task.TaskId, task.Name, 0)
+                { CompletedAtUtc = taskCompletedAt }]
+        };
+        await client.SendAsync<RecordCompletedFocusCommand, MutationResult>(
+            IpcOperations.RecordCompletedFocus, new RecordCompletedFocusCommand(completed), RequestTimeout);
+
+        var state = await client.SendAsync<EmptyPayload, LocalDataSnapshotDto>(
+            IpcOperations.GetState, new EmptyPayload(), RequestTimeout);
+        Assert.Equal(sessionId, Assert.Single(state.FocusSessions).SessionId);
+        Assert.True(Assert.Single(state.Tasks).IsCompleted);
+        var completedTask = Assert.Single(state.FocusSessions[0].CompletedTasks);
+        Assert.Equal(task.TaskId, completedTask.TaskId);
+        Assert.Equal(taskCompletedAt, completedTask.CompletedAtUtc);
+    }
+
     private static async Task<string> GetPingIdentityAsync(NamedPipeIpcClient client)
     {
         var response = await client.SendAsync<EmptyPayload, PingResponse>(

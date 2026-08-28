@@ -58,7 +58,7 @@ public partial class App : Application
             CreateHomePageViewModel(),
             CreateSettingsPageViewModel(),
             CreateBlockingPageViewModel(),
-            new StatisticsOverviewViewModel(),
+            new StatisticsOverviewViewModel(useSampleData: false),
             _serviceConnection);
         _accessControlBridge = new DesktopAccessControlBridge(
             mainViewModel.HomePage.FocusSession,
@@ -136,7 +136,8 @@ public partial class App : Application
             new HomeDurationOptionViewModel((string)FindResource("HomeDuration90"), string.Empty, false, 90),
             new HomeDurationOptionViewModel("180 分钟", string.Empty, true, 180),
             new HomeDurationOptionViewModel((string)FindResource("HomeDurationCustom"), "\uE823", false, 0)
-        ]);
+        ],
+        focusTargetModal: new FocusTargetModalViewModel(useSampleData: false));
     }
 
     private BlockingPageViewModel CreateBlockingPageViewModel()

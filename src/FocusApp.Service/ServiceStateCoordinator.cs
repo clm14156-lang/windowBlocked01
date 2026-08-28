@@ -113,11 +113,14 @@ public sealed class ServiceStateCoordinator : IAsyncDisposable
                     await StartForcedFocusAsync(
                         request.ReadPayload<StartForcedFocusCommand>(),
                         cancellationToken)),
+                IpcOperations.StartNormalFocus => await StartNormalFocusAsync(request, cancellationToken),
+                IpcOperations.UpdateFocusTasks => await UpdateFocusTasksAsync(request, cancellationToken),
                 IpcOperations.UpdateForcedFocusTasks => IpcEnvelope.CreateSuccess(
                     request,
                     await UpdateForcedFocusTasksAsync(
                         request.ReadPayload<UpdateForcedFocusTasksCommand>(),
                         cancellationToken)),
+                IpcOperations.RecordCompletedFocus => await RecordCompletedFocusAsync(request, cancellationToken),
                 IpcOperations.ActivateAccessControl => IpcEnvelope.CreateSuccess(
                     request,
                     await ActivateAccessControlAsync(
@@ -257,6 +260,70 @@ public sealed class ServiceStateCoordinator : IAsyncDisposable
         {
             _mutationGate.Release();
         }
+    }
+
+    private async Task<IpcEnvelope> RecordCompletedFocusAsync(IpcEnvelope request, CancellationToken cancellationToken)
+    {
+        var command = request.ReadPayload<RecordCompletedFocusCommand>();
+        var session = LocalDataContractMapper.ToCore(command.Session);
+        if (session.Status != LocalFocusSessionStatus.Completed || session.CompletedAtUtc is null)
+        {
+            throw new ServiceBusinessException("只能保存已经完成的专注记录。");
+        }
+
+        await _mutationGate.WaitAsync(cancellationToken);
+        try
+        {
+            await _store.SaveFocusSessionAsync(
+                session,
+                session.CompletedTasks.Select(task => task.TaskId).ToArray(),
+                cancellationToken);
+            var revision = Interlocked.Increment(ref _revision);
+            var state = await LoadStateAsync(cancellationToken);
+            StateChanged?.Invoke(this, new StateChangedEvent(revision, state));
+            return IpcEnvelope.CreateSuccess(request, new MutationResult(revision, state));
+        }
+        finally
+        {
+            _mutationGate.Release();
+        }
+    }
+
+    private async Task<IpcEnvelope> StartNormalFocusAsync(IpcEnvelope request, CancellationToken cancellationToken)
+    {
+        var command = request.ReadPayload<StartNormalFocusCommand>();
+        var session = LocalDataContractMapper.ToCore(command.Session);
+        if (session.IsForcedMode || session.Status != LocalFocusSessionStatus.Focusing || session.FocusStartedAtUtc is null)
+        {
+            throw new ServiceBusinessException("普通专注启动数据无效。");
+        }
+        return await MutateAsync(request, token => _store.SaveFocusSessionAsync(session, cancellationToken: token), cancellationToken);
+    }
+
+    private async Task<IpcEnvelope> UpdateFocusTasksAsync(IpcEnvelope request, CancellationToken cancellationToken)
+    {
+        var command = request.ReadPayload<UpdateFocusTasksCommand>();
+        if (command.SessionId == Guid.Empty)
+        {
+            throw new ArgumentException("会话 ID 不能为空。", nameof(command));
+        }
+
+        ValidateTaskSnapshots(command.CompletedTasks);
+        return await MutateAsync(request, async token =>
+        {
+            var snapshot = await _store.LoadAsync(token);
+            var session = snapshot.FocusSessions.SingleOrDefault(item =>
+                item.SessionId == command.SessionId && IsActiveSession(item))
+                ?? throw new ServiceBusinessException("专注会话已不存在或已经结束。");
+            var updated = session with
+            {
+                CompletedTasks = command.CompletedTasks.Select(ToCore).ToArray()
+            };
+            await _store.SaveFocusSessionAsync(
+                updated,
+                command.CompletedTasks.Select(item => item.TaskId).ToArray(),
+                token);
+        }, cancellationToken);
     }
 
     private async Task<LocalDataSnapshotDto> LoadStateAsync(CancellationToken cancellationToken)
@@ -782,7 +849,10 @@ public sealed class ServiceStateCoordinator : IAsyncDisposable
         => session.Status is LocalFocusSessionStatus.Preparing or LocalFocusSessionStatus.Focusing;
 
     private static LocalFocusSessionTaskSnapshot ToCore(LocalFocusSessionTaskSnapshotDto source)
-        => new(source.TaskId, source.TaskNameSnapshot, source.SortOrder);
+        => new(source.TaskId, source.TaskNameSnapshot, source.SortOrder)
+        {
+            CompletedAtUtc = source.CompletedAtUtc
+        };
 
     private static void ValidateTaskSnapshots(IReadOnlyCollection<LocalFocusSessionTaskSnapshotDto> snapshots)
     {

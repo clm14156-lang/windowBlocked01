@@ -31,7 +31,8 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
     public HomePageViewModel(
         IEnumerable<HomeDurationOptionViewModel> durationOptions,
         AutomaticBlockingScheduler? automaticBlockingScheduler = null,
-        FocusSessionViewModel? focusSession = null)
+        FocusSessionViewModel? focusSession = null,
+        FocusTargetModalViewModel? focusTargetModal = null)
     {
         _automaticBlockingScheduler = automaticBlockingScheduler ?? new AutomaticBlockingScheduler();
         var suppliedOptions = durationOptions.ToList();
@@ -62,7 +63,7 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
         RefreshVisibleDurationOptions();
 
         CustomTimeModal = new CustomTimeModalViewModel(ConfirmCustomTime, commonOptions, ToggleCommonTimeVisibility, DeleteCommonTime);
-        FocusTargetModal = new FocusTargetModalViewModel();
+        FocusTargetModal = focusTargetModal ?? new FocusTargetModalViewModel();
         FocusSession = focusSession ?? new FocusSessionViewModel();
         FocusSession.SetForcedModeStartPermission(() =>
             ForcedModeAccessPolicy.EvaluateStart(_isLoggedIn, _isVip, _isForcedModeRequested) ==

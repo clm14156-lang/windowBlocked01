@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Input;
+using FocusApp.Contracts;
 using FocusApp.Core;
 
 namespace FocusApp.Desktop.ViewModels;
@@ -51,9 +52,10 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     private bool _isDailyFocusRecordVipGuideOpen;
     private bool _isGoalInvestmentDetailsVipGuideOpen;
     private bool _usesRuntimeFocusData;
+    private bool _usesPersistedState;
     private DateTime _trendReferenceDate = new(2024, 5, 15);
 
-    public StatisticsOverviewViewModel()
+    public StatisticsOverviewViewModel(bool useSampleData = true)
     {
         RangeOptions =
         [
@@ -92,12 +94,70 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         DecreaseMonthlyFocusTargetCommand = new RelayCommand<object>(_ => AdjustMonthlyFocusTarget(-1));
         AddGoalCommand = new RelayCommand<object>(_ => AddGoal());
         RefreshTrend();
-        RefreshGoals();
+        if (useSampleData) RefreshGoals();
         SubscribeToFocusSessionRecords();
         RefreshCalendar();
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
+    public event EventHandler<GoalOverviewItemViewModel>? GoalChanged;
+    public event EventHandler<string>? GoalDeleted;
+    public event EventHandler? MonthlyFocusTargetChanged;
+
+    public void ApplyState(LocalDataSnapshotDto state)
+    {
+        var selectedGoalId = SelectedGoal?.GoalId;
+        var calendarMonth = _usesPersistedState
+            ? _calendarMonth
+            : new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+        var selectedCalendarDate = _usesPersistedState ? _selectedCalendarDay?.Date : DateTime.Today;
+        Goals.Clear();
+        FocusSessionRecords.Clear();
+        foreach (var target in state.Targets.OrderBy(item => item.SortOrder))
+        {
+            Goals.Add(new GoalOverviewItemViewModel(
+                target.TargetId,
+                target.Name,
+                "尚未推进",
+                "暂无记录",
+                false,
+                target.IsArchived));
+        }
+
+        var targetNames = state.Targets.ToDictionary(item => item.TargetId, item => item.Name, StringComparer.Ordinal);
+        foreach (var session in state.FocusSessions
+                     .Where(item => item.Status == LocalFocusSessionStatusDto.Completed && item.CompletedAtUtc is not null)
+                     .OrderBy(item => item.CompletedAtUtc))
+        {
+            var end = session.CompletedAtUtc!.Value.LocalDateTime;
+            var start = session.FocusStartedAtUtc?.LocalDateTime ?? end.AddSeconds(-session.ActualSeconds);
+            var goalId = string.IsNullOrWhiteSpace(session.TargetId) ? "goal-unassigned" : session.TargetId;
+            var goalName = session.TargetId is not null && targetNames.TryGetValue(session.TargetId, out var currentName)
+                ? currentName
+                : string.IsNullOrWhiteSpace(session.TargetNameSnapshot) ? "未关联目标" : session.TargetNameSnapshot;
+            var taskNames = session.CompletedTasks.OrderBy(task => task.SortOrder).Select(task => task.TaskNameSnapshot).ToArray();
+            FocusSessionRecords.Add(new FocusSessionRecordViewModel(
+                start, end, goalId!, goalName!, taskNames.FirstOrDefault() ?? string.Empty, taskNames.Length, taskNames));
+        }
+
+        _usesRuntimeFocusData = true;
+        _usesPersistedState = true;
+        _trendReferenceDate = DateTime.Today;
+        _calendarMonth = calendarMonth;
+        var monthlyTarget = state.MonthlyFocusTargets.FirstOrDefault(item => item.Month == new DateOnly(DateTime.Today.Year, DateTime.Today.Month, 1));
+        _monthlyFocusTargetHours = monthlyTarget is null ? null : (int)Math.Ceiling(monthlyTarget.TargetMinutes / 60d);
+        RefreshGoalSummaries();
+        SelectGoal(Goals.FirstOrDefault(goal =>
+            goal.GoalId == selectedGoalId && goal.IsArchived == ShowArchivedGoals)
+            ?? Goals.FirstOrDefault(goal => goal.IsArchived == ShowArchivedGoals));
+        RefreshCalendar(selectedCalendarDate);
+        RefreshTrend();
+        NotifyMonthlyFocusTargetChanged();
+        OnPropertyChanged(nameof(VisibleGoals));
+        OnPropertyChanged(nameof(TodayDateDisplay));
+        OnPropertyChanged(nameof(TodayFocusDuration));
+        OnPropertyChanged(nameof(TodayFocusCount));
+    }
 
     public bool IsLoggedIn => _isLoggedIn;
 
@@ -478,6 +538,11 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         FocusSessionRecord record,
         IReadOnlyList<string>? completedTaskNames = null)
     {
+        if (_usesPersistedState)
+        {
+            return;
+        }
+
         if (!FocusStatisticsCalculator.TryGetFocusInterval(record, out var startsAt, out var endsAt))
         {
             return;
@@ -740,6 +805,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(VisibleGoals));
         SelectGoal(newGoal);
         IsGoalAddFeedbackVisible = false;
+        GoalChanged?.Invoke(this, newGoal);
     }
 
     private void SelectGoal(GoalOverviewItemViewModel? goal)
@@ -820,6 +886,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             record.GoalName = goal.Name;
         }
         if (ReferenceEquals(SelectedGoal, goal)) OnPropertyChanged(nameof(SelectedGoalName));
+        GoalChanged?.Invoke(this, goal);
     }
 
     private void ArchiveGoal(GoalOverviewItemViewModel? goal) => SetArchived(goal, true);
@@ -832,6 +899,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         goal.IsMenuOpen = false;
         if (ReferenceEquals(SelectedGoal, goal)) SelectFirstVisibleGoal();
         OnPropertyChanged(nameof(VisibleGoals));
+        GoalChanged?.Invoke(this, goal);
     }
 
     private void DeleteGoal(GoalOverviewItemViewModel? goal)
@@ -839,6 +907,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         if (goal is null || !goal.IsArchived) return;
         var wasSelected = ReferenceEquals(SelectedGoal, goal);
         Goals.Remove(goal);
+        GoalDeleted?.Invoke(this, goal.GoalId);
         foreach (var record in FocusSessionRecords.Where(record => record.GoalId == goal.GoalId).ToArray())
         {
             FocusSessionRecords.Remove(record);
@@ -957,6 +1026,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         _monthlyFocusTargetHours = Math.Min(hours, 10000);
         IsMonthlyFocusTargetPopupOpen = false;
         NotifyMonthlyFocusTargetChanged();
+        MonthlyFocusTargetChanged?.Invoke(this, EventArgs.Empty);
     }
 
     private void AdjustMonthlyFocusTarget(int delta)
@@ -971,6 +1041,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         _monthlyFocusTargetHours = null;
         IsMonthlyFocusTargetPopupOpen = false;
         NotifyMonthlyFocusTargetChanged();
+        MonthlyFocusTargetChanged?.Invoke(this, EventArgs.Empty);
     }
 
     private void NotifyMonthlyFocusTargetChanged()
@@ -1260,13 +1331,18 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     public string ComparisonDisplay { get; private set; } = string.Empty;
 
-    public string TodayDateDisplay => _usesRuntimeFocusData
-        ? $"{_trendReferenceDate:M月d日} {GetWeekday(_trendReferenceDate)}"
-        : "5月15日 周三";
+    public string TodayDateDisplay
+    {
+        get
+        {
+            var date = _usesRuntimeFocusData ? _trendReferenceDate : DateTime.Today;
+            return $"{date:M月d日} {GetWeekday(date)}";
+        }
+    }
 
-    public string TodayFocusDuration => "2 小时 15 分钟";
+    public string TodayFocusDuration => FormatDuration(GetDailySummary(DateTime.Today).FocusMinutes);
 
-    public int TodayFocusCount => 5;
+    public int TodayFocusCount => GetDailySummary(DateTime.Today).SessionCount;
 
     public void SetHoveredPoint(TrendDataPointViewModel? point)
     {

@@ -33,7 +33,10 @@ public sealed record LocalFocusSession(
 public sealed record LocalFocusSessionTaskSnapshot(
     string TaskId,
     string TaskNameSnapshot,
-    int SortOrder);
+    int SortOrder)
+{
+    public DateTimeOffset? CompletedAtUtc { get; init; }
+}
 
 public sealed record LocalTarget(
     string TargetId,
@@ -41,7 +44,10 @@ public sealed record LocalTarget(
     bool IsArchived,
     int SortOrder,
     DateTimeOffset CreatedAtUtc,
-    DateTimeOffset UpdatedAtUtc);
+    DateTimeOffset UpdatedAtUtc)
+{
+    public DateTimeOffset? ArchivedAtUtc { get; init; }
+}
 
 public sealed record LocalTask(
     string TaskId,
@@ -50,7 +56,10 @@ public sealed record LocalTask(
     bool IsCompleted,
     int SortOrder,
     DateTimeOffset CreatedAtUtc,
-    DateTimeOffset UpdatedAtUtc);
+    DateTimeOffset UpdatedAtUtc)
+{
+    public DateTimeOffset? CompletedAtUtc { get; init; }
+}
 
 public sealed record LocalWebsiteRule(
     Guid Id,

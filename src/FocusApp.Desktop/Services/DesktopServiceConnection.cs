@@ -230,6 +230,36 @@ public sealed class DesktopServiceConnection : INotifyPropertyChanged, IAsyncDis
         return result;
     }
 
+    public Task<MutationResult> RecordCompletedFocusAsync(
+        LocalFocusSessionDto session,
+        CancellationToken cancellationToken = default,
+        Guid? requestId = null)
+        => SendMutationAsync(
+            IpcOperations.RecordCompletedFocus,
+            new RecordCompletedFocusCommand(session),
+            cancellationToken,
+            requestId);
+
+    public Task<MutationResult> StartNormalFocusAsync(
+        LocalFocusSessionDto session,
+        CancellationToken cancellationToken = default,
+        Guid? requestId = null)
+        => SendMutationAsync(
+            IpcOperations.StartNormalFocus,
+            new StartNormalFocusCommand(session),
+            cancellationToken,
+            requestId);
+
+    public Task<MutationResult> UpdateFocusTasksAsync(
+        UpdateFocusTasksCommand command,
+        CancellationToken cancellationToken = default,
+        Guid? requestId = null)
+        => SendMutationAsync(
+            IpcOperations.UpdateFocusTasks,
+            command,
+            cancellationToken,
+            requestId);
+
     public async Task<FocusSessionMutationResult> UpdateForcedFocusTasksAsync(
         UpdateForcedFocusTasksCommand command,
         CancellationToken cancellationToken = default,

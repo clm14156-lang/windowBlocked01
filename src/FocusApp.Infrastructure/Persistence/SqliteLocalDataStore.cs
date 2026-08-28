@@ -109,13 +109,14 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
         {
             await using (var command = CreateCommand(connection, transaction, """
                 INSERT INTO targets (
-                    target_id, name, is_archived, sort_order, created_utc, updated_utc)
-                VALUES ($id, $name, $archived, $sort, $created, $updated)
+                    target_id, name, is_archived, sort_order, created_utc, updated_utc, archived_utc)
+                VALUES ($id, $name, $archived, $sort, $created, $updated, $archivedAt)
                 ON CONFLICT(target_id) DO UPDATE SET
                     name = excluded.name,
                     is_archived = excluded.is_archived,
                     sort_order = excluded.sort_order,
-                    updated_utc = excluded.updated_utc;
+                    updated_utc = excluded.updated_utc,
+                    archived_utc = excluded.archived_utc;
                 """))
             {
                 command.Parameters.AddWithValue("$id", target.TargetId);
@@ -124,6 +125,7 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
                 command.Parameters.AddWithValue("$sort", target.SortOrder);
                 command.Parameters.AddWithValue("$created", FormatDateTime(target.CreatedAtUtc));
                 command.Parameters.AddWithValue("$updated", FormatDateTime(target.UpdatedAtUtc));
+                command.Parameters.AddWithValue("$archivedAt", FormatNullableDateTime(target.ArchivedAtUtc));
                 await command.ExecuteNonQueryAsync(cancellationToken);
             }
 
@@ -193,13 +195,14 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
             {
                 await using var command = CreateCommand(connection, transaction, """
                     INSERT INTO focus_session_tasks (
-                        session_id, task_id, task_name_snapshot, sort_order)
-                    VALUES ($sessionId, $taskId, $name, $sort);
+                        session_id, task_id, task_name_snapshot, sort_order, completed_utc)
+                    VALUES ($sessionId, $taskId, $name, $sort, $completed);
                     """);
                 command.Parameters.AddWithValue("$sessionId", FormatGuid(session.SessionId));
                 command.Parameters.AddWithValue("$taskId", snapshot.TaskId);
                 command.Parameters.AddWithValue("$name", snapshot.TaskNameSnapshot);
                 command.Parameters.AddWithValue("$sort", snapshot.SortOrder);
+                command.Parameters.AddWithValue("$completed", FormatNullableDateTime(snapshot.CompletedAtUtc ?? session.CompletedAtUtc));
                 await command.ExecuteNonQueryAsync(cancellationToken);
             }
 
@@ -257,7 +260,8 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
             {
                 await using var command = CreateCommand(connection, transaction, """
                     UPDATE tasks
-                    SET is_completed = 1, updated_utc = $updated
+                    SET is_completed = 1, updated_utc = $updated,
+                        completed_utc = COALESCE(completed_utc, $updated)
                     WHERE task_id = $taskId;
                     """);
                 command.Parameters.AddWithValue("$updated", FormatDateTime(DateTimeOffset.UtcNow));
@@ -586,8 +590,8 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
     {
         await using var command = CreateCommand(connection, transaction, """
             INSERT INTO tasks (
-                task_id, target_id, name, is_completed, sort_order, created_utc, updated_utc)
-            VALUES ($id, $targetId, $name, $completed, $sort, $created, $updated);
+                task_id, target_id, name, is_completed, sort_order, created_utc, updated_utc, completed_utc)
+            VALUES ($id, $targetId, $name, $completed, $sort, $created, $updated, $completedAt);
             """);
         command.Parameters.AddWithValue("$id", task.TaskId);
         command.Parameters.AddWithValue("$targetId", task.TargetId);
@@ -596,6 +600,7 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
         command.Parameters.AddWithValue("$sort", task.SortOrder);
         command.Parameters.AddWithValue("$created", FormatDateTime(task.CreatedAtUtc));
         command.Parameters.AddWithValue("$updated", FormatDateTime(task.UpdatedAtUtc));
+        command.Parameters.AddWithValue("$completedAt", FormatNullableDateTime(task.CompletedAtUtc));
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
@@ -606,7 +611,7 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
         var result = new Dictionary<Guid, List<LocalFocusSessionTaskSnapshot>>();
         await using var command = connection.CreateCommand();
         command.CommandText = """
-            SELECT session_id, task_id, task_name_snapshot, sort_order
+            SELECT session_id, task_id, task_name_snapshot, sort_order, completed_utc
             FROM focus_session_tasks
             ORDER BY session_id, sort_order, task_id;
             """;
@@ -623,7 +628,7 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
             tasks.Add(new LocalFocusSessionTaskSnapshot(
                 reader.GetString(1),
                 reader.GetString(2),
-                reader.GetInt32(3)));
+                reader.GetInt32(3)) { CompletedAtUtc = ReadNullableDateTime(reader, 4) });
         }
 
         return result.ToDictionary(
@@ -757,7 +762,7 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
         var values = new List<LocalTarget>();
         await using var command = connection.CreateCommand();
         command.CommandText = """
-            SELECT target_id, name, is_archived, sort_order, created_utc, updated_utc
+            SELECT target_id, name, is_archived, sort_order, created_utc, updated_utc, archived_utc
             FROM targets ORDER BY is_archived, sort_order, target_id;
             """;
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
@@ -769,7 +774,7 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
                 reader.GetBoolean(2),
                 reader.GetInt32(3),
                 ParseDateTime(reader.GetString(4)),
-                ParseDateTime(reader.GetString(5))));
+                ParseDateTime(reader.GetString(5))) { ArchivedAtUtc = ReadNullableDateTime(reader, 6) });
         }
 
         return values;
@@ -782,7 +787,7 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
         var values = new List<LocalTask>();
         await using var command = connection.CreateCommand();
         command.CommandText = """
-            SELECT task_id, target_id, name, is_completed, sort_order, created_utc, updated_utc
+            SELECT task_id, target_id, name, is_completed, sort_order, created_utc, updated_utc, completed_utc
             FROM tasks ORDER BY target_id, sort_order, task_id;
             """;
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
@@ -795,7 +800,7 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
                 reader.GetBoolean(3),
                 reader.GetInt32(4),
                 ParseDateTime(reader.GetString(5)),
-                ParseDateTime(reader.GetString(6))));
+                ParseDateTime(reader.GetString(6))) { CompletedAtUtc = ReadNullableDateTime(reader, 7) });
         }
 
         return values;

@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
+using FocusApp.Contracts;
 
 namespace FocusApp.Desktop.ViewModels;
 
@@ -22,9 +23,9 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
     private FocusTargetViewModel _draftSelectedTarget;
     private bool _hasDraftSelectedTarget;
 
-    public FocusTargetModalViewModel()
+    public FocusTargetModalViewModel(bool useSampleData = true)
     {
-        _targets =
+        _targets = useSampleData ?
         [
             new FocusTargetViewModel("写代码",
             [
@@ -47,9 +48,9 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
             [
                 "阅读一章专业书"
             ])
-        ];
+        ] : [];
 
-        _selectedTarget = _targets[1];
+        _selectedTarget = _targets.FirstOrDefault() ?? new FocusTargetViewModel("未选择目标");
         _draftSelectedTarget = _selectedTarget;
         VisibleTargets = new ObservableCollection<FocusTargetViewModel>();
         RefreshVisibleTargets();
@@ -74,8 +75,60 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
+    public event EventHandler<FocusTargetViewModel>? TargetChanged;
+    public event EventHandler<string?>? SelectionChanged;
 
     public ObservableCollection<FocusTargetViewModel> VisibleTargets { get; }
+
+    public IReadOnlyList<FocusTargetViewModel> Targets => _targets;
+
+    public void ApplyState(
+        IEnumerable<LocalTargetDto> targets,
+        IEnumerable<LocalTaskDto> tasks,
+        string? selectedTargetId)
+    {
+        var selectedId = selectedTargetId ?? (HasSelectedTarget ? SelectedTarget.TargetId : null);
+        var hadDraftSelection = IsOpen && HasDraftSelectedTarget;
+        var draftSelectedId = hadDraftSelection ? DraftSelectedTarget.TargetId : selectedId;
+        var existingTargets = _targets.ToDictionary(item => item.TargetId, StringComparer.Ordinal);
+        _targets.Clear();
+        foreach (var target in targets.Where(item => !item.IsArchived).OrderBy(item => item.SortOrder))
+        {
+            var viewModel = existingTargets.TryGetValue(target.TargetId, out var existing)
+                ? existing
+                : new FocusTargetViewModel(target.Name, targetId: target.TargetId);
+            viewModel.ApplyName(target.Name);
+            var persistedTasks = tasks.Where(item => item.TargetId == target.TargetId).OrderBy(item => item.SortOrder).ToList();
+            var existingTaskMap = viewModel.Tasks.ToDictionary(item => item.TaskId, StringComparer.Ordinal);
+            foreach (var removed in viewModel.Tasks.Where(item => persistedTasks.All(task => task.TaskId != item.TaskId)).ToList())
+                viewModel.RemoveTask(removed);
+            foreach (var task in persistedTasks)
+            {
+                if (existingTaskMap.TryGetValue(task.TaskId, out var existingTask))
+                {
+                    existingTask.ApplyName(task.Name);
+                    existingTask.IsCompleted = task.IsCompleted;
+                }
+                else viewModel.AddTask(task.TaskId, task.Name, task.IsCompleted);
+            }
+            _targets.Add(viewModel);
+        }
+
+        var selected = _targets.FirstOrDefault(item => item.TargetId == selectedId);
+        var draftSelected = _targets.FirstOrDefault(item => item.TargetId == draftSelectedId);
+        HasSelectedTarget = selected is not null;
+        if (selected is not null) _selectedTarget = selected;
+        _draftSelectedTarget = draftSelected ?? selected ?? _targets.FirstOrDefault() ?? _selectedTarget;
+        _hasDraftSelectedTarget = IsOpen ? hadDraftSelection && draftSelected is not null : HasSelectedTarget;
+        _visibleTargetStart = 0;
+        RefreshVisibleTargets();
+        RefreshTargetSelectionVisuals();
+        OnPropertyChanged(nameof(Targets));
+        OnPropertyChanged(nameof(SelectedTarget));
+        OnPropertyChanged(nameof(SelectedTargetButtonText));
+        OnPropertyChanged(nameof(CurrentTasks));
+        OnPropertyChanged(nameof(HasMoreTargets));
+    }
 
     public ObservableCollection<FocusTaskViewModel> CurrentTasks =>
         HasActiveSelectedTarget ? ActiveSelectedTarget.Tasks : _emptyTasks;
@@ -301,6 +354,7 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
         if (!IsOpen)
         {
             OnPropertyChanged(nameof(SelectedTargetButtonText));
+            SelectionChanged?.Invoke(this, null);
         }
     }
 
@@ -323,6 +377,7 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
         HasSelectedTarget = HasDraftSelectedTarget;
         SelectedTarget.IsSelected = HasSelectedTarget;
         OnPropertyChanged(nameof(SelectedTargetButtonText));
+        SelectionChanged?.Invoke(this, HasSelectedTarget ? SelectedTarget.TargetId : null);
     }
 
     private void SelectTarget(FocusTargetViewModel? target)
@@ -418,6 +473,7 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(HasMoreTargets));
         OnPropertyChanged(nameof(CanShowPreviousTargets));
         OnPropertyChanged(nameof(CanShowNextTargets));
+        TargetChanged?.Invoke(this, target);
     }
 
     private void BeginAddTask()
@@ -446,6 +502,7 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
         if (name.Length > 0)
         {
             ActiveSelectedTarget.AddTask(name, insertAtTop: true);
+            TargetChanged?.Invoke(this, ActiveSelectedTarget);
         }
 
         NewTaskName = string.Empty;
@@ -483,6 +540,7 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
         if (IsCurrentTask(task))
         {
             task!.CommitEdit();
+            TargetChanged?.Invoke(this, ActiveSelectedTarget);
         }
     }
 
@@ -491,6 +549,7 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
         if (IsCurrentTask(task))
         {
             ActiveSelectedTarget.RemoveTask(task!);
+            TargetChanged?.Invoke(this, ActiveSelectedTarget);
         }
     }
 
