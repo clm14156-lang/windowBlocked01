@@ -7,6 +7,32 @@ namespace FocusApp.Tests.Desktop;
 public sealed class StatisticsOverviewViewModelTests
 {
     [Fact]
+    public void FocusSessionGoalTagIsVisibleOnlyForAssociatedGoals()
+    {
+        var unassigned = new FocusSessionRecordViewModel(
+            DateTime.Today,
+            DateTime.Today.AddMinutes(30),
+            "goal-unassigned",
+            "其他",
+            string.Empty,
+            0);
+        var assigned = new FocusSessionRecordViewModel(
+            DateTime.Today,
+            DateTime.Today.AddMinutes(30),
+            "goal-reading",
+            "读书",
+            string.Empty,
+            0);
+
+        Assert.False(unassigned.HasGoal);
+        Assert.True(assigned.HasGoal);
+
+        assigned.GoalId = "goal-unassigned";
+
+        Assert.False(assigned.HasGoal);
+    }
+
+    [Fact]
     public void PremiumStatisticsAccessRequiresLoggedInVipState()
     {
         var viewModel = new StatisticsOverviewViewModel();

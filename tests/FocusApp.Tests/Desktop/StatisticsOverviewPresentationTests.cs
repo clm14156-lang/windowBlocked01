@@ -9,6 +9,37 @@ public sealed class StatisticsOverviewPresentationTests
     private static readonly XNamespace Xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
 
     [Fact]
+    public void SelectedCalendarDayUsesRoundedRectangleAndWhiteTwoLineContent()
+    {
+        var page = XDocument.Load(Path.Combine(
+            FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
+        var button = Assert.Single(page.Descendants(Presentation + "Button").Where(element =>
+            (string?)element.Attribute("CommandParameter") == "{Binding}" &&
+            element.Descendants(Presentation + "TextBlock").Any(text =>
+                (string?)text.Attribute("Text") == "{Binding DayNumber}")));
+        Assert.Equal("{x:Null}", (string?)button.Attribute("FocusVisualStyle"));
+
+        var background = Assert.Single(button.Descendants(Presentation + "Border").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "DaySelectionBackground"));
+        Assert.Equal("40", (string?)background.Attribute("Width"));
+        Assert.Equal("40", (string?)background.Attribute("Height"));
+        Assert.Equal("10", (string?)background.Attribute("CornerRadius"));
+        Assert.Empty(button.Descendants(Presentation + "Ellipse"));
+
+        var selectedTrigger = Assert.Single(button.Descendants(Presentation + "DataTrigger").Where(trigger =>
+            (string?)trigger.Attribute("Binding") == "{Binding IsSelected}" &&
+            (string?)trigger.Attribute("Value") == "True"));
+        Assert.Contains(selectedTrigger.Elements(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("TargetName") == "DayNumberText" &&
+            (string?)setter.Attribute("Property") == "Foreground" &&
+            (string?)setter.Attribute("Value") == "{DynamicResource WhiteText}");
+        Assert.Contains(selectedTrigger.Elements(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("TargetName") == "DayDurationText" &&
+            (string?)setter.Attribute("Property") == "Foreground" &&
+            (string?)setter.Attribute("Value") == "{DynamicResource WhiteText}");
+    }
+
+    [Fact]
     public void RangeSelectorReservesIndependentSpaceForTextAndChevron()
     {
         var page = XDocument.Load(Path.Combine(
@@ -178,6 +209,9 @@ public sealed class StatisticsOverviewPresentationTests
             border.Elements(Presentation + "TextBlock").Any(text =>
                 (string?)text.Attribute("Text") == "{Binding GoalName}")));
         Assert.Equal("#F2F2F7", (string?)goalTag.Attribute("Background"));
+        Assert.Equal(
+            "{Binding HasGoal, Converter={StaticResource BooleanToVisibilityConverter}}",
+            (string?)goalTag.Attribute("Visibility"));
         var goalTagText = Assert.Single(goalTag.Descendants(Presentation + "TextBlock"));
         Assert.Equal("#636366", (string?)goalTagText.Attribute("Foreground"));
     }

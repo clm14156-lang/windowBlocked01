@@ -658,18 +658,19 @@
                                     <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="7" ClipToBounds="False" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate DataType="{x:Type vm:CalendarDayViewModel}">
-                                            <Button Height="46" Margin="1" Padding="0" ClipToBounds="False" Command="{Binding DataContext.SelectCalendarDateCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}" Background="{DynamicResource TransparentBrush}" BorderThickness="0">
+                                            <Button Height="46" Margin="1" Padding="0" ClipToBounds="False" Command="{Binding DataContext.SelectCalendarDateCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}" Background="{DynamicResource TransparentBrush}" BorderThickness="0" FocusVisualStyle="{x:Null}">
                                                 <Button.Template>
                                                     <ControlTemplate TargetType="Button">
                                                         <Grid Background="{DynamicResource TransparentBrush}" ClipToBounds="False">
                                                         <Grid Width="40" Height="40" HorizontalAlignment="Center" VerticalAlignment="Center" ClipToBounds="False">
-                                                            <Ellipse x:Name="DaySelectionBackground"
-                                                                     Width="40"
-                                                                     Height="40"
-                                                                     HorizontalAlignment="Center"
-                                                                     VerticalAlignment="Center"
-                                                                     Fill="{TemplateBinding Background}"
-                                                                     IsHitTestVisible="False" />
+                                                            <Border x:Name="DaySelectionBackground"
+                                                                    Width="40"
+                                                                    Height="40"
+                                                                    HorizontalAlignment="Center"
+                                                                    VerticalAlignment="Center"
+                                                                    Background="{TemplateBinding Background}"
+                                                                    CornerRadius="10"
+                                                                    IsHitTestVisible="False" />
                                                             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                                                                 <TextBlock x:Name="DayNumberText" HorizontalAlignment="Center" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}" Text="{Binding DayNumber}" />
                                                                 <TextBlock x:Name="DayDurationText"
@@ -703,12 +704,12 @@
                                                         </Grid>
                                                         <ControlTemplate.Triggers>
                                                             <DataTrigger Binding="{Binding IsCurrentMonth}" Value="False"><Setter TargetName="DayNumberText" Property="Foreground" Value="{DynamicResource TextWeak}" /><Setter TargetName="DayDurationText" Property="Foreground" Value="{DynamicResource TextWeak}" /></DataTrigger>
-                                                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="DaySelectionBackground" Property="Fill" Value="{DynamicResource ControlHoverBackground}" /></Trigger>
+                                                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="DaySelectionBackground" Property="Background" Value="{DynamicResource ControlHoverBackground}" /></Trigger>
                                                             <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                                                <Setter TargetName="DaySelectionBackground" Property="Fill" Value="{DynamicResource AccentPrimary}" />
+                                                                <Setter TargetName="DaySelectionBackground" Property="Background" Value="{DynamicResource AccentPrimary}" />
                                                                 <Setter TargetName="DayNumberText" Property="Foreground" Value="{DynamicResource WhiteText}" />
                                                                 <Setter TargetName="DayNumberText" Property="FontWeight" Value="Medium" />
-                                                                <Setter TargetName="DayDurationText" Property="Foreground" Value="{DynamicResource SelectedTextSecondary}" />
+                                                                <Setter TargetName="DayDurationText" Property="Foreground" Value="{DynamicResource WhiteText}" />
                                                                 <Setter TargetName="DayDurationText" Property="Opacity" Value="1" />
                                                             </DataTrigger>
                                                         </ControlTemplate.Triggers>
@@ -785,7 +786,7 @@
                                                     <StackPanel>
                                                         <Grid>
                                                             <TextBlock VerticalAlignment="Center" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}"><Run Text="{Binding StartTime, StringFormat={}{0:HH:mm}, Mode=OneWay}" /><Run Text=" – " /><Run Text="{Binding EndTime, StringFormat={}{0:HH:mm}, Mode=OneWay}" /></TextBlock>
-                                                            <Border HorizontalAlignment="Right" Padding="8,2" Background="#F2F2F7" CornerRadius="8"><TextBlock FontSize="12" FontWeight="Normal" Foreground="#636366" Text="{Binding GoalName}" /></Border>
+                                                            <Border HorizontalAlignment="Right" Padding="8,2" Background="#F2F2F7" CornerRadius="8" Visibility="{Binding HasGoal, Converter={StaticResource BooleanToVisibilityConverter}}"><TextBlock FontSize="12" FontWeight="Normal" Foreground="#636366" Text="{Binding GoalName}" /></Border>
                                                         </Grid>
                                                         <ItemsControl Margin="0,14,0,0" ItemsSource="{Binding CompletedTaskNames}">
                                                             <ItemsControl.ItemTemplate>

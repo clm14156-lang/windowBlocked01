@@ -134,7 +134,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             var goalId = string.IsNullOrWhiteSpace(session.TargetId) ? "goal-unassigned" : session.TargetId;
             var goalName = session.TargetId is not null && targetNames.TryGetValue(session.TargetId, out var currentName)
                 ? currentName
-                : string.IsNullOrWhiteSpace(session.TargetNameSnapshot) ? "未关联目标" : session.TargetNameSnapshot;
+                : string.IsNullOrWhiteSpace(session.TargetNameSnapshot) ? "其他" : session.TargetNameSnapshot;
             var taskNames = session.CompletedTasks.OrderBy(task => task.SortOrder).Select(task => task.TaskNameSnapshot).ToArray();
             FocusSessionRecords.Add(new FocusSessionRecordViewModel(
                 start, end, goalId!, goalName!, taskNames.FirstOrDefault() ?? string.Empty, taskNames.Length, taskNames));
@@ -549,7 +549,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         }
 
         var goalId = string.IsNullOrWhiteSpace(record.TargetId) ? "goal-unassigned" : record.TargetId;
-        var goalName = string.IsNullOrWhiteSpace(record.TargetName) ? "未关联目标" : record.TargetName;
+        var goalName = string.IsNullOrWhiteSpace(record.TargetName) ? "其他" : record.TargetName;
         if (Goals.All(goal => goal.GoalId != goalId))
         {
             Goals.Add(new GoalOverviewItemViewModel(goalId!, goalName!, "尚未推进", "暂无记录", false, false));
@@ -1706,7 +1706,21 @@ public sealed class FocusSessionRecordViewModel : INotifyPropertyChanged
         }
     }
 
-    public string GoalId { get => _goalId; set { if (_goalId == value) return; _goalId = value; OnPropertyChanged(); } }
+    public string GoalId
+    {
+        get => _goalId;
+        set
+        {
+            if (_goalId == value) return;
+            _goalId = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(HasGoal));
+        }
+    }
+
+    public bool HasGoal =>
+        !string.IsNullOrWhiteSpace(GoalId) &&
+        !string.Equals(GoalId, "goal-unassigned", StringComparison.Ordinal);
     public string GoalName { get => _goalName; set { if (_goalName == value) return; _goalName = value; OnPropertyChanged(); } }
     public IReadOnlyList<string> CompletedTaskNames { get; }
     public string TaskName { get => _taskName; set { if (_taskName == value) return; _taskName = value; OnPropertyChanged(); OnPropertyChanged(nameof(CompletedTaskNamesDisplay)); } }
