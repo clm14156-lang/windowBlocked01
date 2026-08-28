@@ -10,6 +10,7 @@ public static class IpcOperations
     public const string ReplaceApplicationRules = "rules.applications.replace";
     public const string ReplaceAutomaticRules = "rules.automatic.replace";
     public const string SaveSettings = "settings.save";
+    public const string SetLaunchAtStartup = "settings.launch-at-startup.set";
     public const string ActivateAccessControl = "access-control.activate";
     public const string DeactivateAccessControl = "access-control.deactivate";
     public const string GetAccessControlStatus = "access-control.status.get";
@@ -17,6 +18,8 @@ public static class IpcOperations
     public const string UpdateForcedFocusTasks = "focus.forced.tasks.update";
     public const string GetFocusRuntimeStatus = "focus.runtime-status.get";
     public const string AgentProxyActionResult = "agent.proxy-action.result";
+    public const string AgentStartupRegistrationActionResult = "agent.startup-registration.result";
+    public const string AgentStartupRegistrationActionRequested = "agent.startup-registration.requested";
     public const string AgentProxyReconciliationResult = "agent.proxy-reconciliation.result";
     public const string UpdateAccessControlUpstream = "access-control.upstream.update";
     public const string StateChanged = "state.changed";
@@ -51,6 +54,17 @@ public sealed record SaveSettingsCommand(
     IReadOnlyList<LocalMonthlyFocusTargetDto> MonthlyFocusTargets);
 
 public sealed record MutationResult(long Revision, LocalDataSnapshotDto State);
+
+public sealed record SetLaunchAtStartupCommand(bool Enabled);
+
+public sealed record AgentStartupRegistrationActionRequestedEvent(
+    Guid ActionId,
+    bool Enabled);
+
+public sealed record AgentStartupRegistrationActionResultCommand(
+    Guid ActionId,
+    bool Succeeded,
+    string? ErrorMessage);
 
 public sealed record ActivateAccessControlCommand(DateTimeOffset ExpiresAtUtc);
 

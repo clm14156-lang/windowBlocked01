@@ -1,5 +1,7 @@
+using System.Diagnostics;
 using FocusApp.Contracts;
 using FocusApp.Infrastructure.AccessControl;
+using FocusApp.Agent.Services;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -12,16 +14,50 @@ internal sealed class AgentWorker : BackgroundService
     private static readonly TimeSpan ProxyMonitorInterval = TimeSpan.FromSeconds(2);
     private readonly ILogger<AgentWorker> _logger;
     private readonly IUserProxyManager _proxyManager;
+    private readonly StartupRegistrationService _startupRegistration;
+    private readonly IHostApplicationLifetime _applicationLifetime;
+    private readonly bool _isAutostart;
+    private Mutex? _singleInstanceMutex;
 
     public AgentWorker(
         ILogger<AgentWorker> logger,
-        IUserProxyManager proxyManager)
+        IUserProxyManager proxyManager,
+        StartupRegistrationService startupRegistration,
+        IHostApplicationLifetime applicationLifetime,
+        bool isAutostart = false)
     {
         _logger = logger;
         _proxyManager = proxyManager;
+        _startupRegistration = startupRegistration;
+        _applicationLifetime = applicationLifetime;
+        _isAutostart = isAutostart;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        _singleInstanceMutex = new Mutex(true, @"Local\FocusApp.Agent", out var acquired);
+        if (!acquired)
+        {
+            _logger.LogInformation("FocusApp Agent 已在运行，忽略重复启动。");
+            _singleInstanceMutex.Dispose();
+            _singleInstanceMutex = null;
+            _applicationLifetime.StopApplication();
+            return;
+        }
+
+        try
+        {
+            await ExecuteCoreAsync(stoppingToken);
+        }
+        finally
+        {
+            _singleInstanceMutex.ReleaseMutex();
+            _singleInstanceMutex.Dispose();
+            _singleInstanceMutex = null;
+        }
+    }
+
+    private async Task ExecuteCoreAsync(CancellationToken stoppingToken)
     {
         var retryDelay = TimeSpan.FromSeconds(1);
         while (!stoppingToken.IsCancellationRequested)
@@ -51,6 +87,13 @@ internal sealed class AgentWorker : BackgroundService
                             blocked.Target,
                             blocked.RuleName);
                     }
+                    else if (envelope.Operation == IpcOperations.AgentStartupRegistrationActionRequested)
+                    {
+                        _ = HandleStartupRegistrationActionAsync(
+                            client,
+                            envelope.ReadPayload<AgentStartupRegistrationActionRequestedEvent>(),
+                            stoppingToken);
+                    }
                 };
                 client.EventReceived += eventHandler;
                 var ping = await client.SendAsync<EmptyPayload, PingResponse>(
@@ -63,6 +106,12 @@ internal sealed class AgentWorker : BackgroundService
                     new EmptyPayload(),
                     RequestTimeout,
                     stoppingToken);
+                await ReconcileStartupRegistrationAsync(state.Settings.LaunchAtStartup);
+                if (_isAutostart && state.FocusSessions.Any(session =>
+                    session.IsForcedMode && session.Status is LocalFocusSessionStatusDto.Preparing or LocalFocusSessionStatusDto.Focusing))
+                {
+                    TryWakeDesktop();
+                }
                 var accessControl = await client.SendAsync<EmptyPayload, AccessControlStatusDto>(
                     IpcOperations.GetAccessControlStatus,
                     new EmptyPayload(),
@@ -101,6 +150,77 @@ internal sealed class AgentWorker : BackgroundService
 
             await Task.Delay(retryDelay, stoppingToken);
             retryDelay = TimeSpan.FromSeconds(Math.Min(retryDelay.TotalSeconds * 2, 15));
+        }
+    }
+
+    private async Task HandleStartupRegistrationActionAsync(
+        NamedPipeIpcClient client,
+        AgentStartupRegistrationActionRequestedEvent action,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = action.Enabled
+                ? _startupRegistration.EnableStartup()
+                : _startupRegistration.DisableStartup();
+            await client.SendAsync<AgentStartupRegistrationActionResultCommand, AgentStartupRegistrationActionResultCommand>(
+                IpcOperations.AgentStartupRegistrationActionResult,
+                new AgentStartupRegistrationActionResultCommand(
+                    action.ActionId,
+                    result.Succeeded,
+                    result.ErrorMessage),
+                RequestTimeout,
+                cancellationToken);
+        }
+        catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or OperationCanceledException)
+        {
+            _logger.LogDebug(exception, "无法向 Service 返回开机自启动操作结果。");
+        }
+    }
+
+    private Task ReconcileStartupRegistrationAsync(bool enabled)
+    {
+        var result = enabled
+            ? _startupRegistration.RepairStartupEntry()
+            : _startupRegistration.DisableStartup();
+        if (!result.Succeeded)
+        {
+            _logger.LogWarning("开机自启动项校准失败：{Error}", result.ErrorMessage);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private void TryWakeDesktop()
+    {
+        var desktopPath = Path.Combine(AppContext.BaseDirectory, "FocusApp.Desktop.exe");
+        if (!File.Exists(desktopPath))
+        {
+            var repositoryDesktopPath = Path.GetFullPath(Path.Combine(
+                AppContext.BaseDirectory,
+                "..", "..", "..", "..", "FocusApp.Desktop", "bin", "Debug", "net8.0-windows", "FocusApp.Desktop.exe"));
+            desktopPath = repositoryDesktopPath;
+        }
+        if (!File.Exists(desktopPath))
+        {
+            _logger.LogWarning("需要恢复强制专注，但找不到 Desktop 程序：{Path}", desktopPath);
+            return;
+        }
+
+        try
+        {
+            if (Process.GetProcessesByName("FocusApp.Desktop").Length == 0)
+            {
+                Process.Start(new ProcessStartInfo(desktopPath)
+                {
+                    UseShellExecute = true,
+                    WorkingDirectory = Path.GetDirectoryName(desktopPath) ?? AppContext.BaseDirectory
+                });
+            }
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or System.ComponentModel.Win32Exception)
+        {
+            _logger.LogWarning(exception, "无法唤醒 Desktop 以恢复强制专注界面。");
         }
     }
 

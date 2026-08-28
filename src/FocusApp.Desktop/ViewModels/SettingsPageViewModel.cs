@@ -13,6 +13,7 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
     private AutomaticRuleItemViewModel? _editingRule;
     private bool _isLoggedIn;
     private bool _isVip;
+    private bool _isApplyingLaunchAtStartup;
     private DispatcherTimer? _ruleMergeToastTimer;
     private bool _isRuleMergeToastVisible;
     private string _ruleMergeToastRange = string.Empty;
@@ -55,6 +56,12 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
             ForcedModeItem.PropertyChanged += ForcedModeItem_PropertyChanged;
             EnsureForcedModeAccessState();
         }
+
+        LaunchAtStartupItem = ToggleItems.FirstOrDefault(item => item.Key == "LaunchAtStartup");
+        if (LaunchAtStartupItem is not null)
+        {
+            LaunchAtStartupItem.PropertyChanged += LaunchAtStartupItem_PropertyChanged;
+        }
     }
 
     private readonly string _dailyLabel;
@@ -78,6 +85,10 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
     public bool IsAutomaticBlockingEnabled => AutomaticBlockingItem?.IsEnabled == true;
 
     public SettingsToggleItemViewModel? ForcedModeItem { get; }
+
+    public SettingsToggleItemViewModel? LaunchAtStartupItem { get; }
+
+    public event EventHandler<bool>? LaunchAtStartupChanged;
 
     public bool CanUseForcedMode => ForcedModeAccessPolicy.CanUseForcedMode(_isLoggedIn, _isVip);
 
@@ -310,6 +321,32 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
         if (e.PropertyName == nameof(SettingsToggleItemViewModel.IsEnabled))
         {
             EnsureForcedModeAccessState();
+        }
+    }
+
+    private void LaunchAtStartupItem_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(SettingsToggleItemViewModel.IsEnabled) && !_isApplyingLaunchAtStartup)
+        {
+            LaunchAtStartupChanged?.Invoke(this, LaunchAtStartupItem?.IsEnabled == true);
+        }
+    }
+
+    public void ApplyLaunchAtStartupState(bool enabled)
+    {
+        if (LaunchAtStartupItem is null)
+        {
+            return;
+        }
+
+        _isApplyingLaunchAtStartup = true;
+        try
+        {
+            LaunchAtStartupItem.IsEnabled = enabled;
+        }
+        finally
+        {
+            _isApplyingLaunchAtStartup = false;
         }
     }
 

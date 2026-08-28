@@ -132,7 +132,10 @@ public sealed class NamedPipeServiceWorker : BackgroundService
         EventHandler<AccessControlStateChangedEvent>? accessControlStateChangedHandler = null;
         EventHandler<AccessBlockedEvent>? accessBlockedHandler = null;
         EventHandler<AgentProxyActionRequestedEvent>? agentProxyActionHandler = null;
+        EventHandler<AgentStartupRegistrationActionRequestedEvent>? agentStartupRegistrationActionHandler = null;
         var writeGate = new SemaphoreSlim(1, 1);
+        var requestTasks = new ConcurrentBag<Task>();
+        using var connectionCancellation = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
         try
         {
             string identity;
@@ -190,9 +193,18 @@ public sealed class NamedPipeServiceWorker : BackgroundService
                     action);
                 _ = WriteSafeAsync(pipe, writeGate, envelope, stoppingToken);
             };
+            agentStartupRegistrationActionHandler = (_, action) =>
+            {
+                var envelope = IpcEnvelope.CreateEvent(
+                    IpcOperations.AgentStartupRegistrationActionRequested,
+                    Interlocked.Increment(ref eventSequence),
+                    action);
+                _ = WriteSafeAsync(pipe, writeGate, envelope, stoppingToken);
+            };
             coordinator.AccessControlStateChanged += accessControlStateChangedHandler;
             coordinator.AccessBlocked += accessBlockedHandler;
             coordinator.AgentProxyActionRequested += agentProxyActionHandler;
+            coordinator.AgentStartupRegistrationActionRequested += agentStartupRegistrationActionHandler;
 
             while (!stoppingToken.IsCancellationRequested && pipe.IsConnected)
             {
@@ -212,15 +224,16 @@ public sealed class NamedPipeServiceWorker : BackgroundService
                     break;
                 }
 
-                var validationError = ValidateRequest(request);
-                var response = validationError is null
-                    ? await coordinator.HandleAsync(request, stoppingToken)
-                    : IpcEnvelope.CreateFailure(request, validationError);
-                if (!await WriteSafeAsync(pipe, writeGate, response, stoppingToken))
-                {
-                    break;
-                }
+                requestTasks.Add(HandleRequestAsync(
+                    coordinator,
+                    pipe,
+                    writeGate,
+                    request,
+                    connectionCancellation.Token));
             }
+
+            connectionCancellation.Cancel();
+            await Task.WhenAll(requestTasks);
         }
         finally
         {
@@ -249,6 +262,11 @@ public sealed class NamedPipeServiceWorker : BackgroundService
                 coordinator.AgentProxyActionRequested -= agentProxyActionHandler;
             }
 
+            if (coordinator is not null && agentStartupRegistrationActionHandler is not null)
+            {
+                coordinator.AgentStartupRegistrationActionRequested -= agentStartupRegistrationActionHandler;
+            }
+
             writeGate.Dispose();
             await pipe.DisposeAsync();
         }
@@ -275,6 +293,7 @@ public sealed class NamedPipeServiceWorker : BackgroundService
                 IpcOperations.GetAccessControlStatus or
                 IpcOperations.GetFocusRuntimeStatus or
                 IpcOperations.AgentProxyActionResult or
+                IpcOperations.AgentStartupRegistrationActionResult or
                 IpcOperations.AgentProxyReconciliationResult or
                 IpcOperations.UpdateAccessControlUpstream))
         {
@@ -282,6 +301,20 @@ public sealed class NamedPipeServiceWorker : BackgroundService
         }
 
         return null;
+    }
+
+    private static async Task HandleRequestAsync(
+        ServiceStateCoordinator coordinator,
+        NamedPipeServerStream pipe,
+        SemaphoreSlim writeGate,
+        IpcEnvelope request,
+        CancellationToken stoppingToken)
+    {
+        var validationError = ValidateRequest(request);
+        var response = validationError is null
+            ? await coordinator.HandleAsync(request, stoppingToken)
+            : IpcEnvelope.CreateFailure(request, validationError);
+        await WriteSafeAsync(pipe, writeGate, response, stoppingToken);
     }
 
     private static async Task<bool> WriteSafeAsync(

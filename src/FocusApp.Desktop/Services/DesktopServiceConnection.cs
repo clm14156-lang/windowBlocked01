@@ -103,6 +103,26 @@ public sealed class DesktopServiceConnection : INotifyPropertyChanged, IAsyncDis
         Guid? requestId = null)
         => SendMutationAsync(IpcOperations.SaveTarget, command, cancellationToken, requestId);
 
+    public async Task<MutationResult> SetLaunchAtStartupAsync(
+        bool enabled,
+        CancellationToken cancellationToken = default,
+        Guid? requestId = null)
+    {
+        try
+        {
+            return await SendMutationAsync(
+                IpcOperations.SetLaunchAtStartup,
+                new SetLaunchAtStartupCommand(enabled),
+                cancellationToken,
+                requestId);
+        }
+        catch (IpcRemoteException exception)
+        {
+            SetOnContext(() => LastError = exception.Error);
+            throw;
+        }
+    }
+
     public Task<MutationResult> DeleteTargetAsync(
         DeleteTargetCommand command,
         CancellationToken cancellationToken = default,

@@ -15,6 +15,7 @@ public sealed class ServiceStateCoordinator : IAsyncDisposable
     private readonly ConcurrentDictionary<Guid, Lazy<Task<IpcEnvelope>>> _requestCache = new();
     private readonly ConcurrentQueue<Guid> _requestOrder = new();
     private readonly ConcurrentDictionary<Guid, TaskCompletionSource<AgentProxyActionResultCommand>> _agentActions = new();
+    private readonly ConcurrentDictionary<Guid, TaskCompletionSource<AgentStartupRegistrationActionResultCommand>> _startupActions = new();
     private readonly IAccessControlExecutionHost _accessControlHost;
     private readonly TimeSpan _agentResponseTimeout;
     private readonly Func<DateTimeOffset> _utcNowProvider;
@@ -72,6 +73,7 @@ public sealed class ServiceStateCoordinator : IAsyncDisposable
     public event EventHandler<AccessBlockedEvent>? AccessBlocked;
 
     public event EventHandler<AgentProxyActionRequestedEvent>? AgentProxyActionRequested;
+    public event EventHandler<AgentStartupRegistrationActionRequestedEvent>? AgentStartupRegistrationActionRequested;
 
     public Task<IpcEnvelope> HandleAsync(IpcEnvelope request, CancellationToken cancellationToken)
     {
@@ -127,6 +129,15 @@ public sealed class ServiceStateCoordinator : IAsyncDisposable
                 IpcOperations.AgentProxyActionResult => IpcEnvelope.CreateSuccess(
                     request,
                     CompleteAgentProxyAction(request.ReadPayload<AgentProxyActionResultCommand>())),
+                IpcOperations.AgentStartupRegistrationActionResult => IpcEnvelope.CreateSuccess(
+                    request,
+                    CompleteAgentStartupRegistrationAction(
+                        request.ReadPayload<AgentStartupRegistrationActionResultCommand>())),
+                IpcOperations.SetLaunchAtStartup => IpcEnvelope.CreateSuccess(
+                    request,
+                    await SetLaunchAtStartupAsync(
+                        request.ReadPayload<SetLaunchAtStartupCommand>(),
+                        cancellationToken)),
                 IpcOperations.AgentProxyReconciliationResult => IpcEnvelope.CreateSuccess(
                     request,
                     await ApplyAgentProxyReconciliationResultAsync(
@@ -1017,6 +1028,107 @@ public sealed class ServiceStateCoordinator : IAsyncDisposable
         }
 
         return _accessControlStatus;
+    }
+
+    private async Task<MutationResult> SetLaunchAtStartupAsync(
+        SetLaunchAtStartupCommand command,
+        CancellationToken cancellationToken)
+    {
+        await _mutationGate.WaitAsync(cancellationToken);
+        try
+        {
+            var registration = await RequestAgentStartupRegistrationAsync(command.Enabled, cancellationToken);
+            if (!registration.Succeeded)
+            {
+                throw new ServiceBusinessException(
+                    registration.ErrorMessage ?? "无法更新开机自启动设置。");
+            }
+
+            var snapshot = await _store.LoadAsync(cancellationToken);
+            var settings = snapshot.Settings with
+            {
+                LaunchAtStartup = command.Enabled,
+                UpdatedAtUtc = GetEffectiveUtcNow()
+            };
+            try
+            {
+                await _store.SaveSettingsAsync(
+                    settings,
+                    snapshot.DurationPresets,
+                    snapshot.MonthlyFocusTargets,
+                    cancellationToken);
+            }
+            catch
+            {
+                try
+                {
+                    await RequestAgentStartupRegistrationAsync(!command.Enabled, CancellationToken.None);
+                }
+                catch
+                {
+                    // Preserve the original persistence error; the next Agent
+                    // reconciliation will repair the registry from SQLite.
+                }
+
+                throw;
+            }
+            var revision = Interlocked.Increment(ref _revision);
+            var state = await LoadStateAsync(cancellationToken);
+            StateChanged?.Invoke(this, new StateChangedEvent(revision, state));
+            return new MutationResult(revision, state);
+        }
+        finally
+        {
+            _mutationGate.Release();
+        }
+    }
+
+    private async Task<AgentStartupRegistrationActionResultCommand> RequestAgentStartupRegistrationAsync(
+        bool enabled,
+        CancellationToken cancellationToken)
+    {
+        var actionId = Guid.NewGuid();
+        var completion = new TaskCompletionSource<AgentStartupRegistrationActionResultCommand>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        if (!_startupActions.TryAdd(actionId, completion))
+        {
+            throw new InvalidOperationException("无法创建开机自启动操作。");
+        }
+
+        try
+        {
+            AgentStartupRegistrationActionRequested?.Invoke(
+                this,
+                new AgentStartupRegistrationActionRequestedEvent(actionId, enabled));
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeout.CancelAfter(_agentResponseTimeout);
+            try
+            {
+                return await completion.Task.WaitAsync(timeout.Token);
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                return new AgentStartupRegistrationActionResultCommand(
+                    actionId,
+                    false,
+                    "等待用户会话 Agent 响应超时。");
+            }
+        }
+        finally
+        {
+            _startupActions.TryRemove(actionId, out _);
+        }
+    }
+
+    private AgentStartupRegistrationActionResultCommand CompleteAgentStartupRegistrationAction(
+        AgentStartupRegistrationActionResultCommand result)
+    {
+        if (_startupActions.TryGetValue(result.ActionId, out var completion))
+        {
+            completion.TrySetResult(result);
+        }
+
+        return result;
     }
 
     private async Task<AccessControlStatusDto> GetAccessControlStatusAsync(

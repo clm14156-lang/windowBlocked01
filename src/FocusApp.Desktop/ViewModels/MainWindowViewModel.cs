@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using System.Windows.Threading;
+using FocusApp.Contracts;
 using FocusApp.Desktop.Services;
 
 namespace FocusApp.Desktop.ViewModels;
@@ -45,7 +46,9 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         if (ServiceConnection is not null)
         {
             ServiceConnection.PropertyChanged += ServiceConnection_PropertyChanged;
+            ServiceConnection.StateChanged += ServiceConnection_StateChanged;
         }
+        SettingsPage.LaunchAtStartupChanged += SettingsPage_LaunchAtStartupChanged;
         StateCoordinator = new FocusStateCoordinator(HomePage, SettingsPage, BlockingPage, StatisticsPage);
         SettingsPage.SetUserAccess(IsLoggedIn, IsVipMember);
         HomePage.SetUserAccess(IsLoggedIn, IsVipMember);
@@ -294,6 +297,28 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(BackendErrorMessage));
         }
     }
+
+    private async void SettingsPage_LaunchAtStartupChanged(object? sender, bool enabled)
+    {
+        if (ServiceConnection is null || !ServiceConnection.IsConnected)
+        {
+            SettingsPage.ApplyLaunchAtStartupState(!enabled);
+            return;
+        }
+
+        var previous = !enabled;
+        try
+        {
+            await ServiceConnection.SetLaunchAtStartupAsync(enabled);
+        }
+        catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException)
+        {
+            SettingsPage.ApplyLaunchAtStartupState(previous);
+        }
+    }
+
+    private void ServiceConnection_StateChanged(object? sender, LocalDataSnapshotDto state)
+        => SettingsPage.ApplyLaunchAtStartupState(state.Settings.LaunchAtStartup);
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
     {
