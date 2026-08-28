@@ -9,6 +9,7 @@ public static class IpcOperations
     public const string ReplaceWebsiteRules = "rules.websites.replace";
     public const string ReplaceApplicationRules = "rules.applications.replace";
     public const string ReplaceAutomaticRules = "rules.automatic.replace";
+    public const string ReplaceDurationPresets = "duration-presets.replace";
     public const string SaveSettings = "settings.save";
     public const string SetLaunchAtStartup = "settings.launch-at-startup.set";
     public const string SetWindowsNotifications = "settings.windows-notifications.set";
@@ -48,6 +49,8 @@ public sealed record ReplaceWebsiteRulesCommand(IReadOnlyList<LocalWebsiteRuleDt
 public sealed record ReplaceApplicationRulesCommand(IReadOnlyList<LocalApplicationRuleDto> Rules);
 
 public sealed record ReplaceAutomaticRulesCommand(IReadOnlyList<LocalAutomaticRuleDto> Rules);
+
+public sealed record ReplaceDurationPresetsCommand(IReadOnlyList<LocalDurationPresetDto> Presets);
 
 public sealed record SaveSettingsCommand(
     LocalAppSettingsDto Settings,

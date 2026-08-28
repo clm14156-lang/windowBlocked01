@@ -131,10 +131,11 @@ public partial class App : Application
     {
         return new HomePageViewModel(
         [
-            new HomeDurationOptionViewModel((string)FindResource("HomeDuration25"), string.Empty, true, 25),
-            new HomeDurationOptionViewModel((string)FindResource("HomeDuration50"), string.Empty, false, 50),
+            new HomeDurationOptionViewModel("30 分钟", string.Empty, true, 30),
+            new HomeDurationOptionViewModel("60 分钟", string.Empty, true, 60),
             new HomeDurationOptionViewModel((string)FindResource("HomeDuration90"), string.Empty, false, 90),
-            new HomeDurationOptionViewModel((string)FindResource("HomeDurationCustom"), "\uE823", false, 90)
+            new HomeDurationOptionViewModel("180 分钟", string.Empty, true, 180),
+            new HomeDurationOptionViewModel((string)FindResource("HomeDurationCustom"), "\uE823", false, 0)
         ]);
     }
 

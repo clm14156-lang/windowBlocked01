@@ -50,6 +50,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         }
         SettingsPage.LaunchAtStartupChanged += SettingsPage_LaunchAtStartupChanged;
         SettingsPage.WindowsNotificationsChanged += SettingsPage_WindowsNotificationsChanged;
+        HomePage.DurationOptionsChanged += HomePage_DurationOptionsChanged;
         StateCoordinator = new FocusStateCoordinator(HomePage, SettingsPage, BlockingPage, StatisticsPage);
         SettingsPage.SetUserAccess(IsLoggedIn, IsVipMember);
         HomePage.SetUserAccess(IsLoggedIn, IsVipMember);
@@ -322,7 +323,36 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     {
         SettingsPage.ApplyLaunchAtStartupState(state.Settings.LaunchAtStartup);
         SettingsPage.ApplyWindowsNotificationsState(state.Settings.WindowsNotificationsEnabled);
+        HomePage.ApplyDurationPresets(state.DurationPresets);
     }
+
+    private async void HomePage_DurationOptionsChanged(object? sender, EventArgs e)
+    {
+        if (ServiceConnection is null || !ServiceConnection.IsConnected)
+        {
+            return;
+        }
+
+        var presets = HomePage.DurationOptions
+            .Where(option => option.Icon.Length == 0)
+            .Select((option, index) => new LocalDurationPresetDto(
+                GetDurationId(option.Minutes),
+                option.Minutes,
+                option.IsSelected,
+                ReferenceEquals(option, HomePage.CurrentDurationOption),
+                index))
+            .ToArray();
+        try
+        {
+            await ServiceConnection.ReplaceDurationPresetsAsync(new ReplaceDurationPresetsCommand(presets));
+        }
+        catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException)
+        {
+        }
+    }
+
+    private static Guid GetDurationId(int minutes)
+        => Guid.Parse($"00000000-0000-0000-0000-{minutes:D12}");
 
     private async void SettingsPage_WindowsNotificationsChanged(object? sender, bool enabled)
     {

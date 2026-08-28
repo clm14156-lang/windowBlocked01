@@ -186,6 +186,7 @@ public sealed class ServiceStateCoordinator : IAsyncDisposable
                         command.Rules.Select(LocalDataContractMapper.ToCore).ToArray(),
                         token);
                 }, cancellationToken),
+                IpcOperations.ReplaceDurationPresets => await MutateDurationPresetsAsync(request, cancellationToken),
                 IpcOperations.SaveSettings => await MutateAsync(request, async token =>
                 {
                     var command = request.ReadPayload<SaveSettingsCommand>();
@@ -278,6 +279,19 @@ public sealed class ServiceStateCoordinator : IAsyncDisposable
 
             await _store.InitializeAsync(cancellationToken);
             var snapshot = await _store.LoadAsync(cancellationToken);
+            if (snapshot.DurationPresets.Count == 0)
+            {
+                var now = GetEffectiveUtcNow();
+                var defaults = new[] { 30, 60, 90, 180 }
+                    .Select((minutes, index) => new LocalDurationPreset(
+                        Guid.NewGuid(), minutes, true, index == 0, index))
+                    .ToArray();
+                await _store.SaveSettingsAsync(
+                    snapshot.Settings with { UpdatedAtUtc = now },
+                    defaults,
+                    snapshot.MonthlyFocusTargets,
+                    cancellationToken);
+            }
             _initialized = true;
             try
             {
@@ -292,6 +306,29 @@ public sealed class ServiceStateCoordinator : IAsyncDisposable
         finally
         {
             _initializationGate.Release();
+        }
+    }
+
+    private async Task<IpcEnvelope> MutateDurationPresetsAsync(IpcEnvelope request, CancellationToken cancellationToken)
+    {
+        var command = request.ReadPayload<ReplaceDurationPresetsCommand>();
+        await _mutationGate.WaitAsync(cancellationToken);
+        try
+        {
+            var snapshot = await _store.LoadAsync(cancellationToken);
+            await _store.SaveSettingsAsync(
+                snapshot.Settings with { UpdatedAtUtc = GetEffectiveUtcNow() },
+                command.Presets.Select(LocalDataContractMapper.ToCore).ToArray(),
+                snapshot.MonthlyFocusTargets,
+                cancellationToken);
+            var revision = Interlocked.Increment(ref _revision);
+            var state = await LoadStateAsync(cancellationToken);
+            StateChanged?.Invoke(this, new StateChangedEvent(revision, state));
+            return IpcEnvelope.CreateSuccess(request, new MutationResult(revision, state));
+        }
+        finally
+        {
+            _mutationGate.Release();
         }
     }
 

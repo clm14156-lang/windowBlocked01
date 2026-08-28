@@ -150,6 +150,12 @@ public sealed class DesktopServiceConnection : INotifyPropertyChanged, IAsyncDis
         Guid? requestId = null)
         => SendMutationAsync(IpcOperations.ReplaceAutomaticRules, command, cancellationToken, requestId);
 
+    public Task<MutationResult> ReplaceDurationPresetsAsync(
+        ReplaceDurationPresetsCommand command,
+        CancellationToken cancellationToken = default,
+        Guid? requestId = null)
+        => SendMutationAsync(IpcOperations.ReplaceDurationPresets, command, cancellationToken, requestId);
+
     public Task<MutationResult> SaveSettingsAsync(
         SaveSettingsCommand command,
         CancellationToken cancellationToken = default,
