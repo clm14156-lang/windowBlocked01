@@ -49,6 +49,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             ServiceConnection.StateChanged += ServiceConnection_StateChanged;
         }
         SettingsPage.LaunchAtStartupChanged += SettingsPage_LaunchAtStartupChanged;
+        SettingsPage.WindowsNotificationsChanged += SettingsPage_WindowsNotificationsChanged;
         StateCoordinator = new FocusStateCoordinator(HomePage, SettingsPage, BlockingPage, StatisticsPage);
         SettingsPage.SetUserAccess(IsLoggedIn, IsVipMember);
         HomePage.SetUserAccess(IsLoggedIn, IsVipMember);
@@ -318,7 +319,22 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     }
 
     private void ServiceConnection_StateChanged(object? sender, LocalDataSnapshotDto state)
-        => SettingsPage.ApplyLaunchAtStartupState(state.Settings.LaunchAtStartup);
+    {
+        SettingsPage.ApplyLaunchAtStartupState(state.Settings.LaunchAtStartup);
+        SettingsPage.ApplyWindowsNotificationsState(state.Settings.WindowsNotificationsEnabled);
+    }
+
+    private async void SettingsPage_WindowsNotificationsChanged(object? sender, bool enabled)
+    {
+        if (ServiceConnection is null || !ServiceConnection.IsConnected)
+        {
+            SettingsPage.ApplyWindowsNotificationsState(!enabled);
+            return;
+        }
+        try { await ServiceConnection.SetWindowsNotificationsAsync(enabled); }
+        catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException)
+        { SettingsPage.ApplyWindowsNotificationsState(!enabled); }
+    }
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
     {

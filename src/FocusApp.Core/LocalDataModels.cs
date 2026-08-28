@@ -88,7 +88,7 @@ public sealed record LocalAppSettings(
     public static LocalAppSettings Default { get; } = new(
         false,
         true,
-        false,
+        true,
         true,
         false,
         false,

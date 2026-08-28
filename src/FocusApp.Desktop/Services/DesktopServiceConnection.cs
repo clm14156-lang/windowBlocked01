@@ -123,6 +123,9 @@ public sealed class DesktopServiceConnection : INotifyPropertyChanged, IAsyncDis
         }
     }
 
+    public Task<MutationResult> SetWindowsNotificationsAsync(bool enabled, CancellationToken cancellationToken = default, Guid? requestId = null)
+        => SendMutationAsync(IpcOperations.SetWindowsNotifications, new SetWindowsNotificationsCommand(enabled), cancellationToken, requestId);
+
     public Task<MutationResult> DeleteTargetAsync(
         DeleteTargetCommand command,
         CancellationToken cancellationToken = default,

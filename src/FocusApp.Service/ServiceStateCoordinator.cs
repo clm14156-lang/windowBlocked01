@@ -138,6 +138,11 @@ public sealed class ServiceStateCoordinator : IAsyncDisposable
                     await SetLaunchAtStartupAsync(
                         request.ReadPayload<SetLaunchAtStartupCommand>(),
                         cancellationToken)),
+                IpcOperations.SetWindowsNotifications => IpcEnvelope.CreateSuccess(
+                    request,
+                    await SetWindowsNotificationsAsync(
+                        request.ReadPayload<SetWindowsNotificationsCommand>(),
+                        cancellationToken)),
                 IpcOperations.AgentProxyReconciliationResult => IpcEnvelope.CreateSuccess(
                     request,
                     await ApplyAgentProxyReconciliationResultAsync(
@@ -1072,6 +1077,31 @@ public sealed class ServiceStateCoordinator : IAsyncDisposable
 
                 throw;
             }
+            var revision = Interlocked.Increment(ref _revision);
+            var state = await LoadStateAsync(cancellationToken);
+            StateChanged?.Invoke(this, new StateChangedEvent(revision, state));
+            return new MutationResult(revision, state);
+        }
+        finally
+        {
+            _mutationGate.Release();
+        }
+    }
+
+    private async Task<MutationResult> SetWindowsNotificationsAsync(
+        SetWindowsNotificationsCommand command,
+        CancellationToken cancellationToken)
+    {
+        await _mutationGate.WaitAsync(cancellationToken);
+        try
+        {
+            var snapshot = await _store.LoadAsync(cancellationToken);
+            var settings = snapshot.Settings with
+            {
+                WindowsNotificationsEnabled = command.Enabled,
+                UpdatedAtUtc = GetEffectiveUtcNow()
+            };
+            await _store.SaveSettingsAsync(settings, snapshot.DurationPresets, snapshot.MonthlyFocusTargets, cancellationToken);
             var revision = Interlocked.Increment(ref _revision);
             var state = await LoadStateAsync(cancellationToken);
             StateChanged?.Invoke(this, new StateChangedEvent(revision, state));

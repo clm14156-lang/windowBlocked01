@@ -14,6 +14,7 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
     private bool _isLoggedIn;
     private bool _isVip;
     private bool _isApplyingLaunchAtStartup;
+    private bool _isApplyingWindowsNotifications;
     private DispatcherTimer? _ruleMergeToastTimer;
     private bool _isRuleMergeToastVisible;
     private string _ruleMergeToastRange = string.Empty;
@@ -62,6 +63,12 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
         {
             LaunchAtStartupItem.PropertyChanged += LaunchAtStartupItem_PropertyChanged;
         }
+
+        WindowsNotificationsItem = ToggleItems.FirstOrDefault(item => item.Key == "WindowsNotifications");
+        if (WindowsNotificationsItem is not null)
+        {
+            WindowsNotificationsItem.PropertyChanged += WindowsNotificationsItem_PropertyChanged;
+        }
     }
 
     private readonly string _dailyLabel;
@@ -88,7 +95,10 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
 
     public SettingsToggleItemViewModel? LaunchAtStartupItem { get; }
 
+    public SettingsToggleItemViewModel? WindowsNotificationsItem { get; }
+
     public event EventHandler<bool>? LaunchAtStartupChanged;
+    public event EventHandler<bool>? WindowsNotificationsChanged;
 
     public bool CanUseForcedMode => ForcedModeAccessPolicy.CanUseForcedMode(_isLoggedIn, _isVip);
 
@@ -332,6 +342,14 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
         }
     }
 
+    private void WindowsNotificationsItem_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(SettingsToggleItemViewModel.IsEnabled) && !_isApplyingWindowsNotifications)
+        {
+            WindowsNotificationsChanged?.Invoke(this, WindowsNotificationsItem?.IsEnabled == true);
+        }
+    }
+
     public void ApplyLaunchAtStartupState(bool enabled)
     {
         if (LaunchAtStartupItem is null)
@@ -348,6 +366,14 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
         {
             _isApplyingLaunchAtStartup = false;
         }
+    }
+
+    public void ApplyWindowsNotificationsState(bool enabled)
+    {
+        if (WindowsNotificationsItem is null) return;
+        _isApplyingWindowsNotifications = true;
+        try { WindowsNotificationsItem.IsEnabled = enabled; }
+        finally { _isApplyingWindowsNotifications = false; }
     }
 
     private void EnsureForcedModeAccessState()

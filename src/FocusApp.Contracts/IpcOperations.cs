@@ -11,6 +11,7 @@ public static class IpcOperations
     public const string ReplaceAutomaticRules = "rules.automatic.replace";
     public const string SaveSettings = "settings.save";
     public const string SetLaunchAtStartup = "settings.launch-at-startup.set";
+    public const string SetWindowsNotifications = "settings.windows-notifications.set";
     public const string ActivateAccessControl = "access-control.activate";
     public const string DeactivateAccessControl = "access-control.deactivate";
     public const string GetAccessControlStatus = "access-control.status.get";
@@ -56,6 +57,8 @@ public sealed record SaveSettingsCommand(
 public sealed record MutationResult(long Revision, LocalDataSnapshotDto State);
 
 public sealed record SetLaunchAtStartupCommand(bool Enabled);
+
+public sealed record SetWindowsNotificationsCommand(bool Enabled);
 
 public sealed record AgentStartupRegistrationActionRequestedEvent(
     Guid ActionId,

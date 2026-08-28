@@ -98,8 +98,13 @@ public partial class App : Application
         base.OnExit(e);
     }
 
-    private static void ServiceConnection_AccessBlocked(object? sender, AccessBlockedEvent e)
+    private void ServiceConnection_AccessBlocked(object? sender, AccessBlockedEvent e)
     {
+        if (_serviceConnection?.State?.Settings.WindowsNotificationsEnabled == false)
+        {
+            return;
+        }
+
         BlockedAccessNotificationService.Show(new BlockedAccessNotificationData(
             e.RuleName,
             e.Target,
@@ -165,7 +170,7 @@ public partial class App : Application
         [
             CreateSettingsToggleItem("LaunchAtStartup", "SettingsLaunchAtStartup", "SettingsLaunchAtStartupDescription", "\uE7E8", false),
             CreateSettingsToggleItem("FloatingWindow", "SettingsFloatingWindow", "SettingsFloatingWindowDescription", "\uE737", true),
-            CreateSettingsToggleItem("WindowsNotifications", "SettingsWindowsNotifications", "SettingsWindowsNotificationsDescription", "\uE7ED", false),
+            CreateSettingsToggleItem("WindowsNotifications", "SettingsWindowsNotifications", "SettingsWindowsNotificationsDescription", "\uE7ED", true),
             CreateSettingsToggleItem("FocusSound", "SettingsFocusSound", "SettingsFocusSoundDescription", "\uE8D6", true),
             CreateSettingsToggleItem("AutomaticBlocking", "SettingsAutomaticBlocking", "SettingsAutomaticBlockingDescription", "\uEA39", false),
             CreateSettingsToggleItem("ForcedMode", "SettingsForcedMode", "SettingsForcedModeDescription", "\uE83D", false, false)

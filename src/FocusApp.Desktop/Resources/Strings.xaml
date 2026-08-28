@@ -69,8 +69,8 @@
     <system:String x:Key="SettingsLaunchAtStartupDescription">在系统启动时自动运行应用</system:String>
     <system:String x:Key="SettingsFloatingWindow">开启悬浮窗口</system:String>
     <system:String x:Key="SettingsFloatingWindowDescription">在专注期间显示悬浮计时窗口</system:String>
-    <system:String x:Key="SettingsWindowsNotifications">Windows 通知</system:String>
-    <system:String x:Key="SettingsWindowsNotificationsDescription">控制是否接收右下角桌面通知</system:String>
+    <system:String x:Key="SettingsWindowsNotifications">拦截通知</system:String>
+    <system:String x:Key="SettingsWindowsNotificationsDescription">访问被屏蔽的网站或应用时显示拦截提示</system:String>
     <system:String x:Key="SettingsFocusSound">专注结束提醒音</system:String>
     <system:String x:Key="SettingsFocusSoundDescription">专注结束时播放提示音</system:String>
     <system:String x:Key="SettingsAutomaticBlocking">自动屏蔽功能</system:String>

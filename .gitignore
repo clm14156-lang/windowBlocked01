@@ -2,6 +2,6 @@ bin/
 obj/
 .vs/
 TestResults/
+.verify/
 *.user
 *.suo
-
