@@ -387,7 +387,10 @@
                             </Border.Style>
                             <StackPanel>
                                 <Grid Height="54">
-                                    <TextBlock Margin="22,0,0,0" VerticalAlignment="Center" FontSize="15" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource AutomaticRulesTitle}" />
+                                    <StackPanel Margin="22,0,0,0" VerticalAlignment="Center">
+                                        <TextBlock FontSize="15" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource AutomaticRulesTitle}" />
+                                        <TextBlock Margin="0,3,0,0" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource AutomaticRulesDailyLimitHint}" />
+                                    </StackPanel>
                                     <Button Margin="0,0,18,0" HorizontalAlignment="Right" AutomationProperties.Name="{DynamicResource AutomaticRuleAddButton}" Command="{Binding OpenRuleModalCommand}" Style="{StaticResource SettingsAddRuleButtonStyle}">
                                         <StackPanel Orientation="Horizontal">
                                             <TextBlock Margin="0,0,6,0" VerticalAlignment="Center" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource AccentPrimary}" Text="+" />

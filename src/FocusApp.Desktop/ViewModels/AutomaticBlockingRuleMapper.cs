@@ -23,4 +23,15 @@ internal static class AutomaticBlockingRuleMapper
             Math.Clamp((int)Math.Round(item.StartMinutes), 0, 24 * 60),
             Math.Clamp((int)Math.Round(item.EndMinutes), 0, 24 * 60),
             item.IsEnabled);
+
+    public static AutomaticBlockingRule ToRule(AutomaticRuleDraft draft, Guid id)
+        => new(
+            id,
+            draft.SelectedDays
+                .Where(day => Days.ContainsKey(day.Key))
+                .Select(day => Days[day.Key])
+                .ToHashSet(),
+            Math.Clamp((int)Math.Round(draft.StartMinutes), 0, 24 * 60),
+            Math.Clamp((int)Math.Round(draft.EndMinutes), 0, 24 * 60),
+            false);
 }

@@ -60,6 +60,8 @@ public sealed class AutomaticRuleModalViewModel : INotifyPropertyChanged
 
     public Func<AutomaticRuleDraft, string?>? ValidateRule { get; set; }
 
+    public Func<AutomaticRuleDraft, bool>? CanSubmitRule { get; set; }
+
     public ReadOnlyCollection<WeekdayOptionViewModel> Weekdays { get; }
 
     public ReadOnlyCollection<TimePickerOptionViewModel> HourOptions { get; }
@@ -383,6 +385,11 @@ public sealed class AutomaticRuleModalViewModel : INotifyPropertyChanged
             FormatTime(EndValue),
             StartValue,
             EndValue);
+        if (CanSubmitRule?.Invoke(draft) == false)
+        {
+            return;
+        }
+
         var validationMessage = ValidateRule?.Invoke(draft);
         if (!string.IsNullOrEmpty(validationMessage))
         {

@@ -364,6 +364,71 @@ public sealed class SettingsPageViewModelTests
     }
 
     [Fact]
+    public void RuleCreation_OverDailyLimitKeepsModalOpenAndDoesNotMutateRules()
+    {
+        var automatic = new SettingsToggleItemViewModel("AutomaticBlocking", "Automatic", "Description", "Icon", true);
+        var modal = CreateRuleModal();
+        var viewModel = new SettingsPageViewModel([automatic], [], modal, "每天");
+        var existing = CreateRule("08:00 – 19:15", 8 * 60, 19 * 60 + 15, isEnabled: false);
+        viewModel.AutomaticRules.Add(existing);
+        var changes = 0;
+        viewModel.RulesChanged += (_, _) => changes++;
+
+        modal.Open();
+        modal.EndTimeText = "20:30";
+        modal.StartTimeText = "19:00";
+        modal.ConfirmCommand.Execute(null);
+
+        Assert.True(modal.IsOpen);
+        Assert.Single(viewModel.AutomaticRules);
+        Assert.Same(existing, viewModel.AutomaticRules[0]);
+        Assert.Equal(0, changes);
+        Assert.True(viewModel.IsRuleLimitToastVisible);
+        Assert.Equal("周一每日最多屏蔽 12 小时，当前还可添加 45 分钟", viewModel.RuleLimitToastMessage);
+        Assert.Equal(string.Empty, modal.ValidationMessage);
+
+        viewModel.CloseRuleLimitToastCommand.Execute(null);
+        Assert.False(viewModel.IsRuleLimitToastVisible);
+    }
+
+    [Fact]
+    public void RuleCreation_WhenDayIsAtLimitShowsNoRemainingCapacity()
+    {
+        var automatic = new SettingsToggleItemViewModel("AutomaticBlocking", "Automatic", "Description", "Icon", true);
+        var modal = CreateRuleModal();
+        var viewModel = new SettingsPageViewModel([automatic], [], modal, "每天");
+        viewModel.AutomaticRules.Add(CreateRule("00:00 – 12:00", 0, 12 * 60, isEnabled: false));
+
+        modal.Open();
+        modal.EndTimeText = "13:00";
+        modal.StartTimeText = "12:00";
+        modal.ConfirmCommand.Execute(null);
+
+        Assert.True(modal.IsOpen);
+        Assert.Single(viewModel.AutomaticRules);
+        Assert.Equal("周一已达到每日 12 小时上限，无法继续添加", viewModel.RuleLimitToastMessage);
+    }
+
+    [Fact]
+    public void RuleEdit_UsesReplacementInsteadOfCountingPreviousVersion()
+    {
+        var automatic = new SettingsToggleItemViewModel("AutomaticBlocking", "Automatic", "Description", "Icon", true);
+        var modal = CreateRuleModal();
+        var viewModel = new SettingsPageViewModel([automatic], [], modal, "每天");
+        var existing = CreateRule("08:00 – 19:00", 8 * 60, 19 * 60, isEnabled: false);
+        viewModel.AutomaticRules.Add(existing);
+
+        viewModel.EditRuleCommand.Execute(existing);
+        modal.EndTimeText = "20:00";
+        modal.ConfirmCommand.Execute(null);
+
+        Assert.False(modal.IsOpen);
+        Assert.Same(existing, Assert.Single(viewModel.AutomaticRules));
+        Assert.Equal("08:00 – 20:00", existing.TimeRangeText);
+        Assert.False(viewModel.IsRuleLimitToastVisible);
+    }
+
+    [Fact]
     public void EnablingAnActiveRule_RequiresConfirmationBeforeItStartsBlocking()
     {
         var automatic = new SettingsToggleItemViewModel("AutomaticBlocking", "Automatic", "Description", "Icon", true);

@@ -721,6 +721,80 @@
                 </Border>
             </Grid>
 
+            <Grid Grid.ColumnSpan="2"
+                  Panel.ZIndex="181"
+                  HorizontalAlignment="Center"
+                  VerticalAlignment="Top"
+                  IsHitTestVisible="True">
+                <Border Width="360"
+                        Height="60"
+                        Margin="0,65,0,0"
+                        Padding="12,8,8,8"
+                        Background="{DynamicResource SurfacePrimary}"
+                        BorderBrush="{DynamicResource DangerBorder}"
+                        BorderThickness="1"
+                        CornerRadius="10">
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="16" Direction="270" Opacity="0.12" ShadowDepth="3" />
+                    </Border.Effect>
+                    <Border.Style>
+                        <Style TargetType="{x:Type Border}">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding SettingsPage.IsRuleLimitToastVisible}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="36" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="24" />
+                        </Grid.ColumnDefinitions>
+                        <Border Width="28"
+                                Height="28"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Center"
+                                Background="{DynamicResource DangerTint}"
+                                CornerRadius="14">
+                            <TextBlock HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       FontFamily="Segoe MDL2 Assets"
+                                       FontSize="15"
+                                       Foreground="{DynamicResource Danger}"
+                                       Text="&#xE7BA;" />
+                        </Border>
+                        <StackPanel Grid.Column="1" Margin="8,0,4,0" VerticalAlignment="Center">
+                            <TextBlock FontSize="14"
+                                       FontWeight="Medium"
+                                       Foreground="{DynamicResource TextPrimary}"
+                                       Text="{DynamicResource AutomaticRuleLimitTitle}" />
+                            <TextBlock Margin="0,2,0,0"
+                                       FontSize="11"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       Text="{Binding SettingsPage.RuleLimitToastMessage, Mode=OneWay}"
+                                       TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                        <Button Grid.Column="2"
+                                Width="24"
+                                Height="24"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Top"
+                                AutomationProperties.Name="{DynamicResource AutomaticRuleLimitClose}"
+                                Command="{Binding SettingsPage.CloseRuleLimitToastCommand}"
+                                Style="{StaticResource WindowChromeButtonStyle}"
+                                ToolTip="{DynamicResource AutomaticRuleLimitClose}">
+                            <TextBlock FontFamily="Segoe MDL2 Assets"
+                                       FontSize="12"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       Text="&#xE8BB;" />
+                        </Button>
+                    </Grid>
+                </Border>
+            </Grid>
+
             <views:FocusFlowView Grid.ColumnSpan="2"
                                  Panel.ZIndex="200"
                                  MinimizeRequested="FocusFlowView_MinimizeRequested"

@@ -18,6 +18,9 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
     private DispatcherTimer? _ruleMergeToastTimer;
     private bool _isRuleMergeToastVisible;
     private string _ruleMergeToastRange = string.Empty;
+    private DispatcherTimer? _ruleLimitToastTimer;
+    private bool _isRuleLimitToastVisible;
+    private string _ruleLimitToastMessage = string.Empty;
     private readonly Func<DateTime> _clock;
 
     public SettingsPageViewModel(
@@ -44,6 +47,8 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
         ToggleRuleCommand = new RelayCommand<AutomaticRuleItemViewModel>(ToggleRule);
         EditRuleCommand = new RelayCommand<AutomaticRuleItemViewModel>(EditRule);
         CloseRuleMergeToastCommand = new RelayCommand<object>(_ => CloseRuleMergeToast());
+        CloseRuleLimitToastCommand = new RelayCommand<object>(_ => CloseRuleLimitToast());
+        RuleModal.CanSubmitRule = CanSubmitRule;
         RuleModal.ValidateRule = ValidateRule;
         RuleModal.RuleSubmitted += RuleModal_RuleSubmitted;
         RuleActivationModal.ActivationConfirmed += RuleActivationModal_ActivationConfirmed;
@@ -122,9 +127,15 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
 
     public ICommand CloseRuleMergeToastCommand { get; }
 
+    public ICommand CloseRuleLimitToastCommand { get; }
+
     public bool IsRuleMergeToastVisible => _isRuleMergeToastVisible;
 
     public string RuleMergeToastRange => _ruleMergeToastRange;
+
+    public bool IsRuleLimitToastVisible => _isRuleLimitToastVisible;
+
+    public string RuleLimitToastMessage => _ruleLimitToastMessage;
 
     public string? LastActivatedEntryKey => _activeEntry?.Key;
 
@@ -298,6 +309,66 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
         _isRuleMergeToastVisible = false;
         OnPropertyChanged(nameof(IsRuleMergeToastVisible));
     }
+
+    private bool CanSubmitRule(AutomaticRuleDraft draft)
+    {
+        var candidate = AutomaticBlockingRuleMapper.ToRule(draft, _editingRule?.Id ?? Guid.NewGuid());
+        var conflict = AutomaticBlockingDailyLimitValidator.FindConflict(
+            AutomaticRules.Select(AutomaticBlockingRuleMapper.ToRule),
+            candidate);
+        if (conflict is null)
+        {
+            CloseRuleLimitToast();
+            return true;
+        }
+
+        CloseRuleMergeToast();
+        var dayName = GetDayDisplayName(conflict.Day);
+        _ruleLimitToastMessage = conflict.RemainingMinutes == 0
+            ? $"{dayName}已达到每日 12 小时上限，无法继续添加"
+            : $"{dayName}每日最多屏蔽 12 小时，当前还可添加 {conflict.RemainingMinutes} 分钟";
+        _isRuleLimitToastVisible = true;
+        OnPropertyChanged(nameof(RuleLimitToastMessage));
+        OnPropertyChanged(nameof(IsRuleLimitToastVisible));
+
+        _ruleLimitToastTimer ??= new DispatcherTimer(DispatcherPriority.Normal)
+        {
+            Interval = TimeSpan.FromSeconds(4)
+        };
+        _ruleLimitToastTimer.Stop();
+        _ruleLimitToastTimer.Tick -= RuleLimitToastTimer_Tick;
+        _ruleLimitToastTimer.Tick += RuleLimitToastTimer_Tick;
+        _ruleLimitToastTimer.Start();
+        return false;
+    }
+
+    private void RuleLimitToastTimer_Tick(object? sender, EventArgs e)
+        => CloseRuleLimitToast();
+
+    private void CloseRuleLimitToast()
+    {
+        _ruleLimitToastTimer?.Stop();
+        if (!_isRuleLimitToastVisible)
+        {
+            return;
+        }
+
+        _isRuleLimitToastVisible = false;
+        OnPropertyChanged(nameof(IsRuleLimitToastVisible));
+    }
+
+    private static string GetDayDisplayName(DayOfWeek day)
+        => day switch
+        {
+            DayOfWeek.Monday => "周一",
+            DayOfWeek.Tuesday => "周二",
+            DayOfWeek.Wednesday => "周三",
+            DayOfWeek.Thursday => "周四",
+            DayOfWeek.Friday => "周五",
+            DayOfWeek.Saturday => "周六",
+            DayOfWeek.Sunday => "周日",
+            _ => string.Empty
+        };
 
     private void DeleteRule(AutomaticRuleItemViewModel? rule)
     {

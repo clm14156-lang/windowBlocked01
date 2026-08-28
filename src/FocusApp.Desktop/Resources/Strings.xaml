@@ -107,6 +107,7 @@
     <system:String x:Key="SettingsAbout">关于应用</system:String>
     <system:String x:Key="SettingsAboutDescription">版本信息与使用条款</system:String>
     <system:String x:Key="AutomaticRulesTitle">屏蔽规则</system:String>
+    <system:String x:Key="AutomaticRulesDailyLimitHint">每日自动屏蔽最多 12 小时</system:String>
     <system:String x:Key="AutomaticRulesEmpty">暂无规则</system:String>
     <system:String x:Key="AutomaticRuleAddButton">添加规则</system:String>
     <system:String x:Key="AutomaticRuleNewTitle">新建规则</system:String>
@@ -132,6 +133,8 @@
     <system:String x:Key="AutomaticRuleMergedTitle">规则已自动合并</system:String>
     <system:String x:Key="AutomaticRuleMergedMessagePrefix">已将重叠时间段合并为</system:String>
     <system:String x:Key="AutomaticRuleMergedClose">关闭规则合并提示</system:String>
+    <system:String x:Key="AutomaticRuleLimitTitle">无法创建屏蔽规则</system:String>
+    <system:String x:Key="AutomaticRuleLimitClose">关闭规则创建失败提示</system:String>
     <system:String x:Key="AutomaticRuleActivationTitle">当前规则将立即生效</system:String>
     <system:String x:Key="AutomaticRuleActivationDescription">当前时间处于规则范围内，&#x0a;开启后将立即开始自动屏蔽。</system:String>
     <system:String x:Key="AutomaticRuleActivationCancel">取消</system:String>
