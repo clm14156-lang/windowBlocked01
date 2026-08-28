@@ -3,12 +3,14 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
+using FocusApp.Core;
 
 namespace FocusApp.Desktop.ViewModels;
 
 public sealed class AutomaticRuleModalViewModel : INotifyPropertyChanged
 {
     private const int MinutesPerDay = 24 * 60;
+    private const int MaximumDurationMinutes = AutomaticBlockingDailyLimitValidator.DailyLimitMinutes;
     private const int TimeStepMinutes = 5;
     private bool _isOpen;
     private bool _isEditing;
@@ -160,15 +162,25 @@ public sealed class AutomaticRuleModalViewModel : INotifyPropertyChanged
         get => _startValue;
         set
         {
-            var coerced = Math.Clamp(SnapToStep(value), 0, EndValue);
+            var coerced = Math.Clamp(
+                SnapToStep(value),
+                Math.Max(0, EndValue - MaximumDurationMinutes),
+                EndValue);
+            var hadStartTime = _hasStartTime;
+            _hasStartTime = true;
             if (SetField(ref _startValue, coerced))
             {
-                _hasStartTime = true;
                 SetStartText(FormatTime(coerced));
+                OnPropertyChanged(nameof(SelectedDurationText));
                 if (IsTimePickerOpen && _isPickingStartTime)
                 {
                     SyncPickerSelection(coerced);
                 }
+            }
+            else if (!hadStartTime)
+            {
+                SetStartText(FormatTime(coerced));
+                OnPropertyChanged(nameof(SelectedDurationText));
             }
         }
     }
@@ -178,15 +190,25 @@ public sealed class AutomaticRuleModalViewModel : INotifyPropertyChanged
         get => _endValue;
         set
         {
-            var coerced = Math.Clamp(SnapToStep(value), StartValue, MinutesPerDay);
+            var coerced = Math.Clamp(
+                SnapToStep(value),
+                StartValue,
+                Math.Min(MinutesPerDay, StartValue + MaximumDurationMinutes));
+            var hadEndTime = _hasEndTime;
+            _hasEndTime = true;
             if (SetField(ref _endValue, coerced))
             {
-                _hasEndTime = true;
                 SetEndText(FormatTime(coerced));
+                OnPropertyChanged(nameof(SelectedDurationText));
                 if (IsTimePickerOpen && !_isPickingStartTime)
                 {
                     SyncPickerSelection(coerced);
                 }
+            }
+            else if (!hadEndTime)
+            {
+                SetEndText(FormatTime(coerced));
+                OnPropertyChanged(nameof(SelectedDurationText));
             }
         }
     }
@@ -231,6 +253,10 @@ public sealed class AutomaticRuleModalViewModel : INotifyPropertyChanged
 
     public string SelectedDaysText => string.Join("、", Weekdays.Where(day => day.IsSelected).Select(day => day.DisplayName));
 
+    public string SelectedDurationText => !_hasStartTime || !_hasEndTime
+        ? string.Empty
+        : FormatDuration((int)Math.Round(EndValue - StartValue));
+
     public string ValidationMessage
     {
         get => _validationMessage;
@@ -245,10 +271,7 @@ public sealed class AutomaticRuleModalViewModel : INotifyPropertyChanged
         ValidationMessage = string.Empty;
         _hasStartTime = true;
         _hasEndTime = true;
-        StartValue = 9 * 60;
-        EndValue = 12 * 60;
-        SetStartText("09:00");
-        SetEndText("12:00");
+        SetRange(9 * 60, 12 * 60);
         for (var index = 0; index < Weekdays.Count; index++)
         {
             Weekdays[index].IsSelected = index is 0 or 2 or 4;
@@ -273,12 +296,7 @@ public sealed class AutomaticRuleModalViewModel : INotifyPropertyChanged
 
         var snappedStart = SnapToStep(startMinutes);
         var snappedEnd = SnapToStep(endMinutes);
-        _startValue = Math.Min(snappedStart, snappedEnd);
-        _endValue = Math.Max(snappedStart, snappedEnd);
-        OnPropertyChanged(nameof(StartValue));
-        OnPropertyChanged(nameof(EndValue));
-        SetStartText(FormatTime(_startValue));
-        SetEndText(FormatTime(_endValue));
+        SetRange(Math.Min(snappedStart, snappedEnd), Math.Max(snappedStart, snappedEnd));
 
         foreach (var weekday in Weekdays)
         {
@@ -293,8 +311,8 @@ public sealed class AutomaticRuleModalViewModel : INotifyPropertyChanged
     {
         _isPickingStartTime = isStartTime;
         var value = isStartTime
-            ? (_hasStartTime ? StartValue : 0)
-            : (_hasEndTime ? EndValue : MinutesPerDay);
+            ? StartValue
+            : EndValue;
         SyncPickerSelection(value);
         IsTimePickerOpen = true;
         OnPropertyChanged(nameof(IsStartTimePickerOpen));
@@ -316,7 +334,7 @@ public sealed class AutomaticRuleModalViewModel : INotifyPropertyChanged
         var delta = direction > 0 ? TimeStepMinutes : -TimeStepMinutes;
         if (isStartTime)
         {
-            var current = _hasStartTime ? SnapToStep(StartValue) : 0;
+            var current = SnapToStep(StartValue);
             var adjusted = Math.Clamp(current + delta, 0, EndValue);
             _hasStartTime = true;
             StartValue = adjusted;
@@ -324,7 +342,7 @@ public sealed class AutomaticRuleModalViewModel : INotifyPropertyChanged
         }
         else
         {
-            var current = _hasEndTime ? SnapToStep(EndValue) : MinutesPerDay;
+            var current = SnapToStep(EndValue);
             var adjusted = Math.Clamp(current + delta, StartValue, MinutesPerDay);
             _hasEndTime = true;
             EndValue = adjusted;
@@ -377,6 +395,12 @@ public sealed class AutomaticRuleModalViewModel : INotifyPropertyChanged
             return;
         }
 
+        if (EndValue - StartValue > MaximumDurationMinutes)
+        {
+            ValidationMessage = "单条规则最长 12 小时";
+            return;
+        }
+
         var selectedDays = (IsCustom ? Weekdays.Where(day => day.IsSelected) : Weekdays).ToArray();
         var draft = new AutomaticRuleDraft(
             IsCustom,
@@ -412,16 +436,17 @@ public sealed class AutomaticRuleModalViewModel : INotifyPropertyChanged
         if (_isPickingStartTime)
         {
             _hasStartTime = false;
-            SetField(ref _startValue, 0, nameof(StartValue));
+            SetField(ref _startValue, Math.Max(0, EndValue - MaximumDurationMinutes), nameof(StartValue));
             SetStartText("--:--");
         }
         else
         {
             _hasEndTime = false;
-            SetField(ref _endValue, MinutesPerDay, nameof(EndValue));
+            SetField(ref _endValue, Math.Min(MinutesPerDay, StartValue + MaximumDurationMinutes), nameof(EndValue));
             SetEndText("--:--");
         }
 
+        OnPropertyChanged(nameof(SelectedDurationText));
         ValidationMessage = string.Empty;
         IsTimePickerOpen = false;
     }
@@ -497,6 +522,39 @@ public sealed class AutomaticRuleModalViewModel : INotifyPropertyChanged
     {
         var totalMinutes = (int)Math.Round(minutes);
         return $"{totalMinutes / 60:00}:{totalMinutes % 60:00}";
+    }
+
+    private static string FormatDuration(int minutes)
+    {
+        if (minutes == MaximumDurationMinutes)
+        {
+            return "12小时 · 已达上限";
+        }
+
+        var hours = minutes / 60;
+        var remainingMinutes = minutes % 60;
+        if (hours == 0)
+        {
+            return $"{remainingMinutes}分钟";
+        }
+
+        return remainingMinutes == 0
+            ? $"{hours}小时"
+            : $"{hours}小时 {remainingMinutes}分钟";
+    }
+
+    private void SetRange(double startMinutes, double endMinutes)
+    {
+        var start = Math.Clamp(SnapToStep(startMinutes), 0, MinutesPerDay);
+        var end = Math.Clamp(SnapToStep(endMinutes), start, MinutesPerDay);
+        end = Math.Min(end, start + MaximumDurationMinutes);
+        _startValue = start;
+        _endValue = end;
+        OnPropertyChanged(nameof(StartValue));
+        OnPropertyChanged(nameof(EndValue));
+        SetStartText(FormatTime(start));
+        SetEndText(FormatTime(end));
+        OnPropertyChanged(nameof(SelectedDurationText));
     }
 
     private static double SnapToStep(double minutes)

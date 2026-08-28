@@ -17,6 +17,26 @@ public sealed class AutomaticBlockingDailyLimitValidatorTests
     }
 
     [Fact]
+    public void SingleRuleDuration_AllowsTwelveHoursAndRejectsLongerRanges()
+    {
+        var exactLimit = Rule([DayOfWeek.Monday], 9 * 60, 21 * 60);
+        var overLimit = Rule([DayOfWeek.Monday], 9 * 60, 21 * 60 + 1);
+
+        Assert.True(AutomaticBlockingDailyLimitValidator.IsSingleRuleWithinLimit(exactLimit));
+        Assert.False(AutomaticBlockingDailyLimitValidator.IsSingleRuleWithinLimit(overLimit));
+    }
+
+    [Fact]
+    public void SingleOvernightRule_UsesItsActualDuration()
+    {
+        var exactLimit = Rule([DayOfWeek.Monday], 18 * 60, 6 * 60);
+        var overLimit = Rule([DayOfWeek.Monday], 18 * 60, 6 * 60 + 1);
+
+        Assert.True(AutomaticBlockingDailyLimitValidator.IsSingleRuleWithinLimit(exactLimit));
+        Assert.False(AutomaticBlockingDailyLimitValidator.IsSingleRuleWithinLimit(overLimit));
+    }
+
+    [Fact]
     public void MoreThanTwelveMergedHours_ReturnsExistingRemainingCapacity()
     {
         var existing = Rule([DayOfWeek.Wednesday], 8 * 60, 19 * 60 + 15);

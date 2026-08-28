@@ -7,6 +7,7 @@ namespace FocusApp.Desktop.Views;
 public partial class TimeRangeSlider : UserControl
 {
     private const double MaximumMinutes = 24 * 60;
+    private const double MaximumRangeMinutes = 12 * 60;
     private const double ThumbSize = 18;
     private const double TimeStepMinutes = 5;
     private double _startDragOrigin;
@@ -58,7 +59,10 @@ public partial class TimeRangeSlider : UserControl
     private void StartThumb_DragDelta(object sender, DragDeltaEventArgs e)
     {
         _startDragDistance += e.HorizontalChange;
-        StartValue = Math.Clamp(SnapToStep(_startDragOrigin + DeltaToMinutes(_startDragDistance)), 0, EndValue);
+        StartValue = Math.Clamp(
+            SnapToStep(_startDragOrigin + DeltaToMinutes(_startDragDistance)),
+            Math.Max(0, EndValue - MaximumRangeMinutes),
+            EndValue);
     }
 
     private void EndThumb_DragStarted(object sender, DragStartedEventArgs e)
@@ -70,7 +74,10 @@ public partial class TimeRangeSlider : UserControl
     private void EndThumb_DragDelta(object sender, DragDeltaEventArgs e)
     {
         _endDragDistance += e.HorizontalChange;
-        EndValue = Math.Clamp(SnapToStep(_endDragOrigin + DeltaToMinutes(_endDragDistance)), StartValue, MaximumMinutes);
+        EndValue = Math.Clamp(
+            SnapToStep(_endDragOrigin + DeltaToMinutes(_endDragDistance)),
+            StartValue,
+            Math.Min(MaximumMinutes, StartValue + MaximumRangeMinutes));
     }
 
     private double DeltaToMinutes(double horizontalChange)

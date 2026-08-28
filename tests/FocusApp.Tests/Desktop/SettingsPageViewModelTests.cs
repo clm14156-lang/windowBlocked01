@@ -177,15 +177,55 @@ public sealed class SettingsPageViewModelTests
 
         Assert.False(modal.IsTimePickerOpen);
         Assert.Equal("--:--", modal.EndTimeText);
-        Assert.Equal(24 * 60, modal.EndValue);
+        Assert.Equal(21 * 60, modal.EndValue);
+        Assert.Equal(string.Empty, modal.SelectedDurationText);
 
         modal.ConfirmCommand.Execute(null);
         Assert.True(modal.IsOpen);
         Assert.Equal("请选择开始时间和结束时间", modal.ValidationMessage);
 
         modal.AdjustTimeByWheel(false, -120);
-        Assert.Equal("23:55", modal.EndTimeText);
-        Assert.Equal(23 * 60 + 55, modal.EndValue);
+        Assert.Equal("20:55", modal.EndTimeText);
+        Assert.Equal(20 * 60 + 55, modal.EndValue);
+    }
+
+    [Fact]
+    public void TimeRange_ClampsBothHandlesToTwelveHours()
+    {
+        var modal = CreateRuleModal();
+        modal.Open();
+
+        modal.EndValue = 23 * 60;
+
+        Assert.Equal(21 * 60, modal.EndValue);
+        Assert.Equal("21:00", modal.EndTimeText);
+        Assert.Equal("12小时 · 已达上限", modal.SelectedDurationText);
+
+        modal.EndValue = 18 * 60;
+        modal.StartValue = 0;
+
+        Assert.Equal(6 * 60, modal.StartValue);
+        Assert.Equal("06:00", modal.StartTimeText);
+        Assert.Equal("12小时 · 已达上限", modal.SelectedDurationText);
+    }
+
+    [Fact]
+    public void TimeInputs_UseTheSameTwelveHourBoundaryAndUpdateDurationText()
+    {
+        var modal = CreateRuleModal();
+        modal.Open();
+
+        Assert.Equal("3小时", modal.SelectedDurationText);
+
+        modal.EndTimeText = "23:00";
+
+        Assert.Equal("21:00", modal.EndTimeText);
+        Assert.Equal(21 * 60, modal.EndValue);
+        Assert.Equal("12小时 · 已达上限", modal.SelectedDurationText);
+
+        modal.EndTimeText = "10:35";
+
+        Assert.Equal("1小时 35分钟", modal.SelectedDurationText);
     }
 
     [Fact]

@@ -44,6 +44,22 @@ public sealed class AutomaticBlockingDailyLimitPresentationTests
             (string?)element.Attribute("Command") == "{Binding SettingsPage.CloseRuleLimitToastCommand}");
     }
 
+    [Fact]
+    public void RuleModal_ShowsLiveDurationBesideTimeHeading()
+    {
+        var root = FindRepositoryRoot();
+        var modal = XDocument.Load(Path.Combine(root, "src", "FocusApp.Desktop", "Views", "AutomaticRuleModal.xaml"));
+
+        var duration = Assert.Single(modal.Descendants(Presentation + "TextBlock")
+            .Where(element => (string?)element.Attribute("Text") == "{Binding SelectedDurationText, Mode=OneWay}"));
+
+        Assert.Equal("Right", (string?)duration.Attribute("HorizontalAlignment"));
+        Assert.Equal("12", (string?)duration.Attribute("FontSize"));
+        Assert.Equal("{DynamicResource TextSecondary}", (string?)duration.Attribute("Foreground"));
+        Assert.Contains(duration.Parent!.Elements(Presentation + "TextBlock"), element =>
+            (string?)element.Attribute("Text") == "{DynamicResource AutomaticRuleTimeTitle}");
+    }
+
     private static string FindRepositoryRoot()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);

@@ -314,14 +314,16 @@
             </StackPanel>
             <Border Margin="20,236,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Width="260" Height="1" Background="{DynamicResource BorderPrimary}" Visibility="{Binding IsCustom, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
-            <TextBlock HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource AutomaticRuleTimeTitle}">
-                <TextBlock.Style>
-                    <Style TargetType="{x:Type TextBlock}" BasedOn="{StaticResource {x:Type TextBlock}}">
+            <Grid Width="260" HorizontalAlignment="Left" VerticalAlignment="Top">
+                <Grid.Style>
+                    <Style TargetType="{x:Type Grid}">
                         <Setter Property="Margin" Value="20,150,0,0" />
                         <Style.Triggers><DataTrigger Binding="{Binding IsCustom}" Value="True"><Setter Property="Margin" Value="20,246,0,0" /></DataTrigger></Style.Triggers>
                     </Style>
-                </TextBlock.Style>
-            </TextBlock>
+                </Grid.Style>
+                <TextBlock HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource AutomaticRuleTimeTitle}" />
+                <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding SelectedDurationText, Mode=OneWay}" />
+            </Grid>
             <Button x:Name="StartTimeButton"
                     HorizontalAlignment="Left"
                     VerticalAlignment="Top"

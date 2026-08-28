@@ -12,6 +12,19 @@ public static class AutomaticBlockingDailyLimitValidator
 {
     public const int DailyLimitMinutes = 12 * 60;
 
+    public static bool IsSingleRuleWithinLimit(AutomaticBlockingRule rule)
+    {
+        if (rule.StartMinutes is < 0 or > 24 * 60 || rule.EndMinutes is < 0 or > 24 * 60)
+        {
+            return false;
+        }
+
+        var duration = rule.EndMinutes >= rule.StartMinutes
+            ? rule.EndMinutes - rule.StartMinutes
+            : 24 * 60 - rule.StartMinutes + rule.EndMinutes;
+        return duration <= DailyLimitMinutes;
+    }
+
     private static readonly DayOfWeek[] WeekOrder =
     [
         DayOfWeek.Monday,

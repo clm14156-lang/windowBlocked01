@@ -313,6 +313,11 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
     private bool CanSubmitRule(AutomaticRuleDraft draft)
     {
         var candidate = AutomaticBlockingRuleMapper.ToRule(draft, _editingRule?.Id ?? Guid.NewGuid());
+        if (!AutomaticBlockingDailyLimitValidator.IsSingleRuleWithinLimit(candidate))
+        {
+            return false;
+        }
+
         var conflict = AutomaticBlockingDailyLimitValidator.FindConflict(
             AutomaticRules.Select(AutomaticBlockingRuleMapper.ToRule),
             candidate);
