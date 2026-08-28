@@ -285,7 +285,10 @@ public sealed record LocalAutomaticRuleDto(
     int StartMinutes,
     int EndMinutes,
     bool IsEnabled,
-    int SortOrder);
+    int SortOrder,
+    bool IsCustom = false,
+    DateTimeOffset? CreatedAtUtc = null,
+    DateTimeOffset? UpdatedAtUtc = null);
 
 public sealed record LocalAppSettingsDto(
     bool LaunchAtStartup,

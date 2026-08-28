@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using System.Windows.Threading;
+using FocusApp.Contracts;
 using FocusApp.Core;
 
 namespace FocusApp.Desktop.ViewModels;
@@ -114,6 +115,30 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
     public ExportRecordsModalViewModel ExportRecordsModal { get; }
 
     public ObservableCollection<AutomaticRuleItemViewModel> AutomaticRules { get; } = [];
+
+    public void ApplyAutomaticRules(IEnumerable<LocalAutomaticRuleDto> rules)
+    {
+        ArgumentNullException.ThrowIfNull(rules);
+        foreach (var existing in AutomaticRules) existing.PropertyChanged -= AutomaticRule_PropertyChanged;
+        AutomaticRules.Clear();
+        foreach (var rule in rules.OrderBy(item => item.SortOrder))
+        {
+            var dayKeys = rule.ActiveDays.Select(day => day.ToString());
+            var repeatText = rule.IsCustom
+                ? string.Join(" / ", rule.ActiveDays.OrderBy(GetDaySortOrder).Select(GetDayDisplayName))
+                : _dailyLabel;
+            var item = new AutomaticRuleItemViewModel(
+                rule.Id, repeatText, FormatRuleRange(rule.StartMinutes, rule.EndMinutes), dayKeys,
+                rule.StartMinutes, rule.EndMinutes, rule.IsCustom,
+                rule.CreatedAtUtc ?? DateTimeOffset.UnixEpoch,
+                rule.UpdatedAtUtc ?? DateTimeOffset.UnixEpoch)
+            {
+                IsEnabled = rule.IsEnabled
+            };
+            item.PropertyChanged += AutomaticRule_PropertyChanged;
+            AutomaticRules.Add(item);
+        }
+    }
 
     public ICommand ActivateEntryCommand { get; }
 
@@ -375,6 +400,9 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
             _ => string.Empty
         };
 
+    private static int GetDaySortOrder(DayOfWeek day)
+        => day == DayOfWeek.Sunday ? 6 : (int)day - 1;
+
     private void DeleteRule(AutomaticRuleItemViewModel? rule)
     {
         if (rule is not null)
@@ -476,7 +504,6 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
         if (rule.IsEnabled)
         {
             rule.IsEnabled = false;
-            RulesChanged?.Invoke(this, EventArgs.Empty);
             return;
         }
 
@@ -506,7 +533,6 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
     private void EnableRule(AutomaticRuleItemViewModel rule)
     {
         rule.IsEnabled = true;
-        RulesChanged?.Invoke(this, EventArgs.Empty);
     }
 
     private string? ValidateRule(AutomaticRuleDraft draft)
@@ -585,7 +611,7 @@ public sealed class AutomaticRuleItemViewModel : INotifyPropertyChanged
     private bool _isCustom;
 
     public AutomaticRuleItemViewModel(Guid id, string repeatText, string timeRangeText,
-        IEnumerable<string>? dayKeys = null, double startMinutes = 0, double endMinutes = 0, bool isCustom = false)
+        IEnumerable<string>? dayKeys = null, double startMinutes = 0, double endMinutes = 0, bool isCustom = false, DateTimeOffset? createdAtUtc = null, DateTimeOffset? updatedAtUtc = null)
     {
         Id = id;
         _repeatText = repeatText;
@@ -594,6 +620,8 @@ public sealed class AutomaticRuleItemViewModel : INotifyPropertyChanged
         _startMinutes = startMinutes;
         _endMinutes = endMinutes;
         _isCustom = isCustom;
+        CreatedAtUtc = createdAtUtc ?? DateTimeOffset.UtcNow;
+        UpdatedAtUtc = updatedAtUtc ?? CreatedAtUtc;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -612,6 +640,9 @@ public sealed class AutomaticRuleItemViewModel : INotifyPropertyChanged
 
     public bool IsCustom => _isCustom;
 
+    public DateTimeOffset CreatedAtUtc { get; private set; }
+    public DateTimeOffset UpdatedAtUtc { get; private set; }
+
     public void Update(
         string repeatText,
         string timeRangeText,
@@ -627,6 +658,7 @@ public sealed class AutomaticRuleItemViewModel : INotifyPropertyChanged
         _startMinutes = startMinutes;
         _endMinutes = endMinutes;
         _isCustom = isCustom;
+        UpdatedAtUtc = DateTimeOffset.UtcNow;
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(RepeatText)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(TimeRangeText)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DayKeys)));
@@ -646,6 +678,7 @@ public sealed class AutomaticRuleItemViewModel : INotifyPropertyChanged
             }
 
             _isEnabled = value;
+            UpdatedAtUtc = DateTimeOffset.UtcNow;
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsEnabled)));
         }
     }

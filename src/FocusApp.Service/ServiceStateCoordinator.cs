@@ -185,6 +185,7 @@ public sealed class ServiceStateCoordinator : IAsyncDisposable
                 IpcOperations.ReplaceAutomaticRules => await MutateAsync(request, async token =>
                 {
                     var command = request.ReadPayload<ReplaceAutomaticRulesCommand>();
+                    ValidateAutomaticRules(command.Rules);
                     await _store.ReplaceAutomaticRulesAsync(
                         command.Rules.Select(LocalDataContractMapper.ToCore).ToArray(),
                         token);
@@ -233,6 +234,24 @@ public sealed class ServiceStateCoordinator : IAsyncDisposable
             return IpcEnvelope.CreateFailure(
                 request,
                 new IpcErrorResult(IpcErrorCode.InternalError, "后台服务处理请求时发生内部错误。", true));
+        }
+    }
+
+    private static void ValidateAutomaticRules(IReadOnlyList<LocalAutomaticRuleDto> rules)
+    {
+        var candidates = rules.Select(rule => new AutomaticBlockingRule(
+            rule.Id,
+            rule.ActiveDays.ToHashSet(),
+            rule.StartMinutes,
+            rule.EndMinutes,
+            rule.IsEnabled)).ToArray();
+        foreach (var candidate in candidates)
+        {
+            if (!AutomaticBlockingDailyLimitValidator.IsSingleRuleWithinLimit(candidate) ||
+                AutomaticBlockingDailyLimitValidator.FindConflict(candidates, candidate) is not null)
+            {
+                throw new ServiceBusinessException("自动屏蔽规则超过每日 12 小时限制。");
+            }
         }
     }
 

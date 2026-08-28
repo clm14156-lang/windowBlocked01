@@ -349,8 +349,9 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
             {
                 await using var command = CreateCommand(connection, transaction, """
                     INSERT INTO automatic_rules (
-                        rule_id, active_days_mask, start_minutes, end_minutes, is_enabled, sort_order)
-                    VALUES ($id, $days, $start, $end, $enabled, $sort);
+                        rule_id, active_days_mask, start_minutes, end_minutes, is_enabled, sort_order,
+                        is_custom, created_utc, updated_utc)
+                    VALUES ($id, $days, $start, $end, $enabled, $sort, $custom, $created, $updated);
                     """);
                 command.Parameters.AddWithValue("$id", FormatGuid(rule.Id));
                 command.Parameters.AddWithValue("$days", ToDayMask(rule.ActiveDays));
@@ -358,6 +359,9 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
                 command.Parameters.AddWithValue("$end", rule.EndMinutes);
                 command.Parameters.AddWithValue("$enabled", ToInteger(rule.IsEnabled));
                 command.Parameters.AddWithValue("$sort", rule.SortOrder);
+                command.Parameters.AddWithValue("$custom", ToInteger(rule.IsCustom));
+                command.Parameters.AddWithValue("$created", FormatDateTime(rule.CreatedAtUtc));
+                command.Parameters.AddWithValue("$updated", FormatDateTime(rule.UpdatedAtUtc));
                 await command.ExecuteNonQueryAsync(cancellationToken);
             },
             cancellationToken);
@@ -861,7 +865,8 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
         var values = new List<LocalAutomaticRule>();
         await using var command = connection.CreateCommand();
         command.CommandText = """
-            SELECT rule_id, active_days_mask, start_minutes, end_minutes, is_enabled, sort_order
+            SELECT rule_id, active_days_mask, start_minutes, end_minutes, is_enabled, sort_order,
+                   is_custom, created_utc, updated_utc
             FROM automatic_rules ORDER BY sort_order, rule_id;
             """;
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
@@ -873,7 +878,12 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
                 reader.GetInt32(2),
                 reader.GetInt32(3),
                 reader.GetBoolean(4),
-                reader.GetInt32(5)));
+                reader.GetInt32(5))
+            {
+                IsCustom = reader.GetBoolean(6),
+                CreatedAtUtc = ParseDateTime(reader.GetString(7)),
+                UpdatedAtUtc = ParseDateTime(reader.GetString(8))
+            });
         }
 
         return values;

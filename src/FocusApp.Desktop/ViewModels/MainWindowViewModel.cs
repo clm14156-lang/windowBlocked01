@@ -20,6 +20,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private readonly SemaphoreSlim _targetPersistenceGate = new(1, 1);
     private readonly SemaphoreSlim _settingsPersistenceGate = new(1, 1);
     private readonly SemaphoreSlim _normalFocusPersistenceGate = new(1, 1);
+    private readonly SemaphoreSlim _automaticRulesPersistenceGate = new(1, 1);
     private Guid? _normalFocusSessionId;
     private DateTimeOffset? _normalFocusStartedAtUtc;
 
@@ -56,6 +57,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         }
         SettingsPage.LaunchAtStartupChanged += SettingsPage_LaunchAtStartupChanged;
         SettingsPage.WindowsNotificationsChanged += SettingsPage_WindowsNotificationsChanged;
+        SettingsPage.RulesChanged += SettingsPage_RulesChanged;
         HomePage.DurationOptionsChanged += HomePage_DurationOptionsChanged;
         HomePage.FocusTargetModal.TargetChanged += FocusTargetModal_TargetChanged;
         HomePage.FocusTargetModal.SelectionChanged += FocusTargetModal_SelectionChanged;
@@ -336,12 +338,54 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     private void ServiceConnection_StateChanged(object? sender, LocalDataSnapshotDto state)
     {
+        SettingsPage.ApplyAutomaticRules(state.AutomaticRules);
         SettingsPage.ApplyLaunchAtStartupState(state.Settings.LaunchAtStartup);
         SettingsPage.ApplyWindowsNotificationsState(state.Settings.WindowsNotificationsEnabled);
         HomePage.ApplyDurationPresets(state.DurationPresets);
         HomePage.FocusTargetModal.ApplyState(state.Targets, state.Tasks, state.Settings.SelectedTargetId);
         StatisticsPage.ApplyState(state);
     }
+
+    private async void SettingsPage_RulesChanged(object? sender, EventArgs e)
+    {
+        if (ServiceConnection is null) return;
+        var persistedRules = ServiceConnection.State?.AutomaticRules.ToArray() ?? [];
+        if (!ServiceConnection.IsConnected)
+        {
+            SettingsPage.ApplyAutomaticRules(persistedRules);
+            return;
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        var rules = SettingsPage.AutomaticRules.Select((rule, index) => new LocalAutomaticRuleDto(
+            rule.Id,
+            rule.IsCustom
+                ? rule.DayKeys.Select(ParseDayKey).Where(day => day is not null).Select(day => day!.Value).ToArray()
+                : Enum.GetValues<DayOfWeek>(),
+            (int)Math.Round(rule.StartMinutes),
+            (int)Math.Round(rule.EndMinutes),
+            rule.IsEnabled,
+            index,
+            rule.IsCustom,
+            rule.CreatedAtUtc == DateTimeOffset.UnixEpoch ? now : rule.CreatedAtUtc,
+            now)).ToArray();
+        await _automaticRulesPersistenceGate.WaitAsync();
+        try
+        {
+            try
+            {
+                await ServiceConnection.ReplaceAutomaticRulesAsync(new ReplaceAutomaticRulesCommand(rules));
+            }
+            catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException)
+            {
+                SettingsPage.ApplyAutomaticRules(persistedRules);
+            }
+        }
+        finally { _automaticRulesPersistenceGate.Release(); }
+    }
+
+    private static DayOfWeek? ParseDayKey(string key)
+        => Enum.TryParse<DayOfWeek>(key, out var day) ? day : null;
 
     private async void FocusTargetModal_TargetChanged(object? sender, FocusTargetViewModel target)
     {

@@ -33,7 +33,12 @@ internal static class LocalDataContractMapper
         => new(source.Id, source.Name, source.Path, source.IsEnabled, source.SortOrder);
 
     public static LocalAutomaticRule ToCore(LocalAutomaticRuleDto source)
-        => new(source.Id, source.ActiveDays.ToHashSet(), source.StartMinutes, source.EndMinutes, source.IsEnabled, source.SortOrder);
+        => new(source.Id, source.ActiveDays.ToHashSet(), source.StartMinutes, source.EndMinutes, source.IsEnabled, source.SortOrder)
+        {
+            IsCustom = source.IsCustom,
+            CreatedAtUtc = source.CreatedAtUtc ?? DateTimeOffset.UnixEpoch,
+            UpdatedAtUtc = source.UpdatedAtUtc ?? DateTimeOffset.UnixEpoch
+        };
 
     public static LocalAppSettings ToCore(LocalAppSettingsDto source)
         => new(
@@ -124,7 +129,10 @@ internal static class LocalDataContractMapper
             source.StartMinutes,
             source.EndMinutes,
             source.IsEnabled,
-            source.SortOrder);
+            source.SortOrder,
+            source.IsCustom,
+            source.CreatedAtUtc == DateTimeOffset.UnixEpoch ? null : source.CreatedAtUtc,
+            source.UpdatedAtUtc == DateTimeOffset.UnixEpoch ? null : source.UpdatedAtUtc);
 
     private static LocalAppSettingsDto ToDto(LocalAppSettings source)
         => new(

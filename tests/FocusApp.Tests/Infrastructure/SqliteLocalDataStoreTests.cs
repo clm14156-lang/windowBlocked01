@@ -16,7 +16,7 @@ public sealed class SqliteLocalDataStoreTests
         await store.InitializeAsync();
         var snapshot = await store.LoadAsync();
 
-        Assert.Equal(3, await ReadUserVersionAsync(database.Path));
+        Assert.Equal(4, await ReadUserVersionAsync(database.Path));
         Assert.Empty(snapshot.FocusSessions);
         Assert.Empty(snapshot.Targets);
         Assert.Empty(snapshot.Tasks);
@@ -39,6 +39,14 @@ public sealed class SqliteLocalDataStoreTests
                     session_id TEXT NOT NULL,
                     task_id TEXT NOT NULL,
                     PRIMARY KEY (session_id, task_id));
+                CREATE TABLE automatic_rules (
+                    rule_id TEXT NOT NULL PRIMARY KEY,
+                    active_days_mask INTEGER NOT NULL,
+                    start_minutes INTEGER NOT NULL,
+                    end_minutes INTEGER NOT NULL,
+                    is_enabled INTEGER NOT NULL,
+                    sort_order INTEGER NOT NULL);
+                INSERT INTO automatic_rules VALUES ('00000000000000000000000000000001', 2, 540, 720, 1, 0);
                 PRAGMA user_version = 1;
                 """;
             await command.ExecuteNonQueryAsync();
@@ -46,9 +54,10 @@ public sealed class SqliteLocalDataStoreTests
 
         await database.CreateStore().InitializeAsync();
 
-        Assert.Equal(3, await ReadUserVersionAsync(database.Path));
+        Assert.Equal(4, await ReadUserVersionAsync(database.Path));
         Assert.True(await TableExistsAsync(database.Path, "focus_session_website_rules"));
         Assert.True(await TableExistsAsync(database.Path, "focus_session_application_rules"));
+        Assert.Equal("1", await ReadSingleValueAsync(database.Path, "SELECT is_custom FROM automatic_rules LIMIT 1;"));
     }
 
     [Fact]
@@ -87,6 +96,11 @@ public sealed class SqliteLocalDataStoreTests
                 2 * 60,
                 true,
                 0)
+            {
+                IsCustom = true,
+                CreatedAtUtc = now,
+                UpdatedAtUtc = now.AddMinutes(3)
+            }
         ]);
         await store.SaveSettingsAsync(
             new LocalAppSettings(true, true, true, false, true, true, "Blue", target.TargetId, now),
@@ -133,6 +147,9 @@ public sealed class SqliteLocalDataStoreTests
         Assert.Contains(DayOfWeek.Monday, automaticRule.ActiveDays);
         Assert.Equal(22 * 60, automaticRule.StartMinutes);
         Assert.Equal(2 * 60, automaticRule.EndMinutes);
+        Assert.True(automaticRule.IsCustom);
+        Assert.Equal(now, automaticRule.CreatedAtUtc);
+        Assert.Equal(now.AddMinutes(3), automaticRule.UpdatedAtUtc);
         Assert.Equal("Blue", snapshot.Settings.SelectedThemeKey);
         Assert.Equal(presetId, Assert.Single(snapshot.DurationPresets).Id);
         Assert.Equal(40 * 60, Assert.Single(snapshot.MonthlyFocusTargets).TargetMinutes);
@@ -144,6 +161,40 @@ public sealed class SqliteLocalDataStoreTests
         Assert.Equal(taskCompletedAt, completedTask.CompletedAtUtc);
         Assert.Equal(websiteRuleId, Assert.Single(session.WebsiteRuleSnapshots).Id);
         Assert.Equal(applicationRuleId, Assert.Single(session.ApplicationRuleSnapshots).Id);
+    }
+
+    [Fact]
+    public async Task AutomaticRules_ReplacePersistsEditToggleOrderAndDelete()
+    {
+        using var database = new TemporaryDatabase();
+        var store = database.CreateStore();
+        var created = new DateTimeOffset(2026, 8, 29, 2, 0, 0, TimeSpan.Zero);
+        var firstId = Guid.NewGuid();
+        var secondId = Guid.NewGuid();
+        await store.ReplaceAutomaticRulesAsync(
+        [
+            new LocalAutomaticRule(firstId, new HashSet<DayOfWeek> { DayOfWeek.Monday }, 9 * 60, 12 * 60, false, 0)
+                { IsCustom = true, CreatedAtUtc = created, UpdatedAtUtc = created },
+            new LocalAutomaticRule(secondId, Enum.GetValues<DayOfWeek>().ToHashSet(), 14 * 60, 18 * 60, true, 1)
+                { CreatedAtUtc = created, UpdatedAtUtc = created }
+        ]);
+
+        var updatedAt = created.AddHours(1);
+        await store.ReplaceAutomaticRulesAsync(
+        [
+            new LocalAutomaticRule(secondId, Enum.GetValues<DayOfWeek>().ToHashSet(), 15 * 60, 19 * 60, false, 0)
+                { CreatedAtUtc = created, UpdatedAtUtc = updatedAt }
+        ]);
+
+        var rule = Assert.Single((await database.CreateStore().LoadAsync()).AutomaticRules);
+        Assert.Equal(secondId, rule.Id);
+        Assert.Equal(15 * 60, rule.StartMinutes);
+        Assert.Equal(19 * 60, rule.EndMinutes);
+        Assert.False(rule.IsEnabled);
+        Assert.Equal(0, rule.SortOrder);
+        Assert.Equal(created, rule.CreatedAtUtc);
+        Assert.Equal(updatedAt, rule.UpdatedAtUtc);
+        Assert.DoesNotContain((await store.LoadAsync()).AutomaticRules, item => item.Id == firstId);
     }
 
     [Fact]

@@ -81,7 +81,12 @@ public sealed record LocalAutomaticRule(
     int StartMinutes,
     int EndMinutes,
     bool IsEnabled,
-    int SortOrder);
+    int SortOrder)
+{
+    public bool IsCustom { get; init; }
+    public DateTimeOffset CreatedAtUtc { get; init; } = DateTimeOffset.UnixEpoch;
+    public DateTimeOffset UpdatedAtUtc { get; init; } = DateTimeOffset.UnixEpoch;
+}
 
 public sealed record LocalAppSettings(
     bool LaunchAtStartup,

@@ -1,10 +1,32 @@
 using FocusApp.Desktop.ViewModels;
+using FocusApp.Contracts;
 using Xunit;
 
 namespace FocusApp.Tests.Desktop;
 
 public sealed class SettingsPageViewModelTests
 {
+    [Fact]
+    public void ApplyAutomaticRules_RestoresPersistedOrderContentAndEnabledState()
+    {
+        var viewModel = new SettingsPageViewModel([], [], dailyLabel: "每天");
+        var created = new DateTimeOffset(2026, 8, 29, 1, 0, 0, TimeSpan.Zero);
+        viewModel.ApplyAutomaticRules(
+        [
+            new LocalAutomaticRuleDto(Guid.NewGuid(), [DayOfWeek.Monday, DayOfWeek.Wednesday], 14 * 60, 18 * 60, true, 1, true, created, created.AddMinutes(1)),
+            new LocalAutomaticRuleDto(Guid.NewGuid(), Enum.GetValues<DayOfWeek>(), 9 * 60, 12 * 60, false, 0, false, created, created)
+        ]);
+
+        Assert.Equal(2, viewModel.AutomaticRules.Count);
+        Assert.Equal("每天", viewModel.AutomaticRules[0].RepeatText);
+        Assert.False(viewModel.AutomaticRules[0].IsEnabled);
+        Assert.Equal("周一 / 周三", viewModel.AutomaticRules[1].RepeatText);
+        Assert.True(viewModel.AutomaticRules[1].IsCustom);
+        Assert.True(viewModel.AutomaticRules[1].IsEnabled);
+        Assert.Equal(created, viewModel.AutomaticRules[1].CreatedAtUtc);
+        Assert.Equal(created.AddMinutes(1), viewModel.AutomaticRules[1].UpdatedAtUtc);
+    }
+
     [Fact]
     public void ToggleItem_UpdatesOnlyInMemoryState()
     {
