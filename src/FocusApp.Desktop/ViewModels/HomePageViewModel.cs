@@ -21,6 +21,7 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
     private bool _isForcedModeRequested;
     private FocusStartModeDecision _lastFocusStartDecision = FocusStartModeDecision.Normal;
     private Func<int, FocusTargetViewModel?, Guid?, DateTimeOffset?, Task<bool>>? _forcedFocusStarter;
+    private Func<Task>? _forcedFocusStartCanceller;
     private bool _isStartingForcedFocus;
     private bool _isApplyingPersistedDurations;
     private string _focusStartError = string.Empty;
@@ -175,6 +176,9 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
     public void SetForcedFocusStarter(
         Func<int, FocusTargetViewModel?, Guid?, DateTimeOffset?, Task<bool>> starter)
         => _forcedFocusStarter = starter ?? throw new ArgumentNullException(nameof(starter));
+
+    public void SetForcedFocusStartCanceller(Func<Task> canceller)
+        => _forcedFocusStartCanceller = canceller ?? throw new ArgumentNullException(nameof(canceller));
 
     public void SetUserAccess(bool isLoggedIn, bool isVip)
     {
@@ -391,7 +395,12 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
         var target = FocusTargetModal.HasSelectedTarget ? FocusTargetModal.SelectedTarget : null;
         if (decision == FocusStartModeDecision.Forced && _forcedFocusStarter is not null)
         {
-            if (!IsStartingForcedFocus)
+            if (IsStartingForcedFocus ||
+                (FocusSession.IsServiceOwnedForcedSession && FocusSession.IsPreparing))
+            {
+                _ = _forcedFocusStartCanceller?.Invoke();
+            }
+            else
             {
                 _ = StartForcedFocusAsync(
                     focusMinutes,
@@ -416,6 +425,7 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
     {
         IsStartingForcedFocus = true;
         FocusStartError = string.Empty;
+        FocusSession.BeginForcedFocusStarting(minutes, target, () => _ = _forcedFocusStartCanceller?.Invoke());
         try
         {
             if (!await _forcedFocusStarter!(
@@ -425,11 +435,17 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
                     automaticOccurrenceStartedAtUtc))
             {
                 FocusStartError = "后台未能启动强制专注。";
+                FocusSession.ClearForcedFocusStarting();
             }
+        }
+        catch (OperationCanceledException)
+        {
+            FocusSession.ClearForcedFocusStarting();
         }
         catch (Exception exception)
         {
             FocusStartError = exception.Message;
+            FocusSession.ClearForcedFocusStarting();
         }
         finally
         {

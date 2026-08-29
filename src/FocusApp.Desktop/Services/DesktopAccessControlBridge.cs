@@ -1,4 +1,6 @@
 using System.ComponentModel;
+using System.Windows;
+using System.Windows.Threading;
 using FocusApp.Contracts;
 using FocusApp.Desktop.ViewModels;
 
@@ -14,6 +16,8 @@ public sealed class DesktopAccessControlBridge : IDisposable
     private readonly CancellationTokenSource _lifetimeCancellation = new();
     private bool _disposed;
     private bool _applyingServiceState;
+    private LocalDataSnapshotDto? _pendingServiceState;
+    private bool _stateApplyScheduled;
 
     public DesktopAccessControlBridge(
         FocusSessionViewModel focusSession,
@@ -76,7 +80,29 @@ public sealed class DesktopAccessControlBridge : IDisposable
 
     private void Connection_StateChanged(object? sender, LocalDataSnapshotDto state)
     {
-        if (RulesEqual(state))
+        _pendingServiceState = state;
+        if (_stateApplyScheduled)
+        {
+            return;
+        }
+
+        _stateApplyScheduled = true;
+        var dispatcher = Application.Current?.Dispatcher;
+        if (dispatcher is null)
+        {
+            ApplyPendingServiceState();
+            return;
+        }
+
+        dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(ApplyPendingServiceState));
+    }
+
+    private void ApplyPendingServiceState()
+    {
+        _stateApplyScheduled = false;
+        var state = _pendingServiceState;
+        _pendingServiceState = null;
+        if (state is null || RulesEqual(state))
         {
             return;
         }

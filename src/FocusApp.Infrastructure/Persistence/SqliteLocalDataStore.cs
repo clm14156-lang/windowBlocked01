@@ -271,6 +271,19 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
         }, cancellationToken);
     }
 
+    public async Task DeleteFocusSessionAsync(Guid sessionId, CancellationToken cancellationToken = default)
+    {
+        await ExecuteWriteAsync(async (connection, transaction) =>
+        {
+            await using var command = CreateCommand(
+                connection,
+                transaction,
+                "DELETE FROM focus_sessions WHERE session_id = $sessionId;");
+            command.Parameters.AddWithValue("$sessionId", FormatGuid(sessionId));
+            await command.ExecuteNonQueryAsync(cancellationToken);
+        }, cancellationToken);
+    }
+
     public Task ReplaceWebsiteRulesAsync(
         IReadOnlyCollection<LocalWebsiteRule> rules,
         CancellationToken cancellationToken = default)

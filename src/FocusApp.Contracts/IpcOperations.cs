@@ -17,6 +17,7 @@ public static class IpcOperations
     public const string DeactivateAccessControl = "access-control.deactivate";
     public const string GetAccessControlStatus = "access-control.status.get";
     public const string StartForcedFocus = "focus.forced.start";
+    public const string CancelForcedFocusStarting = "focus.forced.cancel-starting";
 #if DEBUG
     public const string EndForcedFocusForDebug = "focus.forced.end-debug";
 #endif
@@ -89,6 +90,8 @@ public sealed record StartForcedFocusCommand(
     IReadOnlyList<LocalFocusSessionTaskSnapshotDto> CompletedTasks,
     Guid? AutomaticRuleId = null,
     DateTimeOffset? AutomaticOccurrenceStartedAtUtc = null);
+
+public sealed record CancelForcedFocusStartingCommand(Guid SessionId);
 
 public sealed record StartNormalFocusCommand(LocalFocusSessionDto Session);
 

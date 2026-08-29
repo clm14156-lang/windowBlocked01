@@ -18,6 +18,8 @@ public interface ILocalDataStore
         IReadOnlyCollection<string>? completedTaskIdsToMark = null,
         CancellationToken cancellationToken = default);
 
+    Task DeleteFocusSessionAsync(Guid sessionId, CancellationToken cancellationToken = default);
+
     Task ReplaceWebsiteRulesAsync(
         IReadOnlyCollection<LocalWebsiteRule> rules,
         CancellationToken cancellationToken = default);

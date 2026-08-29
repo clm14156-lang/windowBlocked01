@@ -40,6 +40,8 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     private LocalFocusSessionDto? _authoritativeSession;
     private Guid? _lastAuthoritativeCompletionSessionId;
     private bool _applyingAuthoritativeSession;
+    private bool _isExternalStarting;
+    private Action? _cancelExternalStarting;
 
     public FocusSessionViewModel(Func<DateTime>? nowProvider = null, bool runTimer = true)
     {
@@ -300,6 +302,39 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         _canStartForcedMode = canStartForcedMode ?? throw new ArgumentNullException(nameof(canStartForcedMode));
     }
 
+    public void BeginForcedFocusStarting(int minutes, FocusTargetViewModel? target, Action cancel)
+    {
+        if (Stage is FocusFlowStage.Preparing or FocusFlowStage.Focusing || minutes <= 0)
+        {
+            return;
+        }
+
+        _timer.Stop();
+        _authoritativeSessionId = null;
+        _authoritativeSession = null;
+        _totalFocusSeconds = checked(minutes * 60);
+        _remainingFocusSeconds = _totalFocusSeconds;
+        _preparationSeconds = PreparationDurationSeconds;
+        _preparationProgress = 0;
+        _sessionTarget = target;
+        ActiveTarget = target;
+        IsForcedModeActive = true;
+        _isExternalStarting = true;
+        _cancelExternalStarting = cancel;
+        IsEndConfirmationOpen = false;
+        Stage = FocusFlowStage.Preparing;
+        OnPropertyChanged(nameof(PreparationSeconds));
+        OnPropertyChanged(nameof(PreparationProgress));
+        OnPropertyChanged(nameof(RemainingFocusSeconds));
+    }
+
+    public void ClearForcedFocusStarting()
+    {
+        _isExternalStarting = false;
+        _cancelExternalStarting = null;
+        ResetToIdleCore();
+    }
+
     public bool Start(int minutes, FocusTargetViewModel? target = null, bool forcedMode = false)
     {
         if (Stage is FocusFlowStage.Preparing or FocusFlowStage.Focusing)
@@ -313,6 +348,8 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         }
 
         _timer.Stop();
+        _isExternalStarting = false;
+        _cancelExternalStarting = null;
         _preparationStopwatch.Reset();
         _focusStopwatch.Reset();
         _lastPreparationElapsed = TimeSpan.Zero;
@@ -353,9 +390,18 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             throw new ArgumentException("只能将后台强制会话投影到强制模式界面。", nameof(session));
         }
 
-        _timer.Stop();
-        _preparationStopwatch.Reset();
-        _focusStopwatch.Reset();
+        var isSameSession = _authoritativeSessionId == session.SessionId;
+        if (!isSameSession)
+        {
+            _timer.Stop();
+            _preparationStopwatch.Reset();
+            _focusStopwatch.Reset();
+        }
+        if (session.Status != LocalFocusSessionStatusDto.Preparing)
+        {
+            _isExternalStarting = false;
+            _cancelExternalStarting = null;
+        }
         _authoritativeSessionId = session.SessionId;
         _authoritativeSession = session;
         OnPropertyChanged(nameof(IsServiceOwnedForcedSession));
@@ -397,7 +443,11 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         }
         else if (RunTimer)
         {
-            _timer.Interval = TimeSpan.FromMilliseconds(250);
+            // Preparation progress is a visual animation and needs a render-rate
+            // cadence. The authoritative clock still comes from the service.
+            _timer.Interval = session.Status == LocalFocusSessionStatusDto.Preparing
+                ? TimeSpan.FromMilliseconds(16)
+                : TimeSpan.FromMilliseconds(250);
             _timer.Start();
         }
     }
@@ -474,6 +524,11 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
 
     private void OnTimerTick()
     {
+        if (_isExternalStarting && _authoritativeSession is null)
+        {
+            return;
+        }
+
         if (_authoritativeSession is not null &&
             _authoritativeSession.Status != LocalFocusSessionStatusDto.Completed)
         {
@@ -505,6 +560,15 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     {
         if (Stage != FocusFlowStage.Preparing)
         {
+            return;
+        }
+
+        if (_isExternalStarting)
+        {
+            var cancel = _cancelExternalStarting;
+            _cancelExternalStarting = null;
+            cancel?.Invoke();
+            ResetToIdleCore();
             return;
         }
 
@@ -565,6 +629,14 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         }
 
         _timer.Stop();
+        ResetToIdleCore();
+    }
+
+    private void ResetToIdleCore()
+    {
+        _timer.Stop();
+        _isExternalStarting = false;
+        _cancelExternalStarting = null;
         _preparationStopwatch.Reset();
         _focusStopwatch.Reset();
         IsEndConfirmationOpen = false;

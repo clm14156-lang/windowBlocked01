@@ -10,6 +10,9 @@ public sealed class DesktopFocusSessionBridge : IDisposable
     private readonly DesktopAccessControlBridge _accessControlBridge;
     private readonly SemaphoreSlim _taskUpdateGate = new(1, 1);
     private readonly CancellationTokenSource _lifetimeCancellation = new();
+    private CancellationTokenSource? _pendingStartCancellation;
+    private Guid? _pendingStartingSessionId;
+    private int _cancelRequested;
     private FocusTargetViewModel? _pendingStartTarget;
     private Task _pendingTaskUpdate = Task.CompletedTask;
     private bool _disposed;
@@ -23,6 +26,7 @@ public sealed class DesktopFocusSessionBridge : IDisposable
         _connection = connection ?? throw new ArgumentNullException(nameof(connection));
         _accessControlBridge = accessControlBridge ?? throw new ArgumentNullException(nameof(accessControlBridge));
         _homePage.SetForcedFocusStarter(StartForcedFocusAsync);
+        _homePage.SetForcedFocusStartCanceller(CancelStartingAsync);
         _homePage.FocusSession.AuthoritativeTasksChanged += FocusSession_AuthoritativeTasksChanged;
         _connection.StateChanged += Connection_StateChanged;
     }
@@ -68,7 +72,9 @@ public sealed class DesktopFocusSessionBridge : IDisposable
             throw new IpcConnectionException("后台服务不可用，强制专注未启动。");
         }
 
-        await _accessControlBridge.PersistRulesNowAsync(_lifetimeCancellation.Token);
+        using var startCancellation = CancellationTokenSource.CreateLinkedTokenSource(_lifetimeCancellation.Token);
+        _pendingStartCancellation = startCancellation;
+        await _accessControlBridge.PersistRulesNowAsync(startCancellation.Token);
         _pendingStartTarget = target;
         try
         {
@@ -80,7 +86,10 @@ public sealed class DesktopFocusSessionBridge : IDisposable
                     [],
                     automaticRuleId,
                     automaticOccurrenceStartedAtUtc),
-                _lifetimeCancellation.Token);
+                startCancellation.Token);
+            _pendingStartingSessionId = result.State.FocusSessions
+                .SingleOrDefault(session => session.IsForcedMode &&
+                    session.Status is LocalFocusSessionStatusDto.Preparing or LocalFocusSessionStatusDto.Focusing)?.SessionId;
             return result.State.FocusSessions.Any(session =>
                 session.IsForcedMode &&
                 session.Status is LocalFocusSessionStatusDto.Preparing or LocalFocusSessionStatusDto.Focusing);
@@ -90,6 +99,70 @@ public sealed class DesktopFocusSessionBridge : IDisposable
             _pendingStartTarget = null;
             throw;
         }
+        finally
+        {
+            if (ReferenceEquals(_pendingStartCancellation, startCancellation))
+            {
+                _pendingStartCancellation = null;
+            }
+        }
+    }
+
+    private async Task CancelStartingAsync()
+    {
+        Interlocked.Exchange(ref _cancelRequested, 1);
+        try
+        {
+            _pendingStartCancellation?.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+        var sessionId = _pendingStartingSessionId;
+        Guid id;
+        if (sessionId is { } known)
+        {
+            id = known;
+        }
+        else if (_connection.IsConnected)
+        {
+            try
+            {
+                var state = await _connection.RefreshStateAsync(_lifetimeCancellation.Token);
+                id = state.FocusSessions.SingleOrDefault(session =>
+                    session.IsForcedMode && session.Status == LocalFocusSessionStatusDto.Preparing)?.SessionId ?? Guid.Empty;
+            }
+            catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or OperationCanceledException)
+            {
+                SynchronizationFailed?.Invoke(this, exception.Message);
+                Interlocked.Exchange(ref _cancelRequested, 0);
+                return;
+            }
+        }
+        else
+        {
+            return;
+        }
+
+        if (id == Guid.Empty)
+        {
+            Interlocked.Exchange(ref _cancelRequested, 0);
+            return;
+        }
+
+        _pendingStartingSessionId = null;
+        try
+        {
+            await _connection.CancelForcedFocusStartingAsync(id, _lifetimeCancellation.Token);
+        }
+        catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or OperationCanceledException)
+        {
+            SynchronizationFailed?.Invoke(this, exception.Message);
+        }
+        finally
+        {
+            Interlocked.Exchange(ref _cancelRequested, 0);
+        }
     }
 
     private void Connection_StateChanged(object? sender, LocalDataSnapshotDto state)
@@ -97,8 +170,12 @@ public sealed class DesktopFocusSessionBridge : IDisposable
         var active = state.FocusSessions.SingleOrDefault(session =>
             session.IsForcedMode &&
             session.Status is LocalFocusSessionStatusDto.Preparing or LocalFocusSessionStatusDto.Focusing);
-        if (active is not null)
+        if (active is not null && Volatile.Read(ref _cancelRequested) == 0)
         {
+            if (_homePage.IsStartingForcedFocus)
+            {
+                _pendingStartingSessionId = active.SessionId;
+            }
             var target = _homePage.FocusSession.AuthoritativeSessionId == active.SessionId
                 ? _homePage.FocusSession.ActiveTarget
                 : _pendingStartTarget;

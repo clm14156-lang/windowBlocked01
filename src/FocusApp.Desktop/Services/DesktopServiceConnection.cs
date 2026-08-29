@@ -230,6 +230,21 @@ public sealed class DesktopServiceConnection : INotifyPropertyChanged, IAsyncDis
         return result;
     }
 
+    public async Task<FocusSessionMutationResult> CancelForcedFocusStartingAsync(
+        Guid sessionId,
+        CancellationToken cancellationToken = default,
+        Guid? requestId = null)
+    {
+        var result = await GetConnectedClient().SendAsync<CancelForcedFocusStartingCommand, FocusSessionMutationResult>(
+            IpcOperations.CancelForcedFocusStarting,
+            new CancelForcedFocusStartingCommand(sessionId),
+            _requestTimeout,
+            cancellationToken,
+            requestId);
+        SetOnContext(() => PublishFocusMutation(result));
+        return result;
+    }
+
 #if DEBUG
     public async Task<FocusSessionMutationResult> EndForcedFocusForDebugAsync(
         CancellationToken cancellationToken = default,

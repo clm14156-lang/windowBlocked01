@@ -113,6 +113,11 @@ public sealed class ServiceStateCoordinator : IAsyncDisposable
                     await StartForcedFocusAsync(
                         request.ReadPayload<StartForcedFocusCommand>(),
                         cancellationToken)),
+                IpcOperations.CancelForcedFocusStarting => IpcEnvelope.CreateSuccess(
+                    request,
+                    await CancelForcedFocusStartingAsync(
+                        request.ReadPayload<CancelForcedFocusStartingCommand>(),
+                        cancellationToken)),
 #if DEBUG
                 IpcOperations.EndForcedFocusForDebug => IpcEnvelope.CreateSuccess(
                     request,
@@ -465,12 +470,15 @@ public sealed class ServiceStateCoordinator : IAsyncDisposable
         }
 
         ValidateTaskSnapshots(command.CompletedTasks);
+        var startedAt = Stopwatch.GetTimestamp();
+        LogStrong("StartStrongFocus", startedAt);
         await _mutationGate.WaitAsync(cancellationToken);
         LocalFocusSession session;
         LocalDataSnapshotDto state;
         try
         {
             var snapshot = await _store.LoadAsync(cancellationToken);
+            LogStrong("LoadState", startedAt);
             if (snapshot.FocusSessions.Any(IsActiveSession))
             {
                 throw new ServiceBusinessException("已有进行中的专注会话，不能重复启动强制专注。");
@@ -506,6 +514,7 @@ public sealed class ServiceStateCoordinator : IAsyncDisposable
             };
 
             await _store.SaveFocusSessionAsync(session, cancellationToken: cancellationToken);
+            LogStrong("SaveSession", startedAt);
             state = await PublishStateChangedAsync(cancellationToken);
         }
         finally
@@ -519,11 +528,50 @@ public sealed class ServiceStateCoordinator : IAsyncDisposable
             session.PlannedEndAtUtc,
             null));
         ScheduleForcedFocusLifecycle(session.SessionId);
+        LogStrong("StartMonitor", startedAt);
         return new FocusSessionMutationResult(
             state.Revision,
             state,
             _focusRuntimeStatus,
             _accessControlStatus);
+    }
+
+    private async Task<FocusSessionMutationResult> CancelForcedFocusStartingAsync(
+        CancelForcedFocusStartingCommand command,
+        CancellationToken cancellationToken)
+    {
+        _focusLifecycleCancellation?.Cancel();
+        await _mutationGate.WaitAsync(cancellationToken);
+        LocalDataSnapshotDto state;
+        try
+        {
+            var snapshot = await _store.LoadAsync(cancellationToken);
+            var preparing = snapshot.FocusSessions.SingleOrDefault(session =>
+                session.SessionId == command.SessionId &&
+                session.IsForcedMode &&
+                session.Status == LocalFocusSessionStatus.Preparing);
+            if (preparing is null)
+            {
+                var currentState = await LoadStateAsync(cancellationToken);
+                return new FocusSessionMutationResult(
+                    currentState.Revision,
+                    currentState,
+                    _focusRuntimeStatus,
+                    _accessControlStatus);
+            }
+
+            // A cancelled Starting phase must never become a persisted focus record.
+            await _store.DeleteFocusSessionAsync(preparing.SessionId, cancellationToken);
+            state = await PublishStateChangedAsync(cancellationToken);
+        }
+        finally
+        {
+            _mutationGate.Release();
+        }
+
+        await DeactivateAccessControlCoreAsync(CancellationToken.None);
+        PublishFocusRuntimeStatus(new FocusRuntimeStatusDto(FocusRuntimeState.Idle, null, null, null));
+        return new FocusSessionMutationResult(state.Revision, state, _focusRuntimeStatus, _accessControlStatus);
     }
 
 #if DEBUG
@@ -840,6 +888,7 @@ public sealed class ServiceStateCoordinator : IAsyncDisposable
         LocalFocusSession session,
         CancellationToken cancellationToken)
     {
+        var startedTimestamp = Stopwatch.GetTimestamp();
         if (!session.BlockingEnabled)
         {
             return;
@@ -862,6 +911,7 @@ public sealed class ServiceStateCoordinator : IAsyncDisposable
             session.ApplicationRuleSnapshots,
             scheduleExpiration: false,
             cancellationToken);
+        LogStrong("InitializeBlocking", startedTimestamp);
     }
 
     private void PublishFocusingStatus(LocalFocusSession session)
@@ -927,6 +977,9 @@ public sealed class ServiceStateCoordinator : IAsyncDisposable
         _focusRuntimeStatus = status;
         FocusRuntimeStateChanged?.Invoke(this, new FocusRuntimeStateChangedEvent(status));
     }
+
+    private static void LogStrong(string stage, long startedTimestamp)
+        => Trace.WriteLine($"[StrongMode] {stage}: {Stopwatch.GetElapsedTime(startedTimestamp).TotalMilliseconds:F0}ms");
 
     private static bool IsActiveSession(LocalFocusSession session)
         => session.Status is LocalFocusSessionStatus.Preparing or LocalFocusSessionStatus.Focusing;
