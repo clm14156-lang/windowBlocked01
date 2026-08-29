@@ -53,10 +53,15 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     private bool _isGoalInvestmentDetailsVipGuideOpen;
     private bool _usesRuntimeFocusData;
     private bool _usesPersistedState;
+    private readonly bool _useSampleData;
+    private bool _isInitialized;
+    private bool _isApplyingState;
+    private LocalDataSnapshotDto? _pendingState;
     private DateTime _trendReferenceDate = new(2024, 5, 15);
 
-    public StatisticsOverviewViewModel(bool useSampleData = true)
+    public StatisticsOverviewViewModel(bool useSampleData = true, bool deferInitialization = false)
     {
+        _useSampleData = useSampleData;
         RangeOptions =
         [
             new StatisticsRangeOptionViewModel("近7天", 7),
@@ -93,10 +98,11 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         IncreaseMonthlyFocusTargetCommand = new RelayCommand<object>(_ => AdjustMonthlyFocusTarget(1));
         DecreaseMonthlyFocusTargetCommand = new RelayCommand<object>(_ => AdjustMonthlyFocusTarget(-1));
         AddGoalCommand = new RelayCommand<object>(_ => AddGoal());
-        RefreshTrend();
-        if (useSampleData) RefreshGoals();
         SubscribeToFocusSessionRecords();
-        RefreshCalendar();
+        if (!deferInitialization)
+        {
+            EnsureInitialized();
+        }
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -106,38 +112,96 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     public void ApplyState(LocalDataSnapshotDto state)
     {
+        ArgumentNullException.ThrowIfNull(state);
+        if (!_isInitialized)
+        {
+            _pendingState = state;
+            return;
+        }
+
+        ApplyStateCore(state);
+    }
+
+    /// <summary>
+    /// Initializes chart and calendar data on first use. The desktop shell
+    /// calls this after the statistics page becomes visible so cold startup
+    /// does not spend UI time building a page the user has not opened.
+    /// </summary>
+    public void EnsureInitialized()
+    {
+        if (_isInitialized)
+        {
+            return;
+        }
+
+        _isInitialized = true;
+        _isApplyingState = true;
+        try
+        {
+            if (_pendingState is not null)
+            {
+                var pendingState = _pendingState;
+                _pendingState = null;
+                ApplyStateCore(pendingState);
+                return;
+            }
+
+            RefreshTrend();
+            if (_useSampleData)
+            {
+                RefreshGoals();
+            }
+
+            RefreshCalendar();
+        }
+        finally
+        {
+            _isApplyingState = false;
+        }
+    }
+
+    private void ApplyStateCore(LocalDataSnapshotDto state)
+    {
         var selectedGoalId = SelectedGoal?.GoalId;
         var calendarMonth = _usesPersistedState
             ? _calendarMonth
             : new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
         var selectedCalendarDate = _usesPersistedState ? _selectedCalendarDay?.Date : DateTime.Today;
-        Goals.Clear();
-        FocusSessionRecords.Clear();
-        foreach (var target in state.Targets.OrderBy(item => item.SortOrder))
+        _isApplyingState = true;
+        try
         {
-            Goals.Add(new GoalOverviewItemViewModel(
-                target.TargetId,
-                target.Name,
-                "尚未推进",
-                "暂无记录",
-                false,
-                target.IsArchived));
-        }
+            Goals.Clear();
+            FocusSessionRecords.Clear();
+            foreach (var target in state.Targets.OrderBy(item => item.SortOrder))
+            {
+                Goals.Add(new GoalOverviewItemViewModel(
+                    target.TargetId,
+                    target.Name,
+                    "尚未推进",
+                    "暂无记录",
+                    false,
+                    target.IsArchived));
+            }
 
-        var targetNames = state.Targets.ToDictionary(item => item.TargetId, item => item.Name, StringComparer.Ordinal);
-        foreach (var session in state.FocusSessions
-                     .Where(item => item.Status == LocalFocusSessionStatusDto.Completed && item.CompletedAtUtc is not null)
-                     .OrderBy(item => item.CompletedAtUtc))
+            var targetNames = state.Targets.ToDictionary(item => item.TargetId, item => item.Name, StringComparer.Ordinal);
+            foreach (var session in state.FocusSessions
+                         .Where(item => item.Status == LocalFocusSessionStatusDto.Completed && item.CompletedAtUtc is not null)
+                         .OrderBy(item => item.CompletedAtUtc))
+            {
+                var end = session.CompletedAtUtc!.Value.LocalDateTime;
+                var start = session.FocusStartedAtUtc?.LocalDateTime ?? end.AddSeconds(-session.ActualSeconds);
+                var goalId = string.IsNullOrWhiteSpace(session.TargetId) ? "goal-unassigned" : session.TargetId;
+                var goalName = session.TargetId is not null && targetNames.TryGetValue(session.TargetId, out var currentName)
+                    ? currentName
+                    : string.IsNullOrWhiteSpace(session.TargetNameSnapshot) ? "其他" : session.TargetNameSnapshot;
+                var taskNames = session.CompletedTasks.OrderBy(task => task.SortOrder).Select(task => task.TaskNameSnapshot).ToArray();
+                FocusSessionRecords.Add(new FocusSessionRecordViewModel(
+                    start, end, goalId!, goalName!, taskNames.FirstOrDefault() ?? string.Empty, taskNames.Length, taskNames));
+            }
+        }
+        finally
         {
-            var end = session.CompletedAtUtc!.Value.LocalDateTime;
-            var start = session.FocusStartedAtUtc?.LocalDateTime ?? end.AddSeconds(-session.ActualSeconds);
-            var goalId = string.IsNullOrWhiteSpace(session.TargetId) ? "goal-unassigned" : session.TargetId;
-            var goalName = session.TargetId is not null && targetNames.TryGetValue(session.TargetId, out var currentName)
-                ? currentName
-                : string.IsNullOrWhiteSpace(session.TargetNameSnapshot) ? "其他" : session.TargetNameSnapshot;
-            var taskNames = session.CompletedTasks.OrderBy(task => task.SortOrder).Select(task => task.TaskNameSnapshot).ToArray();
-            FocusSessionRecords.Add(new FocusSessionRecordViewModel(
-                start, end, goalId!, goalName!, taskNames.FirstOrDefault() ?? string.Empty, taskNames.Length, taskNames));
+            _isApplyingState = false;
         }
 
         _usesRuntimeFocusData = true;
@@ -568,7 +632,10 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         _usesRuntimeFocusData = true;
         _trendReferenceDate = endsAt.Date;
         OnPropertyChanged(nameof(TodayDateDisplay));
-        RefreshTrend();
+        if (_isInitialized)
+        {
+            RefreshTrend();
+        }
     }
 
     public bool HasMonthlyFocusTarget => _monthlyFocusTargetHours is > 0;
@@ -956,7 +1023,10 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             }
         }
 
-        RefreshFocusSessionData();
+        if (!_isApplyingState && _isInitialized)
+        {
+            RefreshFocusSessionData();
+        }
     }
 
     private void SubscribeToFocusSessionRecord(FocusSessionRecordViewModel record)
@@ -1229,13 +1299,21 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         CalendarDays.Clear();
         var firstDay = new DateTime(_calendarMonth.Year, _calendarMonth.Month, 1);
         var start = firstDay.AddDays(-(int)firstDay.DayOfWeek);
+        // Build the 42-day summary in one pass. Calling GetDailySummary for
+        // every cell repeatedly rebuilt slices and rescanned all records.
+        var dailySummaries = FocusStatisticsCalculator.GetDailySummaries(
+                GetCoreFocusSessionRecords(),
+                start,
+                42)
+            .ToDictionary(summary => summary.Date.Date);
         for (var index = 0; index < 42; index++)
         {
             var date = start.AddDays(index);
+            var summary = dailySummaries[date.Date];
             CalendarDays.Add(new CalendarDayViewModel(
                 date,
                 date.Month == _calendarMonth.Month,
-                GetDailySummary(date).FocusMinutes));
+                summary.FocusMinutes));
         }
 
         var selectedDate = preferredDate?.Year == _calendarMonth.Year && preferredDate?.Month == _calendarMonth.Month

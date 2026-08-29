@@ -329,61 +329,9 @@
                 </Grid>
 
                 <Grid Grid.Row="1">
-                    <views:HomePage DataContext="{Binding HomePage}">
-                        <views:HomePage.Style>
-                            <Style TargetType="{x:Type views:HomePage}">
-                                <Setter Property="Visibility" Value="Collapsed" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding DataContext.CurrentPage, RelativeSource={RelativeSource AncestorType={x:Type Window}}}"
-                                                 Value="{x:Static vm:NavigationPage.Home}">
-                                        <Setter Property="Visibility" Value="Visible" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </views:HomePage.Style>
-                    </views:HomePage>
-
-                    <views:SettingsPage DataContext="{Binding SettingsPage}">
-                        <views:SettingsPage.Style>
-                            <Style TargetType="{x:Type views:SettingsPage}">
-                                <Setter Property="Visibility" Value="Collapsed" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding DataContext.CurrentPage, RelativeSource={RelativeSource AncestorType={x:Type Window}}}"
-                                                 Value="{x:Static vm:NavigationPage.Settings}">
-                                        <Setter Property="Visibility" Value="Visible" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </views:SettingsPage.Style>
-                    </views:SettingsPage>
-
-                    <views:BlockingPage DataContext="{Binding BlockingPage}">
-                        <views:BlockingPage.Style>
-                            <Style TargetType="{x:Type views:BlockingPage}">
-                                <Setter Property="Visibility" Value="Collapsed" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding DataContext.CurrentPage, RelativeSource={RelativeSource AncestorType={x:Type Window}}}"
-                                                 Value="{x:Static vm:NavigationPage.Blocking}">
-                                        <Setter Property="Visibility" Value="Visible" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </views:BlockingPage.Style>
-                    </views:BlockingPage>
-
-                    <views:StatisticsPage Margin="0,-16,0,0" DataContext="{Binding StatisticsPage}">
-                        <views:StatisticsPage.Style>
-                            <Style TargetType="{x:Type views:StatisticsPage}">
-                                <Setter Property="Visibility" Value="Collapsed" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding DataContext.CurrentPage, RelativeSource={RelativeSource AncestorType={x:Type Window}}}"
-                                                 Value="{x:Static vm:NavigationPage.Statistics}">
-                                        <Setter Property="Visibility" Value="Visible" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </views:StatisticsPage.Style>
-                    </views:StatisticsPage>
+                    <ContentControl x:Name="PageHost"
+                                    HorizontalContentAlignment="Stretch"
+                                    VerticalContentAlignment="Stretch" />
 
                     <TextBlock Margin="40,28,40,0"
                                HorizontalAlignment="Left"

@@ -25,6 +25,10 @@ public partial class MainWindow : Window
     private FocusFloatingWindow? _focusFloatingWindow;
     private FocusFloatingWindowViewModel? _focusFloatingViewModel;
     private CompletionReminderWindow? _completionReminderWindow;
+    private HomePage? _homePageView;
+    private SettingsPage? _settingsPageView;
+    private BlockingPage? _blockingPageView;
+    private StatisticsPage? _statisticsPageView;
     private bool _isClosing;
 #if DEBUG
     private bool _debugForcedExitInProgress;
@@ -99,6 +103,7 @@ public partial class MainWindow : Window
             newViewModel.ThemePanel.ThemeSelected += ThemePanel_ThemeSelected;
             newViewModel.HomePage.FocusSession.PropertyChanged += FocusSession_PropertyChanged;
             newViewModel.PropertyChanged += MainViewModel_PropertyChanged;
+            ShowCurrentPage(newViewModel);
         }
     }
 
@@ -354,6 +359,12 @@ public partial class MainWindow : Window
 
     private void MainViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
+        if (e.PropertyName == nameof(MainWindowViewModel.CurrentPage) && sender is MainWindowViewModel pageViewModel)
+        {
+            ShowCurrentPage(pageViewModel);
+            return;
+        }
+
         if (e.PropertyName != nameof(MainWindowViewModel.IsCompletionReminderVisible) || sender is not MainWindowViewModel viewModel)
         {
             return;
@@ -367,6 +378,37 @@ public partial class MainWindow : Window
         {
             _completionReminderWindow?.Hide();
         }
+    }
+
+    private void ShowCurrentPage(MainWindowViewModel viewModel)
+    {
+        UIElement page = viewModel.CurrentPage switch
+        {
+            NavigationPage.Home => _homePageView ??= new HomePage { DataContext = viewModel.HomePage },
+            NavigationPage.Settings => _settingsPageView ??= new SettingsPage { DataContext = viewModel.SettingsPage },
+            NavigationPage.Blocking => _blockingPageView ??= new BlockingPage { DataContext = viewModel.BlockingPage },
+            NavigationPage.Statistics => _statisticsPageView ??= CreateStatisticsPage(viewModel),
+            _ => _homePageView ??= new HomePage { DataContext = viewModel.HomePage }
+        };
+
+        PageHost.Content = page;
+        if (viewModel.CurrentPage == NavigationPage.Statistics)
+        {
+            // Let the navigation and first layout complete before building
+            // the chart/calendar collections for the first time.
+            Dispatcher.BeginInvoke(
+                DispatcherPriority.ContextIdle,
+                new Action(viewModel.StatisticsPage.EnsureInitialized));
+        }
+    }
+
+    private static StatisticsPage CreateStatisticsPage(MainWindowViewModel viewModel)
+    {
+        return new StatisticsPage
+        {
+            Margin = new Thickness(0, -16, 0, 0),
+            DataContext = viewModel.StatisticsPage
+        };
     }
 
     private void ShowCompletionReminderWindow(MainWindowViewModel viewModel)

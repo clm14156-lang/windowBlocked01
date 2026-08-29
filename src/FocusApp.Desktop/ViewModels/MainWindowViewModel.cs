@@ -27,6 +27,8 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private bool _isCompletionReminderVisible;
     private string _completionReminderDuration = string.Empty;
     private string _completionReminderDetail = string.Empty;
+    private LocalDataSnapshotDto? _pendingServiceState;
+    private bool _serviceStateApplyScheduled;
 
     public MainWindowViewModel(
         IEnumerable<NavigationItemViewModel> primaryNavigationItems,
@@ -78,7 +80,9 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         StateCoordinator = new FocusStateCoordinator(HomePage, SettingsPage, BlockingPage, StatisticsPage);
         SettingsPage.SetUserAccess(IsLoggedIn, IsVipMember);
         HomePage.SetUserAccess(IsLoggedIn, IsVipMember);
-        _automaticBlockingTimer = new DispatcherTimer(DispatcherPriority.Normal)
+        // Automatic rule evaluation is maintenance work; keep it below
+        // input and rendering so it cannot steal time from the first frame.
+        _automaticBlockingTimer = new DispatcherTimer(DispatcherPriority.Background)
         {
             Interval = TimeSpan.FromSeconds(1)
         };
@@ -405,6 +409,35 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     private void ServiceConnection_StateChanged(object? sender, LocalDataSnapshotDto state)
     {
+        _pendingServiceState = state;
+        if (_serviceStateApplyScheduled)
+        {
+            return;
+        }
+
+        _serviceStateApplyScheduled = true;
+        var dispatcher = System.Windows.Application.Current?.Dispatcher;
+        if (dispatcher is null)
+        {
+            ApplyPendingServiceState();
+            return;
+        }
+
+        dispatcher.BeginInvoke(
+            DispatcherPriority.Background,
+            new Action(ApplyPendingServiceState));
+    }
+
+    private void ApplyPendingServiceState()
+    {
+        _serviceStateApplyScheduled = false;
+        var state = _pendingServiceState;
+        _pendingServiceState = null;
+        if (state is null)
+        {
+            return;
+        }
+
         SettingsPage.ApplyAutomaticRules(state.AutomaticRules);
         SettingsPage.ApplyLaunchAtStartupState(state.Settings.LaunchAtStartup);
         SettingsPage.ApplyWindowsNotificationsState(state.Settings.WindowsNotificationsEnabled);

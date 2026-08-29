@@ -63,7 +63,7 @@ public partial class App : Application
             CreateHomePageViewModel(),
             CreateSettingsPageViewModel(),
             CreateBlockingPageViewModel(),
-            new StatisticsOverviewViewModel(useSampleData: false),
+            new StatisticsOverviewViewModel(useSampleData: false, deferInitialization: true),
             _serviceConnection,
             new AudioService());
         _accessControlBridge = new DesktopAccessControlBridge(
@@ -81,7 +81,12 @@ public partial class App : Application
         };
         MainWindow.Show();
 
-        _ = _serviceConnection.StartAsync();
+        // Let WPF render the first frame before opening the pipe and applying
+        // the initial snapshot. This keeps cold-start input and animations
+        // responsive while the backend connection is established.
+        Dispatcher.BeginInvoke(
+            System.Windows.Threading.DispatcherPriority.ContextIdle,
+            new Action(() => _ = _serviceConnection.StartAsync()));
     }
 
     protected override void OnExit(ExitEventArgs e)

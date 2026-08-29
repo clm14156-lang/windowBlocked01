@@ -26,7 +26,7 @@ internal sealed class TrayApplication : IDisposable
         _stateClient = new TrayStateClient();
         _stateClient.StateChanged += (_, _) => _dispatcher.BeginInvoke(UpdatePopup);
         _stateClient.RuntimeChanged += (_, _) => _dispatcher.BeginInvoke(UpdatePopup);
-        _iconHost = new TrayIconHost(ShowPopup, () => _stateClient.IsForcedActive, ExitApplication);
+        _iconHost = new TrayIconHost(OpenDesktop, ShowPopup, () => _stateClient.IsForcedActive, ExitApplication);
         _ = _stateClient.StartAsync();
     }
 
@@ -34,6 +34,7 @@ internal sealed class TrayApplication : IDisposable
     {
         if (_disposed || _popupOpening) return;
         _popupOpening = true;
+        var anchor = _iconHost.GetIconRect() ?? GetCursorAnchor();
         try
         {
             await _stateClient.RefreshAsync();
@@ -44,17 +45,68 @@ internal sealed class TrayApplication : IDisposable
             }
 
             UpdatePopup();
-            NativeMethods.GetCursorPos(out var cursor);
-            var workArea = SystemParameters.WorkArea;
-            _popup.Left = Math.Max(workArea.Left, Math.Min(cursor.X - _popup.Width / 2, workArea.Right - _popup.Width));
-            _popup.Top = Math.Max(workArea.Top, Math.Min(cursor.Y - _popup.Height - 8, workArea.Bottom - _popup.Height));
             _popup.Show();
+            PositionPopup(_popup, anchor);
             _popup.Activate();
         }
         finally
         {
             _popupOpening = false;
         }
+    }
+
+    private static TrayScreenRect GetCursorAnchor()
+    {
+        NativeMethods.GetCursorPos(out var cursor);
+        return new TrayScreenRect(cursor.X, cursor.Y, cursor.X + 1, cursor.Y + 1);
+    }
+
+    private static void PositionPopup(TrayPopupWindow popup, TrayScreenRect anchor)
+    {
+        var anchorRect = new NativeMethods.Rect(anchor.Left, anchor.Top, anchor.Right, anchor.Bottom);
+        var monitor = NativeMethods.MonitorFromRect(ref anchorRect, NativeMethods.MonitorDefaultToNearest);
+        var monitorInfo = new NativeMethods.MonitorInfo { Size = Marshal.SizeOf<NativeMethods.MonitorInfo>() };
+        if (monitor == IntPtr.Zero || !NativeMethods.GetMonitorInfo(monitor, ref monitorInfo))
+        {
+            return;
+        }
+
+        var handle = new WindowInteropHelper(popup).EnsureHandle();
+        NativeMethods.SetWindowPos(
+            handle,
+            IntPtr.Zero,
+            monitorInfo.Work.Left,
+            monitorInfo.Work.Top,
+            0,
+            0,
+            NativeMethods.SwpNoSize | NativeMethods.SwpNoZOrder | NativeMethods.SwpNoActivate);
+
+        var dpi = NativeMethods.GetDpiForWindow(handle);
+        var scale = dpi > 0 ? dpi / 96d : 1d;
+        NativeMethods.GetWindowRect(handle, out var windowRect);
+        var width = Math.Max(1, windowRect.Right - windowRect.Left);
+        var height = Math.Max(1, windowRect.Bottom - windowRect.Top);
+        var gap = Math.Max(2, (int)Math.Round(4 * scale));
+        // The tray icon rect is the sole anchor: align the popup's lower-left
+        // corner with the icon's upper-left corner, then clamp only when the
+        // popup would leave the monitor work area.
+        var left = anchor.Left;
+        var top = anchor.Top - height - gap;
+
+        var minimumLeft = monitorInfo.Work.Left + gap;
+        var maximumLeft = Math.Max(minimumLeft, monitorInfo.Work.Right - width - gap);
+        var minimumTop = monitorInfo.Work.Top + gap;
+        var maximumTop = Math.Max(minimumTop, monitorInfo.Work.Bottom - height - gap);
+        left = Math.Clamp(left, minimumLeft, maximumLeft);
+        top = Math.Clamp(top, minimumTop, maximumTop);
+        NativeMethods.SetWindowPos(
+            handle,
+            IntPtr.Zero,
+            left,
+            top,
+            0,
+            0,
+            NativeMethods.SwpNoSize | NativeMethods.SwpNoZOrder | NativeMethods.SwpNoActivate);
     }
 
     private void UpdatePopup() => _popup?.ApplyState(_stateClient.Snapshot, _stateClient.RuntimeStatus);
@@ -75,10 +127,37 @@ internal sealed class TrayApplication : IDisposable
         }
         else
         {
-            NativeMethods.ShowWindow(process.MainWindowHandle, NativeMethods.SwRestore);
-            NativeMethods.SetForegroundWindow(process.MainWindowHandle);
+            var window = FindDesktopWindow(process);
+            if (window != IntPtr.Zero)
+            {
+                NativeMethods.ShowWindow(window, NativeMethods.SwRestore);
+                NativeMethods.SetForegroundWindow(window);
+            }
         }
         _popup?.Close();
+    }
+
+    private static IntPtr FindDesktopWindow(Process process)
+    {
+        process.Refresh();
+        if (process.MainWindowHandle != IntPtr.Zero)
+        {
+            return process.MainWindowHandle;
+        }
+
+        var result = IntPtr.Zero;
+        NativeMethods.EnumWindows((window, _) =>
+        {
+            NativeMethods.GetWindowThreadProcessId(window, out var processId);
+            if (processId != (uint)process.Id || NativeMethods.GetWindow(window, NativeMethods.GwOwner) != IntPtr.Zero)
+            {
+                return true;
+            }
+
+            result = window;
+            return false;
+        }, IntPtr.Zero);
+        return result;
     }
 
     private void ExitApplication()
@@ -104,12 +183,36 @@ internal sealed class TrayApplication : IDisposable
     private static class NativeMethods
     {
         public const int SwRestore = 9;
+        public const uint GwOwner = 4;
+        public const uint MonitorDefaultToNearest = 2;
+        public const uint SwpNoSize = 0x0001;
+        public const uint SwpNoZOrder = 0x0004;
+        public const uint SwpNoActivate = 0x0010;
+        public delegate bool EnumWindowsProc(IntPtr window, IntPtr parameter);
         [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hWnd, int command);
         [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
+        [DllImport("user32.dll")] public static extern bool EnumWindows(EnumWindowsProc callback, IntPtr parameter);
+        [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr window, out uint processId);
+        [DllImport("user32.dll")] public static extern IntPtr GetWindow(IntPtr window, uint command);
         [DllImport("user32.dll")] public static extern bool GetCursorPos(out Point point);
+        [DllImport("user32.dll")] public static extern IntPtr MonitorFromRect(ref Rect rect, uint flags);
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern bool GetMonitorInfo(IntPtr monitor, ref MonitorInfo monitorInfo);
+        [DllImport("user32.dll")] public static extern uint GetDpiForWindow(IntPtr window);
+        [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr window, out Rect rect);
+        [DllImport("user32.dll")] public static extern bool SetWindowPos(IntPtr window, IntPtr insertAfter, int x, int y, int width, int height, uint flags);
         [StructLayout(LayoutKind.Sequential)] public struct Point { public int X; public int Y; }
+        [StructLayout(LayoutKind.Sequential)] public readonly record struct Rect(int Left, int Top, int Right, int Bottom);
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)] public struct MonitorInfo
+        {
+            public int Size;
+            public Rect Monitor;
+            public Rect Work;
+            public uint Flags;
+        }
     }
 }
+
+internal readonly record struct TrayScreenRect(int Left, int Top, int Right, int Bottom);
 
 public sealed class TrayStateClient : IAsyncDisposable
 {
@@ -199,15 +302,16 @@ internal sealed class TrayIconHost : IDisposable
     private const int LeftButtonUp = 0x0202;
     private const int RightButtonUp = 0x0205;
     private readonly HwndSource _source;
-    private readonly Action _show;
+    private readonly Action _openDesktop;
+    private readonly Action _showPopup;
     private readonly Func<bool> _isForced;
     private readonly Action _exit;
     private readonly IntPtr _icon;
     private bool _disposed;
 
-    public TrayIconHost(Action show, Func<bool> isForced, Action exit)
+    public TrayIconHost(Action openDesktop, Action showPopup, Func<bool> isForced, Action exit)
     {
-        _show = show; _isForced = isForced; _exit = exit;
+        _openDesktop = openDesktop; _showPopup = showPopup; _isForced = isForced; _exit = exit;
         _source = new HwndSource(new HwndSourceParameters("FocusAppTray") { Width = 0, Height = 0, PositionX = -32000, PositionY = -32000 });
         _source.AddHook(WndProc);
         _icon = NativeMethods.LoadIcon(IntPtr.Zero, (IntPtr)32512);
@@ -215,13 +319,26 @@ internal sealed class TrayIconHost : IDisposable
         ShellNotifyIcon(NIMAdd, ref data);
     }
 
+    public TrayScreenRect? GetIconRect()
+    {
+        var identifier = new NotifyIconIdentifier
+        {
+            Size = Marshal.SizeOf<NotifyIconIdentifier>(),
+            Window = _source.Handle,
+            Id = 1
+        };
+        return ShellNotifyIconGetRect(ref identifier, out var rect) == 0
+            ? new TrayScreenRect(rect.Left, rect.Top, rect.Right, rect.Bottom)
+            : null;
+    }
+
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
         if (msg == WmTray)
         {
             var action = lParam.ToInt32();
-            if (action == RightButtonUp) _show();
-            else if (action == LeftButtonUp) _show();
+            if (action == LeftButtonUp) _openDesktop();
+            else if (action == RightButtonUp) _showPopup();
             handled = true;
         }
         return IntPtr.Zero;
@@ -239,6 +356,8 @@ internal sealed class TrayIconHost : IDisposable
 
     [DllImport("shell32.dll", CharSet = CharSet.Unicode, EntryPoint = "Shell_NotifyIconW")]
     private static extern bool ShellNotifyIcon(int message, ref NotifyIconData data);
+    [DllImport("shell32.dll", EntryPoint = "Shell_NotifyIconGetRect")]
+    private static extern int ShellNotifyIconGetRect(ref NotifyIconIdentifier identifier, out NativeRect rect);
     private static class NativeMethods
     {
         [DllImport("user32.dll")] public static extern IntPtr LoadIcon(IntPtr hInstance, IntPtr lpIconName);
@@ -247,5 +366,19 @@ internal sealed class TrayIconHost : IDisposable
     {
         public int Size; public IntPtr Window; public uint Id; public int Flags; public int Callback; public IntPtr Icon;
         [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)] public string Tip;
+    }
+    [StructLayout(LayoutKind.Sequential)] private struct NotifyIconIdentifier
+    {
+        public int Size;
+        public IntPtr Window;
+        public uint Id;
+        public Guid GuidItem;
+    }
+    [StructLayout(LayoutKind.Sequential)] private struct NativeRect
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
     }
 }
