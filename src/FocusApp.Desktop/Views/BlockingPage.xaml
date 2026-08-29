@@ -227,7 +227,7 @@
                                             <Grid.Style><Style TargetType="Grid"><Setter Property="Background" Value="{DynamicResource TransparentBrush}" /><Style.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="{DynamicResource ControlHoverBackground}" /></Trigger></Style.Triggers></Style></Grid.Style>
                                             <Border Grid.ColumnSpan="3" Height="1" Margin="22,0" VerticalAlignment="Bottom" Background="{DynamicResource OverlayBorder}" Opacity="0.48" />
                                             <StackPanel Margin="22,0,0,0" Orientation="Horizontal" VerticalAlignment="Center">
-                                                <Border Width="24" Height="24" Background="{DynamicResource AccentTint}" CornerRadius="6">
+                                                <Border Width="24" Height="24" Background="{DynamicResource TransparentBrush}" CornerRadius="6">
                                                     <Grid>
                                                         <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{DynamicResource AccentPrimary}" Text="&#xE774;">
                                                             <TextBlock.Style>
@@ -426,7 +426,7 @@
                                         <StackPanel Margin="22,0,0,0" Orientation="Horizontal" VerticalAlignment="Center">
                                             <Border Width="24"
                                                     Height="24"
-                                                    Background="{DynamicResource AccentTint}"
+                                                    Background="{DynamicResource TransparentBrush}"
                                                     CornerRadius="6">
                                                 <Grid>
                                                     <Image Width="22" Height="22" Source="{Binding Icon}" Stretch="Uniform" />

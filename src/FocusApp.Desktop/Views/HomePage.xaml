@@ -425,7 +425,7 @@
                         <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Border Width="28" Height="28" Margin="0,0,6,0" Background="{DynamicResource AccentTint}" CornerRadius="14">
+                                <Border Width="28" Height="28" Margin="0,0,6,0" Background="{DynamicResource TransparentBrush}" CornerRadius="14">
                                     <Grid>
                                         <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{DynamicResource AccentPrimary}" Text="{Binding IconGlyph}">
                                             <TextBlock.Style><Style TargetType="{x:Type TextBlock}"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding Favicon}" Value="{x:Null}"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></TextBlock.Style>
