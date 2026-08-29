@@ -17,6 +17,9 @@ public static class IpcOperations
     public const string DeactivateAccessControl = "access-control.deactivate";
     public const string GetAccessControlStatus = "access-control.status.get";
     public const string StartForcedFocus = "focus.forced.start";
+#if DEBUG
+    public const string EndForcedFocusForDebug = "focus.forced.end-debug";
+#endif
     public const string StartNormalFocus = "focus.normal.start";
     public const string UpdateFocusTasks = "focus.tasks.update";
     public const string UpdateForcedFocusTasks = "focus.forced.tasks.update";

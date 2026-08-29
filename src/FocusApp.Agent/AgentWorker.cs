@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.IO;
 using FocusApp.Contracts;
 using FocusApp.Infrastructure.AccessControl;
 using FocusApp.Agent.Services;
@@ -51,7 +52,10 @@ internal sealed class AgentWorker : BackgroundService
         }
         finally
         {
-            _singleInstanceMutex.ReleaseMutex();
+            // Named Mutex ownership is thread-affine; ExecuteCoreAsync may resume on another thread.
+            // Disposing is sufficient because the OS releases the abandoned mutex when the process exits.
+            try { _singleInstanceMutex.ReleaseMutex(); }
+            catch (ApplicationException) { }
             _singleInstanceMutex.Dispose();
             _singleInstanceMutex = null;
         }

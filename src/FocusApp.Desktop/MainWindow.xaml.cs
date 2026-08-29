@@ -18,12 +18,17 @@ public partial class MainWindow : Window
 #if DEBUG
     private const int CompletionReminderHotKeyId = 0x5242;
     private const uint VirtualKeyW = 0x57;
+    private const int DebugForcedExitHotKeyId = 0x5243;
+    private const uint ModShift = 0x0004;
 #endif
     private HwndSource? _hotKeySource;
     private FocusFloatingWindow? _focusFloatingWindow;
     private FocusFloatingWindowViewModel? _focusFloatingViewModel;
     private CompletionReminderWindow? _completionReminderWindow;
     private bool _isClosing;
+#if DEBUG
+    private bool _debugForcedExitInProgress;
+#endif
     private readonly DispatcherTimer _guestLoginHintCloseTimer;
 
     public MainWindow()
@@ -46,6 +51,7 @@ public partial class MainWindow : Window
         NativeMethods.RegisterHotKey(_hotKeySource.Handle, ToastHotKeyId, ModControl, VirtualKeyQ);
 #if DEBUG
         NativeMethods.RegisterHotKey(_hotKeySource.Handle, CompletionReminderHotKeyId, ModControl, VirtualKeyW);
+        NativeMethods.RegisterHotKey(_hotKeySource.Handle, DebugForcedExitHotKeyId, ModShift, VirtualKeyQ);
 #endif
     }
 
@@ -64,6 +70,15 @@ public partial class MainWindow : Window
                 viewModel.ShowCompletionReminderTest();
             }
             handled = true;
+        }
+        else if (msg == NativeMethods.WmHotKey && wParam.ToInt32() == DebugForcedExitHotKeyId)
+        {
+            handled = true;
+            if (!_debugForcedExitInProgress && DataContext is MainWindowViewModel viewModel)
+            {
+                _debugForcedExitInProgress = true;
+                _ = EndForcedFocusForDebugAsync(viewModel);
+            }
         }
 #endif
 
@@ -307,6 +322,7 @@ public partial class MainWindow : Window
             NativeMethods.UnregisterHotKey(_hotKeySource.Handle, ToastHotKeyId);
 #if DEBUG
             NativeMethods.UnregisterHotKey(_hotKeySource.Handle, CompletionReminderHotKeyId);
+            NativeMethods.UnregisterHotKey(_hotKeySource.Handle, DebugForcedExitHotKeyId);
 #endif
             _hotKeySource.RemoveHook(MainWindowHook);
             _hotKeySource = null;
@@ -321,6 +337,20 @@ public partial class MainWindow : Window
         _completionReminderWindow?.Close();
         _completionReminderWindow = null;
     }
+
+#if DEBUG
+    private async Task EndForcedFocusForDebugAsync(MainWindowViewModel viewModel)
+    {
+        try
+        {
+            await viewModel.EndForcedFocusForDebugAsync();
+        }
+        finally
+        {
+            _debugForcedExitInProgress = false;
+        }
+    }
+#endif
 
     private void MainViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {

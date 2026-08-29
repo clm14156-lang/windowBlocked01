@@ -113,6 +113,11 @@ public sealed class ServiceStateCoordinator : IAsyncDisposable
                     await StartForcedFocusAsync(
                         request.ReadPayload<StartForcedFocusCommand>(),
                         cancellationToken)),
+#if DEBUG
+                IpcOperations.EndForcedFocusForDebug => IpcEnvelope.CreateSuccess(
+                    request,
+                    await EndForcedFocusForDebugAsync(cancellationToken)),
+#endif
                 IpcOperations.StartNormalFocus => await StartNormalFocusAsync(request, cancellationToken),
                 IpcOperations.UpdateFocusTasks => await UpdateFocusTasksAsync(request, cancellationToken),
                 IpcOperations.UpdateForcedFocusTasks => IpcEnvelope.CreateSuccess(
@@ -520,6 +525,65 @@ public sealed class ServiceStateCoordinator : IAsyncDisposable
             _focusRuntimeStatus,
             _accessControlStatus);
     }
+
+#if DEBUG
+    private async Task<FocusSessionMutationResult> EndForcedFocusForDebugAsync(
+        CancellationToken cancellationToken)
+    {
+        PublishFocusRuntimeStatus(new FocusRuntimeStatusDto(
+            FocusRuntimeState.Completing,
+            _focusRuntimeStatus.SessionId,
+            _focusRuntimeStatus.PlannedEndAtUtc,
+            null));
+
+        LocalFocusSession? completed = null;
+        LocalDataSnapshotDto state;
+        await _mutationGate.WaitAsync(cancellationToken);
+        try
+        {
+            var snapshot = await _store.LoadAsync(cancellationToken);
+            var active = snapshot.FocusSessions.SingleOrDefault(item =>
+                IsActiveSession(item) && item.IsForcedMode);
+            if (active is null)
+            {
+                throw new ServiceBusinessException("当前没有正在进行的强制专注。");
+            }
+
+            var now = GetEffectiveUtcNow();
+            var actualSeconds = active.FocusStartedAtUtc is { } startedAt
+                ? Math.Clamp((int)Math.Floor((now - startedAt).TotalSeconds), 0, active.ConfiguredSeconds)
+                : 0;
+            completed = active with
+            {
+                Status = LocalFocusSessionStatus.Completed,
+                ActualSeconds = actualSeconds,
+                CompletedAtUtc = now,
+                CompletionKind = FocusCompletionKind.EarlyEnd
+            };
+            await _store.SaveFocusSessionAsync(
+                completed,
+                completed.CompletedTasks.Select(task => task.TaskId).ToArray(),
+                cancellationToken);
+            state = await PublishStateChangedAsync(cancellationToken);
+        }
+        finally
+        {
+            _mutationGate.Release();
+        }
+
+        var accessStatus = await DeactivateAccessControlCoreAsync(CancellationToken.None);
+        PublishFocusRuntimeStatus(new FocusRuntimeStatusDto(
+            FocusRuntimeState.Idle,
+            null,
+            null,
+            accessStatus.State == AccessControlRuntimeState.Inactive ? null : accessStatus.LastError));
+        return new FocusSessionMutationResult(
+            state.Revision,
+            state,
+            _focusRuntimeStatus,
+            _accessControlStatus);
+    }
+#endif
 
     private async Task<FocusSessionMutationResult> UpdateForcedFocusTasksAsync(
         UpdateForcedFocusTasksCommand command,

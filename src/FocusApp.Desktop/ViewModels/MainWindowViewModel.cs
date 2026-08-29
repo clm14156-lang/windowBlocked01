@@ -175,6 +175,30 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     public bool IsBackendAvailable => ServiceConnection?.IsConnected == true;
 
+#if DEBUG
+    public async Task<bool> EndForcedFocusForDebugAsync()
+    {
+        if (!HomePage.FocusSession.IsForcedModeActive ||
+            HomePage.FocusSession.Stage is not (FocusFlowStage.Preparing or FocusFlowStage.Focusing) ||
+            ServiceConnection is null ||
+            !ServiceConnection.IsConnected)
+        {
+            return false;
+        }
+
+        try
+        {
+            await ServiceConnection.EndForcedFocusForDebugAsync();
+            HomePage.FocusSession.ReturnHomeCommand.Execute(null);
+            return true;
+        }
+        catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException)
+        {
+            return false;
+        }
+    }
+#endif
+
     public DesktopServiceConnectionStatus BackendStatus =>
         ServiceConnection?.Status ?? DesktopServiceConnectionStatus.Disconnected;
 

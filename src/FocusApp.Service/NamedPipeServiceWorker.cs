@@ -292,6 +292,9 @@ public sealed class NamedPipeServiceWorker : BackgroundService
                 IpcOperations.GetState or
                 IpcOperations.GetAccessControlStatus or
                 IpcOperations.GetFocusRuntimeStatus or
+#if DEBUG
+                IpcOperations.EndForcedFocusForDebug or
+#endif
                 IpcOperations.AgentProxyActionResult or
                 IpcOperations.AgentStartupRegistrationActionResult or
                 IpcOperations.AgentProxyReconciliationResult or

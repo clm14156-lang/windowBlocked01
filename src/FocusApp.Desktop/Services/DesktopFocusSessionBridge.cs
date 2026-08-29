@@ -29,6 +29,12 @@ public sealed class DesktopFocusSessionBridge : IDisposable
 
     public event EventHandler<string>? SynchronizationFailed;
 
+#if DEBUG
+    public Task<FocusSessionMutationResult> EndForcedFocusForDebugAsync(
+        CancellationToken cancellationToken = default)
+        => _connection.EndForcedFocusForDebugAsync(cancellationToken);
+#endif
+
     public void Dispose()
     {
         if (_disposed)

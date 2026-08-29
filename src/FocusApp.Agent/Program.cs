@@ -8,7 +8,8 @@ namespace FocusApp.Agent;
 
 internal static class Program
 {
-    private static async Task Main(string[] args)
+    [STAThread]
+    private static void Main(string[] args)
     {
         var builder = Host.CreateApplicationBuilder(args);
         builder.Services.AddSingleton<IUserProxyManager, UserProxyManager>();
@@ -23,6 +24,14 @@ internal static class Program
         builder.Services.AddHostedService(provider => provider.GetRequiredService<AgentWorker>());
 
         using var host = builder.Build();
-        await host.RunAsync();
+        host.StartAsync().GetAwaiter().GetResult();
+        var application = new System.Windows.Application
+        {
+            ShutdownMode = System.Windows.ShutdownMode.OnExplicitShutdown
+        };
+        var tray = new TrayApplication(host.Services, application.Dispatcher);
+        application.Exit += (_, _) => host.StopAsync().GetAwaiter().GetResult();
+        application.Run();
+        tray.Dispose();
     }
 }
