@@ -2,6 +2,7 @@ using System.IO.Pipes;
 using System.Security.Principal;
 using FocusApp.Contracts;
 using FocusApp.Desktop.Services;
+using FocusApp.Desktop.ViewModels;
 using FocusApp.Infrastructure.Persistence;
 using FocusApp.Service;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -232,6 +233,59 @@ public sealed class NamedPipeCommunicationTests
 
         Assert.Equal(rule, Assert.Single(connection.State!.WebsiteRules));
         await fixture.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task ApplicationToggle_PersistsWithoutRecreatingApplicationRow()
+    {
+        await using var fixture = await ServiceFixture.StartAsync();
+        await using var connection = await Task.Run(() => new DesktopServiceConnection(
+            fixture.PipeName,
+            TimeSpan.FromMilliseconds(500),
+            RequestTimeout,
+            TimeSpan.FromMilliseconds(50)));
+        await connection.StartAsync();
+        await WaitUntilAsync(() => connection.IsConnected, TimeSpan.FromSeconds(3));
+
+        var websiteRule = new LocalWebsiteRuleDto(
+            Guid.NewGuid(),
+            "Docs",
+            "docs.example.com",
+            true,
+            0);
+        var applicationRule = new LocalApplicationRuleDto(
+            Guid.NewGuid(),
+            "Editor",
+            @"C:\Apps\Editor.exe",
+            true,
+            0);
+        await connection.ReplaceWebsiteRulesAsync(new ReplaceWebsiteRulesCommand([websiteRule]));
+        await connection.ReplaceApplicationRulesAsync(new ReplaceApplicationRulesCommand([applicationRule]));
+
+        var application = new BlockingApplicationItemViewModel(
+            applicationRule.Id,
+            applicationRule.Name,
+            applicationRule.Path,
+            applicationRule.IsEnabled);
+        var blockingPage = new BlockingPageViewModel(
+            [new BlockingWebsiteItemViewModel(
+                websiteRule.Id,
+                websiteRule.Name,
+                websiteRule.Address,
+                websiteRule.IsEnabled)],
+            [application],
+            "Websites {0}",
+            "Applications {0}");
+        var focusSession = new FocusSessionViewModel(runTimer: false);
+        using var bridge = new DesktopAccessControlBridge(focusSession, blockingPage, connection);
+
+        application.IsEnabled = false;
+
+        await WaitUntilAsync(
+            () => connection.State?.ApplicationRules.SingleOrDefault()?.IsEnabled == false,
+            TimeSpan.FromSeconds(3));
+        Assert.Same(application, Assert.Single(blockingPage.Applications));
+        Assert.False(blockingPage.Applications[0].IsEnabled);
     }
 
     [Fact]

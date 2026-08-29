@@ -209,21 +209,35 @@ public sealed class DesktopAccessControlBridge : IDisposable
         await _ruleSaveGate.WaitAsync(cancellationToken);
         try
         {
-            if (_connection.State is not null && RulesEqual(_connection.State))
+            var persistedState = _connection.State;
+            var websitesChanged = persistedState is null || !WebsiteRulesEqual(persistedState);
+            var applicationsChanged = persistedState is null || !ApplicationRulesEqual(persistedState);
+            if (!websitesChanged && !applicationsChanged)
             {
                 return;
             }
 
-            var websites = _blockingPage.Websites.Select((item, index) =>
-                new LocalWebsiteRuleDto(item.Id, item.Name, item.Address, item.IsEnabled, index)).ToArray();
-            var applications = _blockingPage.Applications.Select((item, index) =>
-                new LocalApplicationRuleDto(item.Id, item.Name, item.Path, item.IsEnabled, index)).ToArray();
-            await _connection.ReplaceWebsiteRulesAsync(
-                new ReplaceWebsiteRulesCommand(websites),
-                cancellationToken);
-            await _connection.ReplaceApplicationRulesAsync(
-                new ReplaceApplicationRulesCommand(applications),
-                cancellationToken);
+            // Persist each rule kind independently. Sending an unchanged website
+            // snapshot before an application-only change publishes an intermediate
+            // service state with the application's old value, which recreates the
+            // application rows and makes their toggles visibly bounce.
+            if (websitesChanged)
+            {
+                var websites = _blockingPage.Websites.Select((item, index) =>
+                    new LocalWebsiteRuleDto(item.Id, item.Name, item.Address, item.IsEnabled, index)).ToArray();
+                await _connection.ReplaceWebsiteRulesAsync(
+                    new ReplaceWebsiteRulesCommand(websites),
+                    cancellationToken);
+            }
+
+            if (applicationsChanged)
+            {
+                var applications = _blockingPage.Applications.Select((item, index) =>
+                    new LocalApplicationRuleDto(item.Id, item.Name, item.Path, item.IsEnabled, index)).ToArray();
+                await _connection.ReplaceApplicationRulesAsync(
+                    new ReplaceApplicationRulesCommand(applications),
+                    cancellationToken);
+            }
         }
         finally
         {
@@ -232,14 +246,21 @@ public sealed class DesktopAccessControlBridge : IDisposable
     }
 
     private bool RulesEqual(LocalDataSnapshotDto state)
+        => WebsiteRulesEqual(state) && ApplicationRulesEqual(state);
+
+    private bool WebsiteRulesEqual(LocalDataSnapshotDto state)
     {
         var websites = _blockingPage.Websites;
-        var applications = _blockingPage.Applications;
         return websites.Count == state.WebsiteRules.Count &&
-               applications.Count == state.ApplicationRules.Count &&
                websites.Select((item, index) => (item.Id, item.Name, item.Address, item.IsEnabled, index))
                    .SequenceEqual(state.WebsiteRules.OrderBy(rule => rule.SortOrder)
-                       .Select(rule => (rule.Id, rule.Name, rule.Address, rule.IsEnabled, rule.SortOrder))) &&
+                       .Select(rule => (rule.Id, rule.Name, rule.Address, rule.IsEnabled, rule.SortOrder)));
+    }
+
+    private bool ApplicationRulesEqual(LocalDataSnapshotDto state)
+    {
+        var applications = _blockingPage.Applications;
+        return applications.Count == state.ApplicationRules.Count &&
                applications.Select((item, index) => (item.Id, item.Name, item.Path, item.IsEnabled, index))
                    .SequenceEqual(state.ApplicationRules.OrderBy(rule => rule.SortOrder)
                        .Select(rule => (rule.Id, rule.Name, rule.Path, rule.IsEnabled, rule.SortOrder)));
