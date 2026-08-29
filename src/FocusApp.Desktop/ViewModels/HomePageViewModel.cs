@@ -519,7 +519,9 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
     private void RefreshVisibleDurationOptions()
     {
         VisibleDurationOptions.Clear();
-        foreach (var option in _displayOrder.Where(item => item.IsSelected))
+        foreach (var option in _displayOrder
+                     .Where(item => item.IsSelected)
+                     .OrderBy(item => item.Minutes))
         {
             VisibleDurationOptions.Add(option);
         }
