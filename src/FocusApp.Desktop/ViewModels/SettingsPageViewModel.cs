@@ -16,6 +16,7 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
     private bool _isVip;
     private bool _isApplyingLaunchAtStartup;
     private bool _isApplyingWindowsNotifications;
+    private bool _isApplyingFocusSound;
     private DispatcherTimer? _ruleMergeToastTimer;
     private bool _isRuleMergeToastVisible;
     private string _ruleMergeToastRange = string.Empty;
@@ -76,6 +77,12 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
         {
             WindowsNotificationsItem.PropertyChanged += WindowsNotificationsItem_PropertyChanged;
         }
+
+        FocusSoundItem = ToggleItems.FirstOrDefault(item => item.Key == "FocusSound");
+        if (FocusSoundItem is not null)
+        {
+            FocusSoundItem.PropertyChanged += FocusSoundItem_PropertyChanged;
+        }
     }
 
     private readonly string _dailyLabel;
@@ -104,8 +111,11 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
 
     public SettingsToggleItemViewModel? WindowsNotificationsItem { get; }
 
+    public SettingsToggleItemViewModel? FocusSoundItem { get; }
+
     public event EventHandler<bool>? LaunchAtStartupChanged;
     public event EventHandler<bool>? WindowsNotificationsChanged;
+    public event EventHandler<bool>? FocusSoundChanged;
 
     public bool CanUseForcedMode => ForcedModeAccessPolicy.CanUseForcedMode(_isLoggedIn, _isVip);
 
@@ -455,6 +465,14 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
         }
     }
 
+    private void FocusSoundItem_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(SettingsToggleItemViewModel.IsEnabled) && !_isApplyingFocusSound)
+        {
+            FocusSoundChanged?.Invoke(this, FocusSoundItem?.IsEnabled == true);
+        }
+    }
+
     public void ApplyLaunchAtStartupState(bool enabled)
     {
         if (LaunchAtStartupItem is null)
@@ -479,6 +497,14 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
         _isApplyingWindowsNotifications = true;
         try { WindowsNotificationsItem.IsEnabled = enabled; }
         finally { _isApplyingWindowsNotifications = false; }
+    }
+
+    public void ApplyFocusSoundState(bool enabled)
+    {
+        if (FocusSoundItem is null) return;
+        _isApplyingFocusSound = true;
+        try { FocusSoundItem.IsEnabled = enabled; }
+        finally { _isApplyingFocusSound = false; }
     }
 
     private void EnsureForcedModeAccessState()

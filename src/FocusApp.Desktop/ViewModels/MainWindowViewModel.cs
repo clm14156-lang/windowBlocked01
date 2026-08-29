@@ -23,6 +23,10 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private readonly SemaphoreSlim _automaticRulesPersistenceGate = new(1, 1);
     private Guid? _normalFocusSessionId;
     private DateTimeOffset? _normalFocusStartedAtUtc;
+    private readonly IAudioService? _audioService;
+    private bool _isCompletionReminderVisible;
+    private string _completionReminderDuration = string.Empty;
+    private string _completionReminderDetail = string.Empty;
 
     public MainWindowViewModel(
         IEnumerable<NavigationItemViewModel> primaryNavigationItems,
@@ -31,7 +35,8 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         SettingsPageViewModel? settingsPage = null,
         BlockingPageViewModel? blockingPage = null,
         StatisticsOverviewViewModel? statisticsPage = null,
-        DesktopServiceConnection? serviceConnection = null)
+        DesktopServiceConnection? serviceConnection = null,
+        IAudioService? audioService = null)
     {
         PrimaryNavigationItems = new ReadOnlyCollection<NavigationItemViewModel>(
             primaryNavigationItems.ToList());
@@ -50,6 +55,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         SettingsPage = settingsPage ?? new SettingsPageViewModel([], []);
         BlockingPage = blockingPage ?? new BlockingPageViewModel([], [], "Added websites: {0}", "Added applications: {0}");
         ServiceConnection = serviceConnection;
+        _audioService = audioService;
         if (ServiceConnection is not null)
         {
             ServiceConnection.PropertyChanged += ServiceConnection_PropertyChanged;
@@ -57,6 +63,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         }
         SettingsPage.LaunchAtStartupChanged += SettingsPage_LaunchAtStartupChanged;
         SettingsPage.WindowsNotificationsChanged += SettingsPage_WindowsNotificationsChanged;
+        SettingsPage.FocusSoundChanged += SettingsPage_FocusSoundChanged;
         SettingsPage.RulesChanged += SettingsPage_RulesChanged;
         HomePage.DurationOptionsChanged += HomePage_DurationOptionsChanged;
         HomePage.FocusTargetModal.TargetChanged += FocusTargetModal_TargetChanged;
@@ -117,6 +124,42 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     public MembershipCenterViewModel MembershipCenter { get; } = new();
 
     public ThemePanelViewModel ThemePanel { get; } = new();
+
+    public bool IsCompletionReminderVisible
+    {
+        get => _isCompletionReminderVisible;
+        private set
+        {
+            if (_isCompletionReminderVisible == value) return;
+            _isCompletionReminderVisible = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public string CompletionReminderDuration
+    {
+        get => _completionReminderDuration;
+        private set { if (_completionReminderDuration != value) { _completionReminderDuration = value; OnPropertyChanged(); } }
+    }
+
+    public string CompletionReminderDetail
+    {
+        get => _completionReminderDetail;
+        private set { if (_completionReminderDetail != value) { _completionReminderDetail = value; OnPropertyChanged(); OnPropertyChanged(nameof(HasCompletionReminderDetail)); } }
+    }
+
+    public bool HasCompletionReminderDetail => !string.IsNullOrWhiteSpace(CompletionReminderDetail);
+
+    public void ShowCompletionReminderTest()
+    {
+        CompletionReminderDuration = "5 分钟";
+        CompletionReminderDetail = string.Empty;
+        IsCompletionReminderVisible = true;
+    }
+
+    public ICommand CloseCompletionReminderCommand => _closeCompletionReminderCommand ??= new RelayCommand<object>(_ => IsCompletionReminderVisible = false);
+
+    private ICommand? _closeCompletionReminderCommand;
 
     public HomePageViewModel HomePage { get; }
 
@@ -341,6 +384,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         SettingsPage.ApplyAutomaticRules(state.AutomaticRules);
         SettingsPage.ApplyLaunchAtStartupState(state.Settings.LaunchAtStartup);
         SettingsPage.ApplyWindowsNotificationsState(state.Settings.WindowsNotificationsEnabled);
+        SettingsPage.ApplyFocusSoundState(state.Settings.FocusSoundEnabled);
         HomePage.ApplyDurationPresets(state.DurationPresets);
         HomePage.FocusTargetModal.ApplyState(state.Targets, state.Tasks, state.Settings.SelectedTargetId);
         StatisticsPage.ApplyState(state);
@@ -414,52 +458,82 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     private async void FocusSession_CompletionRecorded(object? sender, FocusSessionCompletedEventArgs e)
     {
-        if (e.Record.IsForcedMode || ServiceConnection is null || !ServiceConnection.IsConnected) return;
-        await _normalFocusPersistenceGate.WaitAsync();
+        if (!e.Record.IsForcedMode && ServiceConnection is not null && ServiceConnection.IsConnected)
+        {
+            await _normalFocusPersistenceGate.WaitAsync();
+            try
+            {
+                var record = e.Record;
+                var completedAt = new DateTimeOffset(record.CompletedAt).ToUniversalTime();
+                var focusStartedAt = _normalFocusStartedAtUtc ?? completedAt - record.ActualDuration;
+                var target = HomePage.FocusTargetModal.Targets.FirstOrDefault(item => item.TargetId == record.TargetId);
+                var persistedSnapshots = ServiceConnection.State?.FocusSessions
+                    .FirstOrDefault(item => item.SessionId == _normalFocusSessionId)?.CompletedTasks
+                    .ToDictionary(item => item.TaskId, StringComparer.Ordinal)
+                    ?? new Dictionary<string, LocalFocusSessionTaskSnapshotDto>(StringComparer.Ordinal);
+                var snapshots = record.CompletedTaskIds.Select((taskId, index) =>
+                {
+                    var task = target?.Tasks.FirstOrDefault(item => item.TaskId == taskId);
+                    var name = task?.Name ?? e.CompletedTaskNames.ElementAtOrDefault(index) ?? string.Empty;
+                    persistedSnapshots.TryGetValue(taskId, out var persisted);
+                    return new LocalFocusSessionTaskSnapshotDto(taskId, name, index)
+                    {
+                        CompletedAtUtc = persisted?.CompletedAtUtc ?? completedAt
+                    };
+                }).ToArray();
+                var session = new LocalFocusSessionDto(
+                    _normalFocusSessionId ?? Guid.NewGuid(), LocalFocusSessionStatusDto.Completed, false,
+                    checked((int)record.ConfiguredDuration.TotalSeconds),
+                    checked((int)record.ActualDuration.TotalSeconds),
+                    new DateTimeOffset(record.StartedAt).ToUniversalTime(),
+                    focusStartedAt,
+                    focusStartedAt + record.ConfiguredDuration,
+                    completedAt,
+                    (FocusCompletionKindDto)record.CompletionKind,
+                    record.TargetId,
+                    record.TargetName,
+                    false,
+                    null,
+                    null,
+                    snapshots);
+                try { await ServiceConnection.RecordCompletedFocusAsync(session); }
+                catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException) { }
+                finally
+                {
+                    _normalFocusSessionId = null;
+                    _normalFocusStartedAtUtc = null;
+                }
+            }
+            finally { _normalFocusPersistenceGate.Release(); }
+        }
+
+        if (e.Record.CompletionKind != FocusCompletionKind.Natural)
+        {
+            return;
+        }
+
         try
         {
-            var record = e.Record;
-            var completedAt = new DateTimeOffset(record.CompletedAt).ToUniversalTime();
-            var focusStartedAt = _normalFocusStartedAtUtc ?? completedAt - record.ActualDuration;
-            var target = HomePage.FocusTargetModal.Targets.FirstOrDefault(item => item.TargetId == record.TargetId);
-            var persistedSnapshots = ServiceConnection.State?.FocusSessions
-                .FirstOrDefault(item => item.SessionId == _normalFocusSessionId)?.CompletedTasks
-                .ToDictionary(item => item.TaskId, StringComparer.Ordinal)
-                ?? new Dictionary<string, LocalFocusSessionTaskSnapshotDto>(StringComparer.Ordinal);
-            var snapshots = record.CompletedTaskIds.Select((taskId, index) =>
+            if (SettingsPage.FocusSoundItem?.IsEnabled == true)
             {
-                var task = target?.Tasks.FirstOrDefault(item => item.TaskId == taskId);
-                var name = task?.Name ?? e.CompletedTaskNames.ElementAtOrDefault(index) ?? string.Empty;
-                persistedSnapshots.TryGetValue(taskId, out var persisted);
-                return new LocalFocusSessionTaskSnapshotDto(taskId, name, index)
-                {
-                    CompletedAtUtc = persisted?.CompletedAtUtc ?? completedAt
-                };
-            }).ToArray();
-            var session = new LocalFocusSessionDto(
-                _normalFocusSessionId ?? Guid.NewGuid(), LocalFocusSessionStatusDto.Completed, false,
-                checked((int)record.ConfiguredDuration.TotalSeconds),
-                checked((int)record.ActualDuration.TotalSeconds),
-                new DateTimeOffset(record.StartedAt).ToUniversalTime(),
-                focusStartedAt,
-                focusStartedAt + record.ConfiguredDuration,
-                completedAt,
-                (FocusCompletionKindDto)record.CompletionKind,
-                record.TargetId,
-                record.TargetName,
-                false,
-                null,
-                null,
-                snapshots);
-            try { await ServiceConnection.RecordCompletedFocusAsync(session); }
-            catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException) { }
-            finally
-            {
-                _normalFocusSessionId = null;
-                _normalFocusStartedAtUtc = null;
+                _audioService?.PlayFocusCompletionSound();
             }
         }
-        finally { _normalFocusPersistenceGate.Release(); }
+        catch (Exception) { }
+
+        ShowCompletionReminder(e.Record, e.CompletedTaskNames.Count);
+    }
+
+    private void ShowCompletionReminder(FocusSessionRecord record, int completedTaskCount)
+    {
+        var minutes = Math.Max(0, (int)Math.Round(record.ActualDuration.TotalMinutes));
+        CompletionReminderDuration = $"{minutes} 分钟";
+        var targetName = record.TargetName?.Trim() ?? string.Empty;
+        var taskText = completedTaskCount > 0 ? $"完成 {completedTaskCount} 个任务" : string.Empty;
+        CompletionReminderDetail = string.IsNullOrWhiteSpace(targetName)
+            ? taskText
+            : string.IsNullOrWhiteSpace(taskText) ? targetName : $"{targetName} · {taskText}";
+        IsCompletionReminderVisible = true;
     }
 
     private async void FocusSession_TargetTasksChanged(object? sender, FocusTargetViewModel target)
@@ -651,6 +725,36 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         try { await ServiceConnection.SetWindowsNotificationsAsync(enabled); }
         catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException)
         { SettingsPage.ApplyWindowsNotificationsState(!enabled); }
+    }
+
+    private async void SettingsPage_FocusSoundChanged(object? sender, bool enabled)
+    {
+        if (ServiceConnection is null || !ServiceConnection.IsConnected)
+        {
+            SettingsPage.ApplyFocusSoundState(!enabled);
+            return;
+        }
+
+        var previous = !enabled;
+        await _settingsPersistenceGate.WaitAsync();
+        try
+        {
+            if (ServiceConnection.State is not { } state || !ServiceConnection.IsConnected)
+            {
+                SettingsPage.ApplyFocusSoundState(previous);
+                return;
+            }
+
+            await ServiceConnection.SaveSettingsAsync(new SaveSettingsCommand(
+                state.Settings with { FocusSoundEnabled = enabled, UpdatedAtUtc = DateTimeOffset.UtcNow },
+                state.DurationPresets,
+                state.MonthlyFocusTargets));
+        }
+        catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException)
+        {
+            SettingsPage.ApplyFocusSoundState(previous);
+        }
+        finally { _settingsPersistenceGate.Release(); }
     }
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null)

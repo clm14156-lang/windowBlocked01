@@ -64,7 +64,8 @@ public partial class App : Application
             CreateSettingsPageViewModel(),
             CreateBlockingPageViewModel(),
             new StatisticsOverviewViewModel(useSampleData: false),
-            _serviceConnection);
+            _serviceConnection,
+            new AudioService());
         _accessControlBridge = new DesktopAccessControlBridge(
             mainViewModel.HomePage.FocusSession,
             mainViewModel.BlockingPage,

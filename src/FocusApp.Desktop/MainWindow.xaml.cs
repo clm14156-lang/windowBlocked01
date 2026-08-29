@@ -15,9 +15,14 @@ public partial class MainWindow : Window
     private const int ToastHotKeyId = 0x5241;
     private const uint ModControl = 0x0002;
     private const uint VirtualKeyQ = 0x51;
+#if DEBUG
+    private const int CompletionReminderHotKeyId = 0x5242;
+    private const uint VirtualKeyW = 0x57;
+#endif
     private HwndSource? _hotKeySource;
     private FocusFloatingWindow? _focusFloatingWindow;
     private FocusFloatingWindowViewModel? _focusFloatingViewModel;
+    private CompletionReminderWindow? _completionReminderWindow;
     private bool _isClosing;
     private readonly DispatcherTimer _guestLoginHintCloseTimer;
 
@@ -39,6 +44,9 @@ public partial class MainWindow : Window
         _hotKeySource = (HwndSource)PresentationSource.FromVisual(this)!;
         _hotKeySource.AddHook(MainWindowHook);
         NativeMethods.RegisterHotKey(_hotKeySource.Handle, ToastHotKeyId, ModControl, VirtualKeyQ);
+#if DEBUG
+        NativeMethods.RegisterHotKey(_hotKeySource.Handle, CompletionReminderHotKeyId, ModControl, VirtualKeyW);
+#endif
     }
 
     private IntPtr MainWindowHook(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
@@ -48,6 +56,16 @@ public partial class MainWindow : Window
             AutomaticBlockingToastService.Show();
             handled = true;
         }
+#if DEBUG
+        else if (msg == NativeMethods.WmHotKey && wParam.ToInt32() == CompletionReminderHotKeyId)
+        {
+            if (DataContext is MainWindowViewModel viewModel)
+            {
+                viewModel.ShowCompletionReminderTest();
+            }
+            handled = true;
+        }
+#endif
 
         return IntPtr.Zero;
     }
@@ -58,12 +76,14 @@ public partial class MainWindow : Window
         {
             oldViewModel.ThemePanel.ThemeSelected -= ThemePanel_ThemeSelected;
             oldViewModel.HomePage.FocusSession.PropertyChanged -= FocusSession_PropertyChanged;
+            oldViewModel.PropertyChanged -= MainViewModel_PropertyChanged;
         }
 
         if (e.NewValue is MainWindowViewModel newViewModel)
         {
             newViewModel.ThemePanel.ThemeSelected += ThemePanel_ThemeSelected;
             newViewModel.HomePage.FocusSession.PropertyChanged += FocusSession_PropertyChanged;
+            newViewModel.PropertyChanged += MainViewModel_PropertyChanged;
         }
     }
 
@@ -246,12 +266,37 @@ public partial class MainWindow : Window
 
     private void FocusSession_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(FocusSessionViewModel.Stage) &&
-            sender is FocusSessionViewModel session &&
-            !session.IsFocusing &&
-            _focusFloatingWindow is not null)
+        if (e.PropertyName != nameof(FocusSessionViewModel.Stage) ||
+            sender is not FocusSessionViewModel session)
+        {
+            return;
+        }
+
+        if (!session.IsFocusing && _focusFloatingWindow is not null)
         {
             RestoreFromFocusFloatingWindow();
+        }
+
+        if (session.IsCompleted)
+        {
+            if (!IsVisible)
+            {
+                Show();
+            }
+
+            if (WindowState == WindowState.Minimized)
+            {
+                WindowState = WindowState.Normal;
+            }
+
+            Activate();
+        }
+        else if (session.IsPreparing || session.IsFocusing)
+        {
+            if (DataContext is MainWindowViewModel viewModel)
+            {
+                viewModel.CloseCompletionReminderCommand.Execute(null);
+            }
         }
     }
 
@@ -260,6 +305,9 @@ public partial class MainWindow : Window
         if (_hotKeySource is not null)
         {
             NativeMethods.UnregisterHotKey(_hotKeySource.Handle, ToastHotKeyId);
+#if DEBUG
+            NativeMethods.UnregisterHotKey(_hotKeySource.Handle, CompletionReminderHotKeyId);
+#endif
             _hotKeySource.RemoveHook(MainWindowHook);
             _hotKeySource = null;
         }
@@ -270,6 +318,42 @@ public partial class MainWindow : Window
         _focusFloatingViewModel?.Dispose();
         _focusFloatingViewModel = null;
         floatingWindow?.Close();
+        _completionReminderWindow?.Close();
+        _completionReminderWindow = null;
+    }
+
+    private void MainViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(MainWindowViewModel.IsCompletionReminderVisible) || sender is not MainWindowViewModel viewModel)
+        {
+            return;
+        }
+
+        if (viewModel.IsCompletionReminderVisible)
+        {
+            ShowCompletionReminderWindow(viewModel);
+        }
+        else
+        {
+            _completionReminderWindow?.Hide();
+        }
+    }
+
+    private void ShowCompletionReminderWindow(MainWindowViewModel viewModel)
+    {
+        if (_completionReminderWindow is null)
+        {
+            _completionReminderWindow = new CompletionReminderWindow();
+            _completionReminderWindow.Closed += (_, _) => _completionReminderWindow = null;
+        }
+        _completionReminderWindow.DataContext = viewModel;
+        var workArea = MonitorWorkAreaProvider.GetForWindow(this).WorkArea;
+        _completionReminderWindow.WindowStartupLocation = WindowStartupLocation.Manual;
+        _completionReminderWindow.Left = workArea.Right - _completionReminderWindow.Width - 10;
+        _completionReminderWindow.Top = workArea.Bottom - _completionReminderWindow.Height - 10;
+
+        if (!_completionReminderWindow.IsVisible) _completionReminderWindow.Show();
+        else _completionReminderWindow.Activate();
     }
 
     private static class NativeMethods
@@ -281,6 +365,7 @@ public partial class MainWindow : Window
 
         [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
         public static extern bool UnregisterHotKey(IntPtr hWnd, int id);
+
     }
 
     private void GuestAccountHint_MouseEnter(object sender, MouseEventArgs e)

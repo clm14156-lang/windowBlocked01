@@ -910,6 +910,7 @@
                     </Style>
                 </views:FocusFlowView.Style>
             </views:FocusFlowView>
+
         </Grid>
     </Border>
 </Window>
