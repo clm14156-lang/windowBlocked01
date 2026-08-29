@@ -92,9 +92,6 @@
     <system:String x:Key="ExportRecordsAllRecordsHint">导出所有专注记录</system:String>
     <system:String x:Key="ExportRecordsFileFormat">文件格式</system:String>
     <system:String x:Key="ExportRecordsExcel">Excel (.xlsx)</system:String>
-    <system:String x:Key="ExportRecordsExcelHint">推荐，适合查看和整理</system:String>
-    <system:String x:Key="ExportRecordsCsv">CSV (.csv)</system:String>
-    <system:String x:Key="ExportRecordsCsvHint">适合导入其他工具</system:String>
     <system:String x:Key="ExportRecordsIncludedContent">包含内容</system:String>
     <system:String x:Key="ExportRecordsFocusRecords">专注记录</system:String>
     <system:String x:Key="ExportRecordsFocusRecordsHint">导出专注的时间段、目标、时长等记录</system:String>

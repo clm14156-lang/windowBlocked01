@@ -722,6 +722,106 @@
             </Grid>
 
             <Grid Grid.ColumnSpan="2"
+                  Panel.ZIndex="182"
+                  HorizontalAlignment="Center"
+                  VerticalAlignment="Top"
+                  IsHitTestVisible="True">
+                <Border Width="360"
+                        Height="60"
+                        Margin="0,65,0,0"
+                        Padding="12,8,8,8"
+                        Background="{DynamicResource SurfacePrimary}"
+                        BorderThickness="1"
+                        CornerRadius="10">
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="16" Direction="270" Opacity="0.12" ShadowDepth="3" />
+                    </Border.Effect>
+                    <Border.Style>
+                        <Style TargetType="{x:Type Border}">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Setter Property="BorderBrush" Value="{DynamicResource BorderPrimary}" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding SettingsPage.ExportRecordsModal.IsNotificationVisible}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding SettingsPage.ExportRecordsModal.NotificationKind}" Value="Success">
+                                    <Setter Property="BorderBrush" Value="{DynamicResource Success}" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding SettingsPage.ExportRecordsModal.NotificationKind}" Value="Failure">
+                                    <Setter Property="BorderBrush" Value="{DynamicResource DangerBorder}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="36" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="24" />
+                        </Grid.ColumnDefinitions>
+                        <Border Width="28" Height="28" HorizontalAlignment="Left" VerticalAlignment="Center" CornerRadius="14">
+                            <Border.Style>
+                                <Style TargetType="{x:Type Border}">
+                                    <Setter Property="Background" Value="{DynamicResource AccentTint}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding SettingsPage.ExportRecordsModal.NotificationKind}" Value="Success">
+                                            <Setter Property="Background" Value="{DynamicResource SuccessTint}" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding SettingsPage.ExportRecordsModal.NotificationKind}" Value="Failure">
+                                            <Setter Property="Background" Value="{DynamicResource DangerTint}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="15">
+                                <TextBlock.Style>
+                                    <Style TargetType="{x:Type TextBlock}">
+                                        <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}" />
+                                        <Setter Property="Text" Value="&#xE946;" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding SettingsPage.ExportRecordsModal.NotificationKind}" Value="Success">
+                                                <Setter Property="Foreground" Value="{DynamicResource Success}" />
+                                                <Setter Property="Text" Value="&#xE73E;" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding SettingsPage.ExportRecordsModal.NotificationKind}" Value="Failure">
+                                                <Setter Property="Foreground" Value="{DynamicResource Danger}" />
+                                                <Setter Property="Text" Value="&#xE7BA;" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </Border>
+                        <StackPanel Grid.Column="1" Margin="8,0,4,0" VerticalAlignment="Center">
+                            <TextBlock FontSize="14"
+                                       FontWeight="Medium"
+                                       Foreground="{DynamicResource TextPrimary}"
+                                       Text="{Binding SettingsPage.ExportRecordsModal.NotificationTitle, Mode=OneWay}" />
+                            <TextBlock Margin="0,2,0,0"
+                                       FontSize="11"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       Text="{Binding SettingsPage.ExportRecordsModal.NotificationMessage, Mode=OneWay}"
+                                       TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                        <Button Grid.Column="2"
+                                Width="24"
+                                Height="24"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Top"
+                                AutomationProperties.Name="关闭导出提示"
+                                Command="{Binding SettingsPage.ExportRecordsModal.CloseNotificationCommand}"
+                                Style="{StaticResource WindowChromeButtonStyle}"
+                                ToolTip="关闭">
+                            <TextBlock FontFamily="Segoe MDL2 Assets"
+                                       FontSize="12"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       Text="&#xE8BB;" />
+                        </Button>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <Grid Grid.ColumnSpan="2"
                   Panel.ZIndex="181"
                   HorizontalAlignment="Center"
                   VerticalAlignment="Top"

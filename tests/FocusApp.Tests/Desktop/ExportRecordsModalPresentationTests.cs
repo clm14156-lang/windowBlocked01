@@ -9,7 +9,7 @@ public sealed class ExportRecordsModalPresentationTests
     private static readonly XNamespace Xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
 
     [Fact]
-    public void Modal_HasFixedSizeThreeExternalPopupsAndModalScrim()
+    public void Modal_HasFixedSizeStaticExcelFormatTwoExternalPopupsAndModalScrim()
     {
         var repositoryRoot = FindRepositoryRoot();
         var modal = XDocument.Load(Path.Combine(
@@ -78,16 +78,37 @@ public sealed class ExportRecordsModalPresentationTests
 
         var options = modal.Descendants(Presentation + "Button").Where(button =>
             (string?)button.Attribute("AutomationProperties.Name") is "时间范围" or "文件格式" or "包含内容").ToArray();
-        Assert.Equal(3, options.Length);
+        Assert.Equal(2, options.Length);
+        Assert.DoesNotContain(options, button =>
+            (string?)button.Attribute("AutomationProperties.Name") == "文件格式");
+
+        var formatLabel = Assert.Single(modal.Descendants(Presentation + "TextBlock").Where(text =>
+            (string?)text.Attribute("Text") == "{DynamicResource ExportRecordsFileFormat}"));
+        var formatValue = Assert.Single(modal.Descendants(Presentation + "TextBlock").Where(text =>
+            (string?)text.Attribute("Text") == "{DynamicResource ExportRecordsExcel}"));
+        var formatRow = Assert.IsType<XElement>(formatLabel.Parent);
+        Assert.Same(formatRow, formatValue.Parent);
+        Assert.Equal(Presentation + "Grid", formatRow.Name);
+        Assert.Equal("2", (string?)formatRow.Attribute("Grid.Row"));
+        Assert.Empty(formatRow.Descendants(Presentation + "Button"));
+        Assert.Empty(formatRow.Descendants(Presentation + "TextBlock").Where(text =>
+            (string?)text.Attribute("FontFamily") == "Segoe MDL2 Assets"));
 
         var popups = modal.Descendants(Presentation + "Popup").ToArray();
-        Assert.Equal(3, popups.Length);
+        Assert.Equal(2, popups.Length);
         Assert.All(popups, popup =>
         {
             Assert.Equal("False", (string?)popup.Attribute("StaysOpen"));
             Assert.Equal("Custom", (string?)popup.Attribute("Placement"));
             Assert.NotNull(popup.Attribute("CustomPopupPlacementCallback"));
         });
+
+        Assert.DoesNotContain("ExportRecordsCsv", modal.ToString(), StringComparison.Ordinal);
+
+        var strings = XDocument.Load(Path.Combine(
+            repositoryRoot, "src", "FocusApp.Desktop", "Resources", "Strings.xaml"));
+        Assert.DoesNotContain(strings.Descendants(), element =>
+            ((string?)element.Attribute(Xaml + "Key"))?.Contains("ExportRecordsCsv", StringComparison.Ordinal) == true);
 
         var mainWindow = XDocument.Load(Path.Combine(
             repositoryRoot, "src", "FocusApp.Desktop", "MainWindow.xaml"));
@@ -96,6 +117,16 @@ public sealed class ExportRecordsModalPresentationTests
             (string?)trigger.Attribute("Value") == "True");
         Assert.Contains(mainWindow.Descendants(Presentation + "Border"), border =>
             (string?)border.Attribute("MouseDown") == "ExportRecordsScrim_MouseDown");
+        var notification = Assert.Single(mainWindow.Descendants(Presentation + "Border").Where(border =>
+            (string?)border.Attribute("Width") == "360" &&
+            (string?)border.Attribute("Height") == "60" &&
+            border.Descendants(Presentation + "DataTrigger").Any(trigger =>
+                (string?)trigger.Attribute("Binding") ==
+                "{Binding SettingsPage.ExportRecordsModal.IsNotificationVisible}")));
+        Assert.Equal("0,65,0,0", (string?)notification.Attribute("Margin"));
+        Assert.Contains(notification.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") ==
+            "{Binding SettingsPage.ExportRecordsModal.NotificationTitle, Mode=OneWay}");
     }
 
     private static string FindRepositoryRoot()

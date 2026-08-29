@@ -1,6 +1,8 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
+using System.Windows.Threading;
+using FocusApp.Desktop.Services;
 
 namespace FocusApp.Desktop.ViewModels;
 
@@ -8,28 +10,43 @@ public enum ExportRecordsPopup
 {
     None,
     TimeRange,
-    FileFormat,
     IncludedContent
+}
+
+public enum ExportNotificationKind
+{
+    Information,
+    Success,
+    Failure
 }
 
 public sealed class ExportRecordsModalViewModel : INotifyPropertyChanged
 {
+    private readonly IFocusRecordsExporter? _exporter;
+    private readonly RelayCommand<object> _exportCommand;
     private bool _isOpen;
+    private bool _isExporting;
     private ExportRecordsPopup _activePopup;
     private string _selectedTimeRange = "本月";
-    private string _selectedFileFormat = "Excel (.xlsx)";
     private bool _includeFocusRecords = true;
     private bool _includeTaskDetails = true;
+    private DispatcherTimer? _notificationTimer;
+    private bool _isNotificationVisible;
+    private string _notificationTitle = string.Empty;
+    private string _notificationMessage = string.Empty;
+    private ExportNotificationKind _notificationKind;
 
-    public ExportRecordsModalViewModel()
+    public ExportRecordsModalViewModel(IFocusRecordsExporter? exporter = null)
     {
+        _exporter = exporter;
         CloseCommand = new RelayCommand<object>(_ => Close());
         CancelCommand = new RelayCommand<object>(_ => Close());
-        ExportCommand = new RelayCommand<object>(_ => ActivePopup = ExportRecordsPopup.None);
+        _exportCommand = new RelayCommand<object>(_ => Export(), _ => CanExport);
+        ExportCommand = _exportCommand;
         ToggleTimeRangePopupCommand = new RelayCommand<object>(_ => TogglePopup(ExportRecordsPopup.TimeRange));
-        ToggleFileFormatPopupCommand = new RelayCommand<object>(_ => TogglePopup(ExportRecordsPopup.FileFormat));
         ToggleIncludedContentPopupCommand = new RelayCommand<object>(_ => TogglePopup(ExportRecordsPopup.IncludedContent));
         CompleteIncludedContentCommand = new RelayCommand<object>(_ => ActivePopup = ExportRecordsPopup.None);
+        CloseNotificationCommand = new RelayCommand<object>(_ => CloseNotification());
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -38,14 +55,55 @@ public sealed class ExportRecordsModalViewModel : INotifyPropertyChanged
     public ICommand CancelCommand { get; }
     public ICommand ExportCommand { get; }
     public ICommand ToggleTimeRangePopupCommand { get; }
-    public ICommand ToggleFileFormatPopupCommand { get; }
     public ICommand ToggleIncludedContentPopupCommand { get; }
     public ICommand CompleteIncludedContentCommand { get; }
+    public ICommand CloseNotificationCommand { get; }
 
     public bool IsOpen
     {
         get => _isOpen;
         private set => SetField(ref _isOpen, value);
+    }
+
+    public bool IsExporting
+    {
+        get => _isExporting;
+        private set
+        {
+            if (SetField(ref _isExporting, value))
+            {
+                OnPropertyChanged(nameof(CanExport));
+                _exportCommand.NotifyCanExecuteChanged();
+            }
+        }
+    }
+
+    public bool CanExport =>
+        !IsExporting &&
+        (IncludeFocusRecords || IncludeTaskDetails);
+
+    public bool IsNotificationVisible
+    {
+        get => _isNotificationVisible;
+        private set => SetField(ref _isNotificationVisible, value);
+    }
+
+    public string NotificationTitle
+    {
+        get => _notificationTitle;
+        private set => SetField(ref _notificationTitle, value);
+    }
+
+    public string NotificationMessage
+    {
+        get => _notificationMessage;
+        private set => SetField(ref _notificationMessage, value);
+    }
+
+    public ExportNotificationKind NotificationKind
+    {
+        get => _notificationKind;
+        private set => SetField(ref _notificationKind, value);
     }
 
     public ExportRecordsPopup ActivePopup
@@ -59,7 +117,6 @@ public sealed class ExportRecordsModalViewModel : INotifyPropertyChanged
             }
 
             OnPropertyChanged(nameof(IsTimeRangePopupOpen));
-            OnPropertyChanged(nameof(IsFileFormatPopupOpen));
             OnPropertyChanged(nameof(IsIncludedContentPopupOpen));
         }
     }
@@ -68,12 +125,6 @@ public sealed class ExportRecordsModalViewModel : INotifyPropertyChanged
     {
         get => ActivePopup == ExportRecordsPopup.TimeRange;
         set => SetPopupOpen(ExportRecordsPopup.TimeRange, value);
-    }
-
-    public bool IsFileFormatPopupOpen
-    {
-        get => ActivePopup == ExportRecordsPopup.FileFormat;
-        set => SetPopupOpen(ExportRecordsPopup.FileFormat, value);
     }
 
     public bool IsIncludedContentPopupOpen
@@ -121,45 +172,6 @@ public sealed class ExportRecordsModalViewModel : INotifyPropertyChanged
         }
     }
 
-    public string SelectedFileFormat
-    {
-        get => _selectedFileFormat;
-        private set
-        {
-            if (SetField(ref _selectedFileFormat, value))
-            {
-                OnPropertyChanged(nameof(IsExcelSelected));
-                OnPropertyChanged(nameof(IsCsvSelected));
-            }
-        }
-    }
-
-    public bool IsExcelSelected
-    {
-        get => SelectedFileFormat == "Excel (.xlsx)";
-        set
-        {
-            if (value)
-            {
-                SelectedFileFormat = "Excel (.xlsx)";
-                ActivePopup = ExportRecordsPopup.None;
-            }
-        }
-    }
-
-    public bool IsCsvSelected
-    {
-        get => SelectedFileFormat == "CSV (.csv)";
-        set
-        {
-            if (value)
-            {
-                SelectedFileFormat = "CSV (.csv)";
-                ActivePopup = ExportRecordsPopup.None;
-            }
-        }
-    }
-
     public bool IncludeFocusRecords
     {
         get => _includeFocusRecords;
@@ -168,6 +180,8 @@ public sealed class ExportRecordsModalViewModel : INotifyPropertyChanged
             if (SetField(ref _includeFocusRecords, value))
             {
                 OnPropertyChanged(nameof(IncludedContentSummary));
+                OnPropertyChanged(nameof(CanExport));
+                _exportCommand.NotifyCanExecuteChanged();
             }
         }
     }
@@ -180,6 +194,8 @@ public sealed class ExportRecordsModalViewModel : INotifyPropertyChanged
             if (SetField(ref _includeTaskDetails, value))
             {
                 OnPropertyChanged(nameof(IncludedContentSummary));
+                OnPropertyChanged(nameof(CanExport));
+                _exportCommand.NotifyCanExecuteChanged();
             }
         }
     }
@@ -194,12 +210,94 @@ public sealed class ExportRecordsModalViewModel : INotifyPropertyChanged
 
     public void Open()
     {
+        CloseNotification();
         SelectedTimeRange = "本月";
-        SelectedFileFormat = "Excel (.xlsx)";
         IncludeFocusRecords = true;
         IncludeTaskDetails = true;
         ActivePopup = ExportRecordsPopup.None;
         IsOpen = true;
+    }
+
+    private async void Export()
+    {
+        ActivePopup = ExportRecordsPopup.None;
+        if (_exporter is null || !CanExport)
+        {
+            return;
+        }
+
+        IsExporting = true;
+        FocusExportResult result;
+        try
+        {
+            result = await _exporter.ExportAsync(new FocusExportOptions(
+                IsCurrentMonthSelected
+                    ? FocusExportTimeRange.CurrentMonth
+                    : FocusExportTimeRange.AllRecords,
+                IncludeFocusRecords,
+                IncludeTaskDetails));
+        }
+        catch (Exception)
+        {
+            result = new FocusExportResult(
+                FocusExportResultKind.Failure,
+                "无法导出专注记录，请稍后重试");
+        }
+        finally
+        {
+            IsExporting = false;
+        }
+
+        switch (result.Kind)
+        {
+            case FocusExportResultKind.Success:
+                Close();
+                ShowNotification(
+                    ExportNotificationKind.Success,
+                    "导出成功",
+                    "专注记录已保存");
+                break;
+            case FocusExportResultKind.NoData:
+                ShowNotification(
+                    ExportNotificationKind.Information,
+                    "暂无可导出记录",
+                    "所选时间范围内没有专注记录");
+                break;
+            case FocusExportResultKind.Failure:
+                ShowNotification(
+                    ExportNotificationKind.Failure,
+                    "导出失败",
+                    result.ErrorMessage ?? "无法导出专注记录，请稍后重试");
+                break;
+        }
+    }
+
+    private void ShowNotification(
+        ExportNotificationKind kind,
+        string title,
+        string message)
+    {
+        NotificationKind = kind;
+        NotificationTitle = title;
+        NotificationMessage = message;
+        IsNotificationVisible = true;
+
+        _notificationTimer ??= new DispatcherTimer(DispatcherPriority.Normal)
+        {
+            Interval = TimeSpan.FromSeconds(4)
+        };
+        _notificationTimer.Stop();
+        _notificationTimer.Tick -= NotificationTimer_Tick;
+        _notificationTimer.Tick += NotificationTimer_Tick;
+        _notificationTimer.Start();
+    }
+
+    private void NotificationTimer_Tick(object? sender, EventArgs e) => CloseNotification();
+
+    private void CloseNotification()
+    {
+        _notificationTimer?.Stop();
+        IsNotificationVisible = false;
     }
 
     private void Close()

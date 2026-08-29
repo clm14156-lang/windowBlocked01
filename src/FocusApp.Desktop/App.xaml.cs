@@ -16,6 +16,7 @@ public partial class App : Application
     private DesktopAccessControlBridge? _accessControlBridge;
     private DesktopFocusSessionBridge? _focusSessionBridge;
     private IconService? _iconService;
+    private FocusRecordsExporter? _focusRecordsExporter;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -50,6 +51,10 @@ public partial class App : Application
 
         _serviceConnection = new DesktopServiceConnection();
         _serviceConnection.AccessBlocked += ServiceConnection_AccessBlocked;
+        _focusRecordsExporter = new FocusRecordsExporter(
+            _serviceConnection,
+            new FocusExportDataService(),
+            new ExcelExportService());
         _iconService = new IconService();
 
         var mainViewModel = new MainWindowViewModel(
@@ -182,7 +187,10 @@ public partial class App : Application
             CreateSettingsEntryItem("About", "SettingsAbout", "SettingsAboutDescription", "\uE946", false)
         ],
         CreateAutomaticRuleModalViewModel(),
-        (string)FindResource("AutomaticRuleDaily"));
+        (string)FindResource("AutomaticRuleDaily"),
+        exportRecordsModal: _focusRecordsExporter is null
+            ? null
+            : new ExportRecordsModalViewModel(_focusRecordsExporter));
     }
 
     private AutomaticRuleModalViewModel CreateAutomaticRuleModalViewModel()

@@ -17,9 +17,6 @@ public partial class ExportRecordsModal : UserControl
     private CustomPopupPlacement[] TimeRangePopup_Placement(Size popupSize, Size targetSize, Point offset) =>
         PlacePopup(TimeRangeOptionButton, popupSize, targetSize);
 
-    private CustomPopupPlacement[] FileFormatPopup_Placement(Size popupSize, Size targetSize, Point offset) =>
-        PlacePopup(FileFormatOptionButton, popupSize, targetSize);
-
     private CustomPopupPlacement[] IncludedContentPopup_Placement(Size popupSize, Size targetSize, Point offset) =>
         PlacePopup(IncludedContentOptionButton, popupSize, targetSize);
 

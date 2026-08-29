@@ -14,19 +14,14 @@ public sealed class ExportRecordsModalViewModelTests
 
         Assert.True(viewModel.IsOpen);
         Assert.Equal("本月", viewModel.SelectedTimeRange);
-        Assert.Equal("Excel (.xlsx)", viewModel.SelectedFileFormat);
         Assert.Equal("专注记录、任务明细", viewModel.IncludedContentSummary);
 
         viewModel.ToggleTimeRangePopupCommand.Execute(null);
         Assert.True(viewModel.IsTimeRangePopupOpen);
 
-        viewModel.ToggleFileFormatPopupCommand.Execute(null);
+        viewModel.ToggleIncludedContentPopupCommand.Execute(null);
         Assert.False(viewModel.IsTimeRangePopupOpen);
-        Assert.True(viewModel.IsFileFormatPopupOpen);
-
-        viewModel.IsCsvSelected = true;
-        Assert.Equal("CSV (.csv)", viewModel.SelectedFileFormat);
-        Assert.Equal(ExportRecordsPopup.None, viewModel.ActivePopup);
+        Assert.True(viewModel.IsIncludedContentPopupOpen);
 
         viewModel.ExportCommand.Execute(null);
         Assert.True(viewModel.IsOpen);

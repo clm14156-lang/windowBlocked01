@@ -29,7 +29,8 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
         IEnumerable<SettingsEntryItemViewModel> entryItems,
         AutomaticRuleModalViewModel? ruleModal = null,
         string dailyLabel = "Daily",
-        Func<DateTime>? clock = null)
+        Func<DateTime>? clock = null,
+        ExportRecordsModalViewModel? exportRecordsModal = null)
     {
         _clock = clock ?? (() => DateTime.Now);
         ToggleItems = new ReadOnlyCollection<SettingsToggleItemViewModel>(toggleItems.ToList());
@@ -40,7 +41,7 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
         ForcedModeItem = ToggleItems.FirstOrDefault(item => item.Key == "ForcedMode");
         RuleModal = ruleModal ?? AutomaticRuleModalViewModel.CreateDefault();
         RuleActivationModal = new AutomaticRuleActivationModalViewModel();
-        ExportRecordsModal = new ExportRecordsModalViewModel();
+        ExportRecordsModal = exportRecordsModal ?? new ExportRecordsModalViewModel();
         _dailyLabel = dailyLabel;
         ActivateEntryCommand = new RelayCommand<SettingsEntryItemViewModel>(ActivateEntry);
         OpenRuleModalCommand = new RelayCommand<object>(_ => OpenCreateRule());

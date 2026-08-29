@@ -13,7 +13,30 @@ if ($runningApplications)
 }
 
 Set-Location -LiteralPath $repositoryRoot
-dotnet build FocusApp.sln
+$workspaceDriveRoot = [System.IO.Path]::GetPathRoot($repositoryRoot)
+$env:NUGET_PACKAGES = Join-Path $workspaceDriveRoot '.focusapp-nuget'
+$env:NUGET_HTTP_CACHE_PATH = Join-Path $workspaceDriveRoot '.focusapp-nuget-http'
+$env:TEMP = Join-Path $workspaceDriveRoot '.focusapp-temp'
+$env:TMP = $env:TEMP
+$env:DOTNET_CLI_HOME = Join-Path $workspaceDriveRoot '.focusapp-dotnet'
+
+@(
+    $env:NUGET_PACKAGES,
+    $env:NUGET_HTTP_CACHE_PATH,
+    $env:TEMP,
+    $env:DOTNET_CLI_HOME
+) | ForEach-Object {
+    New-Item -ItemType Directory -Path $_ -Force | Out-Null
+}
+
+dotnet restore FocusApp.sln --ignore-failed-sources -p:NuGetAudit=false
+if ($LASTEXITCODE -ne 0)
+{
+    Write-Error 'FocusApp package restore failed. No components were started.'
+    exit $LASTEXITCODE
+}
+
+dotnet build FocusApp.sln --no-restore
 if ($LASTEXITCODE -ne 0)
 {
     Write-Error 'FocusApp build failed. No components were started.'
