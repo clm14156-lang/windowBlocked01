@@ -75,8 +75,8 @@ internal sealed class TrayApplication : IDisposable
         NativeMethods.SetWindowPos(
             handle,
             IntPtr.Zero,
-            monitorInfo.Work.Left,
-            monitorInfo.Work.Top,
+            monitorInfo.Monitor.Left,
+            monitorInfo.Monitor.Top,
             0,
             0,
             NativeMethods.SwpNoSize | NativeMethods.SwpNoZOrder | NativeMethods.SwpNoActivate);
@@ -89,14 +89,15 @@ internal sealed class TrayApplication : IDisposable
         var gap = Math.Max(2, (int)Math.Round(4 * scale));
         // The tray icon rect is the sole anchor: align the popup's lower-left
         // corner with the icon's upper-left corner, then clamp only when the
-        // popup would leave the monitor work area.
+        // popup would leave the monitor bounds. Deliberately do not use the
+        // work area here: the tray window is allowed to overlap the taskbar.
         var left = anchor.Left;
         var top = anchor.Top - height - gap;
 
-        var minimumLeft = monitorInfo.Work.Left + gap;
-        var maximumLeft = Math.Max(minimumLeft, monitorInfo.Work.Right - width - gap);
-        var minimumTop = monitorInfo.Work.Top + gap;
-        var maximumTop = Math.Max(minimumTop, monitorInfo.Work.Bottom - height - gap);
+        var minimumLeft = monitorInfo.Monitor.Left + gap;
+        var maximumLeft = Math.Max(minimumLeft, monitorInfo.Monitor.Right - width - gap);
+        var minimumTop = monitorInfo.Monitor.Top + gap;
+        var maximumTop = Math.Max(minimumTop, monitorInfo.Monitor.Bottom - height - gap);
         left = Math.Clamp(left, minimumLeft, maximumLeft);
         top = Math.Clamp(top, minimumTop, maximumTop);
         NativeMethods.SetWindowPos(
