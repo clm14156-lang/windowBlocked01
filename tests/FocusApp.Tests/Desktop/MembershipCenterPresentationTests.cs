@@ -16,9 +16,12 @@ public sealed class MembershipCenterPresentationTests
             repositoryRoot, "src", "FocusApp.Desktop", "Views", "MembershipCenterModal.xaml"));
 
         Assert.Equal("680", (string?)view.Root?.Attribute("Width"));
-        Assert.Equal("400", (string?)view.Root?.Attribute("Height"));
+        AssertMembershipHeights(view);
 
-        var bannerArtwork = Assert.Single(view.Descendants(Presentation + "ImageBrush"));
+        var lifetimeContent = FindNamedElement(view, "LifetimeMembershipContent");
+        AssertVisibilityTrigger(lifetimeContent, "IsLifetime");
+
+        var bannerArtwork = Assert.Single(lifetimeContent.Descendants(Presentation + "ImageBrush"));
         Assert.Equal(
             "/FocusApp.Desktop;component/Assets/Images/Illustrations/MemberCenter_Background.png",
             (string?)bannerArtwork.Attribute("ImageSource"));
@@ -28,11 +31,8 @@ public sealed class MembershipCenterPresentationTests
         Assert.Null(banner.Attribute("BorderBrush"));
         Assert.Null(banner.Attribute("BorderThickness"));
 
-        AssertImage(view, "MemberCenter_Crown.png", "54", "54");
-        AssertImage(view, "MenberCenter_check.png", "20", "20");
-
-        var lifetimeContent = FindNamedElement(view, "LifetimeMembershipContent");
-        AssertVisibilityTrigger(lifetimeContent, "IsLifetime");
+        AssertImage(lifetimeContent, "MemberCenter_Crown.png", "54", "54");
+        AssertImage(lifetimeContent, "MenberCenter_check.png", "20", "20");
 
         var benefits = Assert.Single(lifetimeContent.Descendants(Presentation + "UniformGrid"));
         Assert.Equal("3", (string?)benefits.Attribute("Columns"));
@@ -59,14 +59,27 @@ public sealed class MembershipCenterPresentationTests
     }
 
     [Fact]
-    public void AnnualView_RestoresExpiryDaysRenewalAndOriginalBenefitLayout()
+    public void AnnualView_UsesTheReferenceLayoutWithoutChangingItsBusinessBindings()
     {
         var repositoryRoot = FindRepositoryRoot();
         var view = XDocument.Load(Path.Combine(
             repositoryRoot, "src", "FocusApp.Desktop", "Views", "MembershipCenterModal.xaml"));
         var annualContent = FindNamedElement(view, "AnnualMembershipContent");
 
+        Assert.Equal("680", (string?)view.Root?.Attribute("Width"));
+        AssertMembershipHeights(view);
         AssertVisibilityTrigger(annualContent, "IsAnnual");
+
+        var bannerArtwork = Assert.Single(annualContent.Descendants(Presentation + "ImageBrush"));
+        Assert.Equal(
+            "/FocusApp.Desktop;component/Assets/Images/Illustrations/MemberCenter_Background.png",
+            (string?)bannerArtwork.Attribute("ImageSource"));
+        Assert.Equal("Fill", (string?)bannerArtwork.Attribute("Stretch"));
+        var banner = Assert.IsType<XElement>(bannerArtwork.Parent?.Parent);
+        Assert.Null(banner.Attribute("BorderBrush"));
+        Assert.Null(banner.Attribute("BorderThickness"));
+        AssertImage(annualContent, "MemberCenter_Crown.png", "54", "54");
+
         Assert.Contains(annualContent.Descendants(Presentation + "TextBlock"), element =>
             (string?)element.Attribute("Text") == "{DynamicResource MembershipAnnualTitle}");
         Assert.Contains(annualContent.Descendants(Presentation + "TextBlock"), element =>
@@ -76,6 +89,8 @@ public sealed class MembershipCenterPresentationTests
 
         var renewButton = Assert.Single(annualContent.Descendants(Presentation + "Button"));
         Assert.Equal("{Binding RenewCommand}", (string?)renewButton.Attribute("Command"));
+        Assert.Equal("132", (string?)renewButton.Attribute("Width"));
+        Assert.Equal("40", (string?)renewButton.Attribute("Height"));
         Assert.Equal(
             "{DynamicResource MembershipRenew}",
             (string?)renewButton.Attribute("AutomationProperties.Name"));
@@ -86,11 +101,18 @@ public sealed class MembershipCenterPresentationTests
         var benefits = Assert.Single(annualContent.Descendants(Presentation + "UniformGrid"));
         Assert.Equal("3", (string?)benefits.Attribute("Columns"));
         Assert.Equal("2", (string?)benefits.Attribute("Rows"));
-        Assert.Equal("160", (string?)benefits.Attribute("Height"));
+        Assert.Equal("172", (string?)benefits.Attribute("Height"));
         var cards = benefits.Elements(Presentation + "Border").ToArray();
         Assert.Equal(6, cards.Length);
         Assert.All(cards, card =>
             Assert.Equal("{StaticResource AnnualMembershipBenefitCard}", (string?)card.Attribute("Style")));
+
+        var glyphs = benefits.Descendants(Presentation + "TextBlock")
+            .Where(element =>
+                (string?)element.Attribute("Style") == "{StaticResource MembershipBenefitGlyph}")
+            .Select(element => (string?)element.Attribute("Text"))
+            .ToArray();
+        Assert.Equal(new[] { "\uE72E", "\uEA18", "\uE8A5", "\uE9D2", "\uE790", "\uE753" }, glyphs);
     }
 
     [Fact]
@@ -131,6 +153,24 @@ public sealed class MembershipCenterPresentationTests
         var visibilitySetter = Assert.Single(trigger.Elements(Presentation + "Setter").Where(element =>
             (string?)element.Attribute("Property") == "Visibility"));
         Assert.Equal("Visible", (string?)visibilitySetter.Attribute("Value"));
+    }
+
+    private static void AssertMembershipHeights(XDocument view)
+    {
+        Assert.Null(view.Root?.Attribute("Height"));
+        var controlStyle = Assert.Single(view.Root!
+            .Elements(Presentation + "UserControl.Style")
+            .Elements(Presentation + "Style"));
+        var defaultHeight = Assert.Single(controlStyle.Elements(Presentation + "Setter").Where(element =>
+            (string?)element.Attribute("Property") == "Height"));
+        Assert.Equal("400", (string?)defaultHeight.Attribute("Value"));
+
+        var annualHeightTrigger = Assert.Single(controlStyle
+            .Descendants(Presentation + "DataTrigger")
+            .Where(element => (string?)element.Attribute("Binding") == "{Binding IsAnnual}"));
+        var annualHeight = Assert.Single(annualHeightTrigger.Elements(Presentation + "Setter").Where(element =>
+            (string?)element.Attribute("Property") == "Height"));
+        Assert.Equal("460", (string?)annualHeight.Attribute("Value"));
     }
 
     private static string FindRepositoryRoot()

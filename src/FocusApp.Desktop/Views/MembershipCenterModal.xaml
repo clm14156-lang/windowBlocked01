@@ -2,7 +2,6 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              Width="680"
-             Height="400"
              FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI"
              UseLayoutRounding="True"
              SnapsToDevicePixels="True">
@@ -53,13 +52,29 @@
         </Style>
 
         <Style x:Key="AnnualMembershipBenefitCard" TargetType="{x:Type Border}">
-            <Setter Property="Margin" Value="4" />
+            <Setter Property="Margin" Value="6" />
             <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderPrimary}" />
+            <Setter Property="BorderBrush" Value="{StaticResource MembershipCardBorder}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="11" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect BlurRadius="9" Direction="270" Opacity="0.08" ShadowDepth="2" Color="#BFAE9D" />
+                </Setter.Value>
+            </Setter>
         </Style>
     </UserControl.Resources>
+
+    <UserControl.Style>
+        <Style TargetType="{x:Type UserControl}">
+            <Setter Property="Height" Value="400" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsAnnual}" Value="True">
+                    <Setter Property="Height" Value="460" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Style>
 
     <Border Background="{DynamicResource SurfacePrimary}"
             BorderBrush="{StaticResource MembershipModalBorder}"
@@ -232,7 +247,7 @@
             </UniformGrid>
         </Grid>
 
-        <Grid x:Name="AnnualMembershipContent" Margin="36,12">
+        <Grid x:Name="AnnualMembershipContent" Margin="32,16,32,18">
             <Grid.Style>
                 <Style TargetType="{x:Type Grid}">
                     <Setter Property="Visibility" Value="Collapsed" />
@@ -244,10 +259,10 @@
                 </Style>
             </Grid.Style>
             <Grid.RowDefinitions>
+                <RowDefinition Height="36" />
+                <RowDefinition Height="118" />
+                <RowDefinition Height="66" />
                 <RowDefinition Height="34" />
-                <RowDefinition Height="88" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="28" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
@@ -258,46 +273,51 @@
                        Text="{DynamicResource MembershipCenterTitle}" />
 
             <Border Grid.Row="1"
-                    Margin="0,2,0,0"
-                    Background="{DynamicResource AccentTint}"
-                    BorderBrush="#FFE1C4"
-                    BorderThickness="1"
+                    Height="110"
+                    Margin="0,6,0,2"
                     CornerRadius="14">
-                <Grid Margin="18,0">
+                <Border.Background>
+                    <ImageBrush ImageSource="/FocusApp.Desktop;component/Assets/Images/Illustrations/MemberCenter_Background.png" Stretch="Fill" />
+                </Border.Background>
+
+                <Grid>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="72" />
+                        <ColumnDefinition Width="112" />
                         <ColumnDefinition />
-                        <ColumnDefinition Width="170" />
+                        <ColumnDefinition Width="154" />
                     </Grid.ColumnDefinitions>
 
-                    <Border Width="48" Height="48" Background="#FFF3E5" CornerRadius="24">
-                        <TextBlock HorizontalAlignment="Center"
-                                   VerticalAlignment="Center"
-                                   FontFamily="Segoe UI Symbol"
-                                   FontSize="31"
-                                   Foreground="{DynamicResource AccentPrimary}"
-                                   Text="♛" />
-                    </Border>
+                    <Image Width="54"
+                           Height="54"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           Source="/FocusApp.Desktop;component/Assets/Images/Illustrations/MemberCenter_Crown.png"
+                           Stretch="Uniform" />
 
-                    <StackPanel Grid.Column="1" Margin="9,0,0,0" VerticalAlignment="Center">
-                        <TextBlock FontSize="15"
-                                   FontWeight="Medium"
+                    <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                        <TextBlock FontSize="20"
+                                   FontWeight="SemiBold"
                                    Foreground="{DynamicResource TextPrimary}"
                                    Text="{DynamicResource MembershipAnnualTitle}" />
-                        <TextBlock Margin="0,6,0,0"
-                                   FontSize="12"
+                        <TextBlock Margin="0,8,0,0"
+                                   FontSize="13"
+                                   FontWeight="Normal"
                                    Foreground="{DynamicResource TextSecondary}"
                                    Text="{DynamicResource MembershipUnlockedHint}" />
                     </StackPanel>
 
-                    <StackPanel Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <StackPanel Grid.Column="2"
+                                Margin="0,0,18,0"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Center">
                         <TextBlock HorizontalAlignment="Center"
-                                   FontSize="12"
+                                   FontSize="13"
                                    Foreground="{DynamicResource TextSecondary}"
                                    Text="{DynamicResource MembershipExpiryLabel}" />
-                        <TextBlock Margin="0,5,0,0"
-                                   FontSize="13"
-                                   FontWeight="Medium"
+                        <TextBlock Margin="0,6,0,0"
+                                   HorizontalAlignment="Center"
+                                   FontSize="17"
+                                   FontWeight="SemiBold"
                                    Foreground="{DynamicResource TextPrimary}"
                                    Text="{DynamicResource MembershipExpiryDate}" />
                     </StackPanel>
@@ -305,36 +325,36 @@
             </Border>
 
             <Border Grid.Row="2"
-                    Height="58"
-                    Margin="0,8,0,0"
+                    Height="54"
+                    Margin="0,12,0,0"
                     Background="{DynamicResource SurfacePrimary}"
                     BorderBrush="{DynamicResource BorderPrimary}"
                     BorderThickness="1"
                     CornerRadius="13">
-                <Grid Margin="17,0">
+                <Grid Margin="16,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="54" />
                         <ColumnDefinition />
                         <ColumnDefinition Width="1" />
-                        <ColumnDefinition Width="146" />
+                        <ColumnDefinition Width="154" />
                     </Grid.ColumnDefinitions>
-                    <Border Width="36" Height="36" Background="#FFF3E5" CornerRadius="18">
+                    <Border Width="40" Height="40" Background="{StaticResource MembershipIconBackground}" CornerRadius="20">
                         <TextBlock HorizontalAlignment="Center"
                                    VerticalAlignment="Center"
                                    FontFamily="Segoe MDL2 Assets"
-                                   FontSize="21"
+                                   FontSize="22"
                                    Foreground="{DynamicResource AccentPrimary}"
                                    Text="&#xE823;" />
                     </Border>
                     <StackPanel Grid.Column="1" VerticalAlignment="Center" Orientation="Horizontal">
                         <TextBlock VerticalAlignment="Center" FontSize="13" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource MembershipDaysPrefix}" />
-                        <TextBlock Margin="18,0,0,0" VerticalAlignment="Center" FontSize="20" FontWeight="SemiBold" Foreground="{DynamicResource AccentPrimary}" Text="{DynamicResource MembershipDaysValue}" />
-                        <TextBlock Margin="8,7,0,0" VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource MembershipDaysUnit}" />
+                        <TextBlock Margin="16,0,0,0" VerticalAlignment="Center" FontSize="24" FontWeight="SemiBold" Foreground="{DynamicResource AccentPrimary}" Text="{DynamicResource MembershipDaysValue}" />
+                        <TextBlock Margin="8,8,0,0" VerticalAlignment="Center" FontSize="13" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource MembershipDaysUnit}" />
                     </StackPanel>
-                    <Border Grid.Column="2" Height="42" VerticalAlignment="Center" Background="{DynamicResource BorderPrimary}" />
+                    <Border Grid.Column="2" Height="34" VerticalAlignment="Center" Background="{DynamicResource BorderPrimary}" />
                     <Button Grid.Column="3"
-                            Width="126"
-                            Height="36"
+                            Width="132"
+                            Height="40"
                             HorizontalAlignment="Right"
                             AutomationProperties.Name="{DynamicResource MembershipRenew}"
                             Command="{Binding RenewCommand}">
@@ -374,24 +394,71 @@
                        Foreground="{DynamicResource TextPrimary}"
                        Text="{DynamicResource MembershipBenefitsTitle}" />
 
-            <UniformGrid Grid.Row="4" Height="160" Margin="0,2,0,0" VerticalAlignment="Top" Columns="3" Rows="2">
+            <UniformGrid Grid.Row="4"
+                         Height="172"
+                         Margin="-6,0,-6,0"
+                         VerticalAlignment="Top"
+                         Columns="3"
+                         Rows="2">
                 <Border Style="{StaticResource AnnualMembershipBenefitCard}">
-                    <Grid Margin="12,7"><Grid.ColumnDefinitions><ColumnDefinition Width="42" /><ColumnDefinition /></Grid.ColumnDefinitions><Border Width="36" Height="36" Background="#FFF3E5" CornerRadius="18"><TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="19" Foreground="{DynamicResource AccentPrimary}" Text="&#xE72E;" /></Border><StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource MembershipBenefitForced}" /><TextBlock Margin="0,5,0,0" FontSize="12" LineHeight="18" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource MembershipBenefitForcedHint}" /></StackPanel></Grid>
+                    <Grid Margin="13,8">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="54" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                        <Border Style="{StaticResource MembershipBenefitIcon}"><TextBlock Style="{StaticResource MembershipBenefitGlyph}" Text="&#xE72E;" /></Border>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource MembershipBenefitTitle}" Text="{DynamicResource MembershipBenefitForced}" />
+                            <TextBlock Style="{StaticResource MembershipBenefitHint}" Text="{DynamicResource MembershipBenefitForcedHint}" />
+                        </StackPanel>
+                    </Grid>
                 </Border>
                 <Border Style="{StaticResource AnnualMembershipBenefitCard}">
-                    <Grid Margin="12,7"><Grid.ColumnDefinitions><ColumnDefinition Width="42" /><ColumnDefinition /></Grid.ColumnDefinitions><Border Width="36" Height="36" Background="#FFF3E5" CornerRadius="18"><TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="19" Foreground="{DynamicResource AccentPrimary}" Text="&#xEA18;" /></Border><StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource MembershipBenefitBlocking}" /><TextBlock Margin="0,5,0,0" FontSize="12" LineHeight="18" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource MembershipBenefitBlockingHint}" /></StackPanel></Grid>
+                    <Grid Margin="13,8">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="54" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                        <Border Style="{StaticResource MembershipBenefitIcon}"><TextBlock Style="{StaticResource MembershipBenefitGlyph}" Text="&#xEA18;" /></Border>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource MembershipBenefitTitle}" Text="{DynamicResource MembershipBenefitBlocking}" />
+                            <TextBlock Style="{StaticResource MembershipBenefitHint}" Text="{DynamicResource MembershipBenefitBlockingHint}" />
+                        </StackPanel>
+                    </Grid>
                 </Border>
                 <Border Style="{StaticResource AnnualMembershipBenefitCard}">
-                    <Grid Margin="12,7"><Grid.ColumnDefinitions><ColumnDefinition Width="42" /><ColumnDefinition /></Grid.ColumnDefinitions><Border Width="36" Height="36" Background="#FFF3E5" CornerRadius="18"><TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="19" Foreground="{DynamicResource AccentPrimary}" Text="&#xE8A5;" /></Border><StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource MembershipBenefitExport}" /><TextBlock Margin="0,5,0,0" FontSize="12" LineHeight="18" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource MembershipBenefitExportHint}" /></StackPanel></Grid>
+                    <Grid Margin="13,8">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="54" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                        <Border Style="{StaticResource MembershipBenefitIcon}"><TextBlock Style="{StaticResource MembershipBenefitGlyph}" Text="&#xE8A5;" /></Border>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource MembershipBenefitTitle}" Text="{DynamicResource MembershipBenefitExport}" />
+                            <TextBlock Style="{StaticResource MembershipBenefitHint}" Text="{DynamicResource MembershipBenefitExportHint}" />
+                        </StackPanel>
+                    </Grid>
                 </Border>
                 <Border Style="{StaticResource AnnualMembershipBenefitCard}">
-                    <Grid Margin="12,7"><Grid.ColumnDefinitions><ColumnDefinition Width="42" /><ColumnDefinition /></Grid.ColumnDefinitions><Border Width="36" Height="36" Background="#FFF3E5" CornerRadius="18"><TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="19" Foreground="{DynamicResource AccentPrimary}" Text="&#xE9D2;" /></Border><StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource MembershipBenefitStatistics}" /><TextBlock Margin="0,5,0,0" FontSize="12" LineHeight="18" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource MembershipBenefitStatisticsHint}" /></StackPanel></Grid>
+                    <Grid Margin="13,8">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="54" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                        <Border Style="{StaticResource MembershipBenefitIcon}"><TextBlock Style="{StaticResource MembershipBenefitGlyph}" Text="&#xE9D2;" /></Border>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource MembershipBenefitTitle}" Text="{DynamicResource MembershipBenefitStatistics}" />
+                            <TextBlock Style="{StaticResource MembershipBenefitHint}" Text="{DynamicResource MembershipBenefitStatisticsHint}" />
+                        </StackPanel>
+                    </Grid>
                 </Border>
                 <Border Style="{StaticResource AnnualMembershipBenefitCard}">
-                    <Grid Margin="12,7"><Grid.ColumnDefinitions><ColumnDefinition Width="42" /><ColumnDefinition /></Grid.ColumnDefinitions><Border Width="36" Height="36" Background="#FFF3E5" CornerRadius="18"><TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="19" Foreground="{DynamicResource AccentPrimary}" Text="&#xE790;" /></Border><StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource MembershipBenefitThemes}" /><TextBlock Margin="0,5,0,0" FontSize="12" LineHeight="18" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource MembershipBenefitThemesHint}" /></StackPanel></Grid>
+                    <Grid Margin="13,8">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="54" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                        <Border Style="{StaticResource MembershipBenefitIcon}"><TextBlock Style="{StaticResource MembershipBenefitGlyph}" Text="&#xE790;" /></Border>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource MembershipBenefitTitle}" Text="{DynamicResource MembershipBenefitThemes}" />
+                            <TextBlock Style="{StaticResource MembershipBenefitHint}" Text="{DynamicResource MembershipBenefitThemesHint}" />
+                        </StackPanel>
+                    </Grid>
                 </Border>
                 <Border Style="{StaticResource AnnualMembershipBenefitCard}">
-                    <Grid Margin="12,7"><Grid.ColumnDefinitions><ColumnDefinition Width="42" /><ColumnDefinition /></Grid.ColumnDefinitions><Border Width="36" Height="36" Background="#FFF3E5" CornerRadius="18"><TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="19" Foreground="{DynamicResource AccentPrimary}" Text="&#xE753;" /></Border><StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource MembershipBenefitSync}" /><TextBlock Margin="0,5,0,0" FontSize="12" LineHeight="18" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource MembershipBenefitSyncHint}" /></StackPanel></Grid>
+                    <Grid Margin="13,8">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="54" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                        <Border Style="{StaticResource MembershipBenefitIcon}"><TextBlock Style="{StaticResource MembershipBenefitGlyph}" Text="&#xE753;" /></Border>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource MembershipBenefitTitle}" Text="{DynamicResource MembershipBenefitSync}" />
+                            <TextBlock Style="{StaticResource MembershipBenefitHint}" Text="{DynamicResource MembershipBenefitSyncHint}" />
+                        </StackPanel>
+                    </Grid>
                 </Border>
             </UniformGrid>
         </Grid>
