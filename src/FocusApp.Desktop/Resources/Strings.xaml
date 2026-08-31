@@ -359,7 +359,7 @@
     <system:String x:Key="StatisticsSetGoal">设置目标</system:String>
     <system:String x:Key="MembershipAnnualTitle">年度会员</system:String>
     <system:String x:Key="MembershipLifetimeTitle">永久会员</system:String>
-    <system:String x:Key="MembershipUnlockedHint">已永久解锁全部高级功能</system:String>
+    <system:String x:Key="MembershipUnlockedHint">已解锁全部高级功能</system:String>
     <system:String x:Key="MembershipExpiryLabel">到期时间</system:String>
     <system:String x:Key="MembershipExpiryDate">2027.08.10</system:String>
     <system:String x:Key="MembershipDaysPrefix">会员到期还剩</system:String>
