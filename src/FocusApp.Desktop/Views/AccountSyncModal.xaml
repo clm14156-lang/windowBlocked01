@@ -5,6 +5,7 @@
              Width="650"
              Height="400"
              IsVisibleChanged="AccountSyncModal_IsVisibleChanged"
+             TextElement.FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI"
              UseLayoutRounding="True"
              SnapsToDevicePixels="True">
     <UserControl.Resources>
@@ -194,7 +195,7 @@
                     <Grid Margin="12,0">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition /></Grid.ColumnDefinitions>
                         <TextBlock VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}" Text="&#xE753;" />
-                        <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="14" FontWeight="SemiBold" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}" Text="{DynamicResource AccountSyncCloudNav}" />
+                        <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="13" FontWeight="Medium" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}" Text="{DynamicResource AccountSyncCloudNav}" />
                     </Grid>
                 </Button>
 
@@ -215,7 +216,7 @@
                     <Grid Margin="12,0">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition /></Grid.ColumnDefinitions>
                         <TextBlock VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}" Text="&#xE7F8;" />
-                        <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="14" FontWeight="SemiBold" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}" Text="{DynamicResource AccountSyncDevicesNav}" />
+                        <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="13" FontWeight="Medium" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}" Text="{DynamicResource AccountSyncDevicesNav}" />
                     </Grid>
                 </Button>
 
@@ -236,7 +237,7 @@
                     <Grid Margin="12,0">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition /></Grid.ColumnDefinitions>
                         <TextBlock VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}" Text="&#xEA18;" />
-                        <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="14" FontWeight="SemiBold" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}" Text="{DynamicResource AccountSyncSecurityNav}" />
+                        <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="13" FontWeight="Medium" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}" Text="{DynamicResource AccountSyncSecurityNav}" />
                     </Grid>
                 </Button>
             </StackPanel>
@@ -264,7 +265,7 @@
                         <Style TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource AccountSyncThinScrollBarStyle}" />
                     </ScrollViewer.Resources>
                     <StackPanel Margin="0,0,8,0">
-                        <TextBlock FontSize="25" FontWeight="Bold" Text="{DynamicResource AccountSyncTitle}" />
+                        <TextBlock FontSize="20" FontWeight="SemiBold" Text="{DynamicResource AccountSyncTitle}" />
                         <TextBlock Margin="0,7,0,0" FontSize="13" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource AccountSyncSubtitle}" />
 
                         <StackPanel x:Name="CloudSectionAnchor" Margin="0,29,0,0">
@@ -272,23 +273,20 @@
                                 <Border Width="34" Height="34" Background="{DynamicResource AccentTint}" CornerRadius="10">
                                     <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="19" Foreground="{DynamicResource AccentPrimary}" Text="&#xE753;" />
                                 </Border>
-                                <TextBlock Margin="12,0,0,0" VerticalAlignment="Center" FontSize="17" FontWeight="SemiBold" Text="{DynamicResource AccountSyncCloudNav}" />
+                                <TextBlock Margin="12,0,0,0" VerticalAlignment="Center" FontSize="15" FontWeight="Medium" Text="{DynamicResource AccountSyncCloudNav}" />
                             </StackPanel>
                             <TextBlock Margin="0,9,0,0" FontSize="12" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource AccountSyncCloudDescription}" />
 
                             <Border Height="68" Margin="0,13,0,0" Style="{StaticResource AccountSyncCard}">
                                 <Grid Margin="14,0">
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="52" /><ColumnDefinition /><ColumnDefinition Width="42" /></Grid.ColumnDefinitions>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="52" /><ColumnDefinition /></Grid.ColumnDefinitions>
                                     <Border Width="42" Height="42" Background="#E8F7EC" CornerRadius="21">
                                         <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="21" Foreground="{DynamicResource Success}" Text="&#xE753;" />
                                     </Border>
                                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                        <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource Success}" Text="{DynamicResource AccountSyncNormal}" />
+                                        <TextBlock FontSize="13" FontWeight="Medium" Foreground="{DynamicResource Success}" Text="{DynamicResource AccountSyncNormal}" />
                                         <TextBlock Margin="0,5,0,0" FontSize="12" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource AccountSyncLastSync}" />
                                     </StackPanel>
-                                    <Button Grid.Column="2" Width="34" Height="34" AutomationProperties.Name="{DynamicResource AccountSyncRefresh}" Style="{StaticResource AccountSyncPlainButton}">
-                                        <TextBlock FontFamily="Segoe MDL2 Assets" FontSize="19" Foreground="{DynamicResource TextSecondary}" Text="&#xE72C;" />
-                                    </Button>
                                 </Grid>
                             </Border>
 
@@ -302,11 +300,11 @@
                                         <RowDefinition Height="32" />
                                     </Grid.RowDefinitions>
                                     <StackPanel>
-                                        <TextBlock FontSize="14" FontWeight="SemiBold" Text="{DynamicResource AccountSyncContentTitle}" />
-                                        <TextBlock Margin="0,4,0,0" FontSize="11" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource AccountSyncContentHint}" />
+                                        <TextBlock FontSize="15" FontWeight="Medium" Text="{DynamicResource AccountSyncContentTitle}" />
+                                        <TextBlock Margin="0,4,0,0" FontSize="12" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource AccountSyncContentHint}" />
                                     </StackPanel>
                                     <Grid Grid.Row="1">
-                                        <TextBlock VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="{DynamicResource Success}" Text="&#xE823;" />
+                                        <TextBlock VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="{DynamicResource TextSecondary}" Text="&#xE823;" />
                                         <TextBlock Margin="27,0,0,0" VerticalAlignment="Center" FontSize="13" Text="{DynamicResource AccountSyncFocusRecords}" />
                                         <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="{DynamicResource Success}" Text="&#xE73E;" />
                                     </Grid>
@@ -314,19 +312,19 @@
                                         <Border Height="1" VerticalAlignment="Top" Background="{DynamicResource BorderPrimary}" />
                                         <TextBlock VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="{DynamicResource TextSecondary}" Text="&#xE774;" />
                                         <TextBlock Margin="27,0,0,0" VerticalAlignment="Center" FontSize="13" Text="{DynamicResource AccountSyncWebsiteList}" />
-                                        <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{DynamicResource TextTertiary}" Text="&#xE72E;" />
+                                        <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="{DynamicResource Success}" Text="&#xE73E;" />
                                     </Grid>
                                     <Grid Grid.Row="3">
                                         <Border Height="1" VerticalAlignment="Top" Background="{DynamicResource BorderPrimary}" />
                                         <TextBlock VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="{DynamicResource TextSecondary}" Text="&#xEA18;" />
                                         <TextBlock Margin="27,0,0,0" VerticalAlignment="Center" FontSize="13" Text="{DynamicResource AccountSyncAutomaticRules}" />
-                                        <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{DynamicResource TextTertiary}" Text="&#xE72E;" />
+                                        <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="{DynamicResource Success}" Text="&#xE73E;" />
                                     </Grid>
                                     <Grid Grid.Row="4">
                                         <Border Height="1" VerticalAlignment="Top" Background="{DynamicResource BorderPrimary}" />
                                         <TextBlock VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="{DynamicResource TextSecondary}" Text="&#xE713;" />
                                         <TextBlock Margin="27,0,0,0" VerticalAlignment="Center" FontSize="13" Text="{DynamicResource AccountSyncPreferences}" />
-                                        <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{DynamicResource TextTertiary}" Text="&#xE72E;" />
+                                        <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="{DynamicResource Success}" Text="&#xE73E;" />
                                     </Grid>
                                 </Grid>
                             </Border>
@@ -337,9 +335,9 @@
                                 <Border Width="34" Height="34" Background="#EDF3FB" CornerRadius="17">
                                     <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="{DynamicResource TextSecondary}" Text="&#xE7F8;" />
                                 </Border>
-                                <TextBlock Margin="11,0,0,0" VerticalAlignment="Center" FontSize="17" FontWeight="SemiBold" Text="{DynamicResource AccountSyncDevicesTitle}" />
+                                <TextBlock Margin="11,0,0,0" VerticalAlignment="Center" FontSize="15" FontWeight="Medium" Text="{DynamicResource AccountSyncDevicesTitle}" />
                                 <Border Height="22" Margin="12,0,0,0" Padding="9,0" VerticalAlignment="Center" Background="{DynamicResource BackgroundSecondary}" CornerRadius="7">
-                                    <TextBlock VerticalAlignment="Center" FontSize="11" Foreground="{DynamicResource TextSecondary}">
+                                    <TextBlock VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource TextSecondary}">
                                         <TextBlock.Style>
                                             <Style TargetType="{x:Type TextBlock}">
                                                 <Setter Property="Text" Value="{DynamicResource AccountSyncDevicesCount}" />
@@ -371,20 +369,20 @@
                                             <TextBlock VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="{DynamicResource TextSecondary}" Text="&#xE7F8;" />
                                             <StackPanel Margin="34,0,0,0" VerticalAlignment="Center">
                                                 <StackPanel Orientation="Horizontal">
-                                                    <TextBlock FontSize="13" FontWeight="SemiBold" Text="{DynamicResource AccountSyncCurrentDevice}" />
+                                                    <TextBlock FontSize="13" FontWeight="Medium" Text="{DynamicResource AccountSyncCurrentDevice}" />
                                                     <Border Height="21" Margin="9,0,0,0" Padding="8,0" Background="{DynamicResource AccentTint}" CornerRadius="7">
-                                                        <TextBlock VerticalAlignment="Center" FontSize="11" Foreground="{DynamicResource AccentPrimary}" Text="{DynamicResource AccountSyncCurrentDeviceTag}" />
+                                                        <TextBlock VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource AccentPrimary}" Text="{DynamicResource AccountSyncCurrentDeviceTag}" />
                                                     </Border>
                                                 </StackPanel>
-                                                <TextBlock Margin="0,4,0,0" FontSize="11" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource AccountSyncCurrentDeviceMeta}" />
+                                                <TextBlock Margin="0,4,0,0" FontSize="12" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource AccountSyncCurrentDeviceMeta}" />
                                             </StackPanel>
                                         </Grid>
                                         <Border Grid.Row="1" Background="{DynamicResource BorderPrimary}" />
                                         <Grid Grid.Row="2">
                                             <TextBlock VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="{DynamicResource TextSecondary}" Text="&#xE7F8;" />
                                             <StackPanel Margin="34,0,72,0" VerticalAlignment="Center">
-                                                <TextBlock FontSize="13" FontWeight="SemiBold" Text="{DynamicResource AccountSyncOtherDevice}" />
-                                                <TextBlock Margin="0,4,0,0" FontSize="11" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource AccountSyncOtherDeviceMeta}" />
+                                                <TextBlock FontSize="13" FontWeight="Medium" Text="{DynamicResource AccountSyncOtherDevice}" />
+                                                <TextBlock Margin="0,4,0,0" FontSize="12" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource AccountSyncOtherDeviceMeta}" />
                                             </StackPanel>
                                             <Button Width="64"
                                                     Height="32"
@@ -413,12 +411,12 @@
                                         <TextBlock VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="{DynamicResource TextSecondary}" Text="&#xE7F8;" />
                                         <StackPanel Margin="34,0,0,0" VerticalAlignment="Center">
                                             <StackPanel Orientation="Horizontal">
-                                                <TextBlock FontSize="13" FontWeight="SemiBold" Text="{DynamicResource AccountSyncCurrentDevice}" />
+                                                <TextBlock FontSize="13" FontWeight="Medium" Text="{DynamicResource AccountSyncCurrentDevice}" />
                                                 <Border Height="21" Margin="9,0,0,0" Padding="8,0" Background="{DynamicResource AccentTint}" CornerRadius="7">
-                                                    <TextBlock VerticalAlignment="Center" FontSize="11" Foreground="{DynamicResource AccentPrimary}" Text="{DynamicResource AccountSyncCurrentDeviceTag}" />
+                                                    <TextBlock VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource AccentPrimary}" Text="{DynamicResource AccountSyncCurrentDeviceTag}" />
                                                 </Border>
                                             </StackPanel>
-                                            <TextBlock Margin="0,4,0,0" FontSize="11" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource AccountSyncCurrentDeviceMeta}" />
+                                            <TextBlock Margin="0,4,0,0" FontSize="12" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource AccountSyncCurrentDeviceMeta}" />
                                         </StackPanel>
                                     </Grid>
                                 </Grid>
@@ -430,7 +428,7 @@
                                 <Border Width="34" Height="34" Background="#EAF7EF" CornerRadius="17">
                                     <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="{DynamicResource Success}" Text="&#xEA18;" />
                                 </Border>
-                                <TextBlock Margin="11,0,0,0" VerticalAlignment="Center" FontSize="17" FontWeight="SemiBold" Text="{DynamicResource AccountSyncSecurityTitle}" />
+                                <TextBlock Margin="11,0,0,0" VerticalAlignment="Center" FontSize="15" FontWeight="Medium" Text="{DynamicResource AccountSyncSecurityTitle}" />
                             </StackPanel>
                             <Border Height="112" Margin="0,11,0,0" Style="{StaticResource AccountSyncCard}">
                                 <Grid Margin="14,0">
@@ -470,13 +468,13 @@
                                 <Border Width="34" Height="34" Background="#FDEBEC" CornerRadius="17">
                                     <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="17" Foreground="{DynamicResource Danger}" Text="&#xE7BA;" />
                                 </Border>
-                                <TextBlock Margin="11,0,0,0" VerticalAlignment="Center" FontSize="17" FontWeight="SemiBold" Text="{DynamicResource AccountSyncDangerTitle}" />
+                                <TextBlock Margin="11,0,0,0" VerticalAlignment="Center" FontSize="15" FontWeight="Medium" Text="{DynamicResource AccountSyncDangerTitle}" />
                             </StackPanel>
                             <Border Height="72" Margin="0,11,0,0" Style="{StaticResource AccountSyncCard}">
                                 <Grid Margin="14,0">
                                     <StackPanel VerticalAlignment="Center">
-                                        <TextBlock FontSize="13" FontWeight="SemiBold" Text="{DynamicResource AccountSyncDeleteAccount}" />
-                                        <TextBlock Margin="0,5,90,0" FontSize="11" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource AccountSyncDeleteHint}" />
+                                        <TextBlock FontSize="13" FontWeight="Medium" Text="{DynamicResource AccountSyncDeleteAccount}" />
+                                        <TextBlock Margin="0,5,90,0" FontSize="12" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource AccountSyncDeleteHint}" />
                                     </StackPanel>
                                     <Button Width="82"
                                             Height="34"
@@ -484,7 +482,7 @@
                                             Command="{Binding OpenAccountDeletionCommand}"
                                             Style="{StaticResource AccountSyncPlainButton}">
                                         <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
-                                            <TextBlock VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource Danger}" Text="{DynamicResource AccountSyncDeleteAccount}" />
+                                            <TextBlock VerticalAlignment="Center" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource Danger}" Text="{DynamicResource AccountSyncDeleteAccount}" />
                                             <TextBlock Margin="7,0,0,0" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="{DynamicResource Danger}" Text="&#xE76C;" />
                                         </StackPanel>
                                     </Button>
@@ -505,11 +503,11 @@
                                 Style="{StaticResource AccountSyncPlainButton}">
                             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
                                 <TextBlock Margin="0,0,7,0" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="16" Foreground="{DynamicResource TextSecondary}" Text="&#xE76B;" />
-                                <TextBlock VerticalAlignment="Center" FontSize="14" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource AccountPasswordBack}" />
+                                <TextBlock VerticalAlignment="Center" FontSize="13" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource AccountPasswordBack}" />
                             </StackPanel>
                         </Button>
 
-                        <TextBlock Margin="0,34,0,0" VerticalAlignment="Top" FontSize="25" FontWeight="Medium" Text="{DynamicResource AccountPasswordTitle}" />
+                        <TextBlock Margin="0,34,0,0" VerticalAlignment="Top" FontSize="20" FontWeight="SemiBold" Text="{DynamicResource AccountPasswordTitle}" />
                         <TextBlock Margin="0,69,0,0" VerticalAlignment="Top" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextTertiary}" Text="{DynamicResource AccountPasswordVerifySubtitle}" />
 
                         <Grid Width="68" Height="68" Margin="170,106,0,0" HorizontalAlignment="Left" VerticalAlignment="Top">
@@ -541,9 +539,9 @@
                                          VerticalContentAlignment="Center"
                                          Background="{DynamicResource TransparentBrush}"
                                          BorderThickness="0"
-                                         FontSize="14"
+                                         FontSize="13"
                                          Text="{Binding VerificationCode, UpdateSourceTrigger=PropertyChanged}" />
-                                <TextBlock Grid.Column="1" VerticalAlignment="Center" IsHitTestVisible="False" FontSize="14" FontWeight="Normal" Foreground="{DynamicResource TextTertiary}" Text="{DynamicResource AccountPasswordCodePlaceholder}">
+                                <TextBlock Grid.Column="1" VerticalAlignment="Center" IsHitTestVisible="False" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextTertiary}" Text="{DynamicResource AccountPasswordCodePlaceholder}">
                                     <TextBlock.Style>
                                         <Style TargetType="{x:Type TextBlock}">
                                             <Setter Property="Visibility" Value="Collapsed" />
@@ -579,11 +577,11 @@
                                 Style="{StaticResource AccountSyncPlainButton}">
                             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
                                 <TextBlock Margin="0,0,7,0" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="16" Foreground="{DynamicResource TextSecondary}" Text="&#xE76B;" />
-                                <TextBlock VerticalAlignment="Center" FontSize="14" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource AccountPasswordBack}" />
+                                <TextBlock VerticalAlignment="Center" FontSize="13" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource AccountPasswordBack}" />
                             </StackPanel>
                         </Button>
 
-                        <TextBlock Margin="0,34,0,0" VerticalAlignment="Top" FontSize="25" FontWeight="Medium" Text="{DynamicResource AccountPasswordTitle}" />
+                        <TextBlock Margin="0,34,0,0" VerticalAlignment="Top" FontSize="20" FontWeight="SemiBold" Text="{DynamicResource AccountPasswordTitle}" />
                         <TextBlock Margin="0,69,0,0" VerticalAlignment="Top" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextTertiary}" Text="{DynamicResource AccountPasswordNewSubtitle}" />
 
                         <TextBlock Margin="22,101,0,0" VerticalAlignment="Top" FontSize="13" FontWeight="Medium" Text="{DynamicResource AccountPasswordNewLabel}" />
@@ -595,7 +593,7 @@
                                              VerticalContentAlignment="Center"
                                              Background="{DynamicResource TransparentBrush}"
                                              BorderThickness="0"
-                                             FontSize="14"
+                                             FontSize="13"
                                              PasswordChanged="AccountNewPasswordBox_PasswordChanged" />
                                 <TextBox x:Name="AccountNewPasswordTextBox"
                                          Margin="0,0,40,0"
@@ -603,7 +601,7 @@
                                          VerticalContentAlignment="Center"
                                          Background="{DynamicResource TransparentBrush}"
                                          BorderThickness="0"
-                                         FontSize="14"
+                                         FontSize="13"
                                          Text="{Binding NewPassword, UpdateSourceTrigger=PropertyChanged}"
                                          Visibility="Collapsed" />
                                 <Button HorizontalAlignment="Right" VerticalAlignment="Center" Click="ToggleAccountNewPasswordVisibility_Click" Style="{StaticResource AccountPasswordRevealButtonStyle}">
@@ -638,7 +636,7 @@
                                              VerticalContentAlignment="Center"
                                              Background="{DynamicResource TransparentBrush}"
                                              BorderThickness="0"
-                                             FontSize="14"
+                                             FontSize="13"
                                              PasswordChanged="AccountConfirmPasswordBox_PasswordChanged" />
                                 <TextBox x:Name="AccountConfirmPasswordTextBox"
                                          Margin="0,0,40,0"
@@ -646,7 +644,7 @@
                                          VerticalContentAlignment="Center"
                                          Background="{DynamicResource TransparentBrush}"
                                          BorderThickness="0"
-                                         FontSize="14"
+                                         FontSize="13"
                                          Text="{Binding ConfirmPassword, UpdateSourceTrigger=PropertyChanged}"
                                          Visibility="Collapsed" />
                                 <Button HorizontalAlignment="Right" VerticalAlignment="Center" Click="ToggleAccountConfirmPasswordVisibility_Click" Style="{StaticResource AccountPasswordRevealButtonStyle}">
@@ -671,10 +669,10 @@
                         <Border Width="70" Height="70" Margin="169,73,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Background="#E8F7EC" CornerRadius="35">
                             <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="34" Foreground="{DynamicResource Success}" Text="&#xE73E;" />
                         </Border>
-                        <TextBlock Width="408" Margin="0,159,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="22" FontWeight="Medium" Text="{DynamicResource AccountPasswordSuccessTitle}" TextAlignment="Center" />
+                        <TextBlock Width="408" Margin="0,159,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="17" FontWeight="SemiBold" Text="{DynamicResource AccountPasswordSuccessTitle}" TextAlignment="Center" />
                         <StackPanel Width="408" Margin="0,202,0,0" HorizontalAlignment="Left" VerticalAlignment="Top">
-                            <TextBlock HorizontalAlignment="Center" FontSize="14" FontWeight="Normal" Foreground="{DynamicResource TextTertiary}" Text="{DynamicResource AccountPasswordSuccessLineOne}" />
-                            <TextBlock Margin="0,7,0,0" HorizontalAlignment="Center" FontSize="14" FontWeight="Normal" Foreground="{DynamicResource TextTertiary}" Text="{DynamicResource AccountPasswordSuccessLineTwo}" />
+                            <TextBlock HorizontalAlignment="Center" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextTertiary}" Text="{DynamicResource AccountPasswordSuccessLineOne}" />
+                            <TextBlock Margin="0,7,0,0" HorizontalAlignment="Center" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextTertiary}" Text="{DynamicResource AccountPasswordSuccessLineTwo}" />
                         </StackPanel>
                         <Button Width="196"
                                  Height="42"
@@ -697,19 +695,19 @@
                             Style="{StaticResource AccountSyncPlainButton}">
                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
                             <TextBlock Margin="0,0,7,0" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="16" Foreground="{DynamicResource TextSecondary}" Text="&#xE76B;" />
-                            <TextBlock VerticalAlignment="Center" FontSize="14" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource AccountPasswordBack}" />
+                            <TextBlock VerticalAlignment="Center" FontSize="13" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource AccountPasswordBack}" />
                         </StackPanel>
                     </Button>
 
                     <TextBlock Margin="0,38,0,0"
                                VerticalAlignment="Top"
-                               FontSize="25"
-                               FontWeight="Medium"
+                               FontSize="20"
+                               FontWeight="SemiBold"
                                Text="{DynamicResource AccountDeletionTitle}" />
 
                     <StackPanel Margin="0,80,0,0" VerticalAlignment="Top">
-                        <TextBlock FontSize="14" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource AccountDeletionDescriptionLineOne}" />
-                        <TextBlock Margin="0,7,0,0" FontSize="14" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource AccountDeletionDescriptionLineTwo}" />
+                        <TextBlock FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource AccountDeletionDescriptionLineOne}" />
+                        <TextBlock Margin="0,7,0,0" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource AccountDeletionDescriptionLineTwo}" />
                     </StackPanel>
 
                     <Border Height="52"
@@ -721,7 +719,7 @@
                             CornerRadius="10">
                         <StackPanel Margin="15,0" VerticalAlignment="Center" Orientation="Horizontal">
                             <TextBlock VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="21" Foreground="{DynamicResource Danger}" Text="&#xE7BA;" />
-                            <TextBlock Margin="12,0,0,0" VerticalAlignment="Center" FontSize="14" FontWeight="Medium" Foreground="{DynamicResource Danger}" Text="{DynamicResource AccountDeletionWarning}" />
+                            <TextBlock Margin="12,0,0,0" VerticalAlignment="Center" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource Danger}" Text="{DynamicResource AccountDeletionWarning}" />
                         </StackPanel>
                     </Border>
 
@@ -734,11 +732,11 @@
                                      VerticalContentAlignment="Center"
                                      Background="{DynamicResource TransparentBrush}"
                                      BorderThickness="0"
-                                     FontSize="14"
+                                     FontSize="13"
                                      Text="{Binding AccountDeletionConfirmation, UpdateSourceTrigger=PropertyChanged}" />
                             <TextBlock VerticalAlignment="Center"
                                        IsHitTestVisible="False"
-                                       FontSize="14"
+                                       FontSize="13"
                                        FontWeight="Normal"
                                        Foreground="{DynamicResource TextTertiary}"
                                        Text="{DynamicResource AccountDeletionPlaceholder}">
@@ -770,7 +768,7 @@
                             <TextBlock Margin="26,0"
                                        HorizontalAlignment="Center"
                                        VerticalAlignment="Center"
-                                       FontSize="14"
+                                       FontSize="13"
                                        FontWeight="Normal"
                                        Foreground="{DynamicResource TextPrimary}"
                                        Text="{DynamicResource AccountDeletionCancel}" />
@@ -798,7 +796,7 @@
                             Style="{StaticResource AccountSyncPlainButton}">
                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
                             <TextBlock Margin="0,0,7,0" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="16" Foreground="{DynamicResource TextSecondary}" Text="&#xE76B;" />
-                            <TextBlock VerticalAlignment="Center" FontSize="14" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource AccountPasswordBack}" />
+                            <TextBlock VerticalAlignment="Center" FontSize="13" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource AccountPasswordBack}" />
                         </StackPanel>
                     </Button>
 
@@ -818,8 +816,8 @@
                                Margin="0,130,0,0"
                                HorizontalAlignment="Left"
                                VerticalAlignment="Top"
-                               FontSize="22"
-                               FontWeight="Medium"
+                               FontSize="17"
+                               FontWeight="SemiBold"
                                Text="{DynamicResource AccountDeviceLogoutQuestion}"
                                TextAlignment="Center" />
 
@@ -827,7 +825,7 @@
                                Margin="0,174,0,0"
                                HorizontalAlignment="Left"
                                VerticalAlignment="Top"
-                               FontSize="14"
+                               FontSize="13"
                                FontWeight="Normal"
                                Text="{DynamicResource AccountDeviceLogoutDescription}"
                                TextAlignment="Center" />
@@ -835,7 +833,7 @@
                                Margin="0,201,0,0"
                                HorizontalAlignment="Left"
                                VerticalAlignment="Top"
-                               FontSize="14"
+                               FontSize="13"
                                FontWeight="Normal"
                                Foreground="{DynamicResource TextTertiary}"
                                Text="{DynamicResource AccountDeviceLogoutCloudHint}"
@@ -854,7 +852,7 @@
                             </Grid.ColumnDefinitions>
                             <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="30" Foreground="{DynamicResource TextPrimary}" Text="&#xE7F8;" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                <TextBlock FontSize="16" FontWeight="Medium" Text="{DynamicResource AccountSyncOtherDevice}" />
+                                <TextBlock FontSize="15" FontWeight="Medium" Text="{DynamicResource AccountSyncOtherDevice}" />
                                 <TextBlock Margin="0,5,0,0" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource AccountDeviceLogoutMeta}" />
                             </StackPanel>
                         </Grid>
@@ -873,7 +871,7 @@
                                 CornerRadius="10">
                             <TextBlock HorizontalAlignment="Center"
                                        VerticalAlignment="Center"
-                                       FontSize="14"
+                                       FontSize="13"
                                        FontWeight="Normal"
                                        Foreground="{DynamicResource TextPrimary}"
                                        Text="{DynamicResource AccountDeviceLogoutCancel}" />

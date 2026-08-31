@@ -125,7 +125,7 @@
                                      ToolTipService.IsEnabled="{Binding IsLoggedIn}">
                             <Grid Width="40" Height="40">
                                 <Ellipse Fill="{DynamicResource BackgroundSecondary}" />
-                                <Ellipse Stroke="{DynamicResource AccentPrimary}" StrokeThickness="2">
+                                <Ellipse Stroke="{DynamicResource MembershipBadgeAccent}" StrokeThickness="2">
                                     <Ellipse.Style>
                                         <Style TargetType="{x:Type Ellipse}">
                                             <Setter Property="Visibility" Value="Collapsed" />
@@ -181,7 +181,7 @@
                                         Margin="0,0,0,-2"
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Bottom"
-                                        Background="{DynamicResource AccentPrimary}"
+                                        Background="{DynamicResource MembershipBadgeAccent}"
                                         CornerRadius="6">
                                     <Border.Style>
                                         <Style TargetType="{x:Type Border}">
@@ -288,10 +288,10 @@
                                 Click="ThemeButton_Click"
                                 Style="{StaticResource WindowChromeButtonStyle}"
                                 ToolTip="{DynamicResource HomeThemeButton}">
-                            <TextBlock FontFamily="Segoe MDL2 Assets"
-                                       FontSize="17"
-                                       Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
-                                       Text="&#xE790;" />
+                            <Image Width="20"
+                                   Height="20"
+                                   Source="/FocusApp.Desktop;component/Assets/Icons/Common/Menber_skin.png"
+                                   Stretch="Uniform" />
                         </Button>
                         <Button AutomationProperties.Name="{DynamicResource HomeMinimizeButton}"
                                 Click="MinimizeButton_Click"

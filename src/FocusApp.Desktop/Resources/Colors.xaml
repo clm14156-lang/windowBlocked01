@@ -13,6 +13,7 @@
     <SolidColorBrush x:Key="TextTertiary" Color="#96969C" />
     <SolidColorBrush x:Key="BorderPrimary" Color="#E5E5EA" />
     <SolidColorBrush x:Key="AccentPrimary" Color="#FF7A00" />
+    <SolidColorBrush x:Key="MembershipBadgeAccent" Color="#FCBA29" />
     <SolidColorBrush x:Key="AccentTint" Color="#FFF1E6" />
     <SolidColorBrush x:Key="AccentSoftBorder" Color="#FFD3B0" />
     <SolidColorBrush x:Key="AccentHover" Color="#FF8B18" />

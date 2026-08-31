@@ -29,6 +29,9 @@
 
   <ItemGroup>
     <Resource Include="Assets\Icons\Common\Home_Shield.png" />
+    <Resource Include="Assets\Icons\Common\Log_Out.png" />
+    <Resource Include="Assets\Icons\Common\Menber_skin.png" />
+    <Resource Include="Assets\Icons\Common\Menber_vip.png" />
     <Resource Include="Assets\Images\Illustrations\create-target.png" />
     <Resource Include="Assets\Themes\Solid\Orange\sidebar-logo.png" />
   </ItemGroup>
