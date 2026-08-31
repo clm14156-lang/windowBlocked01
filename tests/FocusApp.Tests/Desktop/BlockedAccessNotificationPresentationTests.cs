@@ -14,16 +14,19 @@ public sealed class BlockedAccessNotificationPresentationTests
     private static readonly XNamespace Xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
 
     [Fact]
-    public void Window_IsAFixedTransparentFourHundredByOneNinetyCard()
+    public void Window_IsAFixedTransparentFourHundredByTwoHundredTenCard()
     {
         var window = LoadWindow().Root!;
 
         Assert.Equal("400", (string?)window.Attribute("Width"));
-        Assert.Equal("190", (string?)window.Attribute("Height"));
+        Assert.Equal("210", (string?)window.Attribute("Height"));
         Assert.Equal("400", (string?)window.Attribute("MinWidth"));
-        Assert.Equal("190", (string?)window.Attribute("MinHeight"));
+        Assert.Equal("210", (string?)window.Attribute("MinHeight"));
         Assert.Equal("400", (string?)window.Attribute("MaxWidth"));
-        Assert.Equal("190", (string?)window.Attribute("MaxHeight"));
+        Assert.Equal("210", (string?)window.Attribute("MaxHeight"));
+        Assert.Equal(
+            "Segoe UI Variable, Microsoft YaHei UI, Segoe UI",
+            (string?)window.Attribute("FontFamily"));
         Assert.Equal("True", (string?)window.Attribute("AllowsTransparency"));
         Assert.Equal("Transparent", (string?)window.Attribute("Background"));
         Assert.Equal("False", (string?)window.Attribute("Focusable"));
@@ -34,7 +37,7 @@ public sealed class BlockedAccessNotificationPresentationTests
 
         var card = Assert.Single(window.Elements(Presentation + "Border"));
         Assert.Equal("RootCard", (string?)card.Attribute(Xaml + "Name"));
-        Assert.Equal("20", (string?)card.Attribute("CornerRadius"));
+        Assert.Equal("18", (string?)card.Attribute("CornerRadius"));
         Assert.Equal("{DynamicResource SurfacePrimary}", (string?)card.Attribute("Background"));
         Assert.Single(card.Descendants(Presentation + "DropShadowEffect"));
         var translation = Assert.Single(card.Descendants(Presentation + "TranslateTransform"));
@@ -47,37 +50,51 @@ public sealed class BlockedAccessNotificationPresentationTests
     public void Content_UsesTheProjectTypographyAndExpectedBindings()
     {
         var window = LoadWindow();
-        var logo = Assert.Single(window.Descendants(Presentation + "Grid").Where(grid =>
-            (string?)grid.Attribute(Xaml + "Name") == "ApplicationLogo"));
-        Assert.Equal("44", (string?)logo.Attribute("Width"));
-        Assert.Equal("44", (string?)logo.Attribute("Height"));
+        var logo = Assert.Single(window.Descendants(Presentation + "Image").Where(image =>
+            (string?)image.Attribute(Xaml + "Name") == "ApplicationLogo"));
+        Assert.Equal("32", (string?)logo.Attribute("Width"));
+        Assert.Equal("32", (string?)logo.Attribute("Height"));
+        Assert.Equal("Uniform", (string?)logo.Attribute("Stretch"));
+        Assert.Equal(
+            "/FocusApp.Desktop;component/Assets/Icons/Common/shiguang_logo.png",
+            (string?)logo.Attribute("Source"));
 
         var contentGrid = Assert.Single(window.Descendants(Presentation + "Grid").Where(grid =>
-            (string?)grid.Attribute("Margin") == "26,15,26,15"));
+            (string?)grid.Attribute("Margin") == "24,14,24,14"));
         var rowHeights = contentGrid.Element(Presentation + "Grid.RowDefinitions")!
             .Elements(Presentation + "RowDefinition")
             .Select(row => (string?)row.Attribute("Height"))
             .ToArray();
-        Assert.Equal("42,8,28,6,60", string.Join(',', rowHeights));
+        Assert.Equal("34,12,28,6,20,6,60", string.Join(',', rowHeights));
 
         var brandName = Assert.Single(window.Descendants(Presentation + "TextBlock").Where(text =>
             (string?)text.Attribute("Text") == "{DynamicResource BlockedAccessNotificationBrandName}"));
-        Assert.Equal("17", (string?)brandName.Attribute("FontSize"));
+        Assert.Equal("15", (string?)brandName.Attribute("FontSize"));
         Assert.Equal("Medium", (string?)brandName.Attribute("FontWeight"));
 
-        var message = Assert.Single(window.Descendants(Presentation + "TextBlock").Where(text =>
-            text.Elements(Presentation + "Run").Any(run =>
-                (string?)run.Attribute("Text") == "{DynamicResource BlockedAccessNotificationFocusPrefix}")));
-        Assert.Equal("15", (string?)message.Attribute("FontSize"));
-        Assert.Equal("Normal", (string?)message.Attribute("FontWeight"));
-        Assert.Equal("28", message.Element(Presentation + "TextBlock.LineHeight")?.Value);
-        Assert.Contains(message.Elements(Presentation + "Run"), run =>
+        var title = Assert.Single(window.Descendants(Presentation + "TextBlock").Where(text =>
+            (string?)text.Attribute(Xaml + "Name") == "BlockedAccessTitle"));
+        Assert.Equal("20", (string?)title.Attribute("FontSize"));
+        Assert.Equal("Medium", (string?)title.Attribute("FontWeight"));
+        Assert.Equal("{DynamicResource TextPrimary}", (string?)title.Attribute("Foreground"));
+        Assert.Contains(title.Elements(Presentation + "Run"), run =>
             (string?)run.Attribute("Text") == "{Binding TargetKindDisplay, Mode=OneWay}");
-        Assert.Contains(message.Elements(Presentation + "Run"), run =>
-            (string?)run.Attribute("Text") == "{DynamicResource BlockedAccessNotificationBlockedSuffix}" &&
-            (string?)run.Attribute("FontSize") == "15" &&
-            (string?)run.Attribute("FontWeight") == "SemiBold" &&
-            (string?)run.Attribute("Foreground") == "{DynamicResource AccentPrimary}");
+        var blockedSuffix = Assert.Single(title.Elements(Presentation + "Run").Where(run =>
+            (string?)run.Attribute("Text") == "{DynamicResource BlockedAccessNotificationBlockedSuffix}"));
+        Assert.Null(blockedSuffix.Attribute("Foreground"));
+
+        var subtitle = Assert.Single(window.Descendants(Presentation + "TextBlock").Where(text =>
+            (string?)text.Attribute(Xaml + "Name") == "BlockedAccessSubtitle"));
+        Assert.Equal("13", (string?)subtitle.Attribute("FontSize"));
+        Assert.Equal("Normal", (string?)subtitle.Attribute("FontWeight"));
+        Assert.Contains(subtitle.Descendants(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("Value") == "{DynamicResource BlockedAccessNotificationWebsiteSubtitle}");
+
+        var websiteCard = Assert.Single(window.Descendants(Presentation + "Border").Where(border =>
+            (string?)border.Attribute("Grid.Row") == "6"));
+        Assert.Equal("{DynamicResource TransparentBrush}", (string?)websiteCard.Attribute("Background"));
+        Assert.Equal("{DynamicResource BorderPrimary}", (string?)websiteCard.Attribute("BorderBrush"));
+        Assert.Equal("1", (string?)websiteCard.Attribute("BorderThickness"));
 
         Assert.Contains(window.Descendants(Presentation + "TextBlock"), text =>
             (string?)text.Attribute("Text") == "{Binding Name, Mode=OneWay}" &&
@@ -85,9 +102,23 @@ public sealed class BlockedAccessNotificationPresentationTests
             (string?)text.Attribute("FontWeight") == "Medium");
         Assert.Contains(window.Descendants(Presentation + "TextBlock"), text =>
             (string?)text.Attribute("Text") == "{Binding Address, Mode=OneWay}" &&
-            (string?)text.Attribute("FontSize") == "13");
+            (string?)text.Attribute("FontSize") == "12");
         Assert.Contains(window.Descendants(Presentation + "Button"), button =>
             (string?)button.Attribute("Command") == "{Binding CloseCommand}");
+
+        var project = XDocument.Load(Path.Combine(
+            FindRepositoryRoot(), "src", "FocusApp.Desktop", "FocusApp.Desktop.csproj"));
+        Assert.Contains(project.Descendants("Resource"), resource =>
+            string.Equals(
+                (string?)resource.Attribute("Include"),
+                "Assets\\Icons\\Common\\shiguang_logo.png",
+                StringComparison.OrdinalIgnoreCase));
+
+        var strings = XDocument.Load(Path.Combine(
+            FindRepositoryRoot(), "src", "FocusApp.Desktop", "Resources", "Strings.xaml"));
+        Assert.Equal("当前网站", FindString(strings, "BlockedAccessNotificationWebsiteKind"));
+        Assert.Equal("已被拦截", FindString(strings, "BlockedAccessNotificationBlockedSuffix"));
+        Assert.Equal("专注期间暂时无法访问该网站", FindString(strings, "BlockedAccessNotificationWebsiteSubtitle"));
     }
 
     [Fact]
@@ -109,9 +140,9 @@ public sealed class BlockedAccessNotificationPresentationTests
                 window.Show();
                 Assert.True(window.IsVisible);
                 Assert.Equal(400, window.Width);
-                Assert.Equal(190, window.Height);
+                Assert.Equal(210, window.Height);
                 Assert.Equal(SystemParameters.WorkArea.Right - 406, window.Left, 3);
-                Assert.Equal(SystemParameters.WorkArea.Bottom - 196, window.Top, 3);
+                Assert.Equal(SystemParameters.WorkArea.Bottom - 216, window.Top, 3);
 
                 var timer = Assert.IsType<DispatcherTimer>(typeof(BlockedAccessNotificationWindow)
                     .GetField("_autoCloseTimer", BindingFlags.Instance | BindingFlags.NonPublic)!
@@ -177,6 +208,9 @@ public sealed class BlockedAccessNotificationPresentationTests
 
     private static XDocument LoadWindow() => XDocument.Load(Path.Combine(
         FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "BlockedAccessNotificationWindow.xaml"));
+
+    private static string FindString(XContainer strings, string key) => Assert.Single(
+        strings.Descendants().Where(element => (string?)element.Attribute(Xaml + "Key") == key)).Value;
 
     private static string FindRepositoryRoot()
     {

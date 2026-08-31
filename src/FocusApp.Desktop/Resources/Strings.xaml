@@ -9,6 +9,8 @@
     <system:String x:Key="BlockedAccessNotificationWebsiteKind">当前网站</system:String>
     <system:String x:Key="BlockedAccessNotificationApplicationKind">当前应用</system:String>
     <system:String x:Key="BlockedAccessNotificationBlockedSuffix">已被拦截</system:String>
+    <system:String x:Key="BlockedAccessNotificationWebsiteSubtitle">专注期间暂时无法访问该网站</system:String>
+    <system:String x:Key="BlockedAccessNotificationApplicationSubtitle">专注期间暂时无法使用该应用</system:String>
     <system:String x:Key="BlockedAccessNotificationClose">关闭访问被阻止提示</system:String>
     <system:String x:Key="NavigationHome">首页</system:String>
     <system:String x:Key="NavigationBlocking">屏蔽</system:String>
