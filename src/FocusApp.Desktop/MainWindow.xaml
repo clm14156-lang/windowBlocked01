@@ -35,28 +35,14 @@
                     </Grid.RowDefinitions>
 
                     <Grid Grid.Row="0">
-                        <Border Width="32"
-                                Height="32"
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Top"
-                                Margin="0,32,0,0"
-                                BorderBrush="{DynamicResource AccentPrimary}"
-                                BorderThickness="2"
-                                CornerRadius="12">
-                            <TextBlock HorizontalAlignment="Center"
-                                       VerticalAlignment="Center"
-                                       FontFamily="Segoe MDL2 Assets"
-                                       FontSize="17"
-                                       Foreground="{DynamicResource AccentPrimary}"
-                                       Text="&#xE77B;" />
-                        </Border>
-                        <Border Width="30"
-                                Height="2"
-                                Margin="0,62,0,0"
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Top"
-                                Background="{DynamicResource AccentPrimary}"
-                                CornerRadius="1" />
+                        <Image Width="32"
+                               Height="32"
+                               Margin="0,32,0,0"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Top"
+                               RenderOptions.BitmapScalingMode="HighQuality"
+                               Source="/FocusApp.Desktop;component/Assets/Themes/Solid/Orange/sidebar-logo.png"
+                               Stretch="Uniform" />
                     </Grid>
 
                     <ItemsControl Grid.Row="1"

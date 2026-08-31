@@ -247,10 +247,12 @@
     <system:String x:Key="FocusRecordSaved">记录已自动保存</system:String>
     <system:String x:Key="FocusAgain">再专注一次</system:String>
     <system:String x:Key="FocusReturnHome">返回首页</system:String>
-    <system:String x:Key="FocusTargetRecent">最近使用</system:String>
+    <system:String x:Key="FocusTargetRecent">当前目标</system:String>
     <system:String x:Key="FocusTargetClose">关闭目标弹窗</system:String>
     <system:String x:Key="FocusTargetMore">查看更多目标</system:String>
     <system:String x:Key="FocusTargetPendingTasks">待执行任务</system:String>
+    <system:String x:Key="FocusTargetEmptyTitle">还没有目标</system:String>
+    <system:String x:Key="FocusTargetEmptyDescription">创建目标后，即可添加待执行任务</system:String>
     <system:String x:Key="FocusTargetAddTask">添加任务</system:String>
     <system:String x:Key="FocusTargetTaskPlaceholder">输入任务名称……</system:String>
     <system:String x:Key="FocusTargetTaskMenu">任务菜单</system:String>

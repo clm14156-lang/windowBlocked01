@@ -26,4 +26,10 @@
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>
   </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\Icons\Common\Home_Shield.png" />
+    <Resource Include="Assets\Images\Illustrations\create-target.png" />
+    <Resource Include="Assets\Themes\Solid\Orange\sidebar-logo.png" />
+  </ItemGroup>
 </Project>

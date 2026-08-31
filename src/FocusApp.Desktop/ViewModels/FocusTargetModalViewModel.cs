@@ -82,6 +82,8 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
 
     public IReadOnlyList<FocusTargetViewModel> Targets => _targets;
 
+    public bool HasTargets => _targets.Count > 0;
+
     public void ApplyState(
         IEnumerable<LocalTargetDto> targets,
         IEnumerable<LocalTaskDto> tasks,
@@ -127,6 +129,7 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(SelectedTarget));
         OnPropertyChanged(nameof(SelectedTargetButtonText));
         OnPropertyChanged(nameof(CurrentTasks));
+        OnPropertyChanged(nameof(HasTargets));
         OnPropertyChanged(nameof(HasMoreTargets));
     }
 
@@ -470,6 +473,7 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
         }
         IsCreatingTarget = false;
         NewTargetName = string.Empty;
+        OnPropertyChanged(nameof(HasTargets));
         OnPropertyChanged(nameof(HasMoreTargets));
         OnPropertyChanged(nameof(CanShowPreviousTargets));
         OnPropertyChanged(nameof(CanShowNextTargets));

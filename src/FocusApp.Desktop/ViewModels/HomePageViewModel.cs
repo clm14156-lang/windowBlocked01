@@ -24,6 +24,7 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
     private Func<Task>? _forcedFocusStartCanceller;
     private bool _isStartingForcedFocus;
     private bool _isApplyingPersistedDurations;
+    private bool _isUpdatingDurationSelection;
     private string _focusStartError = string.Empty;
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -122,8 +123,7 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
                 if (preset.IsVisible) _displayOrder.Add(option);
             }
             var currentPreset = ordered.FirstOrDefault(preset => preset.IsCurrent) ?? ordered[0];
-            _currentDurationOption = DurationOptions.First(option => option.Minutes == currentPreset.Minutes);
-            _currentDurationOption.IsCurrent = true;
+            SelectOnly(DurationOptions.First(option => option.Minutes == currentPreset.Minutes));
             RefreshVisibleDurationOptions();
             OnPropertyChanged(nameof(DurationOptions));
             OnPropertyChanged(nameof(CurrentDurationOption));
@@ -362,16 +362,29 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
 
         var option = new HomeDurationOptionViewModel($"{minutes} 分钟", string.Empty, false, minutes);
         DurationOptions.Insert(Math.Max(0, DurationOptions.Count - 1), option);
-        option.PropertyChanged += DurationOption_PropertyChanged;
         CustomTimeModal.CommonTimes.Add(option);
-        option.IsSelected = DurationOptions.Count(item => item.IsSelected) < 4;
-        if (option.IsSelected)
+        option.PropertyChanged += DurationOption_PropertyChanged;
+        _isUpdatingDurationSelection = true;
+        try
         {
+            if (_displayOrder.Count >= 4)
+            {
+                var oldest = _displayOrder[0];
+                _displayOrder.RemoveAt(0);
+                oldest.IsSelected = false;
+            }
+
+            option.IsSelected = true;
             _displayOrder.Add(option);
+            SelectOnly(option);
+        }
+        finally
+        {
+            _isUpdatingDurationSelection = false;
         }
         OnPropertyChanged(nameof(DurationOptions));
         RefreshVisibleDurationOptions();
-        if (!_isApplyingPersistedDurations) DurationOptionsChanged?.Invoke(this, EventArgs.Empty);
+        NotifyDurationOptionsChanged();
         return true;
     }
 
@@ -466,6 +479,7 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
         }
         _currentDurationOption = option;
         OnPropertyChanged(nameof(CurrentDurationOption));
+        NotifyDurationOptionsChanged();
     }
 
     private void ToggleCommonTimeVisibility(int minutes)
@@ -474,25 +488,45 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
         if (option is null) return;
         if (option.IsSelected)
         {
-            option.IsSelected = false;
-            _displayOrder.Remove(option);
+            _isUpdatingDurationSelection = true;
+            try
+            {
+                option.IsSelected = false;
+                _displayOrder.Remove(option);
+                if (ReferenceEquals(option, _currentDurationOption) && _displayOrder.Count > 0)
+                {
+                    SelectOnly(_displayOrder[0]);
+                }
+            }
+            finally
+            {
+                _isUpdatingDurationSelection = false;
+            }
             RefreshVisibleDurationOptions();
-            DurationOptionsChanged?.Invoke(this, EventArgs.Empty);
+            NotifyDurationOptionsChanged();
             return;
         }
 
-        if (_displayOrder.Count >= 4)
+        _isUpdatingDurationSelection = true;
+        try
         {
-            var oldest = _displayOrder[0];
-            _displayOrder.RemoveAt(0);
-            oldest.IsSelected = false;
-        }
+            if (_displayOrder.Count >= 4)
+            {
+                var oldest = _displayOrder[0];
+                _displayOrder.RemoveAt(0);
+                oldest.IsSelected = false;
+            }
 
-        option.IsSelected = true;
-        _displayOrder.Add(option);
-        SelectOnly(option);
+            option.IsSelected = true;
+            _displayOrder.Add(option);
+            SelectOnly(option);
+        }
+        finally
+        {
+            _isUpdatingDurationSelection = false;
+        }
         RefreshVisibleDurationOptions();
-        DurationOptionsChanged?.Invoke(this, EventArgs.Empty);
+        NotifyDurationOptionsChanged();
     }
 
     private void DeleteCommonTime(int minutes)
@@ -509,10 +543,18 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
 
     private void DurationOption_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(HomeDurationOptionViewModel.IsSelected) or nameof(HomeDurationOptionViewModel.IsCurrent))
+        if (e.PropertyName == nameof(HomeDurationOptionViewModel.IsSelected))
         {
             RefreshVisibleDurationOptions();
-            if (!_isApplyingPersistedDurations) DurationOptionsChanged?.Invoke(this, EventArgs.Empty);
+            NotifyDurationOptionsChanged();
+        }
+    }
+
+    private void NotifyDurationOptionsChanged()
+    {
+        if (!_isApplyingPersistedDurations && !_isUpdatingDurationSelection)
+        {
+            DurationOptionsChanged?.Invoke(this, EventArgs.Empty);
         }
     }
 

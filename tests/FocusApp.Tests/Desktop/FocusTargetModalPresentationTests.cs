@@ -47,6 +47,9 @@ public sealed class FocusTargetModalPresentationTests
         var addButton = Assert.Single(modal.Descendants(Presentation + "Button").Where(button =>
             (string?)button.Attribute("Command") == "{Binding BeginAddTaskCommand}"));
         Assert.Equal("{StaticResource TargetAddButton}", (string?)addButton.Attribute("Style"));
+        Assert.Equal(
+            "{Binding HasTargets, Converter={StaticResource BooleanToVisibilityConverter}}",
+            (string?)addButton.Attribute("Visibility"));
 
         var addButtonStyle = Assert.Single(modal.Descendants(Presentation + "Style").Where(style =>
             (string?)style.Attribute(Xaml + "Key") == "TargetAddButton"));
@@ -57,6 +60,28 @@ public sealed class FocusTargetModalPresentationTests
             (string?)setter.Attribute("TargetName") == "Glyph" &&
             (string?)setter.Attribute("Property") == "Foreground" &&
             (string?)setter.Attribute("Value") == "{DynamicResource TextWeak}");
+    }
+
+    [Fact]
+    public void EmptyTargetState_UsesIllustrationAndHidesWhenTargetsExist()
+    {
+        var modal = XDocument.Load(Path.Combine(
+            FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "FocusTargetModal.xaml"));
+
+        var illustration = Assert.Single(modal.Descendants(Presentation + "Image").Where(image =>
+            (string?)image.Attribute("Source") == "/FocusApp.Desktop;component/Assets/Images/Illustrations/create-target.png"));
+        Assert.Equal("Uniform", (string?)illustration.Attribute("Stretch"));
+
+        var emptyTitle = Assert.Single(modal.Descendants(Presentation + "TextBlock").Where(text =>
+            (string?)text.Attribute("Text") == "{DynamicResource FocusTargetEmptyTitle}"));
+        var emptyState = Assert.IsType<XElement>(emptyTitle.Parent);
+        Assert.Equal("StackPanel", emptyState.Name.LocalName);
+        Assert.Contains(emptyState.Descendants(Presentation + "DataTrigger"), trigger =>
+            (string?)trigger.Attribute("Binding") == "{Binding HasTargets}" &&
+            (string?)trigger.Attribute("Value") == "True" &&
+            trigger.Elements(Presentation + "Setter").Any(setter =>
+                (string?)setter.Attribute("Property") == "Visibility" &&
+                (string?)setter.Attribute("Value") == "Collapsed"));
     }
 
     [Fact]

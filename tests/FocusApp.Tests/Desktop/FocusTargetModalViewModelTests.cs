@@ -6,6 +6,20 @@ namespace FocusApp.Tests.Desktop;
 public sealed class FocusTargetModalViewModelTests
 {
     [Fact]
+    public void HasTargets_TracksEmptyStateAndTargetCreation()
+    {
+        var viewModel = new FocusTargetModalViewModel(useSampleData: false);
+
+        Assert.False(viewModel.HasTargets);
+
+        viewModel.BeginCreateTargetCommand.Execute(null);
+        viewModel.NewTargetName = "准备演示";
+        viewModel.CreateTargetCommand.Execute(null);
+
+        Assert.True(viewModel.HasTargets);
+    }
+
+    [Fact]
     public void RecentTargets_StopAtBothEndsWithoutWrapping()
     {
         var viewModel = new FocusTargetModalViewModel();

@@ -331,8 +331,8 @@
                            Foreground="{DynamicResource FocusTargetIconBrush}"
                            Text="&#xE823;" />
                 <TextBlock VerticalAlignment="Center"
-                           FontSize="16"
-                           FontWeight="SemiBold"
+                           FontSize="15"
+                           FontWeight="Medium"
                            Foreground="{DynamicResource TextPrimary}"
                            Text="{DynamicResource FocusTargetRecent}" />
             </StackPanel>
@@ -386,13 +386,14 @@
             <Grid Grid.Row="3">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Margin="0,0,9,0" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="{DynamicResource FocusTargetIconBrush}" Text="&#xE823;" />
-                    <TextBlock VerticalAlignment="Center" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource FocusTargetPendingTasks}" />
+                    <TextBlock VerticalAlignment="Center" FontSize="15" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource FocusTargetPendingTasks}" />
                 </StackPanel>
                 <Button Width="38"
                         Height="38"
                         HorizontalAlignment="Right"
                         AutomationProperties.Name="{DynamicResource FocusTargetAddTask}"
                         Command="{Binding BeginAddTaskCommand}"
+                        Visibility="{Binding HasTargets, Converter={StaticResource BooleanToVisibilityConverter}}"
                         Style="{StaticResource TargetAddButton}" />
             </Grid>
 
@@ -547,6 +548,40 @@
                     </ItemsControl>
                 </StackPanel>
             </ScrollViewer>
+
+            <StackPanel Grid.Row="4"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        IsHitTestVisible="False">
+                <StackPanel.Style>
+                    <Style TargetType="{x:Type StackPanel}">
+                        <Setter Property="Visibility" Value="Visible" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasTargets}" Value="True">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </StackPanel.Style>
+                <Image Width="150"
+                       Height="118"
+                       HorizontalAlignment="Center"
+                       RenderOptions.BitmapScalingMode="HighQuality"
+                       Source="/FocusApp.Desktop;component/Assets/Images/Illustrations/create-target.png"
+                       Stretch="Uniform" />
+                <TextBlock Margin="0,6,0,0"
+                           HorizontalAlignment="Center"
+                           FontSize="15"
+                           FontWeight="Medium"
+                           Foreground="{DynamicResource TextPrimary}"
+                           Text="{DynamicResource FocusTargetEmptyTitle}" />
+                <TextBlock Margin="0,3,0,0"
+                           HorizontalAlignment="Center"
+                           FontSize="12"
+                           FontWeight="Normal"
+                           Foreground="{DynamicResource TextSecondary}"
+                           Text="{DynamicResource FocusTargetEmptyDescription}" />
+            </StackPanel>
 
             <Grid Grid.Row="5">
                 <Button Height="48"
