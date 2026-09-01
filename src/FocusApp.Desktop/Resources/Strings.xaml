@@ -310,6 +310,7 @@
     <system:String x:Key="AuthRecoverySuccessHint">现在可以使用新密码登录</system:String>
     <system:String x:Key="AuthRecoveryReturnLogin">返回登录</system:String>
     <system:String x:Key="AccountPanelLoggedIn">已登录</system:String>
+    <system:String x:Key="AccountPanelMemberTag">会员</system:String>
     <system:String x:Key="AccountPanelAccountSync">账号与同步</system:String>
     <system:String x:Key="AccountPanelVip">开通 VIP</system:String>
     <system:String x:Key="AccountPanelUpgrade">升级</system:String>

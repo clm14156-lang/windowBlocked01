@@ -124,8 +124,8 @@
                         <ColumnDefinition Width="142" />
                     </Grid.ColumnDefinitions>
 
-                    <Image Width="54"
-                           Height="54"
+                    <Image Width="58"
+                           Height="58"
                            HorizontalAlignment="Center"
                            VerticalAlignment="Center"
                            Source="/FocusApp.Desktop;component/Assets/Images/Illustrations/MemberCenter_Crown.png"
@@ -287,8 +287,8 @@
                         <ColumnDefinition Width="154" />
                     </Grid.ColumnDefinitions>
 
-                    <Image Width="54"
-                           Height="54"
+                    <Image Width="58"
+                           Height="58"
                            HorizontalAlignment="Center"
                            VerticalAlignment="Center"
                            Source="/FocusApp.Desktop;component/Assets/Images/Illustrations/MemberCenter_Crown.png"

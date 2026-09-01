@@ -31,7 +31,7 @@ public sealed class MembershipCenterPresentationTests
         Assert.Null(banner.Attribute("BorderBrush"));
         Assert.Null(banner.Attribute("BorderThickness"));
 
-        AssertImage(lifetimeContent, "MemberCenter_Crown.png", "54", "54");
+        AssertImage(lifetimeContent, "MemberCenter_Crown.png", "58", "58");
         AssertImage(lifetimeContent, "MenberCenter_check.png", "20", "20");
 
         var benefits = Assert.Single(lifetimeContent.Descendants(Presentation + "UniformGrid"));
@@ -78,7 +78,7 @@ public sealed class MembershipCenterPresentationTests
         var banner = Assert.IsType<XElement>(bannerArtwork.Parent?.Parent);
         Assert.Null(banner.Attribute("BorderBrush"));
         Assert.Null(banner.Attribute("BorderThickness"));
-        AssertImage(annualContent, "MemberCenter_Crown.png", "54", "54");
+        AssertImage(annualContent, "MemberCenter_Crown.png", "58", "58");
 
         Assert.Contains(annualContent.Descendants(Presentation + "TextBlock"), element =>
             (string?)element.Attribute("Text") == "{DynamicResource MembershipAnnualTitle}");

@@ -125,7 +125,9 @@
                                      ToolTipService.IsEnabled="{Binding IsLoggedIn}">
                             <Grid Width="40" Height="40">
                                 <Ellipse Fill="{DynamicResource BackgroundSecondary}" />
-                                <Ellipse Stroke="{DynamicResource MembershipBadgeAccent}" StrokeThickness="2">
+                                <Ellipse Stroke="{DynamicResource TextTertiary}"
+                                         StrokeThickness="1.5"
+                                         Opacity="0.62">
                                     <Ellipse.Style>
                                         <Style TargetType="{x:Type Ellipse}">
                                             <Setter Property="Visibility" Value="Collapsed" />
@@ -176,15 +178,16 @@
                                                Foreground="{DynamicResource WhiteText}"
                                                Text="&#xE710;" />
                                 </Border>
-                                <Border Width="24"
-                                        Height="12"
-                                        Margin="0,0,0,-2"
-                                        HorizontalAlignment="Center"
-                                        VerticalAlignment="Bottom"
-                                        Background="{DynamicResource MembershipBadgeAccent}"
-                                        CornerRadius="6">
-                                    <Border.Style>
-                                        <Style TargetType="{x:Type Border}">
+                                <Image Width="17"
+                                       Height="17"
+                                       Margin="0,0,-1,-1"
+                                       HorizontalAlignment="Right"
+                                       VerticalAlignment="Bottom"
+                                       RenderOptions.BitmapScalingMode="HighQuality"
+                                       Source="/FocusApp.Desktop;component/Assets/Icons/Common/vip_logo.png"
+                                       Stretch="Uniform">
+                                    <Image.Style>
+                                        <Style TargetType="{x:Type Image}">
                                             <Setter Property="Visibility" Value="Collapsed" />
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding IsVipMember}" Value="True">
@@ -192,14 +195,8 @@
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
-                                    </Border.Style>
-                                    <TextBlock HorizontalAlignment="Center"
-                                               VerticalAlignment="Center"
-                                               FontSize="8"
-                                               FontWeight="SemiBold"
-                                               Foreground="{DynamicResource WhiteText}"
-                                               Text="VIP" />
-                                </Border>
+                                    </Image.Style>
+                                </Image>
                             </Grid>
                         </RadioButton>
                         <TextBlock Margin="0,0,0,23"
