@@ -127,11 +127,13 @@ public partial class SettingsPage : UserControl
         if (e.OldValue is SettingsPageViewModel oldViewModel)
         {
             oldViewModel.PropertyChanged -= SettingsViewModel_PropertyChanged;
+            oldViewModel.AutomaticRuleFocusRequested -= SettingsViewModel_AutomaticRuleFocusRequested;
         }
 
         if (e.NewValue is SettingsPageViewModel newViewModel)
         {
             newViewModel.PropertyChanged += SettingsViewModel_PropertyChanged;
+            newViewModel.AutomaticRuleFocusRequested += SettingsViewModel_AutomaticRuleFocusRequested;
             if (newViewModel.CanUseForcedMode)
             {
                 CloseForcedModeVipGuide();
@@ -174,6 +176,28 @@ public partial class SettingsPage : UserControl
         {
             viewModel.ToggleRuleCommand.Execute(rule);
             e.Handled = true;
+        }
+    }
+
+    private void SettingsViewModel_AutomaticRuleFocusRequested(AutomaticRuleItemViewModel rule)
+    {
+        Dispatcher.BeginInvoke(
+            DispatcherPriority.ContextIdle,
+            new Action(() =>
+            {
+                AutomaticRulesList.UpdateLayout();
+                if (AutomaticRulesList.ItemContainerGenerator.ContainerFromItem(rule) is FrameworkElement container)
+                {
+                    container.BringIntoView();
+                }
+            }));
+    }
+
+    private void AutomaticRuleRow_MouseEnter(object sender, MouseEventArgs e)
+    {
+        if (sender is Border { DataContext: AutomaticRuleItemViewModel rule })
+        {
+            rule.ConsumeNavigationHighlight();
         }
     }
 }

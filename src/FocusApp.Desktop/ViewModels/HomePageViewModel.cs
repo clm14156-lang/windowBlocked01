@@ -29,6 +29,7 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
 
     public event PropertyChangedEventHandler? PropertyChanged;
     public event EventHandler? DurationOptionsChanged;
+    public event Action<Guid>? ManageAutomaticRuleRequested;
 
     public HomePageViewModel(
         IEnumerable<HomeDurationOptionViewModel> durationOptions,
@@ -75,6 +76,7 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
         StartFocusCommand = new RelayCommand<object>(_ => StartFocus());
         OpenFocusTargetCommand = new RelayCommand<object>(_ => FocusTargetModal.Open());
         OpenBlockedContentCommand = new RelayCommand<object>(_ => OpenBlockedContent());
+        ManageNextAutomaticRuleCommand = new RelayCommand<object>(_ => ManageNextAutomaticRule());
     }
 
     public ObservableCollection<HomeDurationOptionViewModel> DurationOptions { get; }
@@ -90,6 +92,8 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
     public ICommand OpenFocusTargetCommand { get; }
 
     public ICommand OpenBlockedContentCommand { get; }
+
+    public ICommand ManageNextAutomaticRuleCommand { get; }
 
     public CustomTimeModalViewModel CustomTimeModal { get; }
 
@@ -240,6 +244,14 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
     public string NextAutomaticBlockingToolTip => _nextAutomaticRule is null
         ? ""
         : $"{_nextAutomaticStart:HH:mm} 开始自动屏蔽，持续 {FormatRuleDuration(_nextAutomaticRule)}";
+
+    private void ManageNextAutomaticRule()
+    {
+        if (_nextAutomaticRule is not null)
+        {
+            ManageAutomaticRuleRequested?.Invoke(_nextAutomaticRule.Id);
+        }
+    }
 
     public void UpdateAutomaticRules(IEnumerable<AutomaticRuleItemViewModel> rules, DateTime? now = null)
         => UpdateAutomaticRules(rules, true, now);

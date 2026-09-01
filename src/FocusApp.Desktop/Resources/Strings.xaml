@@ -187,6 +187,7 @@
     <system:String x:Key="HomeBlockingTitle">当前屏蔽</system:String>
     <system:String x:Key="HomeBlockingCountSuffix"> 个网站和应用</system:String>
     <system:String x:Key="HomeBlockingEmpty">暂未添加屏蔽内容</system:String>
+    <system:String x:Key="HomeManageAutomaticRule">管理规则</system:String>
     <system:String x:Key="HomeAddBlockingRule">添加屏蔽规则</system:String>
     <system:String x:Key="HomeViewAllBlocking">查看全部</system:String>
     <system:String x:Key="HomeViewAllChevron">›</system:String>

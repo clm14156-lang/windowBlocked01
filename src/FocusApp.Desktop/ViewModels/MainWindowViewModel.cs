@@ -69,6 +69,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         SettingsPage.FocusSoundChanged += SettingsPage_FocusSoundChanged;
         SettingsPage.RulesChanged += SettingsPage_RulesChanged;
         HomePage.DurationOptionsChanged += HomePage_DurationOptionsChanged;
+        HomePage.ManageAutomaticRuleRequested += HomePage_ManageAutomaticRuleRequested;
         HomePage.FocusTargetModal.TargetChanged += FocusTargetModal_TargetChanged;
         HomePage.FocusTargetModal.SelectionChanged += FocusTargetModal_SelectionChanged;
         HomePage.FocusSession.CompletionRecorded += FocusSession_CompletionRecorded;
@@ -380,6 +381,19 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         _currentNavigationItem.IsSelected = true;
         OnPropertyChanged(nameof(CurrentPageTitle));
         OnPropertyChanged(nameof(CurrentPage));
+    }
+
+    private void HomePage_ManageAutomaticRuleRequested(Guid ruleId)
+    {
+        var settingsNavigationItem = PrimaryNavigationItems.FirstOrDefault(
+            item => item.Page == NavigationPage.Settings);
+        if (settingsNavigationItem is null)
+        {
+            return;
+        }
+
+        Navigate(settingsNavigationItem);
+        SettingsPage.RequestAutomaticRuleFocus(ruleId);
     }
 
     private void ServiceConnection_PropertyChanged(object? sender, PropertyChangedEventArgs e)

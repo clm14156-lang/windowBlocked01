@@ -316,42 +316,38 @@
                                 </Style>
                             </TextBlock.Style>
                         </TextBlock>
-                        <TextBlock Margin="12,0,0,0"
-                                   VerticalAlignment="Center"
-                                   FontFamily="{DynamicResource FontFamilyNumeric}"
-                                   FontSize="14"
-                                   FontWeight="Medium"
-                                   Foreground="{DynamicResource AccentPrimary}"
-                                   Text="{Binding NextAutomaticStartDisplay}"
-                                   ToolTipService.InitialShowDelay="100"
-                                   ToolTipService.BetweenShowDelay="0"
-                                   ToolTipService.ShowDuration="60000">
-                            <TextBlock.Style>
-                                <Style TargetType="{x:Type TextBlock}">
+                        <Grid Margin="12,0,0,0" VerticalAlignment="Center">
+                            <Grid.Style>
+                                <Style TargetType="{x:Type Grid}">
                                     <Setter Property="Visibility" Value="Collapsed" />
                                     <Style.Triggers><DataTrigger Binding="{Binding HasNextAutomaticRule}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers>
                                 </Style>
-                            </TextBlock.Style>
-                            <TextBlock.ToolTip>
-                                <ToolTip x:Name="AutomaticBlockingToolTip"
-                                         Padding="0"
-                                         Background="{DynamicResource TransparentBrush}"
-                                         BorderThickness="0"
-                                         DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}"
-                                         HasDropShadow="False"
-                                         OverridesDefaultStyle="True"
-                                         Placement="Custom">
-                                    <ToolTip.Template>
-                                        <ControlTemplate TargetType="{x:Type ToolTip}">
-                                            <ContentPresenter />
-                                        </ControlTemplate>
-                                    </ToolTip.Template>
-                                    <Grid MinWidth="220">
+                            </Grid.Style>
+                            <TextBlock x:Name="AutomaticBlockingTimeText"
+                                       VerticalAlignment="Center"
+                                       FontFamily="{DynamicResource FontFamilyNumeric}"
+                                       FontSize="14"
+                                       FontWeight="Medium"
+                                       Foreground="{DynamicResource AccentPrimary}"
+                                       MouseEnter="AutomaticBlockingTimeText_MouseEnter"
+                                       MouseLeave="AutomaticBlockingTimeText_MouseLeave"
+                                       Text="{Binding NextAutomaticStartDisplay}" />
+                            <Popup x:Name="AutomaticBlockingPopup"
+                                   AllowsTransparency="True"
+                                   DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}"
+                                   Placement="Custom"
+                                   PlacementTarget="{Binding ElementName=AutomaticBlockingTimeText}"
+                                   PopupAnimation="Fade"
+                                   StaysOpen="True">
+                                    <Grid x:Name="AutomaticBlockingPopupRoot"
+                                          Width="190"
+                                          MouseEnter="AutomaticBlockingPopup_MouseEnter"
+                                          MouseLeave="AutomaticBlockingPopup_MouseLeave">
                                         <Grid.RowDefinitions>
                                             <RowDefinition Height="Auto" />
                                             <RowDefinition Height="8" />
                                         </Grid.RowDefinitions>
-                                        <Border MinHeight="74"
+                                        <Border Height="96"
                                                 Padding="16,12"
                                                 Background="{DynamicResource SurfacePrimary}"
                                                 BorderBrush="#E5E5EA"
@@ -387,6 +383,33 @@
                                                                FontWeight="Normal"
                                                                Foreground="{DynamicResource TextSecondary}"
                                                                Text="{Binding NextAutomaticBlockingToolTip, Mode=OneWay, Converter={StaticResource AutomaticBlockingTooltipDetailConverter}}" />
+                                                    <Button Margin="0,8,0,0"
+                                                            Padding="0"
+                                                            HorizontalAlignment="Left"
+                                                            AutomationProperties.Name="{DynamicResource HomeManageAutomaticRule}"
+                                                            Background="{DynamicResource TransparentBrush}"
+                                                            BorderThickness="0"
+                                                            Click="ManageAutomaticRule_Click"
+                                                            Cursor="Hand"
+                                                            FocusVisualStyle="{x:Null}">
+                                                        <Button.Template>
+                                                            <ControlTemplate TargetType="{x:Type Button}">
+                                                                <ContentPresenter HorizontalAlignment="Left"
+                                                                                  VerticalAlignment="Center" />
+                                                            </ControlTemplate>
+                                                        </Button.Template>
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <TextBlock FontSize="12"
+                                                                       FontWeight="Medium"
+                                                                       Foreground="{DynamicResource TextSecondary}"
+                                                                       Text="{DynamicResource HomeManageAutomaticRule}" />
+                                                            <TextBlock Margin="6,-1,0,0"
+                                                                       FontSize="15"
+                                                                       FontWeight="Normal"
+                                                                       Foreground="{DynamicResource TextTertiary}"
+                                                                       Text="›" />
+                                                        </StackPanel>
+                                                    </Button>
                                                 </StackPanel>
                                             </Grid>
                                         </Border>
@@ -400,9 +423,8 @@
                                             <Path Margin="1,0,1,1" Data="M 0,0 L 12,0 L 6,6 Z" Fill="{DynamicResource SurfacePrimary}" />
                                         </Grid>
                                     </Grid>
-                                </ToolTip>
-                            </TextBlock.ToolTip>
-                        </TextBlock>
+                            </Popup>
+                        </Grid>
                     </StackPanel>
                     <TextBlock Margin="0,4,0,0"
                                FontSize="12"

@@ -91,6 +91,8 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
 
     public event EventHandler? RulesChanged;
 
+    public event Action<AutomaticRuleItemViewModel>? AutomaticRuleFocusRequested;
+
     public ReadOnlyCollection<SettingsToggleItemViewModel> ToggleItems { get; }
 
     public ReadOnlyCollection<SettingsToggleItemViewModel> GeneralToggleItems { get; }
@@ -126,6 +128,23 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
     public ExportRecordsModalViewModel ExportRecordsModal { get; }
 
     public ObservableCollection<AutomaticRuleItemViewModel> AutomaticRules { get; } = [];
+
+    public bool RequestAutomaticRuleFocus(Guid ruleId)
+    {
+        var targetRule = AutomaticRules.FirstOrDefault(rule => rule.Id == ruleId);
+        foreach (var rule in AutomaticRules)
+        {
+            rule.SetNavigationHighlight(ReferenceEquals(rule, targetRule));
+        }
+
+        if (targetRule is null)
+        {
+            return false;
+        }
+
+        AutomaticRuleFocusRequested?.Invoke(targetRule);
+        return true;
+    }
 
     public void ApplyAutomaticRules(IEnumerable<LocalAutomaticRuleDto> rules)
     {
@@ -636,6 +655,7 @@ public sealed class AutomaticRuleItemViewModel : INotifyPropertyChanged
     private double _startMinutes;
     private double _endMinutes;
     private bool _isCustom;
+    private bool _isNavigationHighlighted;
 
     public AutomaticRuleItemViewModel(Guid id, string repeatText, string timeRangeText,
         IEnumerable<string>? dayKeys = null, double startMinutes = 0, double endMinutes = 0, bool isCustom = false, DateTimeOffset? createdAtUtc = null, DateTimeOffset? updatedAtUtc = null)
@@ -666,6 +686,8 @@ public sealed class AutomaticRuleItemViewModel : INotifyPropertyChanged
     public double EndMinutes => _endMinutes;
 
     public bool IsCustom => _isCustom;
+
+    public bool IsNavigationHighlighted => _isNavigationHighlighted;
 
     public DateTimeOffset CreatedAtUtc { get; private set; }
     public DateTimeOffset UpdatedAtUtc { get; private set; }
@@ -709,6 +731,19 @@ public sealed class AutomaticRuleItemViewModel : INotifyPropertyChanged
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsEnabled)));
         }
     }
+
+    internal void SetNavigationHighlight(bool isHighlighted)
+    {
+        if (_isNavigationHighlighted == isHighlighted)
+        {
+            return;
+        }
+
+        _isNavigationHighlighted = isHighlighted;
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsNavigationHighlighted)));
+    }
+
+    public void ConsumeNavigationHighlight() => SetNavigationHighlight(false);
 }
 
 public sealed class SettingsToggleItemViewModel : INotifyPropertyChanged

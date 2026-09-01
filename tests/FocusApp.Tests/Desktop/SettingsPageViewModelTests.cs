@@ -692,6 +692,42 @@ public sealed class SettingsPageViewModelTests
         Assert.Equal("08:41", home.NextAutomaticStartDisplay);
     }
 
+    [Fact]
+    public void RequestAutomaticRuleFocus_MatchesByIdAndClearsAfterFirstMouseEntry()
+    {
+        var viewModel = new SettingsPageViewModel([], []);
+        var first = CreateRule("09:00 – 10:00", 540, 600);
+        var target = CreateRule("13:00 – 16:50", 780, 1010);
+        viewModel.AutomaticRules.Add(first);
+        viewModel.AutomaticRules.Add(target);
+        AutomaticRuleItemViewModel? requestedRule = null;
+        viewModel.AutomaticRuleFocusRequested += rule => requestedRule = rule;
+
+        var found = viewModel.RequestAutomaticRuleFocus(target.Id);
+
+        Assert.True(found);
+        Assert.Same(target, requestedRule);
+        Assert.False(first.IsNavigationHighlighted);
+        Assert.True(target.IsNavigationHighlighted);
+
+        target.ConsumeNavigationHighlight();
+
+        Assert.False(target.IsNavigationHighlighted);
+    }
+
+    [Fact]
+    public void RequestAutomaticRuleFocus_DoesNotGuessWhenRuleIdIsMissing()
+    {
+        var viewModel = new SettingsPageViewModel([], []);
+        var existing = CreateRule("09:00 – 10:00", 540, 600);
+        viewModel.AutomaticRules.Add(existing);
+
+        var found = viewModel.RequestAutomaticRuleFocus(Guid.NewGuid());
+
+        Assert.False(found);
+        Assert.False(existing.IsNavigationHighlighted);
+    }
+
     private static AutomaticRuleModalViewModel CreateRuleModal()
     {
         return new AutomaticRuleModalViewModel(

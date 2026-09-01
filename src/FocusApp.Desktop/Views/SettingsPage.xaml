@@ -406,14 +406,20 @@
                                         </Style>
                                     </TextBlock.Style>
                                 </TextBlock>
-                                <ItemsControl ItemsSource="{Binding AutomaticRules}">
+                                <ItemsControl x:Name="AutomaticRulesList" ItemsSource="{Binding AutomaticRules}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <Border Height="44" Margin="14,0" CornerRadius="7">
+                                            <Border Height="44"
+                                                    Margin="14,0"
+                                                    CornerRadius="7"
+                                                    MouseEnter="AutomaticRuleRow_MouseEnter">
                                                 <Border.Style>
                                                     <Style TargetType="{x:Type Border}">
                                                         <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
-                                                        <Style.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="{StaticResource SettingsHairlineBrush}" /></Trigger></Style.Triggers>
+                                                        <Style.Triggers>
+                                                            <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="{StaticResource SettingsHairlineBrush}" /></Trigger>
+                                                            <DataTrigger Binding="{Binding IsNavigationHighlighted}" Value="True"><Setter Property="Background" Value="{StaticResource SettingsHairlineBrush}" /></DataTrigger>
+                                                        </Style.Triggers>
                                                     </Style>
                                                 </Border.Style>
                                                 <Grid Margin="8,0,0,0">

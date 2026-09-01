@@ -109,6 +109,37 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
+    public void ManageNextAutomaticRule_NavigatesToSettingsAndHighlightsTheExactRuleId()
+    {
+        var homeNavigation = new NavigationItemViewModel(NavigationPage.Home, "Home", "H");
+        var settingsNavigation = new NavigationItemViewModel(NavigationPage.Settings, "Settings", "S");
+        var account = new NavigationItemViewModel(NavigationPage.Account, "Account", "A");
+        var homePage = new HomePageViewModel(
+            [new HomeDurationOptionViewModel("25 minutes", string.Empty, true, 25)]);
+        var settingsPage = new SettingsPageViewModel([], []);
+        var laterRule = new AutomaticRuleItemViewModel(
+            Guid.NewGuid(), "Daily", "11:00 – 12:00",
+            Enum.GetNames<DayOfWeek>(), 660, 720);
+        var nextRule = new AutomaticRuleItemViewModel(
+            Guid.NewGuid(), "Daily", "09:00 – 10:00",
+            Enum.GetNames<DayOfWeek>(), 540, 600);
+        settingsPage.AutomaticRules.Add(laterRule);
+        settingsPage.AutomaticRules.Add(nextRule);
+        var viewModel = new MainWindowViewModel(
+            [homeNavigation, settingsNavigation], account, homePage, settingsPage);
+        homePage.UpdateAutomaticRules(
+            settingsPage.AutomaticRules,
+            new DateTime(2026, 8, 17, 8, 0, 0));
+
+        homePage.ManageNextAutomaticRuleCommand.Execute(null);
+
+        Assert.Equal(NavigationPage.Settings, viewModel.CurrentPage);
+        Assert.True(settingsNavigation.IsSelected);
+        Assert.True(nextRule.IsNavigationHighlighted);
+        Assert.False(laterRule.IsNavigationHighlighted);
+    }
+
+    [Fact]
     public void SelectDurationCommand_SelectsOnlyRequestedDuration()
     {
         var first = new HomeDurationOptionViewModel("25 minutes", string.Empty, true);
