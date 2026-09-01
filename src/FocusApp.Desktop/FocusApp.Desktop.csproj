@@ -33,6 +33,7 @@
     <Resource Include="Assets\Icons\Common\Menber_skin.png" />
     <Resource Include="Assets\Icons\Common\Menber_vip.png" />
     <Resource Include="Assets\Icons\Common\shiguang_logo.png" />
+    <Resource Include="Assets\Icons\Common\CompletePop-up_CheckBox.png" />
     <Resource Include="Assets\Images\Illustrations\create-target.png" />
     <Resource Include="Assets\Images\Illustrations\MemberCenter_Background.png" />
     <Resource Include="Assets\Images\Illustrations\MemberCenter_Crown.png" />

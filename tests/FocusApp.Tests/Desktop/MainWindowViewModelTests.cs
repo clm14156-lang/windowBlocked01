@@ -68,6 +68,27 @@ public sealed class MainWindowViewModelTests
         Assert.Equal(1, viewModel.StatisticsPage.TrendPoints.Sum(point => point.SessionCount));
         Assert.Equal(1, viewModel.StatisticsPage.TrendPoints.Sum(point => point.Minutes));
         Assert.Equal("8月27日 周四", viewModel.StatisticsPage.TodayDateDisplay);
+        Assert.True(viewModel.IsCompletionReminderVisible);
+        Assert.Equal("1 分钟", viewModel.CompletionReminderDuration);
+        Assert.NotNull(session.LastCompletion);
+        Assert.Equal(
+            $"{session.LastCompletion!.StartedAt:HH:mm} – {session.LastCompletion.CompletedAt:HH:mm}",
+            viewModel.CompletionReminderTimeRange);
+    }
+
+    [Fact]
+    public void CompletionReminderTest_UsesTheCurrentDurationInsteadOfHardcodedContent()
+    {
+        var homePage = new HomePageViewModel(
+            [new HomeDurationOptionViewModel("25 minutes", string.Empty, true, 25)]);
+        var home = new NavigationItemViewModel(NavigationPage.Home, "Home", "H");
+        var account = new NavigationItemViewModel(NavigationPage.Account, "Account", "A");
+        var viewModel = new MainWindowViewModel([home], account, homePage);
+
+        viewModel.ShowCompletionReminderTest();
+
+        Assert.Equal("25 分钟", viewModel.CompletionReminderDuration);
+        Assert.Matches(@"^\d{2}:\d{2} – \d{2}:\d{2}$", viewModel.CompletionReminderTimeRange);
     }
 
     [Fact]

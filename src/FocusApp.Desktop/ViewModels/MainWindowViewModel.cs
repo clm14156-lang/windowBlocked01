@@ -26,6 +26,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private readonly IAudioService? _audioService;
     private bool _isCompletionReminderVisible;
     private string _completionReminderDuration = string.Empty;
+    private string _completionReminderTimeRange = string.Empty;
     private string _completionReminderDetail = string.Empty;
     private LocalDataSnapshotDto? _pendingServiceState;
     private bool _serviceStateApplyScheduled;
@@ -146,6 +147,12 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         private set { if (_completionReminderDuration != value) { _completionReminderDuration = value; OnPropertyChanged(); } }
     }
 
+    public string CompletionReminderTimeRange
+    {
+        get => _completionReminderTimeRange;
+        private set { if (_completionReminderTimeRange != value) { _completionReminderTimeRange = value; OnPropertyChanged(); } }
+    }
+
     public string CompletionReminderDetail
     {
         get => _completionReminderDetail;
@@ -156,7 +163,11 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     public void ShowCompletionReminderTest()
     {
-        CompletionReminderDuration = "5 分钟";
+        var durationMinutes = Math.Max(1, HomePage.CurrentDurationOption.Minutes);
+        var completedAt = DateTime.Now;
+        var startedAt = completedAt.AddMinutes(-durationMinutes);
+        CompletionReminderDuration = $"{durationMinutes} 分钟";
+        CompletionReminderTimeRange = FormatCompletionReminderTimeRange(startedAt, completedAt);
         CompletionReminderDetail = string.Empty;
         IsCompletionReminderVisible = true;
     }
@@ -585,6 +596,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     {
         var minutes = Math.Max(0, (int)Math.Round(record.ActualDuration.TotalMinutes));
         CompletionReminderDuration = $"{minutes} 分钟";
+        CompletionReminderTimeRange = FormatCompletionReminderTimeRange(record.StartedAt, record.CompletedAt);
         var targetName = record.TargetName?.Trim() ?? string.Empty;
         var taskText = completedTaskCount > 0 ? $"完成 {completedTaskCount} 个任务" : string.Empty;
         CompletionReminderDetail = string.IsNullOrWhiteSpace(targetName)
@@ -592,6 +604,9 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             : string.IsNullOrWhiteSpace(taskText) ? targetName : $"{targetName} · {taskText}";
         IsCompletionReminderVisible = true;
     }
+
+    private static string FormatCompletionReminderTimeRange(DateTime startedAt, DateTime completedAt)
+        => $"{startedAt:HH:mm} – {completedAt:HH:mm}";
 
     private async void FocusSession_TargetTasksChanged(object? sender, FocusTargetViewModel target)
     {

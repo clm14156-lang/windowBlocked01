@@ -12,6 +12,11 @@
     <system:String x:Key="BlockedAccessNotificationWebsiteSubtitle">专注期间暂时无法访问该网站</system:String>
     <system:String x:Key="BlockedAccessNotificationApplicationSubtitle">专注期间暂时无法使用该应用</system:String>
     <system:String x:Key="BlockedAccessNotificationClose">关闭访问被阻止提示</system:String>
+    <system:String x:Key="CompletionReminderTitle">专注已完成</system:String>
+    <system:String x:Key="CompletionReminderBrandName">专注时光</system:String>
+    <system:String x:Key="CompletionReminderDurationPrefix">本次专注</system:String>
+    <system:String x:Key="CompletionReminderRecorded">已自动记录到专注统计</system:String>
+    <system:String x:Key="CompletionReminderClose">关闭专注完成提示</system:String>
     <system:String x:Key="NavigationHome">首页</system:String>
     <system:String x:Key="NavigationBlocking">屏蔽</system:String>
     <system:String x:Key="NavigationStatistics">统计</system:String>
