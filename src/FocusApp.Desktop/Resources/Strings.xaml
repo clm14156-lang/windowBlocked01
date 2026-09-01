@@ -144,11 +144,13 @@
     <system:String x:Key="AutomaticRuleActivationCancel">取消</system:String>
     <system:String x:Key="AutomaticRuleActivationConfirm">确认开启</system:String>
     <system:String x:Key="AutomaticRuleActivationClose">关闭规则开启确认</system:String>
+    <system:String x:Key="AutomaticBlockingToastBrandName">专注时光</system:String>
     <system:String x:Key="AutomaticBlockingToastMinutes">5</system:String>
     <system:String x:Key="AutomaticBlockingToastTitleSuffix"> 分钟后将开始自动屏蔽</system:String>
-    <system:String x:Key="AutomaticBlockingToastDescription">即将进入规则生效时间段&#x0a;将自动屏蔽分散注意力的网站与应用</system:String>
-    <system:String x:Key="AutomaticBlockingToastRule">规则：每天 19:00 - 22:00</system:String>
-    <system:String x:Key="AutomaticBlockingToastView">去查看  &gt;</system:String>
+    <system:String x:Key="AutomaticBlockingToastDescription">规则生效后，将自动屏蔽分散注意力的网站与应用</system:String>
+    <system:String x:Key="AutomaticBlockingToastRule">每天 · 19:00 – 22:00</system:String>
+    <system:String x:Key="AutomaticBlockingToastView">查看规则</system:String>
+    <system:String x:Key="AutomaticBlockingToastViewArrow">›</system:String>
     <system:String x:Key="AutomaticBlockingToastClose">关闭自动屏蔽提醒</system:String>
     <system:String x:Key="AutomaticRuleMonday">周一</system:String>
     <system:String x:Key="AutomaticRuleTuesday">周二</system:String>
