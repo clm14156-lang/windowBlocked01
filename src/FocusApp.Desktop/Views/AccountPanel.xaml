@@ -74,24 +74,14 @@
 
                 <Grid Width="44" Height="44" Margin="0,1,0,0" HorizontalAlignment="Left" VerticalAlignment="Center">
                     <Ellipse Fill="{DynamicResource BackgroundSecondary}" />
-                    <Ellipse Stroke="{DynamicResource TextTertiary}"
-                             StrokeThickness="1.5"
-                             Opacity="0.62">
-                        <Ellipse.Style>
-                            <Style TargetType="{x:Type Ellipse}">
-                                <Setter Property="Visibility" Value="Collapsed" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsVipMember}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Ellipse.Style>
+                    <Ellipse>
+                        <Ellipse.Fill>
+                            <ImageBrush AlignmentX="Center"
+                                        AlignmentY="Center"
+                                        ImageSource="/FocusApp.Desktop;component/Assets/Images/Illustrations/UserAvatar.png"
+                                        Stretch="UniformToFill" />
+                        </Ellipse.Fill>
                     </Ellipse>
-                    <TextBlock HorizontalAlignment="Center"
-                               VerticalAlignment="Center"
-                               FontFamily="Segoe MDL2 Assets"
-                               FontSize="23"
-                               Foreground="{DynamicResource TextSecondary}"
-                               Text="&#xE77B;" />
                     <Image Width="18"
                             Height="18"
                             Margin="0,0,-1,-1"

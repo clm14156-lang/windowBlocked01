@@ -36,6 +36,7 @@
     <Resource Include="Assets\Icons\Common\vip_logo.png" />
     <Resource Include="Assets\Icons\Common\CompletePop-up_CheckBox.png" />
     <Resource Include="Assets\Images\Illustrations\create-target.png" />
+    <Resource Include="Assets\Images\Illustrations\UserAvatar.png" />
     <Resource Include="Assets\Images\Illustrations\MemberCenter_Background.png" />
     <Resource Include="Assets\Images\Illustrations\MemberCenter_Crown.png" />
     <Resource Include="Assets\Images\Illustrations\MenberCenter_check.png" />

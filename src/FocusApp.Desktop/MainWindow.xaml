@@ -125,19 +125,23 @@
                                      ToolTipService.IsEnabled="{Binding IsLoggedIn}">
                             <Grid Width="40" Height="40">
                                 <Ellipse Fill="{DynamicResource BackgroundSecondary}" />
-                                <Ellipse Stroke="{DynamicResource TextTertiary}"
-                                         StrokeThickness="1.5"
-                                         Opacity="0.62">
+                                <Ellipse>
                                     <Ellipse.Style>
                                         <Style TargetType="{x:Type Ellipse}">
                                             <Setter Property="Visibility" Value="Collapsed" />
                                             <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsVipMember}" Value="True">
+                                                <DataTrigger Binding="{Binding IsLoggedIn}" Value="True">
                                                     <Setter Property="Visibility" Value="Visible" />
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
                                     </Ellipse.Style>
+                                    <Ellipse.Fill>
+                                        <ImageBrush AlignmentX="Center"
+                                                    AlignmentY="Center"
+                                                    ImageSource="/FocusApp.Desktop;component/Assets/Images/Illustrations/UserAvatar.png"
+                                                    Stretch="UniformToFill" />
+                                    </Ellipse.Fill>
                                 </Ellipse>
                                 <TextBlock HorizontalAlignment="Center"
                                            VerticalAlignment="Center"
@@ -147,9 +151,10 @@
                                     <TextBlock.Style>
                                         <Style TargetType="{x:Type TextBlock}">
                                             <Setter Property="Text" Value="{Binding AccountNavigationItem.Icon}" />
+                                            <Setter Property="Visibility" Value="Visible" />
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding IsLoggedIn}" Value="True">
-                                                    <Setter Property="Text" Value="&#xE77B;" />
+                                                    <Setter Property="Visibility" Value="Collapsed" />
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
@@ -199,18 +204,20 @@
                                 </Image>
                             </Grid>
                         </RadioButton>
-                        <TextBlock Margin="0,0,0,23"
+                        <TextBlock x:Name="AccountStatusText"
+                                   Margin="0,0,0,23"
                                    HorizontalAlignment="Center"
                                    VerticalAlignment="Bottom"
                                    FontSize="{DynamicResource SecondaryFontSize}"
-                                   Foreground="{DynamicResource TextSecondary}"
-                                   Text="{DynamicResource HomeGuestAccount}">
+                                   FontWeight="Normal">
                             <TextBlock.Style>
                                 <Style TargetType="{x:Type TextBlock}">
-                                    <Setter Property="Visibility" Value="Visible" />
+                                    <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+                                    <Setter Property="Text" Value="{DynamicResource HomeGuestAccount}" />
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding IsLoggedIn}" Value="True">
-                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Setter Property="Foreground" Value="{DynamicResource LoggedAccountStatusText}" />
+                                            <Setter Property="Text" Value="{DynamicResource HomeLoggedInAccount}" />
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>

@@ -227,6 +227,7 @@
     <system:String x:Key="FocusFloatingCompleteTask">完成当前任务</system:String>
     <system:String x:Key="HomeCloseButton">关闭</system:String>
     <system:String x:Key="HomeGuestAccount">未登录</system:String>
+    <system:String x:Key="HomeLoggedInAccount">已登录</system:String>
     <system:String x:Key="GuestLoginHintTitle">登录账号</system:String>
     <system:String x:Key="GuestLoginHintDescription">同步你的专注记录、屏蔽列表与主题设置</system:String>
     <system:String x:Key="FocusPreparingTitle">准备开始专注</system:String>
