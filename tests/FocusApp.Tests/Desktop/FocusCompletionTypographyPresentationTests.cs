@@ -17,17 +17,21 @@ public sealed class FocusCompletionTypographyPresentationTests
         var titles = view.Descendants(Presentation + "TextBlock").Where(text =>
             (string?)text.Attribute("Text") == "{DynamicResource FocusCompletedTitle}").ToArray();
         Assert.Equal(2, titles.Length);
-        Assert.All(titles, title =>
-        {
-            Assert.Equal("20", (string?)title.Attribute("FontSize"));
-            Assert.Equal("SemiBold", (string?)title.Attribute("FontWeight"));
-            Assert.Equal("{DynamicResource TextPrimary}", (string?)title.Attribute("Foreground"));
-        });
+        var targetCompletionTitle = Assert.Single(titles.Where(title =>
+            (string?)title.Attribute(Xaml + "Name") != "NoTargetCompletionTitle"));
+        Assert.Equal("20", (string?)targetCompletionTitle.Attribute("FontSize"));
+        Assert.Equal("SemiBold", (string?)targetCompletionTitle.Attribute("FontWeight"));
+        Assert.Equal("{DynamicResource TextPrimary}", (string?)targetCompletionTitle.Attribute("Foreground"));
+        var noTargetCompletionTitle = Assert.Single(titles.Where(title =>
+            (string?)title.Attribute(Xaml + "Name") == "NoTargetCompletionTitle"));
+        Assert.Equal("32", (string?)noTargetCompletionTitle.Attribute("FontSize"));
+        Assert.Equal("SemiBold", (string?)noTargetCompletionTitle.Attribute("FontWeight"));
+        Assert.Equal("{DynamicResource TextPrimary}", (string?)noTargetCompletionTitle.Attribute("Foreground"));
 
         var durationBlocks = view.Descendants(Presentation + "TextBlock").Where(text =>
             text.Elements(Presentation + "Run").Any(run =>
                 (string?)run.Attribute("Text") == "{Binding CompletedDurationPrimaryValue, Mode=OneWay}")).ToArray();
-        Assert.Equal(2, durationBlocks.Length);
+        Assert.Single(durationBlocks);
         Assert.All(durationBlocks, duration =>
         {
             Assert.Equal("{DynamicResource FontFamilyNumeric}", (string?)duration.Attribute("FontFamily"));
@@ -43,8 +47,8 @@ public sealed class FocusCompletionTypographyPresentationTests
         });
 
         AssertSecondaryLabels(view, "{DynamicResource FocusSessionCompletedTitle}", 1);
-        AssertSecondaryLabels(view, "{DynamicResource FocusTodayTotal}", 2);
-        AssertSecondaryLabels(view, "{DynamicResource FocusCompletedAt}", 2);
+        AssertSecondaryLabels(view, "{DynamicResource FocusTodayTotal}", 1);
+        AssertSecondaryLabels(view, "{DynamicResource FocusCompletedAt}", 1);
 
         var completedTasks = Assert.Single(view.Descendants(Presentation + "ItemsControl").Where(items =>
             (string?)items.Attribute("ItemsSource") == "{Binding SessionCompletedTasks}"));
@@ -58,8 +62,8 @@ public sealed class FocusCompletionTypographyPresentationTests
         Assert.Contains(completedTasksScrollViewer.Descendants(Presentation + "ItemsControl"), items =>
             ReferenceEquals(items, completedTasks));
         AssertPrimaryData(completedTasks, "{Binding Name}", 1, "Normal");
-        AssertPrimaryData(view, "{Binding TodayTotalDisplay}", 2, "Medium");
-        AssertPrimaryData(view, "{Binding CompletedAtDisplay}", 2, "Medium");
+        AssertPrimaryData(view, "{Binding TodayTotalDisplay}", 1, "Medium");
+        AssertPrimaryData(view, "{Binding CompletedAtDisplay}", 1, "Medium");
 
         var completedTaskCount = Assert.Single(view.Descendants(Presentation + "TextBlock").Where(text =>
             text.Elements(Presentation + "Run").Any(run =>
@@ -80,7 +84,7 @@ public sealed class FocusCompletionTypographyPresentationTests
             Assert.Equal("Medium", (string?)button.Attribute("FontWeight"));
         });
         var accentLabels = buttons.SelectMany(button => button.Elements(Presentation + "TextBlock")).ToArray();
-        Assert.Equal(2, accentLabels.Length);
+        Assert.Equal(3, accentLabels.Length);
         Assert.All(accentLabels, label =>
         {
             Assert.Equal("13", (string?)label.Attribute("FontSize"));

@@ -295,7 +295,20 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
 
     public string CompletedDurationSecondaryUnit => GetCompletedDurationParts().SecondaryUnit;
 
+    public int CompletedDurationMinutes => Math.Max(0, _completedFocusSeconds) / 60;
+
     public string TodayTotalDisplay => FormatDuration(_todayTotalSeconds);
+
+    public int TodayTotalMinutes => Math.Max(0, _todayTotalSeconds) / 60;
+
+    public int TodayFocusCount
+    {
+        get
+        {
+            var referenceDate = _completedAt == default ? _nowProvider().Date : _completedAt.Date;
+            return _completionHistory.Count(record => record.CompletedAt.Date == referenceDate);
+        }
+    }
 
     public string CompletedAtDisplay => _completedAt == default ? string.Empty : _completedAt.ToString("M月d日 HH:mm");
 
@@ -642,7 +655,10 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(CompletedDurationPrimaryUnit));
         OnPropertyChanged(nameof(CompletedDurationSecondaryValue));
         OnPropertyChanged(nameof(CompletedDurationSecondaryUnit));
+        OnPropertyChanged(nameof(CompletedDurationMinutes));
         OnPropertyChanged(nameof(TodayTotalDisplay));
+        OnPropertyChanged(nameof(TodayTotalMinutes));
+        OnPropertyChanged(nameof(TodayFocusCount));
         OnPropertyChanged(nameof(CompletedAtDisplay));
         Stage = FocusFlowStage.Completed;
     }
@@ -954,7 +970,10 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(CompletedDurationPrimaryUnit));
             OnPropertyChanged(nameof(CompletedDurationSecondaryValue));
             OnPropertyChanged(nameof(CompletedDurationSecondaryUnit));
+            OnPropertyChanged(nameof(CompletedDurationMinutes));
             OnPropertyChanged(nameof(TodayTotalDisplay));
+            OnPropertyChanged(nameof(TodayTotalMinutes));
+            OnPropertyChanged(nameof(TodayFocusCount));
             OnPropertyChanged(nameof(CompletedAtDisplay));
             OnPropertyChanged(nameof(LastCompletion));
             OnPropertyChanged(nameof(CompletionHistory));
@@ -1076,7 +1095,10 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(CompletedDurationPrimaryUnit));
         OnPropertyChanged(nameof(CompletedDurationSecondaryValue));
         OnPropertyChanged(nameof(CompletedDurationSecondaryUnit));
+        OnPropertyChanged(nameof(CompletedDurationMinutes));
         OnPropertyChanged(nameof(TodayTotalDisplay));
+        OnPropertyChanged(nameof(TodayTotalMinutes));
+        OnPropertyChanged(nameof(TodayFocusCount));
         OnPropertyChanged(nameof(CompletedAtDisplay));
         OnPropertyChanged(nameof(LastCompletion));
         OnPropertyChanged(nameof(CompletionHistory));

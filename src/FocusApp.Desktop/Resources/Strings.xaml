@@ -254,10 +254,15 @@
     <system:String x:Key="FocusContinueAction">继续专注</system:String>
     <system:String x:Key="FocusConfirmEndAction">结束专注</system:String>
     <system:String x:Key="FocusCompletedTitle">专注完成</system:String>
+    <system:String x:Key="FocusCompletionEncouragement">保持节奏，继续下一次专注</system:String>
+    <system:String x:Key="FocusCompletionMinutesUnit">分钟</system:String>
+    <system:String x:Key="FocusCompletionSessionSeparator">·</system:String>
+    <system:String x:Key="FocusCompletionSessionCountSuffix">次专注</system:String>
     <system:String x:Key="FocusTodayTotal">今日累计专注</system:String>
     <system:String x:Key="FocusCompletedAt">完成时间</system:String>
     <system:String x:Key="FocusRecordSaved">记录已自动保存</system:String>
     <system:String x:Key="FocusAgain">再专注一次</system:String>
+    <system:String x:Key="FocusAgainShort">再来一次</system:String>
     <system:String x:Key="FocusAgainConfirmationDescription">开始新一轮专注，帮助你保持高效状态</system:String>
     <system:String x:Key="FocusAgainConfirmationCancel">取消</system:String>
     <system:String x:Key="FocusAgainConfirmationConfirm">确认</system:String>

@@ -165,6 +165,34 @@
             </Setter>
         </Style>
 
+        <Style x:Key="FocusNoTargetReturnHomeButton" TargetType="{x:Type Button}" BasedOn="{StaticResource FocusFlowOutlineButton}">
+            <Setter Property="Background" Value="{DynamicResource AccentPrimary}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="{DynamicResource WhiteText}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border x:Name="ButtonBorder"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="14">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              TextElement.FontWeight="{TemplateBinding FontWeight}"
+                                              TextElement.Foreground="{TemplateBinding Foreground}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource AccentHover}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource AccentPressed}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="FocusNoTaskEndButton" TargetType="{x:Type Button}">
             <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
             <Setter Property="BorderBrush" Value="#E9E2D9" />
@@ -646,7 +674,7 @@
             </StackPanel>
         </Grid>
 
-        <Grid>
+        <Grid x:Name="NoTargetCompletionView" Margin="0,48,0,0">
             <Grid.Style>
                 <Style TargetType="{x:Type Grid}">
                     <Setter Property="Visibility" Value="Collapsed" />
@@ -662,57 +690,111 @@
                 </Style>
             </Grid.Style>
 
-            <StackPanel Margin="0,84,0,0" HorizontalAlignment="Center" VerticalAlignment="Top">
-                <Grid Width="118" Height="92">
-                    <Ellipse Width="82" Height="82" Fill="{DynamicResource SuccessTint}" />
-                    <Ellipse Width="58" Height="58" Fill="{DynamicResource SuccessBright}" />
-                    <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="32" FontWeight="SemiBold" Foreground="{DynamicResource WhiteText}" Text="&#xE73E;" />
-                    <Rectangle Width="8" Height="8" Margin="0,2,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Fill="{DynamicResource AccentPrimary}" RenderTransformOrigin="0.5,0.5"><Rectangle.RenderTransform><RotateTransform Angle="45" /></Rectangle.RenderTransform></Rectangle>
-                    <Rectangle Width="7" Height="7" Margin="0,12,8,0" HorizontalAlignment="Right" VerticalAlignment="Top" Fill="{DynamicResource SuccessBright}" RenderTransformOrigin="0.5,0.5"><Rectangle.RenderTransform><RotateTransform Angle="45" /></Rectangle.RenderTransform></Rectangle>
-                </Grid>
+            <Image x:Name="NoTargetCompletionBackground"
+                   HorizontalAlignment="Stretch"
+                   VerticalAlignment="Stretch"
+                   IsHitTestVisible="False"
+                   Source="/FocusApp.Desktop;component/Assets/Themes/Solid/Orange/foucus_background.png"
+                   Stretch="UniformToFill" />
 
-                <TextBlock Margin="0,10,0,0" HorizontalAlignment="Center" FontSize="20" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource FocusCompletedTitle}" />
-                <TextBlock Margin="0,8,0,0"
+            <StackPanel Margin="0,80,0,0" HorizontalAlignment="Center" VerticalAlignment="Top">
+                <Image x:Name="NoTargetCompletionRibbon"
+                       Width="430"
+                       Height="156"
+                       HorizontalAlignment="Center"
+                       IsHitTestVisible="False"
+                       Source="/FocusApp.Desktop;component/Assets/Images/Illustrations/foucusOntheEnd_ribbon.png"
+                       Stretch="Uniform" />
+
+                <TextBlock x:Name="NoTargetCompletionTitle"
+                           Margin="0,-22,0,0"
+                           HorizontalAlignment="Center"
+                           FontSize="32"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextPrimary}"
+                           Text="{DynamicResource FocusCompletedTitle}" />
+
+                <TextBlock Margin="0,0,0,0"
                            HorizontalAlignment="Center"
                            FontFamily="{DynamicResource FontFamilyNumeric}"
-                           Foreground="{DynamicResource AccentPrimary}"><Run FontSize="48" FontWeight="SemiBold" Text="{Binding CompletedDurationPrimaryValue, Mode=OneWay}" /><Run FontFamily="{DynamicResource FontFamilyPrimary}" FontSize="20" FontWeight="Normal" Text="{Binding CompletedDurationPrimaryUnit, Mode=OneWay}" /><Run FontSize="48" FontWeight="SemiBold" Text="{Binding CompletedDurationSecondaryValue, Mode=OneWay}" /><Run FontFamily="{DynamicResource FontFamilyPrimary}" FontSize="20" FontWeight="Normal" Text="{Binding CompletedDurationSecondaryUnit, Mode=OneWay}" /></TextBlock>
+                           Foreground="{DynamicResource AccentPrimary}">
+                    <Run FontSize="68"
+                         FontWeight="SemiBold"
+                         Text="{Binding CompletedDurationMinutes, Mode=OneWay}" />
+                    <Run FontFamily="{DynamicResource FontFamilyPrimary}"
+                         FontSize="20"
+                         FontWeight="Medium"
+                         Foreground="{DynamicResource TextPrimary}"
+                         Text="{DynamicResource FocusCompletionMinutesUnit}" />
+                </TextBlock>
 
-                <Border Width="438" Height="146" Margin="0,55,0,0" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource OverlayBorder}" BorderThickness="1" CornerRadius="16">
-                    <Border.Effect><DropShadowEffect BlurRadius="18" Direction="270" Opacity="0.07" ShadowDepth="4" /></Border.Effect>
-                    <Grid Margin="26,0">
-                        <Grid.RowDefinitions><RowDefinition /><RowDefinition Height="1" /><RowDefinition /></Grid.RowDefinitions>
-                        <Grid Grid.Row="0">
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="19" Foreground="{DynamicResource SuccessBright}" Text="&#xE787;" />
-                            <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource FocusTodayTotal}" />
-                            <TextBlock Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{Binding TodayTotalDisplay}" />
-                        </Grid>
-                        <Border Grid.Row="1" Background="{DynamicResource BorderPrimary}" />
-                        <Grid Grid.Row="2">
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="19" Foreground="{DynamicResource TextSecondary}" Text="&#xE823;" />
-                            <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource FocusCompletedAt}" />
-                            <TextBlock Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{Binding CompletedAtDisplay}" />
-                        </Grid>
-                    </Grid>
+                <TextBlock Margin="0,2,0,0"
+                           HorizontalAlignment="Center"
+                           FontSize="15"
+                           FontWeight="Normal"
+                           Foreground="{DynamicResource TextWeak}"
+                           Text="{DynamicResource FocusCompletionEncouragement}" />
+
+                <Border x:Name="NoTargetCompletionSummary"
+                        Width="280"
+                        Height="38"
+                        Margin="0,18,0,0"
+                        Background="{DynamicResource TransparentBrush}"
+                        BorderBrush="{DynamicResource BorderPrimary}"
+                        BorderThickness="1"
+                        CornerRadius="10">
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
+                        <TextBlock Margin="0,0,10,0"
+                                   VerticalAlignment="Center"
+                                   FontFamily="Segoe MDL2 Assets"
+                                   FontSize="16"
+                                   Foreground="{DynamicResource TextWeak}"
+                                   Text="&#xE823;" />
+                        <TextBlock VerticalAlignment="Center"
+                                   FontSize="13"
+                                   FontWeight="Normal"
+                                   Foreground="{DynamicResource TextSecondary}">
+                            <Run Text="{DynamicResource FocusTodayTotal}" />
+                            <Run Text=" " />
+                            <Run Text="{Binding TodayTotalMinutes, Mode=OneWay}" />
+                            <Run Text=" " />
+                            <Run Text="{DynamicResource FocusCompletionMinutesUnit}" />
+                            <Run Foreground="{DynamicResource AccentPrimary}" Text="  ·  " />
+                            <Run Text="{Binding TodayFocusCount, Mode=OneWay}" />
+                            <Run Text=" " />
+                            <Run Text="{DynamicResource FocusCompletionSessionCountSuffix}" />
+                        </TextBlock>
+                    </StackPanel>
                 </Border>
 
-                <StackPanel Margin="0,28,0,0" Orientation="Horizontal">
-                    <Button Width="194"
+                <StackPanel Margin="0,38,0,0"
+                            HorizontalAlignment="Center"
+                            Orientation="Horizontal">
+                    <Button Width="172"
+                            Height="48"
                             AutomationProperties.Name="{DynamicResource FocusAgain}"
+                            Background="{DynamicResource TransparentBrush}"
+                            BorderBrush="{DynamicResource BorderPrimary}"
+                            BorderThickness="1"
                             Command="{Binding RequestFocusAgainCommand}"
-                            Content="{DynamicResource FocusAgain}"
                             FontSize="13"
                             FontWeight="Medium"
-                            Foreground="{DynamicResource AccentPrimary}"
-                            BorderBrush="{DynamicResource AccentPrimary}"
-                            Style="{StaticResource FocusFlowOutlineButton}" />
-                    <Button Width="194"
+                            Style="{StaticResource FocusFlowOutlineButton}">
+                        <TextBlock FontSize="13"
+                                   FontWeight="Medium"
+                                   Foreground="{DynamicResource TextPrimary}"
+                                   Text="{DynamicResource FocusAgainShort}" />
+                    </Button>
+                    <Button Width="172"
+                            Height="48"
                             Margin="20,0,0,0"
                             AutomationProperties.Name="{DynamicResource FocusReturnHome}"
                             Command="{Binding ReturnHomeCommand}"
-                            Style="{StaticResource FocusFlowAccentButton}">
-                        <TextBlock FontSize="13" FontWeight="Medium" Foreground="{DynamicResource WhiteText}" Text="{DynamicResource FocusReturnHome}" />
+                            Style="{StaticResource FocusNoTargetReturnHomeButton}">
+                        <TextBlock FontSize="13"
+                                   FontWeight="Medium"
+                                   Foreground="{DynamicResource WhiteText}"
+                                   Text="{DynamicResource FocusReturnHome}" />
                     </Button>
                 </StackPanel>
             </StackPanel>
