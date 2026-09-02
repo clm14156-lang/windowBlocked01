@@ -326,7 +326,17 @@ public sealed class ServiceStateCoordinator : IAsyncDisposable
         {
             throw new ServiceBusinessException("普通专注启动数据无效。");
         }
-        return await MutateAsync(request, token => _store.SaveFocusSessionAsync(session, cancellationToken: token), cancellationToken);
+        return await MutateAsync(request, async token =>
+        {
+            var snapshot = await _store.LoadAsync(token);
+            snapshot = await RemoveExpiredOrdinarySessionsAsync(snapshot, GetEffectiveUtcNow(), token);
+            if (snapshot.FocusSessions.Any(IsActiveSession))
+            {
+                throw new ServiceBusinessException("已有进行中的专注会话，不能重复启动普通专注。");
+            }
+
+            await _store.SaveFocusSessionAsync(session, cancellationToken: token);
+        }, cancellationToken);
     }
 
     private async Task<IpcEnvelope> UpdateFocusTasksAsync(IpcEnvelope request, CancellationToken cancellationToken)
@@ -478,6 +488,10 @@ public sealed class ServiceStateCoordinator : IAsyncDisposable
         try
         {
             var snapshot = await _store.LoadAsync(cancellationToken);
+            snapshot = await RemoveExpiredOrdinarySessionsAsync(
+                snapshot,
+                GetEffectiveUtcNow(),
+                cancellationToken);
             LogStrong("LoadState", startedAt);
             if (snapshot.FocusSessions.Any(IsActiveSession))
             {
@@ -983,6 +997,31 @@ public sealed class ServiceStateCoordinator : IAsyncDisposable
 
     private static bool IsActiveSession(LocalFocusSession session)
         => session.Status is LocalFocusSessionStatus.Preparing or LocalFocusSessionStatus.Focusing;
+
+    private async Task<LocalDataSnapshot> RemoveExpiredOrdinarySessionsAsync(
+        LocalDataSnapshot snapshot,
+        DateTimeOffset nowUtc,
+        CancellationToken cancellationToken)
+    {
+        var expiredSessionIds = snapshot.FocusSessions
+            .Where(session =>
+                !session.IsForcedMode &&
+                IsActiveSession(session) &&
+                (session.PlannedEndAtUtc is null || session.PlannedEndAtUtc <= nowUtc))
+            .Select(session => session.SessionId)
+            .ToArray();
+        if (expiredSessionIds.Length == 0)
+        {
+            return snapshot;
+        }
+
+        foreach (var sessionId in expiredSessionIds)
+        {
+            await _store.DeleteFocusSessionAsync(sessionId, cancellationToken);
+        }
+
+        return await _store.LoadAsync(cancellationToken);
+    }
 
     private static LocalFocusSessionTaskSnapshot ToCore(LocalFocusSessionTaskSnapshotDto source)
         => new(source.TaskId, source.TaskNameSnapshot, source.SortOrder)

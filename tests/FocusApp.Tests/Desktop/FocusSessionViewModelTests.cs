@@ -329,6 +329,37 @@ public sealed class FocusSessionViewModelTests
     }
 
     [Fact]
+    public void FocusAgainConfirmation_UsesTheOriginalDurationAndOnlyRestartsAfterConfirmation()
+    {
+        var home = new HomePageViewModel(
+            [new HomeDurationOptionViewModel("60 分钟", string.Empty, true, 60)]);
+        home.StartFocusCommand.Execute(null);
+        Advance(home.FocusSession, 5);
+        Advance(home.FocusSession, 10);
+        home.FocusSession.RequestEndCommand.Execute(null);
+        home.FocusSession.ConfirmEndCommand.Execute(null);
+
+        home.FocusSession.RequestFocusAgainCommand.Execute(null);
+
+        Assert.True(home.FocusSession.IsFocusAgainConfirmationOpen);
+        Assert.Equal("是否再次专注 60 分钟？", home.FocusSession.FocusAgainConfirmationTitle);
+        Assert.Equal(FocusFlowStage.Completed, home.FocusSession.Stage);
+
+        home.FocusSession.CancelFocusAgainCommand.Execute(null);
+
+        Assert.False(home.FocusSession.IsFocusAgainConfirmationOpen);
+        Assert.Equal(FocusFlowStage.Completed, home.FocusSession.Stage);
+
+        home.FocusSession.RequestFocusAgainCommand.Execute(null);
+        home.FocusSession.FocusAgainCommand.Execute(null);
+
+        Assert.False(home.FocusSession.IsFocusAgainConfirmationOpen);
+        Assert.Equal(FocusFlowStage.Focusing, home.FocusSession.Stage);
+        Assert.Equal(60 * 60, home.FocusSession.TotalFocusSeconds);
+        Assert.Equal(60 * 60, home.FocusSession.RemainingFocusSeconds);
+    }
+
+    [Fact]
     public void ReturnHome_StillReturnsToIdleWithoutChangingTheSelectedDuration()
     {
         var first = new HomeDurationOptionViewModel("25 分钟", string.Empty, true, 25);

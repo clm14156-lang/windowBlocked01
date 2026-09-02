@@ -43,6 +43,103 @@ public sealed class ForcedFocusRecoveryTests
     }
 
     [Fact]
+    public async Task StartForcedFocus_RemovesExpiredOrdinarySessionBeforeStarting()
+    {
+        using var directory = new TemporaryDirectory();
+        var store = await CreateStoreAsync(directory.Path);
+        var now = new DateTimeOffset(2026, 9, 2, 7, 0, 0, TimeSpan.Zero);
+        var abandoned = CreateFocusingSession(
+            now.AddMinutes(-35),
+            now.AddMinutes(-5),
+            []) with { IsForcedMode = false };
+        await store.SaveFocusSessionAsync(abandoned);
+        await using var coordinator = new ServiceStateCoordinator(
+            store,
+            new FakeAccessControlHost(),
+            utcNowProvider: () => now);
+
+        var result = await SendAsync<StartForcedFocusCommand, FocusSessionMutationResult>(
+            coordinator,
+            IpcOperations.StartForcedFocus,
+            new StartForcedFocusCommand(60, null, null, []));
+
+        var session = Assert.Single(result.State.FocusSessions);
+        Assert.NotEqual(abandoned.SessionId, session.SessionId);
+        Assert.True(session.IsForcedMode);
+        Assert.Equal(LocalFocusSessionStatusDto.Preparing, session.Status);
+    }
+
+    [Fact]
+    public async Task StartForcedFocus_DoesNotReplaceUnexpiredOrdinarySession()
+    {
+        using var directory = new TemporaryDirectory();
+        var store = await CreateStoreAsync(directory.Path);
+        var now = new DateTimeOffset(2026, 9, 2, 7, 15, 0, TimeSpan.Zero);
+        var ordinary = CreateFocusingSession(now, now.AddMinutes(20), []) with { IsForcedMode = false };
+        await store.SaveFocusSessionAsync(ordinary);
+        await using var coordinator = new ServiceStateCoordinator(
+            store,
+            new FakeAccessControlHost(),
+            utcNowProvider: () => now);
+
+        var response = await coordinator.HandleAsync(
+            IpcEnvelope.CreateRequest(
+                Guid.NewGuid(),
+                IpcClientRole.Desktop,
+                IpcOperations.StartForcedFocus,
+                new StartForcedFocusCommand(60, null, null, [])),
+            CancellationToken.None);
+
+        Assert.Equal(IpcErrorCode.BusinessRejected, response.Error?.Code);
+        Assert.Equal(ordinary.SessionId, Assert.Single((await store.LoadAsync()).FocusSessions).SessionId);
+    }
+
+    [Fact]
+    public async Task StartNormalFocus_ReplacesExpiredOrdinarySession()
+    {
+        using var directory = new TemporaryDirectory();
+        var store = await CreateStoreAsync(directory.Path);
+        var now = new DateTimeOffset(2026, 9, 2, 7, 30, 0, TimeSpan.Zero);
+        var abandoned = CreateFocusingSession(
+            now.AddMinutes(-35),
+            now.AddMinutes(-5),
+            []) with { IsForcedMode = false };
+        await store.SaveFocusSessionAsync(abandoned);
+        await using var coordinator = new ServiceStateCoordinator(
+            store,
+            new FakeAccessControlHost(),
+            utcNowProvider: () => now);
+        var replacementId = Guid.NewGuid();
+        var replacement = new LocalFocusSessionDto(
+            replacementId,
+            LocalFocusSessionStatusDto.Focusing,
+            false,
+            30 * 60,
+            0,
+            now.AddSeconds(-5),
+            now,
+            now.AddMinutes(30),
+            null,
+            null,
+            null,
+            null,
+            false,
+            null,
+            null,
+            []);
+
+        var result = await SendAsync<StartNormalFocusCommand, MutationResult>(
+            coordinator,
+            IpcOperations.StartNormalFocus,
+            new StartNormalFocusCommand(replacement));
+
+        var session = Assert.Single(result.State.FocusSessions);
+        Assert.Equal(replacementId, session.SessionId);
+        Assert.False(session.IsForcedMode);
+        Assert.Equal(LocalFocusSessionStatusDto.Focusing, session.Status);
+    }
+
+    [Fact]
     public async Task ForcedFocus_CompletesInBackgroundWithoutFurtherDesktopRequests()
     {
         using var directory = new TemporaryDirectory();

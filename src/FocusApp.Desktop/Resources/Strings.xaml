@@ -257,6 +257,9 @@
     <system:String x:Key="FocusCompletedAt">完成时间</system:String>
     <system:String x:Key="FocusRecordSaved">记录已自动保存</system:String>
     <system:String x:Key="FocusAgain">再专注一次</system:String>
+    <system:String x:Key="FocusAgainConfirmationDescription">开始新一轮专注，帮助你保持高效状态</system:String>
+    <system:String x:Key="FocusAgainConfirmationCancel">取消</system:String>
+    <system:String x:Key="FocusAgainConfirmationConfirm">确认</system:String>
     <system:String x:Key="FocusReturnHome">返回首页</system:String>
     <system:String x:Key="FocusTargetRecent">当前目标</system:String>
     <system:String x:Key="FocusTargetClose">关闭目标弹窗</system:String>

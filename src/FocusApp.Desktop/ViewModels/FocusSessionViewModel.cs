@@ -28,6 +28,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     private int _todayTotalSeconds;
     private DateTime _completedAt;
     private bool _isEndConfirmationOpen;
+    private bool _isFocusAgainConfirmationOpen;
     private FocusTargetViewModel? _activeTarget;
     private bool _isCompletedTasksExpanded;
     private bool _isForcedModeActive;
@@ -58,7 +59,9 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         RequestEndCommand = new RelayCommand<object>(_ => OpenEndConfirmation());
         ContinueFocusCommand = new RelayCommand<object>(_ => ContinueFocus());
         ConfirmEndCommand = new RelayCommand<object>(_ => CompleteFocus());
+        RequestFocusAgainCommand = new RelayCommand<object>(_ => OpenFocusAgainConfirmation());
         FocusAgainCommand = new RelayCommand<object>(_ => FocusAgain());
+        CancelFocusAgainCommand = new RelayCommand<object>(_ => IsFocusAgainConfirmationOpen = false);
         ReturnHomeCommand = new RelayCommand<object>(_ => ReturnHome());
         AddTaskCommand = new RelayCommand<object>(_ => AddTask());
         ToggleTaskCompletedCommand = new RelayCommand<FocusTaskViewModel>(ToggleTaskCompleted);
@@ -86,7 +89,11 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
 
     public ICommand ConfirmEndCommand { get; }
 
+    public ICommand RequestFocusAgainCommand { get; }
+
     public ICommand FocusAgainCommand { get; }
+
+    public ICommand CancelFocusAgainCommand { get; }
 
     public ICommand ReturnHomeCommand { get; }
 
@@ -225,6 +232,23 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         }
     }
 
+    public bool IsFocusAgainConfirmationOpen
+    {
+        get => _isFocusAgainConfirmationOpen;
+        private set
+        {
+            if (_isFocusAgainConfirmationOpen == value)
+            {
+                return;
+            }
+
+            _isFocusAgainConfirmationOpen = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public string FocusAgainConfirmationTitle => $"是否再次专注 {_totalFocusSeconds / 60} 分钟？";
+
     public int PreparationSeconds
     {
         get => _preparationSeconds;
@@ -313,6 +337,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         _authoritativeSessionId = null;
         _authoritativeSession = null;
         _totalFocusSeconds = checked(minutes * 60);
+        OnPropertyChanged(nameof(FocusAgainConfirmationTitle));
         _remainingFocusSeconds = _totalFocusSeconds;
         _preparationSeconds = PreparationDurationSeconds;
         _preparationProgress = 0;
@@ -408,6 +433,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(AuthoritativeSessionId));
         _totalFocusSeconds = session.ConfiguredSeconds;
         OnPropertyChanged(nameof(TotalFocusSeconds));
+        OnPropertyChanged(nameof(FocusAgainConfirmationTitle));
         IsForcedModeActive = true;
         IsEndConfirmationOpen = false;
 
@@ -640,6 +666,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         _preparationStopwatch.Reset();
         _focusStopwatch.Reset();
         IsEndConfirmationOpen = false;
+        IsFocusAgainConfirmationOpen = false;
         IsForcedModeActive = false;
         _engine.ReturnHome();
         _authoritativeSessionId = null;
@@ -651,8 +678,17 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         Stage = FocusFlowStage.Idle;
     }
 
+    private void OpenFocusAgainConfirmation()
+    {
+        if (Stage == FocusFlowStage.Completed && !IsServiceOwnedForcedSession)
+        {
+            IsFocusAgainConfirmationOpen = true;
+        }
+    }
+
     private void FocusAgain()
     {
+        IsFocusAgainConfirmationOpen = false;
         if (Stage != FocusFlowStage.Completed || IsServiceOwnedForcedSession)
         {
             return;
@@ -891,6 +927,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     {
         _totalFocusSeconds = _engine.ConfiguredSeconds;
         OnPropertyChanged(nameof(TotalFocusSeconds));
+        OnPropertyChanged(nameof(FocusAgainConfirmationTitle));
         PreparationSeconds = _engine.PreparationSeconds;
         PreparationProgress = _engine.PreparationProgress;
         RemainingFocusSeconds = _engine.RemainingFocusSeconds;

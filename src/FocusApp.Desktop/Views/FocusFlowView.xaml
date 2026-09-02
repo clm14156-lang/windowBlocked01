@@ -562,7 +562,7 @@
                 </Border>
 
                 <StackPanel Margin="0,20,0,0" Orientation="Horizontal">
-                    <Button Width="194" AutomationProperties.Name="{DynamicResource FocusAgain}" Command="{Binding FocusAgainCommand}" Content="{DynamicResource FocusAgain}" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource AccentPrimary}" BorderBrush="{DynamicResource AccentPrimary}" Style="{StaticResource FocusFlowOutlineButton}" />
+                    <Button Width="194" AutomationProperties.Name="{DynamicResource FocusAgain}" Command="{Binding RequestFocusAgainCommand}" Content="{DynamicResource FocusAgain}" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource AccentPrimary}" BorderBrush="{DynamicResource AccentPrimary}" Style="{StaticResource FocusFlowOutlineButton}" />
                     <Button Width="194" Margin="20,0,0,0" AutomationProperties.Name="{DynamicResource FocusReturnHome}" Command="{Binding ReturnHomeCommand}" Style="{StaticResource FocusFlowAccentButton}">
                         <TextBlock FontSize="13" FontWeight="Medium" Foreground="{DynamicResource WhiteText}" Text="{DynamicResource FocusReturnHome}" />
                     </Button>
@@ -624,7 +624,7 @@
                 <StackPanel Margin="0,28,0,0" Orientation="Horizontal">
                     <Button Width="194"
                             AutomationProperties.Name="{DynamicResource FocusAgain}"
-                            Command="{Binding FocusAgainCommand}"
+                            Command="{Binding RequestFocusAgainCommand}"
                             Content="{DynamicResource FocusAgain}"
                             FontSize="13"
                             FontWeight="Medium"
@@ -724,6 +724,102 @@
                                 BorderThickness="0"
                                 Style="{StaticResource FocusFlowAccentButton}">
                             <TextBlock FontSize="13" FontWeight="Medium" Foreground="{DynamicResource WhiteText}" Text="{DynamicResource FocusContinueAction}" />
+                        </Button>
+                    </Grid>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <Grid Panel.ZIndex="11">
+            <Grid.Style>
+                <Style TargetType="{x:Type Grid}">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsFocusAgainConfirmationOpen}" Value="True">
+                            <Setter Property="Visibility" Value="Visible" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Grid.Style>
+            <Border Background="{DynamicResource ModalScrim}" />
+            <Border x:Name="FocusAgainConfirmationDialog"
+                    Width="300"
+                    Height="220"
+                    Background="{DynamicResource SurfacePrimary}"
+                    BorderBrush="{DynamicResource OverlayBorder}"
+                    BorderThickness="1"
+                    CornerRadius="20">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="20"
+                                      Direction="270"
+                                      Opacity="0.12"
+                                      ShadowDepth="4" />
+                </Border.Effect>
+                <Grid Margin="24,16">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="54" />
+                        <RowDefinition Height="44" />
+                        <RowDefinition Height="30" />
+                        <RowDefinition Height="18" />
+                        <RowDefinition Height="42" />
+                    </Grid.RowDefinitions>
+                    <Border Width="54"
+                            Height="54"
+                            HorizontalAlignment="Center"
+                            Background="{DynamicResource AccentTint}"
+                            CornerRadius="27">
+                        <TextBlock HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   FontFamily="{DynamicResource FontFamilyPrimary}"
+                                   FontSize="32"
+                                   FontWeight="Normal"
+                                   Foreground="{DynamicResource AccentPrimary}"
+                                   Text="?" />
+                    </Border>
+                    <TextBlock Grid.Row="1"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"
+                               FontSize="17"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextPrimary}"
+                               Text="{Binding FocusAgainConfirmationTitle, Mode=OneWay}" />
+                    <TextBlock Grid.Row="2"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"
+                               FontSize="12"
+                               FontWeight="Normal"
+                               Foreground="{DynamicResource TextSecondary}"
+                               Text="{DynamicResource FocusAgainConfirmationDescription}" />
+                    <Grid Grid.Row="4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition />
+                            <ColumnDefinition Width="12" />
+                            <ColumnDefinition />
+                        </Grid.ColumnDefinitions>
+                        <Button Grid.Column="0"
+                                Height="42"
+                                AutomationProperties.Name="{DynamicResource FocusAgainConfirmationCancel}"
+                                Background="{DynamicResource SurfacePrimary}"
+                                BorderBrush="{DynamicResource BorderPrimary}"
+                                BorderThickness="1"
+                                Command="{Binding CancelFocusAgainCommand}"
+                                Style="{StaticResource FocusFlowOutlineButton}">
+                            <TextBlock FontSize="13"
+                                       FontWeight="Medium"
+                                       Foreground="{DynamicResource TextPrimary}"
+                                       Text="{DynamicResource FocusAgainConfirmationCancel}" />
+                        </Button>
+                        <Button Grid.Column="2"
+                                Height="42"
+                                AutomationProperties.Name="{DynamicResource FocusAgainConfirmationConfirm}"
+                                Background="{DynamicResource AccentPrimary}"
+                                BorderThickness="0"
+                                Command="{Binding FocusAgainCommand}"
+                                Style="{StaticResource FocusFlowAccentButton}">
+                            <TextBlock FontSize="13"
+                                       FontWeight="Medium"
+                                       Foreground="{DynamicResource WhiteText}"
+                                       Text="{DynamicResource FocusAgainConfirmationConfirm}" />
                         </Button>
                     </Grid>
                 </Grid>
