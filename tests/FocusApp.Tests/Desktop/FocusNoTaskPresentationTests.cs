@@ -136,7 +136,7 @@ public sealed class FocusNoTaskPresentationTests
             (string?)element.Attribute("Text") is
                 "{Binding CompletedDurationSecondaryValue, Mode=OneWay}" or
                 "{Binding CompletedDurationSecondaryUnit, Mode=OneWay}");
-        Assert.Contains(completion.Descendants(Presentation + "TextBlock"), element =>
+        Assert.DoesNotContain(completion.Descendants(Presentation + "TextBlock"), element =>
             (string?)element.Attribute("Text") == "{DynamicResource FocusCompletionEncouragement}");
 
         var summary = Assert.Single(completion.Descendants(Presentation + "Border").Where(element =>
@@ -144,6 +144,8 @@ public sealed class FocusNoTaskPresentationTests
         Assert.Equal("280", (string?)summary.Attribute("Width"));
         Assert.Equal("38", (string?)summary.Attribute("Height"));
         Assert.Equal("{DynamicResource TransparentBrush}", (string?)summary.Attribute("Background"));
+        Assert.Null(summary.Attribute("BorderBrush"));
+        Assert.Null(summary.Attribute("BorderThickness"));
         Assert.Empty(summary.Descendants(Presentation + "DropShadowEffect"));
         Assert.Contains(summary.Descendants(Presentation + "Run"), element =>
             (string?)element.Attribute("Text") == "{Binding TodayTotalMinutes, Mode=OneWay}");

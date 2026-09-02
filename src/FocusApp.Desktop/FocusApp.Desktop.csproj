@@ -43,6 +43,9 @@
     <Resource Include="Assets\Images\Illustrations\foucusOntheEnd_ribbon.png" />
     <Resource Include="Assets\Themes\Solid\Orange\sidebar-logo.png" />
     <Resource Include="Assets\Themes\Solid\Orange\foucus_background.png" />
+    <Resource Include="Assets\Themes\Solid\Orange\foucusOntheEnd_ribbon.png" />
+    <Resource Include="Assets\Themes\Solid\Orange\gouxuan.png" />
+    <Resource Include="Assets\Themes\Solid\Orange\zhankai.png" />
     <Resource Include="Assets\Themes\Solid\Orange\focusPage_OrangeLine.png" />
   </ItemGroup>
 </Project>
