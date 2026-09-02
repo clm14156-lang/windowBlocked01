@@ -41,5 +41,7 @@
     <Resource Include="Assets\Images\Illustrations\MemberCenter_Crown.png" />
     <Resource Include="Assets\Images\Illustrations\MenberCenter_check.png" />
     <Resource Include="Assets\Themes\Solid\Orange\sidebar-logo.png" />
+    <Resource Include="Assets\Themes\Solid\Orange\foucus_background.png" />
+    <Resource Include="Assets\Themes\Solid\Orange\focusPage_OrangeLine.png" />
   </ItemGroup>
 </Project>

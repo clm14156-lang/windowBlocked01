@@ -30,6 +30,12 @@ public partial class CircularProgressRing : UserControl
         typeof(CircularProgressRing),
         new PropertyMetadata(Brushes.Orange));
 
+    public static readonly DependencyProperty ProgressEndPointDiameterProperty = DependencyProperty.Register(
+        nameof(ProgressEndPointDiameter),
+        typeof(double),
+        typeof(CircularProgressRing),
+        new FrameworkPropertyMetadata(0d, FrameworkPropertyMetadataOptions.AffectsMeasure, OnVisualPropertyChanged));
+
     public CircularProgressRing()
     {
         InitializeComponent();
@@ -60,6 +66,12 @@ public partial class CircularProgressRing : UserControl
         set => SetValue(ProgressBrushProperty, value);
     }
 
+    public double ProgressEndPointDiameter
+    {
+        get => (double)GetValue(ProgressEndPointDiameterProperty);
+        set => SetValue(ProgressEndPointDiameterProperty, value);
+    }
+
     private static void OnVisualPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         ((CircularProgressRing)d).UpdateArc();
@@ -75,6 +87,7 @@ public partial class CircularProgressRing : UserControl
         var progress = Math.Clamp(Progress, 0d, 1d);
         FullProgressEllipse.Visibility = progress >= 0.9999 ? Visibility.Visible : Visibility.Collapsed;
         ProgressPath.Visibility = progress > 0 && progress < 0.9999 ? Visibility.Visible : Visibility.Collapsed;
+        ProgressEndPoint.Visibility = Visibility.Collapsed;
 
         if (ProgressPath.Visibility != Visibility.Visible)
         {
@@ -101,6 +114,19 @@ public partial class CircularProgressRing : UserControl
             SweepDirection.Clockwise,
             true));
         ProgressPath.Data = new PathGeometry([figure]);
+
+        var endPointDiameter = Math.Max(0d, ProgressEndPointDiameter);
+        if (endPointDiameter > 0d)
+        {
+            ProgressEndPoint.Width = endPointDiameter;
+            ProgressEndPoint.Height = endPointDiameter;
+            ProgressEndPoint.Margin = new Thickness(
+                end.X - endPointDiameter / 2d,
+                end.Y - endPointDiameter / 2d,
+                0,
+                0);
+            ProgressEndPoint.Visibility = Visibility.Visible;
+        }
     }
 
     private static Point PointOnCircle(Point center, double radius, double angle)

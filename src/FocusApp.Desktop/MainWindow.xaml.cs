@@ -139,6 +139,9 @@ public partial class MainWindow : Window
         resources["FocusButtonBackground"] = CreateGradient(startColor, endColor);
         resources["FocusButtonHoverBackground"] = CreateGradient(startColor, accentColor);
         resources["FocusButtonPressedBackground"] = new SolidColorBrush(endColor);
+        resources["FocusNoTaskEndButtonText"] = themeKey == "Orange"
+            ? new SolidColorBrush(ParseColor("#B2A399"))
+            : resources["TextTertiary"];
     }
 
     private static Color ParseColor(string value)

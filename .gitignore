@@ -3,5 +3,6 @@ obj/
 .vs/
 TestResults/
 .verify/
+.codex-build/
 *.user
 *.suo

@@ -15,5 +15,11 @@
               StrokeEndLineCap="Round"
               StrokeStartLineCap="Round"
               StrokeThickness="{Binding RingThickness, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}" />
+        <Ellipse x:Name="ProgressEndPoint"
+                 HorizontalAlignment="Left"
+                 VerticalAlignment="Top"
+                 Fill="{Binding ProgressBrush, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
+                 IsHitTestVisible="False"
+                 Visibility="Collapsed" />
     </Grid>
 </UserControl>

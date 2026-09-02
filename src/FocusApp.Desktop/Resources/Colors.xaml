@@ -63,6 +63,7 @@
     <SolidColorBrush x:Key="DangerBorder" Color="#F2B8B8" />
     <SolidColorBrush x:Key="AccentRingTrack" Color="#FFE7D2" />
     <SolidColorBrush x:Key="FocusRingTrack" Color="#E5E5E5" />
+    <SolidColorBrush x:Key="FocusNoTaskEndButtonText" Color="#B2A399" />
     <SolidColorBrush x:Key="ConfirmPrimaryBackground" Color="#1F2226" />
     <SolidColorBrush x:Key="SuccessTint" Color="#D9FAE3" />
     <SolidColorBrush x:Key="SuccessBright" Color="#24D967" />
