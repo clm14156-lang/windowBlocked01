@@ -11,7 +11,7 @@ public sealed class FocusTaskRenamePresentationTests
     public void ActiveFocusTaskEditor_CommitsOnEnterFocusLossAndOutsideClicks()
     {
         var view = XDocument.Load(Path.Combine(
-            FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "FocusFlowView.xaml"));
+            FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "FocusTaskWindow.xaml"));
 
         var editor = Assert.Single(view.Descendants(Presentation + "TextBox").Where(textBox =>
             (string?)textBox.Attribute("AutomationProperties.Name") == "任务名称"));
@@ -19,7 +19,7 @@ public sealed class FocusTaskRenamePresentationTests
         Assert.Equal("TargetTaskTextBox_LostKeyboardFocus", (string?)editor.Attribute("LostKeyboardFocus"));
         Assert.Null(editor.Attribute("KeyDown"));
         Assert.Null(editor.Attribute("PreviewKeyDown"));
-        Assert.Equal("FocusFlowView_PreviewKeyDown", (string?)view.Root!.Attribute("PreviewKeyDown"));
+        Assert.Equal("FocusTaskWindow_PreviewKeyDown", (string?)view.Root!.Attribute("PreviewKeyDown"));
 
         var addTaskButton = Assert.Single(view.Descendants(Presentation + "Button").Where(button =>
             (string?)button.Attribute("Command") == "{Binding AddTaskCommand}"));

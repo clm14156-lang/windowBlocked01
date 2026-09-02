@@ -80,11 +80,6 @@ public sealed class FocusNoTaskPresentationTests
         Assert.Contains(endButtonStyle.Descendants(Presentation + "Border"), element =>
             (string?)element.Attribute("CornerRadius") == "21");
 
-        var taskView = Assert.Single(view.Descendants(Presentation + "Grid").Where(element =>
-            (string?)element.Attribute("MouseDown") == "TargetMode_MouseDown"));
-        Assert.DoesNotContain(taskView.Descendants(Presentation + "Image"), element =>
-            ((string?)element.Attribute("Source"))?.Contains("foucus_background", StringComparison.Ordinal) == true ||
-            ((string?)element.Attribute("Source"))?.Contains("focusPage_OrangeLine", StringComparison.Ordinal) == true);
     }
 
     [Theory]

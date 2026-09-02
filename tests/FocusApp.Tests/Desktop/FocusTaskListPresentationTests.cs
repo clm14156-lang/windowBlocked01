@@ -12,10 +12,10 @@ public sealed class FocusTaskListPresentationTests
     public void ActiveTaskList_UsesScopedThinScrollBarAndDragSortingHooks()
     {
         var view = XDocument.Load(Path.Combine(
-            FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "FocusFlowView.xaml"));
+            FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "FocusTaskWindow.xaml"));
 
         var style = Assert.Single(view.Descendants(Presentation + "Style").Where(element =>
-            (string?)element.Attribute(Xaml + "Key") == "FocusTaskThinScrollBarStyle"));
+            (string?)element.Attribute(Xaml + "Key") == "FocusTaskWindowThinScrollBarStyle"));
         Assert.Contains(style.Elements(Presentation + "Setter"), setter =>
             (string?)setter.Attribute("Property") == "Width" && (string?)setter.Attribute("Value") == "5");
 
@@ -30,11 +30,10 @@ public sealed class FocusTaskListPresentationTests
             (string?)trigger.Attribute("Property") is "IsMouseOver" or "IsDragging"));
 
         var taskList = Assert.Single(view.Descendants(Presentation + "ScrollViewer").Where(scrollViewer =>
-            (string?)scrollViewer.Attribute("Height") == "212" &&
             scrollViewer.Descendants(Presentation + "ItemsControl").Any(items =>
                 (string?)items.Attribute("ItemsSource") == "{Binding PendingTasks}")));
         Assert.Contains(taskList.Descendants(Presentation + "Style"), scopedStyle =>
-            (string?)scopedStyle.Attribute("BasedOn") == "{StaticResource FocusTaskThinScrollBarStyle}");
+            (string?)scopedStyle.Attribute("BasedOn") == "{StaticResource FocusTaskWindowThinScrollBarStyle}");
         Assert.Equal("True", (string?)taskList.Attribute("AllowDrop"));
         Assert.Equal("TaskList_DragOver", (string?)taskList.Attribute("DragOver"));
         Assert.Equal("TaskList_Drop", (string?)taskList.Attribute("Drop"));
@@ -60,10 +59,6 @@ public sealed class FocusTaskListPresentationTests
                 "{Binding ShowDropBefore, Converter={StaticResource BooleanToVisibilityConverter}}" or
                 "{Binding ShowDropAfter, Converter={StaticResource BooleanToVisibilityConverter}}"));
 
-        var taskStack = Assert.Single(taskList.Ancestors(Presentation + "StackPanel").Where(stackPanel =>
-            stackPanel.Elements(Presentation + "ScrollViewer").Any() &&
-            stackPanel.Elements(Presentation + "Button").Any(button =>
-                (string?)button.Attribute("Command") == "{Binding AddTaskCommand}")));
         var scrollContent = Assert.Single(taskList.Elements(Presentation + "StackPanel"));
         var completedToggle = Assert.Single(scrollContent.Elements(Presentation + "Button").Where(button =>
             ((string?)button.Attribute("Command"))?.Contains("ToggleCompletedTasksCommand", StringComparison.Ordinal) == true));
@@ -73,14 +68,14 @@ public sealed class FocusTaskListPresentationTests
             (string?)textBlock.Attribute("Text") == "\uE73E");
         var completedItems = Assert.Single(scrollContent.Elements(Presentation + "ItemsControl").Where(items =>
             (string?)items.Attribute("ItemsSource") == "{Binding CompletedTasks}"));
-        var addTask = Assert.Single(taskStack.Elements(Presentation + "Button").Where(button =>
+        var addTask = Assert.Single(view.Descendants(Presentation + "Button").Where(button =>
             (string?)button.Attribute("Command") == "{Binding AddTaskCommand}"));
         Assert.Contains(completedItems, scrollContent.Elements());
         Assert.Contains(completedToggle, scrollContent.Elements());
         Assert.DoesNotContain(addTask, scrollContent.Elements());
         Assert.Equal(scrollContent, completedToggle.Parent);
         Assert.Equal(scrollContent, completedItems.Parent);
-        Assert.Equal(taskStack, addTask.Parent);
+        Assert.Equal("3", (string?)addTask.Attribute("Grid.Row"));
         Assert.Equal("{Binding IsCompletedTasksExpanded, Converter={StaticResource BooleanToVisibilityConverter}}", (string?)completedItems.Attribute("Visibility"));
 
         var completedRow = Assert.Single(completedItems.Descendants(Presentation + "DataTemplate").Descendants(Presentation + "Grid"));

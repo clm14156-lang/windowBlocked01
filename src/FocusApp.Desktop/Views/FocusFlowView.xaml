@@ -4,7 +4,6 @@
              xmlns:views="clr-namespace:FocusApp.Desktop.Views"
              xmlns:local="clr-namespace:FocusApp.Desktop.Views"
              Background="{DynamicResource SurfacePrimary}"
-             PreviewKeyDown="FocusFlowView_PreviewKeyDown"
              UseLayoutRounding="True"
              SnapsToDevicePixels="True">
     <UserControl.Resources>
@@ -272,7 +271,9 @@
             </StackPanel>
         </Grid>
 
-        <Grid MouseDown="TargetMode_MouseDown">
+        <Grid x:Name="TargetFocusingView"
+              Margin="0,48,0,0"
+              MouseDown="TargetMode_MouseDown">
             <Grid.Style>
                 <Style TargetType="{x:Type Grid}">
                     <Setter Property="Visibility" Value="Collapsed" />
@@ -288,229 +289,139 @@
                 </Style>
             </Grid.Style>
 
-            <Grid Margin="0,50,0,4">
-                <StackPanel Width="410" HorizontalAlignment="Center">
-                    <Border Height="210" Padding="22,18,22,16" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" CornerRadius="22">
-                        <StackPanel>
-                            <TextBlock HorizontalAlignment="Center" FontFamily="{DynamicResource FontFamilyNumeric}" FontSize="54" FontWeight="SemiBold" Text="{Binding RemainingTimeDisplay}" />
-                            <TextBlock Margin="0,0,0,0" HorizontalAlignment="Center" FontSize="14" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource FocusRemainingTime}" />
-                            <ProgressBar Height="6" Margin="28,18,28,0" Maximum="1" Value="{Binding RemainingProgress, Mode=OneWay}" Background="{DynamicResource FocusRingTrack}" Foreground="{DynamicResource AccentPrimary}" BorderThickness="0" />
-                            <Border Width="92" Height="36" Margin="0,18,0,0" HorizontalAlignment="Center" Background="{DynamicResource AccentTint}" CornerRadius="18">
+            <Grid>
+                <Image IsHitTestVisible="False"
+                       Source="/FocusApp.Desktop;component/Assets/Themes/Solid/Orange/foucus_background.png"
+                       Stretch="UniformToFill" />
+
+                <Grid RenderTransform="{StaticResource FocusFlowCenterShift}">
+                    <TextBlock Margin="0,56,0,0"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Top"
+                               FontSize="28"
+                               FontWeight="Normal"
+                               Foreground="{DynamicResource TextPrimary}"
+                               Text="{Binding PendingTasks[0].Name, Mode=OneWay}" />
+
+                    <Grid Width="290"
+                          Height="290"
+                          Margin="0,118,0,0"
+                          HorizontalAlignment="Center"
+                          VerticalAlignment="Top">
+                        <views:CircularProgressRing Progress="{Binding RemainingProgress, Converter={StaticResource RemainingToElapsedProgressConverter}, Mode=OneWay}"
+                                                    ProgressBrush="{DynamicResource AccentPrimary}"
+                                                    ProgressEndPointDiameter="5"
+                                                    RingThickness="2"
+                                                    TrackBrush="#EEE8DE" />
+                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <TextBlock HorizontalAlignment="Center"
+                                       FontFamily="{DynamicResource FontFamilyNumeric}"
+                                       FontSize="68"
+                                       FontWeight="Normal"
+                                       Foreground="{DynamicResource TextPrimary}"
+                                       Text="{Binding RemainingTimeDisplay}" />
+                            <StackPanel Margin="0,3,0,0" HorizontalAlignment="Center" Orientation="Horizontal">
+                                <TextBlock Margin="0,0,8,0"
+                                           VerticalAlignment="Center"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="20"
+                                           Foreground="{DynamicResource AccentPrimary}"
+                                           Text="&#xE735;" />
+                                <TextBlock VerticalAlignment="Center"
+                                           FontSize="17"
+                                           Foreground="{DynamicResource TextPrimary}"
+                                           Text="{Binding TargetName, Mode=OneWay}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Grid>
+
+                    <TextBlock Margin="0,476,0,0"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Top"
+                               FontSize="24"
+                               FontWeight="Normal"
+                               Foreground="{DynamicResource TextSecondary}"
+                               Text="{DynamicResource FocusNoTaskAtmosphere}" />
+
+                    <Image Width="42"
+                           Height="8"
+                           Margin="0,505,0,0"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Top"
+                           IsHitTestVisible="False"
+                           Source="/FocusApp.Desktop;component/Assets/Themes/Solid/Orange/focusPage_OrangeLine.png"
+                           Stretch="Uniform" />
+
+                    <Grid Width="320"
+                          Height="42"
+                          Margin="0,555,0,0"
+                          HorizontalAlignment="Center"
+                          VerticalAlignment="Top">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="150" />
+                            <ColumnDefinition Width="20" />
+                            <ColumnDefinition Width="150" />
+                        </Grid.ColumnDefinitions>
+                        <Grid Grid.Column="0">
+                            <Button Height="42"
+                                    Command="{Binding RequestEndCommand}"
+                                    Content="{DynamicResource FocusEndAction}"
+                                    FontSize="14">
+                                <Button.Style>
+                                    <Style TargetType="{x:Type Button}" BasedOn="{StaticResource FocusFlowOutlineButton}">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsForcedModeActive}" Value="True">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                            <Border Height="42"
+                                    Padding="10,0"
+                                    Background="{DynamicResource ControlHoverBackground}"
+                                    CornerRadius="14"
+                                    IsHitTestVisible="False">
+                                <Border.Style>
+                                    <Style TargetType="{x:Type Border}">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsForcedModeActive}" Value="True">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
                                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
-                                    <Ellipse Width="7" Height="7" Margin="0,0,8,0" VerticalAlignment="Center" Fill="{DynamicResource AccentPrimary}" />
-                                    <TextBlock FontSize="14" Foreground="{DynamicResource AccentPrimary}" Text="专注中" />
+                                    <TextBlock Margin="0,0,6,0" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="{DynamicResource TextSecondary}" Text="&#xE83D;" />
+                                    <TextBlock VerticalAlignment="Center" FontSize="11" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource FocusForcedModeStatus}" TextTrimming="CharacterEllipsis" />
                                 </StackPanel>
                             </Border>
-                        </StackPanel>
-                    </Border>
-
-                    <Border Height="350" Margin="0,20,0,0" Padding="20,20,20,12" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" CornerRadius="22">
-                        <StackPanel>
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Margin="0,0,12,0" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="22" Foreground="{DynamicResource AccentPrimary}" Text="&#xE735;" />
-                                <StackPanel>
-                                    <TextBlock FontSize="20" Text="{Binding TargetName}" />
-                                    <TextBlock Margin="0,3,0,0" FontSize="13" Foreground="{DynamicResource TextSecondary}" Text="{Binding PendingTaskSummary}" />
-                                </StackPanel>
+                        </Grid>
+                        <Button Grid.Column="2"
+                                Height="42"
+                                Click="ViewTasksButton_Click"
+                                FontSize="14"
+                                Style="{StaticResource FocusFlowOutlineButton}">
+                            <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
+                                <TextBlock Margin="0,0,9,0" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="17" Text="&#xE8FD;" />
+                                <TextBlock VerticalAlignment="Center" Text="{DynamicResource FocusViewTasks}" />
                             </StackPanel>
-                            <Border Height="1" Margin="0,14,0,0" Background="{DynamicResource BorderPrimary}" />
-
-                            <ScrollViewer x:Name="TaskListScrollViewer"
-                                          Height="212"
-                                          Margin="0,2,0,0"
-                                          AllowDrop="True"
-                                          DragOver="TaskList_DragOver"
-                                          Drop="TaskList_Drop"
-                                          HorizontalScrollBarVisibility="Disabled"
-                                          VerticalScrollBarVisibility="Auto">
-                            <ScrollViewer.Resources>
-                                <Style TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource FocusTaskThinScrollBarStyle}" />
-                            </ScrollViewer.Resources>
-                            <StackPanel Background="{DynamicResource TransparentBrush}">
-                                <ItemsControl x:Name="PendingTaskList"
-                                              ItemsSource="{Binding PendingTasks}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Grid x:Name="TaskDragRow"
-                                              Height="53"
-                                              Background="Transparent"
-                                              PreviewMouseLeftButtonDown="PendingTaskList_PreviewMouseLeftButtonDown"
-                                              PreviewMouseLeftButtonUp="PendingTaskList_PreviewMouseLeftButtonUp"
-                                              PreviewMouseMove="PendingTaskList_PreviewMouseMove">
-                                            <Grid.Style>
-                                                <Style TargetType="{x:Type Grid}">
-                                                    <Setter Property="Opacity" Value="1" />
-                                                    <Setter Property="RenderTransform">
-                                                        <Setter.Value>
-                                                            <TranslateTransform />
-                                                        </Setter.Value>
-                                                    </Setter>
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsDragging}" Value="True">
-                                                            <Setter Property="Opacity" Value="0.76" />
-                                                            <Setter Property="Panel.ZIndex" Value="6" />
-                                                            <Setter Property="Effect">
-                                                                <Setter.Value>
-                                                                    <DropShadowEffect BlurRadius="10"
-                                                                                      Direction="270"
-                                                                                      Opacity="0.14"
-                                                                                      ShadowDepth="2"
-                                                                                      Color="#808080" />
-                                                                </Setter.Value>
-                                                            </Setter>
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding ShowDropBefore}" Value="True">
-                                                            <DataTrigger.EnterActions>
-                                                                <BeginStoryboard>
-                                                                    <Storyboard>
-                                                                        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)"
-                                                                                         To="4"
-                                                                                         Duration="0:0:0.09" />
-                                                                    </Storyboard>
-                                                                </BeginStoryboard>
-                                                            </DataTrigger.EnterActions>
-                                                            <DataTrigger.ExitActions>
-                                                                <BeginStoryboard>
-                                                                    <Storyboard>
-                                                                        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)"
-                                                                                         To="0"
-                                                                                         Duration="0:0:0.09" />
-                                                                    </Storyboard>
-                                                                </BeginStoryboard>
-                                                            </DataTrigger.ExitActions>
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding ShowDropAfter}" Value="True">
-                                                            <DataTrigger.EnterActions>
-                                                                <BeginStoryboard>
-                                                                    <Storyboard>
-                                                                        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)"
-                                                                                         To="-4"
-                                                                                         Duration="0:0:0.09" />
-                                                                    </Storyboard>
-                                                                </BeginStoryboard>
-                                                            </DataTrigger.EnterActions>
-                                                            <DataTrigger.ExitActions>
-                                                                <BeginStoryboard>
-                                                                    <Storyboard>
-                                                                        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)"
-                                                                                         To="0"
-                                                                                         Duration="0:0:0.09" />
-                                                                    </Storyboard>
-                                                                </BeginStoryboard>
-                                                            </DataTrigger.ExitActions>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Grid.Style>
-                                            <Border x:Name="TaskRow" CornerRadius="10">
-                                                <Border.Style>
-                                                    <Style TargetType="{x:Type Border}">
-                                                        <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding IsMouseOver, ElementName=TaskDragRow}" Value="True">
-                                                                <Setter Property="Background" Value="{DynamicResource ControlHoverBackground}" />
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </Border.Style>
-                                            </Border>
-                                            <Button Width="24" Height="24" Margin="0,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Command="{Binding DataContext.ToggleTaskCompletedCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}" CommandParameter="{Binding}" Style="{StaticResource FocusFlowOutlineButton}" Padding="0" BorderBrush="{DynamicResource TextTertiary}">
-                                                <TextBlock FontFamily="Segoe MDL2 Assets" FontSize="16" Foreground="{DynamicResource WhiteText}" Text="&#xE73E;" Visibility="Collapsed" />
-                                            </Button>
-                                            <Grid Margin="38,0,38,0" VerticalAlignment="Center">
-                                                <TextBox AutomationProperties.Name="任务名称" IsVisibleChanged="Editor_IsVisibleChanged" Loaded="Editor_Loaded" LostKeyboardFocus="TargetTaskTextBox_LostKeyboardFocus" Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}" Visibility="{Binding IsEditing, Converter={StaticResource BooleanToVisibilityConverter}}" Style="{StaticResource TargetTaskEditorStyle}" />
-                                                <TextBlock FontSize="15" Text="{Binding Name}">
-                                                    <TextBlock.Style>
-                                                        <Style TargetType="{x:Type TextBlock}">
-                                                            <Setter Property="Visibility" Value="Visible" />
-                                                            <Style.Triggers><DataTrigger Binding="{Binding IsEditing}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers>
-                                                        </Style>
-                                                    </TextBlock.Style>
-                                                </TextBlock>
-                                            </Grid>
-                                            <Button Width="30" Height="30" HorizontalAlignment="Right" VerticalAlignment="Center" Command="{Binding DataContext.ToggleTaskMenuCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}" CommandParameter="{Binding}" Style="{StaticResource FocusFlowPlainButton}" ToolTip="{DynamicResource FocusTaskMenu}">
-                                                <TextBlock FontSize="17" Foreground="{DynamicResource TextSecondary}" Text="···" />
-                                            </Button>
-                                            <Border Width="126" Margin="0,0,-4,0" HorizontalAlignment="Right" VerticalAlignment="Center" Panel.ZIndex="5" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" CornerRadius="10" Visibility="{Binding IsFocusMenuOpen, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                                <StackPanel>
-                                                    <Button Height="34" Command="{Binding DataContext.BeginEditTaskCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}" CommandParameter="{Binding}" Style="{StaticResource FocusFlowPlainButton}"><TextBlock HorizontalAlignment="Left" Margin="12,0" FontSize="13" Text="{DynamicResource FocusRenameTask}" /></Button>
-                                                    <Button Height="34" Command="{Binding DataContext.DeleteTaskCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}" CommandParameter="{Binding}" Style="{StaticResource FocusFlowPlainButton}"><TextBlock HorizontalAlignment="Left" Margin="12,0" FontSize="13" Foreground="{DynamicResource Danger}" Text="{DynamicResource FocusDeleteTask}" /></Button>
-                                                </StackPanel>
-                                            </Border>
-                                            <Border Grid.Row="0" Height="1" Margin="0,52,0,0" Background="{DynamicResource BorderPrimary}" />
-                                            <Border Height="2"
-                                                    VerticalAlignment="Top"
-                                                    Panel.ZIndex="10"
-                                                    Background="{DynamicResource AccentPrimary}"
-                                                    CornerRadius="1"
-                                                    IsHitTestVisible="False"
-                                                    Visibility="{Binding ShowDropBefore, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                                            <Border Height="2"
-                                                    VerticalAlignment="Bottom"
-                                                    Panel.ZIndex="10"
-                                                    Background="{DynamicResource AccentPrimary}"
-                                                    CornerRadius="1"
-                                                    IsHitTestVisible="False"
-                                                    Visibility="{Binding ShowDropAfter, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                                        </Grid>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-
-                                <Button Height="44"
-                                    HorizontalContentAlignment="Stretch"
-                                    Background="{DynamicResource TransparentBrush}"
-                                    Command="{Binding DataContext.ToggleCompletedTasksCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
-                                    Style="{StaticResource FocusFlowPlainButton}"
-                                    Visibility="{Binding CompletedTasks.Count, Mode=OneWay, Converter={StaticResource PositiveIntToVisibilityConverter}}">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock VerticalAlignment="Center" FontSize="14" Foreground="{DynamicResource TextSecondary}"><Run Text="{DynamicResource FocusCompletedTasksPrefix}" /><Run Text="{Binding CompletedTasks.Count, Mode=OneWay}" /><Run Text="{DynamicResource FocusCompletedTasksSuffix}" /></TextBlock>
-                                    <TextBlock Margin="10,0,0,0" VerticalAlignment="Center" FontSize="20" Foreground="{DynamicResource TextSecondary}" Text="›">
-                                        <TextBlock.Style>
-                                            <Style TargetType="{x:Type TextBlock}">
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding DataContext.IsCompletedTasksExpanded, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}" Value="True">
-                                                        <Setter Property="Text" Value="⌄" />
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
-                                </StackPanel>
-                                </Button>
-                                <ItemsControl ItemsSource="{Binding CompletedTasks}" Visibility="{Binding IsCompletedTasksExpanded, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Grid Height="50">
-                                            <Button Width="24" Height="24" Margin="0,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Command="{Binding DataContext.ToggleTaskCompletedCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}" CommandParameter="{Binding}" Style="{StaticResource FocusFlowOutlineButton}" Padding="0" BorderBrush="{DynamicResource TextWeak}" Foreground="{DynamicResource TextWeak}">
-                                                <TextBlock FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{DynamicResource TextWeak}" Text="&#xE73E;" />
-                                            </Button>
-                                            <TextBlock Margin="38,0,0,0" VerticalAlignment="Center" FontSize="15" Foreground="{DynamicResource TextWeak}" TextDecorations="Strikethrough" Text="{Binding Name}" />
-                                            <Border Height="1" Margin="38,49,0,0" Background="{DynamicResource BorderPrimary}" />
-                                        </Grid>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </StackPanel>
-                            </ScrollViewer>
-
-                            <Button Height="42" Margin="0,1,0,0" HorizontalContentAlignment="Left" Focusable="False" IsTabStop="False" IsDefault="False" Command="{Binding AddTaskCommand}" Style="{StaticResource FocusFlowPlainButton}">
-                                <StackPanel Orientation="Horizontal"><TextBlock Margin="0,0,10,0" FontSize="23" Foreground="{DynamicResource AccentPrimary}" Text="+" /><TextBlock VerticalAlignment="Center" FontSize="14" Foreground="{DynamicResource AccentPrimary}" Text="{DynamicResource FocusAddTask}" /></StackPanel>
-                            </Button>
-                        </StackPanel>
-                    </Border>
-
-                    <Grid Width="286" Height="38" Margin="0,16,0,0" HorizontalAlignment="Center">
-                        <Button Width="112" Height="38" HorizontalAlignment="Center" Command="{Binding RequestEndCommand}" Content="{DynamicResource FocusEndAction}" FontSize="14">
-                            <Button.Style><Style TargetType="{x:Type Button}" BasedOn="{StaticResource FocusFlowOutlineButton}"><Setter Property="Visibility" Value="Visible" /><Style.Triggers><DataTrigger Binding="{Binding IsForcedModeActive}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers></Style></Button.Style>
                         </Button>
-                        <Border Height="38" Padding="12,0" HorizontalAlignment="Center" VerticalAlignment="Center" Background="{DynamicResource ControlHoverBackground}" CornerRadius="8" IsHitTestVisible="False">
-                            <Border.Style><Style TargetType="{x:Type Border}"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding IsForcedModeActive}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></Border.Style>
-                            <StackPanel Orientation="Horizontal"><TextBlock Margin="0,0,8,0" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="16" Foreground="{DynamicResource TextSecondary}" Text="&#xE83D;" /><TextBlock VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource FocusForcedModeStatus}" /></StackPanel>
-                        </Border>
                     </Grid>
-                </StackPanel>
+                </Grid>
+
+                <views:FocusTaskWindow x:Name="TaskPopupView"
+                                       Width="290"
+                                       Height="420"
+                                       Margin="0,105,20,0"
+                                       HorizontalAlignment="Right"
+                                       VerticalAlignment="Top"
+                                       Panel.ZIndex="20"
+                                       Visibility="Collapsed" />
             </Grid>
+
         </Grid>
 
         <Grid x:Name="NoTaskFocusingView">

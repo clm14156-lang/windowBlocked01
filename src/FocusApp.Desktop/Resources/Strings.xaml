@@ -239,6 +239,9 @@
     <system:String x:Key="FocusEndAction">结束专注</system:String>
     <system:String x:Key="FocusForcedModeStatus">强制模式已开启，专注期间无法提前退出</system:String>
     <system:String x:Key="FocusAddTask">添加任务</system:String>
+    <system:String x:Key="FocusViewTasks">查看任务</system:String>
+    <system:String x:Key="FocusCurrentTask">当前任务</system:String>
+    <system:String x:Key="FocusCloseTaskWindow">关闭任务列表</system:String>
     <system:String x:Key="FocusRenameTask">重命名</system:String>
     <system:String x:Key="FocusDeleteTask">删除任务</system:String>
     <system:String x:Key="FocusTaskMenu">任务菜单</system:String>
