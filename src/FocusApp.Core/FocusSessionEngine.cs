@@ -37,6 +37,10 @@ public sealed class FocusSessionEngine
         ? 0
         : Math.Clamp((int)Math.Ceiling(ConfiguredSeconds - _focusElapsed.TotalSeconds), 0, ConfiguredSeconds);
 
+    public double RemainingFocusProgress => ConfiguredSeconds == 0
+        ? 0d
+        : Math.Clamp((ConfiguredSeconds - _focusElapsed.TotalSeconds) / ConfiguredSeconds, 0d, 1d);
+
     public int ElapsedFocusSeconds => Math.Clamp(ConfiguredSeconds - RemainingFocusSeconds, 0, ConfiguredSeconds);
 
     public DateTime? StartedAt => State == FocusSessionState.Idle ? null : _startedAt;

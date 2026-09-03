@@ -9,7 +9,6 @@
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <local:PositiveIntToVisibilityConverter x:Key="PositiveIntToVisibilityConverter" />
-        <local:RemainingToElapsedProgressConverter x:Key="RemainingToElapsedProgressConverter" />
         <TranslateTransform x:Key="FocusFlowCenterShift" X="11" />
 
         <Style x:Key="FocusFlowPlainButton" TargetType="{x:Type Button}">
@@ -337,7 +336,7 @@
                           Margin="0,118,0,0"
                           HorizontalAlignment="Center"
                           VerticalAlignment="Top">
-                        <views:CircularProgressRing Progress="{Binding RemainingProgress, Converter={StaticResource RemainingToElapsedProgressConverter}, Mode=OneWay}"
+                        <views:CircularProgressRing Progress="{Binding RemainingProgress, Mode=OneWay}"
                                                     ProgressBrush="{DynamicResource AccentPrimary}"
                                                     ProgressEndPointDiameter="5"
                                                     RingThickness="2"
@@ -370,12 +369,12 @@
                                VerticalAlignment="Top"
                                FontFamily="/FocusApp.Desktop;component/Assets/font/#Source Han Serif CN"
                                FontSize="24"
-                               FontWeight="Normal"
+                               FontWeight="Light"
                                Foreground="{DynamicResource TextSecondary}"
                                Text="{DynamicResource FocusNoTaskAtmosphere}" />
 
-                    <Image Width="63"
-                           Height="12"
+                    <Image Width="44"
+                           Height="8.4"
                            Margin="0,517,0,0"
                            HorizontalAlignment="Center"
                            VerticalAlignment="Top"
@@ -383,24 +382,25 @@
                            Source="/FocusApp.Desktop;component/Assets/Themes/Solid/Orange/focusPage_OrangeLine.png"
                            Stretch="Uniform" />
 
-                    <Grid Width="320"
-                          Height="42"
+                    <Grid Width="350"
+                          Height="45"
                           Margin="0,555,0,0"
                           HorizontalAlignment="Center"
                           VerticalAlignment="Top">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="150" />
+                            <ColumnDefinition Width="165" />
                             <ColumnDefinition Width="20" />
-                            <ColumnDefinition Width="150" />
+                            <ColumnDefinition Width="165" />
                         </Grid.ColumnDefinitions>
                         <Grid Grid.Column="0">
-                            <Button Height="42"
-                                    Background="#FCF8F1"
-                                    BorderBrush="#E7D9CE"
-                                    Command="{Binding RequestEndCommand}"
-                                    FontSize="14"
-                                    FontWeight="Normal"
-                                    Foreground="#9D9690">
+                            <Button Height="45"
+                                     Background="#FCF8F1"
+                                     BorderBrush="#E7D9CE"
+                                     BorderThickness="1"
+                                     Command="{Binding RequestEndCommand}"
+                                     FontSize="13"
+                                     FontWeight="Medium"
+                                     Foreground="#9D9690">
                                 <Button.Style>
                                     <Style TargetType="{x:Type Button}" BasedOn="{StaticResource FocusFlowOutlineButton}">
                                         <Setter Property="Visibility" Value="Visible" />
@@ -411,8 +411,8 @@
                                         </Style.Triggers>
                                     </Style>
                                 </Button.Style>
-                                <TextBlock FontSize="14"
-                                           FontWeight="Normal"
+                                <TextBlock FontSize="13"
+                                           FontWeight="Medium"
                                            Foreground="#9D9690"
                                            Text="{DynamicResource FocusEndAction}" />
                             </Button>
@@ -438,12 +438,14 @@
                             </Border>
                         </Grid>
                         <Button Grid.Column="2"
-                                Height="42"
+                                Height="45"
                                 Background="#FBF2E6"
                                 BorderBrush="#E7D9CE"
+                                BorderThickness="1"
                                 Click="ViewTasksButton_Click"
                                 Foreground="#151B23"
-                                FontSize="14"
+                                FontSize="13"
+                                FontWeight="Medium"
                                 Style="{StaticResource FocusFlowOutlineButton}">
                             <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
                                 <Image Width="15"
@@ -453,7 +455,7 @@
                                        IsHitTestVisible="False"
                                        Source="/FocusApp.Desktop;component/Assets/Themes/Solid/Orange/renwugaunli.png"
                                        Stretch="Uniform" />
-                                <TextBlock VerticalAlignment="Center" FontWeight="Normal" Foreground="#151B23" Text="{DynamicResource FocusViewTasks}" />
+                                <TextBlock VerticalAlignment="Center" FontWeight="Medium" Foreground="#151B23" Text="{DynamicResource FocusViewTasks}" />
                             </StackPanel>
                         </Button>
                     </Grid>
@@ -493,7 +495,7 @@
                       Margin="0,163,0,0"
                       HorizontalAlignment="Center"
                       VerticalAlignment="Top">
-                    <views:CircularProgressRing Progress="{Binding RemainingProgress, Converter={StaticResource RemainingToElapsedProgressConverter}, Mode=OneWay}"
+                    <views:CircularProgressRing Progress="{Binding RemainingProgress, Mode=OneWay}"
                                                 ProgressBrush="{DynamicResource AccentPrimary}"
                                                 ProgressEndPointDiameter="5"
                                                 RingThickness="2"
@@ -513,12 +515,12 @@
                            FontFamily="/FocusApp.Desktop;component/Assets/font/#Source Han Serif CN"
                            FontSize="24"
                            LineHeight="24"
-                           FontWeight="Normal"
+                           FontWeight="Light"
                            Foreground="{DynamicResource TextSecondary}"
                            Text="{DynamicResource FocusNoTaskAtmosphere}" />
 
-                <Image Width="63"
-                       Height="12"
+                <Image Width="44"
+                       Height="8.4"
                        Margin="0,556,0,0"
                        HorizontalAlignment="Center"
                        VerticalAlignment="Top"

@@ -25,6 +25,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     private TimeSpan _lastFocusElapsed;
     private int _totalFocusSeconds;
     private int _remainingFocusSeconds;
+    private double _remainingProgress;
     private int _completedFocusSeconds;
     private int _todayTotalSeconds;
     private DateTime _completedAt;
@@ -302,7 +303,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
 
     public string RemainingTimeDisplay => $"{RemainingFocusSeconds / 60:00}:{RemainingFocusSeconds % 60:00}";
 
-    public double RemainingProgress => TotalFocusSeconds == 0 ? 0 : (double)RemainingFocusSeconds / TotalFocusSeconds;
+    public double RemainingProgress => _remainingProgress;
 
     public string ElapsedTimeDisplay => FormatDuration(TotalFocusSeconds - RemainingFocusSeconds);
 
@@ -348,7 +349,6 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             _remainingFocusSeconds = value;
             OnPropertyChanged();
             OnPropertyChanged(nameof(RemainingTimeDisplay));
-            OnPropertyChanged(nameof(RemainingProgress));
             OnPropertyChanged(nameof(ElapsedTimeDisplay));
         }
     }
@@ -1028,6 +1028,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         PreparationSeconds = _engine.PreparationSeconds;
         PreparationProgress = _engine.PreparationProgress;
         RemainingFocusSeconds = _engine.RemainingFocusSeconds;
+        UpdateRemainingProgress(_engine.RemainingFocusProgress);
         IsForcedModeActive = _engine.IsForcedMode;
         IsEndConfirmationOpen = _engine.IsEndConfirmationOpen;
 
@@ -1087,6 +1088,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             PreparationSeconds = 0;
             PreparationProgress = 1;
             RemainingFocusSeconds = 0;
+            UpdateRemainingProgress(0d);
             Stage = FocusFlowStage.Completed;
             return;
         }
@@ -1101,6 +1103,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
                 0d,
                 1d);
             RemainingFocusSeconds = session.ConfiguredSeconds;
+            UpdateRemainingProgress(1d);
             Stage = FocusFlowStage.Preparing;
             return;
         }
@@ -1111,7 +1114,23 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             ? (int)Math.Ceiling((plannedEnd - current).TotalSeconds)
             : 0;
         RemainingFocusSeconds = Math.Clamp(remaining, 0, session.ConfiguredSeconds);
+        var remainingProgress = session.PlannedEndAtUtc is { } progressEnd && session.ConfiguredSeconds > 0
+            ? (progressEnd - current).TotalSeconds / session.ConfiguredSeconds
+            : 0d;
+        UpdateRemainingProgress(remainingProgress);
         Stage = FocusFlowStage.Focusing;
+    }
+
+    private void UpdateRemainingProgress(double value)
+    {
+        var progress = Math.Clamp(value, 0d, 1d);
+        if (Math.Abs(_remainingProgress - progress) < 0.000001)
+        {
+            return;
+        }
+
+        _remainingProgress = progress;
+        OnPropertyChanged(nameof(RemainingProgress));
     }
 
     private void SynchronizeAuthoritativeCompletedTasks(LocalFocusSessionDto session)

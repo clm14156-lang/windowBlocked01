@@ -31,6 +31,18 @@ public sealed class FocusSessionEngineTests
     }
 
     [Fact]
+    public void RemainingFocusProgress_UsesPreciseRemainingTimeRatio()
+    {
+        var engine = CreateEngine();
+        engine.Start(1);
+        engine.AdvancePreparationBy(TimeSpan.FromSeconds(5));
+
+        engine.AdvanceFocusBy(TimeSpan.FromMilliseconds(15_500));
+
+        Assert.Equal(44.5 / 60, engine.RemainingFocusProgress, 10);
+    }
+
+    [Fact]
     public void EarlyCompletion_CreatesOneRecordAndConfirmationFreezesTime()
     {
         var engine = CreateEngine();

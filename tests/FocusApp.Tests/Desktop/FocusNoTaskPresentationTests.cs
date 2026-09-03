@@ -42,14 +42,17 @@ public sealed class FocusNoTaskPresentationTests
         Assert.Equal("#EEE8DE", (string?)ring.Attribute("TrackBrush"));
         Assert.Equal("5", (string?)ring.Attribute("ProgressEndPointDiameter"));
         Assert.Equal(
-            "{Binding RemainingProgress, Converter={StaticResource RemainingToElapsedProgressConverter}, Mode=OneWay}",
+            "{Binding RemainingProgress, Mode=OneWay}",
             (string?)ring.Attribute("Progress"));
 
         var atmosphere = Assert.Single(noTaskView.Descendants(Presentation + "TextBlock").Where(element =>
             (string?)element.Attribute("Text") == "{DynamicResource FocusNoTaskAtmosphere}"));
         Assert.Equal("24", (string?)atmosphere.Attribute("FontSize"));
         Assert.Equal("24", (string?)atmosphere.Attribute("LineHeight"));
-        Assert.Equal("Normal", (string?)atmosphere.Attribute("FontWeight"));
+        Assert.Equal(
+            "/FocusApp.Desktop;component/Assets/font/#Source Han Serif CN",
+            (string?)atmosphere.Attribute("FontFamily"));
+        Assert.Equal("Light", (string?)atmosphere.Attribute("FontWeight"));
         Assert.Equal("{DynamicResource TextSecondary}", (string?)atmosphere.Attribute("Foreground"));
         Assert.DoesNotContain(noTaskView.Descendants(Presentation + "TextBlock"), element =>
             (string?)element.Attribute("Text") == "{DynamicResource FocusInProgress}");
@@ -58,7 +61,8 @@ public sealed class FocusNoTaskPresentationTests
         Assert.Equal(
             "/FocusApp.Desktop;component/Assets/Themes/Solid/Orange/focusPage_OrangeLine.png",
             (string?)accentLine.Attribute("Source"));
-        Assert.Equal("42", (string?)accentLine.Attribute("Width"));
+        Assert.Equal("44", (string?)accentLine.Attribute("Width"));
+        Assert.Equal("8.4", (string?)accentLine.Attribute("Height"));
         Assert.Equal("Uniform", (string?)accentLine.Attribute("Stretch"));
 
         var endButton = Assert.Single(noTaskView.Descendants(Presentation + "Button").Where(element =>

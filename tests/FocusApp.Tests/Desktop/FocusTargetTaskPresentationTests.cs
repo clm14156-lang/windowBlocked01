@@ -20,18 +20,33 @@ public sealed class FocusTargetTaskPresentationTests
         Assert.Contains(targetView.Descendants(Presentation + "Image"), image =>
             (string?)image.Attribute("Source") == "/FocusApp.Desktop;component/Assets/Themes/Solid/Orange/foucus_background.png");
         Assert.Contains(targetView.Descendants().Where(element => element.Name.LocalName == "CircularProgressRing"), ring =>
-            (string?)ring.Attribute("Progress") == "{Binding RemainingProgress, Converter={StaticResource RemainingToElapsedProgressConverter}, Mode=OneWay}" &&
+            (string?)ring.Attribute("Progress") == "{Binding RemainingProgress, Mode=OneWay}" &&
             (string?)ring.Attribute("RingThickness") == "2" &&
             (string?)ring.Attribute("ProgressEndPointDiameter") == "5");
         Assert.Contains(targetView.Descendants(Presentation + "TextBlock"), text =>
             (string?)text.Attribute("Text") == "{Binding PendingTasks[0].Name, Mode=OneWay}");
         Assert.Contains(targetView.Descendants(Presentation + "TextBlock"), text =>
             (string?)text.Attribute("Text") == "{Binding TargetName, Mode=OneWay}");
+        Assert.Contains(targetView.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "{DynamicResource FocusNoTaskAtmosphere}" &&
+            (string?)text.Attribute("FontFamily") == "/FocusApp.Desktop;component/Assets/font/#Source Han Serif CN" &&
+            (string?)text.Attribute("FontWeight") == "Light");
 
         var viewTasksButton = Assert.Single(targetView.Descendants(Presentation + "Button").Where(button =>
             (string?)button.Attribute("Click") == "ViewTasksButton_Click"));
+        Assert.Equal("45", (string?)viewTasksButton.Attribute("Height"));
+        Assert.Equal("13", (string?)viewTasksButton.Attribute("FontSize"));
+        Assert.Equal("Medium", (string?)viewTasksButton.Attribute("FontWeight"));
+        Assert.Equal("1", (string?)viewTasksButton.Attribute("BorderThickness"));
         Assert.Contains(viewTasksButton.Descendants(Presentation + "TextBlock"), text =>
             (string?)text.Attribute("Text") == "{DynamicResource FocusViewTasks}");
+
+        var endButton = Assert.Single(targetView.Descendants(Presentation + "Button").Where(button =>
+            (string?)button.Attribute("Command") == "{Binding RequestEndCommand}"));
+        Assert.Equal("45", (string?)endButton.Attribute("Height"));
+        Assert.Equal("13", (string?)endButton.Attribute("FontSize"));
+        Assert.Equal("Medium", (string?)endButton.Attribute("FontWeight"));
+        Assert.Equal("1", (string?)endButton.Attribute("BorderThickness"));
 
         Assert.DoesNotContain(targetView.Descendants(Presentation + "ProgressBar"), progress =>
             !progress.Ancestors(Presentation + "Grid").Any(grid =>
