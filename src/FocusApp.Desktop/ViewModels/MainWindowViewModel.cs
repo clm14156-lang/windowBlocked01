@@ -28,6 +28,12 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private string _completionReminderDuration = string.Empty;
     private string _completionReminderTimeRange = string.Empty;
     private string _completionReminderDetail = string.Empty;
+    private readonly DispatcherTimer _focusResultToastTimer;
+    private bool _isFocusResultToastVisible;
+    private string _focusResultToastTitle = string.Empty;
+    private string _focusResultToastSubtitle = string.Empty;
+    private string _focusResultToastIconSource = string.Empty;
+    private FocusResultKind _focusResultToastKind;
     private LocalDataSnapshotDto? _pendingServiceState;
     private bool _serviceStateApplyScheduled;
 
@@ -75,6 +81,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         HomePage.FocusTargetModal.SelectionChanged += FocusTargetModal_SelectionChanged;
         HomePage.FocusSession.CompletionRecorded += FocusSession_CompletionRecorded;
         HomePage.FocusSession.FocusDiscarded += FocusSession_FocusDiscarded;
+        HomePage.FocusSession.FocusResultReturnedHome += FocusSession_FocusResultReturnedHome;
         HomePage.FocusSession.TargetTasksChanged += FocusTargetModal_TargetChanged;
         HomePage.FocusSession.TargetTasksChanged += FocusSession_TargetTasksChanged;
         HomePage.FocusSession.PropertyChanged += FocusSession_PropertyChanged;
@@ -92,6 +99,11 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         };
         _automaticBlockingTimer.Tick += (_, _) => StateCoordinator.EvaluateAutomaticBlocking();
         _automaticBlockingTimer.Start();
+        _focusResultToastTimer = new DispatcherTimer(DispatcherPriority.Normal)
+        {
+            Interval = TimeSpan.FromSeconds(3)
+        };
+        _focusResultToastTimer.Tick += (_, _) => CloseFocusResultToast();
         AuthModal = new AuthModalViewModel();
         AuthModal.LoginSucceeded += AuthModal_LoginSucceeded;
         AccountSyncModal.AccountDeletionConfirmed += AccountSyncModal_AccountDeletionConfirmed;
@@ -164,20 +176,57 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     public bool HasCompletionReminderDetail => !string.IsNullOrWhiteSpace(CompletionReminderDetail);
 
+    public bool IsFocusResultToastVisible
+    {
+        get => _isFocusResultToastVisible;
+        private set
+        {
+            if (_isFocusResultToastVisible == value) return;
+            _isFocusResultToastVisible = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public string FocusResultToastTitle
+    {
+        get => _focusResultToastTitle;
+        private set { if (_focusResultToastTitle != value) { _focusResultToastTitle = value; OnPropertyChanged(); } }
+    }
+
+    public string FocusResultToastSubtitle
+    {
+        get => _focusResultToastSubtitle;
+        private set { if (_focusResultToastSubtitle != value) { _focusResultToastSubtitle = value; OnPropertyChanged(); } }
+    }
+
+    public string FocusResultToastIconSource
+    {
+        get => _focusResultToastIconSource;
+        private set { if (_focusResultToastIconSource != value) { _focusResultToastIconSource = value; OnPropertyChanged(); } }
+    }
+
+    public FocusResultKind FocusResultToastKind
+    {
+        get => _focusResultToastKind;
+        private set { if (_focusResultToastKind != value) { _focusResultToastKind = value; OnPropertyChanged(); } }
+    }
+
     public void ShowCompletionReminderTest()
     {
         var durationMinutes = Math.Max(1, HomePage.CurrentDurationOption.Minutes);
-        var completedAt = DateTime.Now;
-        var startedAt = completedAt.AddMinutes(-durationMinutes);
-        CompletionReminderDuration = $"{durationMinutes} 分钟";
-        CompletionReminderTimeRange = FormatCompletionReminderTimeRange(startedAt, completedAt);
-        CompletionReminderDetail = string.Empty;
-        IsCompletionReminderVisible = true;
+        ShowFocusResultToast(new FocusResultReturnedHomeEventArgs(
+            FocusResultKind.NaturalCompleted,
+            TimeSpan.FromMinutes(durationMinutes),
+            0));
     }
 
     public ICommand CloseCompletionReminderCommand => _closeCompletionReminderCommand ??= new RelayCommand<object>(_ => IsCompletionReminderVisible = false);
 
     private ICommand? _closeCompletionReminderCommand;
+
+    public ICommand CloseFocusResultToastCommand => _closeFocusResultToastCommand ??= new RelayCommand<object>(_ => CloseFocusResultToast());
+
+    private ICommand? _closeFocusResultToastCommand;
 
     public HomePageViewModel HomePage { get; }
 
@@ -615,20 +664,53 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         }
         catch (Exception) { }
 
-        ShowCompletionReminder(e.Record, e.CompletedTaskNames.Count);
     }
 
-    private void ShowCompletionReminder(FocusSessionRecord record, int completedTaskCount)
+    private void FocusSession_FocusResultReturnedHome(object? sender, FocusResultReturnedHomeEventArgs e)
     {
-        var minutes = Math.Max(0, (int)Math.Round(record.ActualDuration.TotalMinutes));
-        CompletionReminderDuration = $"{minutes} 分钟";
-        CompletionReminderTimeRange = FormatCompletionReminderTimeRange(record.StartedAt, record.CompletedAt);
-        var targetName = record.TargetName?.Trim() ?? string.Empty;
-        var taskText = completedTaskCount > 0 ? $"完成 {completedTaskCount} 个任务" : string.Empty;
-        CompletionReminderDetail = string.IsNullOrWhiteSpace(targetName)
-            ? taskText
-            : string.IsNullOrWhiteSpace(taskText) ? targetName : $"{targetName} · {taskText}";
-        IsCompletionReminderVisible = true;
+        var homeNavigationItem = PrimaryNavigationItems.FirstOrDefault(item => item.Page == NavigationPage.Home);
+        if (homeNavigationItem is not null)
+        {
+            Navigate(homeNavigationItem);
+        }
+
+        ShowFocusResultToast(e);
+    }
+
+    private void ShowFocusResultToast(FocusResultReturnedHomeEventArgs result)
+    {
+        var minutes = Math.Max(0, (int)result.Duration.TotalMinutes);
+        FocusResultToastKind = result.Kind;
+        switch (result.Kind)
+        {
+            case FocusResultKind.NaturalCompleted:
+                FocusResultToastTitle = "专注已完成";
+                FocusResultToastSubtitle = result.CompletedTaskCount > 0
+                    ? $"本次专注 {minutes} 分钟 · 完成 {result.CompletedTaskCount} 项任务"
+                    : $"本次专注 {minutes} 分钟";
+                FocusResultToastIconSource = "/FocusApp.Desktop;component/Assets/Themes/Solid/Orange/toast_gouxuan.png";
+                break;
+            case FocusResultKind.EarlyEndedSaved:
+                FocusResultToastTitle = "专注已结束";
+                FocusResultToastSubtitle = $"本次 {minutes} 分钟 · 记录已保存";
+                FocusResultToastIconSource = "/FocusApp.Desktop;component/Assets/Themes/Solid/Orange/toast_tixing.png";
+                break;
+            default:
+                FocusResultToastTitle = "专注已结束";
+                FocusResultToastSubtitle = "未满 5 分钟，本次记录未保存";
+                FocusResultToastIconSource = "/FocusApp.Desktop;component/Assets/Themes/Solid/Orange/toast_jinggao.png";
+                break;
+        }
+
+        _focusResultToastTimer.Stop();
+        IsFocusResultToastVisible = true;
+        _focusResultToastTimer.Start();
+    }
+
+    private void CloseFocusResultToast()
+    {
+        _focusResultToastTimer.Stop();
+        IsFocusResultToastVisible = false;
     }
 
     private async void FocusSession_FocusDiscarded(object? sender, EventArgs e)

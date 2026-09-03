@@ -200,9 +200,14 @@ internal sealed class AgentWorker : BackgroundService
         var desktopPath = Path.Combine(AppContext.BaseDirectory, "FocusApp.Desktop.exe");
         if (!File.Exists(desktopPath))
         {
+            var configuration = new DirectoryInfo(AppContext.BaseDirectory).Parent?.Name;
+            if (configuration is not ("Debug" or "Release"))
+            {
+                configuration = "Debug";
+            }
             var repositoryDesktopPath = Path.GetFullPath(Path.Combine(
                 AppContext.BaseDirectory,
-                "..", "..", "..", "..", "FocusApp.Desktop", "bin", "Debug", "net8.0-windows", "FocusApp.Desktop.exe"));
+                "..", "..", "..", "..", "FocusApp.Desktop", "bin", configuration, "net8.0-windows", "FocusApp.Desktop.exe"));
             desktopPath = repositoryDesktopPath;
         }
         if (!File.Exists(desktopPath))

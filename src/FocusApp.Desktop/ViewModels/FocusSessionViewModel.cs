@@ -64,6 +64,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         ContinueFocusCommand = new RelayCommand<object>(_ => ContinueFocus());
         DiscardEndCommand = new RelayCommand<object>(_ => DiscardShortFocus());
         ConfirmEndCommand = new RelayCommand<object>(_ => CompleteFocus());
+        ConfirmEndAndReturnHomeCommand = new RelayCommand<object>(_ => CompleteFocusAndReturnHome());
         RequestFocusAgainCommand = new RelayCommand<object>(_ => OpenFocusAgainConfirmation());
         FocusAgainCommand = new RelayCommand<object>(_ => FocusAgain());
         CancelFocusAgainCommand = new RelayCommand<object>(_ => IsFocusAgainConfirmationOpen = false);
@@ -100,6 +101,8 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
 
     public event EventHandler? FocusDiscarded;
 
+    public event EventHandler<FocusResultReturnedHomeEventArgs>? FocusResultReturnedHome;
+
     public event EventHandler? AuthoritativeTasksChanged;
 
     public event EventHandler<FocusTargetViewModel>? TargetTasksChanged;
@@ -113,6 +116,8 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     public ICommand DiscardEndCommand { get; }
 
     public ICommand ConfirmEndCommand { get; }
+
+    public ICommand ConfirmEndAndReturnHomeCommand { get; }
 
     public ICommand RequestFocusAgainCommand { get; }
 
@@ -692,8 +697,15 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             return;
         }
 
+        var elapsed = TimeSpan.FromSeconds(ElapsedFocusSeconds);
         FocusDiscarded?.Invoke(this, EventArgs.Empty);
         ResetToIdleCore();
+        FocusResultReturnedHome?.Invoke(
+            this,
+            new FocusResultReturnedHomeEventArgs(
+                FocusResultKind.EarlyEndedDiscarded,
+                elapsed,
+                0));
     }
 
     private void CompleteFocus()
@@ -721,6 +733,15 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         Stage = FocusFlowStage.Completed;
     }
 
+    private void CompleteFocusAndReturnHome()
+    {
+        CompleteFocus();
+        if (Stage == FocusFlowStage.Completed)
+        {
+            ReturnHome();
+        }
+    }
+
     private void ReturnHome()
     {
         if (IsForcedModeActive && Stage is (FocusFlowStage.Preparing or FocusFlowStage.Focusing))
@@ -728,8 +749,23 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             return;
         }
 
+        FocusResultReturnedHomeEventArgs? result = null;
+        if (Stage == FocusFlowStage.Completed && LastCompletion is { } completion)
+        {
+            result = new FocusResultReturnedHomeEventArgs(
+                completion.CompletionKind == FocusCompletionKind.Natural
+                    ? FocusResultKind.NaturalCompleted
+                    : FocusResultKind.EarlyEndedSaved,
+                completion.ActualDuration,
+                SessionCompletedTaskCount);
+        }
+
         _timer.Stop();
         ResetToIdleCore();
+        if (result is not null)
+        {
+            FocusResultReturnedHome?.Invoke(this, result);
+        }
     }
 
     private void ResetToIdleCore()
@@ -1295,4 +1331,23 @@ public sealed class FocusSessionCompletedEventArgs(
     public FocusSessionRecord Record { get; } = record;
 
     public IReadOnlyList<string> CompletedTaskNames { get; } = completedTaskNames;
+}
+
+public enum FocusResultKind
+{
+    NaturalCompleted,
+    EarlyEndedSaved,
+    EarlyEndedDiscarded
+}
+
+public sealed class FocusResultReturnedHomeEventArgs(
+    FocusResultKind kind,
+    TimeSpan duration,
+    int completedTaskCount) : EventArgs
+{
+    public FocusResultKind Kind { get; } = kind;
+
+    public TimeSpan Duration { get; } = duration;
+
+    public int CompletedTaskCount { get; } = completedTaskCount;
 }

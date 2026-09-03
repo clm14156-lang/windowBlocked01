@@ -68,12 +68,16 @@ public sealed class MainWindowViewModelTests
         Assert.Equal(1, viewModel.StatisticsPage.TrendPoints.Sum(point => point.SessionCount));
         Assert.Equal(1, viewModel.StatisticsPage.TrendPoints.Sum(point => point.Minutes));
         Assert.Equal("8月27日 周四", viewModel.StatisticsPage.TodayDateDisplay);
-        Assert.True(viewModel.IsCompletionReminderVisible);
-        Assert.Equal("1 分钟", viewModel.CompletionReminderDuration);
+        Assert.False(viewModel.IsFocusResultToastVisible);
         Assert.NotNull(session.LastCompletion);
-        Assert.Equal(
-            $"{session.LastCompletion!.StartedAt:HH:mm} – {session.LastCompletion.CompletedAt:HH:mm}",
-            viewModel.CompletionReminderTimeRange);
+
+        session.ReturnHomeCommand.Execute(null);
+
+        Assert.True(viewModel.IsFocusResultToastVisible);
+        Assert.Equal("专注已完成", viewModel.FocusResultToastTitle);
+        Assert.Equal("本次专注 1 分钟", viewModel.FocusResultToastSubtitle);
+        Assert.Equal(FocusResultKind.NaturalCompleted, viewModel.FocusResultToastKind);
+        Assert.EndsWith("toast_gouxuan.png", viewModel.FocusResultToastIconSource, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -87,8 +91,84 @@ public sealed class MainWindowViewModelTests
 
         viewModel.ShowCompletionReminderTest();
 
-        Assert.Equal("25 分钟", viewModel.CompletionReminderDuration);
-        Assert.Matches(@"^\d{2}:\d{2} – \d{2}:\d{2}$", viewModel.CompletionReminderTimeRange);
+        Assert.True(viewModel.IsFocusResultToastVisible);
+        Assert.Equal("专注已完成", viewModel.FocusResultToastTitle);
+        Assert.Equal("本次专注 25 分钟", viewModel.FocusResultToastSubtitle);
+    }
+
+    [Fact]
+    public void EarlySavedFocus_ReturnsHomeAndShowsSavedToast()
+    {
+        var session = new FocusSessionViewModel(runTimer: false);
+        var homePage = new HomePageViewModel(
+            [new HomeDurationOptionViewModel("30 minutes", string.Empty, true, 30)],
+            focusSession: session);
+        var home = new NavigationItemViewModel(NavigationPage.Home, "Home", "H");
+        var account = new NavigationItemViewModel(NavigationPage.Account, "Account", "A");
+        var viewModel = new MainWindowViewModel([home], account, homePage);
+        session.Start(30);
+        session.AdvancePreparationBy(TimeSpan.FromSeconds(5));
+        for (var index = 0; index < 12 * 60; index++) session.AdvanceOneSecond();
+        session.RequestEndCommand.Execute(null);
+
+        session.ConfirmEndAndReturnHomeCommand.Execute(null);
+
+        Assert.Equal(FocusFlowStage.Idle, session.Stage);
+        Assert.True(viewModel.IsFocusResultToastVisible);
+        Assert.Equal("专注已结束", viewModel.FocusResultToastTitle);
+        Assert.Equal("本次 12 分钟 · 记录已保存", viewModel.FocusResultToastSubtitle);
+        Assert.Equal(FocusResultKind.EarlyEndedSaved, viewModel.FocusResultToastKind);
+        Assert.EndsWith("toast_tixing.png", viewModel.FocusResultToastIconSource, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void NaturalFocusToast_IncludesCompletedTasksOnlyWhenCountIsPositive()
+    {
+        var session = new FocusSessionViewModel(runTimer: false);
+        var homePage = new HomePageViewModel(
+            [new HomeDurationOptionViewModel("1 minute", string.Empty, true, 1)],
+            focusSession: session);
+        var home = new NavigationItemViewModel(NavigationPage.Home, "Home", "H");
+        var account = new NavigationItemViewModel(NavigationPage.Account, "Account", "A");
+        var viewModel = new MainWindowViewModel([home], account, homePage);
+        var target = new FocusTargetViewModel("学习", ["任务一", "任务二"]);
+        session.Start(1, target);
+        session.AdvancePreparationBy(TimeSpan.FromSeconds(5));
+        session.ToggleTaskCompletedCommand.Execute(session.PendingTasks[0]);
+        session.ToggleTaskCompletedCommand.Execute(session.PendingTasks[0]);
+        for (var index = 0; index < 60; index++) session.AdvanceOneSecond();
+
+        session.ReturnHomeCommand.Execute(null);
+
+        Assert.Equal("本次专注 1 分钟 · 完成 2 项任务", viewModel.FocusResultToastSubtitle);
+    }
+
+    [Fact]
+    public void ShortDiscardedFocus_ReturnsHomeAndShowsUnsavedToast()
+    {
+        var session = new FocusSessionViewModel(runTimer: false);
+        var homePage = new HomePageViewModel(
+            [new HomeDurationOptionViewModel("30 minutes", string.Empty, true, 30)],
+            focusSession: session);
+        var home = new NavigationItemViewModel(NavigationPage.Home, "Home", "H");
+        var account = new NavigationItemViewModel(NavigationPage.Account, "Account", "A");
+        var viewModel = new MainWindowViewModel([home], account, homePage);
+        session.Start(30);
+        session.AdvancePreparationBy(TimeSpan.FromSeconds(5));
+        session.AdvanceOneSecond();
+        session.RequestEndCommand.Execute(null);
+
+        session.DiscardEndCommand.Execute(null);
+
+        Assert.Equal(FocusFlowStage.Idle, session.Stage);
+        Assert.True(viewModel.IsFocusResultToastVisible);
+        Assert.Equal("专注已结束", viewModel.FocusResultToastTitle);
+        Assert.Equal("未满 5 分钟，本次记录未保存", viewModel.FocusResultToastSubtitle);
+        Assert.Equal(FocusResultKind.EarlyEndedDiscarded, viewModel.FocusResultToastKind);
+        Assert.EndsWith("toast_jinggao.png", viewModel.FocusResultToastIconSource, StringComparison.Ordinal);
+
+        viewModel.CloseFocusResultToastCommand.Execute(null);
+        Assert.False(viewModel.IsFocusResultToastVisible);
     }
 
     [Fact]

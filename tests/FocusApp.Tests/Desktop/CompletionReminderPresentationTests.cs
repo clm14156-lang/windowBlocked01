@@ -77,6 +77,48 @@ public sealed class CompletionReminderPresentationTests
         Assert.Equal("已自动记录到专注统计", FindString(strings, "CompletionReminderRecorded"));
     }
 
+    [Fact]
+    public void FocusResultToast_IsAThreeStateOverlayInsideTheMainContentArea()
+    {
+        var repositoryRoot = FindRepositoryRoot();
+        var window = XDocument.Load(Path.Combine(
+            repositoryRoot, "src", "FocusApp.Desktop", "MainWindow.xaml"));
+        var overlay = Assert.Single(window.Descendants(Presentation + "Grid").Where(grid =>
+            (string?)grid.Attribute(Xaml + "Name") == "FocusResultToastOverlay"));
+        Assert.Equal("1", (string?)overlay.Attribute("Grid.Column"));
+        Assert.Equal("Center", (string?)overlay.Attribute("HorizontalAlignment"));
+        Assert.Equal("Top", (string?)overlay.Attribute("VerticalAlignment"));
+        Assert.Contains(overlay.Descendants(Presentation + "DataTrigger"), trigger =>
+            (string?)trigger.Attribute("Binding") == "{Binding IsFocusResultToastVisible}" &&
+            (string?)trigger.Attribute("Value") == "True");
+
+        var card = Assert.Single(overlay.Elements(Presentation + "Border"));
+        Assert.Equal("360", (string?)card.Attribute("Width"));
+        Assert.Equal("60", (string?)card.Attribute("Height"));
+        Assert.Equal("0,65,0,0", (string?)card.Attribute("Margin"));
+        Assert.Equal("14", (string?)card.Attribute("CornerRadius"));
+        Assert.Equal("1", (string?)card.Attribute("BorderThickness"));
+
+        var icon = Assert.Single(card.Descendants(Presentation + "Image"));
+        Assert.Equal("36", (string?)icon.Attribute("Width"));
+        Assert.Equal("36", (string?)icon.Attribute("Height"));
+        Assert.Equal("{Binding FocusResultToastIconSource, Mode=OneWay}", (string?)icon.Attribute("Source"));
+
+        var close = Assert.Single(card.Descendants(Presentation + "Button"));
+        Assert.Equal("28", (string?)close.Attribute("Width"));
+        Assert.Equal("28", (string?)close.Attribute("Height"));
+        Assert.Equal("{Binding CloseFocusResultToastCommand}", (string?)close.Attribute("Command"));
+
+        var project = XDocument.Load(Path.Combine(
+            repositoryRoot, "src", "FocusApp.Desktop", "FocusApp.Desktop.csproj"));
+        var resources = project.Descendants("Resource")
+            .Select(resource => (string?)resource.Attribute("Include"))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        Assert.Contains("Assets\\Themes\\Solid\\Orange\\toast_gouxuan.png", resources);
+        Assert.Contains("Assets\\Themes\\Solid\\Orange\\toast_tixing.png", resources);
+        Assert.Contains("Assets\\Themes\\Solid\\Orange\\toast_jinggao.png", resources);
+    }
+
     private static void AssertImage(XContainer window, string fileName, string width, string height)
     {
         var image = Assert.Single(window.Descendants(Presentation + "Image").Where(element =>

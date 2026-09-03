@@ -120,9 +120,14 @@ internal sealed class TrayApplication : IDisposable
             var path = Path.Combine(AppContext.BaseDirectory, "FocusApp.Desktop.exe");
             if (!File.Exists(path))
             {
+                var configuration = new DirectoryInfo(AppContext.BaseDirectory).Parent?.Name;
+                if (configuration is not ("Debug" or "Release"))
+                {
+                    configuration = "Debug";
+                }
                 path = Path.GetFullPath(Path.Combine(
                     AppContext.BaseDirectory,
-                    "..", "..", "..", "..", "FocusApp.Desktop", "bin", "Release", "net8.0-windows", "FocusApp.Desktop.exe"));
+                    "..", "..", "..", "..", "FocusApp.Desktop", "bin", configuration, "net8.0-windows", "FocusApp.Desktop.exe"));
             }
             if (File.Exists(path)) Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
         }

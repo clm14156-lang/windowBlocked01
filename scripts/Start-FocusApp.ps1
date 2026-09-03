@@ -1,14 +1,20 @@
 [CmdletBinding()]
-param()
+param(
+    [ValidateSet('Debug', 'Release')]
+    [string]$Configuration = 'Debug'
+)
 
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
 $runningApplications = Get-CimInstance Win32_Process | Where-Object {
-    $_.Name -in @('FocusApp.Desktop.exe', 'FocusApp.Service.exe', 'FocusApp.Agent.exe') -and
-    $_.ExecutablePath -like "$repositoryRoot\*"
+    $_.Name -in @('FocusApp.Desktop.exe', 'FocusApp.Service.exe', 'FocusApp.Agent.exe')
 }
 if ($runningApplications)
 {
-    Write-Error 'FocusApp is already running. Run scripts\Stop-FocusApp.ps1 before starting it again.'
+    $runningPaths = $runningApplications | ForEach-Object {
+        if ([string]::IsNullOrWhiteSpace($_.ExecutablePath)) { $_.Name } else { $_.ExecutablePath }
+    }
+    Write-Error ("FocusApp is already running. Run scripts\Stop-FocusApp.ps1 before starting it again.`n" +
+        ($runningPaths -join "`n"))
     exit 1
 }
 
@@ -36,7 +42,7 @@ if ($LASTEXITCODE -ne 0)
     exit $LASTEXITCODE
 }
 
-dotnet build FocusApp.sln --no-restore
+dotnet build FocusApp.sln --no-restore --configuration $Configuration
 if ($LASTEXITCODE -ne 0)
 {
     Write-Error 'FocusApp build failed. No components were started.'
@@ -54,7 +60,7 @@ foreach ($component in $components)
     $command = @"
 `$Host.UI.RawUI.WindowTitle = '$($component.Title)'
 Set-Location -LiteralPath '$repositoryRoot'
-dotnet run --no-build --project '$($component.Project)'
+dotnet run --no-build --configuration '$Configuration' --project '$($component.Project)'
 "@
 
     Start-Process -FilePath 'powershell.exe' -ArgumentList @('-NoExit', '-Command', $command)

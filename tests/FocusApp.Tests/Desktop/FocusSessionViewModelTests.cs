@@ -279,6 +279,83 @@ public sealed class FocusSessionViewModelTests
         Assert.Equal(elapsedSeconds, viewModel.LastCompletion!.ActualDuration.TotalSeconds);
     }
 
+    [Fact]
+    public void ConfirmEndAndReturnHome_FromFiveMinutes_SavesAndRaisesOneHomeResult()
+    {
+        var viewModel = CreateViewModel();
+        FocusResultReturnedHomeEventArgs? result = null;
+        var resultCount = 0;
+        viewModel.FocusResultReturnedHome += (_, e) =>
+        {
+            result = e;
+            resultCount++;
+        };
+        viewModel.Start(30);
+        Advance(viewModel, 5);
+        Advance(viewModel, 5 * 60);
+        viewModel.RequestEndCommand.Execute(null);
+
+        viewModel.ConfirmEndAndReturnHomeCommand.Execute(null);
+
+        Assert.Equal(FocusFlowStage.Idle, viewModel.Stage);
+        Assert.Single(viewModel.CompletionHistory);
+        Assert.NotNull(result);
+        Assert.Equal(FocusResultKind.EarlyEndedSaved, result!.Kind);
+        Assert.Equal(TimeSpan.FromMinutes(5), result.Duration);
+        Assert.Equal(1, resultCount);
+
+        viewModel.ReturnHomeCommand.Execute(null);
+        Assert.Equal(1, resultCount);
+    }
+
+    [Fact]
+    public void DiscardEnd_RaisesOneUnsavedHomeResultAfterReturningIdle()
+    {
+        var viewModel = CreateViewModel();
+        FocusResultReturnedHomeEventArgs? result = null;
+        FocusFlowStage? stageWhenRaised = null;
+        viewModel.FocusResultReturnedHome += (_, e) =>
+        {
+            result = e;
+            stageWhenRaised = viewModel.Stage;
+        };
+        viewModel.Start(30);
+        Advance(viewModel, 5);
+        Advance(viewModel, 59);
+        viewModel.RequestEndCommand.Execute(null);
+
+        viewModel.DiscardEndCommand.Execute(null);
+
+        Assert.Equal(FocusFlowStage.Idle, stageWhenRaised);
+        Assert.NotNull(result);
+        Assert.Equal(FocusResultKind.EarlyEndedDiscarded, result!.Kind);
+        Assert.Equal(TimeSpan.FromSeconds(59), result.Duration);
+        Assert.Empty(viewModel.CompletionHistory);
+    }
+
+    [Fact]
+    public void NaturalCompletion_RaisesResultOnlyWhenReturningHome_WithCompletedTaskCount()
+    {
+        var target = new FocusTargetViewModel("学习", ["第一项", "第二项"]);
+        var viewModel = CreateViewModel();
+        FocusResultReturnedHomeEventArgs? result = null;
+        viewModel.FocusResultReturnedHome += (_, e) => result = e;
+        viewModel.Start(1, target);
+        Advance(viewModel, 5);
+        viewModel.ToggleTaskCompletedCommand.Execute(viewModel.PendingTasks[0]);
+        Advance(viewModel, 60);
+
+        Assert.Equal(FocusFlowStage.Completed, viewModel.Stage);
+        Assert.Null(result);
+
+        viewModel.ReturnHomeCommand.Execute(null);
+
+        Assert.NotNull(result);
+        Assert.Equal(FocusResultKind.NaturalCompleted, result!.Kind);
+        Assert.Equal(TimeSpan.FromMinutes(1), result.Duration);
+        Assert.Equal(1, result.CompletedTaskCount);
+    }
+
     [Theory]
     [InlineData(1, "1 秒")]
     [InlineData(15, "15 秒")]

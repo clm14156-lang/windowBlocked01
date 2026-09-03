@@ -51,6 +51,9 @@
     <Resource Include="Assets\Themes\Solid\Orange\focusPage_OrangeLine.png" />
     <Resource Include="Assets\Themes\Solid\Orange\mubiao.png" />
     <Resource Include="Assets\Themes\Solid\Orange\renwugaunli.png" />
+    <Resource Include="Assets\Themes\Solid\Orange\toast_gouxuan.png" />
+    <Resource Include="Assets\Themes\Solid\Orange\toast_tixing.png" />
+    <Resource Include="Assets\Themes\Solid\Orange\toast_jinggao.png" />
     <Resource Include="Assets\font\SourceHanSerifCN-Light-Subset.otf" />
     <Resource Include="Assets\font\SourceHanSerifCN-Regular-Subset.otf" />
   </ItemGroup>

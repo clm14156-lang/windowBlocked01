@@ -319,6 +319,7 @@ public partial class MainWindow : Window
             if (DataContext is MainWindowViewModel viewModel)
             {
                 viewModel.CloseCompletionReminderCommand.Execute(null);
+                viewModel.CloseFocusResultToastCommand.Execute(null);
             }
         }
     }

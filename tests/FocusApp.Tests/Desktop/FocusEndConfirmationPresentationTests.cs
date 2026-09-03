@@ -78,7 +78,7 @@ public sealed class FocusEndConfirmationPresentationTests
         var endButton = Assert.Single(dialog.Descendants(Presentation + "Button").Where(button =>
             (string?)button.Attribute(Xaml + "Name") == "FocusEndConfirmationButton"));
         Assert.Equal("2", (string?)endButton.Attribute("Grid.Column"));
-        Assert.Equal("{Binding ConfirmEndCommand}", (string?)endButton.Attribute("Command"));
+        Assert.Equal("{Binding ConfirmEndAndReturnHomeCommand}", (string?)endButton.Attribute("Command"));
         Assert.Equal("{DynamicResource AccentPrimary}", (string?)endButton.Attribute("Background"));
 
         var continueButton = Assert.Single(dialog.Descendants(Presentation + "Button").Where(button =>

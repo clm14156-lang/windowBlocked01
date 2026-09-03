@@ -1,15 +1,13 @@
 [CmdletBinding()]
 param()
 
-$repositoryRoot = Split-Path -Parent $PSScriptRoot
 $projectPattern = 'FocusApp\.(Desktop|Service|Agent)\.csproj'
 $applicationNames = @('FocusApp.Desktop.exe', 'FocusApp.Service.exe', 'FocusApp.Agent.exe')
 
 function Get-FocusAppProcesses
 {
     Get-CimInstance Win32_Process | Where-Object {
-        $isFocusAppApplication = $_.Name -in $applicationNames -and
-            $_.ExecutablePath -like "$repositoryRoot\*"
+        $isFocusAppApplication = $_.Name -in $applicationNames
         $isFocusAppHost = $_.Name -in @('dotnet.exe', 'powershell.exe') -and
             $_.CommandLine -match $projectPattern
 

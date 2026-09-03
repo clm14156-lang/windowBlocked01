@@ -1043,7 +1043,7 @@
                             <Button x:Name="FocusContinueConfirmationButton" Grid.Column="0" Height="42" AutomationProperties.Name="{DynamicResource FocusContinueAction}" Command="{Binding ContinueFocusCommand}" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" Style="{StaticResource FocusFlowOutlineButton}">
                                 <TextBlock FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource FocusContinueAction}" />
                             </Button>
-                            <Button x:Name="FocusEndConfirmationButton" Grid.Column="2" Height="42" AutomationProperties.Name="{DynamicResource FocusConfirmEndAction}" Command="{Binding ConfirmEndCommand}" Background="{DynamicResource AccentPrimary}" BorderThickness="0" Style="{StaticResource FocusEndConfirmationAccentButton}">
+                            <Button x:Name="FocusEndConfirmationButton" Grid.Column="2" Height="42" AutomationProperties.Name="{DynamicResource FocusConfirmEndAction}" Command="{Binding ConfirmEndAndReturnHomeCommand}" Background="{DynamicResource AccentPrimary}" BorderThickness="0" Style="{StaticResource FocusEndConfirmationAccentButton}">
                                 <TextBlock FontSize="13" FontWeight="Medium" Foreground="{DynamicResource WhiteText}" Text="{DynamicResource FocusConfirmEndAction}" />
                             </Button>
                         </Grid>

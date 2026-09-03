@@ -833,6 +833,116 @@
                 </Border>
             </Grid>
 
+            <Grid x:Name="FocusResultToastOverlay"
+                  Grid.Column="1"
+                  Panel.ZIndex="190"
+                  HorizontalAlignment="Center"
+                  VerticalAlignment="Top"
+                  IsHitTestVisible="True">
+                <Grid.Style>
+                    <Style TargetType="{x:Type Grid}">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsFocusResultToastVisible}" Value="True">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
+                <Border Width="360"
+                        Height="60"
+                        Margin="0,65,0,0"
+                        Padding="14,8,10,8"
+                        Background="#FFFFFFFF"
+                        BorderBrush="#FFE9E9EC"
+                        BorderThickness="1"
+                        CornerRadius="14">
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="16"
+                                          Direction="270"
+                                          Opacity="0.10"
+                                          ShadowDepth="3"
+                                          Color="#FF555B66" />
+                    </Border.Effect>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="44" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="28" />
+                        </Grid.ColumnDefinitions>
+
+                        <Image Width="36"
+                               Height="36"
+                               HorizontalAlignment="Left"
+                               VerticalAlignment="Center"
+                               RenderOptions.BitmapScalingMode="HighQuality"
+                               Source="{Binding FocusResultToastIconSource, Mode=OneWay}"
+                               Stretch="Uniform" />
+
+                        <StackPanel Grid.Column="1"
+                                    Margin="4,0,8,0"
+                                    VerticalAlignment="Center">
+                            <TextBlock FontSize="15"
+                                       FontWeight="Medium"
+                                       Foreground="#FF1D1D1F"
+                                       Text="{Binding FocusResultToastTitle, Mode=OneWay}"
+                                       TextTrimming="CharacterEllipsis" />
+                            <TextBlock Margin="0,2,0,0"
+                                       FontSize="12"
+                                       FontWeight="Normal"
+                                       Text="{Binding FocusResultToastSubtitle, Mode=OneWay}"
+                                       TextTrimming="CharacterEllipsis">
+                                <TextBlock.Style>
+                                    <Style TargetType="{x:Type TextBlock}">
+                                        <Setter Property="Foreground" Value="#FF7A7D86" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding FocusResultToastKind}"
+                                                         Value="{x:Static vm:FocusResultKind.EarlyEndedDiscarded}">
+                                                <Setter Property="Foreground" Value="#FFFF5A36" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+
+                        <Button Grid.Column="2"
+                                Width="28"
+                                Height="28"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Center"
+                                AutomationProperties.Name="关闭专注结果提示"
+                                Command="{Binding CloseFocusResultToastCommand}"
+                                Cursor="Hand"
+                                FocusVisualStyle="{x:Null}">
+                            <Button.Template>
+                                <ControlTemplate TargetType="{x:Type Button}">
+                                    <Border x:Name="CloseBackground"
+                                            Background="Transparent"
+                                            CornerRadius="14">
+                                        <TextBlock HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center"
+                                                   FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI"
+                                                   FontSize="14"
+                                                   FontWeight="Normal"
+                                                   Foreground="#FF7C7F87"
+                                                   Text="×" />
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="CloseBackground" Property="Background" Value="#FFF3F3F3" />
+                                        </Trigger>
+                                        <Trigger Property="IsPressed" Value="True">
+                                            <Setter TargetName="CloseBackground" Property="Background" Value="#FFEAEAEA" />
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                    </Grid>
+                </Border>
+            </Grid>
+
             <views:FocusFlowView Grid.ColumnSpan="2"
                                  Panel.ZIndex="200"
                                  MinimizeRequested="FocusFlowView_MinimizeRequested"
