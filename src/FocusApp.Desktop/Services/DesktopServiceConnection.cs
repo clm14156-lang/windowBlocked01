@@ -281,6 +281,16 @@ public sealed class DesktopServiceConnection : INotifyPropertyChanged, IAsyncDis
             cancellationToken,
             requestId);
 
+    public Task<MutationResult> DiscardNormalFocusAsync(
+        Guid sessionId,
+        CancellationToken cancellationToken = default,
+        Guid? requestId = null)
+        => SendMutationAsync(
+            IpcOperations.DiscardNormalFocus,
+            new DiscardNormalFocusCommand(sessionId),
+            cancellationToken,
+            requestId);
+
     public Task<MutationResult> UpdateFocusTasksAsync(
         UpdateFocusTasksCommand command,
         CancellationToken cancellationToken = default,

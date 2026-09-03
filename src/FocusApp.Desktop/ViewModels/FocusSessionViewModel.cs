@@ -12,6 +12,7 @@ namespace FocusApp.Desktop.ViewModels;
 public sealed class FocusSessionViewModel : INotifyPropertyChanged
 {
     private const int PreparationDurationSeconds = 5;
+    private const int MinimumSavedFocusSeconds = 5 * 60;
     private readonly DispatcherTimer _timer;
     private readonly Func<DateTime> _nowProvider;
     private readonly FocusSessionEngine _engine;
@@ -61,6 +62,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         CancelPreparationCommand = new RelayCommand<object>(_ => CancelPreparation());
         RequestEndCommand = new RelayCommand<object>(_ => OpenEndConfirmation());
         ContinueFocusCommand = new RelayCommand<object>(_ => ContinueFocus());
+        DiscardEndCommand = new RelayCommand<object>(_ => DiscardShortFocus());
         ConfirmEndCommand = new RelayCommand<object>(_ => CompleteFocus());
         RequestFocusAgainCommand = new RelayCommand<object>(_ => OpenFocusAgainConfirmation());
         FocusAgainCommand = new RelayCommand<object>(_ => FocusAgain());
@@ -96,6 +98,8 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
 
     public event EventHandler<FocusSessionCompletedEventArgs>? CompletionRecorded;
 
+    public event EventHandler? FocusDiscarded;
+
     public event EventHandler? AuthoritativeTasksChanged;
 
     public event EventHandler<FocusTargetViewModel>? TargetTasksChanged;
@@ -105,6 +109,8 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     public ICommand RequestEndCommand { get; }
 
     public ICommand ContinueFocusCommand { get; }
+
+    public ICommand DiscardEndCommand { get; }
 
     public ICommand ConfirmEndCommand { get; }
 
@@ -305,7 +311,13 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
 
     public double RemainingProgress => _remainingProgress;
 
-    public string ElapsedTimeDisplay => FormatDuration(TotalFocusSeconds - RemainingFocusSeconds);
+    public int ElapsedFocusSeconds => Math.Max(0, TotalFocusSeconds - RemainingFocusSeconds);
+
+    public string ElapsedTimeDisplay => FormatEndConfirmationDuration(ElapsedFocusSeconds);
+
+    public bool IsShortEndConfirmation => ElapsedFocusSeconds < MinimumSavedFocusSeconds;
+
+    public bool IsNormalEndConfirmation => !IsShortEndConfirmation;
 
     public string CompletedDurationDisplay => FormatDuration(_completedFocusSeconds);
 
@@ -349,7 +361,10 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             _remainingFocusSeconds = value;
             OnPropertyChanged();
             OnPropertyChanged(nameof(RemainingTimeDisplay));
+            OnPropertyChanged(nameof(ElapsedFocusSeconds));
             OnPropertyChanged(nameof(ElapsedTimeDisplay));
+            OnPropertyChanged(nameof(IsShortEndConfirmation));
+            OnPropertyChanged(nameof(IsNormalEndConfirmation));
         }
     }
 
@@ -650,6 +665,10 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     {
         if (_engine.RequestEnd())
         {
+            OnPropertyChanged(nameof(ElapsedFocusSeconds));
+            OnPropertyChanged(nameof(ElapsedTimeDisplay));
+            OnPropertyChanged(nameof(IsShortEndConfirmation));
+            OnPropertyChanged(nameof(IsNormalEndConfirmation));
             IsEndConfirmationOpen = true;
             _timer.Stop();
         }
@@ -664,6 +683,17 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
 
         IsEndConfirmationOpen = false;
         StartTimerIfEnabled();
+    }
+
+    private void DiscardShortFocus()
+    {
+        if (!IsEndConfirmationOpen || !IsShortEndConfirmation || Stage != FocusFlowStage.Focusing)
+        {
+            return;
+        }
+
+        FocusDiscarded?.Invoke(this, EventArgs.Empty);
+        ResetToIdleCore();
     }
 
     private void CompleteFocus()
@@ -1219,6 +1249,21 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         }
 
         return $"{duration.Minutes} 分 {duration.Seconds:00} 秒";
+    }
+
+    private static string FormatEndConfirmationDuration(int totalSeconds)
+    {
+        var secondsTotal = Math.Max(0, totalSeconds);
+        var minutes = secondsTotal / 60;
+        var seconds = secondsTotal % 60;
+        if (minutes == 0)
+        {
+            return $"{seconds} 秒";
+        }
+
+        return seconds == 0
+            ? $"{minutes} 分钟"
+            : $"{minutes} 分 {seconds} 秒";
     }
 
     private (string PrimaryValue, string PrimaryUnit, string SecondaryValue, string SecondaryUnit) GetCompletedDurationParts()

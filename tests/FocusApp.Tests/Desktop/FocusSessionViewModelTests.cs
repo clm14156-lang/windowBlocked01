@@ -226,6 +226,85 @@ public sealed class FocusSessionViewModelTests
     }
 
     [Fact]
+    public void ShortEndConfirmation_AtFourMinutesFortyFourSecondsDiscardsWithoutRecording()
+    {
+        var viewModel = CreateViewModel();
+        var completionEvents = 0;
+        var discardEvents = 0;
+        viewModel.CompletionRecorded += (_, _) => completionEvents++;
+        viewModel.FocusDiscarded += (_, _) => discardEvents++;
+        viewModel.Start(30);
+        Advance(viewModel, 5);
+        Advance(viewModel, 4 * 60 + 44);
+
+        viewModel.RequestEndCommand.Execute(null);
+
+        Assert.True(viewModel.IsEndConfirmationOpen);
+        Assert.True(viewModel.IsShortEndConfirmation);
+        Assert.False(viewModel.IsNormalEndConfirmation);
+        Assert.Equal("4 分 44 秒", viewModel.ElapsedTimeDisplay);
+
+        viewModel.DiscardEndCommand.Execute(null);
+
+        Assert.Equal(FocusFlowStage.Idle, viewModel.Stage);
+        Assert.False(viewModel.IsEndConfirmationOpen);
+        Assert.Empty(viewModel.CompletionHistory);
+        Assert.Null(viewModel.LastCompletion);
+        Assert.Equal(0, completionEvents);
+        Assert.Equal(1, discardEvents);
+    }
+
+    [Theory]
+    [InlineData(5 * 60, "5 分钟")]
+    [InlineData(26 * 60, "26 分钟")]
+    public void NormalEndConfirmation_FromFiveMinutesSavesTheRecord(
+        int elapsedSeconds,
+        string expectedDisplay)
+    {
+        var viewModel = CreateViewModel();
+        viewModel.Start(30);
+        Advance(viewModel, 5);
+        Advance(viewModel, elapsedSeconds);
+
+        viewModel.RequestEndCommand.Execute(null);
+
+        Assert.False(viewModel.IsShortEndConfirmation);
+        Assert.True(viewModel.IsNormalEndConfirmation);
+        Assert.Equal(expectedDisplay, viewModel.ElapsedTimeDisplay);
+
+        viewModel.ConfirmEndCommand.Execute(null);
+
+        Assert.Equal(FocusFlowStage.Completed, viewModel.Stage);
+        Assert.Single(viewModel.CompletionHistory);
+        Assert.Equal(elapsedSeconds, viewModel.LastCompletion!.ActualDuration.TotalSeconds);
+    }
+
+    [Theory]
+    [InlineData(1, "1 秒")]
+    [InlineData(15, "15 秒")]
+    [InlineData(59, "59 秒")]
+    [InlineData(60, "1 分钟")]
+    [InlineData(61, "1 分 1 秒")]
+    [InlineData(75, "1 分 15 秒")]
+    [InlineData(284, "4 分 44 秒")]
+    [InlineData(300, "5 分钟")]
+    [InlineData(1560, "26 分钟")]
+    public void EndConfirmationDuration_OmitsZeroUnitsAndLeadingZeroes(
+        int elapsedSeconds,
+        string expectedDisplay)
+    {
+        var viewModel = CreateViewModel();
+        viewModel.Start(30);
+        Advance(viewModel, 5);
+        Advance(viewModel, elapsedSeconds);
+
+        viewModel.RequestEndCommand.Execute(null);
+
+        Assert.Equal(expectedDisplay, viewModel.ElapsedTimeDisplay);
+        Assert.Equal(elapsedSeconds < 5 * 60, viewModel.IsShortEndConfirmation);
+    }
+
+    [Fact]
     public void NaturalEnd_CompletesAndAccumulatesFullDuration()
     {
         var viewModel = CreateViewModel();

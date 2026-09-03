@@ -140,6 +140,48 @@ public sealed class ForcedFocusRecoveryTests
     }
 
     [Fact]
+    public async Task DiscardNormalFocus_RemovesTheActiveSessionWithoutCreatingHistory()
+    {
+        using var directory = new TemporaryDirectory();
+        var store = await CreateStoreAsync(directory.Path);
+        var now = new DateTimeOffset(2026, 9, 2, 8, 0, 0, TimeSpan.Zero);
+        await using var coordinator = new ServiceStateCoordinator(
+            store,
+            new FakeAccessControlHost(),
+            utcNowProvider: () => now);
+        var sessionId = Guid.NewGuid();
+        var session = new LocalFocusSessionDto(
+            sessionId,
+            LocalFocusSessionStatusDto.Focusing,
+            false,
+            30 * 60,
+            0,
+            now.AddSeconds(-5),
+            now,
+            now.AddMinutes(30),
+            null,
+            null,
+            null,
+            null,
+            false,
+            null,
+            null,
+            []);
+        await SendAsync<StartNormalFocusCommand, MutationResult>(
+            coordinator,
+            IpcOperations.StartNormalFocus,
+            new StartNormalFocusCommand(session));
+
+        var result = await SendAsync<DiscardNormalFocusCommand, MutationResult>(
+            coordinator,
+            IpcOperations.DiscardNormalFocus,
+            new DiscardNormalFocusCommand(sessionId));
+
+        Assert.Empty(result.State.FocusSessions);
+        Assert.Empty((await store.LoadAsync()).FocusSessions);
+    }
+
+    [Fact]
     public async Task ForcedFocus_CompletesInBackgroundWithoutFurtherDesktopRequests()
     {
         using var directory = new TemporaryDirectory();

@@ -74,6 +74,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         HomePage.FocusTargetModal.TargetChanged += FocusTargetModal_TargetChanged;
         HomePage.FocusTargetModal.SelectionChanged += FocusTargetModal_SelectionChanged;
         HomePage.FocusSession.CompletionRecorded += FocusSession_CompletionRecorded;
+        HomePage.FocusSession.FocusDiscarded += FocusSession_FocusDiscarded;
         HomePage.FocusSession.TargetTasksChanged += FocusTargetModal_TargetChanged;
         HomePage.FocusSession.TargetTasksChanged += FocusSession_TargetTasksChanged;
         HomePage.FocusSession.PropertyChanged += FocusSession_PropertyChanged;
@@ -628,6 +629,46 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             ? taskText
             : string.IsNullOrWhiteSpace(taskText) ? targetName : $"{targetName} · {taskText}";
         IsCompletionReminderVisible = true;
+    }
+
+    private async void FocusSession_FocusDiscarded(object? sender, EventArgs e)
+    {
+        if (_normalFocusSessionId is not { } sessionId)
+        {
+            return;
+        }
+
+        await _normalFocusPersistenceGate.WaitAsync();
+        try
+        {
+            if (_normalFocusSessionId != sessionId)
+            {
+                return;
+            }
+
+            try
+            {
+                if (ServiceConnection is not null && ServiceConnection.IsConnected)
+                {
+                    await ServiceConnection.DiscardNormalFocusAsync(sessionId);
+                }
+            }
+            catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException)
+            {
+            }
+            finally
+            {
+                if (_normalFocusSessionId == sessionId)
+                {
+                    _normalFocusSessionId = null;
+                    _normalFocusStartedAtUtc = null;
+                }
+            }
+        }
+        finally
+        {
+            _normalFocusPersistenceGate.Release();
+        }
     }
 
     private static string FormatCompletionReminderTimeRange(DateTime startedAt, DateTime completedAt)

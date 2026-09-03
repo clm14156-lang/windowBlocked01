@@ -22,6 +22,7 @@ public static class IpcOperations
     public const string EndForcedFocusForDebug = "focus.forced.end-debug";
 #endif
     public const string StartNormalFocus = "focus.normal.start";
+    public const string DiscardNormalFocus = "focus.normal.discard";
     public const string UpdateFocusTasks = "focus.tasks.update";
     public const string UpdateForcedFocusTasks = "focus.forced.tasks.update";
     public const string RecordCompletedFocus = "focus.completed.record";
@@ -94,6 +95,8 @@ public sealed record StartForcedFocusCommand(
 public sealed record CancelForcedFocusStartingCommand(Guid SessionId);
 
 public sealed record StartNormalFocusCommand(LocalFocusSessionDto Session);
+
+public sealed record DiscardNormalFocusCommand(Guid SessionId);
 
 public sealed record UpdateFocusTasksCommand(
     Guid SessionId,

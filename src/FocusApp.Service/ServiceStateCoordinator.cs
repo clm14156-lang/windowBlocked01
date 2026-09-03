@@ -124,6 +124,7 @@ public sealed class ServiceStateCoordinator : IAsyncDisposable
                     await EndForcedFocusForDebugAsync(cancellationToken)),
 #endif
                 IpcOperations.StartNormalFocus => await StartNormalFocusAsync(request, cancellationToken),
+                IpcOperations.DiscardNormalFocus => await DiscardNormalFocusAsync(request, cancellationToken),
                 IpcOperations.UpdateFocusTasks => await UpdateFocusTasksAsync(request, cancellationToken),
                 IpcOperations.UpdateForcedFocusTasks => IpcEnvelope.CreateSuccess(
                     request,
@@ -336,6 +337,32 @@ public sealed class ServiceStateCoordinator : IAsyncDisposable
             }
 
             await _store.SaveFocusSessionAsync(session, cancellationToken: token);
+        }, cancellationToken);
+    }
+
+    private async Task<IpcEnvelope> DiscardNormalFocusAsync(IpcEnvelope request, CancellationToken cancellationToken)
+    {
+        var command = request.ReadPayload<DiscardNormalFocusCommand>();
+        if (command.SessionId == Guid.Empty)
+        {
+            throw new ArgumentException("会话 ID 不能为空。", nameof(command));
+        }
+
+        return await MutateAsync(request, async token =>
+        {
+            var snapshot = await _store.LoadAsync(token);
+            var session = snapshot.FocusSessions.SingleOrDefault(item => item.SessionId == command.SessionId);
+            if (session is null)
+            {
+                return;
+            }
+
+            if (session.IsForcedMode || !IsActiveSession(session))
+            {
+                throw new ServiceBusinessException("只能放弃进行中的普通专注会话。");
+            }
+
+            await _store.DeleteFocusSessionAsync(command.SessionId, token);
         }, cancellationToken);
     }
 
