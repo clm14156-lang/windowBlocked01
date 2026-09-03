@@ -36,6 +36,79 @@
             </Setter>
         </Style>
 
+        <Style x:Key="FocusTaskWindowCloseButton" TargetType="{x:Type Button}">
+            <Setter Property="Width" Value="28" />
+            <Setter Property="Height" Value="28" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="#808080" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border x:Name="CloseBackground"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="14">
+                            <Path Width="13"
+                                  Height="13"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center"
+                                  Data="M 1.5,1.5 L 11.5,11.5 M 11.5,1.5 L 1.5,11.5"
+                                  Fill="{x:Null}"
+                                  Stroke="{TemplateBinding Foreground}"
+                                  StrokeThickness="1.2"
+                                  StrokeStartLineCap="Round"
+                                  StrokeEndLineCap="Round"
+                                  Stretch="Uniform" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="CloseBackground" Property="Background" Value="#F3F3F3" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="CloseBackground" Property="Background" Value="#EDEDED" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="FocusTaskWindowMenuItemButton" TargetType="{x:Type Button}">
+            <Setter Property="Height" Value="35" />
+            <Setter Property="Padding" Value="14,0" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border x:Name="MenuItemBackground"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="6">
+                            <ContentPresenter Margin="{TemplateBinding Padding}"
+                                              HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                              TextElement.FontSize="{TemplateBinding FontSize}"
+                                              TextElement.Foreground="{TemplateBinding Foreground}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="MenuItemBackground" Property="Background" Value="#F5F5F7" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="MenuItemBackground" Property="Background" Value="#EFEFF1" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="FocusTaskWindowEditorStyle" TargetType="{x:Type TextBox}">
             <Setter Property="Height" Value="36" />
             <Setter Property="Padding" Value="8,0" />
@@ -134,14 +207,12 @@
                         <Run Text="1/" /><Run Text="{Binding PendingTaskCount, Mode=OneWay}" />
                     </TextBlock>
                 </StackPanel>
-                <Button Width="32"
-                        Height="32"
+                <Button Margin="0,0,-4,0"
                         HorizontalAlignment="Right"
+                        VerticalAlignment="Center"
                         AutomationProperties.Name="{DynamicResource FocusCloseTaskWindow}"
                         Click="CloseButton_Click"
-                        Style="{StaticResource FocusTaskWindowPlainButton}">
-                    <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="16" Foreground="{DynamicResource TextSecondary}" Text="&#xE70D;" />
-                </Button>
+                        Style="{StaticResource FocusTaskWindowCloseButton}" />
             </Grid>
 
             <Border Grid.Row="1" Background="{DynamicResource BorderPrimary}" />
@@ -215,31 +286,56 @@
                                             </TextBlock.Style>
                                         </TextBlock>
                                     </Grid>
-                                    <Button Width="30"
+                                    <Button x:Name="TaskMenuButton"
+                                            Width="30"
                                             Height="30"
                                             HorizontalAlignment="Right"
                                             VerticalAlignment="Center"
                                             Command="{Binding DataContext.ToggleTaskMenuCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
                                             CommandParameter="{Binding}"
                                             Style="{StaticResource FocusTaskWindowPlainButton}"
+                                            Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
                                             ToolTip="{DynamicResource FocusTaskMenu}">
                                         <TextBlock FontSize="17" Foreground="{DynamicResource TextSecondary}" Text="···" />
                                     </Button>
-                                    <Border Width="126"
-                                            Margin="0,0,-4,0"
-                                            HorizontalAlignment="Right"
-                                            VerticalAlignment="Center"
-                                            Panel.ZIndex="5"
-                                            Background="{DynamicResource SurfacePrimary}"
-                                            BorderBrush="{DynamicResource BorderPrimary}"
-                                            BorderThickness="1"
-                                            CornerRadius="10"
-                                            Visibility="{Binding IsFocusMenuOpen, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                        <StackPanel>
-                                            <Button Height="34" Command="{Binding DataContext.BeginEditTaskCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}" CommandParameter="{Binding}" Style="{StaticResource FocusTaskWindowPlainButton}"><TextBlock Margin="12,0" HorizontalAlignment="Left" FontSize="13" Text="{DynamicResource FocusRenameTask}" /></Button>
-                                            <Button Height="34" Command="{Binding DataContext.DeleteTaskCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}" CommandParameter="{Binding}" Style="{StaticResource FocusTaskWindowPlainButton}"><TextBlock Margin="12,0" HorizontalAlignment="Left" FontSize="13" Foreground="{DynamicResource Danger}" Text="{DynamicResource FocusDeleteTask}" /></Button>
-                                        </StackPanel>
-                                    </Border>
+                                    <Popup AllowsTransparency="True"
+                                           HorizontalOffset="-86"
+                                           IsOpen="{Binding IsFocusMenuOpen, Mode=TwoWay}"
+                                           Placement="Bottom"
+                                           PlacementTarget="{Binding ElementName=TaskMenuButton}"
+                                           PopupAnimation="Fade"
+                                           StaysOpen="False"
+                                           VerticalOffset="7">
+                                        <Border Width="116"
+                                                Padding="4"
+                                                DataContext="{Binding DataContext, ElementName=TaskMenuButton}"
+                                                Tag="{Binding Tag, ElementName=TaskMenuButton}"
+                                                Background="#FFFFFF"
+                                                BorderBrush="#EAEAEA"
+                                                BorderThickness="1"
+                                                CornerRadius="9">
+                                            <Border.Effect>
+                                                <DropShadowEffect BlurRadius="12" Direction="270" Opacity="0.08" ShadowDepth="4" />
+                                            </Border.Effect>
+                                            <StackPanel>
+                                                <Button Command="{Binding Tag.BeginEditTaskCommand, RelativeSource={RelativeSource AncestorType={x:Type Border}}}"
+                                                        CommandParameter="{Binding}"
+                                                        Foreground="{DynamicResource TextPrimary}"
+                                                        Style="{StaticResource FocusTaskWindowMenuItemButton}">
+                                                    <TextBlock Foreground="{DynamicResource TextPrimary}"
+                                                               Text="{DynamicResource FocusRenameTask}" />
+                                                </Button>
+                                                <Border Height="1" Margin="10,0" Background="#EFEFEF" />
+                                                <Button Command="{Binding Tag.DeleteTaskCommand, RelativeSource={RelativeSource AncestorType={x:Type Border}}}"
+                                                        CommandParameter="{Binding}"
+                                                        Foreground="#FF3B30"
+                                                        Style="{StaticResource FocusTaskWindowMenuItemButton}">
+                                                    <TextBlock Foreground="#FF3B30"
+                                                               Text="{DynamicResource FocusDeleteTask}" />
+                                                </Button>
+                                            </StackPanel>
+                                        </Border>
+                                    </Popup>
                                     <Border Height="1" Margin="0,56,0,0" Background="{DynamicResource BorderPrimary}" />
                                     <Border Height="2" VerticalAlignment="Top" Panel.ZIndex="10" Background="{DynamicResource AccentPrimary}" CornerRadius="1" IsHitTestVisible="False" Visibility="{Binding ShowDropBefore, Converter={StaticResource BooleanToVisibilityConverter}}" />
                                     <Border Height="2" VerticalAlignment="Bottom" Panel.ZIndex="10" Background="{DynamicResource AccentPrimary}" CornerRadius="1" IsHitTestVisible="False" Visibility="{Binding ShowDropAfter, Converter={StaticResource BooleanToVisibilityConverter}}" />

@@ -29,6 +29,7 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
 
     public event PropertyChangedEventHandler? PropertyChanged;
     public event EventHandler? DurationOptionsChanged;
+    public event EventHandler? BlockingPageRequested;
     public event Action<Guid>? ManageAutomaticRuleRequested;
 
     public HomePageViewModel(
@@ -361,7 +362,13 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
 
     private void OpenBlockedContent()
     {
-        if (HasBlockingContent) BlockedContentModal.Open();
+        if (HasBlockingContent)
+        {
+            BlockedContentModal.Open();
+            return;
+        }
+
+        BlockingPageRequested?.Invoke(this, EventArgs.Empty);
     }
 
     private bool ConfirmCustomTime(int minutes)

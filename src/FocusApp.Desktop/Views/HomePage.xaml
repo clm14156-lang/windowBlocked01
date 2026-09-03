@@ -426,23 +426,39 @@
                             </Popup>
                         </Grid>
                     </StackPanel>
-                    <TextBlock Margin="0,4,0,0"
-                               FontSize="12"
-                               FontWeight="Normal"
-                               Foreground="{DynamicResource TextTertiary}">
-                        <TextBlock.Style>
-                            <Style TargetType="{x:Type TextBlock}">
-                                <Setter Property="Visibility" Value="Collapsed" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding HasBlockingContent}" Value="True">
-                                        <Setter Property="Visibility" Value="Visible" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </TextBlock.Style>
-                        <Run Text="{Binding EnabledBlockingCount, Mode=OneWay}" />
-                        <Run Text="{DynamicResource HomeBlockingCountSuffix}" />
-                    </TextBlock>
+                    <Grid Margin="0,4,0,0">
+                        <TextBlock FontSize="12"
+                                   FontWeight="Normal"
+                                   Foreground="{DynamicResource TextTertiary}">
+                            <TextBlock.Style>
+                                <Style TargetType="{x:Type TextBlock}">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasBlockingContent}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                            <Run Text="{Binding EnabledBlockingCount, Mode=OneWay}" />
+                            <Run Text="{DynamicResource HomeBlockingCountSuffix}" />
+                        </TextBlock>
+                        <TextBlock FontSize="12"
+                                   FontWeight="Normal"
+                                   Foreground="#999999"
+                                   Text="{DynamicResource HomeBlockingEmpty}">
+                            <TextBlock.Style>
+                                <Style TargetType="{x:Type TextBlock}">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasBlockingContent}" Value="True">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Grid>
                 </StackPanel>
 
                 <StackPanel Grid.Column="2" Margin="12,0,17,0" VerticalAlignment="Center" Orientation="Horizontal">
@@ -480,6 +496,7 @@
                             <Setter Property="BorderThickness" Value="0" />
                             <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}" />
                             <Setter Property="FontWeight" Value="Medium" />
+                            <Setter Property="Cursor" Value="Hand" />
                             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
                             <Setter Property="Template">
                                 <Setter.Value>
@@ -489,6 +506,9 @@
                                                               VerticalAlignment="Center" />
                                         </Border>
                                         <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Opacity" Value="0.84" />
+                                            </Trigger>
                                             <Trigger Property="IsPressed" Value="True">
                                                 <Setter Property="Opacity" Value="0.72" />
                                             </Trigger>

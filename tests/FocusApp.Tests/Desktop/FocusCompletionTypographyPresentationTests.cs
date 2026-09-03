@@ -81,6 +81,21 @@ public sealed class FocusCompletionTypographyPresentationTests
             (string?)button.Attribute("Command") == "{Binding ToggleCompletedTasksCommand}"));
         Assert.Contains(taskSummaryButton.Descendants(Presentation + "Run"), run =>
             (string?)run.Attribute("Text") == "{DynamicResource FocusCompletedTaskSummaryPrefix}");
+        var taskSummaryChevron = Assert.Single(taskSummaryButton.Descendants(Presentation + "Image").Where(image =>
+            (string?)image.Attribute("Source") ==
+                "/FocusApp.Desktop;component/Assets/Themes/Solid/Orange/zhankai.png"));
+        Assert.Null(taskSummaryChevron.Attribute("Visibility"));
+        Assert.Equal("0", (string?)Assert.Single(taskSummaryChevron.Descendants(Presentation + "RotateTransform")).Attribute("Angle"));
+        Assert.Contains(taskSummaryChevron.Descendants(Presentation + "DataTrigger"), trigger =>
+            (string?)trigger.Attribute("Binding") == "{Binding CanExpandCompletedTasks}" &&
+            (string?)trigger.Attribute("Value") == "False" &&
+            trigger.Descendants(Presentation + "Setter").Any(setter =>
+                (string?)setter.Attribute("Property") == "Opacity" &&
+                (string?)setter.Attribute("Value") == "0.35"));
+        Assert.Contains(taskSummaryChevron.Descendants(Presentation + "DataTrigger"), trigger =>
+            (string?)trigger.Attribute("Binding") == "{Binding IsCompletedTasksExpanded}" &&
+            (string?)trigger.Attribute("Value") == "True");
+        Assert.Equal(2, taskSummaryChevron.Descendants(Presentation + "DoubleAnimation").Count());
         var taskPopup = Assert.Single(targetCompletion.Descendants(Presentation + "Border").Where(border =>
             (string?)border.Attribute(Xaml + "Name") == "SessionCompletedTasksPopup"));
         Assert.Equal("{Binding IsCompletedTasksExpanded, Converter={StaticResource BooleanToVisibilityConverter}}",

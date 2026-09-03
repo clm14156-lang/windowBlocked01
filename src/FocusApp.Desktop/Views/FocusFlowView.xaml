@@ -668,15 +668,53 @@
                             <Image Grid.Column="2"
                                    Width="14"
                                    Height="14"
-                                   Margin="8,0,0,0"
+                                   Margin="8,0,6,0"
                                    HorizontalAlignment="Right"
                                    VerticalAlignment="Center"
+                                   RenderTransformOrigin="0.5,0.5"
                                    Source="/FocusApp.Desktop;component/Assets/Themes/Solid/Orange/zhankai.png"
-                                   Stretch="Uniform"
-                                   Visibility="{Binding CanExpandCompletedTasks, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                   Stretch="Uniform">
                                 <Image.RenderTransform>
-                                    <RotateTransform Angle="90" />
+                                    <RotateTransform Angle="0" />
                                 </Image.RenderTransform>
+                                <Image.Style>
+                                    <Style TargetType="{x:Type Image}">
+                                        <Setter Property="Opacity" Value="1" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding CanExpandCompletedTasks}" Value="False">
+                                                <Setter Property="Opacity" Value="0.35" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding IsCompletedTasksExpanded}" Value="True">
+                                                <DataTrigger.EnterActions>
+                                                    <BeginStoryboard>
+                                                        <Storyboard>
+                                                            <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)"
+                                                                             To="90"
+                                                                             Duration="0:0:0.14">
+                                                                <DoubleAnimation.EasingFunction>
+                                                                    <SineEase EasingMode="EaseOut" />
+                                                                </DoubleAnimation.EasingFunction>
+                                                            </DoubleAnimation>
+                                                        </Storyboard>
+                                                    </BeginStoryboard>
+                                                </DataTrigger.EnterActions>
+                                                <DataTrigger.ExitActions>
+                                                    <BeginStoryboard>
+                                                        <Storyboard>
+                                                            <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)"
+                                                                             To="0"
+                                                                             Duration="0:0:0.14">
+                                                                <DoubleAnimation.EasingFunction>
+                                                                    <SineEase EasingMode="EaseOut" />
+                                                                </DoubleAnimation.EasingFunction>
+                                                            </DoubleAnimation>
+                                                        </Storyboard>
+                                                    </BeginStoryboard>
+                                                </DataTrigger.ExitActions>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Image.Style>
                             </Image>
                         </Grid>
                     </Button>

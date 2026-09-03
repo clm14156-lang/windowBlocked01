@@ -69,6 +69,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         SettingsPage.FocusSoundChanged += SettingsPage_FocusSoundChanged;
         SettingsPage.RulesChanged += SettingsPage_RulesChanged;
         HomePage.DurationOptionsChanged += HomePage_DurationOptionsChanged;
+        HomePage.BlockingPageRequested += HomePage_BlockingPageRequested;
         HomePage.ManageAutomaticRuleRequested += HomePage_ManageAutomaticRuleRequested;
         HomePage.FocusTargetModal.TargetChanged += FocusTargetModal_TargetChanged;
         HomePage.FocusTargetModal.SelectionChanged += FocusTargetModal_SelectionChanged;
@@ -394,6 +395,16 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
         Navigate(settingsNavigationItem);
         SettingsPage.RequestAutomaticRuleFocus(ruleId);
+    }
+
+    private void HomePage_BlockingPageRequested(object? sender, EventArgs e)
+    {
+        var blockingNavigationItem = PrimaryNavigationItems.FirstOrDefault(
+            item => item.Page == NavigationPage.Blocking);
+        if (blockingNavigationItem is not null)
+        {
+            Navigate(blockingNavigationItem);
+        }
     }
 
     private void ServiceConnection_PropertyChanged(object? sender, PropertyChangedEventArgs e)

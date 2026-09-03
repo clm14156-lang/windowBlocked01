@@ -109,6 +109,26 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
+    public void AddBlockingRuleFromEmptyHomeCard_NavigatesThroughMainWindowBlockingNavigation()
+    {
+        var homeNavigation = new NavigationItemViewModel(NavigationPage.Home, "Home", "H");
+        var blockingNavigation = new NavigationItemViewModel(NavigationPage.Blocking, "Blocking", "B");
+        var account = new NavigationItemViewModel(NavigationPage.Account, "Account", "A");
+        var homePage = new HomePageViewModel(
+            [new HomeDurationOptionViewModel("25 minutes", string.Empty, true, 25)]);
+        var viewModel = new MainWindowViewModel(
+            [homeNavigation, blockingNavigation], account, homePage);
+
+        homePage.OpenBlockedContentCommand.Execute(null);
+
+        Assert.Equal(NavigationPage.Blocking, viewModel.CurrentPage);
+        Assert.False(homeNavigation.IsSelected);
+        Assert.True(blockingNavigation.IsSelected);
+        Assert.False(homePage.BlockedContentModal.IsOpen);
+        Assert.True(viewModel.BlockingPage.IsWebsitesSelected);
+    }
+
+    [Fact]
     public void ManageNextAutomaticRule_NavigatesToSettingsAndHighlightsTheExactRuleId()
     {
         var homeNavigation = new NavigationItemViewModel(NavigationPage.Home, "Home", "H");
