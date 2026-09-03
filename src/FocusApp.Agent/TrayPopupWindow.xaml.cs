@@ -35,12 +35,6 @@ public partial class TrayPopupWindow : Window
         StatusText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(isForced ? "#E87516" : isFocusing ? "#22A968" : "#1D1D1F"));
         TimerText.Visibility = isFocusing ? Visibility.Visible : Visibility.Collapsed;
         IdleHint.Visibility = isFocusing ? Visibility.Collapsed : Visibility.Visible;
-        TargetText.Text = active?.TargetNameSnapshot ?? string.Empty;
-        TargetText.Visibility = string.IsNullOrWhiteSpace(TargetText.Text) ? Visibility.Collapsed : Visibility.Visible;
-        var taskCount = active?.CompletedTasks.Count ?? 0;
-        var totalTasks = active is null ? 0 : snapshot!.Tasks.Count(task => task.TargetId == active.TargetId);
-        TasksText.Text = totalTasks > 0 ? $"完成 {taskCount} / {totalTasks} 个任务" : string.Empty;
-        TasksText.Visibility = totalTasks > 0 ? Visibility.Visible : Visibility.Collapsed;
         BlockingButton.Visibility = isFocusing ? Visibility.Visible : Visibility.Visible;
         ExitButton.IsEnabled = !isForced;
         ExitIcon.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(isForced ? "#AEAEB2" : "#F04444"));

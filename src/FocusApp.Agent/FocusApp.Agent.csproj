@@ -15,4 +15,9 @@
     <ProjectReference Include="..\FocusApp.Contracts\FocusApp.Contracts.csproj" />
     <ProjectReference Include="..\FocusApp.Infrastructure\FocusApp.Infrastructure.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="..\FocusApp.Desktop\Assets\Themes\Solid\Orange\sidebar-logo.png"
+              Link="Assets\Themes\Solid\Orange\sidebar-logo.png" />
+  </ItemGroup>
 </Project>
