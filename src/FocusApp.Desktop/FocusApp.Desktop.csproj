@@ -47,5 +47,8 @@
     <Resource Include="Assets\Themes\Solid\Orange\gouxuan.png" />
     <Resource Include="Assets\Themes\Solid\Orange\zhankai.png" />
     <Resource Include="Assets\Themes\Solid\Orange\focusPage_OrangeLine.png" />
+    <Resource Include="Assets\Themes\Solid\Orange\mubiao.png" />
+    <Resource Include="Assets\Themes\Solid\Orange\renwugaunli.png" />
+    <Resource Include="Assets\font\SourceHanSerifCN-Regular-Subset.otf" />
   </ItemGroup>
 </Project>

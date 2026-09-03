@@ -116,7 +116,7 @@
                                 Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="14">
+                                CornerRadius="20">
                             <ContentPresenter HorizontalAlignment="Center"
                                               VerticalAlignment="Center"
                                               TextElement.FontWeight="{TemplateBinding FontWeight}"
@@ -144,7 +144,7 @@
                                 Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="14">
+                                CornerRadius="20">
                             <ContentPresenter Margin="5,0"
                                               HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                                               VerticalAlignment="Center"
@@ -350,12 +350,13 @@
                                        Foreground="{DynamicResource TextPrimary}"
                                        Text="{Binding RemainingTimeDisplay}" />
                             <StackPanel Margin="0,3,0,0" HorizontalAlignment="Center" Orientation="Horizontal">
-                                <TextBlock Margin="0,0,8,0"
-                                           VerticalAlignment="Center"
-                                           FontFamily="Segoe MDL2 Assets"
-                                           FontSize="20"
-                                           Foreground="{DynamicResource AccentPrimary}"
-                                           Text="&#xE735;" />
+                                <Image Width="24"
+                                       Height="24"
+                                       Margin="0,0,8,0"
+                                       VerticalAlignment="Center"
+                                       IsHitTestVisible="False"
+                                       Source="/FocusApp.Desktop;component/Assets/Themes/Solid/Orange/mubiao.png"
+                                       Stretch="Uniform" />
                                 <TextBlock VerticalAlignment="Center"
                                            FontSize="17"
                                            Foreground="{DynamicResource TextPrimary}"
@@ -367,14 +368,15 @@
                     <TextBlock Margin="0,476,0,0"
                                HorizontalAlignment="Center"
                                VerticalAlignment="Top"
+                               FontFamily="/FocusApp.Desktop;component/Assets/font/#Source Han Serif CN"
                                FontSize="24"
                                FontWeight="Normal"
                                Foreground="{DynamicResource TextSecondary}"
                                Text="{DynamicResource FocusNoTaskAtmosphere}" />
 
-                    <Image Width="42"
-                           Height="8"
-                           Margin="0,505,0,0"
+                    <Image Width="63"
+                           Height="12"
+                           Margin="0,517,0,0"
                            HorizontalAlignment="Center"
                            VerticalAlignment="Top"
                            IsHitTestVisible="False"
@@ -393,9 +395,12 @@
                         </Grid.ColumnDefinitions>
                         <Grid Grid.Column="0">
                             <Button Height="42"
+                                    Background="#FCF8F1"
+                                    BorderBrush="#E7D9CE"
                                     Command="{Binding RequestEndCommand}"
-                                    Content="{DynamicResource FocusEndAction}"
-                                    FontSize="14">
+                                    FontSize="14"
+                                    FontWeight="Normal"
+                                    Foreground="#9D9690">
                                 <Button.Style>
                                     <Style TargetType="{x:Type Button}" BasedOn="{StaticResource FocusFlowOutlineButton}">
                                         <Setter Property="Visibility" Value="Visible" />
@@ -406,6 +411,10 @@
                                         </Style.Triggers>
                                     </Style>
                                 </Button.Style>
+                                <TextBlock FontSize="14"
+                                           FontWeight="Normal"
+                                           Foreground="#9D9690"
+                                           Text="{DynamicResource FocusEndAction}" />
                             </Button>
                             <Border Height="42"
                                     Padding="10,0"
@@ -430,12 +439,21 @@
                         </Grid>
                         <Button Grid.Column="2"
                                 Height="42"
+                                Background="#FBF2E6"
+                                BorderBrush="#E7D9CE"
                                 Click="ViewTasksButton_Click"
+                                Foreground="#151B23"
                                 FontSize="14"
                                 Style="{StaticResource FocusFlowOutlineButton}">
                             <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
-                                <TextBlock Margin="0,0,9,0" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="17" Text="&#xE8FD;" />
-                                <TextBlock VerticalAlignment="Center" Text="{DynamicResource FocusViewTasks}" />
+                                <Image Width="15"
+                                       Height="15"
+                                       Margin="0,0,9,0"
+                                       VerticalAlignment="Center"
+                                       IsHitTestVisible="False"
+                                       Source="/FocusApp.Desktop;component/Assets/Themes/Solid/Orange/renwugaunli.png"
+                                       Stretch="Uniform" />
+                                <TextBlock VerticalAlignment="Center" FontWeight="Normal" Foreground="#151B23" Text="{DynamicResource FocusViewTasks}" />
                             </StackPanel>
                         </Button>
                     </Grid>
@@ -492,15 +510,16 @@
                 <TextBlock Margin="0,520,0,0"
                            HorizontalAlignment="Center"
                            VerticalAlignment="Top"
+                           FontFamily="/FocusApp.Desktop;component/Assets/font/#Source Han Serif CN"
                            FontSize="24"
                            LineHeight="24"
                            FontWeight="Normal"
                            Foreground="{DynamicResource TextSecondary}"
                            Text="{DynamicResource FocusNoTaskAtmosphere}" />
 
-                <Image Width="42"
-                       Height="8"
-                       Margin="0,547,0,0"
+                <Image Width="63"
+                       Height="12"
+                       Margin="0,556,0,0"
                        HorizontalAlignment="Center"
                        VerticalAlignment="Top"
                        IsHitTestVisible="False"
@@ -610,12 +629,8 @@
                     </StackPanel>
                 </Border>
 
-                <Grid Width="280" Margin="0,12,0,0" HorizontalAlignment="Center">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="44" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-                    <Button Grid.Row="0"
+                <Grid Width="280" Height="44" Margin="0,12,0,0" HorizontalAlignment="Center" Panel.ZIndex="1">
+                    <Button Panel.ZIndex="1"
                             Height="44"
                             HorizontalContentAlignment="Stretch"
                             AutomationProperties.Name="{DynamicResource FocusSessionCompletedTitle}"
@@ -623,6 +638,7 @@
                             BorderBrush="{DynamicResource BorderPrimary}"
                             BorderThickness="1"
                             Command="{Binding ToggleCompletedTasksCommand}"
+                            IsEnabled="{Binding CanExpandCompletedTasks}"
                             Padding="14,0"
                             Style="{StaticResource FocusCompletedTasksButton}">
                         <Grid>
@@ -634,7 +650,7 @@
                             <Image Grid.Column="0"
                                    Width="18"
                                    Height="18"
-                                   Margin="0,0,8,0"
+                                   Margin="10,0,8,0"
                                    HorizontalAlignment="Left"
                                    VerticalAlignment="Center"
                                    Source="/FocusApp.Desktop;component/Assets/Themes/Solid/Orange/gouxuan.png"
@@ -656,17 +672,23 @@
                                    HorizontalAlignment="Right"
                                    VerticalAlignment="Center"
                                    Source="/FocusApp.Desktop;component/Assets/Themes/Solid/Orange/zhankai.png"
-                                   Stretch="Uniform">
+                                   Stretch="Uniform"
+                                   Visibility="{Binding CanExpandCompletedTasks, Converter={StaticResource BooleanToVisibilityConverter}}">
                                 <Image.RenderTransform>
                                     <RotateTransform Angle="90" />
                                 </Image.RenderTransform>
                             </Image>
                         </Grid>
                     </Button>
-                    <Border x:Name="SessionCompletedTasksPopup"
-                            Grid.Row="1"
+                    <Canvas Panel.ZIndex="5"
+                            Width="280"
+                            Height="44"
+                            HorizontalAlignment="Left"
+                            VerticalAlignment="Top">
+                        <Border x:Name="SessionCompletedTasksPopup"
+                            Canvas.Top="52"
+                            Width="280"
                             MaxHeight="156"
-                            Margin="0,8,0,0"
                             Padding="14,8"
                             Background="{DynamicResource SurfacePrimary}"
                             BorderBrush="{DynamicResource BorderPrimary}"
@@ -707,7 +729,8 @@
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
                         </ScrollViewer>
-                    </Border>
+                        </Border>
+                    </Canvas>
                 </Grid>
 
                 <StackPanel Margin="0,20,0,0" HorizontalAlignment="Center" Orientation="Horizontal">

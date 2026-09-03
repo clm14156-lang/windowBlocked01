@@ -69,7 +69,13 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         BeginEditTaskCommand = new RelayCommand<FocusTaskViewModel>(BeginEditTask);
         ConfirmEditTaskCommand = new RelayCommand<FocusTaskViewModel>(ConfirmEditTask);
         DeleteTaskCommand = new RelayCommand<FocusTaskViewModel>(DeleteTask);
-        ToggleCompletedTasksCommand = new RelayCommand<object>(_ => IsCompletedTasksExpanded = !IsCompletedTasksExpanded);
+        ToggleCompletedTasksCommand = new RelayCommand<object>(_ =>
+        {
+            if (SessionCompletedTaskCount > 0)
+            {
+                IsCompletedTasksExpanded = !IsCompletedTasksExpanded;
+            }
+        });
         DismissTaskMenusCommand = new RelayCommand<object>(_ => CloseTaskMenus());
     }
 
@@ -118,6 +124,8 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         : _completionHistory[^1];
 
     public int SessionCompletedTaskCount => SessionCompletedTasks.Count;
+
+    public bool CanExpandCompletedTasks => SessionCompletedTaskCount > 0;
 
     public string SessionCompletedTaskSummary => $"本次完成 {SessionCompletedTaskCount} 个任务";
 
@@ -404,6 +412,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         SessionCompletedTasks.Clear();
         OnPropertyChanged(nameof(SessionCompletedTaskCount));
         OnPropertyChanged(nameof(SessionCompletedTaskSummary));
+        OnPropertyChanged(nameof(CanExpandCompletedTasks));
         IsCompletedTasksExpanded = false;
         CloseTaskMenus();
         Stage = FocusFlowStage.Preparing;
@@ -803,6 +812,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             SessionCompletedTasks.Remove(task);
             OnPropertyChanged(nameof(SessionCompletedTaskCount));
             OnPropertyChanged(nameof(SessionCompletedTaskSummary));
+            OnPropertyChanged(nameof(CanExpandCompletedTasks));
             RefreshTaskGroups();
             if (removedFromSession && IsServiceOwnedForcedSession)
             {
@@ -875,6 +885,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
                     SessionCompletedTasks.Add(changedTask);
                     OnPropertyChanged(nameof(SessionCompletedTaskCount));
                     OnPropertyChanged(nameof(SessionCompletedTaskSummary));
+                    OnPropertyChanged(nameof(CanExpandCompletedTasks));
                 }
             }
             else if (!changedTask.IsCompleted && _sessionCompletedTaskSet.Remove(changedTask))
@@ -882,6 +893,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
                 SessionCompletedTasks.Remove(changedTask);
                 OnPropertyChanged(nameof(SessionCompletedTaskCount));
                 OnPropertyChanged(nameof(SessionCompletedTaskSummary));
+                OnPropertyChanged(nameof(CanExpandCompletedTasks));
             }
         }
 
@@ -1055,6 +1067,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
 
         OnPropertyChanged(nameof(SessionCompletedTaskCount));
         OnPropertyChanged(nameof(SessionCompletedTaskSummary));
+        OnPropertyChanged(nameof(CanExpandCompletedTasks));
         RefreshTaskGroups();
     }
 

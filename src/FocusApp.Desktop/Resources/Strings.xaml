@@ -235,7 +235,7 @@
     <system:String x:Key="FocusCancelPreparation">点击取消</system:String>
     <system:String x:Key="FocusRemainingTime">剩余时间</system:String>
     <system:String x:Key="FocusInProgress">专注中</system:String>
-    <system:String x:Key="FocusNoTaskAtmosphere">安静地做完这一件事</system:String>
+    <system:String x:Key="FocusNoTaskAtmosphere">专注当下，把答案交给时间</system:String>
     <system:String x:Key="FocusEndAction">结束专注</system:String>
     <system:String x:Key="FocusForcedModeStatus">强制模式已开启，专注期间无法提前退出</system:String>
     <system:String x:Key="FocusAddTask">添加任务</system:String>
