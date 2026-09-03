@@ -61,7 +61,7 @@ public sealed class FocusTaskListPresentationTests
 
         var scrollContent = Assert.Single(taskList.Elements(Presentation + "StackPanel"));
         var completedToggle = Assert.Single(scrollContent.Elements(Presentation + "Button").Where(button =>
-            ((string?)button.Attribute("Command"))?.Contains("ToggleCompletedTasksCommand", StringComparison.Ordinal) == true));
+            ((string?)button.Attribute("Command"))?.Contains("ToggleTaskPanelCompletedTasksCommand", StringComparison.Ordinal) == true));
         Assert.Equal("Stretch", (string?)completedToggle.Attribute("HorizontalContentAlignment"));
         Assert.Equal("{DynamicResource TransparentBrush}", (string?)completedToggle.Attribute("Background"));
         Assert.DoesNotContain(completedToggle.Descendants(Presentation + "TextBlock"), textBlock =>
@@ -70,6 +70,19 @@ public sealed class FocusTaskListPresentationTests
             (string?)items.Attribute("ItemsSource") == "{Binding CompletedTasks}"));
         var addTask = Assert.Single(view.Descendants(Presentation + "Button").Where(button =>
             (string?)button.Attribute("Command") == "{Binding AddTaskCommand}"));
+        Assert.Equal(
+            "{Binding DataContext.ToggleTaskPanelCompletedTasksCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}",
+            (string?)completedToggle.Attribute("Command"));
+        Assert.Null(completedToggle.Attribute("Visibility"));
+        Assert.DoesNotContain(completedToggle.Descendants(Presentation + "TextBlock"), textBlock =>
+            (string?)textBlock.Attribute("Text") is "›" or "⌄");
+        var completedChevron = Assert.Single(completedToggle.Descendants(Presentation + "Viewbox"));
+        Assert.Equal("Right", (string?)completedChevron.Attribute("HorizontalAlignment"));
+        Assert.Equal(
+            "{Binding CompletedTasks.Count, Mode=OneWay, Converter={StaticResource PositiveIntToVisibilityConverter}}",
+            (string?)completedChevron.Attribute("Visibility"));
+        Assert.Single(completedChevron.Descendants(Presentation + "Path"));
+        Assert.Equal(2, completedChevron.Descendants(Presentation + "DoubleAnimation").Count());
         Assert.Contains(completedItems, scrollContent.Elements());
         Assert.Contains(completedToggle, scrollContent.Elements());
         Assert.DoesNotContain(addTask, scrollContent.Elements());
@@ -84,6 +97,7 @@ public sealed class FocusTaskListPresentationTests
         Assert.Equal("{Binding}", (string?)completedToggleButton.Attribute("CommandParameter"));
         Assert.Contains(completedRow.Descendants(Presentation + "TextBlock"), textBlock =>
             (string?)textBlock.Attribute("Text") == "{Binding Name}" &&
+            (string?)textBlock.Attribute("FontSize") == "13" &&
             (string?)textBlock.Attribute("Foreground") == "{DynamicResource TextWeak}");
         Assert.Contains(completedRow.Descendants(Presentation + "TextBlock"), textBlock =>
             (string?)textBlock.Attribute("Text") == "\uE73E" &&

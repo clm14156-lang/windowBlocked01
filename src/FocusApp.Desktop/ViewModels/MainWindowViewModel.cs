@@ -532,7 +532,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             existingTasks.TryGetValue(task.TaskId, out var existing);
             return new LocalTaskDto(task.TaskId, target.TargetId, task.Name, task.IsCompleted, index, existing?.CreatedAtUtc ?? now, now)
             {
-                CompletedAtUtc = task.IsCompleted ? existing?.CompletedAtUtc ?? now : null
+                CompletedAtUtc = task.IsCompleted ? task.CompletedAtUtc ?? existing?.CompletedAtUtc ?? now : null
             };
         }).ToArray();
         await PersistTargetAsync(new SaveTargetCommand(targetDto, tasks));
@@ -560,7 +560,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
                     persistedSnapshots.TryGetValue(taskId, out var persisted);
                     return new LocalFocusSessionTaskSnapshotDto(taskId, name, index)
                     {
-                        CompletedAtUtc = persisted?.CompletedAtUtc ?? completedAt
+                        CompletedAtUtc = task?.CompletedAtUtc ?? persisted?.CompletedAtUtc ?? completedAt
                     };
                 }).ToArray();
                 var session = new LocalFocusSessionDto(
@@ -640,7 +640,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             persistedSnapshots.TryGetValue(task.TaskId, out var persisted);
             return new LocalFocusSessionTaskSnapshotDto(task.TaskId, task.Name, index)
             {
-                CompletedAtUtc = persisted?.CompletedAtUtc ?? now
+                CompletedAtUtc = task.CompletedAtUtc ?? persisted?.CompletedAtUtc ?? now
             };
         }).ToArray();
 

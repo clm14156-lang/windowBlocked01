@@ -474,6 +474,94 @@ public sealed class FocusSessionViewModelTests
     }
 
     [Fact]
+    public void TaskPanelCompletedGroup_TogglesForTasksCompletedEarlierToday()
+    {
+        var now = new DateTime(2026, 8, 17, 12, 0, 0);
+        var target = new FocusTargetViewModel("学习 Blender", ["已完成任务"]);
+        target.Tasks[0].ApplyCompletion(true, new DateTimeOffset(now.AddHours(-1)).ToUniversalTime());
+        var viewModel = CreateViewModel(now);
+        viewModel.Start(25, target);
+
+        Assert.Empty(viewModel.SessionCompletedTasks);
+        Assert.Single(viewModel.CompletedTasks);
+        Assert.True(viewModel.ToggleTaskPanelCompletedTasksCommand.CanExecute(null));
+
+        viewModel.ToggleTaskPanelCompletedTasksCommand.Execute(null);
+        Assert.True(viewModel.IsCompletedTasksExpanded);
+
+        viewModel.ToggleTaskPanelCompletedTasksCommand.Execute(null);
+        Assert.False(viewModel.IsCompletedTasksExpanded);
+    }
+
+    [Fact]
+    public void TaskPanelCompletedGroup_ShowsOnlyTasksCompletedDuringTheCurrentLocalDate()
+    {
+        var now = new DateTime(2026, 8, 17, 12, 0, 0);
+        var target = new FocusTargetViewModel("学习 Blender", ["昨天完成", "今天完成", "尚未完成"]);
+        target.Tasks[0].ApplyCompletion(true, new DateTimeOffset(now.AddDays(-1)).ToUniversalTime());
+        target.Tasks[1].ApplyCompletion(true, new DateTimeOffset(now.AddMinutes(-30)).ToUniversalTime());
+        var viewModel = CreateViewModel(now);
+
+        viewModel.Start(25, target);
+
+        Assert.Equal("今天完成", Assert.Single(viewModel.CompletedTasks).Name);
+        Assert.Equal("尚未完成", Assert.Single(viewModel.PendingTasks).Name);
+    }
+
+    [Fact]
+    public void TaskPanelCompletedGroup_RefreshesWhenTheLocalDateChanges()
+    {
+        var now = new DateTime(2026, 8, 17, 23, 59, 59);
+        var target = new FocusTargetViewModel("学习 Blender", ["今天完成"]);
+        target.Tasks[0].ApplyCompletion(true, new DateTimeOffset(now.AddMinutes(-1)).ToUniversalTime());
+        var viewModel = new FocusSessionViewModel(() => now, false);
+        viewModel.Start(25, target);
+        Assert.Single(viewModel.CompletedTasks);
+
+        now = now.AddSeconds(2);
+        viewModel.AdvanceOneSecond();
+
+        Assert.Empty(viewModel.CompletedTasks);
+        Assert.False(viewModel.ToggleTaskPanelCompletedTasksCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public void TaskCompletion_SetsClearsAndReplacesTheCompletionTimestamp()
+    {
+        var now = new DateTime(2026, 8, 17, 12, 0, 0);
+        var target = new FocusTargetViewModel("学习 Blender", ["练习建模"]);
+        var viewModel = new FocusSessionViewModel(() => now, false);
+        viewModel.Start(25, target);
+        Advance(viewModel, 5);
+        var task = Assert.Single(viewModel.PendingTasks);
+
+        viewModel.ToggleTaskCompletedCommand.Execute(task);
+        Assert.Equal(new DateTimeOffset(now).ToUniversalTime(), task.CompletedAtUtc);
+        Assert.Single(viewModel.CompletedTasks);
+
+        viewModel.ToggleTaskCompletedCommand.Execute(task);
+        Assert.False(task.IsCompleted);
+        Assert.Null(task.CompletedAtUtc);
+        Assert.Empty(viewModel.CompletedTasks);
+
+        now = now.AddHours(1);
+        viewModel.ToggleTaskCompletedCommand.Execute(task);
+        Assert.Equal(new DateTimeOffset(now).ToUniversalTime(), task.CompletedAtUtc);
+        Assert.Single(viewModel.CompletedTasks);
+    }
+
+    [Fact]
+    public void TaskPanelCompletedGroup_CannotExpandWhenThereAreNoCompletedTasks()
+    {
+        var viewModel = CreateViewModel();
+        viewModel.Start(25, new FocusTargetViewModel("学习 Blender", ["待完成任务"]));
+
+        Assert.False(viewModel.ToggleTaskPanelCompletedTasksCommand.CanExecute(null));
+        viewModel.ToggleTaskPanelCompletedTasksCommand.Execute(null);
+        Assert.False(viewModel.IsCompletedTasksExpanded);
+    }
+
+    [Fact]
     public void MovePendingTask_ReordersTheTargetCollectionAndPersistsAcrossReopen()
     {
         var target = new FocusTargetViewModel("写代码", ["整理需求", "完成交互", "编写测试"]);

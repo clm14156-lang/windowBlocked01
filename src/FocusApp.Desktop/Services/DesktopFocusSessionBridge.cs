@@ -210,7 +210,10 @@ public sealed class DesktopFocusSessionBridge : IDisposable
             .Select((task, index) => new LocalFocusSessionTaskSnapshotDto(
                 task.TaskId,
                 task.Name,
-                index))
+                index)
+            {
+                CompletedAtUtc = task.CompletedAtUtc
+            })
             .ToArray();
         _pendingTaskUpdate = UpdateTasksSafeAsync(sessionId, snapshots);
     }

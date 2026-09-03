@@ -109,9 +109,13 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
                 if (existingTaskMap.TryGetValue(task.TaskId, out var existingTask))
                 {
                     existingTask.ApplyName(task.Name);
-                    existingTask.IsCompleted = task.IsCompleted;
+                    existingTask.ApplyCompletion(task.IsCompleted, task.CompletedAtUtc);
                 }
-                else viewModel.AddTask(task.TaskId, task.Name, task.IsCompleted);
+                else viewModel.AddTask(
+                    task.TaskId,
+                    task.Name,
+                    task.IsCompleted,
+                    completedAtUtc: task.CompletedAtUtc);
             }
             _targets.Add(viewModel);
         }

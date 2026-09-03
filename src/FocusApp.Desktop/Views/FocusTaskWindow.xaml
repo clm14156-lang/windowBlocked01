@@ -206,7 +206,7 @@
                                                  Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}"
                                                  Visibility="{Binding IsEditing, Converter={StaticResource BooleanToVisibilityConverter}}"
                                                  Style="{StaticResource FocusTaskWindowEditorStyle}" />
-                                        <TextBlock VerticalAlignment="Center" FontSize="15" Text="{Binding Name}" TextTrimming="CharacterEllipsis">
+                                        <TextBlock VerticalAlignment="Center" FontSize="13" Text="{Binding Name}" TextTrimming="CharacterEllipsis">
                                             <TextBlock.Style>
                                                 <Style TargetType="{x:Type TextBlock}">
                                                     <Setter Property="Visibility" Value="Visible" />
@@ -251,21 +251,67 @@
                     <Button Height="44"
                             HorizontalContentAlignment="Stretch"
                             Background="{DynamicResource TransparentBrush}"
-                            Command="{Binding DataContext.ToggleCompletedTasksCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
-                            Style="{StaticResource FocusTaskWindowPlainButton}"
-                            Visibility="{Binding CompletedTasks.Count, Mode=OneWay, Converter={StaticResource PositiveIntToVisibilityConverter}}">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock VerticalAlignment="Center" FontSize="14" Foreground="{DynamicResource TextSecondary}"><Run Text="{DynamicResource FocusCompletedTasksPrefix}" /><Run Text="{Binding CompletedTasks.Count, Mode=OneWay}" /><Run Text="{DynamicResource FocusCompletedTasksSuffix}" /></TextBlock>
-                            <TextBlock Margin="10,0,0,0" VerticalAlignment="Center" FontSize="20" Foreground="{DynamicResource TextSecondary}" Text="›">
-                                <TextBlock.Style>
-                                    <Style TargetType="{x:Type TextBlock}">
+                            Command="{Binding DataContext.ToggleTaskPanelCompletedTasksCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
+                            Style="{StaticResource FocusTaskWindowPlainButton}">
+                        <Grid Margin="0,0,12,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" VerticalAlignment="Center" FontSize="14" Foreground="{DynamicResource TextSecondary}"><Run Text="{DynamicResource FocusCompletedTasksPrefix}" /><Run Text="{Binding CompletedTasks.Count, Mode=OneWay}" /><Run Text="{DynamicResource FocusCompletedTasksSuffix}" /></TextBlock>
+                            <Viewbox Grid.Column="1"
+                                     Width="10"
+                                     Height="10"
+                                     HorizontalAlignment="Right"
+                                     VerticalAlignment="Center"
+                                     RenderTransformOrigin="0.5,0.5"
+                                     Visibility="{Binding CompletedTasks.Count, Mode=OneWay, Converter={StaticResource PositiveIntToVisibilityConverter}}">
+                                <Viewbox.RenderTransform>
+                                    <RotateTransform Angle="0" />
+                                </Viewbox.RenderTransform>
+                                <Viewbox.Style>
+                                    <Style TargetType="{x:Type Viewbox}">
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding DataContext.IsCompletedTasksExpanded, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}" Value="True"><Setter Property="Text" Value="⌄" /></DataTrigger>
+                                            <DataTrigger Binding="{Binding DataContext.IsCompletedTasksExpanded, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}" Value="True">
+                                                <DataTrigger.EnterActions>
+                                                    <BeginStoryboard>
+                                                        <Storyboard>
+                                                            <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)"
+                                                                             To="90"
+                                                                             Duration="0:0:0.14">
+                                                                <DoubleAnimation.EasingFunction>
+                                                                    <SineEase EasingMode="EaseOut" />
+                                                                </DoubleAnimation.EasingFunction>
+                                                            </DoubleAnimation>
+                                                        </Storyboard>
+                                                    </BeginStoryboard>
+                                                </DataTrigger.EnterActions>
+                                                <DataTrigger.ExitActions>
+                                                    <BeginStoryboard>
+                                                        <Storyboard>
+                                                            <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)"
+                                                                             To="0"
+                                                                             Duration="0:0:0.14">
+                                                                <DoubleAnimation.EasingFunction>
+                                                                    <SineEase EasingMode="EaseOut" />
+                                                                </DoubleAnimation.EasingFunction>
+                                                            </DoubleAnimation>
+                                                        </Storyboard>
+                                                    </BeginStoryboard>
+                                                </DataTrigger.ExitActions>
+                                            </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
-                                </TextBlock.Style>
-                            </TextBlock>
-                        </StackPanel>
+                                </Viewbox.Style>
+                                <Path Data="M 2,1 L 6,5 L 2,9"
+                                      Fill="{x:Null}"
+                                      Stroke="{DynamicResource TextSecondary}"
+                                      StrokeThickness="1.35"
+                                      StrokeStartLineCap="Round"
+                                      StrokeEndLineCap="Round"
+                                      StrokeLineJoin="Round" />
+                            </Viewbox>
+                        </Grid>
                     </Button>
                     <ItemsControl ItemsSource="{Binding CompletedTasks}" Visibility="{Binding IsCompletedTasksExpanded, Converter={StaticResource BooleanToVisibilityConverter}}">
                         <ItemsControl.ItemTemplate>
@@ -279,7 +325,7 @@
                                             Style="{StaticResource FocusTaskWindowCheckButton}">
                                         <TextBlock FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{DynamicResource TextWeak}" Text="&#xE73E;" />
                                     </Button>
-                                    <TextBlock Margin="38,0,0,0" VerticalAlignment="Center" FontSize="15" Foreground="{DynamicResource TextWeak}" Text="{Binding Name}" TextDecorations="Strikethrough" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Margin="38,0,0,0" VerticalAlignment="Center" FontSize="13" Foreground="{DynamicResource TextWeak}" Text="{Binding Name}" TextDecorations="Strikethrough" TextTrimming="CharacterEllipsis" />
                                     <Border Height="1" Margin="38,49,0,0" Background="{DynamicResource BorderPrimary}" />
                                 </Grid>
                             </DataTemplate>
@@ -296,8 +342,14 @@
                     IsTabStop="False"
                     Command="{Binding AddTaskCommand}"
                     Style="{StaticResource FocusTaskWindowPlainButton}">
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Margin="0,0,10,0" FontSize="23" Foreground="{DynamicResource AccentPrimary}" Text="+" />
+                <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                    <TextBlock Width="24"
+                               Margin="0,0,10,0"
+                               VerticalAlignment="Center"
+                               FontSize="23"
+                               Foreground="{DynamicResource AccentPrimary}"
+                               Text="+"
+                               TextAlignment="Center" />
                     <TextBlock VerticalAlignment="Center" FontSize="14" Foreground="{DynamicResource AccentPrimary}" Text="{DynamicResource FocusAddTask}" />
                 </StackPanel>
             </Button>

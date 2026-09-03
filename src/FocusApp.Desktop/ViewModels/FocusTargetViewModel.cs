@@ -86,9 +86,11 @@ public sealed class FocusTargetViewModel : INotifyPropertyChanged
         string taskId,
         string name,
         bool isCompleted,
-        bool insertAtTop = false)
+        bool insertAtTop = false,
+        DateTimeOffset? completedAtUtc = null)
     {
-        var task = new FocusTaskViewModel(TargetId, name, false, taskId) { IsCompleted = isCompleted };
+        var task = new FocusTaskViewModel(TargetId, name, false, taskId);
+        task.ApplyCompletion(isCompleted, completedAtUtc);
         if (insertAtTop) Tasks.Insert(0, task); else Tasks.Add(task);
         return task;
     }
@@ -158,6 +160,7 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
     private bool _isFocusMenuOpen;
     private bool _isEditing;
     private bool _isCompleted;
+    private DateTimeOffset? _completedAtUtc;
     private bool _isNew;
     private bool _isDragging;
     private bool _showDropBefore;
@@ -280,16 +283,29 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
     public bool IsCompleted
     {
         get => _isCompleted;
-        set
-        {
-            if (_isCompleted == value)
-            {
-                return;
-            }
+        set => ApplyCompletion(
+            value,
+            value ? _completedAtUtc ?? DateTimeOffset.UtcNow : null);
+    }
 
-            _isCompleted = value;
-            OnPropertyChanged();
+    public DateTimeOffset? CompletedAtUtc => _completedAtUtc;
+
+    public void ApplyCompletion(bool isCompleted, DateTimeOffset? completedAtUtc)
+    {
+        var normalizedCompletedAtUtc = isCompleted
+            ? completedAtUtc?.ToUniversalTime()
+            : null;
+        var completionChanged = _isCompleted != isCompleted;
+        var completedAtChanged = _completedAtUtc != normalizedCompletedAtUtc;
+        if (!completionChanged && !completedAtChanged)
+        {
+            return;
         }
+
+        _isCompleted = isCompleted;
+        _completedAtUtc = normalizedCompletedAtUtc;
+        if (completedAtChanged) OnPropertyChanged(nameof(CompletedAtUtc));
+        if (completionChanged) OnPropertyChanged(nameof(IsCompleted));
     }
 
     public bool IsDragging

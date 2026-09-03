@@ -12,7 +12,10 @@ public sealed class PersistedDataProjectionTests
         var now = DateTimeOffset.UtcNow;
         var active = new LocalTargetDto("goal-active", "写代码", false, 0, now, now);
         var archived = new LocalTargetDto("goal-archived", "旧目标", true, 1, now, now);
-        var task = new LocalTaskDto("task-1", active.TargetId, "整理需求", true, 0, now, now);
+        var task = new LocalTaskDto("task-1", active.TargetId, "整理需求", true, 0, now, now)
+        {
+            CompletedAtUtc = now.AddMinutes(-5)
+        };
         var viewModel = new FocusTargetModalViewModel(useSampleData: false);
 
         viewModel.ApplyState([active, archived], [task], active.TargetId);
@@ -21,6 +24,7 @@ public sealed class PersistedDataProjectionTests
         Assert.Equal(active.TargetId, target.TargetId);
         Assert.Equal(task.TaskId, Assert.Single(target.Tasks).TaskId);
         Assert.True(target.Tasks[0].IsCompleted);
+        Assert.Equal(task.CompletedAtUtc, target.Tasks[0].CompletedAtUtc);
         Assert.Equal(active.TargetId, viewModel.SelectedTarget.TargetId);
     }
 

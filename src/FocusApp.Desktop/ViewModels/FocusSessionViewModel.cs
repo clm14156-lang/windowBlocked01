@@ -17,6 +17,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     private readonly FocusSessionEngine _engine;
     private readonly Stopwatch _preparationStopwatch = new();
     private readonly Stopwatch _focusStopwatch = new();
+    private readonly RelayCommand<object> _toggleTaskPanelCompletedTasksCommand;
     private FocusFlowStage _stage;
     private int _preparationSeconds = PreparationDurationSeconds;
     private double _preparationProgress;
@@ -27,6 +28,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     private int _completedFocusSeconds;
     private int _todayTotalSeconds;
     private DateTime _completedAt;
+    private DateTime _completedTasksLocalDate = DateTime.MinValue;
     private bool _isEndConfirmationOpen;
     private bool _isFocusAgainConfirmationOpen;
     private FocusTargetViewModel? _activeTarget;
@@ -76,6 +78,16 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
                 IsCompletedTasksExpanded = !IsCompletedTasksExpanded;
             }
         });
+        _toggleTaskPanelCompletedTasksCommand = new RelayCommand<object>(
+            _ =>
+            {
+                if (CompletedTasks.Count > 0)
+                {
+                    IsCompletedTasksExpanded = !IsCompletedTasksExpanded;
+                }
+            },
+            _ => CompletedTasks.Count > 0);
+        ToggleTaskPanelCompletedTasksCommand = _toggleTaskPanelCompletedTasksCommand;
         DismissTaskMenusCommand = new RelayCommand<object>(_ => CloseTaskMenus());
     }
 
@@ -110,6 +122,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     public ICommand ConfirmEditTaskCommand { get; }
     public ICommand DeleteTaskCommand { get; }
     public ICommand ToggleCompletedTasksCommand { get; }
+    public ICommand ToggleTaskPanelCompletedTasksCommand { get; }
     public ICommand DismissTaskMenusCommand { get; }
 
     public ObservableCollection<FocusTaskViewModel> PendingTasks { get; } = [];
@@ -464,10 +477,14 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         {
             projectedTarget = new FocusTargetViewModel(
                 session.TargetNameSnapshot,
-                session.CompletedTasks.OrderBy(task => task.SortOrder).Select(task => task.TaskNameSnapshot));
-            foreach (var task in projectedTarget.Tasks)
+                targetId: session.TargetId);
+            foreach (var task in session.CompletedTasks.OrderBy(task => task.SortOrder))
             {
-                task.IsCompleted = true;
+                projectedTarget.AddTask(
+                    task.TaskId,
+                    task.TaskNameSnapshot,
+                    true,
+                    completedAtUtc: task.CompletedAtUtc);
             }
         }
 
@@ -502,6 +519,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
 
     public void AdvanceOneSecond()
     {
+        RefreshTaskGroupsIfLocalDateChanged();
         if (_authoritativeSession is not null &&
             _authoritativeSession.Status != LocalFocusSessionStatusDto.Completed)
         {
@@ -572,6 +590,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
 
     private void OnTimerTick()
     {
+        RefreshTaskGroupsIfLocalDateChanged();
         if (_isExternalStarting && _authoritativeSession is null)
         {
             return;
@@ -754,7 +773,9 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             return;
         }
 
-        task.IsCompleted = !task.IsCompleted;
+        task.ApplyCompletion(
+            !task.IsCompleted,
+            task.IsCompleted ? null : GetCurrentUtc());
         CloseTaskMenus();
         RefreshTaskGroups();
     }
@@ -897,10 +918,15 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             }
         }
 
-        if (e.PropertyName is nameof(FocusTaskViewModel.IsCompleted) or nameof(FocusTaskViewModel.Name) or nameof(FocusTaskViewModel.IsEditing))
+        if (e.PropertyName is nameof(FocusTaskViewModel.IsCompleted) or
+            nameof(FocusTaskViewModel.CompletedAtUtc) or
+            nameof(FocusTaskViewModel.Name) or
+            nameof(FocusTaskViewModel.IsEditing))
         {
             RefreshTaskGroups();
-            if (!_applyingAuthoritativeSession && e.PropertyName != nameof(FocusTaskViewModel.IsEditing) && ActiveTarget is not null)
+            if (!_applyingAuthoritativeSession &&
+                (e.PropertyName is nameof(FocusTaskViewModel.IsCompleted) or nameof(FocusTaskViewModel.Name)) &&
+                ActiveTarget is not null)
             {
                 TargetTasksChanged?.Invoke(this, ActiveTarget);
             }
@@ -918,18 +944,61 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
 
     private void RefreshTaskGroups()
     {
+        SetCompletedTasksLocalDate();
         PendingTasks.Clear();
         CompletedTasks.Clear();
         if (ActiveTarget is not null)
         {
             foreach (var task in ActiveTarget.Tasks)
             {
-                (task.IsCompleted ? CompletedTasks : PendingTasks).Add(task);
+                if (!task.IsCompleted)
+                {
+                    PendingTasks.Add(task);
+                }
+                else if (WasCompletedOnLocalDate(task, _completedTasksLocalDate))
+                {
+                    CompletedTasks.Add(task);
+                }
             }
         }
 
         OnPropertyChanged(nameof(PendingTaskCount));
         OnPropertyChanged(nameof(PendingTaskSummary));
+        _toggleTaskPanelCompletedTasksCommand.NotifyCanExecuteChanged();
+        if (CompletedTasks.Count == 0)
+        {
+            IsCompletedTasksExpanded = false;
+        }
+    }
+
+    private void RefreshTaskGroupsIfLocalDateChanged()
+    {
+        if (_completedTasksLocalDate != _nowProvider().Date)
+        {
+            RefreshTaskGroups();
+        }
+    }
+
+    private void SetCompletedTasksLocalDate() => _completedTasksLocalDate = _nowProvider().Date;
+
+    private static bool WasCompletedOnLocalDate(FocusTaskViewModel task, DateTime localDate)
+    {
+        if (task.CompletedAtUtc is not { } completedAtUtc)
+        {
+            return false;
+        }
+
+        var completedAtLocal = completedAtUtc.ToLocalTime().LocalDateTime;
+        var tomorrow = localDate.AddDays(1);
+        return completedAtLocal >= localDate && completedAtLocal < tomorrow;
+    }
+
+    private DateTimeOffset GetCurrentUtc()
+    {
+        var now = _nowProvider();
+        return now.Kind == DateTimeKind.Utc
+            ? new DateTimeOffset(now, TimeSpan.Zero)
+            : new DateTimeOffset(now).ToUniversalTime();
     }
 
     private void CloseTaskMenus()
@@ -1051,14 +1120,14 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         SessionCompletedTasks.Clear();
         if (ActiveTarget is not null)
         {
-            var completedIds = session.CompletedTasks.Select(task => task.TaskId).ToHashSet(StringComparer.Ordinal);
-            var completedNames = session.CompletedTasks.Select(task => task.TaskNameSnapshot).ToHashSet(StringComparer.Ordinal);
+            var completedById = session.CompletedTasks.ToDictionary(task => task.TaskId, StringComparer.Ordinal);
             foreach (var task in ActiveTarget.Tasks)
             {
-                var isCompleted = completedIds.Contains(task.TaskId) || completedNames.Contains(task.Name);
-                if (isCompleted)
+                var completedTask = completedById.GetValueOrDefault(task.TaskId) ??
+                    session.CompletedTasks.FirstOrDefault(item => item.TaskNameSnapshot == task.Name);
+                if (completedTask is not null)
                 {
-                    task.IsCompleted = true;
+                    task.ApplyCompletion(true, completedTask.CompletedAtUtc ?? GetCurrentUtc());
                     _sessionCompletedTaskSet.Add(task);
                     SessionCompletedTasks.Add(task);
                 }
