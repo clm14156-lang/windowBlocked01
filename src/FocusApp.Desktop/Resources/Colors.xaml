@@ -12,6 +12,7 @@
     <SolidColorBrush x:Key="TextWeak" Color="#8E8E93" />
     <SolidColorBrush x:Key="SelectedTextSecondary" Color="#CCFFFFFF" />
     <SolidColorBrush x:Key="TextTertiary" Color="#96969C" />
+    <SolidColorBrush x:Key="DisabledText" Color="#AEAEB2" />
     <SolidColorBrush x:Key="BorderPrimary" Color="#E5E5EA" />
     <SolidColorBrush x:Key="AccentPrimary" Color="#FF7A00" />
     <SolidColorBrush x:Key="MembershipBadgeAccent" Color="#FCBA29" />
@@ -64,6 +65,7 @@
     <SolidColorBrush x:Key="AccentRingTrack" Color="#FFE7D2" />
     <SolidColorBrush x:Key="FocusRingTrack" Color="#E5E5E5" />
     <SolidColorBrush x:Key="FocusNoTaskEndButtonText" Color="#B2A399" />
+    <SolidColorBrush x:Key="FocusForcedEndDisabledBackground" Color="#F7F3F0" />
     <SolidColorBrush x:Key="ConfirmPrimaryBackground" Color="#1F2226" />
     <SolidColorBrush x:Key="SuccessTint" Color="#D9FAE3" />
     <SolidColorBrush x:Key="SuccessBright" Color="#24D967" />

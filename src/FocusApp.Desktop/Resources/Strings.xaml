@@ -238,6 +238,7 @@
     <system:String x:Key="FocusNoTaskAtmosphere">专注当下，把答案交给时间</system:String>
     <system:String x:Key="FocusEndAction">结束专注</system:String>
     <system:String x:Key="FocusForcedModeStatus">强制模式已开启，专注期间无法提前退出</system:String>
+    <system:String x:Key="FocusForcedEndUnavailable">暂无法结束</system:String>
     <system:String x:Key="FocusAddTask">添加任务</system:String>
     <system:String x:Key="FocusViewTasks">查看任务</system:String>
     <system:String x:Key="FocusCurrentTask">当前任务</system:String>

@@ -443,13 +443,21 @@
                                            Foreground="#9D9690"
                                            Text="{DynamicResource FocusEndAction}" />
                             </Button>
-                            <Border Height="42"
+                            <Button Height="45"
                                     Padding="10,0"
-                                    Background="{DynamicResource ControlHoverBackground}"
-                                    CornerRadius="14"
+                                    AutomationProperties.Name="{DynamicResource FocusForcedEndUnavailable}"
+                                    Background="{DynamicResource FocusForcedEndDisabledBackground}"
+                                    BorderBrush="{DynamicResource BorderPrimary}"
+                                    BorderThickness="1"
+                                    Cursor="Arrow"
+                                    Focusable="False"
+                                    FontSize="13"
+                                    FontWeight="Medium"
+                                    Foreground="{DynamicResource DisabledText}"
+                                    IsEnabled="False"
                                     IsHitTestVisible="False">
-                                <Border.Style>
-                                    <Style TargetType="{x:Type Border}">
+                                <Button.Style>
+                                    <Style TargetType="{x:Type Button}">
                                         <Setter Property="Visibility" Value="Collapsed" />
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding IsForcedModeActive}" Value="True">
@@ -457,12 +465,23 @@
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
-                                </Border.Style>
+                                </Button.Style>
+                                <Button.Template>
+                                    <ControlTemplate TargetType="{x:Type Button}">
+                                        <Border Background="{TemplateBinding Background}"
+                                                BorderBrush="{TemplateBinding BorderBrush}"
+                                                BorderThickness="{TemplateBinding BorderThickness}"
+                                                CornerRadius="20">
+                                            <ContentPresenter HorizontalAlignment="Center"
+                                                              VerticalAlignment="Center" />
+                                        </Border>
+                                    </ControlTemplate>
+                                </Button.Template>
                                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
-                                    <TextBlock Margin="0,0,6,0" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="{DynamicResource TextSecondary}" Text="&#xE83D;" />
-                                    <TextBlock VerticalAlignment="Center" FontSize="11" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource FocusForcedModeStatus}" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Margin="0,0,7,0" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="13" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}" Text="&#xE83D;" />
+                                    <TextBlock VerticalAlignment="Center" FontSize="13" FontWeight="Medium" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}" Text="{DynamicResource FocusForcedEndUnavailable}" />
                                 </StackPanel>
-                            </Border>
+                            </Button>
                         </Grid>
                         <Button Grid.Column="2"
                                 Height="45"
@@ -571,7 +590,7 @@
                         <TextBlock Foreground="{DynamicResource FocusNoTaskEndButtonText}"
                                    Text="{DynamicResource FocusEndAction}" />
                     </Button>
-                    <Border Height="42" Padding="12,0" HorizontalAlignment="Center" VerticalAlignment="Center" Background="{DynamicResource ControlHoverBackground}" CornerRadius="8" IsHitTestVisible="False">
+                    <Border Height="42" Padding="12,0" HorizontalAlignment="Center" VerticalAlignment="Center" Background="{DynamicResource TransparentBrush}" CornerRadius="8" IsHitTestVisible="False">
                         <Border.Style><Style TargetType="{x:Type Border}"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding IsForcedModeActive}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></Border.Style>
                         <StackPanel Orientation="Horizontal"><TextBlock Margin="0,0,8,0" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="17" Foreground="{DynamicResource TextSecondary}" Text="&#xE83D;" /><TextBlock VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource FocusForcedModeStatus}" /></StackPanel>
                     </Border>
