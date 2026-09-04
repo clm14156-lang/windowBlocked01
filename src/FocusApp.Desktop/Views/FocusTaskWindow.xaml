@@ -219,6 +219,7 @@
 
             <ScrollViewer x:Name="TaskListScrollViewer"
                           Grid.Row="2"
+                          Margin="-16,0,-18,0"
                           AllowDrop="True"
                           DragOver="TaskList_DragOver"
                           Drop="TaskList_Drop"
@@ -234,6 +235,7 @@
                                 <Grid x:Name="TaskDragRow"
                                       Height="57"
                                       Background="Transparent"
+                                      Cursor="Hand"
                                       PreviewMouseLeftButtonDown="PendingTaskList_PreviewMouseLeftButtonDown"
                                       PreviewMouseLeftButtonUp="PendingTaskList_PreviewMouseLeftButtonUp"
                                       PreviewMouseMove="PendingTaskList_PreviewMouseMove">
@@ -264,12 +266,13 @@
                                             </Style>
                                         </Border.Style>
                                     </Border>
-                                    <Button HorizontalAlignment="Left"
+                                    <Button Margin="16,0,0,0"
+                                            HorizontalAlignment="Left"
                                             VerticalAlignment="Center"
                                             Command="{Binding DataContext.ToggleTaskCompletedCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
                                             CommandParameter="{Binding}"
                                             Style="{StaticResource FocusTaskWindowCheckButton}" />
-                                    <Grid Margin="38,0,34,0" VerticalAlignment="Center">
+                                    <Grid Margin="54,0,52,0" VerticalAlignment="Center">
                                         <TextBox AutomationProperties.Name="任务名称"
                                                  IsVisibleChanged="Editor_IsVisibleChanged"
                                                  Loaded="Editor_Loaded"
@@ -289,13 +292,23 @@
                                     <Button x:Name="TaskMenuButton"
                                             Width="30"
                                             Height="30"
+                                            Margin="0,0,18,0"
                                             HorizontalAlignment="Right"
                                             VerticalAlignment="Center"
                                             Command="{Binding DataContext.ToggleTaskMenuCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
                                             CommandParameter="{Binding}"
-                                            Style="{StaticResource FocusTaskWindowPlainButton}"
                                             Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
                                             ToolTip="{DynamicResource FocusTaskMenu}">
+                                        <Button.Style>
+                                            <Style TargetType="{x:Type Button}" BasedOn="{StaticResource FocusTaskWindowPlainButton}">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsMouseOver, ElementName=TaskDragRow}" Value="True">
+                                                        <Setter Property="Visibility" Value="Visible" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
                                         <TextBlock FontSize="17" Foreground="{DynamicResource TextSecondary}" Text="···" />
                                     </Button>
                                     <Popup AllowsTransparency="True"
@@ -336,7 +349,6 @@
                                             </StackPanel>
                                         </Border>
                                     </Popup>
-                                    <Border Height="1" Margin="0,56,0,0" Background="{DynamicResource BorderPrimary}" />
                                     <Border Height="2" VerticalAlignment="Top" Panel.ZIndex="10" Background="{DynamicResource AccentPrimary}" CornerRadius="1" IsHitTestVisible="False" Visibility="{Binding ShowDropBefore, Converter={StaticResource BooleanToVisibilityConverter}}" />
                                     <Border Height="2" VerticalAlignment="Bottom" Panel.ZIndex="10" Background="{DynamicResource AccentPrimary}" CornerRadius="1" IsHitTestVisible="False" Visibility="{Binding ShowDropAfter, Converter={StaticResource BooleanToVisibilityConverter}}" />
                                 </Grid>
@@ -345,10 +357,27 @@
                     </ItemsControl>
 
                     <Button Height="44"
+                            Margin="16,0,18,0"
                             HorizontalContentAlignment="Stretch"
                             Background="{DynamicResource TransparentBrush}"
                             Command="{Binding DataContext.ToggleTaskPanelCompletedTasksCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
                             Style="{StaticResource FocusTaskWindowPlainButton}">
+                        <Button.Template>
+                            <ControlTemplate TargetType="{x:Type Button}">
+                                <Border x:Name="CompletedTasksToggleBackground"
+                                        Background="{TemplateBinding Background}"
+                                        CornerRadius="8">
+                                    <ContentPresenter />
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsPressed" Value="True">
+                                        <Setter TargetName="CompletedTasksToggleBackground"
+                                                Property="Background"
+                                                Value="{DynamicResource ControlPressedBackground}" />
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
                         <Grid Margin="0,0,12,0">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
@@ -412,8 +441,25 @@
                     <ItemsControl ItemsSource="{Binding CompletedTasks}" Visibility="{Binding IsCompletedTasksExpanded, Converter={StaticResource BooleanToVisibilityConverter}}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Grid Height="50">
-                                    <Button HorizontalAlignment="Left"
+                                <Grid x:Name="CompletedTaskRow"
+                                      Height="50"
+                                      Background="Transparent"
+                                      Cursor="Hand"
+                                      PreviewMouseLeftButtonUp="CompletedTaskRow_PreviewMouseLeftButtonUp">
+                                    <Border CornerRadius="10" IsHitTestVisible="False">
+                                        <Border.Style>
+                                            <Style TargetType="{x:Type Border}">
+                                                <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsMouseOver, ElementName=CompletedTaskRow}" Value="True">
+                                                        <Setter Property="Background" Value="{DynamicResource ControlHoverBackground}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                    </Border>
+                                    <Button Margin="16,0,0,0"
+                                            HorizontalAlignment="Left"
                                             VerticalAlignment="Center"
                                             BorderBrush="{DynamicResource TextWeak}"
                                             Command="{Binding DataContext.ToggleTaskCompletedCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
@@ -421,8 +467,7 @@
                                             Style="{StaticResource FocusTaskWindowCheckButton}">
                                         <TextBlock FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{DynamicResource TextWeak}" Text="&#xE73E;" />
                                     </Button>
-                                    <TextBlock Margin="38,0,0,0" VerticalAlignment="Center" FontSize="13" Foreground="{DynamicResource TextWeak}" Text="{Binding Name}" TextDecorations="Strikethrough" TextTrimming="CharacterEllipsis" />
-                                    <Border Height="1" Margin="38,49,0,0" Background="{DynamicResource BorderPrimary}" />
+                                    <TextBlock Margin="54,0,18,0" VerticalAlignment="Center" FontSize="13" Foreground="{DynamicResource TextWeak}" Text="{Binding Name}" TextDecorations="Strikethrough" TextTrimming="CharacterEllipsis" />
                                 </Grid>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>

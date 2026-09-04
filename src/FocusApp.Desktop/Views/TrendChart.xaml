@@ -28,7 +28,7 @@
                           Stroke="{DynamicResource BorderPrimary}"
                           StrokeDashArray="3,4"
                           StrokeThickness="1"
-                          Opacity="0.48">
+                          Opacity="1">
                         <Line.Style>
                             <Style TargetType="Line">
                                 <Setter Property="Visibility" Value="Collapsed" />

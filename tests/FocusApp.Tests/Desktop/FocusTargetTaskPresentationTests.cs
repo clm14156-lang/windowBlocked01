@@ -36,10 +36,13 @@ public sealed class FocusTargetTaskPresentationTests
             (string?)button.Attribute("Click") == "ViewTasksButton_Click"));
         Assert.Equal("45", (string?)viewTasksButton.Attribute("Height"));
         Assert.Equal("13", (string?)viewTasksButton.Attribute("FontSize"));
-        Assert.Equal("Medium", (string?)viewTasksButton.Attribute("FontWeight"));
+        Assert.Equal("Normal", (string?)viewTasksButton.Attribute("FontWeight"));
+        Assert.Equal("#353535", (string?)viewTasksButton.Attribute("Foreground"));
         Assert.Equal("1", (string?)viewTasksButton.Attribute("BorderThickness"));
         Assert.Contains(viewTasksButton.Descendants(Presentation + "TextBlock"), text =>
-            (string?)text.Attribute("Text") == "{DynamicResource FocusViewTasks}");
+            (string?)text.Attribute("Text") == "{DynamicResource FocusViewTasks}" &&
+            (string?)text.Attribute("FontWeight") == "Normal" &&
+            (string?)text.Attribute("Foreground") == "#353535");
 
         var endButton = Assert.Single(targetView.Descendants(Presentation + "Button").Where(button =>
             (string?)button.Attribute("Command") == "{Binding RequestEndCommand}"));

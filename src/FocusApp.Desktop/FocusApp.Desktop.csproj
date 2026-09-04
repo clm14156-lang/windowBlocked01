@@ -56,5 +56,6 @@
     <Resource Include="Assets\Themes\Solid\Orange\toast_jinggao.png" />
     <Resource Include="Assets\font\SourceHanSerifCN-Light-Subset.otf" />
     <Resource Include="Assets\font\SourceHanSerifCN-Regular-Subset.otf" />
+    <Resource Include="Assets\font\SourceHanSerifCN-Medium-Subset.otf" />
   </ItemGroup>
 </Project>

@@ -35,6 +35,7 @@ public sealed class FocusTaskListPresentationTests
         Assert.Contains(taskList.Descendants(Presentation + "Style"), scopedStyle =>
             (string?)scopedStyle.Attribute("BasedOn") == "{StaticResource FocusTaskWindowThinScrollBarStyle}");
         Assert.Equal("True", (string?)taskList.Attribute("AllowDrop"));
+        Assert.Equal("-16,0,-18,0", (string?)taskList.Attribute("Margin"));
         Assert.Equal("TaskList_DragOver", (string?)taskList.Attribute("DragOver"));
         Assert.Equal("TaskList_Drop", (string?)taskList.Attribute("Drop"));
 
@@ -44,8 +45,12 @@ public sealed class FocusTaskListPresentationTests
         var dragRow = Assert.Single(pendingTasks.Descendants(Presentation + "Grid").Where(grid =>
             (string?)grid.Attribute(Xaml + "Name") == "TaskDragRow"));
         Assert.Equal("Transparent", (string?)dragRow.Attribute("Background"));
+        Assert.Equal("Hand", (string?)dragRow.Attribute("Cursor"));
         Assert.Equal("PendingTaskList_PreviewMouseLeftButtonDown", (string?)dragRow.Attribute("PreviewMouseLeftButtonDown"));
+        Assert.Equal("PendingTaskList_PreviewMouseLeftButtonUp", (string?)dragRow.Attribute("PreviewMouseLeftButtonUp"));
         Assert.Equal("PendingTaskList_PreviewMouseMove", (string?)dragRow.Attribute("PreviewMouseMove"));
+        Assert.DoesNotContain(dragRow.Elements(Presentation + "Border"), border =>
+            (string?)border.Attribute("Height") == "1");
         Assert.Contains(dragRow.Descendants(Presentation + "DataTrigger"), trigger =>
             (string?)trigger.Attribute("Binding") == "{Binding IsDragging}" &&
             trigger.Descendants(Presentation + "DropShadowEffect").Any());
@@ -59,11 +64,30 @@ public sealed class FocusTaskListPresentationTests
                 "{Binding ShowDropBefore, Converter={StaticResource BooleanToVisibilityConverter}}" or
                 "{Binding ShowDropAfter, Converter={StaticResource BooleanToVisibilityConverter}}"));
 
+        var taskMenuButton = Assert.Single(dragRow.Elements(Presentation + "Button").Where(button =>
+            (string?)button.Attribute(Xaml + "Name") == "TaskMenuButton"));
+        var taskMenuStyle = Assert.Single(taskMenuButton.Elements(Presentation + "Button.Style")
+            .Elements(Presentation + "Style"));
+        Assert.Contains(taskMenuStyle.Elements(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("Property") == "Visibility" &&
+            (string?)setter.Attribute("Value") == "Collapsed");
+        Assert.Contains(taskMenuStyle.Descendants(Presentation + "DataTrigger"), trigger =>
+            (string?)trigger.Attribute("Binding") == "{Binding IsMouseOver, ElementName=TaskDragRow}" &&
+            trigger.Descendants(Presentation + "Setter").Any(setter =>
+                (string?)setter.Attribute("Property") == "Visibility" &&
+                (string?)setter.Attribute("Value") == "Visible"));
+
         var scrollContent = Assert.Single(taskList.Elements(Presentation + "StackPanel"));
         var completedToggle = Assert.Single(scrollContent.Elements(Presentation + "Button").Where(button =>
             ((string?)button.Attribute("Command"))?.Contains("ToggleTaskPanelCompletedTasksCommand", StringComparison.Ordinal) == true));
         Assert.Equal("Stretch", (string?)completedToggle.Attribute("HorizontalContentAlignment"));
         Assert.Equal("{DynamicResource TransparentBrush}", (string?)completedToggle.Attribute("Background"));
+        var completedToggleTemplate = Assert.Single(completedToggle.Elements(Presentation + "Button.Template")
+            .Elements(Presentation + "ControlTemplate"));
+        Assert.DoesNotContain(completedToggleTemplate.Descendants(Presentation + "Trigger"), trigger =>
+            (string?)trigger.Attribute("Property") == "IsMouseOver");
+        Assert.Contains(completedToggleTemplate.Descendants(Presentation + "Trigger"), trigger =>
+            (string?)trigger.Attribute("Property") == "IsPressed");
         Assert.DoesNotContain(completedToggle.Descendants(Presentation + "TextBlock"), textBlock =>
             (string?)textBlock.Attribute("Text") == "\uE73E");
         var completedItems = Assert.Single(scrollContent.Elements(Presentation + "ItemsControl").Where(items =>
@@ -91,7 +115,17 @@ public sealed class FocusTaskListPresentationTests
         Assert.Equal("3", (string?)addTask.Attribute("Grid.Row"));
         Assert.Equal("{Binding IsCompletedTasksExpanded, Converter={StaticResource BooleanToVisibilityConverter}}", (string?)completedItems.Attribute("Visibility"));
 
-        var completedRow = Assert.Single(completedItems.Descendants(Presentation + "DataTemplate").Descendants(Presentation + "Grid"));
+        var completedRow = Assert.Single(completedItems.Descendants(Presentation + "Grid").Where(grid =>
+            (string?)grid.Attribute(Xaml + "Name") == "CompletedTaskRow"));
+        Assert.Equal("Hand", (string?)completedRow.Attribute("Cursor"));
+        Assert.Equal("CompletedTaskRow_PreviewMouseLeftButtonUp", (string?)completedRow.Attribute("PreviewMouseLeftButtonUp"));
+        Assert.DoesNotContain(completedRow.Elements(Presentation + "Border"), border =>
+            (string?)border.Attribute("Height") == "1");
+        Assert.Contains(completedRow.Descendants(Presentation + "DataTrigger"), trigger =>
+            (string?)trigger.Attribute("Binding") == "{Binding IsMouseOver, ElementName=CompletedTaskRow}" &&
+            trigger.Descendants(Presentation + "Setter").Any(setter =>
+                (string?)setter.Attribute("Property") == "Background" &&
+                (string?)setter.Attribute("Value") == "{DynamicResource ControlHoverBackground}"));
         var completedToggleButton = Assert.Single(completedRow.Elements(Presentation + "Button"));
         Assert.Contains("ToggleTaskCompletedCommand", (string?)completedToggleButton.Attribute("Command"), StringComparison.Ordinal);
         Assert.Equal("{Binding}", (string?)completedToggleButton.Attribute("CommandParameter"));

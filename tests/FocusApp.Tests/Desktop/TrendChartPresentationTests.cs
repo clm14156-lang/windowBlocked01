@@ -9,6 +9,18 @@ public sealed class TrendChartPresentationTests
     private static readonly XNamespace Xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
 
     [Fact]
+    public void HorizontalGuideLines_UseFullOpacity()
+    {
+        var chart = XDocument.Load(Path.Combine(
+            FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "TrendChart.xaml"));
+        var guideLine = Assert.Single(chart.Descendants(Presentation + "Line").Where(line =>
+            (string?)line.Attribute("StrokeDashArray") == "3,4"));
+
+        Assert.Equal("{DynamicResource BorderPrimary}", (string?)guideLine.Attribute("Stroke"));
+        Assert.Equal("1", (string?)guideLine.Attribute("Opacity"));
+    }
+
+    [Fact]
     public void HoverTooltip_UsesOnlyPagePopupAndEmphasizesDurationOverDate()
     {
         var chart = XDocument.Load(Path.Combine(

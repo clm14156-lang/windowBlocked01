@@ -370,9 +370,9 @@
                                                     TrackBrush="#EEE8DE" />
                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                             <TextBlock HorizontalAlignment="Center"
-                                       FontFamily="{DynamicResource FontFamilyNumeric}"
-                                       FontSize="68"
-                                       FontWeight="Normal"
+                                        FontFamily="/FocusApp.Desktop;component/Assets/font/#Source Han Serif CN"
+                                        FontSize="68"
+                                        FontWeight="Medium"
                                        Foreground="{DynamicResource TextPrimary}"
                                        Text="{Binding RemainingTimeDisplay}" />
                             <StackPanel Margin="0,3,0,0" HorizontalAlignment="Center" Orientation="Horizontal">
@@ -489,9 +489,9 @@
                                 BorderBrush="#E7D9CE"
                                 BorderThickness="1"
                                 Click="ViewTasksButton_Click"
-                                Foreground="#151B23"
+                                Foreground="#353535"
                                 FontSize="13"
-                                FontWeight="Medium"
+                                FontWeight="Normal"
                                 Style="{StaticResource FocusFlowOutlineButton}">
                             <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
                                 <Image Width="15"
@@ -501,7 +501,7 @@
                                        IsHitTestVisible="False"
                                        Source="/FocusApp.Desktop;component/Assets/Themes/Solid/Orange/renwugaunli.png"
                                        Stretch="Uniform" />
-                                <TextBlock VerticalAlignment="Center" FontWeight="Medium" Foreground="#151B23" Text="{DynamicResource FocusViewTasks}" />
+                                <TextBlock VerticalAlignment="Center" FontWeight="Normal" Foreground="#353535" Text="{DynamicResource FocusViewTasks}" />
                             </StackPanel>
                         </Button>
                     </Grid>
@@ -548,9 +548,9 @@
                                                 TrackBrush="#EEE8DE" />
                     <TextBlock HorizontalAlignment="Center"
                                VerticalAlignment="Center"
-                               FontFamily="{DynamicResource FontFamilyNumeric}"
+                               FontFamily="/FocusApp.Desktop;component/Assets/font/#Source Han Serif CN"
                                FontSize="68"
-                               FontWeight="Normal"
+                               FontWeight="Medium"
                                Foreground="{DynamicResource TextPrimary}"
                                Text="{Binding RemainingTimeDisplay}" />
                 </Grid>

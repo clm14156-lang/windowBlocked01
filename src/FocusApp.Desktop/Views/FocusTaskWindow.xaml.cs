@@ -179,9 +179,29 @@ public partial class FocusTaskWindow : UserControl
 
     private void PendingTaskList_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
-        if (!_isTaskDragInProgress)
+        if (!_isTaskDragInProgress &&
+            _taskDragCandidate is not null &&
+            sender is FrameworkElement { DataContext: FocusTaskViewModel task } row &&
+            ReferenceEquals(_taskDragCandidate, task) &&
+            IsPointerInside(row, e) &&
+            !IsWithinTaskControl(e.OriginalSource as DependencyObject) &&
+            DataContext is FocusSessionViewModel viewModel)
         {
-            ResetDragCandidate();
+            viewModel.ToggleTaskCompletedCommand.Execute(task);
+            e.Handled = true;
+        }
+
+        ResetDragCandidate();
+    }
+
+    private void CompletedTaskRow_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: FocusTaskViewModel task } &&
+            !IsWithinTaskControl(e.OriginalSource as DependencyObject) &&
+            DataContext is FocusSessionViewModel viewModel)
+        {
+            viewModel.ToggleTaskCompletedCommand.Execute(task);
+            e.Handled = true;
         }
     }
 
@@ -300,6 +320,13 @@ public partial class FocusTaskWindow : UserControl
 
     private static bool IsWithinButton(DependencyObject? source) =>
         FindVisualAncestor<System.Windows.Controls.Primitives.ButtonBase>(source) is not null;
+
+    private static bool IsPointerInside(FrameworkElement element, MouseEventArgs e)
+    {
+        var position = e.GetPosition(element);
+        return position.X >= 0 && position.X <= element.ActualWidth &&
+               position.Y >= 0 && position.Y <= element.ActualHeight;
+    }
 
     private static T? FindVisualAncestor<T>(DependencyObject? source) where T : DependencyObject
     {
