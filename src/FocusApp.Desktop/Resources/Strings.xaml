@@ -186,6 +186,7 @@
     <system:String x:Key="CustomTimeCancel">取消</system:String>
     <system:String x:Key="CustomTimeConfirm">添加</system:String>
     <system:String x:Key="HomeBlockingTitle">当前屏蔽</system:String>
+    <system:String x:Key="HomeAutomaticBlockingLabel">自动屏蔽</system:String>
     <system:String x:Key="HomeBlockingCountSuffix"> 个网站和应用</system:String>
     <system:String x:Key="HomeBlockingEmpty">暂未添加屏蔽内容</system:String>
     <system:String x:Key="HomeManageAutomaticRule">管理规则</system:String>

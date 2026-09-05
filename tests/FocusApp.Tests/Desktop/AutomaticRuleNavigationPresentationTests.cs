@@ -9,34 +9,20 @@ public sealed class AutomaticRuleNavigationPresentationTests
     private static readonly XNamespace Xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
 
     [Fact]
-    public void HomeTooltip_UsesALightweightManageRuleLink()
+    public void Home_DoesNotKeepTheAutomaticRuleHoverPopup()
     {
         var root = FindRepositoryRoot();
         var home = XDocument.Load(Path.Combine(root, "src", "FocusApp.Desktop", "Views", "HomePage.xaml"));
 
-        var link = Assert.Single(home.Descendants(Presentation + "Button").Where(button =>
-            (string?)button.Attribute("Click") == "ManageAutomaticRule_Click"));
-
-        Assert.Equal("{DynamicResource TransparentBrush}", (string?)link.Attribute("Background"));
-        Assert.Equal("0", (string?)link.Attribute("BorderThickness"));
-        Assert.Equal("Left", (string?)link.Attribute("HorizontalAlignment"));
-        Assert.Contains(link.Descendants(Presentation + "TextBlock"), text =>
-            (string?)text.Attribute("Text") == "{DynamicResource HomeManageAutomaticRule}");
-        Assert.Contains(link.Descendants(Presentation + "TextBlock"), text =>
-            (string?)text.Attribute("Text") == "›");
-
-        var popup = Assert.Single(home.Descendants(Presentation + "Popup").Where(element =>
-            (string?)element.Attribute(Xaml + "Name") == "AutomaticBlockingPopup"));
-        Assert.Equal("True", (string?)popup.Attribute("StaysOpen"));
-        var popupRoot = Assert.Single(popup.Elements(Presentation + "Grid"));
-        Assert.Equal("190", (string?)popupRoot.Attribute("Width"));
-        var popupCard = Assert.Single(popupRoot.Elements(Presentation + "Border"));
-        Assert.Equal("96", (string?)popupCard.Attribute("Height"));
+        Assert.Empty(home.Descendants(Presentation + "Popup"));
+        Assert.DoesNotContain(home.Descendants(), element =>
+            ((string?)element.Attribute("MouseEnter"))?.Contains("AutomaticBlocking", StringComparison.Ordinal) == true ||
+            ((string?)element.Attribute("MouseLeave"))?.Contains("AutomaticBlocking", StringComparison.Ordinal) == true);
 
         var codeBehind = File.ReadAllText(Path.Combine(
             root, "src", "FocusApp.Desktop", "Views", "HomePage.xaml.cs"));
-        Assert.Contains("viewModel.ManageNextAutomaticRuleCommand.Execute(null)", codeBehind, StringComparison.Ordinal);
-        Assert.Contains("TimeSpan.FromMilliseconds(150)", codeBehind, StringComparison.Ordinal);
+        Assert.DoesNotContain("AutomaticBlockingPopup", codeBehind, StringComparison.Ordinal);
+        Assert.DoesNotContain("DispatcherTimer", codeBehind, StringComparison.Ordinal);
     }
 
     [Fact]

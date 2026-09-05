@@ -40,7 +40,7 @@ public sealed class HomeForcedModeStatusPresentationTests
         Assert.Equal("14", (string?)icon.Attribute("Height"));
         Assert.Equal("Uniform", (string?)icon.Attribute("Stretch"));
         Assert.Equal(
-            "/FocusApp.Desktop;component/Assets/Icons/Common/Home_Shield.png",
+            "/FocusApp.Desktop;component/Assets/Themes/Solid/Orange/suo.png",
             (string?)icon.Attribute("Source"));
 
         var label = Assert.Single(status.Elements(Presentation + "TextBlock"));
