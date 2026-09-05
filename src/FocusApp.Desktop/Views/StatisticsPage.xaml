@@ -9,6 +9,7 @@
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <views:CompactDurationConverter x:Key="CompactDurationConverter" />
         <views:GoalTrendLabelOffsetConverter x:Key="GoalTrendLabelOffsetConverter" />
+        <views:NegativeHalfConverter x:Key="NegativeHalfConverter" />
         <Style x:Key="CalendarReturnToTodayButtonStyle" TargetType="{x:Type Button}">
             <Setter Property="Width" Value="40" />
             <Setter Property="Height" Value="40" />
@@ -373,7 +374,25 @@
                         </Grid.Style>
                         <StackPanel>
                             <Grid Height="30"><ComboBox HorizontalAlignment="Right" VerticalAlignment="Top" ItemsSource="{Binding RangeOptions}" SelectedItem="{Binding SelectedRange}" DisplayMemberPath="Label" Style="{StaticResource StatisticsRangeComboBoxStyle}" /></Grid>
-                            <Grid Height="206" Margin="0,11,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="34" /><ColumnDefinition /></Grid.ColumnDefinitions><ItemsControl Margin="0,9,0,0" ItemsSource="{Binding YAxisTicks}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas /></ItemsPanelTemplate></ItemsControl.ItemsPanel><ItemsControl.ItemContainerStyle><Style TargetType="ContentPresenter"><Setter Property="Canvas.Top" Value="{Binding ChartY}" /></Style></ItemsControl.ItemContainerStyle><ItemsControl.ItemTemplate><DataTemplate><TextBlock Width="34" Margin="0,-9,0,0" TextAlignment="Left" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding Label}" /></DataTemplate></ItemsControl.ItemTemplate></ItemsControl><Grid Grid.Column="1"><Border Margin="0,0,0,46" VerticalAlignment="Bottom" Height="1" Background="{DynamicResource BorderPrimary}" /><views:TrendChart x:Name="TrendChartControl" DataContext="{Binding}" /></Grid></Grid>
+                            <Grid Height="206" Margin="0,11,0,0">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="34" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                                <ItemsControl ItemsSource="{Binding YAxisTicks}">
+                                    <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemContainerStyle>
+                                        <Style TargetType="ContentPresenter"><Setter Property="Canvas.Top" Value="{Binding ChartY}" /></Style>
+                                    </ItemsControl.ItemContainerStyle>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock x:Name="YAxisTickLabel" Width="34" TextAlignment="Left" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding Label}">
+                                                <TextBlock.RenderTransform>
+                                                    <TranslateTransform Y="{Binding ActualHeight, ElementName=YAxisTickLabel, Converter={StaticResource NegativeHalfConverter}}" />
+                                                </TextBlock.RenderTransform>
+                                            </TextBlock>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <Grid Grid.Column="1"><Border Margin="0,0,0,46" VerticalAlignment="Bottom" Height="1" Background="{DynamicResource BorderPrimary}" /><views:TrendChart x:Name="TrendChartControl" DataContext="{Binding}" /></Grid>
+                            </Grid>
                             <Border Height="66" Margin="-24,8,-24,0" Padding="0,4" Background="{DynamicResource TransparentBrush}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="0,1,0,0"><Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions><Border BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="0,0,1,0"><StackPanel Margin="0,8,0,0" HorizontalAlignment="Center" VerticalAlignment="Center"><TextBlock HorizontalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding PeriodTotalLabel}" /><TextBlock Margin="0,8,0,0" FontSize="15" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{Binding PeriodTotalDisplay}" /></StackPanel></Border><Border Grid.Column="1" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="0,0,1,0"><StackPanel Margin="0,8,0,0" HorizontalAlignment="Center" VerticalAlignment="Center"><TextBlock HorizontalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource StatisticsAverageDuration}" /><TextBlock Margin="0,8,0,0" FontSize="15" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{Binding AverageDurationDisplay}" /></StackPanel></Border><StackPanel Grid.Column="2" Margin="0,8,0,0" HorizontalAlignment="Center" VerticalAlignment="Center"><TextBlock HorizontalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding ComparisonLabel}" /><StackPanel Margin="0,8,0,0" HorizontalAlignment="Center" Orientation="Horizontal"><TextBlock FontSize="15" FontWeight="Medium" Foreground="{DynamicResource SuccessPositive}" Text="{Binding ComparisonDisplay}" /><Border Width="22" Height="22" Margin="8,0,0,0" Background="{DynamicResource SuccessTint}" CornerRadius="12"><TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="{DynamicResource SuccessPositive}" Text="&#xE74A;" /></Border></StackPanel></StackPanel></Grid></Border>
                         </StackPanel>
                     </Grid>
@@ -1573,8 +1592,11 @@
     <Popup x:Name="TrendTooltipPopup"
            DataContext="{Binding}"
            AllowsTransparency="True"
+           Closed="TrendTooltipPopup_Closed"
+           Focusable="False"
            IsHitTestVisible="False"
            IsOpen="{Binding IsTooltipOpen, Mode=OneWay}"
+           Opened="TrendTooltipPopup_Opened"
            Placement="Relative"
            PlacementTarget="{Binding ElementName=TrendCard}"
            HorizontalOffset="{Binding TooltipOffsetX}"
@@ -1585,7 +1607,9 @@
                 Background="{DynamicResource SurfacePrimary}"
                 BorderBrush="{DynamicResource BorderPrimary}"
                 BorderThickness="1"
-                CornerRadius="8">
+                CornerRadius="8"
+                Focusable="False"
+                IsHitTestVisible="False">
             <Border.Effect><DropShadowEffect BlurRadius="8" Direction="270" Opacity="0.1" ShadowDepth="2" /></Border.Effect>
             <StackPanel DataContext="{Binding HoveredPoint}">
                 <TextBlock FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextUnit}" Text="{Binding TooltipDateDisplay}" />

@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Controls.Primitives;
+using System.Windows.Interop;
 using System.Windows.Threading;
 using FocusApp.Desktop.ViewModels;
 
@@ -10,6 +11,8 @@ namespace FocusApp.Desktop.Views;
 
 public partial class StatisticsPage : UserControl
 {
+    private const int WmNcHitTest = 0x0084;
+    private static readonly IntPtr HitTestTransparent = new(-1);
     private bool _suppressGoalProgressScrollSync;
     private bool _monthlyFocusTargetPopupWasOpenOnAnchorPress;
     private bool _monthlyFocusTargetMenuWasOpenOnAnchorPress;
@@ -26,6 +29,7 @@ public partial class StatisticsPage : UserControl
     private readonly DispatcherTimer _goalInvestmentDetailsVipGuideCloseTimer;
     private bool _isGoalInvestmentDetailsVipHoverTargetHovered;
     private bool _isGoalInvestmentDetailsVipGuideHovered;
+    private HwndSource? _trendTooltipHwndSource;
 
     public StatisticsPage()
     {
@@ -50,6 +54,7 @@ public partial class StatisticsPage : UserControl
         Loaded += (_, _) => UpdateTooltipPlacement();
         Unloaded += (_, _) =>
         {
+            DetachTrendTooltipWindowHook();
             _trendVipGuideOpenTimer.Stop();
             _trendVipGuideCloseTimer.Stop();
             _dailyFocusRecordVipGuideOpenTimer.Stop();
@@ -58,6 +63,44 @@ public partial class StatisticsPage : UserControl
             _goalInvestmentDetailsVipGuideCloseTimer.Stop();
         };
         TrendCard.SizeChanged += (_, _) => UpdateTooltipPlacement();
+    }
+
+    private void TrendTooltipPopup_Opened(object? sender, EventArgs e)
+    {
+        if (TrendTooltipPopup.Child is not DependencyObject child ||
+            PresentationSource.FromDependencyObject(child) is not HwndSource source ||
+            ReferenceEquals(_trendTooltipHwndSource, source))
+        {
+            return;
+        }
+
+        DetachTrendTooltipWindowHook();
+        _trendTooltipHwndSource = source;
+        _trendTooltipHwndSource.AddHook(TrendTooltipWindowProc);
+    }
+
+    private void TrendTooltipPopup_Closed(object? sender, EventArgs e) => DetachTrendTooltipWindowHook();
+
+    private IntPtr TrendTooltipWindowProc(IntPtr hwnd, int message, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        if (message == WmNcHitTest)
+        {
+            handled = true;
+            return HitTestTransparent;
+        }
+
+        return IntPtr.Zero;
+    }
+
+    private void DetachTrendTooltipWindowHook()
+    {
+        if (_trendTooltipHwndSource is null)
+        {
+            return;
+        }
+
+        _trendTooltipHwndSource.RemoveHook(TrendTooltipWindowProc);
+        _trendTooltipHwndSource = null;
     }
 
     private void StatisticsPage_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)

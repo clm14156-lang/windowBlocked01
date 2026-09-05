@@ -216,8 +216,7 @@
                                     <Setter Property="Text" Value="{DynamicResource HomeGuestAccount}" />
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding IsLoggedIn}" Value="True">
-                                            <Setter Property="Foreground" Value="{DynamicResource LoggedAccountStatusText}" />
-                                            <Setter Property="Text" Value="{DynamicResource HomeLoggedInAccount}" />
+                                            <Setter Property="Visibility" Value="Collapsed" />
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>

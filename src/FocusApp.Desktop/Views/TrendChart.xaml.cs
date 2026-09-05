@@ -12,15 +12,15 @@ public partial class TrendChart : UserControl
         InitializeComponent();
     }
 
-    private void TrendPoint_MouseEnter(object sender, MouseEventArgs e)
+    private void TrendInteractionArea_MouseMove(object sender, MouseEventArgs e)
     {
-        if (DataContext is StatisticsOverviewViewModel viewModel && sender is FrameworkElement { DataContext: TrendDataPointViewModel point })
+        if (DataContext is StatisticsOverviewViewModel viewModel)
         {
-            viewModel.SetHoveredPoint(point);
+            viewModel.SetHoveredPointNearestTo(e.GetPosition(this).X);
         }
     }
 
-    private void TrendPoint_MouseLeave(object sender, MouseEventArgs e)
+    private void TrendInteractionArea_MouseLeave(object sender, MouseEventArgs e)
     {
         if (DataContext is StatisticsOverviewViewModel viewModel)
         {

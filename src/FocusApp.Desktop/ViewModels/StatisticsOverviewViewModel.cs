@@ -12,8 +12,8 @@ namespace FocusApp.Desktop.ViewModels;
 
 public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 {
-    private const double ChartLeft = 31;
-    private const double ChartWidth = 506;
+    private const double ChartLeft = 8;
+    private const double ChartWidth = 562;
     private const double TrendPlotTop = 0;
     private const double TrendPlotBottom = 159;
     private const double TrendPlotHeight = TrendPlotBottom - TrendPlotTop;
@@ -1421,6 +1421,12 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     public string TodayFocusDuration => FormatDuration(GetDailySummary(DateTime.Today).FocusMinutes);
 
     public int TodayFocusCount => GetDailySummary(DateTime.Today).SessionCount;
+
+    public void SetHoveredPointNearestTo(double chartX)
+    {
+        var nearestPoint = TrendPoints.MinBy(point => Math.Abs(point.ChartX - chartX));
+        SetHoveredPoint(nearestPoint);
+    }
 
     public void SetHoveredPoint(TrendDataPointViewModel? point)
     {

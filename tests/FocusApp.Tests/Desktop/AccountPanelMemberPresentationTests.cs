@@ -131,13 +131,10 @@ public sealed class AccountPanelMemberPresentationTests
             (string?)trigger.Attribute("Binding") == "{Binding IsLoggedIn}" &&
             (string?)trigger.Attribute("Value") == "True"));
         Assert.Contains(loggedInTrigger.Elements(Presentation + "Setter"), setter =>
-            (string?)setter.Attribute("Property") == "Text" &&
-            (string?)setter.Attribute("Value") == "{DynamicResource HomeLoggedInAccount}");
-        Assert.Contains(loggedInTrigger.Elements(Presentation + "Setter"), setter =>
-            (string?)setter.Attribute("Property") == "Foreground" &&
-            (string?)setter.Attribute("Value") == "{DynamicResource LoggedAccountStatusText}");
+            (string?)setter.Attribute("Property") == "Visibility" &&
+            (string?)setter.Attribute("Value") == "Collapsed");
         Assert.DoesNotContain(loggedInTrigger.Elements(Presentation + "Setter"), setter =>
-            (string?)setter.Attribute("Property") == "Visibility");
+            (string?)setter.Attribute("Property") is "Text" or "Foreground");
     }
 
     private static void AssertHasVipVisibilityTrigger(XContainer element)

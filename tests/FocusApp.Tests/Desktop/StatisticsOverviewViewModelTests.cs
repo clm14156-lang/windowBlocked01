@@ -95,6 +95,8 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.Equal("近7天", viewModel.SelectedRange.Label);
         Assert.Equal(7, viewModel.TrendPoints.Count);
         Assert.Equal(7, viewModel.TrendLinePoints.Count);
+        Assert.Equal(8, viewModel.TrendPoints[0].ChartX);
+        Assert.Equal(570, viewModel.TrendPoints[^1].ChartX);
         Assert.Equal(new[] { "24h", "20h", "16h", "12h", "8h", "4h", "0h" }, viewModel.YAxisTicks.Select(tick => tick.Label));
         Assert.Equal(7, viewModel.YAxisTicks.Count);
         Assert.All(
@@ -192,6 +194,32 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.False(first.IsHovered);
         Assert.True(second.IsHovered);
         Assert.Equal("5月10日 · 2小时06分钟 · 4次专注", second.TooltipText);
+    }
+
+    [Fact]
+    public void HoveringChartAreaSnapsToTheNearestPointByHorizontalDistance()
+    {
+        var viewModel = new StatisticsOverviewViewModel();
+        var first = viewModel.TrendPoints[0];
+        var second = viewModel.TrendPoints[1];
+        var midpoint = (first.ChartX + second.ChartX) / 2;
+
+        viewModel.SetHoveredPointNearestTo(midpoint - 0.1);
+
+        Assert.Same(first, viewModel.HoveredPoint);
+        Assert.True(first.IsHovered);
+
+        viewModel.SetHoveredPointNearestTo(midpoint + 0.1);
+
+        Assert.Same(second, viewModel.HoveredPoint);
+        Assert.False(first.IsHovered);
+        Assert.True(second.IsHovered);
+
+        viewModel.SetHoveredPoint(null);
+
+        Assert.Null(viewModel.HoveredPoint);
+        Assert.False(second.IsHovered);
+        Assert.False(viewModel.IsTooltipOpen);
     }
 
     [Fact]

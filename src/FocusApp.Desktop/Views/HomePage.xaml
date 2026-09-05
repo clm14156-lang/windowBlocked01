@@ -28,6 +28,36 @@
                      Fill="{DynamicResource AccentPrimary}" />
         </StackPanel>
 
+        <StackPanel x:Name="ForcedModeStatus"
+                    Margin="0,99,24,0"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Top"
+                    IsHitTestVisible="False"
+                    Orientation="Horizontal">
+            <StackPanel.Style>
+                <Style TargetType="{x:Type StackPanel}">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsForcedModeRequested}" Value="True">
+                            <Setter Property="Visibility" Value="Visible" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </StackPanel.Style>
+            <Image Width="14"
+                   Height="14"
+                   VerticalAlignment="Center"
+                   RenderOptions.BitmapScalingMode="HighQuality"
+                   Source="/FocusApp.Desktop;component/Assets/Icons/Common/Home_Shield.png"
+                   Stretch="Uniform" />
+            <TextBlock Margin="6,0,0,0"
+                       VerticalAlignment="Center"
+                       FontSize="12"
+                       FontWeight="Normal"
+                       Foreground="#8E8E93"
+                       Text="{DynamicResource HomeForcedModeEnabled}" />
+        </StackPanel>
+
         <Grid Width="238"
               Height="238"
               Margin="0,119,24,0"

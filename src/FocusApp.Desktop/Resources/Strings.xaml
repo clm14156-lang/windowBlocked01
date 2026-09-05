@@ -169,6 +169,7 @@
     <system:String x:Key="NavigationAccountIcon">&#xEA8C;</system:String>
     <system:String x:Key="HomeReadyTitle">准备开始专注</system:String>
     <system:String x:Key="HomeStartFocus">开始专注</system:String>
+    <system:String x:Key="HomeForcedModeEnabled">已开启强制模式</system:String>
     <system:String x:Key="HomeFocusTarget">选择专注目标(可选)</system:String>
     <system:String x:Key="HomeFocusTargetChevron">›</system:String>
     <system:String x:Key="HomeDuration25">25 分钟</system:String>

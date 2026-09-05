@@ -21,8 +21,8 @@
             </ItemsControl.ItemContainerStyle>
             <ItemsControl.ItemTemplate>
                 <DataTemplate DataType="{x:Type vm:YAxisTickViewModel}">
-                    <Line X1="31"
-                          X2="537"
+                    <Line X1="8"
+                          X2="570"
                           Y1="0"
                           Y2="0"
                           Stroke="{DynamicResource BorderPrimary}"
@@ -62,7 +62,27 @@
               StrokeEndLineCap="Round"
               IsHitTestVisible="False" />
 
-        <ItemsControl Panel.ZIndex="1" ItemsSource="{Binding TrendPoints}">
+        <Line x:Name="TrendCrosshair"
+              X1="{Binding HoveredPoint.ChartX}"
+              X2="{Binding HoveredPoint.ChartX}"
+              Y1="0"
+              Y2="159"
+              Stroke="{DynamicResource BorderPrimary}"
+              StrokeThickness="1"
+              IsHitTestVisible="False">
+            <Line.Style>
+                <Style TargetType="{x:Type Line}">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsTooltipOpen}" Value="True">
+                            <Setter Property="Visibility" Value="Visible" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Line.Style>
+        </Line>
+
+        <ItemsControl Panel.ZIndex="1" IsHitTestVisible="False" ItemsSource="{Binding TrendPoints}">
             <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
             <ItemsControl.ItemContainerStyle><Style TargetType="ContentPresenter"><Setter Property="Canvas.Left" Value="{Binding ChartX}" /><Setter Property="Canvas.Top" Value="{Binding ChartY}" /></Style></ItemsControl.ItemContainerStyle>
             <ItemsControl.ItemTemplate>
@@ -85,9 +105,7 @@
                                 Background="{DynamicResource TransparentBrush}"
                                 BorderThickness="0"
                                 Focusable="False"
-                                FocusVisualStyle="{x:Null}"
-                                MouseEnter="TrendPoint_MouseEnter"
-                                MouseLeave="TrendPoint_MouseLeave">
+                                FocusVisualStyle="{x:Null}">
                             <Button.Template>
                                 <ControlTemplate TargetType="Button">
                                     <Border Background="{TemplateBinding Background}">
@@ -121,5 +139,16 @@
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>
+
+        <Border x:Name="TrendInteractionArea"
+                Width="562"
+                Height="159"
+                Margin="8,0,0,0"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Top"
+                Panel.ZIndex="3"
+                Background="Transparent"
+                MouseMove="TrendInteractionArea_MouseMove"
+                MouseLeave="TrendInteractionArea_MouseLeave" />
     </Grid>
 </UserControl>
