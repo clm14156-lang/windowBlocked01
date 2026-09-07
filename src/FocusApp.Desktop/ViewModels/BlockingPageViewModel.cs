@@ -54,7 +54,11 @@ public sealed class BlockingPageViewModel : INotifyPropertyChanged
         WebsiteModal.WebsiteCreated += WebsiteModal_WebsiteCreated;
         WebsiteModal.WebsiteUpdated += WebsiteModal_WebsiteUpdated;
         ProgramModal.ProgramSelected += ProgramModal_ProgramSelected;
-        foreach (var website in Websites) website.PropertyChanged += Website_PropertyChanged;
+        foreach (var website in Websites)
+        {
+            website.PropertyChanged += Website_PropertyChanged;
+            _ = LoadFaviconAsync(website);
+        }
         foreach (var application in Applications)
         {
             application.PropertyChanged += Application_PropertyChanged;
@@ -265,9 +269,9 @@ public sealed class BlockingPageViewModel : INotifyPropertyChanged
                 item.Favicon = favicon;
             }
         }
-        catch
+        catch (Exception exception)
         {
-            // A missing favicon must not affect creation of the website rule.
+            try { File.AppendAllText(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "FocusApp", "Cache", "icon-cache-errors.log"), exception.ToString() + Environment.NewLine); } catch { }
         }
     }
 

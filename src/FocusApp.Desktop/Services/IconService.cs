@@ -76,6 +76,15 @@ public sealed class IconService : IFaviconService, IProgramIconService
             }
         }
 
+        // The PNG remains usable even when the metadata database is unavailable,
+        // stale, or contains an absolute path from another installation.
+        var cachedImage = await TryLoadPngAsync(GetCachePath(_websiteDirectory, key), cancellationToken).ConfigureAwait(false);
+        if (cachedImage is not null)
+        {
+            _memoryCache[key] = new MemoryIconEntry(cachedImage, DateTimeOffset.UtcNow.AddDays(30));
+            return cachedImage;
+        }
+
         if (entry is { Status: IconCacheStatus.Failed, RetryAfter: not null } && entry.RetryAfter > DateTimeOffset.UtcNow) return null;
         return (await GetOrStartAsync(key, () => FetchWebsiteAsync(key, domain), cancellationToken).ConfigureAwait(false)).Image;
     }
@@ -121,13 +130,15 @@ public sealed class IconService : IFaviconService, IProgramIconService
         {
             var image = await _websiteProvider(domain).ConfigureAwait(false);
             if (image is null) { await SaveWebsiteFailureAsync(key, domain, now.AddHours(24)).ConfigureAwait(false); return new(null); }
+            var expires = now.AddDays(30);
+            _memoryCache[key] = new MemoryIconEntry(image, expires);
             var path = GetCachePath(_websiteDirectory, key);
-            if (await SavePngAsync(image, path).ConfigureAwait(false))
+            try
             {
-                var expires = now.AddDays(30);
-                await _repository.SaveAsync(new IconCacheEntry(key, IconCacheType.Website, path, "favicon", IconCacheStatus.Success, now, now, expires, null, null, null)).ConfigureAwait(false);
-                _memoryCache[key] = new MemoryIconEntry(image, expires);
+                if (await SavePngAsync(image, path).ConfigureAwait(false))
+                    await _repository.SaveAsync(new IconCacheEntry(key, IconCacheType.Website, path, "favicon", IconCacheStatus.Success, now, now, expires, null, null, null)).ConfigureAwait(false);
             }
+            catch (Exception exception) { LogCacheError("Save website cache", exception); }
             return new(image);
         }
         catch { await SaveWebsiteFailureAsync(key, domain, now.AddHours(24)).ConfigureAwait(false); return new(null); }
@@ -188,7 +199,18 @@ public sealed class IconService : IFaviconService, IProgramIconService
     private async Task<IconCacheEntry?> TryGetEntryAsync(string key, CancellationToken cancellationToken)
     {
         try { return await _repository.GetAsync(key, cancellationToken).ConfigureAwait(false); }
-        catch { return null; }
+        catch (Exception exception) { LogCacheError("Read cache metadata", exception); return null; }
+    }
+
+    private void LogCacheError(string operation, Exception exception)
+    {
+        try
+        {
+            Directory.CreateDirectory(CacheRootDirectory);
+            File.AppendAllText(Path.Combine(CacheRootDirectory, "icon-cache-errors.log"),
+                $"{DateTimeOffset.UtcNow:O} {operation}: {exception.GetType().Name}: {exception.Message}{Environment.NewLine}");
+        }
+        catch { /* Diagnostics must not prevent displaying an icon. */ }
     }
 
     private void TouchInBackground(string key) => _ = _repository.TouchAsync(key, DateTimeOffset.UtcNow).ContinueWith(static task => _ = task.Exception, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
@@ -229,14 +251,15 @@ public sealed class IconService : IFaviconService, IProgramIconService
         catch { try { File.Delete(temporaryPath); } catch { } return false; }
     }
 
-    private static async Task<ImageSource?> TryLoadPngAsync(string path, CancellationToken cancellationToken)
+    private async Task<ImageSource?> TryLoadPngAsync(string path, CancellationToken cancellationToken)
     {
+        if (!File.Exists(path)) return null;
         try
         {
             await using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
             var image = new BitmapImage(); image.BeginInit(); image.CacheOption = BitmapCacheOption.OnLoad; image.StreamSource = stream; image.EndInit(); image.Freeze(); cancellationToken.ThrowIfCancellationRequested(); return image;
         }
-        catch { return null; }
+        catch (Exception exception) { LogCacheError("Read PNG " + path, exception); return null; }
     }
 
     private static string GetCachePath(string directory, string cacheKey) => Path.Combine(directory, $"{Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(cacheKey)))}.png");

@@ -8,6 +8,26 @@ namespace FocusApp.Tests.Desktop;
 public sealed class IconServiceTests
 {
     [Fact]
+    public async Task WebsiteIcon_UsesPngOfflineWhenMetadataDatabaseIsUnavailable()
+    {
+        using var cache = new TemporaryDirectory();
+        // A directory at the database path deterministically prevents SQLite access.
+        Directory.CreateDirectory(Path.Combine(cache.Path, "icon-cache.db"));
+        var first = new IconService(cache.Path, _ => Task.FromResult<ImageSource?>(CreateImage()));
+        Assert.NotNull(await first.GetFaviconAsync("www.youtube.com"));
+        Assert.Single(Directory.EnumerateFiles(Path.Combine(cache.Path, "Icons", "Websites"), "*.png"));
+
+        var calls = 0;
+        var restarted = new IconService(cache.Path, _ =>
+        {
+            calls++;
+            throw new InvalidOperationException("Offline");
+        });
+        Assert.NotNull(await restarted.GetFaviconAsync("https://www.youtube.com/"));
+        Assert.Equal(0, calls);
+    }
+
+    [Fact]
     public async Task WebsiteIcon_PersistsPngAndSecondServiceUsesDiskWithoutProvider()
     {
         using var cache = new TemporaryDirectory();

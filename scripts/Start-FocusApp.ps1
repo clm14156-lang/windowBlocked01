@@ -19,12 +19,25 @@ if ($runningApplications)
 }
 
 Set-Location -LiteralPath $repositoryRoot
-$workspaceDriveRoot = [System.IO.Path]::GetPathRoot($repositoryRoot)
-$env:NUGET_PACKAGES = Join-Path $workspaceDriveRoot '.focusapp-nuget'
-$env:NUGET_HTTP_CACHE_PATH = Join-Path $workspaceDriveRoot '.focusapp-nuget-http'
-$env:TEMP = Join-Path $workspaceDriveRoot '.focusapp-temp'
+$localDotnetRoot = Join-Path $repositoryRoot '.dotnet'
+$localDotnetExecutable = Join-Path $localDotnetRoot 'dotnet.exe'
+if (Test-Path -LiteralPath $localDotnetExecutable)
+{
+    $dotnetExecutable = $localDotnetExecutable
+    $env:DOTNET_ROOT = $localDotnetRoot
+    $env:PATH = "$localDotnetRoot;$env:PATH"
+}
+else
+{
+    $dotnetExecutable = 'dotnet'
+}
+
+$buildCacheRoot = Join-Path $repositoryRoot '.codex-build'
+$env:NUGET_PACKAGES = Join-Path $buildCacheRoot 'nuget-packages'
+$env:NUGET_HTTP_CACHE_PATH = Join-Path $buildCacheRoot 'nuget-http'
+$env:TEMP = Join-Path $buildCacheRoot 'temp'
 $env:TMP = $env:TEMP
-$env:DOTNET_CLI_HOME = Join-Path $workspaceDriveRoot '.focusapp-dotnet'
+$env:DOTNET_CLI_HOME = Join-Path $buildCacheRoot 'dotnet-home'
 
 @(
     $env:NUGET_PACKAGES,
@@ -35,14 +48,14 @@ $env:DOTNET_CLI_HOME = Join-Path $workspaceDriveRoot '.focusapp-dotnet'
     New-Item -ItemType Directory -Path $_ -Force | Out-Null
 }
 
-dotnet restore FocusApp.sln --ignore-failed-sources -p:NuGetAudit=false
+& $dotnetExecutable restore FocusApp.sln --ignore-failed-sources -p:NuGetAudit=false
 if ($LASTEXITCODE -ne 0)
 {
     Write-Error 'FocusApp package restore failed. No components were started.'
     exit $LASTEXITCODE
 }
 
-dotnet build FocusApp.sln --no-restore --configuration $Configuration
+& $dotnetExecutable build FocusApp.sln --no-restore --configuration $Configuration
 if ($LASTEXITCODE -ne 0)
 {
     Write-Error 'FocusApp build failed. No components were started.'
@@ -60,7 +73,7 @@ foreach ($component in $components)
     $command = @"
 `$Host.UI.RawUI.WindowTitle = '$($component.Title)'
 Set-Location -LiteralPath '$repositoryRoot'
-dotnet run --no-build --configuration '$Configuration' --project '$($component.Project)'
+& '$dotnetExecutable' run --no-build --configuration '$Configuration' --project '$($component.Project)'
 "@
 
     Start-Process -FilePath 'powershell.exe' -ArgumentList @('-NoExit', '-Command', $command)

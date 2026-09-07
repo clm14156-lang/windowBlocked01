@@ -228,12 +228,10 @@
 
             <Popup x:Name="GuestLoginHintPopup"
                    AllowsTransparency="True"
-                   HorizontalOffset="8"
-                   Placement="Right"
+                   Placement="Custom"
                    PlacementTarget="{Binding ElementName=AccountButton}"
                    PopupAnimation="Fade"
-                   StaysOpen="True"
-                   VerticalOffset="-28">
+                   StaysOpen="True">
                 <Grid x:Name="GuestLoginHintRoot"
                       Width="220"
                       Height="100"

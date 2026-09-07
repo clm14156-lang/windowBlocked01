@@ -4,5 +4,6 @@ obj/
 TestResults/
 .verify/
 .codex-build/
+.dotnet/
 *.user
 *.suo

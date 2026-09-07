@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
@@ -38,6 +39,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        GuestLoginHintPopup.CustomPopupPlacementCallback = PlaceGuestLoginHintPopup;
         _guestLoginHintCloseTimer = new DispatcherTimer
         {
             Interval = TimeSpan.FromMilliseconds(280)
@@ -451,6 +453,21 @@ public partial class MainWindow : Window
         {
             GuestLoginHintPopup.IsOpen = true;
         }
+    }
+
+    private static CustomPopupPlacement[] PlaceGuestLoginHintPopup(
+        Size popupSize,
+        Size targetSize,
+        Point offset)
+    {
+        // Popup coordinates are WPF device-independent units relative to the
+        // avatar itself. WPF owns the screen and per-monitor DPI conversion.
+        return
+        [
+            new CustomPopupPlacement(
+                new Point(targetSize.Width, (targetSize.Height - popupSize.Height) / 2),
+                PopupPrimaryAxis.None)
+        ];
     }
 
     private void GuestAccountHint_MouseLeave(object sender, MouseEventArgs e)
