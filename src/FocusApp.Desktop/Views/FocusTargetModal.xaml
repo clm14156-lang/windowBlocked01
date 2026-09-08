@@ -454,9 +454,9 @@
                                 </Style.Triggers>
                             </Style>
                         </Border.Style>
-                        <Grid Height="46">
+                        <Grid x:Name="NewTaskEntryRow" Height="48">
                             <Ellipse Width="18" Height="18" Margin="4,0,0,0" HorizontalAlignment="Left" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.3" />
-                            <Grid Margin="32,4,28,4">
+                            <Grid x:Name="NewTaskEditorContainer" Margin="32,4,28,4">
                                 <TextBox x:Name="NewTaskTextBox"
                                          AutomationProperties.Name="{DynamicResource FocusTargetTaskPlaceholder}"
                                          IsVisibleChanged="Editor_IsVisibleChanged"
@@ -509,8 +509,23 @@
                                         </Style>
                                     </Border.Style>
                                     <Grid>
-                                        <Ellipse Width="18" Height="18" Margin="4,0,0,0" HorizontalAlignment="Left" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.3" />
-                                        <TextBlock Margin="36,0,38,0" VerticalAlignment="Center" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}" Text="{Binding Name}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="36" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="30" />
+                                        </Grid.ColumnDefinitions>
+                                        <Ellipse Grid.Column="0" Width="18" Height="18" Margin="4,0,0,0" HorizontalAlignment="Left" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.3" />
+                                        <TextBlock x:Name="TaskNameText"
+                                                   Grid.Column="1"
+                                                   Margin="0,0,8,0"
+                                                   VerticalAlignment="Center"
+                                                   FontSize="13"
+                                                   FontWeight="Normal"
+                                                   Foreground="{DynamicResource TextPrimary}"
+                                                   Text="{Binding Name}"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   TextWrapping="NoWrap">
                                             <TextBlock.Style>
                                                 <Style TargetType="{x:Type TextBlock}">
                                                     <Setter Property="Visibility" Value="Visible" />
@@ -522,7 +537,33 @@
                                                 </Style>
                                             </TextBlock.Style>
                                         </TextBlock>
-                                        <TextBox Margin="32,4,30,4"
+                                        <TextBlock x:Name="TaskCreatedDateText"
+                                                   Grid.Column="2"
+                                                   Margin="4,0,6,0"
+                                                   HorizontalAlignment="Right"
+                                                   VerticalAlignment="Center"
+                                                   FontSize="12"
+                                                   FontWeight="Normal"
+                                                   Foreground="{DynamicResource TextWeak}"
+                                                   Text="{Binding CreatedDateDisplay}">
+                                            <TextBlock.Style>
+                                                <Style TargetType="{x:Type TextBlock}">
+                                                    <Setter Property="Visibility" Value="Hidden" />
+                                                    <Style.Triggers>
+                                                        <MultiDataTrigger>
+                                                            <MultiDataTrigger.Conditions>
+                                                                <Condition Binding="{Binding IsHovered}" Value="True" />
+                                                                <Condition Binding="{Binding IsEditing}" Value="False" />
+                                                            </MultiDataTrigger.Conditions>
+                                                            <Setter Property="Visibility" Value="Visible" />
+                                                        </MultiDataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                        <TextBox Grid.Column="1"
+                                                 Grid.ColumnSpan="2"
+                                                 Margin="0,4,4,4"
                                                  AutomationProperties.Name="{DynamicResource FocusTargetEditTask}"
                                                  IsVisibleChanged="Editor_IsVisibleChanged"
                                                  KeyDown="EditTaskTextBox_KeyDown"
@@ -540,6 +581,7 @@
                                             </TextBox.Style>
                                         </TextBox>
                                          <Button x:Name="TaskMenuButton"
+                                                 Grid.Column="3"
                                                  Width="30"
                                                  Height="34"
                                                  HorizontalAlignment="Right"
@@ -554,7 +596,8 @@
                                             </Button.Style>
                                             <TextBlock Margin="0,-7,0,0" FontSize="19" FontWeight="Medium" Foreground="{DynamicResource TextTertiary}" Text="..." />
                                         </Button>
-                                        <Popup AllowsTransparency="True"
+                                        <Popup Grid.Column="3"
+                                               AllowsTransparency="True"
                                                IsOpen="{Binding IsMenuOpen, Mode=TwoWay}"
                                                Placement="Left"
                                                PlacementTarget="{Binding ElementName=TaskMenuButton}"

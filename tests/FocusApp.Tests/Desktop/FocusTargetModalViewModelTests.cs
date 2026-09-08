@@ -209,6 +209,26 @@ public sealed class FocusTargetModalViewModelTests
     }
 
     [Fact]
+    public void TaskCreationDate_UsesLocalShortDateForCurrentYearAndIncludesOtherYears()
+    {
+        var target = new FocusTargetViewModel("日期测试");
+        var currentYear = DateTime.Now.Year;
+        var sameYearDate = new DateTime(currentYear, 9, 8, 12, 0, 0, DateTimeKind.Unspecified);
+        var priorYearDate = sameYearDate.AddYears(-1);
+        var sameYearLocal = new DateTimeOffset(sameYearDate, TimeZoneInfo.Local.GetUtcOffset(sameYearDate));
+        var priorYearLocal = new DateTimeOffset(priorYearDate, TimeZoneInfo.Local.GetUtcOffset(priorYearDate));
+
+        var sameYearTask = target.AddTask(
+            "task-current-year", "本年任务", false, createdAtUtc: sameYearLocal.ToUniversalTime());
+        var priorYearTask = target.AddTask(
+            "task-prior-year", "跨年任务", false, createdAtUtc: priorYearLocal.ToUniversalTime());
+
+        Assert.Equal(sameYearLocal.ToUniversalTime(), sameYearTask.CreatedAtUtc);
+        Assert.Equal("9月8日", sameYearTask.CreatedDateDisplay);
+        Assert.Equal($"{currentYear - 1}年9月8日", priorYearTask.CreatedDateDisplay);
+    }
+
+    [Fact]
     public void AddingEmptyTask_CancelsInputModeWithoutCreatingTask()
     {
         var viewModel = new FocusTargetModalViewModel();

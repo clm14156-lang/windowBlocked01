@@ -540,110 +540,124 @@
                             </Button>
                         </Grid>
                     </Grid>
-                    <Grid x:Name="MonthlyFocusTargetSetState"><Grid.Style><Style TargetType="Grid"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding HasMonthlyFocusTarget}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></Grid.Style>
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="290" /><ColumnDefinition /><ColumnDefinition Width="55" /></Grid.ColumnDefinitions>
-                        <StackPanel VerticalAlignment="Top">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock FontSize="36" FontWeight="Normal" Text="{Binding MonthlyFocusCompletedHours}">
-                                    <TextBlock.Style>
-                                        <Style TargetType="{x:Type TextBlock}" BasedOn="{StaticResource {x:Type TextBlock}}">
-                                            <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}" />
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsMonthlyFocusTargetCompleted}" Value="True">
-                                                    <Setter Property="Foreground" Value="{DynamicResource SuccessPositive}" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
-                                <TextBlock Margin="8,20,0,0" FontSize="15" FontWeight="Normal" Foreground="{DynamicResource TextUnit}" Text="{DynamicResource StatisticsHoursUnit}" />
-                                <TextBlock Margin="16,20,0,0" FontSize="15" FontWeight="Normal" Foreground="{DynamicResource TextUnit}" Text="/" />
-                                <TextBlock Margin="16,20,0,0" FontSize="15" FontWeight="Normal" Foreground="{DynamicResource TextUnit}" Text="{Binding MonthlyFocusTargetDisplay}" />
+                    <Grid x:Name="MonthlyFocusTargetSetState">
+                        <Grid.Style>
+                            <Style TargetType="Grid">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasMonthlyFocusTarget}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Grid.Style>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="142" />
+                            <ColumnDefinition Width="1" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <Grid x:Name="MonthlyFocusCompletionRing"
+                              Grid.Column="0"
+                              Width="82"
+                              Height="82"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center">
+                            <views:CircularProgressRing Width="82"
+                                                        Height="82"
+                                                        Progress="{Binding MonthlyFocusProgressRatio, Mode=OneWay}"
+                                                        ProgressBrush="{DynamicResource AccentPrimary}"
+                                                        ProgressEndPointDiameter="0"
+                                                        RingThickness="5"
+                                                        TrackBrush="{DynamicResource BackgroundSecondary}" />
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <TextBlock HorizontalAlignment="Center"
+                                           FontFamily="{DynamicResource FontFamilyNumeric}"
+                                           FontSize="21"
+                                           FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextPrimary}"
+                                           Text="{Binding MonthlyFocusProgressPercent, StringFormat={}{0}%}" />
+                                <TextBlock Margin="0,2,0,0"
+                                           HorizontalAlignment="Center"
+                                           FontSize="11"
+                                           FontWeight="Normal"
+                                           Foreground="{DynamicResource TextSecondary}"
+                                           Text="完成进度" />
                             </StackPanel>
-                            <Grid Margin="0,2,0,0">
-                                <TextBlock FontSize="13" Foreground="{DynamicResource TextSecondary}">
-                                    <TextBlock.Style>
-                                        <Style TargetType="{x:Type TextBlock}" BasedOn="{StaticResource {x:Type TextBlock}}">
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsMonthlyFocusTargetCompleted}" Value="True">
-                                                    <Setter Property="Visibility" Value="Collapsed" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
-                                    <Run Text="距离目标还差 " /><Run Foreground="{DynamicResource AccentPrimary}" Text="{Binding MonthlyFocusRemainingDisplay, Mode=OneWay}" />
-                                </TextBlock>
-                                <StackPanel x:Name="MonthlyFocusTargetCompletedMessage" Orientation="Horizontal">
-                                    <StackPanel.Style>
-                                        <Style TargetType="{x:Type StackPanel}">
-                                            <Setter Property="Visibility" Value="Collapsed" />
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsMonthlyFocusTargetCompleted}" Value="True">
-                                                    <Setter Property="Visibility" Value="Visible" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </StackPanel.Style>
-                                    <Grid x:Name="MonthlyFocusTargetCompletedIcon" Width="16" Height="16" Margin="0,0,5,0" VerticalAlignment="Center">
-                                        <Ellipse Width="15" Height="15" Stroke="{DynamicResource SuccessPositive}" StrokeThickness="1.5" />
-                                        <Path Data="M 4,8.2 L 6.8,11 L 12.2,5.4"
-                                              Stroke="{DynamicResource SuccessPositive}"
-                                              StrokeThickness="1.5"
-                                              StrokeStartLineCap="Round"
-                                              StrokeEndLineCap="Round"
-                                              StrokeLineJoin="Round" />
-                                    </Grid>
-                                    <TextBlock VerticalAlignment="Center" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource SuccessPositive}" Text="本日专注目标已完成" />
-                                </StackPanel>
-                            </Grid>
-                        </StackPanel>
-                        <ProgressBar Grid.Column="1" Margin="8,0,5,0" VerticalAlignment="Center" Maximum="1" Value="{Binding MonthlyFocusProgressRatio, Mode=OneWay}">
-                            <ProgressBar.Style>
-                                <Style TargetType="{x:Type ProgressBar}" BasedOn="{StaticResource StatisticsProgressBarStyle}">
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsMonthlyFocusTargetCompleted}" Value="True">
-                                            <Setter Property="Foreground" Value="{DynamicResource SuccessPositive}" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </ProgressBar.Style>
-                        </ProgressBar>
-                        <Grid Grid.Column="2">
-                            <Button x:Name="EditMonthlyFocusTargetButton"
-                                    Width="34"
-                                    Height="24"
-                                    Margin="0,-10,-18,0"
-                                    HorizontalAlignment="Right"
-                                    VerticalAlignment="Top"
-                                    Padding="0"
-                                    Background="{DynamicResource TransparentBrush}"
-                                    BorderThickness="0"
-                                    FontSize="15"
-                                    FontWeight="SemiBold"
-                                    Foreground="{DynamicResource TextSecondary}"
-                                    Content="•••"
-                                    ToolTip="本月目标操作"
-                                    PreviewMouseLeftButtonDown="MonthlyFocusTargetMenuButton_PreviewMouseLeftButtonDown"
-                                    Click="MonthlyFocusTargetMenuButton_Click" />
-                            <Popup x:Name="MonthlyFocusTargetActionMenu"
-                                   AllowsTransparency="True"
-                                   StaysOpen="False"
-                                   IsOpen="{Binding IsMonthlyFocusTargetMenuOpen, Mode=TwoWay}"
-                                   Placement="Bottom"
-                                   PlacementTarget="{Binding ElementName=EditMonthlyFocusTargetButton}"
-                                   HorizontalOffset="-84"
-                                   VerticalOffset="4"
-                                   PopupAnimation="Fade">
-                                <Border Width="118" Padding="6" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" CornerRadius="10">
-                                    <Border.Effect><DropShadowEffect BlurRadius="10" Direction="270" Opacity="0.1" ShadowDepth="2" /></Border.Effect>
-                                    <StackPanel>
-                                        <Button Content="编辑" Click="EditMonthlyFocusTargetMenuItem_Click" Style="{StaticResource MonthlyTargetMenuItemStyle}" />
-                                        <Button Content="删除" Click="DeleteMonthlyFocusTargetMenuItem_Click" Foreground="{DynamicResource Danger}" Style="{StaticResource MonthlyTargetMenuItemStyle}" />
-                                    </StackPanel>
-                                </Border>
-                            </Popup>
-                            <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="15" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{Binding MonthlyFocusProgressPercent, StringFormat={}{0}%}" />
                         </Grid>
+
+                        <Border Grid.Column="1"
+                                Width="1"
+                                Height="82"
+                                VerticalAlignment="Center"
+                                Background="{DynamicResource BorderPrimary}" />
+
+                        <Grid Grid.Column="2" Margin="24,0,0,0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <ProgressBar x:Name="MonthlyFocusTargetProgressBar"
+                                         Height="10"
+                                         HorizontalAlignment="Stretch"
+                                         VerticalAlignment="Center"
+                                         Maximum="1"
+                                         Style="{StaticResource StatisticsProgressBarStyle}"
+                                         Value="{Binding MonthlyFocusProgressRatio, Mode=OneWay}" />
+                            <Grid Grid.Row="1" Margin="0,10,0,3">
+                                <TextBlock HorizontalAlignment="Left"
+                                           FontSize="13"
+                                           FontWeight="Normal"
+                                           Foreground="{DynamicResource TextSecondary}">
+                                    <Run Text="已投入 " />
+                                    <Run Text="{Binding MonthlyFocusInvestedDisplay, Mode=OneWay}" />
+                                </TextBlock>
+                                <TextBlock HorizontalAlignment="Right"
+                                           FontSize="13"
+                                           FontWeight="Normal"
+                                           Foreground="{DynamicResource TextSecondary}">
+                                    <Run Text="目标 " />
+                                    <Run Text="{Binding MonthlyFocusTargetDisplay, Mode=OneWay}" />
+                                </TextBlock>
+                            </Grid>
+                        </Grid>
+
+                        <Button x:Name="EditMonthlyFocusTargetButton"
+                                Grid.ColumnSpan="3"
+                                Width="34"
+                                Height="24"
+                                Margin="0,-10,-18,0"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Top"
+                                Panel.ZIndex="2"
+                                Padding="0"
+                                Background="{DynamicResource TransparentBrush}"
+                                BorderThickness="0"
+                                FontSize="15"
+                                FontWeight="SemiBold"
+                                Foreground="{DynamicResource TextSecondary}"
+                                Content="•••"
+                                ToolTip="本月目标操作"
+                                PreviewMouseLeftButtonDown="MonthlyFocusTargetMenuButton_PreviewMouseLeftButtonDown"
+                                Click="MonthlyFocusTargetMenuButton_Click" />
+                        <Popup x:Name="MonthlyFocusTargetActionMenu"
+                               Grid.ColumnSpan="3"
+                               AllowsTransparency="True"
+                               StaysOpen="False"
+                               IsOpen="{Binding IsMonthlyFocusTargetMenuOpen, Mode=TwoWay}"
+                               Placement="Bottom"
+                               PlacementTarget="{Binding ElementName=EditMonthlyFocusTargetButton}"
+                               HorizontalOffset="-84"
+                               VerticalOffset="4"
+                               PopupAnimation="Fade">
+                            <Border Width="118" Padding="6" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" CornerRadius="10">
+                                <Border.Effect><DropShadowEffect BlurRadius="10" Direction="270" Opacity="0.1" ShadowDepth="2" /></Border.Effect>
+                                <StackPanel>
+                                    <Button Content="编辑" Click="EditMonthlyFocusTargetMenuItem_Click" Style="{StaticResource MonthlyTargetMenuItemStyle}" />
+                                    <Button Content="删除" Click="DeleteMonthlyFocusTargetMenuItem_Click" Foreground="{DynamicResource Danger}" Style="{StaticResource MonthlyTargetMenuItemStyle}" />
+                                </StackPanel>
+                            </Border>
+                        </Popup>
                     </Grid>
                 </Grid>
                 <Border.Style><Style TargetType="Border"><Setter Property="Background" Value="{DynamicResource SurfacePrimary}" /></Style></Border.Style>

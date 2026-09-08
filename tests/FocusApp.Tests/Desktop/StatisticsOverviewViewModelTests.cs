@@ -651,6 +651,11 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.Equal(60, viewModel.MonthlyFocusTargetHours);
         Assert.Equal(completedMinutes, viewModel.MonthlyFocusCompletedMinutes);
         Assert.Equal(completedMinutes / 60, viewModel.MonthlyFocusCompletedHours);
+        Assert.Equal(
+            completedMinutes % 60 == 0
+                ? $"{completedMinutes / 60} 小时"
+                : $"{completedMinutes / 60} 小时 {completedMinutes % 60} 分钟",
+            viewModel.MonthlyFocusInvestedDisplay);
         Assert.Equal(Math.Min(100, (int)Math.Round(completedMinutes / 3600d * 100)), viewModel.MonthlyFocusProgressPercent);
         Assert.Equal(Math.Min(1, completedMinutes / 3600d), viewModel.MonthlyFocusProgressRatio);
         Assert.False(viewModel.IsMonthlyFocusTargetCompleted);

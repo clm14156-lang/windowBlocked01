@@ -608,7 +608,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         var tasks = target.Tasks.Select((task, index) =>
         {
             existingTasks.TryGetValue(task.TaskId, out var existing);
-            return new LocalTaskDto(task.TaskId, target.TargetId, task.Name, task.IsCompleted, index, existing?.CreatedAtUtc ?? now, now)
+            return new LocalTaskDto(task.TaskId, target.TargetId, task.Name, task.IsCompleted, index, task.CreatedAtUtc, now)
             {
                 CompletedAtUtc = task.IsCompleted ? task.CompletedAtUtc ?? existing?.CompletedAtUtc ?? now : null
             };

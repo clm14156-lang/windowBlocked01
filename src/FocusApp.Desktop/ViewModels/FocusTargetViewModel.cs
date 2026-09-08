@@ -94,9 +94,10 @@ public sealed class FocusTargetViewModel : INotifyPropertyChanged
         string name,
         bool isCompleted,
         bool insertAtTop = false,
+        DateTimeOffset? createdAtUtc = null,
         DateTimeOffset? completedAtUtc = null)
     {
-        var task = new FocusTaskViewModel(TargetId, name, false, taskId);
+        var task = new FocusTaskViewModel(TargetId, name, false, taskId, createdAtUtc);
         task.ApplyCompletion(isCompleted, completedAtUtc);
         if (insertAtTop) Tasks.Insert(0, task); else Tasks.Add(task);
         return task;
@@ -176,13 +177,19 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
     private bool _isFocusMenuOpen;
     private bool _isEditing;
     private bool _isCompleted;
+    private DateTimeOffset _createdAtUtc;
     private DateTimeOffset? _completedAtUtc;
     private bool _isNew;
     private bool _isDragging;
     private bool _showDropBefore;
     private bool _showDropAfter;
 
-    internal FocusTaskViewModel(string targetId, string name, bool isNew = false, string? taskId = null)
+    internal FocusTaskViewModel(
+        string targetId,
+        string name,
+        bool isNew = false,
+        string? taskId = null,
+        DateTimeOffset? createdAtUtc = null)
     {
         if (string.IsNullOrWhiteSpace(targetId))
         {
@@ -194,6 +201,7 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
         _name = name;
         _editName = name;
         _isNew = isNew;
+        _createdAtUtc = (createdAtUtc ?? DateTimeOffset.UtcNow).ToUniversalTime();
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -201,6 +209,19 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
     public string TargetId { get; }
 
     public string TaskId { get; }
+
+    public DateTimeOffset CreatedAtUtc => _createdAtUtc;
+
+    public string CreatedDateDisplay
+    {
+        get
+        {
+            var localCreatedAt = CreatedAtUtc.ToLocalTime();
+            return localCreatedAt.Year == DateTime.Now.Year
+                ? $"{localCreatedAt.Month}月{localCreatedAt.Day}日"
+                : $"{localCreatedAt.Year}年{localCreatedAt.Month}月{localCreatedAt.Day}日";
+        }
+    }
 
     public string Name
     {
@@ -305,6 +326,19 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
     }
 
     public DateTimeOffset? CompletedAtUtc => _completedAtUtc;
+
+    internal void ApplyCreatedAt(DateTimeOffset createdAtUtc)
+    {
+        var normalizedCreatedAtUtc = createdAtUtc.ToUniversalTime();
+        if (_createdAtUtc == normalizedCreatedAtUtc)
+        {
+            return;
+        }
+
+        _createdAtUtc = normalizedCreatedAtUtc;
+        OnPropertyChanged(nameof(CreatedAtUtc));
+        OnPropertyChanged(nameof(CreatedDateDisplay));
+    }
 
     public void ApplyCompletion(bool isCompleted, DateTimeOffset? completedAtUtc)
     {

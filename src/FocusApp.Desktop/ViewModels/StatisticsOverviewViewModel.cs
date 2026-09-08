@@ -795,6 +795,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     public int MonthlyFocusCompletedMinutes => MonthlyTotalMinutes;
     public int MonthlyFocusCompletedHours => MonthlyFocusCompletedMinutes / 60;
     public string MonthlyFocusCompletedDisplay => FormatDuration(MonthlyFocusCompletedMinutes);
+    public string MonthlyFocusInvestedDisplay => FormatHours(MonthlyFocusCompletedMinutes);
     public int MonthlyFocusProgressPercent => !HasMonthlyFocusTarget
         ? 0
         : Math.Min(100, (int)Math.Round(MonthlyFocusCompletedMinutes / (MonthlyFocusTargetHours * 60d) * 100));
@@ -1364,6 +1365,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(MonthlyFocusCompletedMinutes));
         OnPropertyChanged(nameof(MonthlyFocusCompletedHours));
         OnPropertyChanged(nameof(MonthlyFocusCompletedDisplay));
+        OnPropertyChanged(nameof(MonthlyFocusInvestedDisplay));
         OnPropertyChanged(nameof(MonthlyFocusProgressPercent));
         OnPropertyChanged(nameof(IsMonthlyFocusTargetCompleted));
         OnPropertyChanged(nameof(MonthlyFocusTargetDisplay));

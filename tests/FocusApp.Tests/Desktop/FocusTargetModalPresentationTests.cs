@@ -36,6 +36,20 @@ public sealed class FocusTargetModalPresentationTests
             trigger.Elements(Presentation + "Setter").Any(setter =>
                 (string?)setter.Attribute("Property") == "Visibility" &&
                 (string?)setter.Attribute("Value") == "Collapsed"));
+
+        var entryRow = Assert.Single(modal.Descendants(Presentation + "Grid").Where(grid =>
+            (string?)grid.Attribute(Xaml + "Name") == "NewTaskEntryRow"));
+        Assert.Equal("48", (string?)entryRow.Attribute("Height"));
+        Assert.Null(entryRow.Attribute("ClipToBounds"));
+        var editorContainer = Assert.Single(entryRow.Elements(Presentation + "Grid").Where(grid =>
+            (string?)grid.Attribute(Xaml + "Name") == "NewTaskEditorContainer"));
+        Assert.Equal("32,4,28,4", (string?)editorContainer.Attribute("Margin"));
+        var editor = Assert.Single(editorContainer.Elements(Presentation + "TextBox").Where(textBox =>
+            (string?)textBox.Attribute(Xaml + "Name") == "NewTaskTextBox"));
+        Assert.Equal("{StaticResource TaskEditorStyle}", (string?)editor.Attribute("Style"));
+        Assert.Contains(editorStyle.Elements(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("Property") == "Height" &&
+            (string?)setter.Attribute("Value") == "40");
     }
 
     [Fact]
@@ -60,6 +74,55 @@ public sealed class FocusTargetModalPresentationTests
             (string?)setter.Attribute("TargetName") == "Glyph" &&
             (string?)setter.Attribute("Property") == "Foreground" &&
             (string?)setter.Attribute("Value") == "{DynamicResource TextWeak}");
+    }
+
+    [Fact]
+    public void PendingTaskRows_ReserveDateAndMenuColumnsAndTrimOnlyTheTaskName()
+    {
+        var modal = XDocument.Load(Path.Combine(
+            FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "FocusTargetModal.xaml"));
+        var tasks = Assert.Single(modal.Descendants(Presentation + "ItemsControl").Where(control =>
+            (string?)control.Attribute("ItemsSource") == "{Binding CurrentTasks}"));
+        var template = Assert.Single(tasks.Elements(Presentation + "ItemsControl.ItemTemplate")
+            .Elements(Presentation + "DataTemplate"));
+        var row = Assert.Single(template.Elements(Presentation + "Border"));
+        Assert.Equal("46", (string?)row.Attribute("Height"));
+
+        var rowGrid = Assert.Single(row.Elements(Presentation + "Grid"));
+        var columns = Assert.Single(rowGrid.Elements(Presentation + "Grid.ColumnDefinitions"))
+            .Elements(Presentation + "ColumnDefinition")
+            .Select(column => (string?)column.Attribute("Width"))
+            .ToArray();
+        Assert.Equal(new string?[] { "36", "*", "Auto", "30" }, columns);
+
+        var name = Assert.Single(rowGrid.Elements(Presentation + "TextBlock").Where(text =>
+            (string?)text.Attribute(Xaml + "Name") == "TaskNameText"));
+        Assert.Equal("1", (string?)name.Attribute("Grid.Column"));
+        Assert.Equal("CharacterEllipsis", (string?)name.Attribute("TextTrimming"));
+        Assert.Equal("NoWrap", (string?)name.Attribute("TextWrapping"));
+
+        var date = Assert.Single(rowGrid.Elements(Presentation + "TextBlock").Where(text =>
+            (string?)text.Attribute(Xaml + "Name") == "TaskCreatedDateText"));
+        Assert.Equal("2", (string?)date.Attribute("Grid.Column"));
+        Assert.Equal("{Binding CreatedDateDisplay}", (string?)date.Attribute("Text"));
+        Assert.Equal("12", (string?)date.Attribute("FontSize"));
+        Assert.Equal("{DynamicResource TextWeak}", (string?)date.Attribute("Foreground"));
+        var dateStyle = Assert.Single(date.Elements(Presentation + "TextBlock.Style")
+            .Elements(Presentation + "Style"));
+        Assert.Contains(dateStyle.Elements(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("Property") == "Visibility" &&
+            (string?)setter.Attribute("Value") == "Hidden");
+        var hoverTrigger = Assert.Single(dateStyle.Descendants(Presentation + "MultiDataTrigger"));
+        Assert.Contains(hoverTrigger.Descendants(Presentation + "Condition"), condition =>
+            (string?)condition.Attribute("Binding") == "{Binding IsHovered}" &&
+            (string?)condition.Attribute("Value") == "True");
+        Assert.Contains(hoverTrigger.Elements(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("Property") == "Visibility" &&
+            (string?)setter.Attribute("Value") == "Visible");
+
+        var menu = Assert.Single(rowGrid.Elements(Presentation + "Button").Where(button =>
+            (string?)button.Attribute(Xaml + "Name") == "TaskMenuButton"));
+        Assert.Equal("3", (string?)menu.Attribute("Grid.Column"));
     }
 
     [Fact]

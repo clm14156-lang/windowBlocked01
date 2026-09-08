@@ -27,6 +27,7 @@ public sealed class PersistedDataProjectionTests
         Assert.Equal(active.TargetId, target.TargetId);
         Assert.Equal(task.TaskId, Assert.Single(target.Tasks).TaskId);
         Assert.True(target.Tasks[0].IsCompleted);
+        Assert.Equal(task.CreatedAtUtc, target.Tasks[0].CreatedAtUtc);
         Assert.Equal(task.CompletedAtUtc, target.Tasks[0].CompletedAtUtc);
         Assert.Equal(active.TargetId, viewModel.SelectedTarget.TargetId);
         Assert.Equal("code.png", target.IconFileName);
