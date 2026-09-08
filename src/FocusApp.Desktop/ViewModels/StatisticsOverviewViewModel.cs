@@ -1254,7 +1254,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     private void SelectCalendarDay(CalendarDayViewModel? day)
     {
-        if (day is null || !day.IsCurrentMonth)
+        if (day is null || !day.HasFocus)
         {
             return;
         }
@@ -1717,7 +1717,18 @@ public sealed class CalendarDayViewModel : INotifyPropertyChanged
     public int Minutes { get; }
     public bool HasFocus => Minutes > 0;
     public string DayNumber => Date.Day.ToString();
-    public string DurationLabel => Minutes == 0 ? string.Empty : $"{Minutes / 60d:0.0}h";
+    public int HeatLevel => !IsCurrentMonth || Minutes <= 0 ? 0 : Minutes switch
+    {
+        < 30 => 1,
+        < 60 => 2,
+        < 120 => 3,
+        < 240 => 4,
+        < 480 => 5,
+        _ => 6
+    };
+    public string DurationLabel => HeatLevel == 0 ? string.Empty
+        : Math.Max(0.1, Math.Round(Minutes / 60d, 1, MidpointRounding.AwayFromZero))
+            .ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + "h";
     public bool IsSelected
     {
         get => _isSelected;

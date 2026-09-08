@@ -26,6 +26,10 @@ public sealed class StatisticsOverviewPresentationTests
         Assert.Equal("10", (string?)background.Attribute("CornerRadius"));
         Assert.Empty(button.Descendants(Presentation + "Ellipse"));
 
+        var durationText = Assert.Single(button.Descendants(Presentation + "TextBlock").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "DayDurationText"));
+        Assert.Equal("11", (string?)durationText.Attribute("FontSize"));
+
         var selectedTrigger = Assert.Single(button.Descendants(Presentation + "DataTrigger").Where(trigger =>
             (string?)trigger.Attribute("Binding") == "{Binding IsSelected}" &&
             (string?)trigger.Attribute("Value") == "True"));
@@ -37,6 +41,59 @@ public sealed class StatisticsOverviewPresentationTests
             (string?)setter.Attribute("TargetName") == "DayDurationText" &&
             (string?)setter.Attribute("Property") == "Foreground" &&
             (string?)setter.Attribute("Value") == "{DynamicResource WhiteText}");
+
+        string[] expectedHeatColors =
+        [
+            "#FFF7F0", "#FFEFE1", "#FFE6CE", "#FFDAB7", "#FFCA9A", "#FFB77A"
+        ];
+        for (var level = 1; level <= expectedHeatColors.Length; level++)
+        {
+            var heatTrigger = Assert.Single(button.Descendants(Presentation + "DataTrigger").Where(trigger =>
+                (string?)trigger.Attribute("Binding") == "{Binding HeatLevel}" &&
+                (string?)trigger.Attribute("Value") == level.ToString()));
+            Assert.Contains(heatTrigger.Elements(Presentation + "Setter"), setter =>
+                (string?)setter.Attribute("TargetName") == "DaySelectionBackground" &&
+                (string?)setter.Attribute("Property") == "Background" &&
+                (string?)setter.Attribute("Value") == expectedHeatColors[level - 1]);
+        }
+    }
+
+    [Fact]
+    public void CalendarDayInteractionAndHoverRequireARealFocusRecord()
+    {
+        var page = XDocument.Load(Path.Combine(
+            FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
+        var button = Assert.Single(page.Descendants(Presentation + "Button").Where(element =>
+            (string?)element.Attribute("CommandParameter") == "{Binding}" &&
+            element.Descendants(Presentation + "TextBlock").Any(text =>
+                (string?)text.Attribute("Text") == "{Binding DayNumber}")));
+
+        Assert.Equal("{Binding HasFocus}", (string?)button.Attribute("Focusable"));
+        Assert.Equal("{Binding HasFocus}", (string?)button.Attribute("IsEnabled"));
+        Assert.Equal("{Binding HasFocus}", (string?)button.Attribute("IsHitTestVisible"));
+        Assert.Equal("{Binding HasFocus}", (string?)button.Attribute("IsTabStop"));
+
+        var buttonStyle = Assert.Single(button.Elements(Presentation + "Button.Style")
+            .Elements(Presentation + "Style"));
+        Assert.Contains(buttonStyle.Elements(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("Property") == "Cursor" &&
+            (string?)setter.Attribute("Value") == "Arrow");
+        Assert.Contains(buttonStyle.Descendants(Presentation + "DataTrigger"), trigger =>
+            (string?)trigger.Attribute("Binding") == "{Binding HasFocus}" &&
+            (string?)trigger.Attribute("Value") == "True" &&
+            trigger.Elements(Presentation + "Setter").Any(setter =>
+                (string?)setter.Attribute("Property") == "Cursor" &&
+                (string?)setter.Attribute("Value") == "Hand"));
+
+        Assert.DoesNotContain(button.Descendants(Presentation + "Trigger"), trigger =>
+            (string?)trigger.Attribute("Property") == "IsMouseOver");
+        Assert.Contains(button.Descendants(Presentation + "MultiDataTrigger"), trigger =>
+            trigger.Descendants(Presentation + "Condition").Any(condition =>
+                (string?)condition.Attribute("Binding") == "{Binding HasFocus}" &&
+                (string?)condition.Attribute("Value") == "True") &&
+            trigger.Descendants(Presentation + "Condition").Any(condition =>
+                (string?)condition.Attribute("Binding") == "{Binding IsMouseOver, RelativeSource={RelativeSource TemplatedParent}}" &&
+                (string?)condition.Attribute("Value") == "True"));
     }
 
     [Fact]

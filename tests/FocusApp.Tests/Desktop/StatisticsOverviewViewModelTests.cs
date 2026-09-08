@@ -245,6 +245,8 @@ public sealed class StatisticsOverviewViewModelTests
         var viewModel = new StatisticsOverviewViewModel();
         var februaryTwentySixth = viewModel.CalendarDays.Single(day => day.Date == new DateTime(2026, 2, 26));
 
+        Assert.True(februaryTwentySixth.HasFocus);
+
         viewModel.SelectCalendarDateCommand.Execute(februaryTwentySixth);
 
         Assert.Equal("2月26日 · 周四", viewModel.SelectedDateDisplay);
@@ -272,21 +274,49 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.True(viewModel.IsReturnToTodayVisible);
     }
 
-    [Theory]
-    [InlineData(1)]
-    [InlineData(29)]
-    [InlineData(31)]
-    public void MarchBoundaryDatesUseTheSameSelectableCalendarCell(int day)
+    [Fact]
+    public void CalendarDatesWithoutFocusRecordsDoNotChangeSelectionOrDetails()
     {
         var viewModel = new StatisticsOverviewViewModel();
         viewModel.NextCalendarMonthCommand.Execute(null);
-        var target = viewModel.CalendarDays.Single(item => item.Date == new DateTime(2026, 3, day));
+        CalendarDayViewModel[] targets =
+        [
+            viewModel.CalendarDays.First(item => item.IsCurrentMonth && !item.HasFocus && !item.IsSelected),
+            viewModel.CalendarDays.First(item => !item.IsCurrentMonth && !item.HasFocus)
+        ];
+
+        foreach (var target in targets)
+        {
+            var selectedBefore = Assert.Single(viewModel.CalendarDays.Where(item => item.IsSelected));
+            var dateDisplayBefore = viewModel.SelectedDateDisplay;
+            var recordsBefore = viewModel.SelectedDayRecords.ToArray();
+
+            viewModel.SelectCalendarDateCommand.Execute(target);
+
+            Assert.False(target.IsSelected);
+            Assert.Same(selectedBefore, Assert.Single(viewModel.CalendarDays.Where(item => item.IsSelected)));
+            Assert.Equal(dateDisplayBefore, viewModel.SelectedDateDisplay);
+            Assert.Equal(recordsBefore, viewModel.SelectedDayRecords);
+        }
+    }
+
+    [Fact]
+    public void AdjacentMonthDateWithAFocusRecordRemainsSelectable()
+    {
+        var viewModel = new StatisticsOverviewViewModel();
+        viewModel.NextCalendarMonthCommand.Execute(null);
+        viewModel.NextCalendarMonthCommand.Execute(null);
+        var target = viewModel.CalendarDays.First(item =>
+            !item.IsCurrentMonth && item.HasFocus);
+
+        Assert.False(target.IsCurrentMonth);
+        Assert.True(target.HasFocus);
 
         viewModel.SelectCalendarDateCommand.Execute(target);
 
         Assert.True(target.IsSelected);
-        Assert.Equal($"3月{day}日", viewModel.SelectedDateDisplay.Split('·')[0].Trim());
-        Assert.Single(viewModel.CalendarDays.Where(item => item.IsSelected));
+        Assert.StartsWith($"{target.Date:M月d日}", viewModel.SelectedDateDisplay);
+        Assert.NotEmpty(viewModel.SelectedDayRecords);
     }
 
     [Fact]

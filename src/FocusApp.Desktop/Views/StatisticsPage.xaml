@@ -677,7 +677,29 @@
                                     <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="7" ClipToBounds="False" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate DataType="{x:Type vm:CalendarDayViewModel}">
-                                            <Button Height="46" Margin="1" Padding="0" ClipToBounds="False" Command="{Binding DataContext.SelectCalendarDateCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}" Background="{DynamicResource TransparentBrush}" BorderThickness="0" FocusVisualStyle="{x:Null}">
+                                            <Button Height="46"
+                                                    Margin="1"
+                                                    Padding="0"
+                                                    ClipToBounds="False"
+                                                    Command="{Binding DataContext.SelectCalendarDateCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                    CommandParameter="{Binding}"
+                                                    Background="{DynamicResource TransparentBrush}"
+                                                    BorderThickness="0"
+                                                    Focusable="{Binding HasFocus}"
+                                                    FocusVisualStyle="{x:Null}"
+                                                    IsEnabled="{Binding HasFocus}"
+                                                    IsHitTestVisible="{Binding HasFocus}"
+                                                    IsTabStop="{Binding HasFocus}">
+                                                <Button.Style>
+                                                    <Style TargetType="{x:Type Button}">
+                                                        <Setter Property="Cursor" Value="Arrow" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding HasFocus}" Value="True">
+                                                                <Setter Property="Cursor" Value="Hand" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Button.Style>
                                                 <Button.Template>
                                                     <ControlTemplate TargetType="Button">
                                                         <Grid Background="{DynamicResource TransparentBrush}" ClipToBounds="False">
@@ -693,19 +715,15 @@
                                                             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                                                                 <TextBlock x:Name="DayNumberText" HorizontalAlignment="Center" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}" Text="{Binding DayNumber}" />
                                                                 <TextBlock x:Name="DayDurationText"
-                                                                           Height="13"
-                                                                           Margin="0,3,0,0"
+                                                                           Margin="0,1,0,0"
                                                                            HorizontalAlignment="Center"
                                                                            FontSize="11"
                                                                            FontWeight="Normal"
-                                                                           Foreground="{DynamicResource TextWeak}"
-                                                                           LineHeight="13"
-                                                                           LineStackingStrategy="BlockLineHeight"
-                                                                           Opacity="0.82"
+                                                                           Foreground="{DynamicResource TextSecondary}"
                                                                            Text="{Binding DurationLabel}">
                                                                     <TextBlock.Style>
                                                                         <Style TargetType="{x:Type TextBlock}">
-                                                                            <Setter Property="Visibility" Value="Hidden" />
+                                                                            <Setter Property="Visibility" Value="Collapsed" />
                                                                             <Style.Triggers>
                                                                                 <MultiDataTrigger>
                                                                                     <MultiDataTrigger.Conditions>
@@ -723,9 +741,31 @@
                                                         </Grid>
                                                         <ControlTemplate.Triggers>
                                                             <DataTrigger Binding="{Binding IsCurrentMonth}" Value="False"><Setter TargetName="DayNumberText" Property="Foreground" Value="{DynamicResource TextWeak}" /><Setter TargetName="DayDurationText" Property="Foreground" Value="{DynamicResource TextWeak}" /></DataTrigger>
-                                                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="DaySelectionBackground" Property="Background" Value="{DynamicResource ControlHoverBackground}" /></Trigger>
+                                                            <DataTrigger Binding="{Binding HeatLevel}" Value="1"><Setter TargetName="DaySelectionBackground" Property="Background" Value="#FFF7F0" /></DataTrigger>
+                                                            <DataTrigger Binding="{Binding HeatLevel}" Value="2"><Setter TargetName="DaySelectionBackground" Property="Background" Value="#FFEFE1" /></DataTrigger>
+                                                            <DataTrigger Binding="{Binding HeatLevel}" Value="3"><Setter TargetName="DaySelectionBackground" Property="Background" Value="#FFE6CE" /></DataTrigger>
+                                                            <DataTrigger Binding="{Binding HeatLevel}" Value="4"><Setter TargetName="DaySelectionBackground" Property="Background" Value="#FFDAB7" /></DataTrigger>
+                                                            <DataTrigger Binding="{Binding HeatLevel}" Value="5"><Setter TargetName="DaySelectionBackground" Property="Background" Value="#FFCA9A" /></DataTrigger>
+                                                            <DataTrigger Binding="{Binding HeatLevel}" Value="6"><Setter TargetName="DaySelectionBackground" Property="Background" Value="#FFB77A" /></DataTrigger>
+                                                            <MultiDataTrigger>
+                                                                <MultiDataTrigger.Conditions>
+                                                                    <Condition Binding="{Binding HasFocus}" Value="True" />
+                                                                    <Condition Binding="{Binding IsCurrentMonth}" Value="True" />
+                                                                    <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource TemplatedParent}}" Value="True" />
+                                                                </MultiDataTrigger.Conditions>
+                                                                <Setter TargetName="DaySelectionBackground" Property="Opacity" Value="0.78" />
+                                                            </MultiDataTrigger>
+                                                            <MultiDataTrigger>
+                                                                <MultiDataTrigger.Conditions>
+                                                                    <Condition Binding="{Binding HasFocus}" Value="True" />
+                                                                    <Condition Binding="{Binding IsCurrentMonth}" Value="False" />
+                                                                    <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource TemplatedParent}}" Value="True" />
+                                                                </MultiDataTrigger.Conditions>
+                                                                <Setter TargetName="DaySelectionBackground" Property="Background" Value="{DynamicResource ControlHoverBackground}" />
+                                                            </MultiDataTrigger>
                                                             <DataTrigger Binding="{Binding IsSelected}" Value="True">
                                                                 <Setter TargetName="DaySelectionBackground" Property="Background" Value="{DynamicResource AccentPrimary}" />
+                                                                <Setter TargetName="DaySelectionBackground" Property="Opacity" Value="1" />
                                                                 <Setter TargetName="DayNumberText" Property="Foreground" Value="{DynamicResource WhiteText}" />
                                                                 <Setter TargetName="DayNumberText" Property="FontWeight" Value="Medium" />
                                                                 <Setter TargetName="DayDurationText" Property="Foreground" Value="{DynamicResource WhiteText}" />

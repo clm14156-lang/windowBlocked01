@@ -1,0 +1,602 @@
+[
+  {
+    "file": "folder.png",
+    "crop": [
+      49,
+      54,
+      244,
+      229
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "mode": "RGBA",
+    "alpha_bounds": [
+      0,
+      6,
+      128,
+      122
+    ]
+  },
+  {
+    "file": "finance.png",
+    "crop": [
+      278,
+      54,
+      476,
+      229
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "mode": "RGBA",
+    "alpha_bounds": [
+      0,
+      6,
+      128,
+      122
+    ]
+  },
+  {
+    "file": "reading.png",
+    "crop": [
+      509,
+      54,
+      706,
+      229
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "mode": "RGBA",
+    "alpha_bounds": [
+      0,
+      6,
+      128,
+      122
+    ]
+  },
+  {
+    "file": "graduation.png",
+    "crop": [
+      740,
+      54,
+      938,
+      229
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "mode": "RGBA",
+    "alpha_bounds": [
+      0,
+      6,
+      128,
+      122
+    ]
+  },
+  {
+    "file": "study.png",
+    "crop": [
+      971,
+      54,
+      1170,
+      229
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "mode": "RGBA",
+    "alpha_bounds": [
+      0,
+      6,
+      128,
+      122
+    ]
+  },
+  {
+    "file": "writing.png",
+    "crop": [
+      1203,
+      54,
+      1399,
+      229
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "mode": "RGBA",
+    "alpha_bounds": [
+      0,
+      6,
+      128,
+      122
+    ]
+  },
+  {
+    "file": "code.png",
+    "crop": [
+      49,
+      249,
+      244,
+      427
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "mode": "RGBA",
+    "alpha_bounds": [
+      0,
+      5,
+      128,
+      123
+    ]
+  },
+  {
+    "file": "terminal.png",
+    "crop": [
+      278,
+      249,
+      476,
+      427
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "mode": "RGBA",
+    "alpha_bounds": [
+      0,
+      5,
+      128,
+      123
+    ]
+  },
+  {
+    "file": "music.png",
+    "crop": [
+      509,
+      249,
+      706,
+      427
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "mode": "RGBA",
+    "alpha_bounds": [
+      0,
+      5,
+      128,
+      123
+    ]
+  },
+  {
+    "file": "movies.png",
+    "crop": [
+      740,
+      249,
+      938,
+      427
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "mode": "RGBA",
+    "alpha_bounds": [
+      0,
+      5,
+      128,
+      123
+    ]
+  },
+  {
+    "file": "design.png",
+    "crop": [
+      971,
+      249,
+      1170,
+      427
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "mode": "RGBA",
+    "alpha_bounds": [
+      0,
+      5,
+      128,
+      123
+    ]
+  },
+  {
+    "file": "painting.png",
+    "crop": [
+      1203,
+      249,
+      1399,
+      427
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "mode": "RGBA",
+    "alpha_bounds": [
+      0,
+      5,
+      128,
+      123
+    ]
+  },
+  {
+    "file": "medical.png",
+    "crop": [
+      49,
+      443,
+      244,
+      622
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "mode": "RGBA",
+    "alpha_bounds": [
+      0,
+      5,
+      128,
+      123
+    ]
+  },
+  {
+    "file": "first_aid.png",
+    "crop": [
+      278,
+      443,
+      476,
+      622
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "mode": "RGBA",
+    "alpha_bounds": [
+      0,
+      5,
+      128,
+      123
+    ]
+  },
+  {
+    "file": "meditation.png",
+    "crop": [
+      509,
+      443,
+      706,
+      622
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "mode": "RGBA",
+    "alpha_bounds": [
+      0,
+      5,
+      128,
+      123
+    ]
+  },
+  {
+    "file": "work.png",
+    "crop": [
+      740,
+      443,
+      938,
+      622
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "mode": "RGBA",
+    "alpha_bounds": [
+      0,
+      5,
+      128,
+      123
+    ]
+  },
+  {
+    "file": "analytics.png",
+    "crop": [
+      971,
+      443,
+      1170,
+      622
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "mode": "RGBA",
+    "alpha_bounds": [
+      0,
+      5,
+      128,
+      123
+    ]
+  },
+  {
+    "file": "kettlebell.png",
+    "crop": [
+      1203,
+      443,
+      1399,
+      622
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "mode": "RGBA",
+    "alpha_bounds": [
+      0,
+      5,
+      128,
+      123
+    ]
+  },
+  {
+    "file": "fitness.png",
+    "crop": [
+      49,
+      639,
+      244,
+      816
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "mode": "RGBA",
+    "alpha_bounds": [
+      0,
+      5,
+      128,
+      123
+    ]
+  },
+  {
+    "file": "notebook.png",
+    "crop": [
+      278,
+      639,
+      476,
+      816
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "mode": "RGBA",
+    "alpha_bounds": [
+      0,
+      5,
+      128,
+      123
+    ]
+  },
+  {
+    "file": "justice.png",
+    "crop": [
+      509,
+      639,
+      706,
+      816
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "mode": "RGBA",
+    "alpha_bounds": [
+      0,
+      5,
+      128,
+      123
+    ]
+  },
+  {
+    "file": "geography.png",
+    "crop": [
+      740,
+      639,
+      938,
+      816
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "mode": "RGBA",
+    "alpha_bounds": [
+      0,
+      5,
+      128,
+      123
+    ]
+  },
+  {
+    "file": "travel.png",
+    "crop": [
+      971,
+      639,
+      1170,
+      816
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "mode": "RGBA",
+    "alpha_bounds": [
+      0,
+      5,
+      128,
+      123
+    ]
+  },
+  {
+    "file": "internet.png",
+    "crop": [
+      1203,
+      639,
+      1399,
+      816
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "mode": "RGBA",
+    "alpha_bounds": [
+      0,
+      5,
+      128,
+      123
+    ]
+  },
+  {
+    "file": "tools.png",
+    "crop": [
+      49,
+      833,
+      244,
+      1011
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "mode": "RGBA",
+    "alpha_bounds": [
+      0,
+      5,
+      128,
+      123
+    ]
+  },
+  {
+    "file": "pets.png",
+    "crop": [
+      278,
+      833,
+      476,
+      1011
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "mode": "RGBA",
+    "alpha_bounds": [
+      0,
+      5,
+      128,
+      123
+    ]
+  },
+  {
+    "file": "chemistry.png",
+    "crop": [
+      509,
+      833,
+      706,
+      1011
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "mode": "RGBA",
+    "alpha_bounds": [
+      0,
+      5,
+      128,
+      123
+    ]
+  },
+  {
+    "file": "brain.png",
+    "crop": [
+      740,
+      833,
+      938,
+      1011
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "mode": "RGBA",
+    "alpha_bounds": [
+      0,
+      5,
+      128,
+      123
+    ]
+  },
+  {
+    "file": "heart.png",
+    "crop": [
+      971,
+      833,
+      1170,
+      1011
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "mode": "RGBA",
+    "alpha_bounds": [
+      0,
+      5,
+      128,
+      123
+    ]
+  },
+  {
+    "file": "gardening.png",
+    "crop": [
+      1203,
+      833,
+      1399,
+      1011
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "mode": "RGBA",
+    "alpha_bounds": [
+      0,
+      5,
+      128,
+      123
+    ]
+  }
+]

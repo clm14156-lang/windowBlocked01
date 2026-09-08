@@ -1,0 +1,254 @@
+[
+  {
+    "file": "game.png",
+    "source_box": [
+      28,
+      53,
+      222,
+      234
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "mode": "RGBA"
+  },
+  {
+    "file": "computer.png",
+    "source_box": [
+      257,
+      51,
+      453,
+      234
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "mode": "RGBA"
+  },
+  {
+    "file": "code.png",
+    "source_box": [
+      488,
+      51,
+      684,
+      234
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "mode": "RGBA"
+  },
+  {
+    "file": "study.png",
+    "source_box": [
+      719,
+      51,
+      915,
+      234
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "mode": "RGBA"
+  },
+  {
+    "file": "reading.png",
+    "source_box": [
+      950,
+      51,
+      1146,
+      234
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "mode": "RGBA"
+  },
+  {
+    "file": "exam.png",
+    "source_box": [
+      1181,
+      51,
+      1378,
+      234
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "mode": "RGBA"
+  },
+  {
+    "file": "fitness.png",
+    "source_box": [
+      27,
+      313,
+      221,
+      491
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "mode": "RGBA"
+  },
+  {
+    "file": "music.png",
+    "source_box": [
+      257,
+      312,
+      451,
+      491
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "mode": "RGBA"
+  },
+  {
+    "file": "painting.png",
+    "source_box": [
+      487,
+      312,
+      683,
+      491
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "mode": "RGBA"
+  },
+  {
+    "file": "camera.png",
+    "source_box": [
+      718,
+      312,
+      914,
+      491
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "mode": "RGBA"
+  },
+  {
+    "file": "life.png",
+    "source_box": [
+      948,
+      312,
+      1144,
+      491
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "mode": "RGBA"
+  },
+  {
+    "file": "travel.png",
+    "source_box": [
+      1180,
+      312,
+      1376,
+      491
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "mode": "RGBA"
+  },
+  {
+    "file": "work.png",
+    "source_box": [
+      27,
+      570,
+      220,
+      748
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "mode": "RGBA"
+  },
+  {
+    "file": "goal.png",
+    "source_box": [
+      257,
+      570,
+      451,
+      748
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "mode": "RGBA"
+  },
+  {
+    "file": "health.png",
+    "source_box": [
+      487,
+      570,
+      683,
+      748
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "mode": "RGBA"
+  },
+  {
+    "file": "habit.png",
+    "source_box": [
+      718,
+      569,
+      914,
+      748
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "mode": "RGBA"
+  },
+  {
+    "file": "finance.png",
+    "source_box": [
+      948,
+      569,
+      1145,
+      748
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "mode": "RGBA"
+  },
+  {
+    "file": "more.png",
+    "source_box": [
+      1180,
+      568,
+      1378,
+      746
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "mode": "RGBA"
+  }
+]

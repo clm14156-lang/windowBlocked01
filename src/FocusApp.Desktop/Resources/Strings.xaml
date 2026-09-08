@@ -285,7 +285,7 @@
     <system:String x:Key="FocusTargetMore">查看更多目标</system:String>
     <system:String x:Key="FocusTargetPendingTasks">待执行任务</system:String>
     <system:String x:Key="FocusTargetEmptyTitle">还没有目标</system:String>
-    <system:String x:Key="FocusTargetEmptyDescription">创建目标后，即可添加待执行任务</system:String>
+    <system:String x:Key="FocusTargetEmptyDescription">创建目标后，再添加任务</system:String>
     <system:String x:Key="FocusTargetAddTask">添加任务</system:String>
     <system:String x:Key="FocusTargetTaskPlaceholder">输入任务名称……</system:String>
     <system:String x:Key="FocusTargetTaskMenu">任务菜单</system:String>

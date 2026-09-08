@@ -164,6 +164,40 @@
             </Setter>
         </Style>
 
+        <Style x:Key="EmptyTargetCreateButton" TargetType="{x:Type Button}">
+            <Setter Property="Width" Value="206" />
+            <Setter Property="Height" Value="42" />
+            <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border x:Name="Surface"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="21">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Surface" Property="Background" Value="{DynamicResource AccentTint}" />
+                                <Setter TargetName="Surface" Property="BorderBrush" Value="{DynamicResource AccentHover}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Surface" Property="Opacity" Value="0.72" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="RecentTargetButton" TargetType="{x:Type Button}">
             <Setter Property="Height" Value="36" />
             <Setter Property="Margin" Value="0,0,8,0" />
@@ -336,7 +370,9 @@
                            Foreground="{DynamicResource TextPrimary}"
                            Text="{DynamicResource FocusTargetRecent}" />
             </StackPanel>
-            <Grid Grid.Row="1" VerticalAlignment="Center">
+            <Grid Grid.Row="1"
+                  VerticalAlignment="Center"
+                  Visibility="{Binding HasTargets, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition />
@@ -381,9 +417,11 @@
             <Border Grid.Row="2"
                     Height="1"
                     VerticalAlignment="Center"
-                    Background="{DynamicResource FocusTargetDividerBrush}" />
+                    Background="{DynamicResource FocusTargetDividerBrush}"
+                    Visibility="{Binding HasTargets, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
-            <Grid Grid.Row="3">
+            <Grid Grid.Row="3"
+                  Visibility="{Binding HasTargets, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Margin="0,0,9,0" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="{DynamicResource FocusTargetIconBrush}" Text="&#xE823;" />
                     <TextBlock VerticalAlignment="Center" FontSize="15" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource FocusTargetPendingTasks}" />
@@ -400,7 +438,8 @@
             <ScrollViewer Grid.Row="4"
                           Margin="0,2,0,10"
                           ScrollChanged="TaskScrollViewer_ScrollChanged"
-                          VerticalScrollBarVisibility="Auto">
+                          VerticalScrollBarVisibility="Auto"
+                          Visibility="{Binding HasTargets, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <ScrollViewer.Resources>
                     <Style TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource FocusTargetThinScrollBarStyle}" />
                 </ScrollViewer.Resources>
@@ -549,39 +588,85 @@
                 </StackPanel>
             </ScrollViewer>
 
-            <StackPanel Grid.Row="4"
-                        HorizontalAlignment="Center"
-                        VerticalAlignment="Center"
-                        IsHitTestVisible="False">
-                <StackPanel.Style>
-                    <Style TargetType="{x:Type StackPanel}">
+            <Grid x:Name="EmptyTargetState"
+                  Grid.Row="1"
+                  Grid.RowSpan="5"
+                  Panel.ZIndex="2"
+                  Background="{DynamicResource SurfacePrimary}">
+                <Grid.Style>
+                    <Style TargetType="{x:Type Grid}">
                         <Setter Property="Visibility" Value="Visible" />
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding HasTargets}" Value="True">
                                 <Setter Property="Visibility" Value="Collapsed" />
                             </DataTrigger>
+                            <DataTrigger Binding="{Binding IsCreatingTarget}" Value="True">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
                         </Style.Triggers>
                     </Style>
-                </StackPanel.Style>
-                <Image Width="150"
-                       Height="118"
-                       HorizontalAlignment="Center"
-                       RenderOptions.BitmapScalingMode="HighQuality"
-                       Source="/FocusApp.Desktop;component/Assets/Images/Illustrations/create-target.png"
-                       Stretch="Uniform" />
-                <TextBlock Margin="0,6,0,0"
+                </Grid.Style>
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Image Width="150"
+                           Height="118"
                            HorizontalAlignment="Center"
-                           FontSize="15"
-                           FontWeight="Medium"
-                           Foreground="{DynamicResource TextPrimary}"
-                           Text="{DynamicResource FocusTargetEmptyTitle}" />
-                <TextBlock Margin="0,3,0,0"
-                           HorizontalAlignment="Center"
-                           FontSize="12"
-                           FontWeight="Normal"
-                           Foreground="{DynamicResource TextSecondary}"
-                           Text="{DynamicResource FocusTargetEmptyDescription}" />
-            </StackPanel>
+                           RenderOptions.BitmapScalingMode="HighQuality"
+                           Source="/FocusApp.Desktop;component/Assets/Images/Illustrations/create-target.png"
+                           Stretch="Uniform" />
+                    <TextBlock Margin="0,12,0,0"
+                               HorizontalAlignment="Center"
+                               FontSize="15"
+                               FontWeight="Medium"
+                               Foreground="{DynamicResource TextPrimary}"
+                               Text="{DynamicResource FocusTargetEmptyTitle}" />
+                    <TextBlock Margin="0,5,0,0"
+                               HorizontalAlignment="Center"
+                               FontSize="12"
+                               FontWeight="Normal"
+                               Foreground="{DynamicResource TextSecondary}"
+                               Text="{DynamicResource FocusTargetEmptyDescription}" />
+                    <Button Margin="0,24,0,0"
+                            HorizontalAlignment="Center"
+                            AutomationProperties.Name="{DynamicResource FocusTargetCreateNew}"
+                            Command="{Binding BeginCreateTargetCommand}"
+                            Style="{StaticResource EmptyTargetCreateButton}">
+                        <Grid Height="20"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="9" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid x:Name="CreateTargetPlusGlyph"
+                                  Grid.Column="0"
+                                  Width="14"
+                                  Height="20"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center">
+                                <Path Width="14"
+                                      Height="14"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"
+                                      Data="M 1,7 L 13,7 M 7,1 L 7,13"
+                                      Stroke="{DynamicResource AccentPrimary}"
+                                      StrokeEndLineCap="Round"
+                                      StrokeStartLineCap="Round"
+                                      StrokeThickness="1.2" />
+                            </Grid>
+                            <TextBlock Grid.Column="2"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       FontSize="13"
+                                       FontWeight="Medium"
+                                       Foreground="{DynamicResource AccentPrimary}"
+                                       LineHeight="20"
+                                       LineStackingStrategy="BlockLineHeight"
+                                       Text="{DynamicResource FocusTargetCreateNew}" />
+                        </Grid>
+                    </Button>
+                </StackPanel>
+            </Grid>
 
             <Grid Grid.Row="5">
                 <Button Height="48"
@@ -595,6 +680,9 @@
                                     <Setter Property="Visibility" Value="Collapsed" />
                                 </DataTrigger>
                                 <DataTrigger Binding="{Binding HasDraftSelectedTarget}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding HasTargets}" Value="False">
                                     <Setter Property="Visibility" Value="Collapsed" />
                                 </DataTrigger>
                             </Style.Triggers>
