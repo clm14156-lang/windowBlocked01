@@ -612,6 +612,11 @@ public partial class MainWindow : Window
             return;
         }
 
+        if (viewModel.StatisticsPage.IsCreateGoalDialogOpen)
+        {
+            return;
+        }
+
         var editingTask = viewModel.HomePage.FocusSession.PendingTasks.FirstOrDefault(task => task.IsEditing);
         var clickedTextBox = FindVisualAncestor<TextBox>(e.OriginalSource as DependencyObject);
         if (editingTask is not null && !ReferenceEquals(clickedTextBox?.DataContext, editingTask))

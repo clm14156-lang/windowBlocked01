@@ -7,6 +7,7 @@ using System.Windows.Media;
 using System.Windows.Input;
 using FocusApp.Contracts;
 using FocusApp.Core;
+using FocusApp.Desktop.Services;
 
 namespace FocusApp.Desktop.ViewModels;
 
@@ -35,6 +36,13 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     private GoalOverviewItemViewModel? _selectedGoal;
     private bool _showArchivedGoals;
     private bool _isGoalListMenuOpen;
+    private bool _isCreateGoalDialogOpen;
+    private GoalOverviewItemViewModel? _editingGoal;
+    private bool _isGoalIconLibraryOpen;
+    private string _newGoalName = string.Empty;
+    private TargetIconOptionViewModel? _selectedTargetIcon;
+    private IReadOnlyList<string> _recentTargetIconFileNames = [];
+    private readonly RelayCommand<object> _confirmCreateGoalCommand;
     private GoalMonthOptionViewModel? _selectedGoalMonth;
     private bool _isGoalTrendExpanded;
     private bool _isGoalMonthMenuOpen;
@@ -68,6 +76,23 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             new StatisticsRangeOptionViewModel("近30天", 30)
         ];
         _selectedRange = RangeOptions[0];
+        AllTargetIcons = new ObservableCollection<TargetIconOptionViewModel>(
+            TargetIconCatalog.GetAvailableIconFileNames()
+                .Select(fileName => new TargetIconOptionViewModel(
+                    fileName,
+                    TargetIconCatalog.GetIconSource(fileName))));
+        QuickTargetIcons = [];
+        _selectedTargetIcon = AllTargetIcons.FirstOrDefault(icon =>
+                                  string.Equals(
+                                      icon.FileName,
+                                      TargetIconCatalog.DefaultIconFileName,
+                                      StringComparison.OrdinalIgnoreCase))
+                              ?? AllTargetIcons.FirstOrDefault();
+        if (_selectedTargetIcon is not null)
+        {
+            _selectedTargetIcon.IsSelected = true;
+        }
+        RebuildTargetIconShortcuts();
         SelectOverviewCommand = new RelayCommand<object>(_ => SelectedTab = StatisticsTab.Overview);
         SelectCalendarCommand = new RelayCommand<object>(_ => SelectedTab = StatisticsTab.Calendar);
         SelectGoalsCommand = new RelayCommand<object>(_ => SelectedTab = StatisticsTab.Goals);
@@ -97,7 +122,14 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         DeleteMonthlyFocusTargetCommand = new RelayCommand<object>(_ => DeleteMonthlyFocusTarget());
         IncreaseMonthlyFocusTargetCommand = new RelayCommand<object>(_ => AdjustMonthlyFocusTarget(1));
         DecreaseMonthlyFocusTargetCommand = new RelayCommand<object>(_ => AdjustMonthlyFocusTarget(-1));
-        AddGoalCommand = new RelayCommand<object>(_ => AddGoal());
+        AddGoalCommand = new RelayCommand<object>(_ => OpenCreateGoalDialog());
+        EditGoalCommand = new RelayCommand<GoalOverviewItemViewModel>(OpenEditGoalDialog);
+        CancelCreateGoalCommand = new RelayCommand<object>(_ => CloseCreateGoalDialog());
+        _confirmCreateGoalCommand = new RelayCommand<object>(_ => CreateGoal(), _ => CanCreateGoal);
+        ConfirmCreateGoalCommand = _confirmCreateGoalCommand;
+        SelectTargetIconCommand = new RelayCommand<TargetIconOptionViewModel>(SelectTargetIcon);
+        ToggleGoalIconLibraryCommand = new RelayCommand<object>(_ => IsGoalIconLibraryOpen = !IsGoalIconLibraryOpen);
+        ClearNewGoalNameCommand = new RelayCommand<object>(_ => NewGoalName = string.Empty);
         SubscribeToFocusSessionRecords();
         if (!deferInitialization)
         {
@@ -172,6 +204,8 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         {
             Goals.Clear();
             FocusSessionRecords.Clear();
+            ApplyRecentTargetIcons(TargetIconCatalog.ParseRecentIconFileNames(
+                state.Settings.RecentTargetIconsJson));
             foreach (var target in state.Targets.OrderBy(item => item.SortOrder))
             {
                 Goals.Add(new GoalOverviewItemViewModel(
@@ -180,7 +214,8 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
                     "尚未推进",
                     "暂无记录",
                     false,
-                    target.IsArchived));
+                    target.IsArchived,
+                    target.IconFileName));
             }
 
             var targetNames = state.Targets.ToDictionary(item => item.TargetId, item => item.Name, StringComparer.Ordinal);
@@ -356,6 +391,19 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     public ICommand AddGoalCommand { get; }
 
+    public ICommand CancelCreateGoalCommand { get; }
+    public ICommand EditGoalCommand { get; }
+    public string GoalDialogTitle => _editingGoal is null ? "创建目标" : "编辑目标";
+    public string GoalDialogConfirmText => _editingGoal is null ? "创建" : "保存";
+
+    public ICommand ConfirmCreateGoalCommand { get; }
+
+    public ICommand SelectTargetIconCommand { get; }
+
+    public ICommand ToggleGoalIconLibraryCommand { get; }
+
+    public ICommand ClearNewGoalNameCommand { get; }
+
     public ICommand SelectGoalMonthCommand { get; }
     public ICommand ToggleGoalTrendCommand { get; }
     public ICommand ToggleGoalMonthMenuCommand { get; }
@@ -380,6 +428,72 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     public ObservableCollection<GoalDistributionViewModel> GoalDistributions { get; } = [];
 
     public ObservableCollection<GoalOverviewItemViewModel> Goals { get; } = [];
+
+    public ObservableCollection<TargetIconOptionViewModel> AllTargetIcons { get; }
+
+    public ObservableCollection<TargetIconOptionViewModel> QuickTargetIcons { get; }
+
+    public IReadOnlyList<string> RecentTargetIconFileNames => _recentTargetIconFileNames;
+
+    public bool IsCreateGoalDialogOpen
+    {
+        get => _isCreateGoalDialogOpen;
+        private set
+        {
+            if (_isCreateGoalDialogOpen == value) return;
+            _isCreateGoalDialogOpen = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool IsGoalIconLibraryOpen
+    {
+        get => _isGoalIconLibraryOpen;
+        set
+        {
+            if (_isGoalIconLibraryOpen == value) return;
+            _isGoalIconLibraryOpen = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public string NewGoalName
+    {
+        get => _newGoalName;
+        set
+        {
+            if (_newGoalName == value) return;
+            _newGoalName = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(CanCreateGoal));
+            _confirmCreateGoalCommand.NotifyCanExecuteChanged();
+        }
+    }
+
+    public TargetIconOptionViewModel? SelectedTargetIcon
+    {
+        get => _selectedTargetIcon;
+        private set
+        {
+            if (ReferenceEquals(_selectedTargetIcon, value)) return;
+            if (_selectedTargetIcon is not null)
+            {
+                _selectedTargetIcon.IsSelected = false;
+            }
+
+            _selectedTargetIcon = value;
+            if (_selectedTargetIcon is not null)
+            {
+                _selectedTargetIcon.IsSelected = true;
+            }
+
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(CanCreateGoal));
+            _confirmCreateGoalCommand.NotifyCanExecuteChanged();
+        }
+    }
+
+    public bool CanCreateGoal => SelectedTargetIcon is not null;
 
     public IEnumerable<GoalOverviewItemViewModel> VisibleGoals => Goals.Where(goal => goal.IsArchived == ShowArchivedGoals);
 
@@ -844,8 +958,13 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     private void SelectFirstVisibleGoal() => SelectGoal(Goals.FirstOrDefault(goal => goal.IsArchived == ShowArchivedGoals));
 
-    private void AddGoal()
+    private void OpenCreateGoalDialog()
     {
+        if (IsCreateGoalDialogOpen)
+        {
+            return;
+        }
+
         if (ShowArchivedGoals)
         {
             ShowArchivedGoals = false;
@@ -856,23 +975,146 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             SaveGoalRename(goal);
         }
 
+        NewGoalName = string.Empty;
+        IsGoalIconLibraryOpen = false;
+        SelectTargetIcon(QuickTargetIcons.FirstOrDefault() ?? AllTargetIcons.FirstOrDefault());
+        IsCreateGoalDialogOpen = true;
+    }
+
+    private void CloseCreateGoalDialog()
+    {
+        IsGoalIconLibraryOpen = false;
+        IsCreateGoalDialogOpen = false;
+        SetEditingGoal(null);
+        NewGoalName = string.Empty;
+        SelectTargetIcon(QuickTargetIcons.FirstOrDefault() ?? AllTargetIcons.FirstOrDefault());
+    }
+
+    private void CreateGoal()
+    {
+        var name = NewGoalName.Trim();
+        if (SelectedTargetIcon is null)
+        {
+            return;
+        }
+        if (name.Length == 0)
+        {
+            name = GenerateDefaultGoalName();
+        }
+
+        var iconFileName = TargetIconCatalog.ResolveIconFileName(SelectedTargetIcon.FileName);
+
+        if (_editingGoal is { } editingGoal)
+        {
+            var goal = Goals.FirstOrDefault(item => item.GoalId == editingGoal.GoalId);
+            if (goal is null)
+            {
+                CloseCreateGoalDialog();
+                return;
+            }
+
+            goal.Name = name;
+            goal.DraftName = name;
+            goal.UpdateIcon(iconFileName);
+            foreach (var record in FocusSessionRecords.Where(record => record.GoalId == goal.GoalId))
+                record.GoalName = name;
+            if (ReferenceEquals(SelectedGoal, goal)) OnPropertyChanged(nameof(SelectedGoalName));
+            ApplyRecentTargetIcons(TargetIconCatalog.PromoteRecentIcon(_recentTargetIconFileNames, iconFileName));
+            CloseCreateGoalDialog();
+            GoalChanged?.Invoke(this, goal);
+            return;
+        }
+
         var newGoal = new GoalOverviewItemViewModel(
             $"goal-{Guid.NewGuid():N}",
-            "新目标",
+            name,
             "尚未推进",
             "暂无记录",
             false,
-            false)
-        {
-            DraftName = "新目标",
-            IsRenaming = true
-        };
+            false,
+            iconFileName);
 
         Goals.Add(newGoal);
         OnPropertyChanged(nameof(VisibleGoals));
         SelectGoal(newGoal);
         IsGoalAddFeedbackVisible = false;
+        ApplyRecentTargetIcons(TargetIconCatalog.PromoteRecentIcon(
+            _recentTargetIconFileNames,
+            iconFileName));
+        CloseCreateGoalDialog();
         GoalChanged?.Invoke(this, newGoal);
+    }
+
+    private string GenerateDefaultGoalName()
+    {
+        for (var index = 1; ; index++)
+        {
+            var candidate = $"目标{index:00}";
+            if (!Goals.Any(goal => string.Equals(
+                    goal.Name.Trim(),
+                    candidate,
+                    StringComparison.OrdinalIgnoreCase)))
+            {
+                return candidate;
+            }
+        }
+    }
+
+    private void SetEditingGoal(GoalOverviewItemViewModel? goal)
+    {
+        _editingGoal = goal;
+        OnPropertyChanged(nameof(GoalDialogTitle));
+        OnPropertyChanged(nameof(GoalDialogConfirmText));
+    }
+
+    private void OpenEditGoalDialog(GoalOverviewItemViewModel? goal)
+    {
+        if (goal is null || IsCreateGoalDialogOpen || !Goals.Contains(goal)) return;
+        CloseGoalMenus();
+        IsGoalListMenuOpen = false;
+        SetEditingGoal(goal);
+        NewGoalName = goal.Name;
+        IsGoalIconLibraryOpen = false;
+        SelectTargetIcon(AllTargetIcons.FirstOrDefault(icon =>
+            string.Equals(icon.FileName, goal.IconFileName, StringComparison.OrdinalIgnoreCase)));
+        IsCreateGoalDialogOpen = true;
+    }
+
+    private void SelectTargetIcon(TargetIconOptionViewModel? icon)
+    {
+        if (icon is not null && AllTargetIcons.Contains(icon))
+        {
+            SelectedTargetIcon = icon;
+        }
+    }
+
+    private void ApplyRecentTargetIcons(IEnumerable<string> fileNames)
+    {
+        _recentTargetIconFileNames = fileNames
+            .Select(TargetIconCatalog.ResolveIconFileName)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(TargetIconCatalog.MaximumRecentIconCount)
+            .ToArray();
+        RebuildTargetIconShortcuts();
+        OnPropertyChanged(nameof(RecentTargetIconFileNames));
+    }
+
+    private void RebuildTargetIconShortcuts()
+    {
+        var byFileName = AllTargetIcons.ToDictionary(
+            icon => icon.FileName,
+            StringComparer.OrdinalIgnoreCase);
+        var shortcutNames = _recentTargetIconFileNames
+            .Concat(TargetIconCatalog.GetPreferredQuickIconFileNames())
+            .Concat(AllTargetIcons.Select(icon => icon.FileName))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Where(byFileName.ContainsKey)
+            .Take(TargetIconCatalog.MaximumRecentIconCount);
+        QuickTargetIcons.Clear();
+        foreach (var fileName in shortcutNames)
+        {
+            QuickTargetIcons.Add(byFileName[fileName]);
+        }
     }
 
     private void SelectGoal(GoalOverviewItemViewModel? goal)
@@ -1133,15 +1375,23 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     {
         var summaries = FocusStatisticsCalculator.GetGoalSummaries(GetCoreFocusSessionRecords())
             .ToDictionary(summary => summary.TargetId, StringComparer.Ordinal);
+        var todayMinutesByGoal = FocusSessionRecords
+            .Where(record => record.StartTime.Date == DateTime.Today)
+            .GroupBy(record => record.GoalId, StringComparer.Ordinal)
+            .ToDictionary(
+                group => group.Key,
+                group => group.Sum(record => record.DurationMinutes),
+                StringComparer.Ordinal);
         foreach (var goal in Goals)
         {
+            var todayMinutes = todayMinutesByGoal.GetValueOrDefault(goal.GoalId);
             if (summaries.TryGetValue(goal.GoalId, out var summary))
             {
-                goal.UpdateProgressSummary(summary.FocusMinutes, summary.SessionCount);
+                goal.UpdateProgressSummary(summary.FocusMinutes, summary.SessionCount, todayMinutes);
             }
             else
             {
-                goal.UpdateProgressSummary(0, 0);
+                goal.UpdateProgressSummary(0, 0, todayMinutes);
             }
         }
     }
@@ -1331,8 +1581,14 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         foreach (var grouping in monthRecords.GroupBy(record => record.GoalId).OrderByDescending(group => group.Sum(record => record.DurationMinutes)))
         {
             var minutes = grouping.Sum(record => record.DurationMinutes);
-            var goalName = Goals.FirstOrDefault(goal => goal.GoalId == grouping.Key)?.Name ?? grouping.First().GoalName;
-            GoalDistributions.Add(new GoalDistributionViewModel(goalName, minutes, totalMinutes == 0 ? 0 : minutes / (double)totalMinutes));
+            var goal = Goals.FirstOrDefault(item => item.GoalId == grouping.Key);
+            var goalName = goal?.Name ?? grouping.First().GoalName;
+            var iconSource = goal?.IconSource ?? TargetIconCatalog.GetIconSource(null);
+            GoalDistributions.Add(new GoalDistributionViewModel(
+                goalName,
+                iconSource,
+                minutes,
+                totalMinutes == 0 ? 0 : minutes / (double)totalMinutes));
         }
 
         OnPropertyChanged(nameof(CalendarMonth));
@@ -1846,19 +2102,23 @@ public sealed class FocusSessionRecordViewModel : INotifyPropertyChanged
 
 public sealed class GoalDistributionViewModel
 {
-    public GoalDistributionViewModel(string targetName, int minutes, double ratio)
+    public GoalDistributionViewModel(string targetName, string iconSource, int minutes, double ratio)
     {
         TargetName = targetName;
+        IconSource = iconSource;
         Minutes = minutes;
         Ratio = ratio;
     }
 
     public string TargetName { get; }
+    public string IconSource { get; }
     public int Minutes { get; }
     public double Ratio { get; }
     public double ProgressWidth => Ratio * 220;
     public string DurationDisplay => StatisticsOverviewViewModel.FormatDurationForDisplay(Minutes);
     public string RatioDisplay => $"{Ratio:P0}";
+    public string PoptipDurationAndRatioDisplay => FormattableString.Invariant(
+        $"{Minutes / 60d:0.#} 小时（{Math.Round(Ratio * 100, MidpointRounding.AwayFromZero):0}%）");
 }
 
 public sealed class GoalOverviewItemViewModel : INotifyPropertyChanged
@@ -1871,6 +2131,7 @@ public sealed class GoalOverviewItemViewModel : INotifyPropertyChanged
     private string _draftName;
     private int _totalMinutes;
     private int _progressCount;
+    private int _todayMinutes;
 
     public GoalOverviewItemViewModel(
         string goalId,
@@ -1878,13 +2139,16 @@ public sealed class GoalOverviewItemViewModel : INotifyPropertyChanged
         string status,
         string recentLabel,
         bool isSelected,
-        bool isArchived)
+        bool isArchived,
+        string? iconFileName = null)
     {
         GoalId = goalId;
         _name = name;
         _draftName = name;
         Status = status;
         RecentLabel = recentLabel;
+        IconFileName = TargetIconCatalog.ResolveIconFileName(iconFileName);
+        IconSource = TargetIconCatalog.GetIconSource(IconFileName);
         IsSelected = isSelected;
         IsArchived = isArchived;
     }
@@ -1903,9 +2167,22 @@ public sealed class GoalOverviewItemViewModel : INotifyPropertyChanged
     }
 
     public string GoalId { get; }
+    public string IconFileName { get; private set; }
+    public string IconSource { get; private set; }
+
+    public void UpdateIcon(string fileName)
+    {
+        var resolved = TargetIconCatalog.ResolveIconFileName(fileName);
+        if (IconFileName == resolved) return;
+        IconFileName = resolved;
+        IconSource = TargetIconCatalog.GetIconSource(resolved);
+        OnPropertyChanged(nameof(IconFileName));
+        OnPropertyChanged(nameof(IconSource));
+    }
     public string Status { get; }
     public int TotalMinutes => _totalMinutes;
     public int ProgressCount => _progressCount;
+    public int TodayMinutes => _todayMinutes;
     public string RecentLabel { get; }
     public bool IsSelected
     {
@@ -1963,18 +2240,55 @@ public sealed class GoalOverviewItemViewModel : INotifyPropertyChanged
     }
 
     public string TotalDurationDisplay => $"{TotalMinutes / 60d:0.0} 小时";
+    public string TodayDurationDisplay => $"今日 {TodayMinutes / 60d:0.#} 小时";
 
-    public void UpdateProgressSummary(int totalMinutes, int progressCount)
+    public void UpdateProgressSummary(int totalMinutes, int progressCount, int todayMinutes)
     {
-        if (_totalMinutes == totalMinutes && _progressCount == progressCount) return;
+        if (_totalMinutes == totalMinutes &&
+            _progressCount == progressCount &&
+            _todayMinutes == todayMinutes)
+        {
+            return;
+        }
         _totalMinutes = totalMinutes;
         _progressCount = progressCount;
+        _todayMinutes = todayMinutes;
         OnPropertyChanged(nameof(TotalMinutes));
         OnPropertyChanged(nameof(ProgressCount));
+        OnPropertyChanged(nameof(TodayMinutes));
         OnPropertyChanged(nameof(TotalDurationDisplay));
+        OnPropertyChanged(nameof(TodayDurationDisplay));
     }
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+}
+
+public sealed class TargetIconOptionViewModel : INotifyPropertyChanged
+{
+    private bool _isSelected;
+
+    public TargetIconOptionViewModel(string fileName, string iconSource)
+    {
+        FileName = fileName;
+        IconSource = iconSource;
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    public string FileName { get; }
+
+    public string IconSource { get; }
+
+    public bool IsSelected
+    {
+        get => _isSelected;
+        set
+        {
+            if (_isSelected == value) return;
+            _isSelected = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsSelected)));
+        }
+    }
 }
 
 public sealed class GoalTrendPointViewModel

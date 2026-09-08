@@ -16,7 +16,7 @@ public sealed class SqliteLocalDataStoreTests
         await store.InitializeAsync();
         var snapshot = await store.LoadAsync();
 
-        Assert.Equal(4, await ReadUserVersionAsync(database.Path));
+        Assert.Equal(5, await ReadUserVersionAsync(database.Path));
         Assert.Empty(snapshot.FocusSessions);
         Assert.Empty(snapshot.Targets);
         Assert.Empty(snapshot.Tasks);
@@ -46,6 +46,7 @@ public sealed class SqliteLocalDataStoreTests
                     end_minutes INTEGER NOT NULL,
                     is_enabled INTEGER NOT NULL,
                     sort_order INTEGER NOT NULL);
+                CREATE TABLE app_settings (singleton_id INTEGER NOT NULL PRIMARY KEY);
                 INSERT INTO automatic_rules VALUES ('00000000000000000000000000000001', 2, 540, 720, 1, 0);
                 PRAGMA user_version = 1;
                 """;
@@ -54,9 +55,11 @@ public sealed class SqliteLocalDataStoreTests
 
         await database.CreateStore().InitializeAsync();
 
-        Assert.Equal(4, await ReadUserVersionAsync(database.Path));
+        Assert.Equal(5, await ReadUserVersionAsync(database.Path));
         Assert.True(await TableExistsAsync(database.Path, "focus_session_website_rules"));
         Assert.True(await TableExistsAsync(database.Path, "focus_session_application_rules"));
+        Assert.True(await ColumnExistsAsync(database.Path, "targets", "icon_file_name"));
+        Assert.True(await ColumnExistsAsync(database.Path, "app_settings", "recent_target_icons_json"));
         Assert.Equal("1", await ReadSingleValueAsync(database.Path, "SELECT is_custom FROM automatic_rules LIMIT 1;"));
     }
 
@@ -69,7 +72,8 @@ public sealed class SqliteLocalDataStoreTests
         var taskCompletedAt = now.AddMinutes(2);
         var target = new LocalTarget("target-1", "写代码", true, 0, now, now)
         {
-            ArchivedAtUtc = archivedAt
+            ArchivedAtUtc = archivedAt,
+            IconFileName = "code.png"
         };
         var task = new LocalTask("task-1", target.TargetId, "实现持久化", true, 0, now, now)
         {
@@ -103,7 +107,10 @@ public sealed class SqliteLocalDataStoreTests
             }
         ]);
         await store.SaveSettingsAsync(
-            new LocalAppSettings(true, true, true, false, true, true, "Blue", target.TargetId, now),
+            new LocalAppSettings(true, true, true, false, true, true, "Blue", target.TargetId, now)
+            {
+                RecentTargetIconsJson = "[\"code.png\",\"study.png\"]"
+            },
             [new LocalDurationPreset(presetId, 45, true, true, 0)],
             [new LocalMonthlyFocusTarget(new DateOnly(2026, 8, 1), 40 * 60)]);
         await store.SaveFocusSessionAsync(new LocalFocusSession(
@@ -151,6 +158,7 @@ public sealed class SqliteLocalDataStoreTests
         Assert.Equal(now, automaticRule.CreatedAtUtc);
         Assert.Equal(now.AddMinutes(3), automaticRule.UpdatedAtUtc);
         Assert.Equal("Blue", snapshot.Settings.SelectedThemeKey);
+        Assert.Equal("[\"code.png\",\"study.png\"]", snapshot.Settings.RecentTargetIconsJson);
         Assert.Equal(presetId, Assert.Single(snapshot.DurationPresets).Id);
         Assert.Equal(40 * 60, Assert.Single(snapshot.MonthlyFocusTargets).TargetMinutes);
         var session = Assert.Single(snapshot.FocusSessions);
@@ -247,6 +255,47 @@ public sealed class SqliteLocalDataStoreTests
 
         var snapshot = await store.LoadAsync();
         Assert.Equal(first.SessionId, Assert.Single(snapshot.FocusSessions).SessionId);
+    }
+
+    [Fact]
+    public async Task EditingTargetNameAndIconPreservesTasksAndFocusHistory()
+    {
+        using var database = new TemporaryDatabase();
+        var store = database.CreateStore();
+        var now = DateTimeOffset.UtcNow;
+        var target = new LocalTarget("edited-target", "原名称", false, 3, now, now)
+        {
+            IconFileName = "study.png"
+        };
+        var task = new LocalTask("edited-task", target.TargetId, "关联任务", false, 0, now, now);
+        var session = new LocalFocusSession(
+            Guid.NewGuid(), LocalFocusSessionStatus.Completed, false, 60, 60,
+            now, now.AddSeconds(5), now.AddSeconds(65), now.AddSeconds(65),
+            FocusCompletionKind.Natural, target.TargetId, target.Name, false, null, null,
+            [new LocalFocusSessionTaskSnapshot(task.TaskId, task.Name, 0)]);
+        await store.SaveTargetAsync(target, [task]);
+        await store.SaveFocusSessionAsync(session, [task.TaskId]);
+        var before = await store.LoadAsync();
+
+        await store.SaveTargetAsync(target with
+        {
+            Name = "修改后的名称",
+            IconFileName = "code.png",
+            UpdatedAtUtc = now.AddMinutes(2)
+        }, before.Tasks.Where(item => item.TargetId == target.TargetId).ToArray());
+
+        var after = await database.CreateStore().LoadAsync();
+        var saved = Assert.Single(after.Targets);
+        Assert.Equal(target.TargetId, saved.TargetId);
+        Assert.Equal("修改后的名称", saved.Name);
+        Assert.Equal("code.png", saved.IconFileName);
+        Assert.Equal(target.CreatedAtUtc, saved.CreatedAtUtc);
+        Assert.Equal(target.SortOrder, saved.SortOrder);
+        Assert.Equal(Assert.Single(before.Tasks), Assert.Single(after.Tasks));
+        var savedSession = Assert.Single(after.FocusSessions);
+        Assert.Equal(session.SessionId, savedSession.SessionId);
+        Assert.Equal(target.TargetId, savedSession.TargetId);
+        Assert.Equal(Assert.Single(before.FocusSessions).CompletedTasks, savedSession.CompletedTasks);
     }
 
     [Fact]
@@ -380,6 +429,24 @@ public sealed class SqliteLocalDataStoreTests
         command.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = $name;";
         command.Parameters.AddWithValue("$name", tableName);
         return Convert.ToInt32(await command.ExecuteScalarAsync()) == 1;
+    }
+
+    private static async Task<bool> ColumnExistsAsync(string path, string tableName, string columnName)
+    {
+        await using var connection = new SqliteConnection($"Data Source={path};Mode=ReadOnly");
+        await connection.OpenAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = $"PRAGMA table_info({tableName});";
+        await using var reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            if (string.Equals(reader.GetString(1), columnName, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private sealed class TemporaryDatabase : IDisposable

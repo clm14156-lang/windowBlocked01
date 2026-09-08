@@ -20,7 +20,10 @@ internal static class LocalDataContractMapper
 
     public static LocalTarget ToCore(LocalTargetDto source)
         => new LocalTarget(source.TargetId, source.Name, source.IsArchived, source.SortOrder, source.CreatedAtUtc, source.UpdatedAtUtc)
-        { ArchivedAtUtc = source.ArchivedAtUtc };
+        {
+            ArchivedAtUtc = source.ArchivedAtUtc,
+            IconFileName = source.IconFileName
+        };
 
     public static LocalTask ToCore(LocalTaskDto source)
         => new LocalTask(source.TaskId, source.TargetId, source.Name, source.IsCompleted, source.SortOrder, source.CreatedAtUtc, source.UpdatedAtUtc)
@@ -50,7 +53,10 @@ internal static class LocalDataContractMapper
             source.ForcedModeRequested,
             source.SelectedThemeKey,
             source.SelectedTargetId,
-            source.UpdatedAtUtc);
+            source.UpdatedAtUtc)
+        {
+            RecentTargetIconsJson = source.RecentTargetIconsJson
+        };
 
     public static LocalDurationPreset ToCore(LocalDurationPresetDto source)
         => new(source.Id, source.Minutes, source.IsVisible, source.IsCurrent, source.SortOrder);
@@ -110,7 +116,10 @@ internal static class LocalDataContractMapper
 
     private static LocalTargetDto ToDto(LocalTarget source)
         => new LocalTargetDto(source.TargetId, source.Name, source.IsArchived, source.SortOrder, source.CreatedAtUtc, source.UpdatedAtUtc)
-        { ArchivedAtUtc = source.ArchivedAtUtc };
+        {
+            ArchivedAtUtc = source.ArchivedAtUtc,
+            IconFileName = source.IconFileName
+        };
 
     private static LocalTaskDto ToDto(LocalTask source)
         => new LocalTaskDto(source.TaskId, source.TargetId, source.Name, source.IsCompleted, source.SortOrder, source.CreatedAtUtc, source.UpdatedAtUtc)
@@ -144,7 +153,10 @@ internal static class LocalDataContractMapper
             source.ForcedModeRequested,
             source.SelectedThemeKey,
             source.SelectedTargetId,
-            source.UpdatedAtUtc);
+            source.UpdatedAtUtc)
+        {
+            RecentTargetIconsJson = source.RecentTargetIconsJson
+        };
 
     private static LocalDurationPresetDto ToDto(LocalDurationPreset source)
         => new(source.Id, source.Minutes, source.IsVisible, source.IsCurrent, source.SortOrder);

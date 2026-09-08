@@ -329,9 +329,13 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.Equal("2026年1月", viewModel.CalendarMonthDisplay);
         Assert.Equal(42, viewModel.CalendarDays.Count);
         Assert.Equal("1月31日 · 周六", viewModel.SelectedDateDisplay);
-        Assert.Single(viewModel.GoalDistributions);
-        Assert.Equal("读书", viewModel.GoalDistributions[0].TargetName);
-        Assert.Equal("2 小时 19 分钟", viewModel.GoalDistributions[0].DurationDisplay);
+        var distribution = Assert.Single(viewModel.GoalDistributions);
+        var readingGoal = viewModel.Goals.Single(goal => goal.Name == "读书");
+        Assert.Equal("读书", distribution.TargetName);
+        Assert.Equal(readingGoal.IconSource, distribution.IconSource);
+        Assert.Equal("2 小时 19 分钟", distribution.DurationDisplay);
+        Assert.Equal(1, distribution.Ratio);
+        Assert.Equal("2.3 小时（100%）", distribution.PoptipDurationAndRatioDisplay);
     }
 
     [Fact]
@@ -444,21 +448,36 @@ public sealed class StatisticsOverviewViewModelTests
     }
 
     [Fact]
-    public void AddingGoalCreatesSelectedEditableGoalWithoutFocusRecords()
+    public void AddingGoalOpensOneDialogAndCreatesNamedGoalWithSelectedIcon()
     {
         var viewModel = new StatisticsOverviewViewModel();
         var originalCount = viewModel.Goals.Count;
 
         viewModel.AddGoalCommand.Execute(null);
+        viewModel.AddGoalCommand.Execute(null);
 
-        var added = viewModel.SelectedGoal;
-        Assert.NotNull(added);
+        Assert.True(viewModel.IsCreateGoalDialogOpen);
+        Assert.Equal(originalCount, viewModel.Goals.Count);
+        Assert.True(viewModel.ConfirmCreateGoalCommand.CanExecute(null));
+
+        viewModel.NewGoalName = "学习 UE5";
+        var shortcutsBeforeSelection = viewModel.QuickTargetIcons.Select(icon => icon.FileName).ToArray();
+        var codeIcon = viewModel.AllTargetIcons.Single(icon => icon.FileName == "code.png");
+        viewModel.SelectTargetIconCommand.Execute(codeIcon);
+        Assert.Equal(shortcutsBeforeSelection, viewModel.QuickTargetIcons.Select(icon => icon.FileName));
+        viewModel.ConfirmCreateGoalCommand.Execute(null);
+
+        var added = Assert.IsType<GoalOverviewItemViewModel>(viewModel.SelectedGoal);
         Assert.Equal(originalCount + 1, viewModel.Goals.Count);
         Assert.Contains(added, viewModel.VisibleGoals);
         Assert.True(added.IsSelected);
-        Assert.True(added.IsRenaming);
-        Assert.Equal("新目标", added.Name);
-        Assert.Equal("新目标", added.DraftName);
+        Assert.False(added.IsRenaming);
+        Assert.Equal("学习 UE5", added.Name);
+        Assert.Equal("code.png", added.IconFileName);
+        Assert.Equal("code.png", viewModel.RecentTargetIconFileNames[0]);
+        Assert.Equal("code.png", viewModel.QuickTargetIcons[0].FileName);
+        Assert.Equal(6, viewModel.QuickTargetIcons.Count);
+        Assert.False(viewModel.IsCreateGoalDialogOpen);
         Assert.Equal("0 分钟", viewModel.SelectedGoalDurationDisplay);
         Assert.Equal("0 次推进", viewModel.SelectedGoalProgressDisplay);
         Assert.Empty(viewModel.GoalMonths);
@@ -469,19 +488,150 @@ public sealed class StatisticsOverviewViewModelTests
     }
 
     [Fact]
-    public void SavingEmptyNewGoalNameRestoresItsDefaultName()
+    public void EmptyGoalNamesUseTheFirstAvailableNumberedDefaults()
+    {
+        var viewModel = new StatisticsOverviewViewModel();
+        var originalCount = viewModel.Goals.Count;
+        viewModel.AddGoalCommand.Execute(null);
+        viewModel.NewGoalName = "   ";
+
+        viewModel.ConfirmCreateGoalCommand.Execute(null);
+        var first = Assert.IsType<GoalOverviewItemViewModel>(viewModel.SelectedGoal);
+        viewModel.AddGoalCommand.Execute(null);
+        viewModel.ConfirmCreateGoalCommand.Execute(null);
+        var second = Assert.IsType<GoalOverviewItemViewModel>(viewModel.SelectedGoal);
+
+        Assert.Equal(originalCount + 2, viewModel.Goals.Count);
+        Assert.Equal("目标01", first.Name);
+        Assert.Equal("目标02", second.Name);
+        Assert.Equal(2, viewModel.Goals.Count(goal => goal.Name is "目标01" or "目标02"));
+        Assert.False(viewModel.IsCreateGoalDialogOpen);
+    }
+
+    [Fact]
+    public void EditingGoalSavesNameAndIconOnTheOriginalRecord()
+    {
+        var viewModel = new StatisticsOverviewViewModel();
+        var goal = viewModel.Goals.First();
+        var goalsBefore = viewModel.Goals.ToArray();
+        var recordsBefore = viewModel.FocusSessionRecords.ToArray();
+        var originalId = goal.GoalId;
+        var originalMinutes = goal.TotalMinutes;
+        var icon = viewModel.AllTargetIcons.First(item => item.FileName != goal.IconFileName);
+        var changes = new List<GoalOverviewItemViewModel>();
+        var iconNotifications = new List<string?>();
+        goal.PropertyChanged += (_, e) => iconNotifications.Add(e.PropertyName);
+        viewModel.GoalChanged += (_, changed) => changes.Add(changed);
+        viewModel.EditGoalCommand.Execute(goal);
+        Assert.True(viewModel.IsCreateGoalDialogOpen);
+        Assert.Equal("编辑目标", viewModel.GoalDialogTitle);
+        Assert.Equal("保存", viewModel.GoalDialogConfirmText);
+        Assert.Equal(goal.Name, viewModel.NewGoalName);
+        Assert.Equal(goal.IconFileName, viewModel.SelectedTargetIcon?.FileName);
+
+        viewModel.NewGoalName = "编辑后的目标";
+        viewModel.SelectTargetIconCommand.Execute(icon);
+        Assert.NotEqual(viewModel.NewGoalName, goal.Name);
+        Assert.NotEqual(icon.FileName, goal.IconFileName);
+        Assert.Empty(changes);
+        viewModel.ConfirmCreateGoalCommand.Execute(null);
+
+        Assert.Equal(goalsBefore, viewModel.Goals.ToArray());
+        Assert.Equal(recordsBefore, viewModel.FocusSessionRecords.ToArray());
+        Assert.Equal(originalId, goal.GoalId);
+        Assert.Equal(originalMinutes, goal.TotalMinutes);
+        Assert.Equal("编辑后的目标", goal.Name);
+        Assert.Equal(icon.FileName, goal.IconFileName);
+        Assert.Equal(icon.IconSource, goal.IconSource);
+        Assert.Contains(nameof(goal.IconSource), iconNotifications);
+        Assert.Same(goal, Assert.Single(changes));
+        Assert.Equal(icon.FileName, viewModel.QuickTargetIcons[0].FileName);
+        Assert.False(viewModel.IsCreateGoalDialogOpen);
+        viewModel.AddGoalCommand.Execute(null);
+        Assert.Equal("创建目标", viewModel.GoalDialogTitle);
+        Assert.Equal("创建", viewModel.GoalDialogConfirmText);
+        Assert.Empty(viewModel.NewGoalName);
+    }
+
+    [Fact]
+    public void CancelEditingDiscardsNameIconAndRecentIconChanges()
+    {
+        var viewModel = new StatisticsOverviewViewModel();
+        var goal = viewModel.Goals.First();
+        var originalName = goal.Name;
+        var originalIcon = goal.IconFileName;
+        var recentBefore = viewModel.RecentTargetIconFileNames.ToArray();
+        var changes = 0;
+        viewModel.GoalChanged += (_, _) => changes++;
+        viewModel.EditGoalCommand.Execute(goal);
+        viewModel.NewGoalName = "不保存";
+        viewModel.SelectTargetIconCommand.Execute(viewModel.AllTargetIcons.Last());
+        viewModel.CancelCreateGoalCommand.Execute(null);
+        Assert.Equal(originalName, goal.Name);
+        Assert.Equal(originalIcon, goal.IconFileName);
+        Assert.Equal(recentBefore, viewModel.RecentTargetIconFileNames.ToArray());
+        Assert.Equal(0, changes);
+        Assert.False(viewModel.IsCreateGoalDialogOpen);
+    }
+
+    [Fact]
+    public void GoalListShowsOnlyTodaysRealFocusMinutes()
     {
         var viewModel = new StatisticsOverviewViewModel();
         viewModel.AddGoalCommand.Execute(null);
-        var added = viewModel.SelectedGoal!;
-        added.DraftName = "   ";
+        viewModel.NewGoalName = "今日目标";
+        viewModel.ConfirmCreateGoalCommand.Execute(null);
+        var goal = Assert.IsType<GoalOverviewItemViewModel>(viewModel.SelectedGoal);
+        Assert.Equal("今日 0 小时", goal.TodayDurationDisplay);
 
-        viewModel.SaveGoalRenameCommand.Execute(added);
+        var todayStart = DateTime.Today.AddHours(8);
+        viewModel.FocusSessionRecords.Add(new FocusSessionRecordViewModel(
+            todayStart,
+            todayStart.AddMinutes(72),
+            goal.GoalId,
+            goal.Name,
+            "今日推进",
+            1));
+        var yesterdayStart = DateTime.Today.AddDays(-1).AddHours(8);
+        viewModel.FocusSessionRecords.Add(new FocusSessionRecordViewModel(
+            yesterdayStart,
+            yesterdayStart.AddMinutes(90),
+            goal.GoalId,
+            goal.Name,
+            "昨日推进",
+            1));
 
-        Assert.Equal("新目标", added.Name);
-        Assert.False(added.IsRenaming);
+        Assert.Equal(162, goal.TotalMinutes);
+        Assert.Equal(72, goal.TodayMinutes);
+        Assert.Equal("今日 1.2 小时", goal.TodayDurationDisplay);
     }
 
+    [Fact]
+    public void CancelGoalCreationDiscardsDraftWithoutPublishingChanges()
+    {
+        var viewModel = new StatisticsOverviewViewModel();
+        var originalGoals = viewModel.Goals.ToArray();
+        var recentIcons = viewModel.RecentTargetIconFileNames.ToArray();
+        var changes = 0;
+        viewModel.GoalChanged += (_, _) => changes++;
+        viewModel.AddGoalCommand.Execute(null);
+        var defaultIcon = viewModel.SelectedTargetIcon;
+        viewModel.NewGoalName = "未提交的目标";
+        viewModel.SelectTargetIconCommand.Execute(viewModel.AllTargetIcons.Last());
+        viewModel.ToggleGoalIconLibraryCommand.Execute(null);
+
+        viewModel.CancelCreateGoalCommand.Execute(null);
+
+        Assert.False(viewModel.IsCreateGoalDialogOpen);
+        Assert.False(viewModel.IsGoalIconLibraryOpen);
+        Assert.Empty(viewModel.NewGoalName);
+        Assert.Equal(originalGoals, viewModel.Goals.ToArray());
+        Assert.Equal(recentIcons, viewModel.RecentTargetIconFileNames.ToArray());
+        Assert.Equal(0, changes);
+        viewModel.AddGoalCommand.Execute(null);
+        Assert.Empty(viewModel.NewGoalName);
+        Assert.Same(defaultIcon, viewModel.SelectedTargetIcon);
+    }
     [Fact]
     public void MonthlyFocusTargetCanBeCreatedEditedAndDeletedFromSharedMonthlyRecords()
     {
@@ -816,6 +966,8 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.Equal("9 小时 2 分钟", viewModel.SelectedGoalDurationDisplay);
         Assert.Equal("15 次推进", viewModel.SelectedGoalProgressDisplay);
         Assert.Equal(viewModel.MonthlyTotalMinutes, viewModel.GoalDistributions.Sum(item => item.Minutes));
+        Assert.All(viewModel.GoalDistributions, distribution =>
+            Assert.Equal(distribution.Minutes / (double)viewModel.MonthlyTotalMinutes, distribution.Ratio, 10));
 
         added.EndTime = new DateTime(2026, 2, 28, 21, 30, 0);
         Assert.Equal("2 小时 5 分钟", viewModel.SelectedDayDurationDisplay);

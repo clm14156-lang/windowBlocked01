@@ -270,6 +270,8 @@ public sealed record LocalTargetDto(
     DateTimeOffset UpdatedAtUtc)
 {
     public DateTimeOffset? ArchivedAtUtc { get; init; }
+
+    public string? IconFileName { get; init; }
 }
 
 public sealed record LocalTaskDto(
@@ -308,7 +310,10 @@ public sealed record LocalAppSettingsDto(
     bool ForcedModeRequested,
     string SelectedThemeKey,
     string? SelectedTargetId,
-    DateTimeOffset UpdatedAtUtc);
+    DateTimeOffset UpdatedAtUtc)
+{
+    public string RecentTargetIconsJson { get; init; } = "[]";
+}
 
 public sealed record LocalDurationPresetDto(Guid Id, int Minutes, bool IsVisible, bool IsCurrent, int SortOrder);
 

@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.Json;
 using FocusApp.Core;
 using Microsoft.Data.Sqlite;
 
@@ -109,14 +110,16 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
         {
             await using (var command = CreateCommand(connection, transaction, """
                 INSERT INTO targets (
-                    target_id, name, is_archived, sort_order, created_utc, updated_utc, archived_utc)
-                VALUES ($id, $name, $archived, $sort, $created, $updated, $archivedAt)
+                    target_id, name, is_archived, sort_order, created_utc, updated_utc, archived_utc,
+                    icon_file_name)
+                VALUES ($id, $name, $archived, $sort, $created, $updated, $archivedAt, $icon)
                 ON CONFLICT(target_id) DO UPDATE SET
                     name = excluded.name,
                     is_archived = excluded.is_archived,
                     sort_order = excluded.sort_order,
                     updated_utc = excluded.updated_utc,
-                    archived_utc = excluded.archived_utc;
+                    archived_utc = excluded.archived_utc,
+                    icon_file_name = excluded.icon_file_name;
                 """))
             {
                 command.Parameters.AddWithValue("$id", target.TargetId);
@@ -126,6 +129,7 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
                 command.Parameters.AddWithValue("$created", FormatDateTime(target.CreatedAtUtc));
                 command.Parameters.AddWithValue("$updated", FormatDateTime(target.UpdatedAtUtc));
                 command.Parameters.AddWithValue("$archivedAt", FormatNullableDateTime(target.ArchivedAtUtc));
+                command.Parameters.AddWithValue("$icon", (object?)target.IconFileName ?? DBNull.Value);
                 await command.ExecuteNonQueryAsync(cancellationToken);
             }
 
@@ -398,9 +402,9 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
                     singleton_id, launch_at_startup, floating_window_enabled,
                     windows_notifications_enabled, focus_sound_enabled,
                     automatic_blocking_enabled, forced_mode_requested,
-                    selected_theme_key, selected_target_id, updated_utc)
+                    selected_theme_key, selected_target_id, updated_utc, recent_target_icons_json)
                 VALUES (1, $launch, $floating, $notifications, $sound, $automatic,
-                    $forced, $theme, $target, $updated)
+                    $forced, $theme, $target, $updated, $recentIcons)
                 ON CONFLICT(singleton_id) DO UPDATE SET
                     launch_at_startup = excluded.launch_at_startup,
                     floating_window_enabled = excluded.floating_window_enabled,
@@ -410,7 +414,8 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
                     forced_mode_requested = excluded.forced_mode_requested,
                     selected_theme_key = excluded.selected_theme_key,
                     selected_target_id = excluded.selected_target_id,
-                    updated_utc = excluded.updated_utc;
+                    updated_utc = excluded.updated_utc,
+                    recent_target_icons_json = excluded.recent_target_icons_json;
                 """))
             {
                 command.Parameters.AddWithValue("$launch", ToInteger(settings.LaunchAtStartup));
@@ -422,6 +427,7 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
                 command.Parameters.AddWithValue("$theme", settings.SelectedThemeKey);
                 command.Parameters.AddWithValue("$target", (object?)settings.SelectedTargetId ?? DBNull.Value);
                 command.Parameters.AddWithValue("$updated", FormatDateTime(settings.UpdatedAtUtc));
+                command.Parameters.AddWithValue("$recentIcons", NormalizeRecentTargetIconsJson(settings.RecentTargetIconsJson));
                 await command.ExecuteNonQueryAsync(cancellationToken);
             }
 
@@ -779,7 +785,8 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
         var values = new List<LocalTarget>();
         await using var command = connection.CreateCommand();
         command.CommandText = """
-            SELECT target_id, name, is_archived, sort_order, created_utc, updated_utc, archived_utc
+            SELECT target_id, name, is_archived, sort_order, created_utc, updated_utc, archived_utc,
+                   icon_file_name
             FROM targets ORDER BY is_archived, sort_order, target_id;
             """;
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
@@ -791,7 +798,11 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
                 reader.GetBoolean(2),
                 reader.GetInt32(3),
                 ParseDateTime(reader.GetString(4)),
-                ParseDateTime(reader.GetString(5))) { ArchivedAtUtc = ReadNullableDateTime(reader, 6) });
+                ParseDateTime(reader.GetString(5)))
+            {
+                ArchivedAtUtc = ReadNullableDateTime(reader, 6),
+                IconFileName = reader.IsDBNull(7) ? null : reader.GetString(7)
+            });
         }
 
         return values;
@@ -910,7 +921,7 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
         command.CommandText = """
             SELECT launch_at_startup, floating_window_enabled, windows_notifications_enabled,
                    focus_sound_enabled, automatic_blocking_enabled, forced_mode_requested,
-                   selected_theme_key, selected_target_id, updated_utc
+                   selected_theme_key, selected_target_id, updated_utc, recent_target_icons_json
             FROM app_settings WHERE singleton_id = 1;
             """;
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
@@ -928,7 +939,10 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
             reader.GetBoolean(5),
             reader.GetString(6),
             reader.IsDBNull(7) ? null : reader.GetString(7),
-            ParseDateTime(reader.GetString(8)));
+            ParseDateTime(reader.GetString(8)))
+        {
+            RecentTargetIconsJson = NormalizeRecentTargetIconsJson(reader.GetString(9))
+        };
     }
 
     private static async Task<IReadOnlyList<LocalDurationPreset>> LoadDurationPresetsAsync(
@@ -998,7 +1012,10 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
 
     private static void ValidateTarget(LocalTarget target, IReadOnlyCollection<LocalTask> tasks)
     {
-        if (string.IsNullOrWhiteSpace(target.TargetId) || string.IsNullOrWhiteSpace(target.Name) || target.SortOrder < 0)
+        if (string.IsNullOrWhiteSpace(target.TargetId) ||
+            string.IsNullOrWhiteSpace(target.Name) ||
+            target.SortOrder < 0 ||
+            target.IconFileName is not null && !IsSafeIconFileName(target.IconFileName))
         {
             throw new ArgumentException("目标数据无效。", nameof(target));
         }
@@ -1144,6 +1161,27 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
 
     private static string FormatMonth(DateOnly month)
         => month.ToString("yyyy-MM", CultureInfo.InvariantCulture);
+
+    private static string NormalizeRecentTargetIconsJson(string? value)
+    {
+        try
+        {
+            var icons = JsonSerializer.Deserialize<string[]>(value ?? "[]") ?? [];
+            return JsonSerializer.Serialize(icons
+                .Where(IsSafeIconFileName)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Take(8));
+        }
+        catch (JsonException)
+        {
+            return "[]";
+        }
+    }
+
+    private static bool IsSafeIconFileName(string value) =>
+        !string.IsNullOrWhiteSpace(value) &&
+        string.Equals(Path.GetFileName(value), value, StringComparison.Ordinal) &&
+        string.Equals(Path.GetExtension(value), ".png", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsBusy(SqliteException exception)
         => exception.SqliteErrorCode is 5 or 6;

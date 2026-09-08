@@ -6,17 +6,21 @@ namespace FocusApp.Tests.Desktop;
 public sealed class FocusTargetModalViewModelTests
 {
     [Fact]
-    public void HasTargets_TracksEmptyStateAndTargetCreation()
+    public void CreateNewTargetCommand_RaisesNavigationRequestWithoutCreatingLocally()
     {
         var viewModel = new FocusTargetModalViewModel(useSampleData: false);
+        var requestCount = 0;
+        viewModel.CreateTargetRequested += (_, _) => requestCount++;
+        viewModel.Open();
 
         Assert.False(viewModel.HasTargets);
 
-        viewModel.BeginCreateTargetCommand.Execute(null);
-        viewModel.NewTargetName = "准备演示";
-        viewModel.CreateTargetCommand.Execute(null);
+        viewModel.CreateNewTargetCommand.Execute(null);
 
-        Assert.True(viewModel.HasTargets);
+        Assert.Equal(1, requestCount);
+        Assert.False(viewModel.IsOpen);
+        Assert.False(viewModel.HasTargets);
+        Assert.Empty(viewModel.Targets);
     }
 
     [Fact]
@@ -172,32 +176,21 @@ public sealed class FocusTargetModalViewModelTests
     }
 
     [Fact]
-    public void CreatingTarget_AddsItToRecentTargetsAndSelectsIt()
+    public void CreateTargetRequest_ClosesModalAndCommitsDraftSelection()
     {
         var viewModel = new FocusTargetModalViewModel();
-        viewModel.BeginCreateTargetCommand.Execute(null);
-        viewModel.NewTargetName = "准备演示";
+        var target = viewModel.VisibleTargets[1];
+        var requestCount = 0;
+        viewModel.CreateTargetRequested += (_, _) => requestCount++;
+        viewModel.Open();
+        viewModel.SelectTargetCommand.Execute(target);
 
-        viewModel.CreateTargetCommand.Execute(null);
+        viewModel.CreateNewTargetCommand.Execute(null);
 
-        Assert.False(viewModel.IsCreatingTarget);
-        Assert.Equal("准备演示", viewModel.SelectedTarget.Name);
-        Assert.Equal("准备演示", viewModel.VisibleTargets[0].Name);
-    }
-
-    [Fact]
-    public void SelectingExistingTarget_LeavesCreateTargetMode()
-    {
-        var viewModel = new FocusTargetModalViewModel();
-        var existingTarget = viewModel.VisibleTargets[0];
-        viewModel.BeginCreateTargetCommand.Execute(null);
-        viewModel.NewTargetName = "未完成目标";
-
-        viewModel.SelectTargetCommand.Execute(existingTarget);
-
-        Assert.False(viewModel.IsCreatingTarget);
-        Assert.Empty(viewModel.NewTargetName);
-        Assert.Same(existingTarget, viewModel.SelectedTarget);
+        Assert.Equal(1, requestCount);
+        Assert.False(viewModel.IsOpen);
+        Assert.True(viewModel.HasSelectedTarget);
+        Assert.Same(target, viewModel.SelectedTarget);
     }
 
     [Fact]

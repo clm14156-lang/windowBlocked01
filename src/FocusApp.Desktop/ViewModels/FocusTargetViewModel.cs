@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using FocusApp.Desktop.Services;
 
 namespace FocusApp.Desktop.ViewModels;
 
@@ -13,10 +14,12 @@ public sealed class FocusTargetViewModel : INotifyPropertyChanged
         string name,
         IEnumerable<string>? taskNames = null,
         string? targetId = null,
-        bool isArchived = false)
+        bool isArchived = false,
+        string? iconFileName = null)
     {
         TargetId = string.IsNullOrWhiteSpace(targetId) ? Guid.NewGuid().ToString("N") : targetId;
         Name = name;
+        IconFileName = TargetIconCatalog.ResolveIconFileName(iconFileName);
         IsArchived = isArchived;
         Tasks = new TargetTaskCollection(TargetId);
         foreach (var taskName in taskNames ?? [])
@@ -30,6 +33,10 @@ public sealed class FocusTargetViewModel : INotifyPropertyChanged
     public string Name { get; private set; }
 
     public string TargetId { get; }
+
+    public string IconFileName { get; private set; }
+
+    public string IconSource => TargetIconCatalog.GetIconSource(IconFileName);
 
     public bool IsArchived { get; private set; }
 
@@ -102,6 +109,15 @@ public sealed class FocusTargetViewModel : INotifyPropertyChanged
         if (Name == name) return;
         Name = name;
         OnPropertyChanged(nameof(Name));
+    }
+
+    public void ApplyIcon(string? iconFileName)
+    {
+        var resolved = TargetIconCatalog.ResolveIconFileName(iconFileName);
+        if (string.Equals(IconFileName, resolved, StringComparison.OrdinalIgnoreCase)) return;
+        IconFileName = resolved;
+        OnPropertyChanged(nameof(IconFileName));
+        OnPropertyChanged(nameof(IconSource));
     }
 
     public bool RemoveTask(FocusTaskViewModel task) =>

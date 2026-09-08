@@ -62,8 +62,7 @@ public partial class FocusTargetModal : UserControl
     {
         if (sender is TextBox { IsVisible: true } textBox)
         {
-            var placeCaretAtStart = ReferenceEquals(textBox, NewTaskTextBox) ||
-                                    ReferenceEquals(textBox, NewTargetTextBox);
+            var placeCaretAtStart = ReferenceEquals(textBox, NewTaskTextBox);
             FocusEditor(textBox, placeCaretAtStart);
         }
     }

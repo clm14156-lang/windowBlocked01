@@ -47,6 +47,8 @@ public sealed record LocalTarget(
     DateTimeOffset UpdatedAtUtc)
 {
     public DateTimeOffset? ArchivedAtUtc { get; init; }
+
+    public string? IconFileName { get; init; }
 }
 
 public sealed record LocalTask(
@@ -99,6 +101,8 @@ public sealed record LocalAppSettings(
     string? SelectedTargetId,
     DateTimeOffset UpdatedAtUtc)
 {
+    public string RecentTargetIconsJson { get; init; } = "[]";
+
     public static LocalAppSettings Default { get; } = new(
         false,
         true,

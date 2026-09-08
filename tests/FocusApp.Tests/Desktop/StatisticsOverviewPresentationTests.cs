@@ -97,6 +97,94 @@ public sealed class StatisticsOverviewPresentationTests
     }
 
     [Fact]
+    public void GoalCreationUsesSingleSizedDialogAndDirectoryBackedIconPopover()
+    {
+        var root = FindRepositoryRoot();
+        var page = XDocument.Load(Path.Combine(
+            root, "src", "FocusApp.Desktop", "Views", "CreateGoalModal.xaml"));
+        var overlay = Assert.Single(page.Descendants(Presentation + "Grid").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "CreateGoalDialogOverlay"));
+        Assert.Equal(
+            "{Binding IsCreateGoalDialogOpen, Converter={StaticResource BooleanToVisibilityConverter}}",
+            (string?)overlay.Attribute("Visibility"));
+
+        var dialog = Assert.Single(overlay.Elements(Presentation + "Border"));
+        Assert.Equal("340", (string?)dialog.Attribute("Width"));
+        Assert.Equal("280", (string?)dialog.Attribute("Height"));
+        Assert.DoesNotContain(dialog.Descendants(Presentation + "Image"), image =>
+            (string?)image.Attribute("Source") == "{Binding SelectedTargetIcon.IconSource}");
+        Assert.Contains(dialog.Descendants(Presentation + "TextBox"), textBox =>
+            (string?)textBox.Attribute("Text") == "{Binding NewGoalName, UpdateSourceTrigger=PropertyChanged}" &&
+            (string?)textBox.Attribute("FontSize") == "13");
+        var quickIconLists = page.Descendants(Presentation + "ItemsControl").Where(items =>
+            (string?)items.Attribute("ItemsSource") == "{Binding QuickTargetIcons}").ToArray();
+        Assert.Single(quickIconLists);
+        Assert.Single(quickIconLists.Where(items => items.Ancestors(Presentation + "Border").Contains(dialog)));
+
+        var iconChoiceStyle = Assert.Single(page.Descendants(Presentation + "Style").Where(element =>
+            (string?)element.Attribute(Xaml + "Key") == "TargetIconChoiceButtonStyle"));
+        Assert.Contains(iconChoiceStyle.Elements(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("Property") == "Width" && (string?)setter.Attribute("Value") == "36");
+        Assert.Contains(iconChoiceStyle.Elements(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("Property") == "Height" && (string?)setter.Attribute("Value") == "36");
+        Assert.Contains(iconChoiceStyle.Elements(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("Property") == "Background" &&
+            (string?)setter.Attribute("Value") == "{DynamicResource TransparentBrush}");
+        var iconChrome = Assert.Single(iconChoiceStyle.Descendants(Presentation + "Border").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "IconChoiceChrome"));
+        Assert.Equal("18", (string?)iconChrome.Attribute("CornerRadius"));
+        var selectedIconTrigger = Assert.Single(iconChoiceStyle.Descendants(Presentation + "DataTrigger").Where(trigger =>
+            (string?)trigger.Attribute("Binding") == "{Binding IsSelected}" &&
+            (string?)trigger.Attribute("Value") == "True"));
+        Assert.Contains(selectedIconTrigger.Elements(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("Property") == "Background" &&
+            (string?)setter.Attribute("Value") == "#EBEBEB");
+        Assert.Contains(selectedIconTrigger.Elements(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("Property") == "BorderBrush" &&
+            (string?)setter.Attribute("Value") == "{DynamicResource TransparentBrush}");
+
+        Assert.DoesNotContain(dialog.Descendants(Presentation + "Button"), button =>
+            (string?)button.Attribute("Command") == "{Binding ClearNewGoalNameCommand}");
+        var secondaryButtonStyle = Assert.Single(page.Descendants(Presentation + "Style").Where(element =>
+            (string?)element.Attribute(Xaml + "Key") == "CreateGoalSecondaryButtonStyle"));
+        Assert.Contains(secondaryButtonStyle.Elements(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("Property") == "Foreground" &&
+            (string?)setter.Attribute("Value") == "{DynamicResource TextSecondary}");
+        Assert.Contains(secondaryButtonStyle.Descendants(Presentation + "ContentPresenter"), presenter =>
+            (string?)presenter.Attribute("TextElement.Foreground") == "{TemplateBinding Foreground}");
+        var primaryButtonStyle = Assert.Single(page.Descendants(Presentation + "Style").Where(element =>
+            (string?)element.Attribute(Xaml + "Key") == "CreateGoalPrimaryButtonStyle"));
+        Assert.Contains(primaryButtonStyle.Elements(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("Property") == "Foreground" &&
+            (string?)setter.Attribute("Value") == "{DynamicResource WhiteText}");
+        Assert.Contains(primaryButtonStyle.Descendants(Presentation + "ContentPresenter"), presenter =>
+            (string?)presenter.Attribute("TextElement.Foreground") == "{TemplateBinding Foreground}");
+
+        var popover = Assert.Single(page.Descendants(Presentation + "Popup").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "GoalIconLibraryPopup"));
+        Assert.Equal("{Binding IsGoalIconLibraryOpen, Mode=TwoWay}", (string?)popover.Attribute("IsOpen"));
+        Assert.Equal("Custom", (string?)popover.Attribute("Placement"));
+        Assert.Equal("{Binding ElementName=DialogCard}", (string?)popover.Attribute("PlacementTarget"));
+        Assert.Equal("230", (string?)popover.Element(Presentation + "Border")?.Attribute("Height"));
+        Assert.Contains(popover.Descendants(Presentation + "ItemsControl"), items =>
+            (string?)items.Attribute("ItemsSource") == "{Binding AllTargetIcons}");
+        Assert.DoesNotContain(popover.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "最近使用");
+
+        var goalIcon = Assert.Single(page.Descendants(Presentation + "Image").Where(element =>
+            (string?)element.Attribute("Source") == "{Binding IconSource}" &&
+            element.Ancestors(Presentation + "DataTemplate").Any(template =>
+                (string?)template.Attribute(Xaml + "Key") == "TargetIconChoiceTemplate")));
+        Assert.Equal("HighQuality", (string?)goalIcon.Attribute("RenderOptions.BitmapScalingMode"));
+
+        var project = XDocument.Load(Path.Combine(
+            root, "src", "FocusApp.Desktop", "FocusApp.Desktop.csproj"));
+        Assert.Contains(project.Descendants("Content"), content =>
+            (string?)content.Attribute("Include") == "Assets\\Icons\\Targets\\*.png" &&
+            content.Elements("CopyToOutputDirectory").Any(value => value.Value == "PreserveNewest"));
+    }
+
+    [Fact]
     public void RangeSelectorReservesIndependentSpaceForTextAndChevron()
     {
         var page = XDocument.Load(Path.Combine(

@@ -189,6 +189,38 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
+    public void EmptyHomeTargetAction_ClosesPickerAndOpensSharedGoalCreationFlow()
+    {
+        var targetModal = new FocusTargetModalViewModel(useSampleData: false);
+        var homePage = new HomePageViewModel(
+            [new HomeDurationOptionViewModel("25 minutes", string.Empty, true, 25)],
+            focusTargetModal: targetModal);
+        var home = new NavigationItemViewModel(NavigationPage.Home, "Home", "H");
+        var statistics = new NavigationItemViewModel(NavigationPage.Statistics, "Statistics", "S");
+        var account = new NavigationItemViewModel(NavigationPage.Account, "Account", "A");
+        var statisticsPage = new StatisticsOverviewViewModel(useSampleData: false, deferInitialization: true);
+        var viewModel = new MainWindowViewModel(
+            [home, statistics], account, homePage, statisticsPage: statisticsPage);
+        targetModal.Open();
+
+        targetModal.CreateNewTargetCommand.Execute(null);
+
+        Assert.False(targetModal.IsOpen);
+        Assert.Equal(NavigationPage.Statistics, viewModel.CurrentPage);
+        Assert.True(statistics.IsSelected);
+        Assert.True(statisticsPage.IsGoalsSelected);
+        Assert.True(statisticsPage.IsCreateGoalDialogOpen);
+        Assert.Empty(targetModal.Targets);
+        Assert.Empty(statisticsPage.Goals);
+
+        statisticsPage.NewGoalName = "统一入口创建";
+        statisticsPage.ConfirmCreateGoalCommand.Execute(null);
+
+        Assert.Equal("统一入口创建", Assert.Single(statisticsPage.Goals).Name);
+        Assert.False(statisticsPage.IsCreateGoalDialogOpen);
+    }
+
+    [Fact]
     public void AddBlockingRuleFromEmptyHomeCard_NavigatesThroughMainWindowBlockingNavigation()
     {
         var homeNavigation = new NavigationItemViewModel(NavigationPage.Home, "Home", "H");

@@ -956,6 +956,13 @@
                 </views:FocusFlowView.Style>
             </views:FocusFlowView>
 
+            <views:CreateGoalModal x:Name="CreateGoalModalControl"
+                                   Grid.ColumnSpan="2"
+                                   Panel.ZIndex="210"
+                                   Margin="-1"
+                                   HorizontalAlignment="Stretch"
+                                   VerticalAlignment="Stretch"
+                                   DataContext="{Binding StatisticsPage}" />
         </Grid>
     </Border>
 </Window>

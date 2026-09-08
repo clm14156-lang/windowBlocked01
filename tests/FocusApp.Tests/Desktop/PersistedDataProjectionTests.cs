@@ -10,7 +10,10 @@ public sealed class PersistedDataProjectionTests
     public void TargetModal_ProjectsOnlyActiveTargetsAndKeepsStableTaskIds()
     {
         var now = DateTimeOffset.UtcNow;
-        var active = new LocalTargetDto("goal-active", "写代码", false, 0, now, now);
+        var active = new LocalTargetDto("goal-active", "写代码", false, 0, now, now)
+        {
+            IconFileName = "code.png"
+        };
         var archived = new LocalTargetDto("goal-archived", "旧目标", true, 1, now, now);
         var task = new LocalTaskDto("task-1", active.TargetId, "整理需求", true, 0, now, now)
         {
@@ -26,6 +29,8 @@ public sealed class PersistedDataProjectionTests
         Assert.True(target.Tasks[0].IsCompleted);
         Assert.Equal(task.CompletedAtUtc, target.Tasks[0].CompletedAtUtc);
         Assert.Equal(active.TargetId, viewModel.SelectedTarget.TargetId);
+        Assert.Equal("code.png", target.IconFileName);
+        Assert.EndsWith("code.png", target.IconSource, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -33,16 +38,17 @@ public sealed class PersistedDataProjectionTests
     {
         var now = DateTimeOffset.UtcNow;
         var viewModel = new FocusTargetModalViewModel(useSampleData: false);
+        var first = new LocalTargetDto("goal-first", "写代码", false, 0, now, now);
+        var second = new LocalTargetDto("goal-second", "准备演示", false, 1, now, now);
+        viewModel.ApplyState([first, second], [], first.TargetId);
         viewModel.Open();
-        viewModel.BeginCreateTargetCommand.Execute(null);
-        viewModel.NewTargetName = "写代码";
-        viewModel.CreateTargetCommand.Execute(null);
-        var draft = Assert.Single(viewModel.Targets);
+        var draft = viewModel.Targets.Single(target => target.TargetId == second.TargetId);
+        viewModel.SelectTargetCommand.Execute(draft);
 
         viewModel.ApplyState(
-            [new LocalTargetDto(draft.TargetId, draft.Name, false, 0, now, now)],
+            [first, second],
             [],
-            null);
+            first.TargetId);
 
         Assert.True(viewModel.HasDraftSelectedTarget);
         Assert.Equal(draft.TargetId, viewModel.DraftSelectedTarget.TargetId);
@@ -71,6 +77,50 @@ public sealed class PersistedDataProjectionTests
         Assert.Equal(1, viewModel.TodayFocusCount);
         Assert.Contains("30", viewModel.TodayFocusDuration, StringComparison.Ordinal);
         Assert.Equal(30, Assert.Single(viewModel.Goals).TotalMinutes);
+    }
+
+    [Fact]
+    public void Statistics_RestoresTargetIconsAndRecentIconOrderFromPersistedSnapshot()
+    {
+        var now = DateTimeOffset.Now;
+        var target = new LocalTargetDto("goal-1", "写代码", false, 0, now, now)
+        {
+            IconFileName = "code.png"
+        };
+        var settings = new LocalAppSettingsDto(
+            false, true, true, true, false, false, "Orange", target.TargetId, now)
+        {
+            RecentTargetIconsJson = "[\"music.png\",\"code.png\",\"music.png\"]"
+        };
+        var state = new LocalDataSnapshotDto(
+            1, [], [target], [], [], [], [], settings, [], []);
+        var viewModel = new StatisticsOverviewViewModel(useSampleData: false);
+
+        viewModel.ApplyState(state);
+
+        Assert.Equal("code.png", Assert.Single(viewModel.Goals).IconFileName);
+        Assert.Equal(new[] { "music.png", "code.png" }, viewModel.RecentTargetIconFileNames);
+        Assert.Equal("music.png", viewModel.QuickTargetIcons[0].FileName);
+        Assert.Equal("code.png", viewModel.QuickTargetIcons[1].FileName);
+    }
+
+    [Fact]
+    public void Statistics_UsesDefaultIconWhenPersistedTargetIconIsMissing()
+    {
+        var now = DateTimeOffset.Now;
+        var target = new LocalTargetDto("goal-1", "旧目标", false, 0, now, now)
+        {
+            IconFileName = "not-present.png"
+        };
+        var state = new LocalDataSnapshotDto(
+            1, [], [target], [], [], [], [],
+            new LocalAppSettingsDto(false, true, true, true, false, false, "Orange", null, now),
+            [], []);
+        var viewModel = new StatisticsOverviewViewModel(useSampleData: false);
+
+        viewModel.ApplyState(state);
+
+        Assert.Equal("study.png", Assert.Single(viewModel.Goals).IconFileName);
     }
 
     [Fact]

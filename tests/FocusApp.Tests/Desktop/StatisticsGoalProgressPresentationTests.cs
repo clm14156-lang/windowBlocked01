@@ -15,6 +15,63 @@ public sealed class StatisticsGoalProgressPresentationTests
     private static readonly XNamespace Xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
 
     [Fact]
+    public void GoalDistributionUsesBoundIconsLongBarsAndHoverPoptips()
+    {
+        var page = XDocument.Load(Path.Combine(
+            FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
+        var distributions = Assert.Single(page.Descendants(Presentation + "ItemsControl").Where(control =>
+            (string?)control.Attribute(Xaml + "Name") == "GoalDistributionItemsControl"));
+        var template = Assert.Single(distributions.Elements(Presentation + "ItemsControl.ItemTemplate")
+            .Elements(Presentation + "DataTemplate"));
+        var row = Assert.Single(template.Elements(Presentation + "Grid"));
+
+        Assert.Equal(
+            new[] { "22", "9", "72", "12", "*" },
+            row.Elements(Presentation + "Grid.ColumnDefinitions")
+                .Elements(Presentation + "ColumnDefinition")
+                .Select(column => (string?)column.Attribute("Width")));
+
+        var icon = Assert.Single(row.Elements(Presentation + "Image"));
+        Assert.Equal("22", (string?)icon.Attribute("Width"));
+        Assert.Equal("22", (string?)icon.Attribute("Height"));
+        Assert.Equal("{Binding IconSource}", (string?)icon.Attribute("Source"));
+        Assert.Equal("HighQuality", (string?)icon.Attribute("RenderOptions.BitmapScalingMode"));
+
+        var hoverArea = Assert.Single(row.Elements(Presentation + "Grid").Where(grid =>
+            (string?)grid.Attribute(Xaml + "Name") == "GoalDistributionHoverArea"));
+        Assert.Equal("2", (string?)hoverArea.Attribute("Grid.Column"));
+        Assert.Equal("3", (string?)hoverArea.Attribute("Grid.ColumnSpan"));
+        Assert.Equal("{DynamicResource TransparentBrush}", (string?)hoverArea.Attribute("Background"));
+        Assert.Equal("0", (string?)hoverArea.Attribute("ToolTipService.BetweenShowDelay"));
+        Assert.Equal(
+            new[] { "72", "12", "*" },
+            hoverArea.Elements(Presentation + "Grid.ColumnDefinitions")
+                .Elements(Presentation + "ColumnDefinition")
+                .Select(column => (string?)column.Attribute("Width")));
+
+        var progress = Assert.Single(hoverArea.Elements(Presentation + "ProgressBar"));
+        Assert.Equal("2", (string?)progress.Attribute("Grid.Column"));
+        Assert.Equal("Stretch", (string?)progress.Attribute("HorizontalAlignment"));
+        Assert.Equal("{Binding Ratio, Mode=OneWay}", (string?)progress.Attribute("Value"));
+        Assert.Empty(progress.Descendants(Presentation + "ToolTip"));
+        Assert.Equal("Top", (string?)hoverArea.Descendants(Presentation + "ToolTip").Single().Attribute("Placement"));
+
+        var poptipBindings = hoverArea.Descendants(Presentation + "ToolTip")
+            .Descendants(Presentation + "TextBlock")
+            .Select(text => (string?)text.Attribute("Text"))
+            .ToArray();
+        Assert.Equal(new[] { "{Binding TargetName}", "{Binding PoptipDurationAndRatioDisplay}" }, poptipBindings);
+        Assert.Single(hoverArea.Descendants(Presentation + "ToolTip").Descendants(Presentation + "Polygon"));
+
+        var directRowBindings = hoverArea.Elements(Presentation + "TextBlock")
+            .Select(text => (string?)text.Attribute("Text"))
+            .ToArray();
+        Assert.Equal(new[] { "{Binding TargetName}" }, directRowBindings);
+        Assert.DoesNotContain("{Binding DurationDisplay}", directRowBindings);
+        Assert.DoesNotContain("{Binding RatioDisplay}", directRowBindings);
+    }
+
+    [Fact]
     public void GoalProgressMainRowShowsOnlyDateDurationAndChevron()
     {
         var page = XDocument.Load(Path.Combine(
@@ -171,13 +228,41 @@ public sealed class StatisticsGoalProgressPresentationTests
 
         var goalName = Assert.Single(texts.Where(text => (string?)text.Attribute("Text") == "{Binding Name}"));
         Assert.Equal("13", (string?)goalName.Attribute("FontSize"));
-        Assert.Equal("Normal", (string?)goalName.Attribute("FontWeight"));
+        Assert.Equal("Medium", (string?)goalName.Attribute("FontWeight"));
         Assert.Equal("{DynamicResource TextPrimary}", (string?)goalName.Attribute("Foreground"));
 
-        var status = Assert.Single(texts.Where(text => (string?)text.Attribute(Xaml + "Name") == "GoalStatusText"));
-        Assert.Equal("12", (string?)status.Attribute("FontSize"));
-        Assert.Equal("Normal", (string?)status.Attribute("FontWeight"));
-        Assert.Equal("{DynamicResource TextWeak}", (string?)status.Attribute("Foreground"));
+        Assert.DoesNotContain(texts, text => (string?)text.Attribute(Xaml + "Name") == "GoalStatusText");
+        Assert.DoesNotContain(texts, text => (string?)text.Attribute(Xaml + "Name") == "GoalDurationText");
+        var todayDuration = Assert.Single(texts.Where(text =>
+            (string?)text.Attribute(Xaml + "Name") == "GoalTodayDurationText"));
+        Assert.Equal("{Binding TodayDurationDisplay}", (string?)todayDuration.Attribute("Text"));
+        Assert.Equal("12", (string?)todayDuration.Attribute("FontSize"));
+        Assert.Equal("{DynamicResource TextWeak}", (string?)todayDuration.Attribute("Foreground"));
+
+        var goalIcon = Assert.Single(goalsPage.Descendants(Presentation + "Border").Where(border =>
+            (string?)border.Attribute(Xaml + "Name") == "GoalIconBackground"));
+        Assert.Equal("38", (string?)goalIcon.Attribute("Width"));
+        Assert.Equal("38", (string?)goalIcon.Attribute("Height"));
+        Assert.Equal("{DynamicResource TransparentBrush}", (string?)goalIcon.Attribute("Background"));
+        Assert.Contains(goalIcon.Elements(Presentation + "Image"), image =>
+            (string?)image.Attribute("Source") == "{Binding IconSource}");
+
+        var goalTemplate = Assert.Single(goalIcon.Ancestors(Presentation + "ControlTemplate"));
+        var selectedGoalTrigger = Assert.Single(goalTemplate.Descendants(Presentation + "DataTrigger").Where(trigger =>
+            (string?)trigger.Attribute("Binding") == "{Binding IsSelected}" &&
+            (string?)trigger.Attribute("Value") == "True"));
+        Assert.Contains(selectedGoalTrigger.Elements(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("TargetName") == "GoalBorder" &&
+            (string?)setter.Attribute("Property") == "Background" &&
+            (string?)setter.Attribute("Value") == "{DynamicResource SurfacePrimary}");
+        Assert.Contains(selectedGoalTrigger.Elements(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("TargetName") == "GoalBorder" &&
+            (string?)setter.Attribute("Property") == "BorderBrush" &&
+            (string?)setter.Attribute("Value") == "{DynamicResource AccentSoftBorder}");
+
+        var goalChevron = Assert.Single(texts.Where(text =>
+            (string?)text.Attribute(Xaml + "Name") == "GoalChevron"));
+        Assert.Equal("\uE76C", (string?)goalChevron.Attribute("Text"));
 
         var totalDuration = Assert.Single(texts.Where(text => text.Descendants(Presentation + "Run").Any(run =>
             (string?)run.Attribute("Text") == "{Binding SelectedGoalHoursValueDisplay, Mode=OneWay}")));
@@ -423,6 +508,7 @@ public sealed class StatisticsGoalProgressPresentationTests
             {
                 app = new FocusApp.Desktop.App();
                 app.InitializeComponent();
+                CreateGoalModalTests.VerifyButtonLabelsWithApplicationTextStyles();
                 var viewModel = new StatisticsOverviewViewModel();
                 var page = new StatisticsPage { DataContext = viewModel };
                 viewModel.SelectGoalsCommand.Execute(null);
@@ -441,6 +527,19 @@ public sealed class StatisticsGoalProgressPresentationTests
                     var encoder = new PngBitmapEncoder();
                     encoder.Frames.Add(BitmapFrame.Create(bitmap));
                     using var stream = File.Create(visualQaPath);
+                    encoder.Save(stream);
+                }
+
+                var calendarVisualQaPath = Environment.GetEnvironmentVariable("FOCUSAPP_CALENDAR_DISTRIBUTION_QA_PATH");
+                if (!string.IsNullOrWhiteSpace(calendarVisualQaPath))
+                {
+                    viewModel.SelectCalendarCommand.Execute(null);
+                    page.UpdateLayout();
+                    var bitmap = new RenderTargetBitmap(800, 710, 96, 96, PixelFormats.Pbgra32);
+                    bitmap.Render(page);
+                    var encoder = new PngBitmapEncoder();
+                    encoder.Frames.Add(BitmapFrame.Create(bitmap));
+                    using var stream = File.Create(calendarVisualQaPath);
                     encoder.Save(stream);
                 }
             }

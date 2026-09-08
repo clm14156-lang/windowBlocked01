@@ -79,6 +79,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         HomePage.ManageAutomaticRuleRequested += HomePage_ManageAutomaticRuleRequested;
         HomePage.FocusTargetModal.TargetChanged += FocusTargetModal_TargetChanged;
         HomePage.FocusTargetModal.SelectionChanged += FocusTargetModal_SelectionChanged;
+        HomePage.FocusTargetModal.CreateTargetRequested += FocusTargetModal_CreateTargetRequested;
         HomePage.FocusSession.CompletionRecorded += FocusSession_CompletionRecorded;
         HomePage.FocusSession.FocusDiscarded += FocusSession_FocusDiscarded;
         HomePage.FocusSession.FocusResultReturnedHome += FocusSession_FocusResultReturnedHome;
@@ -447,6 +448,21 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         SettingsPage.RequestAutomaticRuleFocus(ruleId);
     }
 
+    private void FocusTargetModal_CreateTargetRequested(object? sender, EventArgs e)
+    {
+        var statisticsNavigationItem = PrimaryNavigationItems.FirstOrDefault(
+            item => item.Page == NavigationPage.Statistics);
+        if (statisticsNavigationItem is null)
+        {
+            return;
+        }
+
+        Navigate(statisticsNavigationItem);
+        StatisticsPage.EnsureInitialized();
+        StatisticsPage.SelectGoalsCommand.Execute(null);
+        StatisticsPage.AddGoalCommand.Execute(null);
+    }
+
     private void HomePage_BlockingPageRequested(object? sender, EventArgs e)
     {
         var blockingNavigationItem = PrimaryNavigationItems.FirstOrDefault(
@@ -586,7 +602,8 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             existingTarget?.SortOrder ?? ServiceConnection.State?.Targets.Count ?? 0,
             existingTarget?.CreatedAtUtc ?? now, now)
         {
-            ArchivedAtUtc = target.IsArchived ? existingTarget?.ArchivedAtUtc ?? now : null
+            ArchivedAtUtc = target.IsArchived ? existingTarget?.ArchivedAtUtc ?? now : null,
+            IconFileName = target.IconFileName
         };
         var tasks = target.Tasks.Select((task, index) =>
         {
@@ -843,10 +860,24 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             existing?.SortOrder ?? state.Targets.Count,
             existing?.CreatedAtUtc ?? now, now)
         {
-            ArchivedAtUtc = goal.IsArchived ? existing?.ArchivedAtUtc ?? now : null
+            ArchivedAtUtc = goal.IsArchived ? existing?.ArchivedAtUtc ?? now : null,
+            IconFileName = goal.IconFileName
         };
         var tasks = state.Tasks.Where(item => item.TargetId == goal.GoalId).ToArray();
-        await PersistTargetAsync(new SaveTargetCommand(target, tasks));
+        var recentIconsJson = TargetIconCatalog.SerializeRecentIconFileNames(StatisticsPage.RecentTargetIconFileNames);
+        var shouldSaveRecentIcons = recentIconsJson != state.Settings.RecentTargetIconsJson;
+        var persisted = await PersistTargetAsync(new SaveTargetCommand(target, tasks));
+        if (persisted && shouldSaveRecentIcons)
+        {
+            await PersistSettingsAsync(current => new SaveSettingsCommand(
+                current.Settings with
+                {
+                    RecentTargetIconsJson = recentIconsJson!,
+                    UpdatedAtUtc = DateTimeOffset.UtcNow
+                },
+                current.DurationPresets,
+                current.MonthlyFocusTargets));
+        }
     }
 
     private async void StatisticsPage_GoalDeleted(object? sender, string targetId)
@@ -861,14 +892,21 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         finally { _targetPersistenceGate.Release(); }
     }
 
-    private async Task PersistTargetAsync(SaveTargetCommand command)
+    private async Task<bool> PersistTargetAsync(SaveTargetCommand command)
     {
-        if (ServiceConnection is null || !ServiceConnection.IsConnected) return;
+        if (ServiceConnection is null || !ServiceConnection.IsConnected) return false;
         await _targetPersistenceGate.WaitAsync();
         try
         {
-            try { await ServiceConnection.SaveTargetAsync(command); }
-            catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException) { }
+            try
+            {
+                await ServiceConnection.SaveTargetAsync(command);
+                return true;
+            }
+            catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException)
+            {
+                return false;
+            }
         }
         finally { _targetPersistenceGate.Release(); }
     }

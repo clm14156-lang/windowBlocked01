@@ -63,6 +63,91 @@ public sealed class FocusTargetModalPresentationTests
     }
 
     [Fact]
+    public void CurrentTargetChipsShowEachTargetsBoundIconBeforeItsName()
+    {
+        var modal = XDocument.Load(Path.Combine(
+            FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "FocusTargetModal.xaml"));
+        var targets = Assert.Single(modal.Descendants(Presentation + "ItemsControl").Where(control =>
+            (string?)control.Attribute("ItemsSource") == "{Binding VisibleTargets}"));
+        var template = Assert.Single(targets.Elements(Presentation + "ItemsControl.ItemTemplate")
+            .Elements(Presentation + "DataTemplate"));
+        var button = Assert.Single(template.Elements(Presentation + "Button"));
+
+        Assert.Equal(
+            "{Binding DataContext.SelectTargetCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}",
+            (string?)button.Attribute("Command"));
+        Assert.Equal("{Binding}", (string?)button.Attribute("CommandParameter"));
+        Assert.Null(button.Attribute("Content"));
+
+        var content = Assert.Single(button.Elements(Presentation + "StackPanel"));
+        Assert.Equal("Horizontal", (string?)content.Attribute("Orientation"));
+        Assert.Equal("Center", (string?)content.Attribute("VerticalAlignment"));
+        var icon = Assert.Single(content.Elements(Presentation + "Image"));
+        Assert.Equal("16", (string?)icon.Attribute("Width"));
+        Assert.Equal("16", (string?)icon.Attribute("Height"));
+        Assert.Equal("0,0,6,0", (string?)icon.Attribute("Margin"));
+        Assert.Equal("{Binding IconSource}", (string?)icon.Attribute("Source"));
+        Assert.Equal("HighQuality", (string?)icon.Attribute("RenderOptions.BitmapScalingMode"));
+        var label = Assert.Single(content.Elements(Presentation + "TextBlock"));
+        Assert.Equal("{Binding Name}", (string?)label.Attribute("Text"));
+        Assert.Equal(
+            "{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}",
+            (string?)label.Attribute("Foreground"));
+    }
+
+    [Fact]
+    public void TargetSelectionExpandsTaskAreaAndUsesTopRightCloseButton()
+    {
+        var modal = XDocument.Load(Path.Combine(
+            FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "FocusTargetModal.xaml"));
+        var closeButton = Assert.Single(modal.Descendants(Presentation + "Button").Where(button =>
+            (string?)button.Attribute(Xaml + "Name") == "TargetModalCloseButton"));
+        Assert.Equal("Right", (string?)closeButton.Attribute("HorizontalAlignment"));
+        Assert.Equal("Top", (string?)closeButton.Attribute("VerticalAlignment"));
+        Assert.Equal("{Binding CloseCommand}", (string?)closeButton.Attribute("Command"));
+        Assert.Equal("{StaticResource TargetCloseButton}", (string?)closeButton.Attribute("Style"));
+
+        var closeStyle = Assert.Single(modal.Descendants(Presentation + "Style").Where(style =>
+            (string?)style.Attribute(Xaml + "Key") == "TargetCloseButton"));
+        Assert.Contains(closeStyle.Elements(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("Property") == "Width" && (string?)setter.Attribute("Value") == "28");
+        Assert.Contains(closeStyle.Elements(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("Property") == "Height" && (string?)setter.Attribute("Value") == "28");
+        Assert.Contains(closeStyle.Elements(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("Property") == "Background" &&
+            (string?)setter.Attribute("Value") == "{DynamicResource TransparentBrush}");
+        var closeSurface = Assert.Single(closeStyle.Descendants(Presentation + "Border"));
+        Assert.Equal("14", (string?)closeSurface.Attribute("CornerRadius"));
+        Assert.Contains(closeStyle.Descendants(Presentation + "Trigger"), trigger =>
+            (string?)trigger.Attribute("Property") == "IsMouseOver" &&
+            trigger.Elements(Presentation + "Setter").Any(setter =>
+                (string?)setter.Attribute("TargetName") == "CloseSurface" &&
+                (string?)setter.Attribute("Value") == "{DynamicResource FocusTargetSubtleHoverBrush}"));
+
+        Assert.DoesNotContain(modal.Descendants(Presentation + "Button"), button =>
+            (string?)button.Attribute("Command") is
+                "{Binding CancelSelectionCommand}" or "{Binding ConfirmSelectionCommand}");
+        var footerCreateButton = Assert.Single(modal.Descendants(Presentation + "Button").Where(button =>
+            (string?)button.Attribute("Command") == "{Binding CreateNewTargetCommand}" &&
+            button.Ancestors(Presentation + "Grid").Any(grid => (string?)grid.Attribute("Grid.Row") == "5")));
+        var selectedTargetTrigger = Assert.Single(footerCreateButton.Descendants(Presentation + "DataTrigger").Where(trigger =>
+            (string?)trigger.Attribute("Binding") == "{Binding HasDraftSelectedTarget}" &&
+            (string?)trigger.Attribute("Value") == "True"));
+        Assert.Contains(selectedTargetTrigger.Elements(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("Property") == "Visibility" &&
+            (string?)setter.Attribute("Value") == "Collapsed");
+
+        var taskScroller = Assert.Single(modal.Descendants(Presentation + "ScrollViewer").Where(scroller =>
+            (string?)scroller.Attribute("ScrollChanged") == "TaskScrollViewer_ScrollChanged"));
+        Assert.Equal("0,2,0,0", (string?)taskScroller.Attribute("Margin"));
+        var taskItem = Assert.Single(modal.Descendants(Presentation + "ItemsControl").Where(control =>
+            (string?)control.Attribute("ItemsSource") == "{Binding CurrentTasks}"));
+        var taskRow = Assert.Single(taskItem.Descendants(Presentation + "DataTemplate")
+            .Elements(Presentation + "Border"));
+        Assert.Equal("46", (string?)taskRow.Attribute("Height"));
+    }
+
+    [Fact]
     public void EmptyTargetState_CentersTheIllustrationAndCreateActionWithoutTaskChrome()
     {
         var root = FindRepositoryRoot();
@@ -84,13 +169,6 @@ public sealed class FocusTargetModalPresentationTests
             trigger.Elements(Presentation + "Setter").Any(setter =>
                 (string?)setter.Attribute("Property") == "Visibility" &&
                 (string?)setter.Attribute("Value") == "Collapsed"));
-        Assert.Contains(emptyState.Descendants(Presentation + "DataTrigger"), trigger =>
-            (string?)trigger.Attribute("Binding") == "{Binding IsCreatingTarget}" &&
-            (string?)trigger.Attribute("Value") == "True" &&
-            trigger.Elements(Presentation + "Setter").Any(setter =>
-                (string?)setter.Attribute("Property") == "Visibility" &&
-                (string?)setter.Attribute("Value") == "Collapsed"));
-
         var illustration = Assert.Single(emptyState.Descendants(Presentation + "Image").Where(image =>
             (string?)image.Attribute("Source") == "/FocusApp.Desktop;component/Assets/Images/Illustrations/create-target.png"));
         Assert.Equal("150", (string?)illustration.Attribute("Width"));
@@ -110,7 +188,7 @@ public sealed class FocusTargetModalPresentationTests
         Assert.Equal("{DynamicResource TextSecondary}", (string?)description.Attribute("Foreground"));
 
         var createButton = Assert.Single(emptyState.Descendants(Presentation + "Button"));
-        Assert.Equal("{Binding BeginCreateTargetCommand}", (string?)createButton.Attribute("Command"));
+        Assert.Equal("{Binding CreateNewTargetCommand}", (string?)createButton.Attribute("Command"));
         Assert.Equal("{StaticResource EmptyTargetCreateButton}", (string?)createButton.Attribute("Style"));
         Assert.Equal("0,24,0,0", (string?)createButton.Attribute("Margin"));
 
@@ -158,6 +236,19 @@ public sealed class FocusTargetModalPresentationTests
             (string?)border.Attribute("Height") == "1"));
         Assert.Equal("{Binding HasTargets, Converter={StaticResource BooleanToVisibilityConverter}}",
             (string?)divider.Attribute("Visibility"));
+
+        Assert.DoesNotContain(modal.Descendants(), element =>
+            ((string?)element.Attribute("Binding"))?.Contains("IsCreatingTarget", StringComparison.Ordinal) == true ||
+            ((string?)element.Attribute("Text"))?.Contains("NewTargetName", StringComparison.Ordinal) == true ||
+            (string?)element.Attribute("Command") is
+                "{Binding BeginCreateTargetCommand}" or
+                "{Binding CancelCreateTargetCommand}" or
+                "{Binding CreateTargetCommand}");
+        var createButtons = modal.Descendants(Presentation + "Button").Where(button =>
+            (string?)button.Attribute("AutomationProperties.Name") == "{DynamicResource FocusTargetCreateNew}").ToArray();
+        Assert.Equal(2, createButtons.Length);
+        Assert.All(createButtons, button =>
+            Assert.Equal("{Binding CreateNewTargetCommand}", (string?)button.Attribute("Command")));
 
         var strings = XDocument.Load(Path.Combine(root, "src", "FocusApp.Desktop", "Resources", "Strings.xaml"));
         Assert.Contains(strings.Root!.Elements(), resource =>

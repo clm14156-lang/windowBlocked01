@@ -783,15 +783,93 @@
                         <Border Height="205" Margin="0,9,0,0" Padding="20,13,20,10" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" CornerRadius="16">
                             <StackPanel>
                                 <TextBlock FontSize="15" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="目标投入分布" />
-                                <ItemsControl Margin="0,12,0,0" ItemsSource="{Binding GoalDistributions}">
+                                <ItemsControl x:Name="GoalDistributionItemsControl" Margin="0,12,0,0" ItemsSource="{Binding GoalDistributions}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate DataType="{x:Type vm:GoalDistributionViewModel}">
-                                            <Grid Height="25">
-                                                <Grid.ColumnDefinitions><ColumnDefinition Width="77" /><ColumnDefinition Width="80" /><ColumnDefinition Width="99" /><ColumnDefinition Width="48" /></Grid.ColumnDefinitions>
-                                                <TextBlock VerticalAlignment="Center" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{Binding TargetName}" />
-                                                <ProgressBar Grid.Column="1" Height="5" Margin="0,0,9,0" VerticalAlignment="Center" Maximum="1" Value="{Binding Ratio, Mode=OneWay}" Style="{StaticResource StatisticsProgressBarStyle}" />
-                                                <TextBlock Grid.Column="2" Margin="11,0,0,0" VerticalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding DurationDisplay}" />
-                                                <TextBlock Grid.Column="3" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{Binding RatioDisplay}" />
+                                            <Grid Height="28">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="22" />
+                                                    <ColumnDefinition Width="9" />
+                                                    <ColumnDefinition Width="72" />
+                                                    <ColumnDefinition Width="12" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <Image x:Name="GoalDistributionIcon"
+                                                       Grid.Column="0"
+                                                       Width="22"
+                                                       Height="22"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center"
+                                                       RenderOptions.BitmapScalingMode="HighQuality"
+                                                       SnapsToDevicePixels="True"
+                                                       Source="{Binding IconSource}" />
+                                                <Grid x:Name="GoalDistributionHoverArea"
+                                                      Grid.Column="2"
+                                                      Grid.ColumnSpan="3"
+                                                      Background="{DynamicResource TransparentBrush}"
+                                                      ToolTipService.BetweenShowDelay="0"
+                                                      ToolTipService.InitialShowDelay="120"
+                                                      ToolTipService.ShowDuration="60000">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="72" />
+                                                        <ColumnDefinition Width="12" />
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <Grid.ToolTip>
+                                                        <ToolTip x:Name="GoalDistributionPoptip"
+                                                                 Padding="0"
+                                                                 Background="{DynamicResource TransparentBrush}"
+                                                                 BorderThickness="0"
+                                                                 HasDropShadow="False"
+                                                                 Placement="Top"
+                                                                 VerticalOffset="-5">
+                                                            <StackPanel HorizontalAlignment="Center">
+                                                                <Border Padding="13,10"
+                                                                        Background="{DynamicResource SurfacePrimary}"
+                                                                        BorderBrush="{DynamicResource BorderPrimary}"
+                                                                        BorderThickness="1"
+                                                                        CornerRadius="10">
+                                                                    <Border.Effect>
+                                                                        <DropShadowEffect BlurRadius="12" Opacity="0.14" ShadowDepth="3" />
+                                                                    </Border.Effect>
+                                                                    <StackPanel MinWidth="112">
+                                                                        <TextBlock FontSize="13"
+                                                                                   FontWeight="Normal"
+                                                                                   Foreground="{DynamicResource TextPrimary}"
+                                                                                   Text="{Binding TargetName}" />
+                                                                        <TextBlock Margin="0,4,0,0"
+                                                                                   FontSize="14"
+                                                                                   FontWeight="SemiBold"
+                                                                                   Foreground="{DynamicResource TextPrimary}"
+                                                                                   Text="{Binding PoptipDurationAndRatioDisplay}" />
+                                                                    </StackPanel>
+                                                                </Border>
+                                                                <Polygon Width="14"
+                                                                         Height="7"
+                                                                         Margin="0,-1,0,0"
+                                                                         HorizontalAlignment="Center"
+                                                                         Fill="{DynamicResource SurfacePrimary}"
+                                                                         Points="0,0 14,0 7,7"
+                                                                         Stretch="Fill" />
+                                                            </StackPanel>
+                                                        </ToolTip>
+                                                    </Grid.ToolTip>
+                                                    <TextBlock Grid.Column="0"
+                                                               VerticalAlignment="Center"
+                                                               FontSize="13"
+                                                               FontWeight="Medium"
+                                                               Foreground="{DynamicResource TextPrimary}"
+                                                               Text="{Binding TargetName}"
+                                                               TextTrimming="CharacterEllipsis" />
+                                                    <ProgressBar x:Name="GoalDistributionProgressBar"
+                                                                 Grid.Column="2"
+                                                                 Height="6"
+                                                                 HorizontalAlignment="Stretch"
+                                                                 VerticalAlignment="Center"
+                                                                 Maximum="1"
+                                                                 Value="{Binding Ratio, Mode=OneWay}"
+                                                                 Style="{StaticResource StatisticsProgressBarStyle}" />
+                                                </Grid>
                                             </Grid>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
@@ -1084,31 +1162,38 @@
                                 <ItemsControl ItemsSource="{Binding VisibleGoals}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate DataType="{x:Type vm:GoalOverviewItemViewModel}">
-                                            <Button Height="66" Margin="0,0,13,5" Padding="12,10" HorizontalContentAlignment="Stretch" Command="{Binding DataContext.SelectGoalCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}" Background="{DynamicResource SurfacePrimary}" BorderThickness="0" FocusVisualStyle="{x:Null}">
+                                            <Button Height="70" Margin="0,0,13,6" Padding="12,8" HorizontalContentAlignment="Stretch" Command="{Binding DataContext.SelectGoalCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}" Background="{DynamicResource SurfacePrimary}" BorderThickness="0" FocusVisualStyle="{x:Null}">
                                                 <Button.Template>
                                                     <ControlTemplate TargetType="Button">
                                                         <Border x:Name="GoalBorder" Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" CornerRadius="12">
                                                             <Grid>
-                                                                <StackPanel>
-                                                                    <StackPanel Orientation="Horizontal">
-                                                                        <Ellipse x:Name="GoalMarker" Width="13" Height="13" Margin="0,0,10,0" Stroke="{DynamicResource TextSecondary}" StrokeThickness="1.7" />
-                                                                        <TextBox Text="{Binding DraftName, UpdateSourceTrigger=PropertyChanged}" Visibility="{Binding IsRenaming, Converter={StaticResource BooleanToVisibilityConverter}}" Width="116" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}" BorderThickness="0" Background="{DynamicResource TransparentBrush}" IsVisibleChanged="GoalNameTextBox_IsVisibleChanged" LostKeyboardFocus="GoalNameTextBox_LostKeyboardFocus" PreviewKeyDown="GoalNameTextBox_PreviewKeyDown" />
-                                                                        <TextBlock FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}" Text="{Binding Name}">
-                                                                            <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Visible" /><Style.Triggers><DataTrigger Binding="{Binding IsRenaming}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers></Style></TextBlock.Style>
-                                                                        </TextBlock>
-                                                                    </StackPanel>
-                                                                    <Grid Margin="0,9,0,0"><TextBlock x:Name="GoalStatusText" Margin="23,0,0,0" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextWeak}" Text="{Binding Status}" /><TextBlock x:Name="GoalDurationText" HorizontalAlignment="Right" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding TotalDurationDisplay}" /></Grid>
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="38" />
+                                                                    <ColumnDefinition Width="10" />
+                                                                    <ColumnDefinition Width="*" />
+                                                                    <ColumnDefinition Width="18" />
+                                                                </Grid.ColumnDefinitions>
+                                                                <Border x:Name="GoalIconBackground" Grid.Column="0" Width="38" Height="38" HorizontalAlignment="Center" VerticalAlignment="Center" Background="{DynamicResource TransparentBrush}">
+                                                                    <Image Width="28" Height="28" RenderOptions.BitmapScalingMode="HighQuality" Source="{Binding IconSource}" Stretch="Uniform" />
+                                                                </Border>
+                                                                <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                                                                    <TextBox Text="{Binding DraftName, UpdateSourceTrigger=PropertyChanged}" Visibility="{Binding IsRenaming, Converter={StaticResource BooleanToVisibilityConverter}}" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" BorderThickness="0" Background="{DynamicResource TransparentBrush}" IsVisibleChanged="GoalNameTextBox_IsVisibleChanged" LostKeyboardFocus="GoalNameTextBox_LostKeyboardFocus" PreviewKeyDown="GoalNameTextBox_PreviewKeyDown" />
+                                                                    <TextBlock FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{Binding Name}" TextTrimming="CharacterEllipsis">
+                                                                        <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Visible" /><Style.Triggers><DataTrigger Binding="{Binding IsRenaming}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                                                                    </TextBlock>
+                                                                    <TextBlock x:Name="GoalTodayDurationText" Margin="0,3,0,0" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextWeak}" Text="{Binding TodayDurationDisplay}" />
                                                                 </StackPanel>
-                                                                <Button x:Name="GoalMenuButton" Width="30" Height="26" HorizontalAlignment="Right" VerticalAlignment="Top" Padding="0" Background="{DynamicResource TransparentBrush}" BorderThickness="0" Command="{Binding DataContext.ToggleGoalMenuCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Click="GoalMenuButton_Click">
+                                                                <TextBlock x:Name="GoalChevron" Grid.Column="3" HorizontalAlignment="Right" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="{DynamicResource TextSecondary}" Opacity="0.72" Text="&#xE76C;" />
+                                                                <Button x:Name="GoalMenuButton" Grid.Column="3" Width="30" Height="26" Margin="0,0,-6,0" HorizontalAlignment="Right" VerticalAlignment="Center" Padding="0" Background="{DynamicResource TransparentBrush}" BorderThickness="0" Command="{Binding DataContext.ToggleGoalMenuCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Click="GoalMenuButton_Click">
                                                                     <Button.Style><Style TargetType="Button"><Setter Property="Visibility" Value="Collapsed" /></Style></Button.Style>
                                                                     <TextBlock FontSize="17" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="..." />
                                                                 </Button>
-                                                                <Button Width="34" Height="26" HorizontalAlignment="Right" VerticalAlignment="Top" Padding="0" Background="{DynamicResource TransparentBrush}" BorderThickness="0" Click="SaveGoalRenameButton_Click" Content="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{DynamicResource AccentPrimary}" Visibility="{Binding IsRenaming, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                                                <Button Grid.Column="3" Width="30" Height="26" Margin="0,0,-6,0" HorizontalAlignment="Right" VerticalAlignment="Center" Padding="0" Background="{DynamicResource TransparentBrush}" BorderThickness="0" Click="SaveGoalRenameButton_Click" Content="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{DynamicResource AccentPrimary}" Visibility="{Binding IsRenaming, Converter={StaticResource BooleanToVisibilityConverter}}" />
                                                                 <Popup IsOpen="{Binding IsMenuOpen, Mode=TwoWay}" Placement="Right" PlacementTarget="{Binding ElementName=GoalMenuButton}" StaysOpen="False" AllowsTransparency="True">
                                                                     <Border Width="154" Padding="8" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" CornerRadius="10">
                                                                         <StackPanel>
-                                                                            <Button Height="36" HorizontalContentAlignment="Left" Padding="8,0" Background="{DynamicResource TransparentBrush}" BorderThickness="0" Click="RenameGoalButton_Click" FontSize="13" Content="重命名" />
-                                                                            <Button Height="36" HorizontalContentAlignment="Left" Padding="8,0" Background="{DynamicResource TransparentBrush}" BorderThickness="0" Click="ArchiveGoalButton_Click" FontSize="13" Content="归档目标">
+                                                                            <Button Height="36" HorizontalContentAlignment="Left" Padding="8,0" Background="{DynamicResource TransparentBrush}" BorderThickness="0" Click="EditGoalButton_Click" FontSize="13" Content="编辑" />
+                                                                            <Button Height="36" HorizontalContentAlignment="Left" Padding="8,0" Background="{DynamicResource TransparentBrush}" BorderThickness="0" Click="ArchiveGoalButton_Click" FontSize="13" Content="归档">
                                                                                 <Button.Style><Style TargetType="Button"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding IsArchived}" Value="False"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></Button.Style>
                                                                             </Button>
                                                                             <Button Height="36" HorizontalContentAlignment="Left" Padding="8,0" Background="{DynamicResource TransparentBrush}" BorderThickness="0" Click="RestoreGoalButton_Click" FontSize="13" Content="恢复目标" Visibility="{Binding IsArchived, Converter={StaticResource BooleanToVisibilityConverter}}" />
@@ -1120,10 +1205,10 @@
                                                         </Border>
                                                         <ControlTemplate.Triggers>
                                                             <DataTrigger Binding="{Binding IsMenuOpen}" Value="True"><Setter TargetName="GoalMenuButton" Property="Visibility" Value="Visible" /></DataTrigger>
-                                                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="GoalMenuButton" Property="Visibility" Value="Visible" /></Trigger>
+                                                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="GoalMenuButton" Property="Visibility" Value="Visible" /><Setter TargetName="GoalChevron" Property="Visibility" Value="Collapsed" /></Trigger>
                                                             <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="GoalBorder" Property="Background" Value="{DynamicResource ControlHoverBackground}" /></Trigger>
                                                             <Trigger Property="IsPressed" Value="True"><Setter TargetName="GoalBorder" Property="Background" Value="{DynamicResource ControlPressedBackground}" /></Trigger>
-                                                            <DataTrigger Binding="{Binding IsSelected}" Value="True"><Setter TargetName="GoalBorder" Property="BorderBrush" Value="{DynamicResource AccentPrimary}" /><Setter TargetName="GoalBorder" Property="BorderThickness" Value="1" /><Setter TargetName="GoalMarker" Property="Stroke" Value="{DynamicResource AccentPrimary}" /><Setter TargetName="GoalMarker" Property="StrokeThickness" Value="3" /></DataTrigger>
+                                                            <DataTrigger Binding="{Binding IsSelected}" Value="True"><Setter TargetName="GoalBorder" Property="Background" Value="{DynamicResource SurfacePrimary}" /><Setter TargetName="GoalBorder" Property="BorderBrush" Value="{DynamicResource AccentSoftBorder}" /><Setter TargetName="GoalBorder" Property="BorderThickness" Value="1" /></DataTrigger>
                                                         </ControlTemplate.Triggers>
                                                     </ControlTemplate>
                                                 </Button.Template>
