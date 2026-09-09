@@ -273,6 +273,27 @@ public class RuleTimelineTests
     }
 
     [Fact]
+    public void FloatingEditorDeleteRemovesExistingRuleAndCancelsNewDraft()
+    {
+        var settings = new SettingsPageViewModel([], []);
+        var existing = new AutomaticRuleItemViewModel(
+            Guid.NewGuid(), "每天", "01:00–02:00", ["Monday"], 60, 120);
+        settings.AutomaticRules.Add(existing);
+
+        settings.RuleModal.BeginEditor(existing);
+        settings.RuleModal.DeleteEditor();
+
+        Assert.Empty(settings.AutomaticRules);
+        Assert.False(settings.RuleModal.IsEditorOpen);
+
+        settings.RuleModal.BeginEditor(null, 180, 240);
+        settings.RuleModal.DeleteEditor();
+
+        Assert.Empty(settings.AutomaticRules);
+        Assert.False(settings.RuleModal.IsEditorOpen);
+    }
+
+    [Fact]
     public void SaveRejectsOverlapAllowsAdjacentAndNeverMerges()
     {
         var settings = new SettingsPageViewModel([], []);

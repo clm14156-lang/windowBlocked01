@@ -6,6 +6,7 @@ public static class IpcOperations
     public const string GetState = "state.get";
     public const string SaveTarget = "targets.save";
     public const string DeleteTarget = "targets.delete";
+    public const string DeleteFocusRecord = "focus-records.delete";
     public const string ReplaceWebsiteRules = "rules.websites.replace";
     public const string ReplaceApplicationRules = "rules.applications.replace";
     public const string ReplaceAutomaticRules = "rules.automatic.replace";
@@ -51,6 +52,7 @@ public sealed record StateChangedEvent(long Revision, LocalDataSnapshotDto State
 public sealed record SaveTargetCommand(LocalTargetDto Target, IReadOnlyList<LocalTaskDto> Tasks);
 
 public sealed record DeleteTargetCommand(string TargetId);
+public sealed record DeleteFocusRecordCommand(Guid SessionId);
 
 public sealed record ReplaceWebsiteRulesCommand(IReadOnlyList<LocalWebsiteRuleDto> Rules);
 

@@ -14,6 +14,7 @@ public sealed partial class AutomaticRuleModalViewModel
     public void RefreshTimeline() => OnPropertyChanged(nameof(GetRules));
     public Action? NewRequested { get; set; }
     public Action<AutomaticRuleItemViewModel>? EditRequested { get; set; }
+    public Action<AutomaticRuleItemViewModel>? DeleteRequested { get; set; }
     public Func<AutomaticRuleItemViewModel, double, double, string?>? MoveRequested { get; set; }
     public Func<AutomaticRuleItemViewModel, double, double, string?>? ResizeRequested { get; set; }
     public ObservableCollection<RuleTargetOption> Targets { get; } = [];
@@ -67,6 +68,13 @@ public sealed partial class AutomaticRuleModalViewModel
     }
 
     public void CancelEditor() { IsEditorOpen = false; _editorRule = null; }
+
+    public void DeleteEditor()
+    {
+        var rule = _editorRule;
+        CancelEditor();
+        if (rule is not null) DeleteRequested?.Invoke(rule);
+    }
 
     public bool SaveEditor()
     {

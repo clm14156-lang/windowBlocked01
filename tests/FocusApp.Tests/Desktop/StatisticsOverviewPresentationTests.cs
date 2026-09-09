@@ -320,7 +320,7 @@ public sealed class StatisticsOverviewPresentationTests
     }
 
     [Fact]
-    public void CalendarFocusRecordsShowOnlyCompletedTasksWithReadOnlyMarkers()
+    public void CalendarFocusRecordsOpenCardsAndKeepTaskNamesInDetails()
     {
         var page = XDocument.Load(Path.Combine(
             FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
@@ -329,36 +329,16 @@ public sealed class StatisticsOverviewPresentationTests
         var recordTemplate = Assert.Single(records.Elements(Presentation + "ItemsControl.ItemTemplate")
             .Elements(Presentation + "DataTemplate"));
 
-        Assert.DoesNotContain(recordTemplate.Descendants(Presentation + "TextBlock"), text =>
-            (string?)text.Attribute("Text") is "{Binding CalendarDurationDisplay}" or
-                "{Binding CompletedTaskNamesDisplay}" or "{Binding TimeRangeDisplay}");
-        var time = Assert.Single(recordTemplate.Descendants(Presentation + "TextBlock").Where(text =>
-            text.Elements(Presentation + "Run").Any(run =>
-                ((string?)run.Attribute("Text"))?.Contains("StartTime", StringComparison.Ordinal) == true)));
-        Assert.Contains(time.Elements(Presentation + "Run"), run =>
-            (string?)run.Attribute("Text") == " – ");
-
-        var completedTasks = Assert.Single(recordTemplate.Descendants(Presentation + "ItemsControl").Where(element =>
-            (string?)element.Attribute("ItemsSource") == "{Binding CompletedTaskNames}"));
-        var taskTemplate = Assert.Single(completedTasks.Elements(Presentation + "ItemsControl.ItemTemplate")
-            .Elements(Presentation + "DataTemplate"));
-        var marker = Assert.Single(taskTemplate.Descendants(Presentation + "Border"));
-        Assert.Equal("False", (string?)marker.Attribute("IsHitTestVisible"));
-        Assert.Single(marker.Elements(Presentation + "Path"));
-
-        var taskText = Assert.Single(taskTemplate.Descendants(Presentation + "TextBlock"));
-        Assert.Equal("{Binding}", (string?)taskText.Attribute("Text"));
-        Assert.Equal("Wrap", (string?)taskText.Attribute("TextWrapping"));
-
-        var goalTag = Assert.Single(recordTemplate.Descendants(Presentation + "Border").Where(border =>
-            border.Elements(Presentation + "TextBlock").Any(text =>
-                (string?)text.Attribute("Text") == "{Binding GoalName}")));
-        Assert.Equal("#F2F2F7", (string?)goalTag.Attribute("Background"));
-        Assert.Equal(
-            "{Binding HasGoal, Converter={StaticResource BooleanToVisibilityConverter}}",
-            (string?)goalTag.Attribute("Visibility"));
-        var goalTagText = Assert.Single(goalTag.Descendants(Presentation + "TextBlock"));
-        Assert.Equal("#636366", (string?)goalTagText.Attribute("Foreground"));
+        Assert.Contains(recordTemplate.Descendants(Presentation + "Button"), button =>
+            (string?)button.Attribute("Click") == "FocusRecord_Click");
+        Assert.Contains(recordTemplate.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "{Binding CalendarDurationDisplay}");
+        Assert.DoesNotContain(recordTemplate.Descendants(Presentation + "ItemsControl"), item =>
+            (string?)item.Attribute("ItemsSource") == "{Binding CompletedTaskNames}");
+        var details = XDocument.Load(Path.Combine(FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "FocusRecordDetailsWindow.xaml"));
+        Assert.Equal(Presentation + "Window", details.Root!.Name);
+        Assert.Contains(details.Descendants(Presentation + "ItemsControl"), item =>
+            (string?)item.Attribute("ItemsSource") == "{Binding CompletedTaskNames}");
     }
 
     [Fact]

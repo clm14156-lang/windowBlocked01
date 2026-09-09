@@ -179,6 +179,14 @@ public sealed class ServiceStateCoordinator : IAsyncDisposable
                     var command = request.ReadPayload<DeleteTargetCommand>();
                     await _store.DeleteTargetAsync(command.TargetId, token);
                 }, cancellationToken),
+                IpcOperations.DeleteFocusRecord => await MutateAsync(request, async token =>
+                {
+                    var command = request.ReadPayload<DeleteFocusRecordCommand>();
+                    var state = await _store.LoadAsync(token);
+                    if (state.FocusSessions.Any(session => session.SessionId == command.SessionId &&
+                        session.Status == LocalFocusSessionStatus.Completed))
+                        await _store.DeleteFocusSessionAsync(command.SessionId, token);
+                }, cancellationToken),
                 IpcOperations.ReplaceWebsiteRules => await MutateAsync(request, async token =>
                 {
                     var command = request.ReadPayload<ReplaceWebsiteRulesCommand>();

@@ -1,0 +1,109 @@
+<Window x:Class="FocusApp.Desktop.Views.AutomaticRuleEditorWindow"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ Width="300" SizeToContent="Height" WindowStyle="None" ResizeMode="NoResize"
+ AllowsTransparency="True" Background="Transparent" ShowInTaskbar="False"
+ WindowStartupLocation="Manual" UseLayoutRounding="True" SnapsToDevicePixels="True"
+ TextElement.FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI"
+ TextElement.FontSize="13" TextElement.FontWeight="Normal"
+ TextElement.Foreground="{DynamicResource TextPrimary}"
+ PreviewKeyDown="OnKeyDown">
+ <Window.Resources>
+  <BooleanToVisibilityConverter x:Key="BoolVisibility"/>
+  <Style x:Key="TimeField" TargetType="TextBox">
+   <Setter Property="Background" Value="White"/><Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+   <Setter Property="FontSize" Value="13"/><Setter Property="FontWeight" Value="Normal"/>
+   <Setter Property="Padding" Value="9,3"/><Setter Property="BorderBrush" Value="#E7E7EC"/><Setter Property="BorderThickness" Value="1"/>
+   <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TextBox">
+    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="7">
+     <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"/>
+    </Border>
+   </ControlTemplate></Setter.Value></Setter>
+   <Style.Triggers><Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}"/></Trigger></Style.Triggers>
+  </Style>
+  <Style x:Key="TargetField" TargetType="ComboBox">
+   <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/><Setter Property="FontSize" Value="13"/><Setter Property="FontWeight" Value="Normal"/>
+   <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+   <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ComboBox">
+    <Grid>
+     <ToggleButton Focusable="False" IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}">
+      <ToggleButton.Template><ControlTemplate TargetType="ToggleButton"><Border Background="White" BorderBrush="#E7E7EC" BorderThickness="1" CornerRadius="7"/></ControlTemplate></ToggleButton.Template>
+     </ToggleButton>
+     <TextBlock Text="{Binding SelectedItem.Name, RelativeSource={RelativeSource TemplatedParent}}" Margin="10,0,28,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" IsHitTestVisible="False"/>
+     <TextBlock Text="⌄" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0" IsHitTestVisible="False"/>
+     <Popup x:Name="PART_Popup" IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom" PlacementTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}" AllowsTransparency="True" Focusable="False">
+      <Border Width="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}" Background="White" BorderBrush="#E7E7EC" BorderThickness="1" CornerRadius="7" Padding="4">
+       <ScrollViewer MaxHeight="180"><ItemsPresenter/></ScrollViewer>
+      </Border>
+     </Popup>
+    </Grid>
+   </ControlTemplate></Setter.Value></Setter>
+  </Style>
+  <Style x:Key="TextButton" TargetType="Button">
+   <Setter Property="Background" Value="Transparent"/><Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+   <Setter Property="FontSize" Value="13"/><Setter Property="FontWeight" Value="Medium"/><Setter Property="Padding" Value="14,7"/><Setter Property="Cursor" Value="Hand"/>
+   <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+    <Border x:Name="Surface" Background="{TemplateBinding Background}" CornerRadius="10" Padding="{TemplateBinding Padding}">
+     <TextBlock Text="{TemplateBinding Content}" FontFamily="{TemplateBinding FontFamily}" FontSize="{TemplateBinding FontSize}" FontWeight="{TemplateBinding FontWeight}" Foreground="{TemplateBinding Foreground}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+    </Border>
+    <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Surface" Property="Opacity" Value="0.75"/></Trigger></ControlTemplate.Triggers>
+   </ControlTemplate></Setter.Value></Setter>
+  </Style>
+  <Style x:Key="CloseButton" TargetType="Button" BasedOn="{StaticResource TextButton}">
+   <Setter Property="Width" Value="26"/><Setter Property="Height" Value="26"/><Setter Property="Padding" Value="0"/>
+   <Style.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#F1F1F3"/></Trigger></Style.Triggers>
+  </Style>
+  <Style x:Key="RepeatButton" TargetType="ToggleButton">
+   <Setter Property="Background" Value="#F3F3F5"/><Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/><Setter Property="BorderBrush" Value="Transparent"/>
+   <Setter Property="FontSize" Value="13"/><Setter Property="FontWeight" Value="Medium"/><Setter Property="Padding" Value="12,6"/><Setter Property="Margin" Value="0,0,6,0"/>
+   <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ToggleButton">
+    <Grid>
+     <Border Background="{TemplateBinding Background}" CornerRadius="10" Padding="{TemplateBinding Padding}">
+      <TextBlock Text="{TemplateBinding Content}" FontFamily="{TemplateBinding FontFamily}" FontSize="{TemplateBinding FontSize}" FontWeight="{TemplateBinding FontWeight}" Foreground="{TemplateBinding Foreground}" HorizontalAlignment="Center"/>
+     </Border>
+     <Border BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="10" IsHitTestVisible="False"/>
+    </Grid>
+   </ControlTemplate></Setter.Value></Setter>
+   <Style.Triggers><Trigger Property="IsChecked" Value="True"><Setter Property="Background" Value="#FFF0E3"/><Setter Property="Foreground" Value="#FF8000"/><Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}"/></Trigger></Style.Triggers>
+  </Style>
+ </Window.Resources>
+ <Border Margin="10" Padding="14,10" Background="White" BorderBrush="#E4E4E9" BorderThickness="1" CornerRadius="14">
+  <Border.Effect><DropShadowEffect BlurRadius="18" ShadowDepth="3" Opacity="0.16"/></Border.Effect>
+  <Grid>
+   <Grid.RowDefinitions><RowDefinition Height="22"/><RowDefinition Height="38"/><RowDefinition Height="34"/><RowDefinition Height="Auto"/><RowDefinition Height="38"/><RowDefinition Height="Auto"/><RowDefinition Height="40"/></Grid.RowDefinitions>
+   <Button Content="×" Style="{StaticResource CloseButton}" Margin="0,-5,-5,0" HorizontalAlignment="Right" Click="Close_Click" AutomationProperties.Name="取消编辑"/>
+   <Grid Grid.Row="1"><Grid.ColumnDefinitions><ColumnDefinition Width="72"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+    <TextBlock Text="绑定目标" FontSize="12" FontWeight="Medium" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}"/>
+    <ComboBox Grid.Column="1" Style="{StaticResource TargetField}" ItemsSource="{Binding Targets}" SelectedValuePath="Id" SelectedValue="{Binding TargetChoice}" VerticalAlignment="Center" MinHeight="30">
+     <ComboBox.ItemTemplate><DataTemplate><StackPanel Margin="6,3" VerticalAlignment="Center" Orientation="Horizontal">
+      <Image Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality" SnapsToDevicePixels="True" Source="{Binding IconSource}" Stretch="Uniform" Visibility="{Binding HasIcon, Converter={StaticResource BoolVisibility}}"/>
+      <TextBlock VerticalAlignment="Center" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}" Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
+     </StackPanel></DataTemplate></ComboBox.ItemTemplate>
+    </ComboBox>
+   </Grid>
+   <Grid Grid.Row="2"><TextBlock Text="重复" FontSize="12" FontWeight="Medium" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}"/>
+    <StackPanel Orientation="Horizontal" Margin="72,1,0,1">
+     <ToggleButton Content="每天" Style="{StaticResource RepeatButton}" IsChecked="{Binding IsDaily, Mode=OneWay}" Command="{Binding SelectDailyCommand}"/>
+     <ToggleButton Content="自定义" Style="{StaticResource RepeatButton}" IsChecked="{Binding IsCustom, Mode=OneWay}" Command="{Binding SelectCustomCommand}"/>
+    </StackPanel>
+   </Grid>
+   <ItemsControl Grid.Row="3" Margin="0,3,0,5" ItemsSource="{Binding Weekdays}" Visibility="{Binding IsCustom, Converter={StaticResource BoolVisibility}}">
+    <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="7"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+    <ItemsControl.ItemTemplate><DataTemplate><ToggleButton Style="{StaticResource RepeatButton}" Content="{Binding ChineseName}" IsChecked="{Binding IsSelected}" Padding="0,6" Width="30" Margin="0" HorizontalAlignment="Center"/></DataTemplate></ItemsControl.ItemTemplate>
+   </ItemsControl>
+   <Grid Grid.Row="4"><Grid.ColumnDefinitions><ColumnDefinition Width="72"/><ColumnDefinition Width="*"/><ColumnDefinition Width="20"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+    <TextBlock Text="开始 / 结束" FontSize="12" FontWeight="Medium" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}"/>
+    <TextBox Grid.Column="1" Style="{StaticResource TimeField}" Text="{Binding EditorStartText, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" Height="32" VerticalContentAlignment="Center" AutomationProperties.Name="开始时间"/>
+    <TextBlock Grid.Column="2" Text="–" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource TextWeak}"/>
+    <TextBox Grid.Column="3" Style="{StaticResource TimeField}" Text="{Binding EditorEndText, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" Height="32" VerticalContentAlignment="Center" AutomationProperties.Name="结束时间"/>
+   </Grid>
+   <TextBlock Grid.Row="5" Text="{Binding ValidationMessage}" Foreground="{DynamicResource AutomaticRuleValidationText}" TextWrapping="Wrap" FontSize="12" LineHeight="18" Margin="0,3"/>
+   <Border Grid.Row="6" BorderBrush="#EEEEF2" BorderThickness="0,1,0,0" Padding="0,6,0,0">
+    <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
+     <Button Content="删除" Style="{StaticResource TextButton}" Margin="0,0,10,0" Click="Delete_Click"/>
+     <Button Content="保存" Style="{StaticResource TextButton}" Background="#FF8000" Foreground="White" Width="80" Click="Save_Click"/>
+    </StackPanel>
+   </Border>
+  </Grid>
+ </Border>
+</Window>

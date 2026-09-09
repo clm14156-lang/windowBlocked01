@@ -11,6 +11,23 @@ namespace FocusApp.Desktop.Views;
 
 public partial class StatisticsPage : UserControl
 {
+    private FocusRecordDetailsWindow? _recordDetails;
+
+    private void FocusRecord_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { DataContext: FocusSessionRecordViewModel record } card ||
+            DataContext is not StatisticsOverviewViewModel model) return;
+        _recordDetails?.Close();
+        var window = new FocusRecordDetailsWindow(model, record) { Owner = Window.GetWindow(this) };
+        var point = card.PointToScreen(new Point(card.ActualWidth + 4, 0));
+        var source = PresentationSource.FromVisual(card);
+        var position = source?.CompositionTarget?.TransformFromDevice.Transform(point) ?? point;
+        window.Left = position.X;
+        window.Top = position.Y - 6;
+        _recordDetails = window;
+        window.Closed += (_, _) => { if (ReferenceEquals(_recordDetails, window)) _recordDetails = null; };
+        window.Show();
+    }
     private const int WmNcHitTest = 0x0084;
     private static readonly IntPtr HitTestTransparent = new(-1);
     private bool _suppressGoalProgressScrollSync;
@@ -54,6 +71,7 @@ public partial class StatisticsPage : UserControl
         Loaded += (_, _) => UpdateTooltipPlacement();
         Unloaded += (_, _) =>
         {
+            _recordDetails?.Close();
             DetachTrendTooltipWindowHook();
             _trendVipGuideOpenTimer.Stop();
             _trendVipGuideCloseTimer.Stop();
@@ -105,6 +123,7 @@ public partial class StatisticsPage : UserControl
 
     private void StatisticsPage_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
+        _recordDetails?.Close();
         if (e.OldValue is StatisticsOverviewViewModel oldViewModel)
         {
             oldViewModel.PropertyChanged -= StatisticsViewModel_PropertyChanged;
@@ -118,6 +137,8 @@ public partial class StatisticsPage : UserControl
 
     private void StatisticsViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (e.PropertyName is nameof(StatisticsOverviewViewModel.SelectedTab) or nameof(StatisticsOverviewViewModel.SelectedDateDisplay))
+            _recordDetails?.Close();
         if (e.PropertyName is nameof(StatisticsOverviewViewModel.HoveredPoint) or nameof(StatisticsOverviewViewModel.IsTooltipOpen))
         {
             Dispatcher.BeginInvoke(UpdateTooltipPlacement);

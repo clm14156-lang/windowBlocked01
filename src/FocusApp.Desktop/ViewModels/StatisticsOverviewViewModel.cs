@@ -66,6 +66,8 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     private bool _isApplyingState;
     private LocalDataSnapshotDto? _pendingState;
     private DateTime _trendReferenceDate = new(2024, 5, 15);
+    private int _periodTotalDisplayMinutes;
+    private int _averageDurationDisplayMinutes;
 
     public StatisticsOverviewViewModel(bool useSampleData = true, bool deferInitialization = false)
     {
@@ -140,6 +142,15 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     public event PropertyChangedEventHandler? PropertyChanged;
     public event EventHandler<GoalOverviewItemViewModel>? GoalChanged;
     public event EventHandler<string>? GoalDeleted;
+    public Func<Guid, Task<bool>>? PersistRecordDeletion { get; set; }
+
+    public async Task<bool> DeleteFocusRecordAsync(FocusSessionRecordViewModel record)
+    {
+        if (record.SessionId is Guid id &&
+            (PersistRecordDeletion is null || !await PersistRecordDeletion(id))) return false;
+        FocusSessionRecords.Remove(record);
+        return true;
+    }
     public event EventHandler? MonthlyFocusTargetChanged;
 
     public void ApplyState(LocalDataSnapshotDto state)
@@ -231,7 +242,11 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
                     : string.IsNullOrWhiteSpace(session.TargetNameSnapshot) ? "其他" : session.TargetNameSnapshot;
                 var taskNames = session.CompletedTasks.OrderBy(task => task.SortOrder).Select(task => task.TaskNameSnapshot).ToArray();
                 FocusSessionRecords.Add(new FocusSessionRecordViewModel(
-                    start, end, goalId!, goalName!, taskNames.FirstOrDefault() ?? string.Empty, taskNames.Length, taskNames));
+                    start, end, goalId!, goalName!, taskNames.FirstOrDefault() ?? string.Empty, taskNames.Length, taskNames)
+                {
+                    SessionId = session.SessionId,
+                    IconSource = Goals.FirstOrDefault(goal => goal.GoalId == goalId)?.IconSource ?? TargetIconCatalog.GetIconSource(null)
+                });
             }
         }
         finally
@@ -742,7 +757,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             goalName!,
             taskNames.FirstOrDefault() ?? string.Empty,
             taskNames.Count,
-            taskNames));
+            taskNames) { IconSource = Goals.FirstOrDefault(goal => goal.GoalId == goalId)?.IconSource ?? TargetIconCatalog.GetIconSource(null) });
         _usesRuntimeFocusData = true;
         _trendReferenceDate = endsAt.Date;
         OnPropertyChanged(nameof(TodayDateDisplay));
@@ -1655,7 +1670,23 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     public string PeriodTotalDisplay { get; private set; } = string.Empty;
 
+    public string PeriodTotalHoursValueDisplay => _periodTotalDisplayMinutes >= 60
+        ? (_periodTotalDisplayMinutes / 60).ToString()
+        : string.Empty;
+
+    public string PeriodTotalHoursUnitDisplay => _periodTotalDisplayMinutes >= 60 ? " 小时 " : string.Empty;
+
+    public string PeriodTotalMinutesValueDisplay => (_periodTotalDisplayMinutes % 60).ToString();
+
     public string AverageDurationDisplay { get; private set; } = string.Empty;
+
+    public string AverageDurationHoursValueDisplay => _averageDurationDisplayMinutes >= 60
+        ? (_averageDurationDisplayMinutes / 60).ToString()
+        : string.Empty;
+
+    public string AverageDurationHoursUnitDisplay => _averageDurationDisplayMinutes >= 60 ? " 小时 " : string.Empty;
+
+    public string AverageDurationMinutesValueDisplay => (_averageDurationDisplayMinutes % 60).ToString();
 
     public int TrendAverageMinutes { get; private set; }
 
@@ -1773,8 +1804,10 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         var previousTotalMinutes = _usesRuntimeFocusData
             ? GetRuntimeTrendData(SelectedRange.Days, -SelectedRange.Days).Sum(point => point.Minutes)
             : SelectedRange.Days == 7 ? 720 : 2400;
-        PeriodTotalDisplay = !_usesRuntimeFocusData && SelectedRange.Days == 7 ? "14 小时 20 分钟" : FormatDuration(totalMinutes);
-        AverageDurationDisplay = !_usesRuntimeFocusData && SelectedRange.Days == 7 ? "2 小时 2 分钟" : FormatDuration(averageMinutes);
+        _periodTotalDisplayMinutes = !_usesRuntimeFocusData && SelectedRange.Days == 7 ? 14 * 60 + 20 : totalMinutes;
+        _averageDurationDisplayMinutes = !_usesRuntimeFocusData && SelectedRange.Days == 7 ? 2 * 60 + 2 : averageMinutes;
+        PeriodTotalDisplay = FormatDuration(_periodTotalDisplayMinutes);
+        AverageDurationDisplay = FormatDuration(_averageDurationDisplayMinutes);
         TrendAverageMinutes = averageMinutes;
         TrendAverageY = MapTrendValueToY(averageMinutes, scaleMaximumMinutes);
         TrendAverageDurationDisplay = FormatCompactDuration(averageMinutes);
@@ -1784,7 +1817,13 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(PeriodTotalLabel));
         OnPropertyChanged(nameof(ComparisonLabel));
         OnPropertyChanged(nameof(PeriodTotalDisplay));
+        OnPropertyChanged(nameof(PeriodTotalHoursValueDisplay));
+        OnPropertyChanged(nameof(PeriodTotalHoursUnitDisplay));
+        OnPropertyChanged(nameof(PeriodTotalMinutesValueDisplay));
         OnPropertyChanged(nameof(AverageDurationDisplay));
+        OnPropertyChanged(nameof(AverageDurationHoursValueDisplay));
+        OnPropertyChanged(nameof(AverageDurationHoursUnitDisplay));
+        OnPropertyChanged(nameof(AverageDurationMinutesValueDisplay));
         OnPropertyChanged(nameof(TrendAverageMinutes));
         OnPropertyChanged(nameof(TrendAverageY));
         OnPropertyChanged(nameof(TrendAverageLabelTop));
@@ -2001,6 +2040,13 @@ public sealed class CalendarDayViewModel : INotifyPropertyChanged
 
 public sealed class FocusSessionRecordViewModel : INotifyPropertyChanged
 {
+    public Guid? SessionId { get; init; }
+    public string IconSource { get; init; } = TargetIconCatalog.GetIconSource(null);
+    public string CalendarTitle => HasGoal ? GoalName : "自由专注";
+    public bool HasCompletedTasks => CompletedTaskCount > 0;
+    public bool ShowDetailTasks => HasGoal && HasCompletedTasks;
+    public string TaskCountDisplay => $"{CompletedTaskCount} 个任务";
+    public string CalendarDateDisplay => StartTime.ToString("M月d日 · dddd", System.Globalization.CultureInfo.GetCultureInfo("zh-CN"));
     private DateTime _startTime;
     private DateTime _endTime;
     private string _goalId;

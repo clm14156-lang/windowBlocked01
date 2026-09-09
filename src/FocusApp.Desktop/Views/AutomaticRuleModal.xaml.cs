@@ -26,6 +26,7 @@ public partial class AutomaticRuleModal : UserControl
     private Border? _draftBlock;
     private readonly DispatcherTimer _scrollTimer = new() { Interval = TimeSpan.FromMilliseconds(30) };
     private AutomaticRuleModalViewModel? _subscribed;
+    private AutomaticRuleEditorWindow? _editorWindow;
     private AutomaticRuleModalViewModel? Model => DataContext as AutomaticRuleModalViewModel;
 
     public AutomaticRuleModal()
@@ -37,6 +38,7 @@ public partial class AutomaticRuleModal : UserControl
     private void OnLoaded(object sender, RoutedEventArgs e) => Subscribe();
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
+        CloseEditorWindow();
         CancelDrag();
         if (_subscribed is not null) _subscribed.PropertyChanged -= ModelChanged;
         _subscribed = null;
@@ -47,6 +49,7 @@ public partial class AutomaticRuleModal : UserControl
         _subscribed = Model;
         if (_subscribed is not null) _subscribed.PropertyChanged += ModelChanged;
         RenderTimeline();
+        if (IsLoaded && Model?.IsEditorOpen == true) ShowEditorWindow();
     }
     private void ModelChanged(object? sender, PropertyChangedEventArgs e)
     {
@@ -55,13 +58,59 @@ public partial class AutomaticRuleModal : UserControl
         {
             CancelDrag();
             if (Model?.IsOpen == true) { TimelineScroll.ScrollToTop(); RenderTimeline(); }
+            else CloseEditorWindow();
         }
-        if (e.PropertyName == nameof(AutomaticRuleModalViewModel.IsEditorOpen) && Model?.IsEditorOpen == false)
+        if (e.PropertyName == nameof(AutomaticRuleModalViewModel.IsEditorOpen))
         {
-            _draft = null;
-
-            RenderTimeline();
+            if (Model?.IsEditorOpen == true) ShowEditorWindow();
+            else
+            {
+                CloseEditorWindow();
+                _draft = null;
+                RenderTimeline();
+            }
         }
+    }
+    private void ShowEditorWindow()
+    {
+        if (!IsLoaded || Model?.IsEditorOpen != true) return;
+        if (_editorWindow is not null)
+        {
+            PositionEditorWindow(_editorWindow);
+            return;
+        }
+
+        var editor = new AutomaticRuleEditorWindow(Model);
+        var owner = Window.GetWindow(this);
+        if (owner is not null) editor.Owner = owner;
+        editor.Closed += (_, _) => { if (ReferenceEquals(_editorWindow, editor)) _editorWindow = null; };
+        _editorWindow = editor;
+        PositionEditorWindow(editor);
+        editor.Show();
+        editor.Activate();
+    }
+    private void PositionEditorWindow(AutomaticRuleEditorWindow editor)
+    {
+        if (!IsLoaded) return;
+        TimelineScroll.ApplyTemplate();
+        var scrollBar = TimelineScroll.Template.FindName("PART_VerticalScrollBar", TimelineScroll) as FrameworkElement;
+        var editorLeft = scrollBar is not null
+            ? scrollBar.TranslatePoint(new Point(), this).X - AutomaticRuleEditorWindow.SurfaceInset
+            : TimelineScroll.TranslatePoint(new Point(TimelineScroll.ActualWidth, 0), this).X
+              - AutomaticRuleEditorWindow.SurfaceInset;
+        var blockTop = Timeline.TranslatePoint(new Point(0, TopInset + (Model?.StartValue ?? 0)), this).Y;
+        var screenPoint = PointToScreen(new Point(editorLeft, blockTop));
+        var source = PresentationSource.FromVisual(this);
+        if (source?.CompositionTarget is not null)
+            screenPoint = source.CompositionTarget.TransformFromDevice.Transform(screenPoint);
+        editor.Left = screenPoint.X;
+        editor.Top = screenPoint.Y;
+    }
+    private void CloseEditorWindow()
+    {
+        var editor = _editorWindow;
+        _editorWindow = null;
+        if (editor?.IsLoaded == true) editor.Close();
     }
     private void Timeline_SizeChanged(object sender, SizeChangedEventArgs e) => RenderTimeline();
     private static SolidColorBrush Brush(string color) => new((Color)ColorConverter.ConvertFromString(color));
@@ -457,17 +506,6 @@ public partial class AutomaticRuleModal : UserControl
         Timeline.ClearValue(CursorProperty);
         _scrollTimer.Stop();
         if (Timeline.IsMouseCaptured) Timeline.ReleaseMouseCapture();
-        RenderTimeline();
-    }
-    private void CancelEditor_Click(object sender, RoutedEventArgs e) => Model?.CancelEditor();
-    private void SaveEditor_Click(object sender, RoutedEventArgs e)
-    {
-        if (Model?.SaveEditor() != true)
-        {
-            // Keep the editor open so its validation message remains visible.
-            return;
-        }
-
         RenderTimeline();
     }
     private void OnKeyDown(object sender, KeyEventArgs e)

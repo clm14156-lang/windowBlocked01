@@ -55,6 +55,7 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
         RuleModal.ValidateRule = ValidateRule;
         RuleModal.GetRules = () => AutomaticRules.ToArray();
         RuleModal.EditRequested = EditRule;
+        RuleModal.DeleteRequested = DeleteRule;
         RuleModal.MoveRequested = MoveRule;
         RuleModal.ResizeRequested = ResizeRule;
         RuleModal.NewRequested = () => _editingRule = null;
@@ -437,6 +438,7 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
         rule = AutomaticRules.FirstOrDefault(item => item.Id == rule?.Id);
         if (rule is not null)
         {
+            if (_editingRule?.Id == rule.Id) _editingRule = null;
             rule.PropertyChanged -= AutomaticRule_PropertyChanged;
             AutomaticRules.Remove(rule);
             RulesChanged?.Invoke(this, EventArgs.Empty);

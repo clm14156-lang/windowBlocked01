@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -187,7 +188,7 @@ public class RuleTimelineLayoutTests
     }
 
     [Fact]
-    public void SaveButtonClosesEditorButKeepsTimelineOpen()
+    public void FloatingEditorSaveClosesEditorButKeepsTimelineOpen()
     {
         Exception? failure = null;
         var thread = new Thread(() =>
@@ -197,15 +198,16 @@ public class RuleTimelineLayoutTests
                 var settings = new SettingsPageViewModel([], []);
                 settings.OpenRuleModalCommand.Execute(null);
                 settings.RuleModal.BeginEditor(null, 60, 120);
-                var view = new AutomaticRuleModal { DataContext = settings.RuleModal };
-                view.Measure(new Size(370, 620));
-                view.Arrange(new Rect(0, 0, 370, 620));
-                view.UpdateLayout();
+                var editor = new AutomaticRuleEditorWindow(settings.RuleModal);
+                var content = Assert.IsAssignableFrom<FrameworkElement>(editor.Content);
+                content.Measure(new Size(300, double.PositiveInfinity));
+                content.Arrange(new Rect(0, 0, 300, content.DesiredSize.Height));
+                content.UpdateLayout();
 
                 var save = Assert.Single(
-                    Descendants(view).OfType<Button>().Where(button => Equals(button.Content, "保存")));
-                Assert.DoesNotContain(
-                    Descendants(view).OfType<Button>(),
+                    Descendants(content).OfType<Button>().Where(button => Equals(button.Content, "保存")));
+                Assert.Contains(
+                    Descendants(content).OfType<Button>(),
                     button => Equals(button.Content, "删除"));
                 save.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
 
@@ -221,7 +223,7 @@ public class RuleTimelineLayoutTests
     }
 
     [Fact]
-    public void TimelineAndCustomEditorFitAtMultipleRenderScales()
+    public void TimelineAndFloatingEditorFitAtMultipleRenderScales()
     {
         Exception? failure = null;
         var thread = new Thread(() =>
@@ -261,14 +263,23 @@ public class RuleTimelineLayoutTests
                     Render(view, scale, "timeline");
                     settings.RuleModal.BeginEditor(null, 420, 480);
                     settings.RuleModal.IsCustom = true;
-                    view.UpdateLayout();
-                    var buttons = Descendants(view).OfType<Button>().Where(b => Equals(b.Content, "保存")).ToArray();
+                    var editor = new AutomaticRuleEditorWindow(settings.RuleModal);
+                    var content = Assert.IsAssignableFrom<FrameworkElement>(editor.Content);
+                    content.Measure(new Size(300, double.PositiveInfinity));
+                    content.Arrange(new Rect(0, 0, 300, content.DesiredSize.Height));
+                    content.UpdateLayout();
+                    var buttons = Descendants(content).OfType<Button>().Where(b => Equals(b.Content, "保存")).ToArray();
                     var save = Assert.Single(buttons);
-                    var location = save.TransformToAncestor(view).Transform(new Point());
-                    Assert.InRange(location.Y + save.ActualHeight, 1, 620);
-                    Render(view, scale, "editor");
+                    var location = save.TransformToAncestor(content).Transform(new Point());
+                    Assert.InRange(location.Y + save.ActualHeight, 1, content.ActualHeight);
+                    foreach (var weekday in Descendants(content).OfType<ToggleButton>()
+                                 .Where(button => button.Content is string text && "一二三四五六日".Contains(text)))
+                    {
+                        var weekdayLocation = weekday.TransformToAncestor(content).Transform(new Point());
+                        Assert.InRange(weekdayLocation.X, 0, content.ActualWidth - weekday.ActualWidth);
+                    }
+                    Render(content, scale, "floating-editor", 300, content.DesiredSize.Height);
                     settings.RuleModal.CancelEditor();
-                    view.UpdateLayout();
                 }
             }
             catch (Exception e) { failure = e; }
@@ -287,8 +298,10 @@ public class RuleTimelineLayoutTests
         }
     }
     private static void Render(Visual view, double scale, string name)
+        => Render(view, scale, name, 370, 620);
+    private static void Render(Visual view, double scale, string name, double width, double height)
     {
-        var bitmap = new RenderTargetBitmap((int)(370 * scale), (int)(620 * scale), 96 * scale, 96 * scale, PixelFormats.Pbgra32);
+        var bitmap = new RenderTargetBitmap((int)(width * scale), (int)(height * scale), 96 * scale, 96 * scale, PixelFormats.Pbgra32);
         bitmap.Render(view);
         var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));
         var path = Path.Combine(AppContext.BaseDirectory, $"{name}-{scale:0.##}.png");

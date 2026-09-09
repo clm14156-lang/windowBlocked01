@@ -88,6 +88,12 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         HomePage.FocusSession.PropertyChanged += FocusSession_PropertyChanged;
         StatisticsPage.GoalChanged += StatisticsPage_GoalChanged;
         StatisticsPage.GoalDeleted += StatisticsPage_GoalDeleted;
+        StatisticsPage.PersistRecordDeletion = async sessionId =>
+        {
+            if (ServiceConnection is null || !ServiceConnection.IsConnected) return false;
+            try { await ServiceConnection.DeleteFocusRecordAsync(sessionId); return true; }
+            catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException) { return false; }
+        };
         StatisticsPage.MonthlyFocusTargetChanged += StatisticsPage_MonthlyFocusTargetChanged;
         StateCoordinator = new FocusStateCoordinator(HomePage, SettingsPage, BlockingPage, StatisticsPage);
         SettingsPage.SetUserAccess(IsLoggedIn, IsVipMember);

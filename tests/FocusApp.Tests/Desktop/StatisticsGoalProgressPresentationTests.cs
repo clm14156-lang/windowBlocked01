@@ -207,7 +207,7 @@ public sealed class StatisticsGoalProgressPresentationTests
             .Where(text => !text.Ancestors().Contains(lockedPlaceholder))
             .ToArray();
 
-        Assert.Equal("Segoe UI Variable, Segoe UI", (string?)goalsPage.Attribute("TextElement.FontFamily"));
+        Assert.Equal("Segoe UI Variable, Microsoft YaHei UI, Segoe UI", (string?)goalsPage.Attribute("TextElement.FontFamily"));
 
         var pageTitle = Assert.Single(texts.Where(text =>
             (string?)text.Attribute("Text") == "{Binding SelectedGoalName}"));

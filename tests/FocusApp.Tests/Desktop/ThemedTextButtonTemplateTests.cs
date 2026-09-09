@@ -32,13 +32,14 @@ public sealed class ThemedTextButtonTemplateTests
     public void AutomaticRuleTimeline_HasFixedSizeAndThemeSafeWhiteSaveText()
     {
         var modal = XDocument.Load(Path.Combine(FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "AutomaticRuleModal.xaml"));
+        var editor = XDocument.Load(Path.Combine(FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "AutomaticRuleEditorWindow.xaml"));
         Assert.Equal("370", (string?)modal.Root?.Attribute("Width"));
         Assert.Equal("620", (string?)modal.Root?.Attribute("Height"));
         Assert.Single(modal.Descendants(Presentation + "Canvas"));
         Assert.DoesNotContain(modal.Descendants(), element => element.Name.LocalName == "TimeRangeSlider");
-        var save = Assert.Single(modal.Descendants(Presentation + "Button").Where(e => (string?)e.Attribute("Content") == "保存"));
+        var save = Assert.Single(editor.Descendants(Presentation + "Button").Where(e => (string?)e.Attribute("Content") == "保存"));
         Assert.Equal("White", (string?)save.Attribute("Foreground"));
-        var template = FindKeyedElement(modal, "Style", "QuietButton");
+        var template = FindKeyedElement(editor, "Style", "TextButton");
         Assert.Contains(template.Descendants(Presentation + "TextBlock"), text => (string?)text.Attribute("Foreground") == "{TemplateBinding Foreground}");
     }
 

@@ -132,6 +132,9 @@ public sealed class DesktopServiceConnection : INotifyPropertyChanged, IAsyncDis
         Guid? requestId = null)
         => SendMutationAsync(IpcOperations.DeleteTarget, command, cancellationToken, requestId);
 
+    public Task<MutationResult> DeleteFocusRecordAsync(Guid sessionId)
+        => SendMutationAsync(IpcOperations.DeleteFocusRecord, new DeleteFocusRecordCommand(sessionId), CancellationToken.None, null);
+
     public Task<MutationResult> ReplaceWebsiteRulesAsync(
         ReplaceWebsiteRulesCommand command,
         CancellationToken cancellationToken = default,

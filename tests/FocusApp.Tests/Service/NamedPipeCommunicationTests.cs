@@ -449,6 +449,10 @@ public sealed class NamedPipeCommunicationTests
         var completedTask = Assert.Single(state.FocusSessions[0].CompletedTasks);
         Assert.Equal(task.TaskId, completedTask.TaskId);
         Assert.Equal(taskCompletedAt, completedTask.CompletedAtUtc);
+        var deleted = await client.SendAsync<DeleteFocusRecordCommand, MutationResult>(
+            IpcOperations.DeleteFocusRecord, new DeleteFocusRecordCommand(sessionId), RequestTimeout);
+        Assert.Empty(deleted.State.FocusSessions);
+        Assert.True(Assert.Single(deleted.State.Tasks).IsCompleted);
     }
 
     private static async Task<string> GetPingIdentityAsync(NamedPipeIpcClient client)

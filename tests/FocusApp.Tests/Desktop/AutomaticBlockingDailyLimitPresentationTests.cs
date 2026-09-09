@@ -53,48 +53,63 @@ public sealed class AutomaticBlockingDailyLimitPresentationTests
     }
 
     [Fact]
-    public void RuleEditorPanel_IsThreeHundredDipWide()
+    public void RuleEditorIsIndependentThreeHundredDipWindowWithoutTitleText()
     {
         var modal = XDocument.Load(Path.Combine(FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "AutomaticRuleModal.xaml"));
-        var editor = Assert.Single(modal.Descendants(Presentation + "Border").Where(element =>
-            (string?)element.Attribute("Width") == "300" &&
-            element.Descendants(Presentation + "TextBlock").Any(text =>
-                (string?)text.Attribute("Text") == "编辑规则")));
+        var editor = XDocument.Load(Path.Combine(FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "AutomaticRuleEditorWindow.xaml"));
 
-        Assert.Equal("300", (string?)editor.Attribute("Width"));
+        Assert.Equal("300", (string?)editor.Root?.Attribute("Width"));
+        Assert.Equal("None", (string?)editor.Root?.Attribute("WindowStyle"));
+        Assert.Equal("False", (string?)editor.Root?.Attribute("ShowInTaskbar"));
+        Assert.Equal("Manual", (string?)editor.Root?.Attribute("WindowStartupLocation"));
+        Assert.DoesNotContain(modal.Descendants(), element =>
+            (string?)element.Attribute("Visibility") == "{Binding IsEditorOpen, Converter={StaticResource BoolVisibility}}");
+        Assert.DoesNotContain(editor.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "编辑规则");
+        Assert.Contains(editor.Descendants(Presentation + "Button"), button => (string?)button.Attribute("Content") == "×");
+        Assert.Contains(editor.Descendants(Presentation + "Button"), button => (string?)button.Attribute("Content") == "删除");
+        Assert.Contains(editor.Descendants(Presentation + "Button"), button => (string?)button.Attribute("Content") == "保存");
+
+        var footerButtons = Assert.Single(editor.Descendants(Presentation + "StackPanel").Where(panel =>
+            (string?)panel.Attribute("HorizontalAlignment") == "Right" &&
+            panel.Elements(Presentation + "Button").Select(button => (string?)button.Attribute("Content"))
+                .SequenceEqual(["删除", "保存"])));
+        Assert.Equal("Horizontal", (string?)footerButtons.Attribute("Orientation"));
+        Assert.Equal("0,0,10,0", (string?)footerButtons.Elements(Presentation + "Button").First().Attribute("Margin"));
     }
 
     [Fact]
     public void RuleTimeline_UsesTypographyStandard()
     {
         var modal = XDocument.Load(Path.Combine(FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "AutomaticRuleModal.xaml"));
+        var editor = XDocument.Load(Path.Combine(FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "AutomaticRuleEditorWindow.xaml"));
         var root = Assert.IsType<XElement>(modal.Root);
+        var editorRoot = Assert.IsType<XElement>(editor.Root);
 
         Assert.Equal("Segoe UI Variable, Microsoft YaHei UI, Segoe UI", (string?)root.Attribute("TextElement.FontFamily"));
         Assert.Equal("13", (string?)root.Attribute("TextElement.FontSize"));
+        Assert.Equal("Segoe UI Variable, Microsoft YaHei UI, Segoe UI", (string?)editorRoot.Attribute("TextElement.FontFamily"));
+        Assert.Equal("13", (string?)editorRoot.Attribute("TextElement.FontSize"));
 
-        foreach (var title in new[] { "选择时间段", "编辑规则" })
-        {
-            var element = Assert.Single(modal.Descendants(Presentation + "TextBlock")
-                .Where(text => (string?)text.Attribute("Text") == title));
-            Assert.Equal("17", (string?)element.Attribute("FontSize"));
-            Assert.Equal("SemiBold", (string?)element.Attribute("FontWeight"));
-            Assert.Equal("{DynamicResource TextPrimary}", (string?)element.Attribute("Foreground"));
-        }
+        var title = Assert.Single(modal.Descendants(Presentation + "TextBlock")
+            .Where(text => (string?)text.Attribute("Text") == "选择时间段"));
+        Assert.Equal("17", (string?)title.Attribute("FontSize"));
+        Assert.Equal("SemiBold", (string?)title.Attribute("FontWeight"));
+        Assert.Equal("{DynamicResource TextPrimary}", (string?)title.Attribute("Foreground"));
 
-        Assert.DoesNotContain(modal.Descendants(), element =>
+        Assert.DoesNotContain(modal.Descendants().Concat(editor.Descendants()), element =>
             (string?)element.Attribute("FontSize") is "11" or "14" or "16" or "18" or "19");
     }
 
     [Fact]
     public void RuleTargetDropDown_MatchesFieldWidthAndShowsTargetIcons()
     {
-        var modal = XDocument.Load(Path.Combine(FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "AutomaticRuleModal.xaml"));
-        var comboBox = Assert.Single(modal.Descendants(Presentation + "ComboBox")
+        var editor = XDocument.Load(Path.Combine(FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "AutomaticRuleEditorWindow.xaml"));
+        var comboBox = Assert.Single(editor.Descendants(Presentation + "ComboBox")
             .Where(element => (string?)element.Attribute("ItemsSource") == "{Binding Targets}"));
         Assert.Null(comboBox.Attribute("DisplayMemberPath"));
 
-        var targetStyle = Assert.Single(modal.Descendants(Presentation + "Style")
+        var targetStyle = Assert.Single(editor.Descendants(Presentation + "Style")
             .Where(element => (string?)element.Attribute("{http://schemas.microsoft.com/winfx/2006/xaml}Key") == "TargetField"));
         var popupBorder = Assert.Single(targetStyle.Descendants(Presentation + "Popup")
             .Elements(Presentation + "Border"));
@@ -115,8 +130,8 @@ public sealed class AutomaticBlockingDailyLimitPresentationTests
     [Fact]
     public void RepeatButtons_AddOneDipOrangeOutlineOnlyWhenSelected()
     {
-        var modal = XDocument.Load(Path.Combine(FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "AutomaticRuleModal.xaml"));
-        var style = Assert.Single(modal.Descendants(Presentation + "Style")
+        var editor = XDocument.Load(Path.Combine(FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "AutomaticRuleEditorWindow.xaml"));
+        var style = Assert.Single(editor.Descendants(Presentation + "Style")
             .Where(element => (string?)element.Attribute("{http://schemas.microsoft.com/winfx/2006/xaml}Key") == "RepeatButton"));
         var setters = style.Elements(Presentation + "Setter").ToArray();
         Assert.Contains(setters, setter =>

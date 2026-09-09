@@ -393,7 +393,7 @@
                                 </ItemsControl>
                                 <Grid Grid.Column="1"><Border Margin="0,0,0,46" VerticalAlignment="Bottom" Height="1" Background="{DynamicResource BorderPrimary}" /><views:TrendChart x:Name="TrendChartControl" DataContext="{Binding}" /></Grid>
                             </Grid>
-                            <Border Height="66" Margin="-24,8,-24,0" Padding="0,4" Background="{DynamicResource TransparentBrush}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="0,1,0,0"><Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions><Border BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="0,0,1,0"><StackPanel Margin="0,8,0,0" HorizontalAlignment="Center" VerticalAlignment="Center"><TextBlock HorizontalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding PeriodTotalLabel}" /><TextBlock Margin="0,8,0,0" FontSize="15" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{Binding PeriodTotalDisplay}" /></StackPanel></Border><Border Grid.Column="1" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="0,0,1,0"><StackPanel Margin="0,8,0,0" HorizontalAlignment="Center" VerticalAlignment="Center"><TextBlock HorizontalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource StatisticsAverageDuration}" /><TextBlock Margin="0,8,0,0" FontSize="15" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{Binding AverageDurationDisplay}" /></StackPanel></Border><StackPanel Grid.Column="2" Margin="0,8,0,0" HorizontalAlignment="Center" VerticalAlignment="Center"><TextBlock HorizontalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding ComparisonLabel}" /><StackPanel Margin="0,8,0,0" HorizontalAlignment="Center" Orientation="Horizontal"><TextBlock FontSize="15" FontWeight="Medium" Foreground="{DynamicResource SuccessPositive}" Text="{Binding ComparisonDisplay}" /><Border Width="22" Height="22" Margin="8,0,0,0" Background="{DynamicResource SuccessTint}" CornerRadius="12"><TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="{DynamicResource SuccessPositive}" Text="&#xE74A;" /></Border></StackPanel></StackPanel></Grid></Border>
+                            <Border Height="66" Margin="-24,8,-24,0" Padding="0,4" Background="{DynamicResource TransparentBrush}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="0,1,0,0"><Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions><Border BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="0,0,1,0"><StackPanel Margin="0,8,0,0" HorizontalAlignment="Center" VerticalAlignment="Center"><TextBlock HorizontalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding PeriodTotalLabel}" /><TextBlock Margin="0,8,0,0" FontSize="15" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}"><Run Foreground="{DynamicResource AccentPrimary}" Text="{Binding PeriodTotalHoursValueDisplay, Mode=OneWay}" /><Run Text="{Binding PeriodTotalHoursUnitDisplay, Mode=OneWay}" /><Run Foreground="{DynamicResource AccentPrimary}" Text="{Binding PeriodTotalMinutesValueDisplay, Mode=OneWay}" /><Run Text=" 分钟" /></TextBlock></StackPanel></Border><Border Grid.Column="1" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="0,0,1,0"><StackPanel Margin="0,8,0,0" HorizontalAlignment="Center" VerticalAlignment="Center"><TextBlock HorizontalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource StatisticsAverageDuration}" /><TextBlock Margin="0,8,0,0" FontSize="15" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}"><Run Foreground="{DynamicResource AccentPrimary}" Text="{Binding AverageDurationHoursValueDisplay, Mode=OneWay}" /><Run Text="{Binding AverageDurationHoursUnitDisplay, Mode=OneWay}" /><Run Foreground="{DynamicResource AccentPrimary}" Text="{Binding AverageDurationMinutesValueDisplay, Mode=OneWay}" /><Run Text=" 分钟" /></TextBlock></StackPanel></Border><StackPanel Grid.Column="2" Margin="0,8,0,0" HorizontalAlignment="Center" VerticalAlignment="Center"><TextBlock HorizontalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding ComparisonLabel}" /><StackPanel Margin="0,8,0,0" HorizontalAlignment="Center" Orientation="Horizontal"><TextBlock FontSize="15" FontWeight="Medium" Foreground="{DynamicResource SuccessPositive}" Text="{Binding ComparisonDisplay}" /><Border Width="22" Height="22" Margin="8,0,0,0" Background="{DynamicResource SuccessTint}" CornerRadius="12"><TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="{DynamicResource SuccessPositive}" Text="&#xE74A;" /></Border></StackPanel></StackPanel></Grid></Border>
                         </StackPanel>
                     </Grid>
 
@@ -933,31 +933,32 @@
                                     <ItemsControl ItemsSource="{Binding SelectedDayRecords}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate DataType="{x:Type vm:FocusSessionRecordViewModel}">
-                                                <Border Padding="0,0,0,17" Margin="0,0,0,18" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="0,0,0,1">
-                                                    <StackPanel>
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions><ColumnDefinition Width="42"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                                    <TextBlock Margin="0,22,0,0" VerticalAlignment="Top" FontSize="12" Foreground="{DynamicResource TextSecondary}" Text="{Binding StartTime, StringFormat={}{0:HH:mm}}"/>
+                                                    <Border Grid.Column="1" Width="1" Background="{DynamicResource BorderPrimary}"/>
+                                                    <Ellipse Grid.Column="1" Width="6" Height="6" Margin="0,27,0,0" VerticalAlignment="Top" Fill="{DynamicResource AccentPrimary}"/>
+                                                    <Button Grid.Column="2" Margin="6,0,0,10" Padding="10,12" HorizontalContentAlignment="Stretch" Click="FocusRecord_Click" Cursor="Hand" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1">
+                                                        <Button.Template><ControlTemplate TargetType="Button"><Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="10" Padding="{TemplateBinding Padding}"><ContentPresenter/></Border></ControlTemplate></Button.Template>
                                                         <Grid>
-                                                            <TextBlock VerticalAlignment="Center" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}"><Run Text="{Binding StartTime, StringFormat={}{0:HH:mm}, Mode=OneWay}" /><Run Text=" – " /><Run Text="{Binding EndTime, StringFormat={}{0:HH:mm}, Mode=OneWay}" /></TextBlock>
-                                                            <Border HorizontalAlignment="Right" Padding="8,2" Background="#F2F2F7" CornerRadius="8" Visibility="{Binding HasGoal, Converter={StaticResource BooleanToVisibilityConverter}}"><TextBlock FontSize="12" FontWeight="Normal" Foreground="#636366" Text="{Binding GoalName}" /></Border>
+                                                            <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="14"/></Grid.ColumnDefinitions>
+                                                            <StackPanel>
+                                                                <DockPanel><Image Source="{Binding IconSource}" Width="16" Height="16" Margin="0,0,7,0"/><TextBlock Text="{Binding CalendarTitle}" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" TextTrimming="CharacterEllipsis"/></DockPanel>
+                                                                <WrapPanel Margin="0,7,0,0">
+                                                                    <StackPanel Orientation="Horizontal">
+                                                                        <Image Width="16" Height="16" Margin="0,0,7,0" VerticalAlignment="Center" Source="/FocusApp.Desktop;component/Assets/Icons/Common/shizhong.png"/>
+                                                                        <TextBlock VerticalAlignment="Center" Text="{Binding CalendarDurationDisplay}" FontSize="12" Foreground="{DynamicResource TextSecondary}"/>
+                                                                    </StackPanel>
+                                                                    <StackPanel Margin="10,0,0,0" Orientation="Horizontal" Visibility="{Binding HasCompletedTasks, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                                        <Image Width="16" Height="16" Margin="0,0,7,0" VerticalAlignment="Center" Source="/FocusApp.Desktop;component/Assets/Icons/Common/green_gouxuan.png"/>
+                                                                        <TextBlock VerticalAlignment="Center" Text="{Binding TaskCountDisplay}" FontSize="12" Foreground="{DynamicResource TextSecondary}"/>
+                                                                    </StackPanel>
+                                                                </WrapPanel>
+                                                            </StackPanel>
+                                                            <TextBlock Grid.Column="1" Text="›" VerticalAlignment="Center" HorizontalAlignment="Right" Foreground="{DynamicResource TextTertiary}" FontSize="15"/>
                                                         </Grid>
-                                                        <ItemsControl Margin="0,14,0,0" ItemsSource="{Binding CompletedTaskNames}">
-                                                            <ItemsControl.ItemTemplate>
-                                                                <DataTemplate>
-                                                                    <Grid Margin="0,0,0,7">
-                                                                        <Grid.ColumnDefinitions>
-                                                                            <ColumnDefinition Width="15" />
-                                                                            <ColumnDefinition Width="8" />
-                                                                            <ColumnDefinition Width="*" />
-                                                                        </Grid.ColumnDefinitions>
-                                                                        <Border Width="14" Height="14" HorizontalAlignment="Left" VerticalAlignment="Center" Background="{DynamicResource TransparentBrush}" BorderBrush="{DynamicResource Success}" BorderThickness="1" CornerRadius="3" IsHitTestVisible="False" Opacity="0.72">
-                                                                            <Path Width="7" Height="5" Data="M 0.8,2.6 L 2.8,4.5 L 6.4,0.8" Stroke="{DynamicResource Success}" StrokeEndLineCap="Round" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeThickness="1.2" />
-                                                                        </Border>
-                                                                        <TextBlock Grid.Column="2" VerticalAlignment="Center" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}" Text="{Binding}" TextWrapping="Wrap" />
-                                                                    </Grid>
-                                                                </DataTemplate>
-                                                            </ItemsControl.ItemTemplate>
-                                                        </ItemsControl>
-                                                    </StackPanel>
-                                                </Border>
+                                                    </Button>
+                                                </Grid>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
@@ -1143,7 +1144,7 @@
                     </Border>
                 </Popup>
             </StackPanel>
-            <StackPanel x:Name="GoalsPageLayout" Margin="14,0,11,0" TextElement.FontFamily="Segoe UI Variable, Segoe UI" Visibility="{Binding IsGoalsSelected, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <StackPanel x:Name="GoalsPageLayout" Margin="14,0,11,0" TextElement.FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI" Visibility="{Binding IsGoalsSelected, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <Grid Height="604" Margin="0" VerticalAlignment="Top" HorizontalAlignment="Stretch">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="207" /><ColumnDefinition Width="8" /><ColumnDefinition /></Grid.ColumnDefinitions>
                     <Border Grid.Column="0" Height="604" VerticalAlignment="Top" Padding="20,16,10,44" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" CornerRadius="16">
