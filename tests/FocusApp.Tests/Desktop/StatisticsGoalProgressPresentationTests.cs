@@ -533,6 +533,7 @@ public sealed class StatisticsGoalProgressPresentationTests
                 var calendarVisualQaPath = Environment.GetEnvironmentVariable("FOCUSAPP_CALENDAR_DISTRIBUTION_QA_PATH");
                 if (!string.IsNullOrWhiteSpace(calendarVisualQaPath))
                 {
+                    viewModel.SetUserAccess(true, true);
                     viewModel.SelectCalendarCommand.Execute(null);
                     page.UpdateLayout();
                     var bitmap = new RenderTargetBitmap(800, 710, 96, 96, PixelFormats.Pbgra32);

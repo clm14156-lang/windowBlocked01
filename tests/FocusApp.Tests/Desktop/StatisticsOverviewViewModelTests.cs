@@ -946,6 +946,35 @@ public sealed class StatisticsOverviewViewModelTests
     }
 
     [Fact]
+    public void CalendarTimelineOmitsZeroLengthRecordsAndLabelsSubMinuteSessions()
+    {
+        var viewModel = new StatisticsOverviewViewModel();
+        var selectedDate = new DateTime(2026, 2, 28);
+        var subMinute = new FocusSessionRecordViewModel(
+            selectedDate.AddHours(18),
+            selectedDate.AddHours(18).AddSeconds(30),
+            "goal-unassigned",
+            "其他",
+            string.Empty,
+            0);
+        var zeroLength = new FocusSessionRecordViewModel(
+            selectedDate.AddHours(19),
+            selectedDate.AddHours(19),
+            "goal-unassigned",
+            "其他",
+            string.Empty,
+            0);
+
+        viewModel.FocusSessionRecords.Add(subMinute);
+        viewModel.FocusSessionRecords.Add(zeroLength);
+
+        Assert.Equal(2, viewModel.SelectedDaySessionCount);
+        Assert.Contains(subMinute, viewModel.SelectedDayRecords);
+        Assert.DoesNotContain(zeroLength, viewModel.SelectedDayRecords);
+        Assert.Equal("<1分钟", subMinute.CalendarDurationDisplay);
+    }
+
+    [Fact]
     public void ChangingSharedFocusSessionsRefreshesCalendarAndGoalStatistics()
     {
         var viewModel = new StatisticsOverviewViewModel();

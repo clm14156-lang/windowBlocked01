@@ -3,6 +3,8 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
+using System.Windows.Shapes;
 using System.Windows.Threading;
 using FocusApp.Desktop.ViewModels;
 
@@ -10,6 +12,94 @@ namespace FocusApp.Desktop.Views;
 
 public partial class FocusTaskWindow : UserControl
 {
+    private readonly Dictionary<FocusTaskViewModel, Action> _completions = new();
+
+    private void CompleteTask_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button button && FindVisualAncestor<Grid>(button) is { } row)
+            _ = AnimateCompletionAsync(row);
+        e.Handled = true;
+    }
+
+    private async Task AnimateCompletionAsync(FrameworkElement row)
+    {
+        if (row.DataContext is not FocusTaskViewModel task || task.IsCompleted ||
+            DataContext is not FocusSessionViewModel model || _completions.ContainsKey(task)) return;
+        var target = model.ActiveTarget;
+        var finished = false;
+        void Commit()
+        {
+            if (finished) return;
+            finished = true;
+            _completions.Remove(task);
+            if (!task.IsCompleted && ReferenceEquals(model.ActiveTarget, target) && target?.Tasks.Contains(task) == true)
+                model.ToggleTaskCompletedCommand.Execute(task);
+        }
+        _completions.Add(task, Commit);
+        var check = FindChild<Button>(row, "CompletionCheck");
+        var label = FindChild<TextBlock>(row, "CompletionText");
+        if (check is null || label is null) { Commit(); return; }
+        row.IsHitTestVisible = false;
+        var scale = new ScaleTransform(1, 1);
+        check.RenderTransformOrigin = new Point(.5, .5);
+        check.RenderTransform = scale;
+        var green = (TryFindResource("Success") as SolidColorBrush)?.Color ?? Color.FromRgb(52, 199, 89);
+        var stroke = new SolidColorBrush((check.BorderBrush as SolidColorBrush)?.Color ?? Colors.Gray);
+        check.BorderBrush = stroke;
+        check.Content = new Path { Width = 11, Height = 8, Stretch = Stretch.Fill,
+            Data = Geometry.Parse("M 0,4 L 4,8 L 11,0"), Stroke = new SolidColorBrush(green),
+            StrokeThickness = 1.5, StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round };
+        stroke.BeginAnimation(SolidColorBrush.ColorProperty, new ColorAnimation(green, TimeSpan.FromMilliseconds(180)));
+        var pulse = new DoubleAnimation(.88, TimeSpan.FromMilliseconds(90)) { AutoReverse = true };
+        scale.BeginAnimation(ScaleTransform.ScaleXProperty, pulse);
+        scale.BeginAnimation(ScaleTransform.ScaleYProperty, pulse);
+        var textBrush = new SolidColorBrush((label.Foreground as SolidColorBrush)?.Color ?? Colors.Black);
+        label.Foreground = textBrush;
+        textBrush.BeginAnimation(SolidColorBrush.ColorProperty,
+            new ColorAnimation(Color.FromRgb(142, 142, 147), TimeSpan.FromMilliseconds(180)));
+        label.TextDecorations = TextDecorations.Strikethrough;
+        row.BeginAnimation(OpacityProperty, new DoubleAnimation(.6, TimeSpan.FromMilliseconds(180)));
+        try
+        {
+            await Task.Delay(420);
+            if (finished) return;
+            var move = new TranslateTransform();
+            row.RenderTransform = move;
+            row.ClipToBounds = true;
+            var duration = TimeSpan.FromMilliseconds(220);
+            move.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(-6, duration));
+            row.BeginAnimation(OpacityProperty, new DoubleAnimation(.6, 0, duration));
+            row.BeginAnimation(HeightProperty, new DoubleAnimation(row.ActualHeight, 0, duration)
+                { EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut } });
+            await Task.Delay(220);
+            Commit();
+        }
+        finally
+        {
+            Commit();
+            row.BeginAnimation(OpacityProperty, null);
+            row.BeginAnimation(HeightProperty, null);
+            row.ClearValue(RenderTransformProperty);
+            row.ClearValue(IsHitTestVisibleProperty);
+            row.ClearValue(ClipToBoundsProperty);
+            check.ClearValue(BorderBrushProperty);
+            check.ClearValue(RenderTransformProperty);
+            check.Content = null;
+            label.ClearValue(TextBlock.ForegroundProperty);
+            label.ClearValue(TextBlock.TextDecorationsProperty);
+        }
+    }
+
+    private static T? FindChild<T>(DependencyObject parent, string name) where T : FrameworkElement
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, i);
+            if (child is T element && element.Name == name) return element;
+            if (FindChild<T>(child, name) is { } match) return match;
+        }
+        return null;
+    }
     private Point _taskDragStartPoint;
     private FocusTaskViewModel? _taskDragCandidate;
     private FrameworkElement? _taskDragSourceRow;
@@ -187,7 +277,7 @@ public partial class FocusTaskWindow : UserControl
             !IsWithinTaskControl(e.OriginalSource as DependencyObject) &&
             DataContext is FocusSessionViewModel viewModel)
         {
-            viewModel.ToggleTaskCompletedCommand.Execute(task);
+            _ = AnimateCompletionAsync(row);
             e.Handled = true;
         }
 
@@ -347,6 +437,7 @@ public partial class FocusTaskWindow : UserControl
 
     private void FocusTaskWindow_Unloaded(object sender, RoutedEventArgs e)
     {
+        foreach (var commit in _completions.Values.ToArray()) commit();
         ResetDropIndicator();
         ResetDragCandidate();
         if (DataContext is FocusSessionViewModel viewModel)

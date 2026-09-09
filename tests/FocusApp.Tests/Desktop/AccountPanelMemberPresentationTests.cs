@@ -119,22 +119,12 @@ public sealed class AccountPanelMemberPresentationTests
         Assert.Contains(mainWindow.Descendants(Presentation + "RadioButton"), button =>
             (string?)button.Attribute("Command") == "{Binding OpenAuthCommand}");
 
-        var accountStatus = Assert.Single(mainWindow.Descendants(Presentation + "TextBlock").Where(text =>
-            (string?)text.Attribute(Xaml + "Name") == "AccountStatusText"));
-        Assert.Equal("0,0,0,23", (string?)accountStatus.Attribute("Margin"));
-        Assert.Equal("Center", (string?)accountStatus.Attribute("HorizontalAlignment"));
-        Assert.Equal("Bottom", (string?)accountStatus.Attribute("VerticalAlignment"));
-        Assert.Equal("{DynamicResource SecondaryFontSize}", (string?)accountStatus.Attribute("FontSize"));
-        Assert.Equal("Normal", (string?)accountStatus.Attribute("FontWeight"));
-
-        var loggedInTrigger = Assert.Single(accountStatus.Descendants(Presentation + "DataTrigger").Where(trigger =>
-            (string?)trigger.Attribute("Binding") == "{Binding IsLoggedIn}" &&
-            (string?)trigger.Attribute("Value") == "True"));
-        Assert.Contains(loggedInTrigger.Elements(Presentation + "Setter"), setter =>
-            (string?)setter.Attribute("Property") == "Visibility" &&
-            (string?)setter.Attribute("Value") == "Collapsed");
-        Assert.DoesNotContain(loggedInTrigger.Elements(Presentation + "Setter"), setter =>
-            (string?)setter.Attribute("Property") is "Text" or "Foreground");
+        Assert.DoesNotContain(mainWindow.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute(Xaml + "Name") == "AccountStatusText");
+        var accountButton = Assert.Single(mainWindow.Descendants(Presentation + "RadioButton").Where(button =>
+            (string?)button.Attribute(Xaml + "Name") == "AccountButton"));
+        Assert.Equal("0,0,0,26", (string?)accountButton.Attribute("Margin"));
+        Assert.Equal("Bottom", (string?)accountButton.Attribute("VerticalAlignment"));
     }
 
     private static void AssertHasVipVisibilityTrigger(XContainer element)

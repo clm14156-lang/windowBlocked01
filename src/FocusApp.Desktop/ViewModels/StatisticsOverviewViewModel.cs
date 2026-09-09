@@ -721,6 +721,10 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         ? 0
         : GetDailySummary(_selectedCalendarDay.Date).CompletedTaskCount;
 
+    public int SelectedDaySessionCount => _selectedCalendarDay is null
+        ? 0
+        : GetRecordsForDate(_selectedCalendarDay.Date).Count(IsMeaningfulCalendarRecord);
+
     public int MonthlyTotalMinutes => GoalDistributions.Sum(item => item.Minutes);
 
     /// <summary>
@@ -1545,7 +1549,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
         _selectedCalendarDay = CalendarDays.FirstOrDefault(item => item.Date.Date == date.Date);
         SelectedDayRecords.Clear();
-        foreach (var record in GetRecordsForDate(date))
+        foreach (var record in GetRecordsForDate(date).Where(IsMeaningfulCalendarRecord))
         {
             SelectedDayRecords.Add(record);
         }
@@ -1559,6 +1563,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(SelectedDayTasksDisplay));
         OnPropertyChanged(nameof(SelectedDayMinutes));
         OnPropertyChanged(nameof(SelectedDayCompletedTasks));
+        OnPropertyChanged(nameof(SelectedDaySessionCount));
     }
 
     private void RefreshCalendar(DateTime? preferredDate = null)
@@ -1619,6 +1624,9 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     private IEnumerable<FocusSessionRecordViewModel> GetRecordsForDate(DateTime date) =>
         FocusSessionRecords.Where(record => record.StartTime.Date == date.Date);
+
+    private static bool IsMeaningfulCalendarRecord(FocusSessionRecordViewModel record) =>
+        record.EndTime > record.StartTime;
 
     private IEnumerable<FocusSessionRecordViewModel> GetRecordsForMonth(DateTime month) =>
         FocusSessionRecords.Where(record => record.StartTime.Year == month.Year && record.StartTime.Month == month.Month);
@@ -2046,6 +2054,7 @@ public sealed class FocusSessionRecordViewModel : INotifyPropertyChanged
     public bool HasCompletedTasks => CompletedTaskCount > 0;
     public bool ShowDetailTasks => HasGoal && HasCompletedTasks;
     public string TaskCountDisplay => $"{CompletedTaskCount} 个任务";
+    public string CompletedTaskSummaryDisplay => $"完成 {CompletedTaskCount} 项任务";
     public string CalendarDateDisplay => StartTime.ToString("M月d日 · dddd", System.Globalization.CultureInfo.GetCultureInfo("zh-CN"));
     private DateTime _startTime;
     private DateTime _endTime;
@@ -2123,10 +2132,27 @@ public sealed class FocusSessionRecordViewModel : INotifyPropertyChanged
     public string GoalName { get => _goalName; set { if (_goalName == value) return; _goalName = value; OnPropertyChanged(); } }
     public IReadOnlyList<string> CompletedTaskNames { get; }
     public string TaskName { get => _taskName; set { if (_taskName == value) return; _taskName = value; OnPropertyChanged(); OnPropertyChanged(nameof(CompletedTaskNamesDisplay)); } }
-    public int CompletedTaskCount { get => _completedTaskCount; set { if (_completedTaskCount == value) return; _completedTaskCount = value; OnPropertyChanged(); OnPropertyChanged(nameof(CompletedTasksDisplay)); OnPropertyChanged(nameof(CompletedTaskNamesDisplay)); } }
+    public int CompletedTaskCount
+    {
+        get => _completedTaskCount;
+        set
+        {
+            if (_completedTaskCount == value) return;
+            _completedTaskCount = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(HasCompletedTasks));
+            OnPropertyChanged(nameof(ShowDetailTasks));
+            OnPropertyChanged(nameof(TaskCountDisplay));
+            OnPropertyChanged(nameof(CompletedTaskSummaryDisplay));
+            OnPropertyChanged(nameof(CompletedTasksDisplay));
+            OnPropertyChanged(nameof(CompletedTaskNamesDisplay));
+        }
+    }
     public int DurationMinutes => (int)(EndTime - StartTime).TotalMinutes;
     public string TimeRangeDisplay => $"{StartTime:HH:mm} - {EndTime:HH:mm}";
-    public string CalendarDurationDisplay => $"{DurationMinutes} 分钟";
+    public string CalendarDurationDisplay => EndTime > StartTime && EndTime - StartTime < TimeSpan.FromMinutes(1)
+        ? "<1分钟"
+        : $"{DurationMinutes}分钟";
     public string DurationDisplay => $"{DurationMinutes / 60}小时{DurationMinutes % 60:00}分钟";
     public string CompletedTasksDisplay => $"完成 {CompletedTaskCount} 个任务";
     public string CompletedTaskNamesDisplay => CompletedTaskCount == 0

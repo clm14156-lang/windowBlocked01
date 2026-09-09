@@ -8,8 +8,10 @@
  </Window.Resources>
  <Border Margin="6" Padding="18" Background="White" BorderBrush="#E5E5EA" BorderThickness="1" CornerRadius="14">
   <StackPanel>
-   <DockPanel Margin="0,0,0,18"><Button DockPanel.Dock="Right" Content="×" Width="24" Height="24" Foreground="#6E6E73" Click="Close_Click"/><TextBlock Text="专注详情" FontSize="17" FontWeight="SemiBold" VerticalAlignment="Center"/></DockPanel>
-   <WrapPanel><TextBlock Text="{Binding TimeRangeDisplay}" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,10,6"/><Border Background="#FFF1E5" CornerRadius="12" Padding="9,4" Margin="0,0,0,6"><TextBlock Text="{Binding CalendarDurationDisplay}" Foreground="#FF8000" FontSize="12" FontWeight="Medium"/></Border></WrapPanel>
+   <Grid>
+    <WrapPanel Margin="0,12,30,0"><TextBlock Text="{Binding TimeRangeDisplay}" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,10,6"/><Border Background="#FFF1E5" CornerRadius="12" Padding="9,4" Margin="0,0,0,6"><TextBlock Text="{Binding CalendarDurationDisplay}" Foreground="#FF8000" FontSize="12" FontWeight="Medium"/></Border></WrapPanel>
+    <Button Content="×" Width="24" Height="24" HorizontalAlignment="Right" VerticalAlignment="Top" Foreground="#6E6E73" Click="Close_Click"/>
+   </Grid>
    <StackPanel Orientation="Horizontal" Margin="0,3,0,14">
     <Image Width="16" Height="16" Margin="0,0,7,0" VerticalAlignment="Center" Source="/FocusApp.Desktop;component/Assets/Icons/Common/rili.png"/>
     <TextBlock Text="{Binding CalendarDateDisplay}" Foreground="#6E6E73" VerticalAlignment="Center" FontSize="12"/>

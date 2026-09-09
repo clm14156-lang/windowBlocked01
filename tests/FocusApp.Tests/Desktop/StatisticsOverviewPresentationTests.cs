@@ -337,6 +337,16 @@ public sealed class StatisticsOverviewPresentationTests
             (string?)item.Attribute("ItemsSource") == "{Binding CompletedTaskNames}");
         var details = XDocument.Load(Path.Combine(FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "FocusRecordDetailsWindow.xaml"));
         Assert.Equal(Presentation + "Window", details.Root!.Name);
+        Assert.Equal("Height", (string?)details.Root.Attribute("SizeToContent"));
+        Assert.DoesNotContain(details.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "专注详情");
+        var compactHeader = Assert.Single(details.Descendants(Presentation + "Grid").Where(grid =>
+            grid.Descendants(Presentation + "TextBlock").Any(text =>
+                (string?)text.Attribute("Text") == "{Binding TimeRangeDisplay}") &&
+            grid.Descendants(Presentation + "Button").Any(button =>
+                (string?)button.Attribute("Click") == "Close_Click")));
+        Assert.Contains(compactHeader.Descendants(Presentation + "WrapPanel"), panel =>
+            (string?)panel.Attribute("Margin") == "0,12,30,0");
         Assert.Contains(details.Descendants(Presentation + "ItemsControl"), item =>
             (string?)item.Attribute("ItemsSource") == "{Binding CompletedTaskNames}");
     }
@@ -356,12 +366,23 @@ public sealed class StatisticsOverviewPresentationTests
         var date = Assert.Single(layout.Elements(Presentation + "TextBlock").Where(text =>
             (string?)text.Attribute("Text") == "{Binding SelectedDateDisplay}"));
         Assert.Equal("17", (string?)date.Attribute("FontSize"));
-        Assert.Equal("Medium", (string?)date.Attribute("FontWeight"));
+        Assert.Equal("SemiBold", (string?)date.Attribute("FontWeight"));
 
         var summary = Assert.Single(layout.Elements(Presentation + "StackPanel").Where(stack =>
             (string?)stack.Attribute("Grid.Row") == "1"));
         Assert.Contains(summary.Descendants(Presentation + "Run"), run =>
-            (string?)run.Attribute("Text") == " 分钟  ·  ");
+            (string?)run.Attribute("Text") == "{Binding SelectedDaySessionCount, Mode=OneWay}" &&
+            (string?)run.Attribute("Foreground") == "{DynamicResource AccentPrimary}");
+        Assert.Contains(summary.Descendants(Presentation + "Run"), run =>
+            (string?)run.Attribute("Text") == "次专注");
+        Assert.DoesNotContain(summary.Descendants(Presentation + "Run"), run =>
+            (string?)run.Attribute("Text") == " 分钟  ·  " ||
+            (string?)run.Attribute("Text") == " 次推进");
+        var divider = Assert.Single(summary.Elements(Presentation + "Border"));
+        Assert.Equal("1", (string?)divider.Attribute("Width"));
+        Assert.Equal("20", (string?)divider.Attribute("Height"));
+        Assert.Equal("16,0", (string?)divider.Attribute("Margin"));
+        Assert.Equal("{DynamicResource BorderPrimary}", (string?)divider.Attribute("Background"));
         var icons = summary.Elements(Presentation + "Viewbox").ToArray();
         Assert.Equal(2, icons.Length);
         Assert.All(icons, icon =>
@@ -374,9 +395,6 @@ public sealed class StatisticsOverviewPresentationTests
         Assert.Contains(icons, icon => (string?)icon.Attribute(Xaml + "Name") == "CalendarProgressIcon");
         Assert.DoesNotContain(layout.Descendants(Presentation + "TextBlock"), text =>
             (string?)text.Attribute("Text") is "专注时长" or "推进次数");
-        Assert.DoesNotContain(layout.Descendants(Presentation + "Border"), border =>
-            (string?)border.Attribute("BorderThickness") == "0,0,1,0");
-
         Assert.DoesNotContain(layout.Elements(Presentation + "TextBlock"), text =>
             (string?)text.Attribute("Text") == "专注记录");
 
@@ -393,6 +411,18 @@ public sealed class StatisticsOverviewPresentationTests
         Assert.Contains(scrollStyle.Descendants(Presentation + "Border"), border =>
             (string?)border.Attribute(Xaml + "Name") == "ThumbBody" &&
             (string?)border.Attribute("Width") == "3");
+
+        var recordButton = Assert.Single(scrollViewer.Descendants(Presentation + "Button").Where(button =>
+            (string?)button.Attribute("Click") == "FocusRecord_Click"));
+        Assert.Equal("0", (string?)recordButton.Attribute("BorderThickness"));
+        Assert.Equal("{DynamicResource TransparentBrush}", (string?)recordButton.Attribute("Background"));
+        Assert.Equal("6,0,0,12", (string?)recordButton.Attribute("Margin"));
+        Assert.Contains(recordButton.Descendants(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("Property") == "Background" &&
+            (string?)setter.Attribute("Value") == "#F7F7F8");
+        Assert.Contains(recordButton.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "{Binding CompletedTaskSummaryDisplay}" &&
+            (string?)text.Attribute("Foreground") == "#248A3D");
     }
 
     [Fact]
