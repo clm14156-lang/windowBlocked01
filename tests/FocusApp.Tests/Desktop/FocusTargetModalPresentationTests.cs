@@ -146,8 +146,8 @@ public sealed class FocusTargetModalPresentationTests
         Assert.Equal("Horizontal", (string?)content.Attribute("Orientation"));
         Assert.Equal("Center", (string?)content.Attribute("VerticalAlignment"));
         var icon = Assert.Single(content.Elements(Presentation + "Image"));
-        Assert.Equal("16", (string?)icon.Attribute("Width"));
-        Assert.Equal("16", (string?)icon.Attribute("Height"));
+        Assert.Equal("18", (string?)icon.Attribute("Width"));
+        Assert.Equal("18", (string?)icon.Attribute("Height"));
         Assert.Equal("0,0,6,0", (string?)icon.Attribute("Margin"));
         Assert.Equal("{Binding IconSource}", (string?)icon.Attribute("Source"));
         Assert.Equal("HighQuality", (string?)icon.Attribute("RenderOptions.BitmapScalingMode"));

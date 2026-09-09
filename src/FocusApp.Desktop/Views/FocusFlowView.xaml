@@ -381,7 +381,9 @@
                                        Margin="0,0,8,0"
                                        VerticalAlignment="Center"
                                        IsHitTestVisible="False"
-                                       Source="/FocusApp.Desktop;component/Assets/Themes/Solid/Orange/mubiao.png"
+                                       RenderOptions.BitmapScalingMode="HighQuality"
+                                       SnapsToDevicePixels="True"
+                                       Source="{Binding ActiveTarget.IconSource, Mode=OneWay}"
                                        Stretch="Uniform" />
                                 <TextBlock VerticalAlignment="Center"
                                            FontSize="17"

@@ -225,13 +225,48 @@
                     <ColumnDefinition Width="28" />
                 </Grid.ColumnDefinitions>
 
-                <TextBlock Grid.Column="0"
+                <TextBlock x:Name="UnselectedTargetIcon"
+                           Grid.Column="0"
                            HorizontalAlignment="Center"
                            VerticalAlignment="Center"
                            FontFamily="Segoe MDL2 Assets"
                            FontSize="16"
                            Foreground="{DynamicResource TextTertiary}"
-                           Text="&#xE70F;" />
+                           Text="&#xE70F;">
+                    <TextBlock.Style>
+                        <Style TargetType="{x:Type TextBlock}">
+                            <Setter Property="Visibility" Value="Visible" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding FocusTargetModal.HasSelectedTarget}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+
+                <Image x:Name="SelectedTargetIcon"
+                       Grid.Column="0"
+                       Width="18"
+                       Height="18"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       IsHitTestVisible="False"
+                       RenderOptions.BitmapScalingMode="HighQuality"
+                       SnapsToDevicePixels="True"
+                       Source="{Binding FocusTargetModal.SelectedTarget.IconSource, Mode=OneWay}"
+                       Stretch="Uniform">
+                    <Image.Style>
+                        <Style TargetType="{x:Type Image}">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding FocusTargetModal.HasSelectedTarget}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Image.Style>
+                </Image>
 
                 <TextBlock Grid.Column="1"
                            Margin="5,0"

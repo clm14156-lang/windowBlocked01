@@ -27,6 +27,13 @@ public sealed class FocusTargetTaskPresentationTests
             (string?)text.Attribute("Text") == "{Binding PendingTasks[0].Name, Mode=OneWay}");
         Assert.Contains(targetView.Descendants(Presentation + "TextBlock"), text =>
             (string?)text.Attribute("Text") == "{Binding TargetName, Mode=OneWay}");
+        var targetIcon = Assert.Single(targetView.Descendants(Presentation + "Image").Where(image =>
+            (string?)image.Attribute("Source") == "{Binding ActiveTarget.IconSource, Mode=OneWay}"));
+        Assert.Equal("24", (string?)targetIcon.Attribute("Width"));
+        Assert.Equal("24", (string?)targetIcon.Attribute("Height"));
+        Assert.Equal("HighQuality", (string?)targetIcon.Attribute("RenderOptions.BitmapScalingMode"));
+        Assert.DoesNotContain(targetView.Descendants(Presentation + "Image"), image =>
+            ((string?)image.Attribute("Source"))?.EndsWith("/mubiao.png", StringComparison.OrdinalIgnoreCase) == true);
         Assert.Contains(targetView.Descendants(Presentation + "TextBlock"), text =>
             (string?)text.Attribute("Text") == "{DynamicResource FocusNoTaskAtmosphere}" &&
             (string?)text.Attribute("FontFamily") == "/FocusApp.Desktop;component/Assets/font/#Source Han Serif CN" &&
