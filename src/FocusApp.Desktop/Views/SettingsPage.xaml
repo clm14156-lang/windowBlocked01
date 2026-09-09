@@ -444,8 +444,8 @@
                                                             </Ellipse.Style>
                                                         </Ellipse>
                                                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                                            <TextBlock FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{Binding RepeatText}" />
-                                                            <TextBlock Margin="0,2,0,0" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding TimeRangeText}" />
+                                                            <TextBlock FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{Binding TargetDisplayText}" TextTrimming="CharacterEllipsis" />
+                                                            <TextBlock Margin="0,2,0,0" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding ScheduleDisplayText}" TextTrimming="CharacterEllipsis" />
                                                         </StackPanel>
                                                     </Grid>
                                                     <ToggleButton Grid.Column="2"

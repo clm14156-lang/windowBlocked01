@@ -29,117 +29,17 @@ public sealed class ThemedTextButtonTemplateTests
     }
 
     [Fact]
-    public void AutomaticRuleModal_UsesThemeSafeTextTemplates()
+    public void AutomaticRuleTimeline_HasFixedSizeAndThemeSafeWhiteSaveText()
     {
-        var repositoryRoot = FindRepositoryRoot();
-        var modal = XDocument.Load(Path.Combine(repositoryRoot, "src", "FocusApp.Desktop", "Views", "AutomaticRuleModal.xaml"));
-
-        var toggleTemplate = FindKeyedElement(modal, "DataTemplate", "RuleToggleTextContentTemplate");
-        var toggleText = Assert.Single(toggleTemplate.Elements(Presentation + "TextBlock"));
-        Assert.Contains("AncestorType={x:Type ToggleButton}", (string?)toggleText.Attribute("Foreground"));
-        Assert.Contains("AncestorType={x:Type ToggleButton}", (string?)toggleText.Attribute("FontWeight"));
-
-        AssertContentTemplate(modal, "RuleModeButtonStyle", "RuleToggleTextContentTemplate");
-        AssertContentTemplate(modal, "WeekdayButtonStyle", "RuleToggleTextContentTemplate");
-
-        var secondaryButton = FindKeyedElement(modal, "Style", "RuleSecondaryButtonStyle");
-        Assert.Equal("{StaticResource ThemedTextButtonBaseStyle}", (string?)secondaryButton.Attribute("BasedOn"));
-        AssertStyleSetter(secondaryButton, "FontSize", "13");
-        AssertStyleSetter(secondaryButton, "FontWeight", "Medium");
-        AssertStyleSetter(secondaryButton, "Foreground", "{DynamicResource TextUnit}");
-
-        var primaryButton = FindKeyedElement(modal, "Style", "RulePrimaryButtonStyle");
-        AssertStyleSetter(primaryButton, "Foreground", "{DynamicResource WhiteText}");
-    }
-
-    [Fact]
-    public void AutomaticRuleModal_UsesExpandedReservedLayout()
-    {
-        var repositoryRoot = FindRepositoryRoot();
-        var modal = XDocument.Load(Path.Combine(repositoryRoot, "src", "FocusApp.Desktop", "Views", "AutomaticRuleModal.xaml"));
-        var slider = XDocument.Load(Path.Combine(repositoryRoot, "src", "FocusApp.Desktop", "Views", "TimeRangeSlider.xaml"));
-        var colors = XDocument.Load(Path.Combine(repositoryRoot, "src", "FocusApp.Desktop", "Resources", "Colors.xaml"));
-
-        var root = Assert.IsType<XElement>(modal.Root);
-        Assert.Equal("300", (string?)root.Attribute("Width"));
-        Assert.DoesNotContain(modal.Descendants(Presentation + "Button"), button =>
-            button.Attributes().Any(attribute =>
-                attribute.Name.LocalName == "AutomationProperties.Name" &&
-                attribute.Value == "{DynamicResource AutomaticRuleClose}"));
-        var controlStyle = Assert.Single(root.Elements(Presentation + "UserControl.Style")
-            .Elements(Presentation + "Style"));
-        Assert.Contains(controlStyle.Elements(Presentation + "Setter"), setter =>
-            (string?)setter.Attribute("Property") == "Height" &&
-            (string?)setter.Attribute("Value") == "390");
-        Assert.Contains(controlStyle.Descendants(Presentation + "DataTrigger")
-            .Elements(Presentation + "Setter"), setter =>
-            (string?)setter.Attribute("Property") == "Height" &&
-            (string?)setter.Attribute("Value") == "470");
-
-        Assert.Empty(modal.Descendants(Presentation + "Canvas"));
-        Assert.DoesNotContain(modal.Descendants().Attributes(), attribute =>
-            attribute.Name.LocalName is "Canvas.Top" or "Canvas.Left" or "RenderTransform");
-        Assert.DoesNotContain(modal.Descendants().Attributes("Margin"), attribute =>
-            attribute.Value.Split(',').Any(value => double.TryParse(value, out var number) && number < 0));
-
-        var validationText = Assert.Single(modal.Descendants(Presentation + "TextBlock")
-            .Where(element => (string?)element.Attribute("Text") == "{Binding ValidationMessage}"));
-        Assert.Equal("12", (string?)validationText.Attribute("FontSize"));
-        Assert.Equal("Normal", (string?)validationText.Attribute("FontWeight"));
-        Assert.Equal("{DynamicResource AutomaticRuleValidationText}", (string?)validationText.Attribute("Foreground"));
-        Assert.Equal("NoWrap", (string?)validationText.Attribute("TextWrapping"));
-        Assert.Equal("#FF3B30", FindBrushColor(colors, "AutomaticRuleValidationText"));
-
-        var validationRegion = Assert.IsType<XElement>(validationText.Parent);
-        Assert.Equal("Grid", validationRegion.Name.LocalName);
-        Assert.Equal("260", (string?)validationRegion.Attribute("Width"));
-        Assert.Equal("20", (string?)validationRegion.Attribute("Height"));
-        Assert.Contains(validationRegion.Descendants(Presentation + "Setter"), setter =>
-            (string?)setter.Attribute("Property") == "Margin" &&
-            (string?)setter.Attribute("Value") == "20,280,0,0");
-        Assert.Contains(validationRegion.Descendants(Presentation + "Setter"), setter =>
-            (string?)setter.Attribute("Property") == "Margin" &&
-            (string?)setter.Attribute("Value") == "20,376,0,0");
-
-        Assert.Equal("45", (string?)slider.Root?.Attribute("Height"));
-        Assert.Contains(slider.Descendants(Presentation + "Grid"), grid =>
-            (string?)grid.Attribute("Margin") == "0,26,0,0");
-
-        var timeSelectorStyle = FindKeyedElement(modal, "Style", "RuleTimeSelectorButtonStyle");
-        Assert.Equal("{x:Type Button}", (string?)timeSelectorStyle.Attribute("TargetType"));
-        AssertStyleSetter(timeSelectorStyle, "Width", "100");
-        Assert.Empty(modal.Descendants(Presentation + "TextBox"));
-        Assert.Single(modal.Descendants(Presentation + "Popup")
-            .Where(element => (string?)element.Attribute(Xaml + "Name") == "TimePickerPopup"));
-        Assert.Empty(modal.Descendants(Presentation + "ListBox"));
-        Assert.Equal(2, modal.Descendants(Presentation + "ItemsControl").Count(control =>
-            (string?)control.Attribute("PreviewMouseWheel") == "TimeWheel_PreviewMouseWheel"));
-        Assert.Single(modal.Descendants(Presentation + "TextBlock").Where(text =>
-            (string?)text.Attribute("Text") == ":"));
-        var wheelItemStyle = FindKeyedElement(modal, "Style", "TimeWheelItemButtonStyle");
-        AssertStyleSetter(wheelItemStyle, "FontSize", "13");
-        AssertStyleSetter(wheelItemStyle, "FontWeight", "Normal");
-        Assert.Equal(2, modal.Descendants(Presentation + "Button").Count(button =>
-            (string?)button.Attribute("Click") == "TimeSelectorButton_Click" &&
-            (string?)button.Attribute("PreviewMouseWheel") == "TimeSelectorButton_PreviewMouseWheel"));
-        var editModeTriggers = modal.Descendants(Presentation + "DataTrigger")
-            .Where(trigger => (string?)trigger.Attribute("Binding") == "{Binding IsEditing}" &&
-                              (string?)trigger.Attribute("Value") == "True")
-            .ToArray();
-        Assert.Equal(2, editModeTriggers.Length);
-        Assert.Contains(editModeTriggers.SelectMany(trigger => trigger.Elements(Presentation + "Setter")), setter =>
-            (string?)setter.Attribute("Property") == "Text" &&
-            (string?)setter.Attribute("Value") == "{DynamicResource AutomaticRuleEditTitle}");
-        Assert.Contains(editModeTriggers.SelectMany(trigger => trigger.Elements(Presentation + "Setter")), setter =>
-            (string?)setter.Attribute("Property") == "Content" &&
-            (string?)setter.Attribute("Value") == "{DynamicResource AutomaticRuleSave}");
-        var weekdayStyle = Assert.Single(modal.Descendants(Presentation + "ItemsControl.ItemContainerStyle")
-            .Descendants(Presentation + "Style"));
-        AssertStyleSetter(weekdayStyle, "Margin", "0,0,7,0");
-        Assert.Contains(weekdayStyle.Descendants(Presentation + "Trigger")
-            .Elements(Presentation + "Setter"), setter =>
-            (string?)setter.Attribute("Property") == "Margin" &&
-            (string?)setter.Attribute("Value") == "0");
+        var modal = XDocument.Load(Path.Combine(FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "AutomaticRuleModal.xaml"));
+        Assert.Equal("370", (string?)modal.Root?.Attribute("Width"));
+        Assert.Equal("620", (string?)modal.Root?.Attribute("Height"));
+        Assert.Single(modal.Descendants(Presentation + "Canvas"));
+        Assert.DoesNotContain(modal.Descendants(), element => element.Name.LocalName == "TimeRangeSlider");
+        var save = Assert.Single(modal.Descendants(Presentation + "Button").Where(e => (string?)e.Attribute("Content") == "保存"));
+        Assert.Equal("White", (string?)save.Attribute("Foreground"));
+        var template = FindKeyedElement(modal, "Style", "QuietButton");
+        Assert.Contains(template.Descendants(Presentation + "TextBlock"), text => (string?)text.Attribute("Foreground") == "{TemplateBinding Foreground}");
     }
 
     [Fact]
@@ -162,7 +62,7 @@ public sealed class ThemedTextButtonTemplateTests
 
         Assert.Empty(ruleTemplate.Descendants(Presentation + "CheckBox"));
         var ruleSwitch = Assert.Single(ruleTemplate.Descendants(Presentation + "ToggleButton")
-            .Where(element => (string?)element.Attribute("IsChecked") == "{Binding IsEnabled, Mode=TwoWay}"));
+            .Where(element => (string?)element.Attribute("IsChecked") == "{Binding IsEnabled}"));
         Assert.Equal("{StaticResource SettingsRuleSwitchStyle}", (string?)ruleSwitch.Attribute("Style"));
 
         var moreButton = Assert.Single(ruleTemplate.Descendants(Presentation + "ToggleButton")
@@ -173,17 +73,17 @@ public sealed class ThemedTextButtonTemplateTests
         Assert.Equal("False", (string?)popup.Attribute("StaysOpen"));
         Assert.Equal("{Binding IsChecked, ElementName=RuleMoreButton, Mode=TwoWay}", (string?)popup.Attribute("IsOpen"));
 
-        var repeatText = Assert.Single(ruleTemplate.Descendants(Presentation + "TextBlock")
-            .Where(element => (string?)element.Attribute("Text") == "{Binding RepeatText}"));
-        Assert.Equal("13", (string?)repeatText.Attribute("FontSize"));
-        Assert.Equal("Medium", (string?)repeatText.Attribute("FontWeight"));
-        Assert.Equal("{DynamicResource TextPrimary}", (string?)repeatText.Attribute("Foreground"));
+        var targetText = Assert.Single(ruleTemplate.Descendants(Presentation + "TextBlock")
+            .Where(element => (string?)element.Attribute("Text") == "{Binding TargetDisplayText}"));
+        Assert.Equal("13", (string?)targetText.Attribute("FontSize"));
+        Assert.Equal("Medium", (string?)targetText.Attribute("FontWeight"));
+        Assert.Equal("{DynamicResource TextPrimary}", (string?)targetText.Attribute("Foreground"));
 
-        var timeText = Assert.Single(ruleTemplate.Descendants(Presentation + "TextBlock")
-            .Where(element => (string?)element.Attribute("Text") == "{Binding TimeRangeText}"));
-        Assert.Equal("12", (string?)timeText.Attribute("FontSize"));
-        Assert.Equal("Normal", (string?)timeText.Attribute("FontWeight"));
-        Assert.Equal("{DynamicResource TextSecondary}", (string?)timeText.Attribute("Foreground"));
+        var scheduleText = Assert.Single(ruleTemplate.Descendants(Presentation + "TextBlock")
+            .Where(element => (string?)element.Attribute("Text") == "{Binding ScheduleDisplayText}"));
+        Assert.Equal("12", (string?)scheduleText.Attribute("FontSize"));
+        Assert.Equal("Normal", (string?)scheduleText.Attribute("FontWeight"));
+        Assert.Equal("{DynamicResource TextSecondary}", (string?)scheduleText.Attribute("Foreground"));
 
         var editButton = Assert.Single(ruleTemplate.Descendants(Presentation + "Button").Where(button =>
             ((string?)button.Attribute("Command"))?.Contains("EditRuleCommand", StringComparison.Ordinal) == true));

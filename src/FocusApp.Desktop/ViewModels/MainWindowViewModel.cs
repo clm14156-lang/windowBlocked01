@@ -540,6 +540,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             return;
         }
 
+        SettingsPage.RuleModal.ApplyTargets(state.Targets);
         SettingsPage.ApplyAutomaticRules(state.AutomaticRules);
         SettingsPage.ApplyLaunchAtStartupState(state.Settings.LaunchAtStartup);
         SettingsPage.ApplyWindowsNotificationsState(state.Settings.WindowsNotificationsEnabled);
@@ -571,7 +572,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             index,
             rule.IsCustom,
             rule.CreatedAtUtc == DateTimeOffset.UnixEpoch ? now : rule.CreatedAtUtc,
-            now)).ToArray();
+            now, rule.TargetId)).ToArray();
         await _automaticRulesPersistenceGate.WaitAsync();
         try
         {

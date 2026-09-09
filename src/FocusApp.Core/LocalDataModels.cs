@@ -85,6 +85,7 @@ public sealed record LocalAutomaticRule(
     bool IsEnabled,
     int SortOrder)
 {
+    public string? TargetId { get; init; }
     public bool IsCustom { get; init; }
     public DateTimeOffset CreatedAtUtc { get; init; } = DateTimeOffset.UnixEpoch;
     public DateTimeOffset UpdatedAtUtc { get; init; } = DateTimeOffset.UnixEpoch;

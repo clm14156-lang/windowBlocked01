@@ -8,6 +8,22 @@ namespace FocusApp.Tests.Infrastructure;
 public sealed class SqliteLocalDataStoreTests
 {
     [Fact]
+    public async Task OverlappingRulesAreRejectedWithoutReplacingSavedRules()
+    {
+        using var database = new TemporaryDatabase();
+        var store = database.CreateStore();
+        var rule = new LocalAutomaticRule(Guid.NewGuid(), new HashSet<DayOfWeek> { DayOfWeek.Monday }, 180, 360, false, 0) { TargetId = "bound-goal" };
+        await store.ReplaceAutomaticRulesAsync([rule]);
+        await Assert.ThrowsAsync<ArgumentException>(() => store.ReplaceAutomaticRulesAsync([
+            rule, rule with { Id = Guid.NewGuid(), StartMinutes = 60, EndMinutes = 240 }]));
+        var saved = Assert.Single((await store.LoadAsync()).AutomaticRules);
+        Assert.Equal(rule.Id, saved.Id);
+        Assert.Equal("bound-goal", saved.TargetId);
+        await store.ReplaceAutomaticRulesAsync([rule, rule with { Id = Guid.NewGuid(), StartMinutes = 60, EndMinutes = 180 }]);
+        Assert.Equal(2, (await store.LoadAsync()).AutomaticRules.Count);
+    }
+
+    [Fact]
     public async Task Initialize_CreatesCurrentVersionAndReturnsAnEmptySnapshot()
     {
         using var database = new TemporaryDatabase();
@@ -16,7 +32,7 @@ public sealed class SqliteLocalDataStoreTests
         await store.InitializeAsync();
         var snapshot = await store.LoadAsync();
 
-        Assert.Equal(5, await ReadUserVersionAsync(database.Path));
+        Assert.Equal(6, await ReadUserVersionAsync(database.Path));
         Assert.Empty(snapshot.FocusSessions);
         Assert.Empty(snapshot.Targets);
         Assert.Empty(snapshot.Tasks);
@@ -55,11 +71,12 @@ public sealed class SqliteLocalDataStoreTests
 
         await database.CreateStore().InitializeAsync();
 
-        Assert.Equal(5, await ReadUserVersionAsync(database.Path));
+        Assert.Equal(6, await ReadUserVersionAsync(database.Path));
         Assert.True(await TableExistsAsync(database.Path, "focus_session_website_rules"));
         Assert.True(await TableExistsAsync(database.Path, "focus_session_application_rules"));
         Assert.True(await ColumnExistsAsync(database.Path, "targets", "icon_file_name"));
         Assert.True(await ColumnExistsAsync(database.Path, "app_settings", "recent_target_icons_json"));
+        Assert.True(await ColumnExistsAsync(database.Path, "automatic_rules", "target_id"));
         Assert.Equal("1", await ReadSingleValueAsync(database.Path, "SELECT is_custom FROM automatic_rules LIMIT 1;"));
     }
 
@@ -101,6 +118,7 @@ public sealed class SqliteLocalDataStoreTests
                 true,
                 0)
             {
+                TargetId = target.TargetId,
                 IsCustom = true,
                 CreatedAtUtc = now,
                 UpdatedAtUtc = now.AddMinutes(3)

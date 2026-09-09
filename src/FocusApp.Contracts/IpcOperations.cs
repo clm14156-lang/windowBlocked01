@@ -299,7 +299,8 @@ public sealed record LocalAutomaticRuleDto(
     int SortOrder,
     bool IsCustom = false,
     DateTimeOffset? CreatedAtUtc = null,
-    DateTimeOffset? UpdatedAtUtc = null);
+    DateTimeOffset? UpdatedAtUtc = null,
+    string? TargetId = null);
 
 public sealed record LocalAppSettingsDto(
     bool LaunchAtStartup,

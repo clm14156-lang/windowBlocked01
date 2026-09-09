@@ -7,648 +7,86 @@ using FocusApp.Core;
 
 namespace FocusApp.Desktop.ViewModels;
 
-public sealed class AutomaticRuleModalViewModel : INotifyPropertyChanged
+public sealed partial class AutomaticRuleModalViewModel : INotifyPropertyChanged
 {
-    private const int MinutesPerDay = 24 * 60;
     private const int MaximumDurationMinutes = AutomaticBlockingDailyLimitValidator.DailyLimitMinutes;
-    private const int TimeStepMinutes = 5;
-    private bool _isOpen;
-    private bool _isEditing;
-    private bool _isCustom;
-    private bool _isTimePickerOpen;
-    private bool _isPickingStartTime;
-    private bool _hasStartTime = true;
-    private bool _hasEndTime = true;
-    private double _startValue = 9 * 60;
-    private double _endValue = 12 * 60;
-    private string _startTimeText = "09:00";
-    private string _endTimeText = "12:00";
-    private TimePickerOptionViewModel? _selectedHour;
-    private TimePickerOptionViewModel? _selectedMinute;
-    private readonly ObservableCollection<TimeWheelItemViewModel> _hourWheelItems = [];
-    private readonly ObservableCollection<TimeWheelItemViewModel> _minuteWheelItems = [];
+    private bool _isOpen, _isEditing, _isCustom;
     private string _validationMessage = string.Empty;
-
     public AutomaticRuleModalViewModel(IEnumerable<WeekdayOptionViewModel> weekdays)
     {
-        Weekdays = new ReadOnlyCollection<WeekdayOptionViewModel>(weekdays.ToList());
-        HourOptions = new ReadOnlyCollection<TimePickerOptionViewModel>(
-            Enumerable.Range(0, 24).Select(value => new TimePickerOptionViewModel(value, $"{value:00}")).ToList());
-        MinuteOptions = new ReadOnlyCollection<TimePickerOptionViewModel>(
-            Enumerable.Range(0, 12)
-                .Select(value => value * TimeStepMinutes)
-                .Select(value => new TimePickerOptionViewModel(value, $"{value:00}"))
-                .ToList());
-        HourWheelItems = new ReadOnlyObservableCollection<TimeWheelItemViewModel>(_hourWheelItems);
-        MinuteWheelItems = new ReadOnlyObservableCollection<TimeWheelItemViewModel>(_minuteWheelItems);
-        foreach (var weekday in Weekdays)
-        {
-            weekday.PropertyChanged += Weekday_PropertyChanged;
-        }
-
+        Targets.Add(new(string.Empty, "-"));
+        Weekdays = new(weekdays.ToList());
+        foreach (var day in Weekdays) day.PropertyChanged += (_, _) => OnPropertyChanged(nameof(SelectedDaysText));
         SelectDailyCommand = new RelayCommand<object>(_ => IsCustom = false);
         SelectCustomCommand = new RelayCommand<object>(_ => IsCustom = true);
         CloseCommand = new RelayCommand<object>(_ => Close());
-        ConfirmCommand = new RelayCommand<object>(_ => Confirm());
-        ClearTimePickerCommand = new RelayCommand<object>(_ => ClearTimePicker());
-        ConfirmTimePickerCommand = new RelayCommand<object>(_ => ConfirmTimePicker());
-        SelectHourWheelItemCommand = new RelayCommand<TimeWheelItemViewModel>(SelectHourWheelItem);
-        SelectMinuteWheelItemCommand = new RelayCommand<TimeWheelItemViewModel>(SelectMinuteWheelItem);
+        ConfirmCommand = new RelayCommand<object>(_ => { if (SaveEditor()) Close(); });
     }
-
     public event PropertyChangedEventHandler? PropertyChanged;
-
     public event EventHandler<AutomaticRuleDraft>? RuleSubmitted;
-
     public Func<AutomaticRuleDraft, string?>? ValidateRule { get; set; }
-
     public Func<AutomaticRuleDraft, bool>? CanSubmitRule { get; set; }
-
     public ReadOnlyCollection<WeekdayOptionViewModel> Weekdays { get; }
-
-    public ReadOnlyCollection<TimePickerOptionViewModel> HourOptions { get; }
-
-    public ReadOnlyCollection<TimePickerOptionViewModel> MinuteOptions { get; }
-
-    public ReadOnlyObservableCollection<TimeWheelItemViewModel> HourWheelItems { get; }
-
-    public ReadOnlyObservableCollection<TimeWheelItemViewModel> MinuteWheelItems { get; }
-
     public ICommand SelectDailyCommand { get; }
-
     public ICommand SelectCustomCommand { get; }
-
     public ICommand CloseCommand { get; }
-
     public ICommand ConfirmCommand { get; }
-
-    public ICommand ClearTimePickerCommand { get; }
-
-    public ICommand ConfirmTimePickerCommand { get; }
-
-    public ICommand SelectHourWheelItemCommand { get; }
-
-    public ICommand SelectMinuteWheelItemCommand { get; }
-
-    public bool IsOpen
-    {
-        get => _isOpen;
-        private set => SetField(ref _isOpen, value);
-    }
-
-    public bool IsEditing
-    {
-        get => _isEditing;
-        private set => SetField(ref _isEditing, value);
-    }
-
+    public bool IsOpen { get => _isOpen; private set => SetField(ref _isOpen, value); }
+    public bool IsEditing { get => _isEditing; private set => SetField(ref _isEditing, value); }
     public bool IsCustom
     {
         get => _isCustom;
-        set
-        {
-            if (SetField(ref _isCustom, value))
-            {
-                OnPropertyChanged(nameof(IsDaily));
-            }
-        }
+        set { if (SetField(ref _isCustom, value)) OnPropertyChanged(nameof(IsDaily)); }
     }
-
     public bool IsDaily => !IsCustom;
-
-    public bool IsTimePickerOpen
-    {
-        get => _isTimePickerOpen;
-        set
-        {
-            if (SetField(ref _isTimePickerOpen, value))
-            {
-                OnPropertyChanged(nameof(IsStartTimePickerOpen));
-                OnPropertyChanged(nameof(IsEndTimePickerOpen));
-            }
-        }
-    }
-
-    public bool IsStartTimePickerOpen => IsTimePickerOpen && _isPickingStartTime;
-
-    public bool IsEndTimePickerOpen => IsTimePickerOpen && !_isPickingStartTime;
-
-    public TimePickerOptionViewModel? SelectedHour
-    {
-        get => _selectedHour;
-        set
-        {
-            if (SetField(ref _selectedHour, value))
-            {
-                RefreshHourWheelItems();
-            }
-        }
-    }
-
-    public TimePickerOptionViewModel? SelectedMinute
-    {
-        get => _selectedMinute;
-        set
-        {
-            if (SetField(ref _selectedMinute, value))
-            {
-                RefreshMinuteWheelItems();
-            }
-        }
-    }
-
-    public double StartValue
-    {
-        get => _startValue;
-        set
-        {
-            var coerced = Math.Clamp(
-                SnapToStep(value),
-                Math.Max(0, EndValue - MaximumDurationMinutes),
-                EndValue);
-            var hadStartTime = _hasStartTime;
-            _hasStartTime = true;
-            if (SetField(ref _startValue, coerced))
-            {
-                SetStartText(FormatTime(coerced));
-                OnPropertyChanged(nameof(SelectedDurationText));
-                if (IsTimePickerOpen && _isPickingStartTime)
-                {
-                    SyncPickerSelection(coerced);
-                }
-            }
-            else if (!hadStartTime)
-            {
-                SetStartText(FormatTime(coerced));
-                OnPropertyChanged(nameof(SelectedDurationText));
-            }
-        }
-    }
-
-    public double EndValue
-    {
-        get => _endValue;
-        set
-        {
-            var coerced = Math.Clamp(
-                SnapToStep(value),
-                StartValue,
-                Math.Min(MinutesPerDay, StartValue + MaximumDurationMinutes));
-            var hadEndTime = _hasEndTime;
-            _hasEndTime = true;
-            if (SetField(ref _endValue, coerced))
-            {
-                SetEndText(FormatTime(coerced));
-                OnPropertyChanged(nameof(SelectedDurationText));
-                if (IsTimePickerOpen && !_isPickingStartTime)
-                {
-                    SyncPickerSelection(coerced);
-                }
-            }
-            else if (!hadEndTime)
-            {
-                SetEndText(FormatTime(coerced));
-                OnPropertyChanged(nameof(SelectedDurationText));
-            }
-        }
-    }
-
-    public string StartTimeText
-    {
-        get => _startTimeText;
-        set
-        {
-            if (!SetField(ref _startTimeText, value))
-            {
-                return;
-            }
-
-            if (TryParseTime(value, out var minutes))
-            {
-                _hasStartTime = true;
-                StartValue = Math.Min(minutes, EndValue);
-                SetStartText(FormatTime(StartValue));
-            }
-        }
-    }
-
-    public string EndTimeText
-    {
-        get => _endTimeText;
-        set
-        {
-            if (!SetField(ref _endTimeText, value))
-            {
-                return;
-            }
-
-            if (TryParseTime(value, out var minutes))
-            {
-                _hasEndTime = true;
-                EndValue = Math.Max(minutes, StartValue);
-                SetEndText(FormatTime(EndValue));
-            }
-        }
-    }
-
-    public string SelectedDaysText => string.Join("、", Weekdays.Where(day => day.IsSelected).Select(day => day.DisplayName));
-
-    public string SelectedDurationText => !_hasStartTime || !_hasEndTime
-        ? string.Empty
-        : FormatDuration((int)Math.Round(EndValue - StartValue));
-
-    public string ValidationMessage
-    {
-        get => _validationMessage;
-        private set => SetField(ref _validationMessage, value);
-    }
-
+    public string StartTimeText { get => EditorStartText; set => EditorStartText = value; }
+    public string EndTimeText { get => EditorEndText; set => EditorEndText = value; }
+    public double StartValue { get => TryParseTime(EditorStartText, out var value) ? value : 0; set => EditorStartText = FormatTime(value); }
+    public double EndValue { get => TryParseTime(EditorEndText, out var value) ? value : 0; set => EditorEndText = FormatTime(value); }
+    public string SelectedDurationText => $"{(EndValue - StartValue) / 60:0.#}小时";
+    public string SelectedDaysText => string.Join("、", Weekdays.Where(d => d.IsSelected).Select(d => d.DisplayName));
+    public string ValidationMessage { get => _validationMessage; private set => SetField(ref _validationMessage, value); }
     public void Open()
     {
-        IsEditing = false;
-        IsCustom = false;
-        IsTimePickerOpen = false;
+        NewRequested?.Invoke();
+        IsEditing = false; IsCustom = false; IsEditorOpen = false;
+        SelectedTargetId = null;
         ValidationMessage = string.Empty;
-        _hasStartTime = true;
-        _hasEndTime = true;
-        SetRange(9 * 60, 12 * 60);
-        for (var index = 0; index < Weekdays.Count; index++)
-        {
-            Weekdays[index].IsSelected = index is 0 or 2 or 4;
-        }
-
+        EditorStartText = "09:00"; EditorEndText = "12:00";
+        for (var index = 0; index < Weekdays.Count; index++) Weekdays[index].IsSelected = index is 0 or 2 or 4;
         IsOpen = true;
     }
-
-    public void OpenForEdit(
-        bool isCustom,
-        IEnumerable<string> selectedDayKeys,
-        double startMinutes,
-        double endMinutes)
+    public void OpenForEdit(bool isCustom, IEnumerable<string> selectedDayKeys, double startMinutes, double endMinutes)
     {
-        var selectedDays = selectedDayKeys.ToHashSet(StringComparer.Ordinal);
-        IsEditing = true;
-        IsCustom = isCustom;
-        IsTimePickerOpen = false;
+        IsEditing = true; IsCustom = isCustom;
+        var selected = selectedDayKeys.ToHashSet(StringComparer.Ordinal);
+        foreach (var day in Weekdays) day.IsSelected = selected.Contains(day.Key);
+        EditorStartText = FormatTime(startMinutes); EditorEndText = FormatTime(endMinutes);
         ValidationMessage = string.Empty;
-        _hasStartTime = true;
-        _hasEndTime = true;
-
-        var snappedStart = SnapToStep(startMinutes);
-        var snappedEnd = SnapToStep(endMinutes);
-        SetRange(Math.Min(snappedStart, snappedEnd), Math.Max(snappedStart, snappedEnd));
-
-        foreach (var weekday in Weekdays)
-        {
-            weekday.IsSelected = selectedDays.Contains(weekday.Key);
-        }
-
-        OnPropertyChanged(nameof(SelectedDaysText));
         IsOpen = true;
     }
-
-    public void OpenTimePicker(bool isStartTime)
-    {
-        _isPickingStartTime = isStartTime;
-        var value = isStartTime
-            ? StartValue
-            : EndValue;
-        SyncPickerSelection(value);
-        IsTimePickerOpen = true;
-        OnPropertyChanged(nameof(IsStartTimePickerOpen));
-        OnPropertyChanged(nameof(IsEndTimePickerOpen));
-    }
-
-    public void CloseTimePicker()
-    {
-        IsTimePickerOpen = false;
-    }
-
-    public void AdjustTimeByWheel(bool isStartTime, int direction)
-    {
-        if (direction == 0)
-        {
-            return;
-        }
-
-        var delta = direction > 0 ? TimeStepMinutes : -TimeStepMinutes;
-        if (isStartTime)
-        {
-            var current = SnapToStep(StartValue);
-            var adjusted = Math.Clamp(current + delta, 0, EndValue);
-            _hasStartTime = true;
-            StartValue = adjusted;
-            SetStartText(FormatTime(StartValue));
-        }
-        else
-        {
-            var current = SnapToStep(EndValue);
-            var adjusted = Math.Clamp(current + delta, StartValue, MinutesPerDay);
-            _hasEndTime = true;
-            EndValue = adjusted;
-            SetEndText(FormatTime(EndValue));
-        }
-
-        ValidationMessage = string.Empty;
-    }
-
-    public void AdjustPickerWheel(bool isHourColumn, int direction)
-    {
-        if (direction == 0)
-        {
-            return;
-        }
-
-        var offset = direction > 0 ? -1 : 1;
-        if (isHourColumn)
-        {
-            var current = SelectedHour?.Value ?? 0;
-            var next = (current + offset + HourOptions.Count) % HourOptions.Count;
-            SelectedHour = HourOptions[next];
-            return;
-        }
-
-        var minuteIndex = SelectedMinute is null ? 0 : MinuteOptions.IndexOf(SelectedMinute);
-        var nextMinuteIndex = (minuteIndex + offset + MinuteOptions.Count) % MinuteOptions.Count;
-        SelectedMinute = MinuteOptions[nextMinuteIndex];
-    }
-
-    public static AutomaticRuleModalViewModel CreateDefault()
-    {
-        return new AutomaticRuleModalViewModel(
-        [
-            new("Monday", "Mon", "1", true),
-            new("Tuesday", "Tue", "2", false),
-            new("Wednesday", "Wed", "3", true),
-            new("Thursday", "Thu", "4", false),
-            new("Friday", "Fri", "5", true),
-            new("Saturday", "Sat", "6", false),
-            new("Sunday", "Sun", "7", false)
-        ]);
-    }
-
-    private void Confirm()
-    {
-        if (!_hasStartTime || !_hasEndTime)
-        {
-            ValidationMessage = "请选择开始时间和结束时间";
-            return;
-        }
-
-        if (EndValue - StartValue > MaximumDurationMinutes)
-        {
-            ValidationMessage = "单条规则最长 12 小时";
-            return;
-        }
-
-        var selectedDays = (IsCustom ? Weekdays.Where(day => day.IsSelected) : Weekdays).ToArray();
-        var draft = new AutomaticRuleDraft(
-            IsCustom,
-            selectedDays,
-            FormatTime(StartValue),
-            FormatTime(EndValue),
-            StartValue,
-            EndValue);
-        if (CanSubmitRule?.Invoke(draft) == false)
-        {
-            return;
-        }
-
-        var validationMessage = ValidateRule?.Invoke(draft);
-        if (!string.IsNullOrEmpty(validationMessage))
-        {
-            ValidationMessage = validationMessage;
-            return;
-        }
-
-        RuleSubmitted?.Invoke(this, draft);
-        Close();
-    }
-
-    private void Close()
-    {
-        IsTimePickerOpen = false;
-        IsOpen = false;
-    }
-
-    private void ClearTimePicker()
-    {
-        if (_isPickingStartTime)
-        {
-            _hasStartTime = false;
-            SetField(ref _startValue, Math.Max(0, EndValue - MaximumDurationMinutes), nameof(StartValue));
-            SetStartText("--:--");
-        }
-        else
-        {
-            _hasEndTime = false;
-            SetField(ref _endValue, Math.Min(MinutesPerDay, StartValue + MaximumDurationMinutes), nameof(EndValue));
-            SetEndText("--:--");
-        }
-
-        OnPropertyChanged(nameof(SelectedDurationText));
-        ValidationMessage = string.Empty;
-        IsTimePickerOpen = false;
-    }
-
-    private void ConfirmTimePicker()
-    {
-        if (SelectedHour is null || SelectedMinute is null)
-        {
-            return;
-        }
-
-        var selectedMinutes = SelectedHour.Value * 60 + SelectedMinute.Value;
-        if (_isPickingStartTime)
-        {
-            _hasStartTime = true;
-            StartValue = Math.Min(selectedMinutes, EndValue);
-            SetStartText(FormatTime(StartValue));
-        }
-        else
-        {
-            _hasEndTime = true;
-            EndValue = Math.Max(selectedMinutes, StartValue);
-            SetEndText(FormatTime(EndValue));
-        }
-
-        ValidationMessage = string.Empty;
-        IsTimePickerOpen = false;
-    }
-
-    private void Weekday_PropertyChanged(object? sender, PropertyChangedEventArgs e)
-    {
-        if (e.PropertyName == nameof(WeekdayOptionViewModel.IsSelected))
-        {
-            OnPropertyChanged(nameof(SelectedDaysText));
-        }
-    }
-
-    private void SetStartText(string value)
-    {
-        if (_startTimeText != value)
-        {
-            _startTimeText = value;
-            OnPropertyChanged(nameof(StartTimeText));
-        }
-    }
-
-    private void SetEndText(string value)
-    {
-        if (_endTimeText != value)
-        {
-            _endTimeText = value;
-            OnPropertyChanged(nameof(EndTimeText));
-        }
-    }
-
+    private void Close() { CancelEditor(); IsOpen = false; }
     private static bool TryParseTime(string value, out double minutes)
     {
         minutes = 0;
-        var parts = value.Split(':');
+        var parts = value.Trim().Split(':');
         if (parts.Length != 2 || parts[0].Length is < 1 or > 2 || parts[1].Length != 2 ||
             !int.TryParse(parts[0], NumberStyles.None, CultureInfo.InvariantCulture, out var hours) ||
             !int.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out var minutePart) ||
-            hours is < 0 or > 24 || minutePart is < 0 or > 59 || (hours == 24 && minutePart != 0))
-        {
-            return false;
-        }
-
+            hours is < 0 or > 24 || minutePart is < 0 or > 59 || (hours == 24 && minutePart != 0)) return false;
         minutes = hours * 60 + minutePart;
         return true;
     }
-
-    private static string FormatTime(double minutes)
+    private static string FormatTime(double minutes) => $"{(int)Math.Round(minutes) / 60:00}:{(int)Math.Round(minutes) % 60:00}";
+    private bool SetField<T>(ref T field, T value, [CallerMemberName] string? name = null)
     {
-        var totalMinutes = (int)Math.Round(minutes);
-        return $"{totalMinutes / 60:00}:{totalMinutes % 60:00}";
+        if (EqualityComparer<T>.Default.Equals(field, value)) return false;
+        field = value; OnPropertyChanged(name); return true;
     }
-
-    private static string FormatDuration(int minutes)
-    {
-        if (minutes == MaximumDurationMinutes)
-        {
-            return "12小时 · 已达上限";
-        }
-
-        var hours = minutes / 60;
-        var remainingMinutes = minutes % 60;
-        if (hours == 0)
-        {
-            return $"{remainingMinutes}分钟";
-        }
-
-        return remainingMinutes == 0
-            ? $"{hours}小时"
-            : $"{hours}小时 {remainingMinutes}分钟";
-    }
-
-    private void SetRange(double startMinutes, double endMinutes)
-    {
-        var start = Math.Clamp(SnapToStep(startMinutes), 0, MinutesPerDay);
-        var end = Math.Clamp(SnapToStep(endMinutes), start, MinutesPerDay);
-        end = Math.Min(end, start + MaximumDurationMinutes);
-        _startValue = start;
-        _endValue = end;
-        OnPropertyChanged(nameof(StartValue));
-        OnPropertyChanged(nameof(EndValue));
-        SetStartText(FormatTime(start));
-        SetEndText(FormatTime(end));
-        OnPropertyChanged(nameof(SelectedDurationText));
-    }
-
-    private static double SnapToStep(double minutes)
-    {
-        return Math.Clamp(Math.Round(minutes / TimeStepMinutes) * TimeStepMinutes, 0, MinutesPerDay);
-    }
-
-    private void SyncPickerSelection(double minutes)
-    {
-        var snappedValue = Math.Min(SnapToStep(minutes), MinutesPerDay - TimeStepMinutes);
-        var hour = (int)snappedValue / 60;
-        var minute = (int)snappedValue % 60;
-        SelectedHour = HourOptions[hour];
-        SelectedMinute = MinuteOptions.Single(option => option.Value == minute);
-    }
-
-    private void SelectHourWheelItem(TimeWheelItemViewModel? item)
-    {
-        if (item is not null)
-        {
-            SelectedHour = HourOptions[item.Value];
-        }
-    }
-
-    private void SelectMinuteWheelItem(TimeWheelItemViewModel? item)
-    {
-        if (item is not null)
-        {
-            SelectedMinute = MinuteOptions.Single(option => option.Value == item.Value);
-        }
-    }
-
-    private void RefreshHourWheelItems()
-    {
-        if (SelectedHour is null)
-        {
-            return;
-        }
-
-        _hourWheelItems.Clear();
-        for (var offset = -2; offset <= 2; offset++)
-        {
-            var value = (SelectedHour.Value + offset + HourOptions.Count) % HourOptions.Count;
-            _hourWheelItems.Add(new TimeWheelItemViewModel(value, $"{value:00}", offset));
-        }
-    }
-
-    private void RefreshMinuteWheelItems()
-    {
-        if (SelectedMinute is null)
-        {
-            return;
-        }
-
-        var selectedIndex = MinuteOptions.IndexOf(SelectedMinute);
-        _minuteWheelItems.Clear();
-        for (var offset = -2; offset <= 2; offset++)
-        {
-            var optionIndex = (selectedIndex + offset + MinuteOptions.Count) % MinuteOptions.Count;
-            var option = MinuteOptions[optionIndex];
-            _minuteWheelItems.Add(new TimeWheelItemViewModel(option.Value, option.Display, offset));
-        }
-    }
-
-    private bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
-    {
-        if (EqualityComparer<T>.Default.Equals(field, value))
-        {
-            return false;
-        }
-
-        field = value;
-        OnPropertyChanged(propertyName);
-        return true;
-    }
-
-    private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-    {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-    }
-}
-
-public sealed record TimePickerOptionViewModel(int Value, string Display);
-
-public sealed record TimeWheelItemViewModel(int Value, string Display, int Offset)
-{
-    public bool IsSelected => Offset == 0;
-
-    public double Opacity => Math.Abs(Offset) switch
-    {
-        0 => 1,
-        1 => 0.62,
-        _ => 0.32
-    };
+    private void OnPropertyChanged([CallerMemberName] string? name = null) => PropertyChanged?.Invoke(this, new(name));
+    public static AutomaticRuleModalViewModel CreateDefault() => new(
+        new[] { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" }
+            .Select((day, index) => new WeekdayOptionViewModel(day, "周" + "一二三四五六日"[index], (index + 1).ToString(), false)));
 }
 
 public sealed class WeekdayOptionViewModel : INotifyPropertyChanged
@@ -668,6 +106,8 @@ public sealed class WeekdayOptionViewModel : INotifyPropertyChanged
     public string Key { get; }
 
     public string DisplayName { get; }
+
+    public string ChineseName => Key switch { "Monday" => "一", "Tuesday" => "二", "Wednesday" => "三", "Thursday" => "四", "Friday" => "五", "Saturday" => "六", _ => "日" };
 
     public string ShortName { get; }
 
@@ -693,4 +133,5 @@ public sealed record AutomaticRuleDraft(
     string StartTime,
     string EndTime,
     double StartMinutes,
-    double EndMinutes);
+    double EndMinutes,
+    string? TargetId = null);

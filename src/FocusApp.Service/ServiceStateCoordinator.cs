@@ -258,6 +258,8 @@ public sealed class ServiceStateCoordinator : IAsyncDisposable
             rule.IsEnabled)).ToArray();
         foreach (var candidate in candidates)
         {
+            if (candidates.Any(other => other.Id != candidate.Id && RuleTimelineRange.Overlaps(candidate.StartMinutes, candidate.EndMinutes, other.StartMinutes, other.EndMinutes)))
+                throw new ServiceBusinessException("自动屏蔽规则时间不能重叠。");
             if (!AutomaticBlockingDailyLimitValidator.IsSingleRuleWithinLimit(candidate) ||
                 AutomaticBlockingDailyLimitValidator.FindConflict(candidates, candidate) is not null)
             {

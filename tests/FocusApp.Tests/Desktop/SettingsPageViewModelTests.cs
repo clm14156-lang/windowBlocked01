@@ -19,12 +19,37 @@ public sealed class SettingsPageViewModelTests
 
         Assert.Equal(2, viewModel.AutomaticRules.Count);
         Assert.Equal("每天", viewModel.AutomaticRules[0].RepeatText);
+        Assert.Equal("无目标", viewModel.AutomaticRules[0].TargetDisplayText);
+        Assert.Equal("09:00 – 12:00", viewModel.AutomaticRules[0].ScheduleDisplayText);
         Assert.False(viewModel.AutomaticRules[0].IsEnabled);
         Assert.Equal("周一 / 周三", viewModel.AutomaticRules[1].RepeatText);
+        Assert.Equal("14:00 – 18:00 （周一 / 周三）", viewModel.AutomaticRules[1].ScheduleDisplayText);
         Assert.True(viewModel.AutomaticRules[1].IsCustom);
         Assert.True(viewModel.AutomaticRules[1].IsEnabled);
         Assert.Equal(created, viewModel.AutomaticRules[1].CreatedAtUtc);
         Assert.Equal(created.AddMinutes(1), viewModel.AutomaticRules[1].UpdatedAtUtc);
+    }
+
+    [Fact]
+    public void RuleListDisplaysActiveTargetNameAndCustomScheduleOnTwoLines()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var viewModel = new SettingsPageViewModel([], [], dailyLabel: "每天");
+        viewModel.RuleModal.ApplyTargets([
+            new LocalTargetDto("goal-active", "学习ue5", false, 0, now, now),
+            new LocalTargetDto("goal-archived", "旧目标", true, 1, now, now)
+        ]);
+        viewModel.ApplyAutomaticRules([
+            new LocalAutomaticRuleDto(Guid.NewGuid(), [DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday],
+                13 * 60, 15 * 60, true, 0, true) { TargetId = "goal-active" },
+            new LocalAutomaticRuleDto(Guid.NewGuid(), Enum.GetValues<DayOfWeek>(),
+                16 * 60, 17 * 60, false, 1, false) { TargetId = "goal-archived" }
+        ]);
+
+        Assert.Equal("学习ue5", viewModel.AutomaticRules[0].TargetDisplayText);
+        Assert.Equal("13:00 – 15:00 （周一 / 周二 / 周三）", viewModel.AutomaticRules[0].ScheduleDisplayText);
+        Assert.Equal("无目标", viewModel.AutomaticRules[1].TargetDisplayText);
+        Assert.Equal("16:00 – 17:00", viewModel.AutomaticRules[1].ScheduleDisplayText);
     }
 
     [Fact]
@@ -122,132 +147,6 @@ public sealed class SettingsPageViewModelTests
         Assert.Equal("周一、周三、周五", modal.SelectedDaysText);
         Assert.Equal("09:00", modal.StartTimeText);
         Assert.Equal("12:00", modal.EndTimeText);
-    }
-
-    [Fact]
-    public void TimeInputsAndSliderValues_StaySynchronizedAndOrdered()
-    {
-        var modal = CreateRuleModal();
-        modal.Open();
-
-        modal.StartTimeText = "10:30";
-        Assert.Equal(630, modal.StartValue);
-
-        modal.StartValue = 8 * 60;
-        Assert.Equal("08:00", modal.StartTimeText);
-
-        modal.EndTimeText = "07:00";
-        Assert.Equal(modal.StartValue, modal.EndValue);
-        Assert.Equal("08:00", modal.EndTimeText);
-    }
-
-    [Fact]
-    public void TimePicker_ConfirmsFiveMinuteSelectionAndWheelStaysSynchronized()
-    {
-        var modal = CreateRuleModal();
-        modal.Open();
-
-        modal.OpenTimePicker(true);
-        Assert.True(modal.IsStartTimePickerOpen);
-        Assert.Equal(9, modal.SelectedHour?.Value);
-        Assert.Equal(0, modal.SelectedMinute?.Value);
-        Assert.Equal(5, modal.HourWheelItems.Count);
-        Assert.Equal(5, modal.MinuteWheelItems.Count);
-        Assert.Equal(9, Assert.Single(modal.HourWheelItems.Where(item => item.IsSelected)).Value);
-        Assert.Equal(0, Assert.Single(modal.MinuteWheelItems.Where(item => item.IsSelected)).Value);
-
-        modal.AdjustPickerWheel(true, -120);
-        Assert.Equal(10, modal.SelectedHour?.Value);
-        Assert.Equal(10, Assert.Single(modal.HourWheelItems.Where(item => item.IsSelected)).Value);
-
-        var nextMinute = modal.MinuteWheelItems.Single(item => item.Value == 5);
-        modal.SelectMinuteWheelItemCommand.Execute(nextMinute);
-        Assert.Equal(5, modal.SelectedMinute?.Value);
-        Assert.Equal(5, Assert.Single(modal.MinuteWheelItems.Where(item => item.IsSelected)).Value);
-
-        modal.SelectedHour = modal.HourOptions[9];
-        modal.SelectedMinute = modal.MinuteOptions.Single(option => option.Value == 30);
-        modal.ConfirmTimePickerCommand.Execute(null);
-
-        Assert.False(modal.IsTimePickerOpen);
-        Assert.Equal(570, modal.StartValue);
-        Assert.Equal("09:30", modal.StartTimeText);
-
-        modal.AdjustTimeByWheel(true, 120);
-        Assert.Equal(575, modal.StartValue);
-        Assert.Equal("09:35", modal.StartTimeText);
-
-        modal.StartValue = 10 * 60;
-        Assert.Equal("10:00", modal.StartTimeText);
-
-        modal.OpenTimePicker(true);
-        modal.StartValue = 10 * 60 + 3;
-        Assert.Equal(10 * 60 + 5, modal.StartValue);
-        Assert.Equal("10:05", modal.StartTimeText);
-        Assert.Equal(10, modal.SelectedHour?.Value);
-        Assert.Equal(5, modal.SelectedMinute?.Value);
-    }
-
-    [Fact]
-    public void TimePicker_ClearReservesSafeSliderBoundaryUntilTimeIsSelectedAgain()
-    {
-        var modal = CreateRuleModal();
-        modal.Open();
-
-        modal.OpenTimePicker(false);
-        modal.ClearTimePickerCommand.Execute(null);
-
-        Assert.False(modal.IsTimePickerOpen);
-        Assert.Equal("--:--", modal.EndTimeText);
-        Assert.Equal(21 * 60, modal.EndValue);
-        Assert.Equal(string.Empty, modal.SelectedDurationText);
-
-        modal.ConfirmCommand.Execute(null);
-        Assert.True(modal.IsOpen);
-        Assert.Equal("请选择开始时间和结束时间", modal.ValidationMessage);
-
-        modal.AdjustTimeByWheel(false, -120);
-        Assert.Equal("20:55", modal.EndTimeText);
-        Assert.Equal(20 * 60 + 55, modal.EndValue);
-    }
-
-    [Fact]
-    public void TimeRange_ClampsBothHandlesToTwelveHours()
-    {
-        var modal = CreateRuleModal();
-        modal.Open();
-
-        modal.EndValue = 23 * 60;
-
-        Assert.Equal(21 * 60, modal.EndValue);
-        Assert.Equal("21:00", modal.EndTimeText);
-        Assert.Equal("12小时 · 已达上限", modal.SelectedDurationText);
-
-        modal.EndValue = 18 * 60;
-        modal.StartValue = 0;
-
-        Assert.Equal(6 * 60, modal.StartValue);
-        Assert.Equal("06:00", modal.StartTimeText);
-        Assert.Equal("12小时 · 已达上限", modal.SelectedDurationText);
-    }
-
-    [Fact]
-    public void TimeInputs_UseTheSameTwelveHourBoundaryAndUpdateDurationText()
-    {
-        var modal = CreateRuleModal();
-        modal.Open();
-
-        Assert.Equal("3小时", modal.SelectedDurationText);
-
-        modal.EndTimeText = "23:00";
-
-        Assert.Equal("21:00", modal.EndTimeText);
-        Assert.Equal(21 * 60, modal.EndValue);
-        Assert.Equal("12小时 · 已达上限", modal.SelectedDurationText);
-
-        modal.EndTimeText = "10:35";
-
-        Assert.Equal("1小时 35分钟", modal.SelectedDurationText);
     }
 
     [Fact]
@@ -357,72 +256,10 @@ public sealed class SettingsPageViewModelTests
         modal.ConfirmCommand.Execute(null);
 
         Assert.True(modal.IsOpen);
-        Assert.Equal("已存在相同的自动屏蔽规则", modal.ValidationMessage);
+        Assert.Contains("重叠", modal.ValidationMessage);
         Assert.Equal(2, viewModel.AutomaticRules.Count);
         Assert.Same(ruleToEdit, viewModel.AutomaticRules[1]);
         Assert.Equal("14:00 – 18:00", ruleToEdit.TimeRangeText);
-    }
-
-    [Fact]
-    public void RuleCreation_MergesOverlappingContainingAndTouchingIntervals()
-    {
-        var automatic = new SettingsToggleItemViewModel("AutomaticBlocking", "Automatic", "Description", "Icon", true);
-        var modal = CreateRuleModal();
-        var viewModel = new SettingsPageViewModel([automatic], [], modal, "每天");
-
-        modal.Open();
-        modal.ConfirmCommand.Execute(null);
-        Assert.Single(viewModel.AutomaticRules);
-
-        modal.Open();
-        modal.StartTimeText = "11:00";
-        modal.EndTimeText = "14:25";
-        modal.ConfirmCommand.Execute(null);
-        Assert.Single(viewModel.AutomaticRules);
-        Assert.Equal("09:00 – 14:25", viewModel.AutomaticRules[0].TimeRangeText);
-        Assert.True(viewModel.IsRuleMergeToastVisible);
-        Assert.Equal("09:00 – 14:25", viewModel.RuleMergeToastRange);
-
-        viewModel.CloseRuleMergeToastCommand.Execute(null);
-        modal.Open();
-        modal.StartTimeText = "10:00";
-        modal.EndTimeText = "12:00";
-        modal.ConfirmCommand.Execute(null);
-        Assert.Single(viewModel.AutomaticRules);
-        Assert.Equal("09:00 – 14:25", viewModel.AutomaticRules[0].TimeRangeText);
-
-        modal.Open();
-        modal.EndTimeText = "16:00";
-        modal.StartTimeText = "15:00";
-        modal.ConfirmCommand.Execute(null);
-        Assert.Equal(2, viewModel.AutomaticRules.Count);
-        Assert.False(viewModel.IsRuleMergeToastVisible);
-    }
-
-    [Fact]
-    public void RuleCreation_MergesAllConnectedIntervalsInOnePass()
-    {
-        var automatic = new SettingsToggleItemViewModel("AutomaticBlocking", "Automatic", "Description", "Icon", true);
-        var modal = CreateRuleModal();
-        var viewModel = new SettingsPageViewModel([automatic], [], modal, "每天");
-
-        modal.Open();
-        modal.StartTimeText = "09:00";
-        modal.EndTimeText = "10:00";
-        modal.ConfirmCommand.Execute(null);
-        modal.Open();
-        modal.StartTimeText = "11:00";
-        modal.EndTimeText = "12:00";
-        modal.ConfirmCommand.Execute(null);
-        Assert.Equal(2, viewModel.AutomaticRules.Count);
-
-        modal.Open();
-        modal.StartTimeText = "10:00";
-        modal.EndTimeText = "11:00";
-        modal.ConfirmCommand.Execute(null);
-
-        var merged = Assert.Single(viewModel.AutomaticRules);
-        Assert.Equal("09:00 – 12:00", merged.TimeRangeText);
     }
 
     [Fact]
@@ -438,7 +275,7 @@ public sealed class SettingsPageViewModelTests
 
         modal.Open();
         modal.EndTimeText = "20:30";
-        modal.StartTimeText = "19:00";
+        modal.StartTimeText = "19:15";
         modal.ConfirmCommand.Execute(null);
 
         Assert.True(modal.IsOpen);
@@ -447,7 +284,7 @@ public sealed class SettingsPageViewModelTests
         Assert.Equal(0, changes);
         Assert.True(viewModel.IsRuleLimitToastVisible);
         Assert.Equal("周一每日最多屏蔽 12 小时，当前还可添加 45 分钟", viewModel.RuleLimitToastMessage);
-        Assert.Equal(string.Empty, modal.ValidationMessage);
+        Assert.Empty(modal.ValidationMessage);
 
         viewModel.CloseRuleLimitToastCommand.Execute(null);
         Assert.False(viewModel.IsRuleLimitToastVisible);

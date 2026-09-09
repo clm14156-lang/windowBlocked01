@@ -45,19 +45,96 @@ public sealed class AutomaticBlockingDailyLimitPresentationTests
     }
 
     [Fact]
-    public void RuleModal_ShowsLiveDurationBesideTimeHeading()
+    public void RuleModal_HeaderDoesNotRepeatTheBlockTime()
     {
-        var root = FindRepositoryRoot();
-        var modal = XDocument.Load(Path.Combine(root, "src", "FocusApp.Desktop", "Views", "AutomaticRuleModal.xaml"));
+        var modal = XDocument.Load(Path.Combine(FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "AutomaticRuleModal.xaml"));
+        Assert.DoesNotContain(modal.Descendants(), element => (string?)element.Attribute("{http://schemas.microsoft.com/winfx/2006/xaml}Name") == "SelectionSummary");
+        Assert.Contains(modal.Descendants(Presentation + "TextBlock"), element => (string?)element.Attribute("Text") == "选择时间段");
+    }
 
-        var duration = Assert.Single(modal.Descendants(Presentation + "TextBlock")
-            .Where(element => (string?)element.Attribute("Text") == "{Binding SelectedDurationText, Mode=OneWay}"));
+    [Fact]
+    public void RuleEditorPanel_IsThreeHundredDipWide()
+    {
+        var modal = XDocument.Load(Path.Combine(FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "AutomaticRuleModal.xaml"));
+        var editor = Assert.Single(modal.Descendants(Presentation + "Border").Where(element =>
+            (string?)element.Attribute("Width") == "300" &&
+            element.Descendants(Presentation + "TextBlock").Any(text =>
+                (string?)text.Attribute("Text") == "编辑规则")));
 
-        Assert.Equal("Right", (string?)duration.Attribute("HorizontalAlignment"));
-        Assert.Equal("12", (string?)duration.Attribute("FontSize"));
-        Assert.Equal("{DynamicResource TextSecondary}", (string?)duration.Attribute("Foreground"));
-        Assert.Contains(duration.Parent!.Elements(Presentation + "TextBlock"), element =>
-            (string?)element.Attribute("Text") == "{DynamicResource AutomaticRuleTimeTitle}");
+        Assert.Equal("300", (string?)editor.Attribute("Width"));
+    }
+
+    [Fact]
+    public void RuleTimeline_UsesTypographyStandard()
+    {
+        var modal = XDocument.Load(Path.Combine(FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "AutomaticRuleModal.xaml"));
+        var root = Assert.IsType<XElement>(modal.Root);
+
+        Assert.Equal("Segoe UI Variable, Microsoft YaHei UI, Segoe UI", (string?)root.Attribute("TextElement.FontFamily"));
+        Assert.Equal("13", (string?)root.Attribute("TextElement.FontSize"));
+
+        foreach (var title in new[] { "选择时间段", "编辑规则" })
+        {
+            var element = Assert.Single(modal.Descendants(Presentation + "TextBlock")
+                .Where(text => (string?)text.Attribute("Text") == title));
+            Assert.Equal("17", (string?)element.Attribute("FontSize"));
+            Assert.Equal("SemiBold", (string?)element.Attribute("FontWeight"));
+            Assert.Equal("{DynamicResource TextPrimary}", (string?)element.Attribute("Foreground"));
+        }
+
+        Assert.DoesNotContain(modal.Descendants(), element =>
+            (string?)element.Attribute("FontSize") is "11" or "14" or "16" or "18" or "19");
+    }
+
+    [Fact]
+    public void RuleTargetDropDown_MatchesFieldWidthAndShowsTargetIcons()
+    {
+        var modal = XDocument.Load(Path.Combine(FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "AutomaticRuleModal.xaml"));
+        var comboBox = Assert.Single(modal.Descendants(Presentation + "ComboBox")
+            .Where(element => (string?)element.Attribute("ItemsSource") == "{Binding Targets}"));
+        Assert.Null(comboBox.Attribute("DisplayMemberPath"));
+
+        var targetStyle = Assert.Single(modal.Descendants(Presentation + "Style")
+            .Where(element => (string?)element.Attribute("{http://schemas.microsoft.com/winfx/2006/xaml}Key") == "TargetField"));
+        var popupBorder = Assert.Single(targetStyle.Descendants(Presentation + "Popup")
+            .Elements(Presentation + "Border"));
+        Assert.Equal("{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}", (string?)popupBorder.Attribute("Width"));
+        Assert.Null(popupBorder.Attribute("MinWidth"));
+
+        var itemTemplate = Assert.Single(comboBox.Elements(Presentation + "ComboBox.ItemTemplate")
+            .Elements(Presentation + "DataTemplate"));
+        var icon = Assert.Single(itemTemplate.Descendants(Presentation + "Image"));
+        Assert.Equal("16", (string?)icon.Attribute("Width"));
+        Assert.Equal("16", (string?)icon.Attribute("Height"));
+        Assert.Equal("0,0,8,0", (string?)icon.Attribute("Margin"));
+        Assert.Equal("{Binding HasIcon, Converter={StaticResource BoolVisibility}}", (string?)icon.Attribute("Visibility"));
+        Assert.Contains(itemTemplate.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "{Binding Name}");
+    }
+
+    [Fact]
+    public void RepeatButtons_AddOneDipOrangeOutlineOnlyWhenSelected()
+    {
+        var modal = XDocument.Load(Path.Combine(FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "AutomaticRuleModal.xaml"));
+        var style = Assert.Single(modal.Descendants(Presentation + "Style")
+            .Where(element => (string?)element.Attribute("{http://schemas.microsoft.com/winfx/2006/xaml}Key") == "RepeatButton"));
+        var setters = style.Elements(Presentation + "Setter").ToArray();
+        Assert.Contains(setters, setter =>
+            (string?)setter.Attribute("Property") == "BorderBrush" &&
+            (string?)setter.Attribute("Value") == "Transparent");
+
+        var outline = Assert.Single(style.Descendants(Presentation + "Border")
+            .Where(border => (string?)border.Attribute("BorderBrush") == "{TemplateBinding BorderBrush}"));
+        Assert.Equal("1", (string?)outline.Attribute("BorderThickness"));
+        Assert.Equal("10", (string?)outline.Attribute("CornerRadius"));
+        Assert.Equal("False", (string?)outline.Attribute("IsHitTestVisible"));
+
+        var selected = Assert.Single(style.Descendants(Presentation + "Trigger")
+            .Where(trigger => (string?)trigger.Attribute("Property") == "IsChecked" &&
+                (string?)trigger.Attribute("Value") == "True"));
+        Assert.Contains(selected.Elements(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("Property") == "BorderBrush" &&
+            (string?)setter.Attribute("Value") == "{DynamicResource AccentPrimary}");
     }
 
     private static string FindRepositoryRoot()

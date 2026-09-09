@@ -340,7 +340,8 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
             StartFocus(
                 evaluation.StartRequest.FocusMinutes,
                 evaluation.StartRequest.RuleId,
-                new DateTimeOffset(evaluation.StartRequest.OccurrenceStartsAt).ToUniversalTime());
+                new DateTimeOffset(evaluation.StartRequest.OccurrenceStartsAt).ToUniversalTime(),
+                FocusTargetModal.Targets.FirstOrDefault(target => target.TargetId == ruleList.FirstOrDefault(rule => rule.Id == evaluation.StartRequest.RuleId)?.TargetId));
         }
     }
 
@@ -410,7 +411,8 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
     private void StartFocus(
         int? minutes = null,
         Guid? automaticRuleId = null,
-        DateTimeOffset? automaticOccurrenceStartedAtUtc = null)
+        DateTimeOffset? automaticOccurrenceStartedAtUtc = null,
+        FocusTargetViewModel? automaticTarget = null)
     {
         var decision = ForcedModeAccessPolicy.EvaluateStart(
             _isLoggedIn,
@@ -424,7 +426,7 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
 
         var selectedDuration = _currentDurationOption;
         var focusMinutes = minutes ?? selectedDuration.Minutes;
-        var target = FocusTargetModal.HasSelectedTarget ? FocusTargetModal.SelectedTarget : null;
+        var target = automaticTarget ?? (FocusTargetModal.HasSelectedTarget ? FocusTargetModal.SelectedTarget : null);
         if (decision == FocusStartModeDecision.Forced && _forcedFocusStarter is not null)
         {
             if (IsStartingForcedFocus ||

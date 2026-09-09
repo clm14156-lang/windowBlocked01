@@ -53,6 +53,11 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
         CloseRuleLimitToastCommand = new RelayCommand<object>(_ => CloseRuleLimitToast());
         RuleModal.CanSubmitRule = CanSubmitRule;
         RuleModal.ValidateRule = ValidateRule;
+        RuleModal.GetRules = () => AutomaticRules.ToArray();
+        RuleModal.EditRequested = EditRule;
+        RuleModal.MoveRequested = MoveRule;
+        RuleModal.ResizeRequested = ResizeRule;
+        RuleModal.NewRequested = () => _editingRule = null;
         RuleModal.RuleSubmitted += RuleModal_RuleSubmitted;
         RuleActivationModal.ActivationConfirmed += RuleActivationModal_ActivationConfirmed;
         if (AutomaticBlockingItem is not null)
@@ -165,9 +170,11 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
             {
                 IsEnabled = rule.IsEnabled
             };
+            item.SetTarget(rule.TargetId, ResolveTargetName(rule.TargetId));
             item.PropertyChanged += AutomaticRule_PropertyChanged;
             AutomaticRules.Add(item);
         }
+        RuleModal.RefreshTimeline();
     }
 
     public ICommand ActivateEntryCommand { get; }
@@ -211,7 +218,7 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
     private void OpenCreateRule()
     {
         _editingRule = null;
-        RuleModal.Open();
+        RuleModal.OpenTimeline();
     }
 
     private void EditRule(AutomaticRuleItemViewModel? rule)
@@ -227,6 +234,47 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
             rule.DayKeys,
             rule.StartMinutes,
             rule.EndMinutes);
+        RuleModal.BeginEditor(rule);
+    }
+
+    private string? MoveRule(AutomaticRuleItemViewModel original, double start, double end)
+        => SaveDraggedRule(original, start, end, preserveDuration: true);
+
+    private string? ResizeRule(AutomaticRuleItemViewModel original, double start, double end)
+        => SaveDraggedRule(original, start, end, preserveDuration: false);
+
+    private string? SaveDraggedRule(
+        AutomaticRuleItemViewModel original,
+        double start,
+        double end,
+        bool preserveDuration)
+    {
+        var current = AutomaticRules.FirstOrDefault(rule => rule.Id == original.Id);
+        if (current is null || current.StartMinutes != original.StartMinutes || current.EndMinutes != original.EndMinutes)
+            return "规则已变化，请重新拖动";
+        var duration = end - start;
+        if (start < 0 || end > 1440 || duration < RuleTimelineRange.MinimumDurationMinutes)
+            return $"时间段不能短于 {RuleTimelineRange.MinimumDurationMinutes:0} 分钟且不能超出当天范围";
+        if (duration > AutomaticBlockingDailyLimitValidator.DailyLimitMinutes)
+            return "单条规则最长 12 小时";
+        if (preserveDuration && duration != current.EndMinutes - current.StartMinutes)
+            return "移动必须保持原有时长且不能超出当天范围";
+        if (start == current.StartMinutes && end == current.EndMinutes) return null;
+        var previous = _editingRule;
+        _editingRule = current;
+        try
+        {
+            var draft = new AutomaticRuleDraft(current.IsCustom,
+                RuleModal.Weekdays.Where(day => !current.IsCustom || current.DayKeys.Contains(day.Key)).ToArray(),
+                FormatRuleTime(start), FormatRuleTime(end), start, end, current.TargetId);
+            var error = ValidateRule(draft);
+            if (error is not null) return error;
+            if (!CanSubmitRule(draft))
+                return preserveDuration ? "移动未保存：超过每日屏蔽上限" : "调整未保存：超过每日屏蔽上限";
+            RuleModal_RuleSubmitted(this, draft);
+            return null;
+        }
+        finally { _editingRule = previous; }
     }
 
     private void RuleModal_RuleSubmitted(object? sender, AutomaticRuleDraft rule)
@@ -237,6 +285,8 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
 
         if (_editingRule is not null)
         {
+            _editingRule = AutomaticRules.FirstOrDefault(item => item.Id == _editingRule.Id);
+            if (_editingRule is null) return;
             _editingRule.Update(
                 repeatText,
                 $"{rule.StartTime} – {rule.EndTime}",
@@ -244,75 +294,19 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
                 rule.StartMinutes,
                 rule.EndMinutes,
                 rule.IsCustom);
+            _editingRule.SetTarget(rule.TargetId, ResolveTargetName(rule.TargetId));
             _editingRule = null;
             RulesChanged?.Invoke(this, EventArgs.Empty);
             return;
         }
 
-        AddOrMergeRule(rule, repeatText);
+        var item = new AutomaticRuleItemViewModel(Guid.NewGuid(), repeatText,
+            FormatRuleRange(rule.StartMinutes, rule.EndMinutes), rule.SelectedDays.Select(day => day.Key),
+            rule.StartMinutes, rule.EndMinutes, rule.IsCustom) { IsEnabled = false };
+        item.SetTarget(rule.TargetId, ResolveTargetName(rule.TargetId));
+        item.PropertyChanged += AutomaticRule_PropertyChanged;
+        AutomaticRules.Add(item);
         RulesChanged?.Invoke(this, EventArgs.Empty);
-    }
-
-    private void AddOrMergeRule(AutomaticRuleDraft draft, string repeatText)
-    {
-        var selectedDays = draft.SelectedDays.Select(day => day.Key).ToHashSet(StringComparer.Ordinal);
-        var mergedStart = draft.StartMinutes;
-        var mergedEnd = draft.EndMinutes;
-        var matches = new List<AutomaticRuleItemViewModel>();
-
-        // Expand the candidate range until every connected rule in the same
-        // recurrence scope has been included. This handles one new interval joining
-        // several existing intervals in a single operation.
-        while (true)
-        {
-            var newlyConnected = AutomaticRules
-                .Where(existing => !matches.Contains(existing)
-                    && HasSameRepeatScope(existing, draft, selectedDays)
-                    && IntervalsTouch(existing.StartMinutes, existing.EndMinutes, mergedStart, mergedEnd))
-                .ToList();
-
-            if (newlyConnected.Count == 0)
-            {
-                break;
-            }
-
-            matches.AddRange(newlyConnected);
-            mergedStart = Math.Min(mergedStart, newlyConnected.Min(item => item.StartMinutes));
-            mergedEnd = Math.Max(mergedEnd, newlyConnected.Max(item => item.EndMinutes));
-        }
-
-        if (matches.Count == 0)
-        {
-            CloseRuleMergeToast();
-            var item = new AutomaticRuleItemViewModel(
-                Guid.NewGuid(),
-                repeatText,
-                FormatRuleRange(mergedStart, mergedEnd),
-                selectedDays,
-                mergedStart,
-                mergedEnd,
-                draft.IsCustom);
-            item.IsEnabled = false;
-            item.PropertyChanged += AutomaticRule_PropertyChanged;
-            AutomaticRules.Add(item);
-            return;
-        }
-
-        var keeper = matches[0];
-        foreach (var redundant in matches.Skip(1))
-        {
-            redundant.PropertyChanged -= AutomaticRule_PropertyChanged;
-            AutomaticRules.Remove(redundant);
-        }
-
-        keeper.Update(
-            repeatText,
-            FormatRuleRange(mergedStart, mergedEnd),
-            selectedDays,
-            mergedStart,
-            mergedEnd,
-            draft.IsCustom);
-        ShowRuleMergeToast(FormatRuleRange(mergedStart, mergedEnd));
     }
 
     private static bool HasSameRepeatScope(
@@ -326,6 +320,11 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
 
     private static string FormatRuleRange(double startMinutes, double endMinutes)
         => $"{FormatRuleTime(startMinutes)} – {FormatRuleTime(endMinutes)}";
+
+    private string? ResolveTargetName(string? targetId)
+        => string.IsNullOrEmpty(targetId)
+            ? null
+            : RuleModal.Targets.FirstOrDefault(target => target.Id == targetId)?.Name;
 
     private static string FormatRuleTime(double minutes)
     {
@@ -435,6 +434,7 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
 
     private void DeleteRule(AutomaticRuleItemViewModel? rule)
     {
+        rule = AutomaticRules.FirstOrDefault(item => item.Id == rule?.Id);
         if (rule is not null)
         {
             rule.PropertyChanged -= AutomaticRule_PropertyChanged;
@@ -583,40 +583,16 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
 
     private string? ValidateRule(AutomaticRuleDraft draft)
     {
-        // New rules are normalized by AddOrMergeRule. Keep validation for edits,
-        // where the existing conflict feedback and in-place update are expected.
-        if (_editingRule is null)
-        {
-            return null;
-        }
-
-        var newDays = draft.SelectedDays.Select(day => day.Key).ToHashSet(StringComparer.Ordinal);
-        foreach (var existing in AutomaticRules)
-        {
-            if (ReferenceEquals(existing, _editingRule))
-            {
-                continue;
-            }
-
-            if (!existing.DayKeys.Any(newDays.Contains))
-            {
-                continue;
-            }
-
-            var sameDays = existing.DayKeys.SetEquals(newDays);
-            if (sameDays && existing.StartMinutes == draft.StartMinutes && existing.EndMinutes == draft.EndMinutes)
-            {
-                return "已存在相同的自动屏蔽规则";
-            }
-
-            if (existing.StartMinutes <= draft.StartMinutes && existing.EndMinutes >= draft.EndMinutes &&
-                existing.DayKeys.IsSupersetOf(newDays))
-            {
-                return "该时间段已被现有规则覆盖";
-            }
-        }
-
-        return null;
+        if (_editingRule is not null && !AutomaticRules.Any(rule => rule.Id == _editingRule.Id))
+            return "该规则已被删除，请关闭编辑窗口后重试";
+        if (draft.SelectedDays.Count == 0) return "请至少选择一天";
+        var legacyOvernight = _editingRule is not null && _editingRule.EndMinutes < _editingRule.StartMinutes;
+        if (draft.StartMinutes < 0 || draft.StartMinutes >= 1440 || draft.EndMinutes < 0 || draft.EndMinutes == draft.StartMinutes
+            || (!legacyOvernight && draft.EndMinutes < draft.StartMinutes) || draft.EndMinutes > 1440)
+            return "结束时间必须晚于开始时间（00:00–24:00）";
+        return AutomaticRules.Any(existing => existing.Id != _editingRule?.Id
+            && RuleTimelineRange.Overlaps(draft.StartMinutes, draft.EndMinutes, existing.StartMinutes, existing.EndMinutes))
+            ? "该时间段与已有规则重叠，请调整开始或结束时间" : null;
     }
 
     private void ActivateEntry(SettingsEntryItemViewModel? entry)
@@ -656,6 +632,7 @@ public sealed class AutomaticRuleItemViewModel : INotifyPropertyChanged
     private double _endMinutes;
     private bool _isCustom;
     private bool _isNavigationHighlighted;
+    private string? _targetName;
 
     public AutomaticRuleItemViewModel(Guid id, string repeatText, string timeRangeText,
         IEnumerable<string>? dayKeys = null, double startMinutes = 0, double endMinutes = 0, bool isCustom = false, DateTimeOffset? createdAtUtc = null, DateTimeOffset? updatedAtUtc = null)
@@ -675,9 +652,17 @@ public sealed class AutomaticRuleItemViewModel : INotifyPropertyChanged
 
     public Guid Id { get; }
 
+    public string? TargetId { get; set; }
+
     public string RepeatText => _repeatText;
 
     public string TimeRangeText => _timeRangeText;
+
+    public string TargetDisplayText => string.IsNullOrWhiteSpace(_targetName) ? "无目标" : _targetName;
+
+    public string ScheduleDisplayText => _isCustom
+        ? $"{_timeRangeText} （{_repeatText}）"
+        : _timeRangeText;
 
     public HashSet<string> DayKeys { get; }
 
@@ -691,6 +676,14 @@ public sealed class AutomaticRuleItemViewModel : INotifyPropertyChanged
 
     public DateTimeOffset CreatedAtUtc { get; private set; }
     public DateTimeOffset UpdatedAtUtc { get; private set; }
+
+    public void SetTarget(string? targetId, string? targetName)
+    {
+        TargetId = targetId;
+        _targetName = string.IsNullOrEmpty(targetId) ? null : targetName;
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(TargetId)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(TargetDisplayText)));
+    }
 
     public void Update(
         string repeatText,
@@ -710,6 +703,7 @@ public sealed class AutomaticRuleItemViewModel : INotifyPropertyChanged
         UpdatedAtUtc = DateTimeOffset.UtcNow;
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(RepeatText)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(TimeRangeText)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ScheduleDisplayText)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DayKeys)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(StartMinutes)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(EndMinutes)));
