@@ -12,21 +12,43 @@ namespace FocusApp.Desktop.Views;
 public partial class StatisticsPage : UserControl
 {
     private FocusRecordDetailsWindow? _recordDetails;
+    private FocusSessionRecordViewModel? _recordDetailsRecord;
 
     private void FocusRecord_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not FrameworkElement { DataContext: FocusSessionRecordViewModel record } card ||
             DataContext is not StatisticsOverviewViewModel model) return;
+
+        if (_recordDetails is { IsVisible: true } existingWindow &&
+            ReferenceEquals(_recordDetailsRecord, record))
+        {
+            PositionRecordDetailsWindow(existingWindow, card);
+            existingWindow.ActivateFromOwner();
+            return;
+        }
+
         _recordDetails?.Close();
         var window = new FocusRecordDetailsWindow(model, record) { Owner = Window.GetWindow(this) };
+        PositionRecordDetailsWindow(window, card);
+        _recordDetails = window;
+        _recordDetailsRecord = record;
+        window.Closed += (_, _) =>
+        {
+            if (!ReferenceEquals(_recordDetails, window)) return;
+            _recordDetails = null;
+            _recordDetailsRecord = null;
+        };
+        window.Show();
+        window.Activate();
+    }
+
+    private static void PositionRecordDetailsWindow(FocusRecordDetailsWindow window, FrameworkElement card)
+    {
         var point = card.PointToScreen(new Point(card.ActualWidth + 4, 0));
         var source = PresentationSource.FromVisual(card);
         var position = source?.CompositionTarget?.TransformFromDevice.Transform(point) ?? point;
         window.Left = position.X;
         window.Top = position.Y - 6;
-        _recordDetails = window;
-        window.Closed += (_, _) => { if (ReferenceEquals(_recordDetails, window)) _recordDetails = null; };
-        window.Show();
     }
     private const int WmNcHitTest = 0x0084;
     private static readonly IntPtr HitTestTransparent = new(-1);

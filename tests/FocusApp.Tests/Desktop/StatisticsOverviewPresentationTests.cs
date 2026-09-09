@@ -352,6 +352,28 @@ public sealed class StatisticsOverviewPresentationTests
     }
 
     [Fact]
+    public void CalendarRecordDetailsDefersDeactivationCloseAndReusesTheVisibleWindow()
+    {
+        var repositoryRoot = FindRepositoryRoot();
+        var details = XDocument.Load(Path.Combine(
+            repositoryRoot, "src", "FocusApp.Desktop", "Views", "FocusRecordDetailsWindow.xaml"));
+        Assert.Equal("#01FFFFFF", (string?)details.Root!.Attribute("Background"));
+
+        var detailsCode = File.ReadAllText(Path.Combine(
+            repositoryRoot, "src", "FocusApp.Desktop", "Views", "FocusRecordDetailsWindow.xaml.cs"));
+        Assert.Contains("TimeSpan.FromMilliseconds(250)", detailsCode, StringComparison.Ordinal);
+        Assert.Contains("DeactivateCloseTimer_Tick", detailsCode, StringComparison.Ordinal);
+        Assert.Contains("ActivateFromOwner", detailsCode, StringComparison.Ordinal);
+        Assert.DoesNotContain("Deactivated += (_, _) => Close();", detailsCode, StringComparison.Ordinal);
+
+        var pageCode = File.ReadAllText(Path.Combine(
+            repositoryRoot, "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml.cs"));
+        Assert.Contains("_recordDetails is { IsVisible: true } existingWindow", pageCode, StringComparison.Ordinal);
+        Assert.Contains("ReferenceEquals(_recordDetailsRecord, record)", pageCode, StringComparison.Ordinal);
+        Assert.Contains("existingWindow.ActivateFromOwner();", pageCode, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void CalendarDetailUsesCompactSummaryAndRemainingHeightForRecords()
     {
         var page = XDocument.Load(Path.Combine(

@@ -936,7 +936,7 @@
                                             <DataTemplate DataType="{x:Type vm:FocusSessionRecordViewModel}">
                                                 <Grid>
                                                     <Grid.ColumnDefinitions><ColumnDefinition Width="42"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                                    <TextBlock Margin="0,22,0,0" HorizontalAlignment="Stretch" VerticalAlignment="Top" TextAlignment="Right" FontSize="12" Foreground="{DynamicResource TextSecondary}" Text="{Binding StartTime, StringFormat={}{0:HH:mm}}"/>
+                                                    <TextBlock Margin="0,22,0,0" HorizontalAlignment="Stretch" VerticalAlignment="Top" TextAlignment="Right" FontSize="13" Foreground="{DynamicResource TextSecondary}" Text="{Binding StartTime, StringFormat={}{0:HH:mm}}"/>
                                                     <Border Grid.Column="1" Width="1" Background="{DynamicResource BorderPrimary}"/>
                                                     <Ellipse Grid.Column="1" Width="6" Height="6" Margin="0,27,0,0" VerticalAlignment="Top" Fill="{DynamicResource AccentPrimary}"/>
                                                     <Button Grid.Column="2" Margin="6,0,0,12" Padding="10,12" HorizontalContentAlignment="Stretch" Click="FocusRecord_Click" Cursor="Hand" Background="{DynamicResource TransparentBrush}" BorderThickness="0">
@@ -944,13 +944,13 @@
                                                         <Grid>
                                                             <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="14"/></Grid.ColumnDefinitions>
                                                             <StackPanel>
-                                                                <DockPanel><Image Source="{Binding IconSource}" Width="20" Height="20" Margin="0,0,7,0"/><TextBlock Text="{Binding CalendarTitle}" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" TextTrimming="CharacterEllipsis"/></DockPanel>
+                                                                <DockPanel><Image RenderOptions.BitmapScalingMode="HighQuality" Source="{Binding IconSource}" Width="20" Height="20" Margin="0,0,7,0"/><TextBlock Text="{Binding CalendarTitle}" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" TextTrimming="CharacterEllipsis"/></DockPanel>
                                                                 <StackPanel Margin="0,7,0,0" Orientation="Horizontal">
-                                                                        <Image Width="16" Height="16" Margin="0,0,7,0" VerticalAlignment="Center" Source="/FocusApp.Desktop;component/Assets/Icons/Common/shizhong.png"/>
+                                                                        <Image RenderOptions.BitmapScalingMode="HighQuality" Width="16" Height="16" Margin="0,0,7,0" VerticalAlignment="Center" Source="/FocusApp.Desktop;component/Assets/Icons/Common/shizhong.png"/>
                                                                         <TextBlock VerticalAlignment="Center" Text="{Binding CalendarDurationDisplay}" FontSize="12" Foreground="{DynamicResource TextSecondary}"/>
                                                                 </StackPanel>
                                                                 <StackPanel Margin="0,7,0,0" Orientation="Horizontal" Visibility="{Binding HasCompletedTasks, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                                                        <Image Width="16" Height="16" Margin="0,0,7,0" VerticalAlignment="Center" Source="/FocusApp.Desktop;component/Assets/Icons/Common/green_gouxuan.png"/>
+                                                                        <Image RenderOptions.BitmapScalingMode="HighQuality" Width="16" Height="16" Margin="0,0,7,0" VerticalAlignment="Center" Source="/FocusApp.Desktop;component/Assets/Icons/Common/green_gouxuan.png"/>
                                                                         <TextBlock VerticalAlignment="Center" Text="{Binding CompletedTaskSummaryDisplay}" FontSize="12" Foreground="#248A3D"/>
                                                                 </StackPanel>
                                                             </StackPanel>
