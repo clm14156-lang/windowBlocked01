@@ -578,12 +578,6 @@ public partial class StatisticsPage : UserControl
 
     private void DeleteGoalButton_Click(object sender, RoutedEventArgs e) => ExecuteGoalCommand(sender, viewModel => viewModel.DeleteGoalCommand);
 
-    private void GoalDetailMoreButton_Click(object sender, RoutedEventArgs e)
-    {
-        GoalDetailMorePopup.IsOpen = !GoalDetailMorePopup.IsOpen;
-        e.Handled = true;
-    }
-
     private void ExecuteGoalListCommand(string list)
     {
         if (DataContext is StatisticsOverviewViewModel viewModel)

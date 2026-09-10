@@ -15,6 +15,40 @@
                 <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Surface" Property="Background" Value="#F7F7F8"/></Trigger><Trigger Property="IsPressed" Value="True"><Setter TargetName="Surface" Property="Background" Value="#EEEEF1"/></Trigger></ControlTemplate.Triggers>
             </ControlTemplate></Setter.Value></Setter>
         </Style>
+        <Style x:Key="GoalDetailMoreButtonStyle" TargetType="ToggleButton">
+            <Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/><Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Foreground" Value="#656A7A"/><Setter Property="FontSize" Value="15"/><Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ToggleButton">
+                <Grid Background="Transparent">
+                    <Border x:Name="HoverSurface" Background="#F5F5F7" CornerRadius="8" Opacity="0"/>
+                    <Border x:Name="OpenSurface" Background="#F5F5F7" CornerRadius="8" Opacity="0"/>
+                    <Border x:Name="PressedSurface" Background="#EBEBED" CornerRadius="8" Opacity="0"/>
+                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Grid>
+                <ControlTemplate.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Trigger.EnterActions><BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetName="HoverSurface" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.14"/></Storyboard></BeginStoryboard></Trigger.EnterActions>
+                        <Trigger.ExitActions><BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetName="HoverSurface" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.14"/></Storyboard></BeginStoryboard></Trigger.ExitActions>
+                    </Trigger>
+                    <Trigger Property="IsChecked" Value="True"><Setter TargetName="OpenSurface" Property="Opacity" Value="1"/></Trigger>
+                    <Trigger Property="IsPressed" Value="True">
+                        <Trigger.EnterActions><BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetName="PressedSurface" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.12"/></Storyboard></BeginStoryboard></Trigger.EnterActions>
+                        <Trigger.ExitActions><BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetName="PressedSurface" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.12"/></Storyboard></BeginStoryboard></Trigger.ExitActions>
+                    </Trigger>
+                </ControlTemplate.Triggers>
+            </ControlTemplate></Setter.Value></Setter>
+        </Style>
+        <Style x:Key="GoalDetailMenuItemStyle" TargetType="Button">
+            <Setter Property="Height" Value="33"/><Setter Property="Padding" Value="12,0"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/><Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/><Setter Property="Cursor" Value="Hand"/><Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/><Setter Property="FontSize" Value="13"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+                <Border x:Name="MenuItemSurface" Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}" CornerRadius="6"><ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center"/></Border>
+                <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="MenuItemSurface" Property="Background" Value="#F3F3F4"/></Trigger><Trigger Property="IsPressed" Value="True"><Setter TargetName="MenuItemSurface" Property="Background" Value="#E8E8EA"/></Trigger></ControlTemplate.Triggers>
+            </ControlTemplate></Setter.Value></Setter>
+        </Style>
         <Style x:Key="GoalRecordRowStyle" TargetType="Button" BasedOn="{StaticResource GoalQuietActionStyle}">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
@@ -1243,14 +1277,15 @@
                                         <TextBlock FontSize="21" FontWeight="SemiBold" Text="{Binding SelectedGoalName}" Foreground="{DynamicResource TextPrimary}" TextTrimming="CharacterEllipsis"/>
                                         <TextBlock Margin="0,6,0,0" FontSize="12" Foreground="{DynamicResource TextWeak}" Text="{Binding SelectedGoal.CreatedDateDisplay}"/>
                                     </StackPanel>
-                                    <Button x:Name="GoalDetailMoreButton" Grid.Column="2" Width="30" Height="28" VerticalAlignment="Top" Content="···" Style="{StaticResource GoalQuietActionStyle}" Click="GoalDetailMoreButton_Click" AutomationProperties.Name="目标更多操作"/>
-                                    <Popup x:Name="GoalDetailMorePopup" Placement="Bottom" PlacementTarget="{Binding ElementName=GoalDetailMoreButton}" StaysOpen="False" AllowsTransparency="True">
-                                        <Border DataContext="{Binding SelectedGoal}" Width="140" Padding="6" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" CornerRadius="8">
+                                    <ToggleButton x:Name="GoalDetailMoreButton" Grid.Column="2" Width="28" Height="28" VerticalAlignment="Top" Content="···" Style="{StaticResource GoalDetailMoreButtonStyle}" AutomationProperties.Name="目标更多操作"/>
+                                    <Popup x:Name="GoalDetailMorePopup" Width="132" IsOpen="{Binding IsChecked, ElementName=GoalDetailMoreButton, Mode=TwoWay}" Placement="Bottom" PlacementTarget="{Binding ElementName=GoalDetailMoreButton}" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
+                                        <Border DataContext="{Binding SelectedGoal}" Width="120" Margin="6" Padding="6" Background="White" BorderBrush="#E8E8EA" BorderThickness="1" CornerRadius="9">
+                                            <Border.Effect><DropShadowEffect BlurRadius="14" Direction="270" ShadowDepth="3" Opacity="0.10" Color="#000000"/></Border.Effect>
                                             <StackPanel>
-                                                <Button Content="编辑" Height="32" Style="{StaticResource GoalQuietActionStyle}" Click="EditGoalButton_Click"/>
-                                                <Button Content="归档" Height="32" Style="{StaticResource GoalQuietActionStyle}" Click="ArchiveGoalButton_Click" Visibility="{Binding IsArchived, Converter={StaticResource GoalInverseVisibilityConverter}}"/>
-                                                <Button Content="恢复目标" Height="32" Style="{StaticResource GoalQuietActionStyle}" Click="RestoreGoalButton_Click" Visibility="{Binding IsArchived, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                <Button Content="删除目标" Height="32" Foreground="{DynamicResource Danger}" Style="{StaticResource GoalQuietActionStyle}" Click="DeleteGoalButton_Click" Visibility="{Binding IsArchived, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                <Button Content="编辑" Style="{StaticResource GoalDetailMenuItemStyle}" Click="EditGoalButton_Click"/>
+                                                <Button Content="归档" Style="{StaticResource GoalDetailMenuItemStyle}" Click="ArchiveGoalButton_Click" Visibility="{Binding IsArchived, Converter={StaticResource GoalInverseVisibilityConverter}}"/>
+                                                <Button Content="恢复目标" Style="{StaticResource GoalDetailMenuItemStyle}" Click="RestoreGoalButton_Click" Visibility="{Binding IsArchived, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                <Button Content="删除目标" Foreground="{DynamicResource Danger}" Style="{StaticResource GoalDetailMenuItemStyle}" Click="DeleteGoalButton_Click" Visibility="{Binding IsArchived, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                             </StackPanel>
                                         </Border>
                                     </Popup>
@@ -1272,7 +1307,7 @@
                                         <TextBlock Margin="0,8,0,0" FontSize="21" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{Binding SelectedGoalLatestDate}"/>
                                     </StackPanel>
                                 </Grid>
-                                <Grid Grid.Row="2"><TextBlock VerticalAlignment="Center" Text="专注记录" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}"/><TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" Text="查看趋势  ›" FontSize="12" Foreground="{DynamicResource TextWeak}"/><Border Height="1" VerticalAlignment="Bottom" Background="#EEEEF2"/></Grid>
+                                <Grid Grid.Row="2"><TextBlock VerticalAlignment="Center" Text="专注记录" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}"/><TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" Text="查看趋势  ›" FontSize="13" Foreground="{DynamicResource TextWeak}"/><Border Height="1" VerticalAlignment="Bottom" Background="#EEEEF2"/></Grid>
                                 <Grid Grid.Row="3">
                                     <ScrollViewer x:Name="GoalProgressScrollViewer" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                                         <ScrollViewer.Resources><Style TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource StatisticsThinScrollBarStyle}"/></ScrollViewer.Resources>

@@ -118,7 +118,7 @@
                        x:Name="BlockedAccessTitle"
                        VerticalAlignment="Center"
                        FontSize="20"
-                       FontWeight="Medium"
+                       FontWeight="SemiBold"
                        Foreground="{DynamicResource TextPrimary}">
                 <Run Text="{Binding TargetKindDisplay, Mode=OneWay}" /><Run Text="{DynamicResource BlockedAccessNotificationBlockedSuffix}" />
             </TextBlock>
