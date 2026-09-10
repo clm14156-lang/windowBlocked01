@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using FocusApp.Desktop.ViewModels;
 
@@ -10,6 +11,9 @@ public partial class FocusRecordDetailsWindow : Window
     private readonly StatisticsOverviewViewModel _ownerModel;
     private readonly FocusSessionRecordViewModel _record;
     private readonly DispatcherTimer _deactivateCloseTimer;
+    private bool _isClosing;
+    private bool _closeAnimationCompleted;
+    private int _closeAnimationVersion;
 
     public FocusRecordDetailsWindow(StatisticsOverviewViewModel ownerModel, FocusSessionRecordViewModel record)
     {
@@ -29,10 +33,35 @@ public partial class FocusRecordDetailsWindow : Window
             _deactivateCloseTimer.Start();
         };
         Closed += (_, _) => _deactivateCloseTimer.Stop();
+        Closing += (_, e) =>
+        {
+            if (_closeAnimationCompleted) return;
+            e.Cancel = true;
+            if (_isClosing) return;
+            _isClosing = true;
+            MoreMenu.IsOpen = false;
+            var version = ++_closeAnimationVersion;
+            _deactivateCloseTimer.Stop();
+            var fade = new DoubleAnimation(0, TimeSpan.FromMilliseconds(180));
+            fade.Completed += (_, _) =>
+            {
+                // A repeat click can cancel the fade while its completion is already queued.
+                if (!_isClosing || version != _closeAnimationVersion) return;
+                _closeAnimationCompleted = true;
+                Close();
+            };
+            BeginAnimation(OpacityProperty, fade);
+        };
     }
 
     internal void ActivateFromOwner()
     {
+        if (_isClosing)
+        {
+            _isClosing = false;
+            _closeAnimationVersion++;
+            BeginAnimation(OpacityProperty, null);
+        }
         _deactivateCloseTimer.Stop();
         if (IsVisible && !IsActive)
         {
@@ -43,16 +72,35 @@ public partial class FocusRecordDetailsWindow : Window
     private void DeactivateCloseTimer_Tick(object? sender, EventArgs e)
     {
         _deactivateCloseTimer.Stop();
-        if (IsVisible && !IsActive)
+        if (IsVisible && !IsActive && !MoreMenu.IsOpen)
         {
             Close();
         }
     }
 
     private void Close_Click(object sender, RoutedEventArgs e) => Close();
+    private void More_Click(object sender, RoutedEventArgs e)
+    {
+        _deactivateCloseTimer.Stop();
+        MoreMenu.PlacementTarget = MoreButton;
+        MoreMenu.IsOpen = !MoreMenu.IsOpen;
+    }
+
+    private void MoreMenu_Closed(object sender, RoutedEventArgs e)
+    {
+        if (IsVisible && !IsActive && !_isClosing)
+        {
+            _deactivateCloseTimer.Stop();
+            _deactivateCloseTimer.Start();
+        }
+    }
+
     private void Window_KeyDown(object sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Escape) Close();
+        if (e.Key != Key.Escape) return;
+        if (MoreMenu.IsOpen) MoreMenu.IsOpen = false;
+        else Close();
+        e.Handled = true;
     }
     private async void Delete_Click(object sender, RoutedEventArgs e)
     {

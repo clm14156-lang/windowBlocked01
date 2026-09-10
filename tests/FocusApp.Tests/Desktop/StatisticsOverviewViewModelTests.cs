@@ -7,6 +7,42 @@ namespace FocusApp.Tests.Desktop;
 public sealed class StatisticsOverviewViewModelTests
 {
     [Fact]
+    public void GoalDetailStatisticsFollowSelectedGoalsAndRecordChanges()
+    {
+        var model = new StatisticsOverviewViewModel(false);
+        var created = new DateTimeOffset(2026, 8, 2, 12, 0, 0, TimeSpan.Zero);
+        var goal = new GoalOverviewItemViewModel("test", "测试目标", "", "", false, false, createdAtUtc: created);
+        var empty = new GoalOverviewItemViewModel("empty", "空目标", "", "", false, false);
+        model.Goals.Add(goal);
+        model.Goals.Add(empty);
+        var record = new FocusSessionRecordViewModel(new DateTime(2026, 8, 5, 15, 0, 0), new DateTime(2026, 8, 5, 16, 12, 0), goal.GoalId, goal.Name, "", 0);
+        model.FocusSessionRecords.Add(record);
+        model.SelectGoalCommand.Execute(goal);
+        Assert.Equal("1.2", model.SelectedGoalTotalHours);
+        Assert.Equal(1, model.SelectedGoalFocusCount);
+        Assert.Equal("8月5日", model.SelectedGoalLatestDate);
+        Assert.Equal("15:00–16:12", model.SelectedGoalLatestTime);
+        Assert.Equal($"创建于 {created.ToLocalTime():M月d日}", goal.CreatedDateDisplay);
+        var changed = new List<string?>();
+        model.PropertyChanged += (_, args) => changed.Add(args.PropertyName);
+        record.EndTime = record.StartTime.AddMinutes(90);
+        Assert.Equal("1.5", model.SelectedGoalTotalHours);
+        Assert.Contains(nameof(model.SelectedGoalTotalHours), changed);
+        Assert.Equal("15:00–16:30", model.SelectedGoalLatestTime);
+        model.SelectGoalCommand.Execute(empty);
+        Assert.Equal("0", model.SelectedGoalTotalHours);
+        Assert.Equal(0, model.SelectedGoalFocusCount);
+        Assert.Equal("暂无专注", model.SelectedGoalLatestDate);
+        Assert.Empty(model.GoalDateGroups);
+        model.SelectGoalCommand.Execute(goal);
+        Assert.Single(model.GoalDateGroups);
+        model.FocusSessionRecords.Remove(record);
+        Assert.Equal(0, model.SelectedGoalFocusCount);
+        Assert.Equal("暂无专注", model.SelectedGoalLatestDate);
+        Assert.Empty(model.GoalDateGroups);
+    }
+
+    [Fact]
     public void FocusSessionGoalTagIsVisibleOnlyForAssociatedGoals()
     {
         var unassigned = new FocusSessionRecordViewModel(

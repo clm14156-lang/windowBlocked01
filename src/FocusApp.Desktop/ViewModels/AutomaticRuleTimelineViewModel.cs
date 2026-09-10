@@ -10,6 +10,8 @@ public sealed partial class AutomaticRuleModalViewModel
     private string _editorStartText = "09:00", _editorEndText = "12:00";
     private string? _selectedTargetId;
     private AutomaticRuleItemViewModel? _editorRule;
+    private Guid? _selectedRuleId;
+    public Guid? SelectedRuleId { get => _selectedRuleId; set => SetField(ref _selectedRuleId, value); }
     public Func<IReadOnlyList<AutomaticRuleItemViewModel>> GetRules { get; set; } = () => [];
     public void RefreshTimeline() => OnPropertyChanged(nameof(GetRules));
     public Action? NewRequested { get; set; }
@@ -52,6 +54,7 @@ public sealed partial class AutomaticRuleModalViewModel
 
     public void BeginEditor(AutomaticRuleItemViewModel? rule, double start = 0, double end = 0)
     {
+        SelectedRuleId = rule?.Id;
         _editorRule = rule;
         IsEditing = rule is not null;
         if (rule is null)
@@ -73,6 +76,7 @@ public sealed partial class AutomaticRuleModalViewModel
     {
         var rule = _editorRule;
         CancelEditor();
+        SelectedRuleId = null;
         if (rule is not null) DeleteRequested?.Invoke(rule);
     }
 

@@ -48,6 +48,7 @@ public sealed partial class AutomaticRuleModalViewModel : INotifyPropertyChanged
     public string ValidationMessage { get => _validationMessage; private set => SetField(ref _validationMessage, value); }
     public void Open()
     {
+        SelectedRuleId = null;
         NewRequested?.Invoke();
         IsEditing = false; IsCustom = false; IsEditorOpen = false;
         SelectedTargetId = null;
@@ -65,7 +66,7 @@ public sealed partial class AutomaticRuleModalViewModel : INotifyPropertyChanged
         ValidationMessage = string.Empty;
         IsOpen = true;
     }
-    private void Close() { CancelEditor(); IsOpen = false; }
+    private void Close() { CancelEditor(); SelectedRuleId = null; IsOpen = false; }
     private static bool TryParseTime(string value, out double minutes)
     {
         minutes = 0;

@@ -105,7 +105,6 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         SelectGoalCommand = new RelayCommand<GoalOverviewItemViewModel>(SelectGoal);
         SelectGoalListCommand = new RelayCommand<object>(SelectGoalList);
         ToggleGoalListMenuCommand = new RelayCommand<object>(_ => IsGoalListMenuOpen = !IsGoalListMenuOpen);
-        ToggleGoalMenuCommand = new RelayCommand<GoalOverviewItemViewModel>(ToggleGoalMenu);
         RenameGoalCommand = new RelayCommand<GoalOverviewItemViewModel>(BeginRenameGoal);
         SaveGoalRenameCommand = new RelayCommand<GoalOverviewItemViewModel>(SaveGoalRename);
         ArchiveGoalCommand = new RelayCommand<GoalOverviewItemViewModel>(ArchiveGoal);
@@ -226,7 +225,8 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
                     "暂无记录",
                     false,
                     target.IsArchived,
-                    target.IconFileName));
+                    target.IconFileName,
+                    target.CreatedAtUtc));
             }
 
             var targetNames = state.Targets.ToDictionary(item => item.TargetId, item => item.Name, StringComparer.Ordinal);
@@ -392,8 +392,6 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     public ICommand ToggleGoalListMenuCommand { get; }
 
-    public ICommand ToggleGoalMenuCommand { get; }
-
     public ICommand RenameGoalCommand { get; }
 
     public ICommand SaveGoalRenameCommand { get; }
@@ -519,7 +517,6 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         {
             if (_showArchivedGoals == value) return;
             _showArchivedGoals = value;
-            CloseGoalMenus();
             OnPropertyChanged();
             OnPropertyChanged(nameof(VisibleGoals));
             OnPropertyChanged(nameof(GoalListTitle));
@@ -542,7 +539,6 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         {
             if (_isGoalListMenuOpen == value) return;
             _isGoalListMenuOpen = value;
-            if (value) CloseGoalMenus();
             OnPropertyChanged();
         }
     }
@@ -651,6 +647,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             _selectedGoal = value;
             OnPropertyChanged();
             OnPropertyChanged(nameof(SelectedGoalName));
+            NotifyGoalDetailStatistics();
             OnPropertyChanged(nameof(SelectedGoalDurationDisplay));
             OnPropertyChanged(nameof(SelectedGoalHoursValueDisplay));
             OnPropertyChanged(nameof(SelectedGoalHoursUnitDisplay));
@@ -663,6 +660,22 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     }
 
     public string SelectedGoalName => SelectedGoal?.Name ?? string.Empty;
+
+    private IEnumerable<FocusSessionRecordViewModel> SelectedGoalSessions => SelectedGoal is null
+        ? [] : GetRecordsForGoal(SelectedGoal.GoalId);
+    public string SelectedGoalTotalHours => (SelectedGoalSessions.Sum(record => (record.EndTime - record.StartTime).TotalMinutes) / 60)
+        .ToString("0.#", System.Globalization.CultureInfo.InvariantCulture);
+    public int SelectedGoalFocusCount => SelectedGoalSessions.Count();
+    private FocusSessionRecordViewModel? LatestGoalSession => SelectedGoalSessions.OrderByDescending(record => record.StartTime).FirstOrDefault();
+    public string SelectedGoalLatestDate => LatestGoalSession?.StartTime.ToString("M月d日") ?? "暂无专注";
+    public string SelectedGoalLatestTime => LatestGoalSession is { } record ? $"{record.StartTime:HH:mm}–{record.EndTime:HH:mm}" : string.Empty;
+    private void NotifyGoalDetailStatistics()
+    {
+        OnPropertyChanged(nameof(SelectedGoalTotalHours));
+        OnPropertyChanged(nameof(SelectedGoalFocusCount));
+        OnPropertyChanged(nameof(SelectedGoalLatestDate));
+        OnPropertyChanged(nameof(SelectedGoalLatestTime));
+    }
 
     public string SelectedGoalDurationDisplay => SelectedGoal is null ? string.Empty : FormatDuration(SelectedGoal.TotalMinutes);
 
@@ -813,6 +826,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     public string MonthlyFocusTargetPopupTitle => HasMonthlyFocusTarget ? "编辑本月目标" : "设置本月目标";
     public int MonthlyFocusCompletedMinutes => MonthlyTotalMinutes;
     public int MonthlyFocusCompletedHours => MonthlyFocusCompletedMinutes / 60;
+    public int MonthlyFocusCompletedMinutesRemainder => MonthlyFocusCompletedMinutes % 60;
     public string MonthlyFocusCompletedDisplay => FormatDuration(MonthlyFocusCompletedMinutes);
     public string MonthlyFocusInvestedDisplay => FormatHours(MonthlyFocusCompletedMinutes);
     public int MonthlyFocusProgressPercent => !HasMonthlyFocusTarget
@@ -1052,7 +1066,8 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             "暂无记录",
             false,
             false,
-            iconFileName);
+            iconFileName,
+            DateTimeOffset.UtcNow);
 
         Goals.Add(newGoal);
         OnPropertyChanged(nameof(VisibleGoals));
@@ -1090,7 +1105,6 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     private void OpenEditGoalDialog(GoalOverviewItemViewModel? goal)
     {
         if (goal is null || IsCreateGoalDialogOpen || !Goals.Contains(goal)) return;
-        CloseGoalMenus();
         IsGoalListMenuOpen = false;
         SetEditingGoal(goal);
         NewGoalName = goal.Name;
@@ -1140,7 +1154,6 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     private void SelectGoal(GoalOverviewItemViewModel? goal)
     {
         IsGoalListMenuOpen = false;
-        CloseGoalMenus();
         foreach (var item in Goals) item.IsSelected = ReferenceEquals(item, goal);
         SelectedGoal = goal;
         SelectedGoalTrendPoint = null;
@@ -1188,19 +1201,9 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         IsGoalListMenuOpen = false;
     }
 
-    private void ToggleGoalMenu(GoalOverviewItemViewModel? goal)
-    {
-        if (goal is null) return;
-        var shouldOpen = !goal.IsMenuOpen;
-        IsGoalListMenuOpen = false;
-        CloseGoalMenus();
-        goal.IsMenuOpen = shouldOpen;
-    }
-
     private void BeginRenameGoal(GoalOverviewItemViewModel? goal)
     {
         if (goal is null) return;
-        CloseGoalMenus();
         goal.IsRenaming = true;
         goal.DraftName = goal.Name;
     }
@@ -1225,7 +1228,6 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     {
         if (goal is null) return;
         goal.IsArchived = archived;
-        goal.IsMenuOpen = false;
         if (ReferenceEquals(SelectedGoal, goal)) SelectFirstVisibleGoal();
         OnPropertyChanged(nameof(VisibleGoals));
         GoalChanged?.Invoke(this, goal);
@@ -1243,11 +1245,6 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         }
         if (wasSelected) SelectFirstVisibleGoal();
         OnPropertyChanged(nameof(VisibleGoals));
-    }
-
-    private void CloseGoalMenus()
-    {
-        foreach (var goal in Goals) goal.IsMenuOpen = false;
     }
 
     private void SubscribeToFocusSessionRecords()
@@ -1383,6 +1380,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(MonthlyFocusTargetPopupTitle));
         OnPropertyChanged(nameof(MonthlyFocusCompletedMinutes));
         OnPropertyChanged(nameof(MonthlyFocusCompletedHours));
+        OnPropertyChanged(nameof(MonthlyFocusCompletedMinutesRemainder));
         OnPropertyChanged(nameof(MonthlyFocusCompletedDisplay));
         OnPropertyChanged(nameof(MonthlyFocusInvestedDisplay));
         OnPropertyChanged(nameof(MonthlyFocusProgressPercent));
@@ -1419,6 +1417,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     private void RefreshSelectedGoalProgressData()
     {
+        NotifyGoalDetailStatistics();
         SetHoveredGoalTrendPoint(null);
         SelectedGoalTrendPoint = null;
         RefreshGoalMonths();
@@ -1705,6 +1704,13 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     public string TrendAverageDurationDisplay { get; private set; } = string.Empty;
 
     public string ComparisonDisplay { get; private set; } = string.Empty;
+    private int _comparisonDifferenceMinutes;
+    public string ComparisonDirectionDisplay => _comparisonDifferenceMinutes < 0 ? "↓ " : _comparisonDifferenceMinutes > 0 ? "↑ " : "→ ";
+    public string ComparisonHoursValueDisplay => Math.Abs(_comparisonDifferenceMinutes) >= 60
+        ? (Math.Abs(_comparisonDifferenceMinutes) / 60).ToString()
+        : string.Empty;
+    public string ComparisonHoursUnitDisplay => Math.Abs(_comparisonDifferenceMinutes) >= 60 ? " 小时 " : string.Empty;
+    public string ComparisonMinutesValueDisplay => (Math.Abs(_comparisonDifferenceMinutes) % 60).ToString();
 
     public string TodayDateDisplay
     {
@@ -1819,9 +1825,10 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         TrendAverageMinutes = averageMinutes;
         TrendAverageY = MapTrendValueToY(averageMinutes, scaleMaximumMinutes);
         TrendAverageDurationDisplay = FormatCompactDuration(averageMinutes);
-        ComparisonDisplay = !_usesRuntimeFocusData && SelectedRange.Days == 7
-            ? "+35 分钟"
-            : FormatComparison((int)Math.Round((totalMinutes - previousTotalMinutes) / (double)data.Length));
+        _comparisonDifferenceMinutes = !_usesRuntimeFocusData && SelectedRange.Days == 7
+            ? 35
+            : (int)Math.Round((totalMinutes - previousTotalMinutes) / (double)data.Length);
+        ComparisonDisplay = FormatComparison(_comparisonDifferenceMinutes);
         OnPropertyChanged(nameof(PeriodTotalLabel));
         OnPropertyChanged(nameof(ComparisonLabel));
         OnPropertyChanged(nameof(PeriodTotalDisplay));
@@ -1837,6 +1844,10 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(TrendAverageLabelTop));
         OnPropertyChanged(nameof(TrendAverageDurationDisplay));
         OnPropertyChanged(nameof(ComparisonDisplay));
+        OnPropertyChanged(nameof(ComparisonDirectionDisplay));
+        OnPropertyChanged(nameof(ComparisonHoursValueDisplay));
+        OnPropertyChanged(nameof(ComparisonHoursUnitDisplay));
+        OnPropertyChanged(nameof(ComparisonMinutesValueDisplay));
         OnPropertyChanged(nameof(TrendCurveGeometry));
         OnPropertyChanged(nameof(TrendAreaGeometry));
         OnPropertyChanged(nameof(YAxisTicks));
@@ -2200,7 +2211,6 @@ public sealed class GoalOverviewItemViewModel : INotifyPropertyChanged
     private string _name;
     private bool _isSelected;
     private bool _isArchived;
-    private bool _isMenuOpen;
     private bool _isRenaming;
     private string _draftName;
     private int _totalMinutes;
@@ -2214,9 +2224,11 @@ public sealed class GoalOverviewItemViewModel : INotifyPropertyChanged
         string recentLabel,
         bool isSelected,
         bool isArchived,
-        string? iconFileName = null)
+        string? iconFileName = null,
+        DateTimeOffset? createdAtUtc = null)
     {
         GoalId = goalId;
+        CreatedAtUtc = createdAtUtc;
         _name = name;
         _draftName = name;
         Status = status;
@@ -2241,6 +2253,8 @@ public sealed class GoalOverviewItemViewModel : INotifyPropertyChanged
     }
 
     public string GoalId { get; }
+    public DateTimeOffset? CreatedAtUtc { get; }
+    public string CreatedDateDisplay => CreatedAtUtc is { } created ? $"创建于 {created.ToLocalTime():M月d日}" : "创建日期未知";
     public string IconFileName { get; private set; }
     public string IconSource { get; private set; }
 
@@ -2276,17 +2290,6 @@ public sealed class GoalOverviewItemViewModel : INotifyPropertyChanged
         {
             if (_isArchived == value) return;
             _isArchived = value;
-            OnPropertyChanged();
-        }
-    }
-
-    public bool IsMenuOpen
-    {
-        get => _isMenuOpen;
-        set
-        {
-            if (_isMenuOpen == value) return;
-            _isMenuOpen = value;
             OnPropertyChanged();
         }
     }
@@ -2435,6 +2438,7 @@ public sealed class GoalDateGroupViewModel : INotifyPropertyChanged
     public DateTime Date { get; }
     public IReadOnlyList<FocusSessionRecordViewModel> Sessions { get; }
     public string DateDisplay => $"{Date:M月d日}";
+    public string WeekdayDisplay => "周" + "日一二三四五六"[(int)Date.DayOfWeek];
     public string TimeRangeDisplay => Sessions.Count == 0
         ? string.Empty
         : $"{Sessions.Min(session => session.StartTime):HH:mm} - {Sessions.Max(session => session.EndTime):HH:mm}";

@@ -53,7 +53,8 @@ public partial class AutomaticRuleModal : UserControl
     }
     private void ModelChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(AutomaticRuleModalViewModel.GetRules)) RenderTimeline();
+        if (e.PropertyName is nameof(AutomaticRuleModalViewModel.GetRules)
+            or nameof(AutomaticRuleModalViewModel.SelectedRuleId)) RenderTimeline();
         if (e.PropertyName == nameof(AutomaticRuleModalViewModel.IsOpen))
         {
             CancelDrag();
@@ -146,15 +147,57 @@ public partial class AutomaticRuleModal : UserControl
                 segment.End,
                 false,
                 RuleTargetName(rule),
-                RuleCustomPeriod(rule));
+                RuleCustomPeriod(rule),
+                rule.Id == Model.SelectedRuleId);
             block.PreviewMouseLeftButtonDown += (_, e) => BeginRuleInteraction(
                 rule,
                 (e.OriginalSource as FrameworkElement)?.Tag is RuleDragMode mode ? mode : RuleDragMode.Move,
                 e);
+            block.Tag = rule.Id;
             Timeline.Children.Add(block);
         }
         _draftBlock = null;
         DrawDraft();
+        RequestSelectedRuleScroll();
+    }
+
+    private void RequestSelectedRuleScroll()
+    {
+        var selectedRuleId = Model?.SelectedRuleId;
+        if (!IsLoaded || selectedRuleId is null || _moving) return;
+        Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() =>
+        {
+            if (Model?.SelectedRuleId != selectedRuleId || !IsLoaded) return;
+            ScrollSelectedRuleIntoView(selectedRuleId.Value);
+        }));
+    }
+
+    private void ScrollSelectedRuleIntoView(Guid selectedRuleId)
+    {
+        TimelineScroll.UpdateLayout();
+        var block = Timeline.Children.OfType<Border>()
+            .FirstOrDefault(candidate => candidate.Tag is Guid ruleId && ruleId == selectedRuleId);
+        if (block is null || TimelineScroll.ViewportHeight <= 0) return;
+
+        var blockTop = Canvas.GetTop(block);
+        var blockBottom = blockTop + block.ActualHeight;
+        var viewportTop = TimelineScroll.VerticalOffset;
+        var viewportBottom = viewportTop + TimelineScroll.ViewportHeight;
+        if (blockTop >= viewportTop && blockBottom <= viewportBottom)
+        {
+            PositionEditorWindowIfOpen();
+            return;
+        }
+
+        var centeredOffset = blockTop + block.ActualHeight / 2 - TimelineScroll.ViewportHeight / 2;
+        TimelineScroll.ScrollToVerticalOffset(Math.Clamp(centeredOffset, 0, TimelineScroll.ScrollableHeight));
+        TimelineScroll.UpdateLayout();
+        PositionEditorWindowIfOpen();
+    }
+
+    private void PositionEditorWindowIfOpen()
+    {
+        if (_editorWindow?.IsLoaded == true) PositionEditorWindow(_editorWindow);
     }
     private string? RuleTargetName(AutomaticRuleItemViewModel rule)
         => string.IsNullOrEmpty(rule.TargetId)
@@ -186,7 +229,8 @@ public partial class AutomaticRuleModal : UserControl
         double end,
         bool draft,
         string? targetName,
-        string? customPeriod = null)
+        string? customPeriod = null,
+        bool selected = false)
     {
         var content = new Grid();
         content.Children.Add(MakeBlockText(
@@ -195,7 +239,7 @@ public partial class AutomaticRuleModal : UserControl
             draft && _pressedRule is null,
             targetName,
             customPeriod,
-            draft ? "#BE5C00" : "#6E6E73"));
+            draft || selected ? "#BE5C00" : "#6E6E73"));
         if (!draft)
         {
             content.Children.Add(MakeResizeHandle(RuleDragMode.ResizeStart, VerticalAlignment.Top));
@@ -205,7 +249,7 @@ public partial class AutomaticRuleModal : UserControl
         var block = new Border
         {
             Width = Math.Max(0, Timeline.ActualWidth - LabelWidth - 8), Height = Math.Max(1, end - start),
-            Background = Brush(draft ? "#FFF0DF" : "#EEEEF1"), BorderBrush = Brush(draft ? "#FF8000" : "#CCCCD3"),
+            Background = Brush(draft || selected ? "#FFF0DF" : "#EEEEF1"), BorderBrush = Brush(draft || selected ? "#FF8000" : "#CCCCD3"),
             BorderThickness = new Thickness(3, 0, 0, 0), CornerRadius = new CornerRadius(4),
             Cursor = Cursors.Hand, ClipToBounds = true,
             Child = content
@@ -375,6 +419,7 @@ public partial class AutomaticRuleModal : UserControl
         MouseButtonEventArgs e)
     {
         e.Handled = true;
+        if (Model is not null) Model.SelectedRuleId = rule.Id;
         if (Model?.IsEditorOpen != false) return;
         _pressedRule = rule;
         _dragMode = mode;
@@ -393,6 +438,7 @@ public partial class AutomaticRuleModal : UserControl
         : $"{(int)minutes / 60}小时{((int)minutes % 60 == 0 ? "" : $"{(int)minutes % 60}分钟")}";
     private void Timeline_MouseDown(object sender, MouseButtonEventArgs e)
     {
+        if (Model is not null) Model.SelectedRuleId = null;
         if (Model is null || Model.IsEditorOpen || e.GetPosition(Timeline).X < LabelWidth) return;
         var minute = e.GetPosition(Timeline).Y - TopInset;
         if (RuleTimelineRange.Drag(minute, minute, Model.GetRules().Select(r => (r.StartMinutes, r.EndMinutes))) is null) return;

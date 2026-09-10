@@ -8,6 +8,27 @@ namespace FocusApp.Tests.Desktop;
 public class RuleTimelineTests
 {
     [Fact]
+    public void RuleManagementEditSelectsRuleAndNormalOpenClearsSelection()
+    {
+        var settings = new SettingsPageViewModel([], [], dailyLabel: "每天");
+        var first = new AutomaticRuleItemViewModel(Guid.NewGuid(), "每天", "01:00–02:00", ["Monday"], 60, 120);
+        var second = new AutomaticRuleItemViewModel(Guid.NewGuid(), "每天", "03:00–04:00", ["Monday"], 180, 240);
+        settings.EditRuleCommand.Execute(first);
+        Assert.Equal(first.Id, settings.RuleModal.SelectedRuleId);
+        settings.RuleModal.CancelEditor();
+        Assert.Equal(first.Id, settings.RuleModal.SelectedRuleId);
+        settings.EditRuleCommand.Execute(second);
+        Assert.Equal(second.Id, settings.RuleModal.SelectedRuleId);
+        settings.RuleModal.SelectedRuleId = null;
+        Assert.Null(settings.RuleModal.SelectedRuleId);
+        Assert.Equal(180, settings.RuleModal.StartValue);
+        Assert.Equal(240, settings.RuleModal.EndValue);
+        settings.RuleModal.OpenTimeline();
+        Assert.Null(settings.RuleModal.SelectedRuleId);
+        Assert.False(settings.RuleModal.IsEditorOpen);
+    }
+
+    [Fact]
     public void TargetOptionsUseDashAndExcludeArchivedTargets()
     {
         var now = DateTimeOffset.UtcNow;

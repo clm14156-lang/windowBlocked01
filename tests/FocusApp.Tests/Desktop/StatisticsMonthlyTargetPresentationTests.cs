@@ -37,20 +37,15 @@ public sealed class StatisticsMonthlyTargetPresentationTests
     }
 
     [Fact]
-    public void MonthlyTargetSetState_UsesOneProgressValueForTheRingAndHorizontalBar()
+    public void MonthlyTargetSetState_UsesOnlyHorizontalProgressWithAnAdjacentPercentage()
     {
         var page = XDocument.Load(Path.Combine(
             FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
         var setState = Assert.Single(page.Descendants(Presentation + "Grid").Where(grid =>
             (string?)grid.Attribute(Xaml + "Name") == "MonthlyFocusTargetSetState"));
 
-        var ring = Assert.Single(setState.Descendants().Where(element =>
-            element.Name.LocalName == "CircularProgressRing"));
-        Assert.Equal("82", (string?)ring.Attribute("Width"));
-        Assert.Equal("82", (string?)ring.Attribute("Height"));
-        Assert.Equal("5", (string?)ring.Attribute("RingThickness"));
-        Assert.Equal("{Binding MonthlyFocusProgressRatio, Mode=OneWay}", (string?)ring.Attribute("Progress"));
-        Assert.Equal("{DynamicResource AccentPrimary}", (string?)ring.Attribute("ProgressBrush"));
+        Assert.DoesNotContain(setState.Descendants(), element =>
+            element.Name.LocalName == "CircularProgressRing");
 
         var targetProgress = Assert.Single(setState.Descendants(Presentation + "ProgressBar"));
         Assert.Equal("MonthlyFocusTargetProgressBar", (string?)targetProgress.Attribute(Xaml + "Name"));
@@ -58,9 +53,13 @@ public sealed class StatisticsMonthlyTargetPresentationTests
         Assert.Equal("{Binding MonthlyFocusProgressRatio, Mode=OneWay}", (string?)targetProgress.Attribute("Value"));
         Assert.Equal("{StaticResource StatisticsProgressBarStyle}", (string?)targetProgress.Attribute("Style"));
 
+        var percentage = Assert.Single(setState.Descendants(Presentation + "TextBlock").Where(text =>
+            (string?)text.Attribute("Text") == "{Binding MonthlyFocusProgressPercent, StringFormat={}{0}%}"));
+        Assert.Same(targetProgress.Parent, percentage.Parent);
+        Assert.Equal("2", (string?)percentage.Attribute("Grid.Column"));
         Assert.Contains(setState.Descendants(Presentation + "TextBlock"), text =>
-            (string?)text.Attribute("Text") == "{Binding MonthlyFocusProgressPercent, StringFormat={}{0}%}");
-        Assert.Contains(setState.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "目标进度");
+        Assert.DoesNotContain(setState.Descendants(Presentation + "TextBlock"), text =>
             (string?)text.Attribute("Text") == "完成进度");
         Assert.Contains(setState.Descendants(Presentation + "Run"), run =>
             (string?)run.Attribute("Text") == "{Binding MonthlyFocusInvestedDisplay, Mode=OneWay}");
