@@ -710,16 +710,17 @@
                 <Border.Style><Style TargetType="Border"><Setter Property="Background" Value="{DynamicResource SurfacePrimary}" /></Style></Border.Style>
             </Border>
             </StackPanel>
-            <StackPanel Visibility="{Binding IsCalendarSelected, Converter={StaticResource BooleanToVisibilityConverter}}">
-                <Grid Width="695" Height="602" Margin="0,3,0,0" HorizontalAlignment="Left">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="346" /><ColumnDefinition Width="18" /><ColumnDefinition Width="331" /></Grid.ColumnDefinitions>
+            <StackPanel TextElement.FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI"
+                        Visibility="{Binding IsCalendarSelected, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <Grid Width="712" Height="602" Margin="0,3,0,0" HorizontalAlignment="Left">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="346" /><ColumnDefinition Width="6" /><ColumnDefinition Width="360" /></Grid.ColumnDefinitions>
                     <Border x:Name="CalendarAndDistributionContainer" Grid.Column="0" Height="602" Background="{DynamicResource SurfacePrimary}" BorderBrush="#ECECEF" BorderThickness="1" CornerRadius="10">
                       <StackPanel>
                         <Border Height="388" Padding="0,17,0,10" ClipToBounds="False">
                             <StackPanel ClipToBounds="False">
                                 <Grid Height="30" Margin="20,0">
                                     <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="62" /></Grid.ColumnDefinitions>
-                                    <TextBlock VerticalAlignment="Center" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="{Binding CalendarMonthDisplay}" />
+                                    <TextBlock VerticalAlignment="Center" FontSize="15" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{Binding CalendarMonthDisplay}" />
                                     <Grid Grid.Column="1" Width="62" HorizontalAlignment="Right">
                                         <Button Width="28" Height="28" Margin="-12,0,0,0" HorizontalAlignment="Left" Padding="0" Background="{DynamicResource TransparentBrush}" BorderThickness="0" Command="{Binding PreviousCalendarMonthCommand}" Style="{StaticResource CalendarNavigationButtonStyle}"><TextBlock FontFamily="Segoe MDL2 Assets" FontSize="16" Foreground="{DynamicResource TextSecondary}" Text="&#xE76B;" /></Button>
                                         <Button Width="28" Height="28" Margin="0,0,-4,0" HorizontalAlignment="Right" Padding="0" Background="{DynamicResource TransparentBrush}" BorderThickness="0" Command="{Binding NextCalendarMonthCommand}" Style="{StaticResource CalendarNavigationButtonStyle}"><TextBlock FontFamily="Segoe MDL2 Assets" FontSize="16" Foreground="{DynamicResource TextSecondary}" Text="&#xE76C;" /></Button>
@@ -779,7 +780,7 @@
                                                                 <TextBlock x:Name="DayDurationText"
                                                                            Margin="0,1,0,0"
                                                                            HorizontalAlignment="Center"
-                                                                           FontSize="11"
+                                                                           FontSize="12"
                                                                            FontWeight="Normal"
                                                                            Foreground="{DynamicResource TextSecondary}"
                                                                            Text="{Binding DurationLabel}">
@@ -806,7 +807,7 @@
                                                                 <Trigger.EnterActions><BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetName="DayContent" Storyboard.TargetProperty="Opacity" To="0.7" Duration="0:0:0.1"/></Storyboard></BeginStoryboard></Trigger.EnterActions>
                                                                 <Trigger.ExitActions><BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetName="DayContent" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.1"/></Storyboard></BeginStoryboard></Trigger.ExitActions>
                                                             </Trigger>
-                                                            <DataTrigger Binding="{Binding IsCurrentMonth}" Value="False"><Setter TargetName="DayNumberText" Property="Foreground" Value="#B5B5BD" /><Setter TargetName="DayDurationText" Property="Foreground" Value="#B5B5BD" /></DataTrigger>
+                                                            <DataTrigger Binding="{Binding IsCurrentMonth}" Value="False"><Setter TargetName="DayNumberText" Property="Foreground" Value="{DynamicResource DisabledText}" /><Setter TargetName="DayDurationText" Property="Foreground" Value="{DynamicResource DisabledText}" /></DataTrigger>
                                                             <DataTrigger Binding="{Binding HeatLevel}" Value="1"><Setter TargetName="DaySelectionBackground" Property="Background" Value="#FFF9F4" /></DataTrigger>
                                                             <DataTrigger Binding="{Binding HeatLevel}" Value="2"><Setter TargetName="DaySelectionBackground" Property="Background" Value="#FFF6EF" /></DataTrigger>
                                                             <DataTrigger Binding="{Binding HeatLevel}" Value="3"><Setter TargetName="DaySelectionBackground" Property="Background" Value="#FFF3E9" /></DataTrigger>
@@ -852,7 +853,7 @@
                         </Border>
                         <Border Margin="20,9,20,0" Padding="0,18,0,10" BorderBrush="#F0F0F2" BorderThickness="0,1,0,0">
                             <StackPanel>
-                                <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="目标投入分布" />
+                                <TextBlock FontSize="15" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="目标投入分布" />
                                 <ItemsControl x:Name="GoalDistributionItemsControl" Margin="0,12,0,0" ItemsSource="{Binding GoalDistributions}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate DataType="{x:Type vm:GoalDistributionViewModel}">
@@ -866,8 +867,8 @@
                                                 </Grid.ColumnDefinitions>
                                                 <Image x:Name="GoalDistributionIcon"
                                                        Grid.Column="0"
-                                                       Width="14"
-                                                       Height="14"
+                                                       Width="18"
+                                                       Height="18"
                                                        HorizontalAlignment="Center"
                                                        VerticalAlignment="Center"
                                                        RenderOptions.BitmapScalingMode="HighQuality"
@@ -915,8 +916,8 @@
                                                                                    Foreground="{DynamicResource TextPrimary}"
                                                                                    Text="{Binding TargetName}" />
                                                                         <TextBlock Margin="0,4,0,0"
-                                                                                   FontSize="14"
-                                                                                   FontWeight="SemiBold"
+                                                                                   FontSize="13"
+                                                                                   FontWeight="Medium"
                                                                                    Foreground="{DynamicResource TextPrimary}"
                                                                                    Text="{Binding PoptipDurationAndRatioDisplay}" />
                                                                     </StackPanel>
@@ -934,14 +935,14 @@
                                                     <TextBlock Grid.Column="0"
                                                                VerticalAlignment="Center"
                                                                FontSize="13"
-                                                               FontWeight="Medium"
+                                                               FontWeight="Normal"
                                                                Foreground="{DynamicResource TextPrimary}"
                                                                Text="{Binding TargetName}"
                                                                TextWrapping="NoWrap"
                                                                TextTrimming="CharacterEllipsis" />
                                                     <ProgressBar x:Name="GoalDistributionProgressBar"
                                                                  Grid.Column="2"
-                                                                 Height="4"
+                                                                 Height="8"
                                                                  HorizontalAlignment="Stretch"
                                                                  VerticalAlignment="Center"
                                                                  Maximum="1"
@@ -956,7 +957,7 @@
                         </Border>
                       </StackPanel>
                     </Border>
-                    <Border x:Name="DailyFocusRecordCard" Grid.Column="2" Height="602" Padding="27,20,24,20" Background="{DynamicResource SurfacePrimary}" BorderBrush="#ECECEF" BorderThickness="1" CornerRadius="10">
+                    <Border x:Name="DailyFocusRecordCard" Grid.Column="2" Height="602" Padding="20" Background="{DynamicResource SurfacePrimary}" BorderBrush="#ECECEF" BorderThickness="1" CornerRadius="10">
                         <Grid>
                             <Grid x:Name="DailyFocusRecordContent">
                                 <Grid.Style>
@@ -972,30 +973,177 @@
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
                                     <RowDefinition Height="*" />
                                 </Grid.RowDefinitions>
-                                <TextBlock Grid.Row="0" VerticalAlignment="Center" FontSize="17" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="{Binding SelectedDateDisplay}" />
-                                <Grid x:Name="CalendarDayMetrics" Grid.Row="1" Height="48" Margin="0,14,0,10" HorizontalAlignment="Left">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="24" />
-                                        <ColumnDefinition Width="1" />
-                                        <ColumnDefinition Width="24" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="32" />
-                                        <RowDefinition Height="16" />
-                                    </Grid.RowDefinitions>
-                                    <TextBlock Grid.Column="0" Grid.Row="0" VerticalAlignment="Top" LineHeight="32" LineStackingStrategy="BlockLineHeight" TextWrapping="NoWrap" Foreground="{DynamicResource TextPrimary}">
-                                        <Run FontSize="26" FontWeight="SemiBold" Text="{Binding SelectedDayHoursValueDisplay, Mode=OneWay}" /><Run FontSize="13" FontWeight="Normal" Text="{Binding SelectedDayHoursUnitDisplay, Mode=OneWay}" /><Run FontSize="26" FontWeight="SemiBold" Text="{Binding SelectedDayMinutesValueDisplay, Mode=OneWay}" /><Run FontSize="13" FontWeight="Normal" Text=" 分钟" />
-                                    </TextBlock>
-                                    <TextBlock Grid.Column="0" Grid.Row="1" VerticalAlignment="Center" FontSize="11" FontWeight="Normal" Foreground="#98989F" Text="专注时长" />
-                                    <Border Grid.Column="2" Grid.RowSpan="2" Width="1" Height="46" VerticalAlignment="Center" Background="#EBEBEF" />
-                                    <TextBlock Grid.Column="4" Grid.Row="0" VerticalAlignment="Top" LineHeight="32" LineStackingStrategy="BlockLineHeight" TextWrapping="NoWrap" Foreground="{DynamicResource TextPrimary}"><Run FontSize="26" FontWeight="SemiBold" Text="{Binding SelectedDaySessionCount, Mode=OneWay}" /><Run FontSize="13" FontWeight="Normal" Text=" 次" /></TextBlock>
-                                    <TextBlock Grid.Column="4" Grid.Row="1" VerticalAlignment="Center" FontSize="11" FontWeight="Normal" Foreground="#98989F" Text="专注次数" />
+                                <TextBlock Grid.Row="0" VerticalAlignment="Center" FontSize="20" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="{Binding SelectedDateDisplay}" />
+                                <Grid x:Name="CalendarDayMetrics" Grid.Row="1" Height="146" Margin="0,12,0,16">
+                                    <Grid.RowDefinitions><RowDefinition Height="100"/><RowDefinition Height="46"/></Grid.RowDefinitions>
+                                    <!-- Keep the icon and text anchors stable. The text column expands to the right
+                                         instead of centering the whole icon + duration group. -->
+                                    <Grid HorizontalAlignment="Stretch">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="84" />
+                                            <ColumnDefinition Width="24" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <!-- clock_icon.png already contains its own soft halo and orange clock ring;
+                                             adding WPF circular backgrounds here creates the unwanted stacked rings. -->
+                                        <Image Width="84" Height="84" VerticalAlignment="Center" Source="/FocusApp.Desktop;component/Assets/Icons/Common/clock_icon.png" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                        <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                                            <TextBlock FontFamily="{DynamicResource FontFamilyNumeric}" Foreground="{DynamicResource TextPrimary}"><Run FontSize="42" FontWeight="SemiBold" Text="{Binding SelectedDayHoursValueDisplay, Mode=OneWay}"/><Run FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI" FontSize="15" FontWeight="Medium" Text="{Binding SelectedDayHoursUnitDisplay, Mode=OneWay}"/><Run FontSize="42" FontWeight="SemiBold" Text="{Binding SelectedDayMinutesValueDisplay, Mode=OneWay}"/><Run FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI" FontSize="15" FontWeight="Medium" Text=" 分钟"/></TextBlock>
+                                            <TextBlock Margin="0,1,0,0" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="今日专注时长"/>
+                                        </StackPanel>
+                                    </Grid>
+                                    <Border Grid.Row="1" CornerRadius="10">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Background" Value="{DynamicResource SummaryPositiveBackground}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsSelectedDayDecrease}" Value="True">
+                                                        <Setter Property="Background" Value="{DynamicResource SummaryNegativeBackground}" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding HasSelectedDayChange}" Value="False">
+                                                        <Setter Property="Background" Value="{DynamicResource SummaryNeutralBackground}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="1"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                            <ToggleButton x:Name="CompletedTasksButton" Margin="2" Cursor="Hand" PreviewMouseLeftButtonDown="CompletedTasks_PreviewMouseLeftButtonDown" Click="CompletedTasks_Click" AutomationProperties.Name="查看当日已完成任务">
+                                                <ToggleButton.Style>
+                                                    <Style TargetType="ToggleButton">
+                                                        <Setter Property="Background" Value="Transparent" />
+                                                        <Style.Triggers>
+                                                            <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="{DynamicResource SummaryPositiveHoverBackground}" /></Trigger>
+                                                            <Trigger Property="IsChecked" Value="True"><Setter Property="Background" Value="{DynamicResource SummaryPositivePressedBackground}" /></Trigger>
+                                                            <MultiDataTrigger>
+                                                                <MultiDataTrigger.Conditions><Condition Binding="{Binding IsSelectedDayDecrease}" Value="True"/><Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource Self}}" Value="True"/></MultiDataTrigger.Conditions>
+                                                                <Setter Property="Background" Value="{DynamicResource SummaryNegativeHoverBackground}" />
+                                                            </MultiDataTrigger>
+                                                            <MultiDataTrigger>
+                                                                <MultiDataTrigger.Conditions><Condition Binding="{Binding IsSelectedDayDecrease}" Value="True"/><Condition Binding="{Binding IsChecked, RelativeSource={RelativeSource Self}}" Value="True"/></MultiDataTrigger.Conditions>
+                                                                <Setter Property="Background" Value="{DynamicResource SummaryNegativePressedBackground}" />
+                                                            </MultiDataTrigger>
+                                                            <MultiDataTrigger>
+                                                                <MultiDataTrigger.Conditions><Condition Binding="{Binding HasSelectedDayChange}" Value="False"/><Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource Self}}" Value="True"/></MultiDataTrigger.Conditions>
+                                                                <Setter Property="Background" Value="{DynamicResource SummaryNeutralHoverBackground}" />
+                                                            </MultiDataTrigger>
+                                                            <MultiDataTrigger>
+                                                                <MultiDataTrigger.Conditions><Condition Binding="{Binding HasSelectedDayChange}" Value="False"/><Condition Binding="{Binding IsChecked, RelativeSource={RelativeSource Self}}" Value="True"/></MultiDataTrigger.Conditions>
+                                                                <Setter Property="Background" Value="{DynamicResource SummaryNeutralPressedBackground}" />
+                                                            </MultiDataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </ToggleButton.Style>
+                                                <ToggleButton.Template>
+                                                    <ControlTemplate TargetType="ToggleButton">
+                                                        <Border x:Name="TaskSummaryBackground" Background="{TemplateBinding Background}" CornerRadius="8" Padding="5,4">
+                                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                                <Image Width="21" Height="21" Margin="0,0,7,0" Source="/FocusApp.Desktop;component/Assets/Icons/Common/gouxuan03.png" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                                                <TextBlock VerticalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}"><Run Text="完成 "/><Run FontWeight="SemiBold" Text="{Binding SelectedDayCompletedTasks, Mode=OneWay}"/><Run Text=" 项任务"/></TextBlock>
+                                                            </StackPanel>
+                                                        </Border>
+                                                    </ControlTemplate>
+                                                </ToggleButton.Template>
+                                            </ToggleButton>
+                                            <Border Grid.Column="1" Margin="0,12" Background="#E9E5E2"/>
+                                            <StackPanel Grid.Column="2" HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
+                                                <Grid Width="21" Height="21" Margin="5,0,5,0">
+                                                    <Image Source="{Binding SelectedDayTrendIcon}" RenderOptions.BitmapScalingMode="HighQuality" Visibility="{Binding HasSelectedDayChange, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                    <TextBlock Text="—" FontSize="15" FontWeight="Medium" Foreground="{DynamicResource TextWeak}" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{Binding HasSelectedDayChange, Converter={StaticResource GoalInverseVisibilityConverter}}"/>
+                                                </Grid>
+                                                <TextBlock VerticalAlignment="Center" FontSize="12" FontWeight="Normal"><Run Foreground="{DynamicResource TextSecondary}" Text="{Binding SelectedDayComparisonLabel, Mode=OneWay}"/><Run FontWeight="Medium" Foreground="{Binding SelectedDayTrendColor}" Text="{Binding SelectedDayChangeDisplay, Mode=OneWay}"/></TextBlock>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                    <Popup x:Name="CompletedTasksPopup" PlacementTarget="{Binding ElementName=CompletedTasksButton}" Placement="Bottom" VerticalOffset="-2" HorizontalOffset="-8" AllowsTransparency="True" StaysOpen="False" Closed="CompletedTasksPopup_Closed">
+                                        <Border Margin="12" Width="280" Padding="16" TextElement.FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI" Background="{DynamicResource SurfacePrimary}" BorderBrush="#E8ECF1" BorderThickness="1" CornerRadius="14" KeyDown="CompletedTasksPopup_KeyDown">
+                                            <Border.Effect><DropShadowEffect BlurRadius="20" ShadowDepth="5" Opacity="0.12"/></Border.Effect>
+                                            <StackPanel>
+                                                <Grid Margin="0,0,0,12">
+                                                    <TextBlock FontSize="17" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}"><Run Text="已完成任务（"/><Run Text="{Binding SelectedDayCompletedTasks, Mode=OneWay}"/><Run Text="）"/></TextBlock>
+                                                    <Button Content="×" HorizontalAlignment="Right" Width="24" Height="24" Click="CloseCompletedTasks_Click" Background="#F3F5F8" BorderThickness="0" Foreground="{DynamicResource TextSecondary}" Cursor="Hand" AutomationProperties.Name="关闭已完成任务"/>
+                                                </Grid>
+                                                <TextBlock x:Name="CompletedTasksEmpty" Margin="0,12" FontSize="12" FontWeight="Normal" Text="当天还没有完成任务" Foreground="{DynamicResource TextSecondary}" HorizontalAlignment="Center"/>
+                                                <ScrollViewer x:Name="CompletedTasksListScroll" MaxHeight="176" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                                    <ScrollViewer.Resources>
+                                                        <Style TargetType="{x:Type ScrollBar}">
+                                                            <Setter Property="Width" Value="4" />
+                                                            <Setter Property="MinWidth" Value="4" />
+                                                            <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+                                                            <Setter Property="Opacity" Value="0.62" />
+                                                            <Setter Property="Template">
+                                                                <Setter.Value>
+                                                                    <ControlTemplate TargetType="{x:Type ScrollBar}">
+                                                                        <Grid Width="4" Background="{DynamicResource TransparentBrush}">
+                                                                            <Track x:Name="PART_Track" Margin="0,2" IsDirectionReversed="True" Orientation="{TemplateBinding Orientation}">
+                                                                                <Track.DecreaseRepeatButton>
+                                                                                    <RepeatButton Background="{DynamicResource TransparentBrush}" BorderThickness="0" Command="{x:Static ScrollBar.PageUpCommand}" CommandTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}" Focusable="False" />
+                                                                                </Track.DecreaseRepeatButton>
+                                                                                <Track.Thumb>
+                                                                                    <Thumb MinHeight="24">
+                                                                                        <Thumb.Template>
+                                                                                            <ControlTemplate TargetType="{x:Type Thumb}">
+                                                                                                <Border x:Name="TaskListThumb" Width="3" HorizontalAlignment="Center" Background="#B8BEC8" CornerRadius="2" />
+                                                                                                <ControlTemplate.Triggers>
+                                                                                                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="TaskListThumb" Property="Background" Value="#9EA7B4" /></Trigger>
+                                                                                                    <Trigger Property="IsDragging" Value="True"><Setter TargetName="TaskListThumb" Property="Background" Value="#8792A1" /></Trigger>
+                                                                                                </ControlTemplate.Triggers>
+                                                                                            </ControlTemplate>
+                                                                                        </Thumb.Template>
+                                                                                    </Thumb>
+                                                                                </Track.Thumb>
+                                                                                <Track.IncreaseRepeatButton>
+                                                                                    <RepeatButton Background="{DynamicResource TransparentBrush}" BorderThickness="0" Command="{x:Static ScrollBar.PageDownCommand}" CommandTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}" Focusable="False" />
+                                                                                </Track.IncreaseRepeatButton>
+                                                                            </Track>
+                                                                        </Grid>
+                                                                    </ControlTemplate>
+                                                                </Setter.Value>
+                                                            </Setter>
+                                                        </Style>
+                                                    </ScrollViewer.Resources>
+                                                    <ItemsControl x:Name="CompletedTasksList">
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <Grid Height="38">
+                                                                    <Grid.ColumnDefinitions><ColumnDefinition Width="20"/><ColumnDefinition Width="*"/><ColumnDefinition Width="42"/></Grid.ColumnDefinitions>
+                                                                    <Image Width="18" Height="18" Source="/FocusApp.Desktop;component/Assets/Icons/Common/gouxuan03.png" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                                                    <TextBlock Grid.Column="1" Margin="9,0" VerticalAlignment="Center" Text="{Binding Name}" ToolTip="{Binding Name}" TextTrimming="CharacterEllipsis" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}"/>
+                                                                    <TextBlock Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right" Text="{Binding TimeDisplay}" Foreground="{DynamicResource TextSecondary}" FontSize="12" FontWeight="Normal"/>
+                                                                </Grid>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                </ScrollViewer>
+                                            </StackPanel>
+                                        </Border>
+                                    </Popup>
                                 </Grid>
-                                <ScrollViewer x:Name="CalendarRecordsScrollViewer" Grid.Row="2" Margin="0" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                                <StackPanel Grid.Row="2">
+                                    <TextBlock FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="时间分布"/>
+                                    <ScrollViewer x:Name="DailyDistributionScrollViewer" MaxHeight="126" Margin="0,8,0,0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                        <ScrollViewer.Resources><Style TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource StatisticsRecordScrollBarStyle}"/></ScrollViewer.Resources>
+                                        <ItemsControl ItemsSource="{Binding SelectedDayDistributions}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Grid Height="36" Margin="0,0,4,0">
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="24"/><ColumnDefinition Width="8"/><ColumnDefinition Width="92"/><ColumnDefinition Width="10"/><ColumnDefinition Width="*"/><ColumnDefinition Width="54"/></Grid.ColumnDefinitions>
+                                                        <Image Width="22" Height="22" Source="{Binding IconSource}" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                                        <TextBlock Grid.Column="2" VerticalAlignment="Center" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}" Text="{Binding TargetName}" TextTrimming="CharacterEllipsis" ToolTip="{Binding TargetName}"/>
+                                                        <ProgressBar Grid.Column="4" Height="8" VerticalAlignment="Center" Maximum="1" Value="{Binding Ratio, Mode=OneWay}" Style="{StaticResource StatisticsProgressBarStyle}"/>
+                                                        <TextBlock Grid.Column="5" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding CompactDurationDisplay}"/>
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+                                </StackPanel>
+                                <TextBlock Grid.Row="3" Margin="0,14,0,8" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="专注记录"/>
+                                <ScrollViewer x:Name="CalendarRecordsScrollViewer" Grid.Row="4" Margin="0" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
                                     <ScrollViewer.Resources>
                                         <Style TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource StatisticsRecordScrollBarStyle}" />
                                     </ScrollViewer.Resources>
@@ -1007,28 +1155,30 @@
                                                         <ControlTemplate TargetType="Button">
                                                             <Grid Background="Transparent">
                                                                 <Grid.ColumnDefinitions><ColumnDefinition Width="42"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                                                <TextBlock Margin="0,13,0,0" VerticalAlignment="Top" TextAlignment="Right" FontSize="12" Foreground="#98989F" Text="{Binding StartTime, StringFormat={}{0:HH:mm}}"/>
+                                                                <TextBlock Margin="0,13,0,0" VerticalAlignment="Top" TextAlignment="Right" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding StartTime, StringFormat={}{0:HH:mm}}"/>
                                                                 <Border Grid.Column="1" Width="1" Background="#EBEBEF"/>
-                                                                <Ellipse Grid.Column="1" Width="5" Height="5" Margin="0,19,0,0" VerticalAlignment="Top" Fill="#D1D1D6"/>
-                                                                <Ellipse x:Name="ActiveRecordNode" Grid.Column="1" Width="5" Height="5" Margin="0,19,0,0" VerticalAlignment="Top" Fill="{DynamicResource AccentPrimary}" Opacity="0"/>
+                                                                <Ellipse Grid.Column="1" Width="7" Height="7" Margin="0,18,0,0" VerticalAlignment="Top" Fill="#D1D1D6"/>
+                                                                <Ellipse x:Name="ActiveRecordNode" Grid.Column="1" Width="7" Height="7" Margin="0,18,0,0" VerticalAlignment="Top" Fill="{DynamicResource AccentPrimary}" Opacity="0"/>
                                                                 <Grid Grid.Column="2" Margin="6,0,0,10">
                                                                     <Border x:Name="RecordHoverBackground" Background="#F7F7F8" CornerRadius="8" Opacity="0"/>
                                                                     <Border x:Name="RecordPressedBackground" Background="#EEEEF0" CornerRadius="8" Opacity="0"/>
-                                                                    <Grid x:Name="RecordBody" Margin="10,12">
+                                                                    <Grid x:Name="RecordBody" Margin="4,10">
                                                                         <Grid.RenderTransform><TranslateTransform x:Name="RecordOffset"/></Grid.RenderTransform>
-                                                                        <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="12"/></Grid.ColumnDefinitions>
-                                                                        <StackPanel>
-                                                                            <TextBlock Text="{Binding CalendarTitle}" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
-                                                                            <StackPanel Margin="0,7,0,0" Orientation="Horizontal">
-                                                                                <Image Width="13" Height="13" Margin="0,0,6,0" Opacity="0.7" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality" Source="/FocusApp.Desktop;component/Assets/Icons/Common/shizhong.png"/>
-                                                                                <TextBlock VerticalAlignment="Center" Text="{Binding CalendarDurationDisplay}" FontSize="11" Foreground="#98989F"/>
-                                                                            </StackPanel>
-                                                                            <StackPanel Margin="0,7,0,0" Orientation="Horizontal" Visibility="{Binding HasCompletedTasks, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                                                                <Image Width="13" Height="13" Margin="0,0,6,0" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality" Source="/FocusApp.Desktop;component/Assets/Icons/Common/green_gouxuan.png"/>
-                                                                                <TextBlock VerticalAlignment="Center" FontSize="11" Foreground="#248A3D"><Run Text="完成 "/><Run Text="{Binding CompletedTaskCount, Mode=OneWay}"/><Run Text=" 项"/></TextBlock>
-                                                                            </StackPanel>
+                                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="34"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="8"/></Grid.ColumnDefinitions>
+                                                                        <Border Width="30" Height="30" VerticalAlignment="Top" Background="#F5F6F9" CornerRadius="9">
+                                                                            <Image Width="25" Height="25" Source="{Binding IconSource}" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                                                        </Border>
+                                                                        <StackPanel Grid.Column="1" Margin="7,0,4,0">
+                                                                            <TextBlock Text="{Binding CalendarTitle}" ToolTip="{Binding CalendarTitle}" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}" TextTrimming="CharacterEllipsis"/>
+                                                                            <TextBlock Margin="0,3,0,0" Text="{Binding CalendarDurationDisplay}" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}"/>
                                                                         </StackPanel>
-                                                                        <TextBlock x:Name="RecordChevron" Grid.Column="1" Text="›" VerticalAlignment="Center" HorizontalAlignment="Right" FontSize="14" Foreground="#98989F" Opacity="0"/>
+                                                                        <Border Grid.Column="2" VerticalAlignment="Top" Padding="6,4" Margin="2,0,0,0" CornerRadius="9" Background="#EAFBF0" Visibility="{Binding HasCompletedTasks, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                                            <StackPanel Orientation="Horizontal">
+                                                                                <Image Width="12" Height="12" Margin="0,0,4,0" Source="/FocusApp.Desktop;component/Assets/Icons/Common/green_gouxuan.png" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                                                                <TextBlock FontSize="12" FontWeight="Medium" Foreground="#35B969"><Run Text="完成 "/><Run Text="{Binding CompletedTaskCount, Mode=OneWay}"/><Run Text=" 项"/></TextBlock>
+                                                                            </StackPanel>
+                                                                        </Border>
+                                                                        <TextBlock x:Name="RecordChevron" Grid.Column="3" Text="›" VerticalAlignment="Center" HorizontalAlignment="Right" FontSize="15" Foreground="{DynamicResource TextSecondary}" Opacity="0"/>
                                                                     </Grid>
                                                                 </Grid>
                                                             </Grid>
@@ -1064,7 +1214,7 @@
                                     <RowDefinition Height="*" />
                                 </Grid.RowDefinitions>
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock VerticalAlignment="Center" FontSize="17" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="当日专注记录" />
+                                    <TextBlock VerticalAlignment="Center" FontSize="17" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="当日专注记录" />
                                     <Border x:Name="DailyFocusRecordVipHoverTarget"
                                             Margin="10,0,0,0"
                                             Background="{DynamicResource TransparentBrush}"

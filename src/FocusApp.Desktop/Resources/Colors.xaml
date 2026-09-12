@@ -18,6 +18,15 @@
     <SolidColorBrush x:Key="MembershipBadgeAccent" Color="#FCBA29" />
     <SolidColorBrush x:Key="AccentTint" Color="#FFF1E6" />
     <SolidColorBrush x:Key="AccentSoftBorder" Color="#FFD3B0" />
+    <SolidColorBrush x:Key="SummaryPositiveBackground" Color="#FFFAF6" />
+    <SolidColorBrush x:Key="SummaryNegativeBackground" Color="#F4F8FF" />
+    <SolidColorBrush x:Key="SummaryNeutralBackground" Color="#F6F7F9" />
+    <SolidColorBrush x:Key="SummaryPositiveHoverBackground" Color="#FFF0E4" />
+    <SolidColorBrush x:Key="SummaryPositivePressedBackground" Color="#FFE9D7" />
+    <SolidColorBrush x:Key="SummaryNegativeHoverBackground" Color="#E8F1FF" />
+    <SolidColorBrush x:Key="SummaryNegativePressedBackground" Color="#DFECFF" />
+    <SolidColorBrush x:Key="SummaryNeutralHoverBackground" Color="#ECEEF2" />
+    <SolidColorBrush x:Key="SummaryNeutralPressedBackground" Color="#E4E7EB" />
     <SolidColorBrush x:Key="AccentHover" Color="#FF8B18" />
     <SolidColorBrush x:Key="AccentPressed" Color="#E96800" />
     <LinearGradientBrush x:Key="FocusButtonBackground" StartPoint="0,0" EndPoint="1,1">

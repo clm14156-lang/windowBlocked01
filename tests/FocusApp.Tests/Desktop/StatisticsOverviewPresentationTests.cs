@@ -395,37 +395,22 @@ public sealed class StatisticsOverviewPresentationTests
         Assert.Equal("17", (string?)date.Attribute("FontSize"));
         Assert.Equal("SemiBold", (string?)date.Attribute("FontWeight"));
 
-        var summary = Assert.Single(layout.Elements(Presentation + "Grid").Where(stack =>
-            (string?)stack.Attribute("Grid.Row") == "1"));
-        Assert.Equal("Left", (string?)summary.Attribute("HorizontalAlignment"));
-        Assert.Equal(
-            new[] { "Auto", "24", "1", "24", "Auto" },
-            summary.Elements(Presentation + "Grid.ColumnDefinitions")
-                .Elements(Presentation + "ColumnDefinition")
-                .Select(column => (string?)column.Attribute("Width")));
-        Assert.Empty(summary.Descendants(Presentation + "Viewbox"));
-        var divider = Assert.Single(summary.Elements(Presentation + "Border"));
-        Assert.Equal("2", (string?)divider.Attribute("Grid.Column"));
-        Assert.Equal("1", (string?)divider.Attribute("Width"));
-        Assert.Equal("46", (string?)divider.Attribute("Height"));
+        var summary = Assert.Single(layout.Elements(Presentation + "Border").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "CalendarDayMetrics"));
         Assert.Contains(summary.Descendants(Presentation + "Run"), run =>
             (string?)run.Attribute("Text") == "{Binding SelectedDayMinutesValueDisplay, Mode=OneWay}" &&
-            (string?)run.Attribute("FontSize") == "26" &&
-            (string?)run.Attribute("FontWeight") == "SemiBold");
-        var count = Assert.Single(summary.Elements(Presentation + "TextBlock").Where(text =>
-            text.Descendants(Presentation + "Run").Any(run =>
-                (string?)run.Attribute("Text") == "{Binding SelectedDaySessionCount, Mode=OneWay}")));
-        Assert.Equal("4", (string?)count.Attribute("Grid.Column"));
-        Assert.Equal("{DynamicResource TextPrimary}", (string?)count.Attribute("Foreground"));
-        Assert.Contains(summary.Elements(Presentation + "TextBlock"), text =>
-            (string?)text.Attribute("Text") == "专注时长" && (string?)text.Attribute("Grid.Row") == "1");
-        Assert.Contains(summary.Elements(Presentation + "TextBlock"), text =>
-            (string?)text.Attribute("Text") == "专注次数" && (string?)text.Attribute("Grid.Row") == "1");
-        Assert.DoesNotContain(layout.Elements(Presentation + "TextBlock"), text =>
-            (string?)text.Attribute("Text") == "专注记录");
+            (string?)run.Attribute("FontSize") == "30");
+        Assert.DoesNotContain(summary.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "专注次数");
+        var distribution = Assert.Single(layout.Descendants(Presentation + "ScrollViewer").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "DailyDistributionScrollViewer"));
+        Assert.Equal("144", (string?)distribution.Attribute("Height"));
+        Assert.Equal("Auto", (string?)distribution.Attribute("VerticalScrollBarVisibility"));
+        Assert.Contains(layout.Elements(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "专注记录" && (string?)text.Attribute("Grid.Row") == "3");
 
         var scrollViewer = Assert.Single(layout.Elements(Presentation + "ScrollViewer"));
-        Assert.Equal("2", (string?)scrollViewer.Attribute("Grid.Row"));
+        Assert.Equal("4", (string?)scrollViewer.Attribute("Grid.Row"));
         Assert.Equal("0", (string?)scrollViewer.Attribute("Margin"));
         Assert.Null(scrollViewer.Attribute("MaxHeight"));
 
@@ -465,7 +450,7 @@ public sealed class StatisticsOverviewPresentationTests
 
         Assert.Equal("2", (string?)card.Attribute("Grid.Column"));
         Assert.Equal("602", (string?)card.Attribute("Height"));
-        Assert.Equal("27,20,24,20", (string?)card.Attribute("Padding"));
+        Assert.Equal("20", (string?)card.Attribute("Padding"));
         Assert.Equal("10", (string?)card.Attribute("CornerRadius"));
 
         var content = Assert.Single(card.Descendants(Presentation + "Grid").Where(element =>

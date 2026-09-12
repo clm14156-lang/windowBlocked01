@@ -41,6 +41,12 @@
     <Resource Include="Assets\Icons\Common\CompletePop-up_CheckBox.png" />
     <Resource Include="Assets\Icons\Common\shizhong.png" />
     <Resource Include="Assets\Icons\Common\green_gouxuan.png" />
+    <Resource Include="Assets\Icons\Common\gouxuan.png" />
+    <Resource Include="Assets\Icons\Common\zengzhang.png" />
+    <Resource Include="Assets\Icons\Common\zengzhang_Blue.png" />
+    <Resource Include="Assets\Icons\Common\clock_icon.png" />
+    <Resource Include="Assets\Icons\Common\orange_gouxuan.png" />
+    <Resource Include="Assets\Icons\Common\gouxuan03.png" />
     <Resource Include="Assets\Icons\Common\lajitong.png" />
     <Resource Include="Assets\Icons\Common\rili.png" />
     <Resource Include="Assets\Images\Illustrations\create-target.png" />
