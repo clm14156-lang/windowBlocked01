@@ -440,6 +440,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     public ObservableCollection<FocusSessionRecordViewModel> SelectedDayRecords { get; } = [];
     public ObservableCollection<GoalDistributionViewModel> SelectedDayDistributions { get; } = [];
+    public bool HasSelectedDayFocusData => SelectedDayMinutes > 0 || SelectedDayRecords.Count > 0;
     public int SelectedDayDifference => SelectedDayMinutes - (_selectedCalendarDay is null ? 0 : GetDailySummary(_selectedCalendarDay.Date.AddDays(-1)).FocusMinutes);
     public string SelectedDayTrendColor => SelectedDayDifference > 0 ? "#FF7415" : SelectedDayDifference < 0 ? "#2684FF" : "#8E98A8";
     public string SelectedDayTrendIcon => "/FocusApp.Desktop;component/Assets/Icons/Common/" + (SelectedDayDifference < 0 ? "zengzhang_Blue.png" : "zengzhang.png");
@@ -463,6 +464,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     }
 
     public ObservableCollection<GoalDistributionViewModel> GoalDistributions { get; } = [];
+    public bool HasMonthlyGoalInvestmentData => GoalDistributions.Count > 0;
 
     public ObservableCollection<GoalOverviewItemViewModel> Goals { get; } = [];
 
@@ -1548,7 +1550,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     private void SelectCalendarDay(CalendarDayViewModel? day)
     {
-        if (day is null || !day.HasFocus)
+        if (day is null || !day.IsCurrentMonth)
         {
             return;
         }
@@ -1587,6 +1589,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(SelectedDayMinutes));
         OnPropertyChanged(nameof(SelectedDayCompletedTasks));
         OnPropertyChanged(nameof(SelectedDaySessionCount));
+        OnPropertyChanged(nameof(HasSelectedDayFocusData));
         OnPropertyChanged(nameof(SelectedDayComparisonDisplay));
         OnPropertyChanged(nameof(SelectedDayDifference));
         OnPropertyChanged(nameof(SelectedDayTrendColor));
@@ -1665,6 +1668,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(CalendarMonth));
         OnPropertyChanged(nameof(CalendarMonthDisplay));
         OnPropertyChanged(nameof(MonthlyTotalMinutes));
+        OnPropertyChanged(nameof(HasMonthlyGoalInvestmentData));
         SelectCalendarDayInternal(selectedDate);
     }
 
@@ -2257,6 +2261,11 @@ public sealed class GoalDistributionViewModel
     public double Ratio { get; }
     public double ProgressWidth => Ratio * 220;
     public string CompactDurationDisplay => Minutes < 1 ? "<1m" : Minutes < 60 ? $"{Minutes}m" : $"{Minutes / 60}h {Minutes % 60:00}m";
+    public string MonthlyDurationDisplay => Minutes < 60
+        ? $"{Minutes}m"
+        : Minutes % 60 == 0
+            ? $"{Minutes / 60}h"
+            : $"{Minutes / 60}h {Minutes % 60}m";
     public string DurationDisplay => StatisticsOverviewViewModel.FormatDurationForDisplay(Minutes);
     public string RatioDisplay => $"{Ratio:P0}";
     public string PoptipDurationAndRatioDisplay => FormattableString.Invariant(

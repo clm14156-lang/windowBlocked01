@@ -748,16 +748,16 @@
                                                     CommandParameter="{Binding}"
                                                     Background="{DynamicResource TransparentBrush}"
                                                     BorderThickness="0"
-                                                    Focusable="{Binding HasFocus}"
+                                                    Focusable="{Binding IsCurrentMonth}"
                                                     FocusVisualStyle="{x:Null}"
-                                                    IsEnabled="{Binding HasFocus}"
-                                                    IsHitTestVisible="{Binding HasFocus}"
-                                                    IsTabStop="{Binding HasFocus}">
+                                                    IsEnabled="{Binding IsCurrentMonth}"
+                                                    IsHitTestVisible="{Binding IsCurrentMonth}"
+                                                    IsTabStop="{Binding IsCurrentMonth}">
                                                 <Button.Style>
                                                     <Style TargetType="{x:Type Button}">
                                                         <Setter Property="Cursor" Value="Arrow" />
                                                         <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding HasFocus}" Value="True">
+                                                            <DataTrigger Binding="{Binding IsCurrentMonth}" Value="True">
                                                                 <Setter Property="Cursor" Value="Hand" />
                                                             </DataTrigger>
                                                         </Style.Triggers>
@@ -816,7 +816,6 @@
                                                             <DataTrigger Binding="{Binding HeatLevel}" Value="6"><Setter TargetName="DaySelectionBackground" Property="Background" Value="#FFEAD7" /></DataTrigger>
                                                             <MultiDataTrigger>
                                                                 <MultiDataTrigger.Conditions>
-                                                                    <Condition Binding="{Binding HasFocus}" Value="True" />
                                                                     <Condition Binding="{Binding IsCurrentMonth}" Value="True" />
                                                                     <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource TemplatedParent}}" Value="True" />
                                                                     <Condition Binding="{Binding IsSelected}" Value="False" />
@@ -851,10 +850,11 @@
                                 </ItemsControl>
                             </StackPanel>
                         </Border>
-                        <Border Margin="20,9,20,0" Padding="0,18,0,10" BorderBrush="#F0F0F2" BorderThickness="0,1,0,0">
+                        <Border Height="205" Margin="20,9,20,0" Padding="0,18,0,10" BorderBrush="#F0F0F2" BorderThickness="0,1,0,0">
                             <StackPanel>
-                                <TextBlock FontSize="15" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="目标投入分布" />
-                                <ItemsControl x:Name="GoalDistributionItemsControl" Margin="0,12,0,0" ItemsSource="{Binding GoalDistributions}">
+                                <TextBlock FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="目标投入分布" />
+                                <Grid Height="130" Margin="0,5,0,0">
+                                <ItemsControl x:Name="GoalDistributionItemsControl" Margin="0,7,0,0" ItemsSource="{Binding GoalDistributions}" Visibility="{Binding HasMonthlyGoalInvestmentData, Converter={StaticResource BooleanToVisibilityConverter}}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate DataType="{x:Type vm:GoalDistributionViewModel}">
                                             <Grid Height="32">
@@ -864,6 +864,8 @@
                                                     <ColumnDefinition Width="72" />
                                                     <ColumnDefinition Width="12" />
                                                     <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="8" />
+                                                    <ColumnDefinition Width="46" />
                                                 </Grid.ColumnDefinitions>
                                                 <Image x:Name="GoalDistributionIcon"
                                                        Grid.Column="0"
@@ -876,7 +878,7 @@
                                                        Source="{Binding IconSource}" />
                                                 <Grid x:Name="GoalDistributionHoverArea"
                                                       Grid.Column="2"
-                                                      Grid.ColumnSpan="3"
+                                                      Grid.ColumnSpan="5"
                                                       Background="{DynamicResource TransparentBrush}"
                                                       ToolTipService.BetweenShowDelay="0"
                                                       ToolTipService.InitialShowDelay="120"
@@ -885,6 +887,8 @@
                                                         <ColumnDefinition Width="72" />
                                                         <ColumnDefinition Width="12" />
                                                         <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="8" />
+                                                        <ColumnDefinition Width="46" />
                                                     </Grid.ColumnDefinitions>
                                                     <Grid.ToolTip>
                                                         <ToolTip x:Name="GoalDistributionPoptip"
@@ -948,11 +952,23 @@
                                                                  Maximum="1"
                                                                  Value="{Binding Ratio, Mode=OneWay}"
                                                                  Style="{StaticResource StatisticsProgressBarStyle}" />
+                                                    <TextBlock Grid.Column="4"
+                                                               HorizontalAlignment="Right"
+                                                               VerticalAlignment="Center"
+                                                               FontSize="12"
+                                                               FontWeight="Normal"
+                                                               Foreground="{DynamicResource TextSecondary}"
+                                                               Text="{Binding MonthlyDurationDisplay}" />
                                                 </Grid>
                                             </Grid>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
+                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{Binding HasMonthlyGoalInvestmentData, Converter={StaticResource GoalInverseVisibilityConverter}}">
+                                        <Image Width="64" Height="64" RenderOptions.BitmapScalingMode="HighQuality" Source="/FocusApp.Desktop;component/Assets/Icons/Common/rili_mubiao.png"/>
+                                        <TextBlock Margin="0,8,0,0" HorizontalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextWeak}" Text="暂无目标投入"/>
+                                    </StackPanel>
+                                </Grid>
                             </StackPanel>
                         </Border>
                       </StackPanel>
@@ -973,7 +989,7 @@
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="156" />
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="*" />
                                 </Grid.RowDefinitions>
@@ -991,10 +1007,7 @@
                                         <!-- clock_icon.png already contains its own soft halo and orange clock ring;
                                              adding WPF circular backgrounds here creates the unwanted stacked rings. -->
                                         <Image Width="84" Height="84" VerticalAlignment="Center" Source="/FocusApp.Desktop;component/Assets/Icons/Common/clock_icon.png" RenderOptions.BitmapScalingMode="HighQuality"/>
-                                        <StackPanel Grid.Column="2" VerticalAlignment="Center">
-                                            <TextBlock FontFamily="{DynamicResource FontFamilyNumeric}" Foreground="{DynamicResource TextPrimary}"><Run FontSize="42" FontWeight="SemiBold" Text="{Binding SelectedDayHoursValueDisplay, Mode=OneWay}"/><Run FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI" FontSize="15" FontWeight="Medium" Text="{Binding SelectedDayHoursUnitDisplay, Mode=OneWay}"/><Run FontSize="42" FontWeight="SemiBold" Text="{Binding SelectedDayMinutesValueDisplay, Mode=OneWay}"/><Run FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI" FontSize="15" FontWeight="Medium" Text=" 分钟"/></TextBlock>
-                                            <TextBlock Margin="0,1,0,0" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="今日专注时长"/>
-                                        </StackPanel>
+                                        <TextBlock Grid.Column="2" VerticalAlignment="Center" FontFamily="{DynamicResource FontFamilyNumeric}" Foreground="{DynamicResource TextPrimary}"><Run FontSize="48" FontWeight="SemiBold" Text="{Binding SelectedDayHoursValueDisplay, Mode=OneWay}"/><Run FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI" FontSize="15" FontWeight="SemiBold" Text="{Binding SelectedDayHoursUnitDisplay, Mode=OneWay}"/><Run FontSize="48" FontWeight="SemiBold" Text="{Binding SelectedDayMinutesValueDisplay, Mode=OneWay}"/><Run FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI" FontSize="15" FontWeight="SemiBold" Text=" 分钟"/></TextBlock>
                                     </Grid>
                                     <Border Grid.Row="1" CornerRadius="10">
                                         <Border.Style>
@@ -1042,8 +1055,14 @@
                                                     <ControlTemplate TargetType="ToggleButton">
                                                         <Border x:Name="TaskSummaryBackground" Background="{TemplateBinding Background}" CornerRadius="8" Padding="5,4">
                                                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                                <Image Width="21" Height="21" Margin="0,0,7,0" Source="/FocusApp.Desktop;component/Assets/Icons/Common/gouxuan03.png" RenderOptions.BitmapScalingMode="HighQuality"/>
-                                                                <TextBlock VerticalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}"><Run Text="完成 "/><Run FontWeight="SemiBold" Text="{Binding SelectedDayCompletedTasks, Mode=OneWay}"/><Run Text=" 项任务"/></TextBlock>
+                                                                <Grid Width="21" Height="21" Margin="0,0,7,0">
+                                                                    <Image Source="/FocusApp.Desktop;component/Assets/Icons/Common/gouxuan03.png" RenderOptions.BitmapScalingMode="HighQuality" Visibility="{Binding HasSelectedDayFocusData, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                                    <Border Width="18" Height="18" HorizontalAlignment="Center" VerticalAlignment="Center" BorderBrush="{DynamicResource TextWeak}" BorderThickness="1.5" CornerRadius="9" Visibility="{Binding HasSelectedDayFocusData, Converter={StaticResource GoalInverseVisibilityConverter}}"/>
+                                                                </Grid>
+                                                                <Grid VerticalAlignment="Center">
+                                                                    <TextBlock FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}" Visibility="{Binding HasSelectedDayFocusData, Converter={StaticResource BooleanToVisibilityConverter}}"><Run Text="完成 "/><Run FontWeight="SemiBold" Text="{Binding SelectedDayCompletedTasks, Mode=OneWay}"/><Run Text=" 项任务"/></TextBlock>
+                                                                    <TextBlock FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextSecondary}" Text="暂无完成任务" Visibility="{Binding HasSelectedDayFocusData, Converter={StaticResource GoalInverseVisibilityConverter}}"/>
+                                                                </Grid>
                                                             </StackPanel>
                                                         </Border>
                                                     </ControlTemplate>
@@ -1053,9 +1072,9 @@
                                             <StackPanel Grid.Column="2" HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
                                                 <Grid Width="21" Height="21" Margin="5,0,5,0">
                                                     <Image Source="{Binding SelectedDayTrendIcon}" RenderOptions.BitmapScalingMode="HighQuality" Visibility="{Binding HasSelectedDayChange, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                    <TextBlock Text="—" FontSize="15" FontWeight="Medium" Foreground="{DynamicResource TextWeak}" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{Binding HasSelectedDayChange, Converter={StaticResource GoalInverseVisibilityConverter}}"/>
+                                                    <TextBlock Text="—" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource TextWeak}" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{Binding HasSelectedDayChange, Converter={StaticResource GoalInverseVisibilityConverter}}"/>
                                                 </Grid>
-                                                <TextBlock VerticalAlignment="Center" FontSize="12" FontWeight="Normal"><Run Foreground="{DynamicResource TextSecondary}" Text="{Binding SelectedDayComparisonLabel, Mode=OneWay}"/><Run FontWeight="Medium" Foreground="{Binding SelectedDayTrendColor}" Text="{Binding SelectedDayChangeDisplay, Mode=OneWay}"/></TextBlock>
+                                                <TextBlock VerticalAlignment="Center" FontSize="13" FontWeight="Normal"><Run Foreground="{DynamicResource TextSecondary}" Text="{Binding SelectedDayComparisonLabel, Mode=OneWay}"/><Run FontWeight="Medium" Foreground="{Binding SelectedDayTrendColor}" Text="{Binding SelectedDayChangeDisplay, Mode=OneWay}"/></TextBlock>
                                             </StackPanel>
                                         </Grid>
                                     </Border>
@@ -1065,7 +1084,6 @@
                                             <StackPanel>
                                                 <Grid Margin="0,0,0,12">
                                                     <TextBlock FontSize="17" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}"><Run Text="已完成任务（"/><Run Text="{Binding SelectedDayCompletedTasks, Mode=OneWay}"/><Run Text="）"/></TextBlock>
-                                                    <Button Content="×" HorizontalAlignment="Right" Width="24" Height="24" Click="CloseCompletedTasks_Click" Background="#F3F5F8" BorderThickness="0" Foreground="{DynamicResource TextSecondary}" Cursor="Hand" AutomationProperties.Name="关闭已完成任务"/>
                                                 </Grid>
                                                 <TextBlock x:Name="CompletedTasksEmpty" Margin="0,12" FontSize="12" FontWeight="Normal" Text="当天还没有完成任务" Foreground="{DynamicResource TextSecondary}" HorizontalAlignment="Center"/>
                                                 <ScrollViewer x:Name="CompletedTasksListScroll" MaxHeight="176" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
@@ -1123,9 +1141,11 @@
                                         </Border>
                                     </Popup>
                                 </Grid>
-                                <StackPanel Grid.Row="2">
-                                    <TextBlock FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="时间分布"/>
-                                    <ScrollViewer x:Name="DailyDistributionScrollViewer" MaxHeight="126" Margin="0,8,0,0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                <Grid Grid.Row="2">
+                                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                    <TextBlock Grid.Row="0" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="时间分布"/>
+                                    <Grid Grid.Row="1">
+                                    <ScrollViewer x:Name="DailyDistributionScrollViewer" MaxHeight="126" Margin="0,8,0,0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Visibility="{Binding HasSelectedDayFocusData, Converter={StaticResource BooleanToVisibilityConverter}}">
                                         <ScrollViewer.Resources><Style TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource StatisticsRecordScrollBarStyle}"/></ScrollViewer.Resources>
                                         <ItemsControl ItemsSource="{Binding SelectedDayDistributions}">
                                             <ItemsControl.ItemTemplate>
@@ -1141,9 +1161,15 @@
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
                                     </ScrollViewer>
-                                </StackPanel>
+                                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{Binding HasSelectedDayFocusData, Converter={StaticResource GoalInverseVisibilityConverter}}">
+                                            <Image Width="64" Height="64" RenderOptions.BitmapScalingMode="HighQuality" Source="/FocusApp.Desktop;component/Assets/Icons/Common/rili_tongji.png"/>
+                                            <TextBlock Margin="0,7,0,0" HorizontalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextWeak}" Text="暂无专注时间"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Grid>
                                 <TextBlock Grid.Row="3" Margin="0,14,0,8" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="专注记录"/>
-                                <ScrollViewer x:Name="CalendarRecordsScrollViewer" Grid.Row="4" Margin="0" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                                <Grid Grid.Row="4">
+                                <ScrollViewer x:Name="CalendarRecordsScrollViewer" Margin="0" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" Visibility="{Binding HasSelectedDayFocusData, Converter={StaticResource BooleanToVisibilityConverter}}">
                                     <ScrollViewer.Resources>
                                         <Style TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource StatisticsRecordScrollBarStyle}" />
                                     </ScrollViewer.Resources>
@@ -1194,6 +1220,11 @@
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
                                 </ScrollViewer>
+                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{Binding HasSelectedDayFocusData, Converter={StaticResource GoalInverseVisibilityConverter}}">
+                                        <Image Width="64" Height="64" RenderOptions.BitmapScalingMode="HighQuality" Source="/FocusApp.Desktop;component/Assets/Icons/Common/rili_caidan.png"/>
+                                        <TextBlock Margin="0,7,0,0" HorizontalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextWeak}" Text="暂无专注记录"/>
+                                    </StackPanel>
+                                </Grid>
                             </Grid>
 
                             <Grid x:Name="DailyFocusRecordLockedPlaceholder">

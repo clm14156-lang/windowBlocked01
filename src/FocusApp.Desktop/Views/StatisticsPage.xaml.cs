@@ -20,7 +20,6 @@ public partial class StatisticsPage : UserControl
     }
     private void CompletedTasks_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e) { }
     private void CompletedTasksPopup_Closed(object? sender, EventArgs e) { if (CompletedTasksButton is not null) CompletedTasksButton.IsChecked = false; }
-    private void CloseCompletedTasks_Click(object sender, RoutedEventArgs e) => CompletedTasksPopup.IsOpen = false;
     private void CompletedTasksPopup_KeyDown(object sender, KeyEventArgs e) { if (e.Key == Key.Escape) CompletedTasksPopup.IsOpen = false; }
     private FocusRecordDetailsWindow? _recordDetails;
     private FocusSessionRecordViewModel? _recordDetailsRecord;
