@@ -54,6 +54,11 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     private bool _isMonthlyFocusTargetPopupOpen;
     private bool _isMonthlyFocusTargetMenuOpen;
     private string _monthlyFocusTargetInput = string.Empty;
+    private bool _isMonthlyGoalMode;
+    private bool _isCustomGoalRepeat;
+    private bool _hasDailyFocusTarget;
+    private string _dailyFocusTargetInput = "4";
+    private readonly HashSet<DayOfWeek> _customGoalDays = [DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday];
     private bool _isLoggedIn;
     private bool _isVip;
     private bool _isTrendVipGuideOpen;
@@ -123,6 +128,13 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         DeleteMonthlyFocusTargetCommand = new RelayCommand<object>(_ => DeleteMonthlyFocusTarget());
         IncreaseMonthlyFocusTargetCommand = new RelayCommand<object>(_ => AdjustMonthlyFocusTarget(1));
         DecreaseMonthlyFocusTargetCommand = new RelayCommand<object>(_ => AdjustMonthlyFocusTarget(-1));
+        SelectDailyGoalModeCommand = new RelayCommand<object>(_ => IsMonthlyGoalMode = false);
+        SelectMonthlyGoalModeCommand = new RelayCommand<object>(_ => IsMonthlyGoalMode = true);
+        SelectDailyRepeatCommand = new RelayCommand<object>(_ => IsCustomGoalRepeat = false);
+        SelectCustomRepeatCommand = new RelayCommand<object>(_ => IsCustomGoalRepeat = true);
+        ToggleGoalRepeatDayCommand = new RelayCommand<object>(ToggleGoalRepeatDay);
+        IncreaseGoalTargetHoursCommand = new RelayCommand<object>(_ => AdjustGoalTarget(1));
+        DecreaseGoalTargetHoursCommand = new RelayCommand<object>(_ => AdjustGoalTarget(-1));
         AddGoalCommand = new RelayCommand<object>(_ => OpenCreateGoalDialog());
         EditGoalCommand = new RelayCommand<GoalOverviewItemViewModel>(OpenEditGoalDialog);
         CancelCreateGoalCommand = new RelayCommand<object>(_ => CloseCreateGoalDialog());
@@ -433,6 +445,13 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     public ICommand DeleteMonthlyFocusTargetCommand { get; }
     public ICommand IncreaseMonthlyFocusTargetCommand { get; }
     public ICommand DecreaseMonthlyFocusTargetCommand { get; }
+    public ICommand SelectDailyGoalModeCommand { get; }
+    public ICommand SelectMonthlyGoalModeCommand { get; }
+    public ICommand SelectDailyRepeatCommand { get; }
+    public ICommand SelectCustomRepeatCommand { get; }
+    public ICommand ToggleGoalRepeatDayCommand { get; }
+    public ICommand IncreaseGoalTargetHoursCommand { get; }
+    public ICommand DecreaseGoalTargetHoursCommand { get; }
 
     public ObservableCollection<CalendarDayViewModel> CalendarDays { get; } = [];
 
@@ -464,6 +483,11 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     }
 
     public ObservableCollection<GoalDistributionViewModel> GoalDistributions { get; } = [];
+    /// <summary>Today's focus allocation, kept separate from the calendar month's distribution.</summary>
+    public ObservableCollection<GoalDistributionViewModel> TodayGoalDistributions { get; } = [];
+    public bool HasTodayGoalInvestmentData => TodayGoalDistributions.Count > 0;
+    public int TodayGoalTotalMinutes => TodayGoalDistributions.Sum(item => item.Minutes);
+    public string TodayGoalTotalDurationDisplay => FormatDurationForDisplay(TodayGoalTotalMinutes);
     public bool HasMonthlyGoalInvestmentData => GoalDistributions.Count > 0;
 
     public ObservableCollection<GoalOverviewItemViewModel> Goals { get; } = [];
@@ -850,6 +874,80 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     }
 
     public string MonthlyFocusTargetPopupTitle => HasMonthlyFocusTarget ? "编辑本月目标" : "设置本月目标";
+    public bool IsMonthlyGoalMode
+    {
+        get => _isMonthlyGoalMode;
+        set
+        {
+            if (_isMonthlyGoalMode == value) return;
+            _isMonthlyGoalMode = value;
+            if (value && string.IsNullOrWhiteSpace(MonthlyFocusTargetInput))
+                MonthlyFocusTargetInput = HasMonthlyFocusTarget ? MonthlyFocusTargetHours.ToString() : "100";
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(IsDailyGoalMode));
+            OnPropertyChanged(nameof(GoalTargetHoursInput));
+            OnPropertyChanged(nameof(GoalTargetModeDescription));
+        }
+    }
+    public bool IsDailyGoalMode => !IsMonthlyGoalMode;
+    public bool IsCustomGoalRepeat
+    {
+        get => _isCustomGoalRepeat;
+        set { if (_isCustomGoalRepeat == value) return; _isCustomGoalRepeat = value; OnPropertyChanged(); OnPropertyChanged(nameof(IsDailyRepeat)); }
+    }
+    public bool IsDailyRepeat => !IsCustomGoalRepeat;
+    public string DailyFocusTargetInput
+    {
+        get => _dailyFocusTargetInput;
+        set { if (_dailyFocusTargetInput == value) return; _dailyFocusTargetInput = value; OnPropertyChanged(); OnPropertyChanged(nameof(GoalTargetHoursInput)); OnPropertyChanged(nameof(DailyFocusTargetHours)); OnPropertyChanged(nameof(DailyFocusTargetDisplay)); OnPropertyChanged(nameof(DailyFocusProgressPercent)); OnPropertyChanged(nameof(DailyFocusProgressRatio)); }
+    }
+    public string GoalTargetHoursInput
+    {
+        get => IsMonthlyGoalMode ? MonthlyFocusTargetInput : DailyFocusTargetInput;
+        set
+        {
+            if (IsMonthlyGoalMode) MonthlyFocusTargetInput = value;
+            else DailyFocusTargetInput = value;
+        }
+    }
+    public string GoalTargetModeDescription => IsMonthlyGoalMode ? "本月累计完成时长" : "每天完成固定时长";
+    public bool HasDailyFocusTarget => _hasDailyFocusTarget;
+    public bool HasAnyFocusTarget => HasDailyFocusTarget || HasMonthlyFocusTarget;
+    public bool IsMonthlyTargetActive => HasMonthlyFocusTarget;
+    public string FocusTargetValueDisplay => IsMonthlyTargetActive
+        ? $"{TodayFocusDuration} / 今日建议 {TodaySuggestedFocusDisplay}"
+        : TodayFocusDuration;
+    public double FocusTargetProgressRatio => IsMonthlyTargetActive ? MonthlyFocusProgressRatio : DailyFocusProgressRatio;
+    public int FocusTargetProgressPercent => IsMonthlyTargetActive ? MonthlyFocusProgressPercent : DailyFocusProgressPercent;
+    public string FocusTargetFooterDisplay => IsMonthlyTargetActive
+        ? $"本月已专注 {MonthlyFocusCompletedDisplay}  ·  还差 {MonthlyFocusRemainingTargetDisplay}  ·  剩余 {MonthlyFocusRemainingDaysDisplay}"
+        : HasDailyFocusTarget ? $"已投入 {TodayFocusDuration}  ·  今日 {TodayFocusCount} 次专注" : $"今日 {TodayFocusCount} 次专注  |  未设置今日目标";
+    public int TodayFocusMinutes => GetDailySummary(DateTime.Today).FocusMinutes;
+    public int DailyFocusTargetHours => int.TryParse(DailyFocusTargetInput, out var hours) ? Math.Max(1, hours) : 4;
+    public string DailyFocusTargetDisplay => $"{DailyFocusTargetHours}小时";
+    public int DailyFocusProgressPercent => Math.Min(100, (int)Math.Round(TodayFocusMinutes / (DailyFocusTargetHours * 60d) * 100));
+    public bool IsDailyFocusTargetCompleted => HasDailyFocusTarget && TodayFocusMinutes >= DailyFocusTargetHours * 60;
+    public double DailyFocusProgressRatio => Math.Min(1, TodayFocusMinutes / (DailyFocusTargetHours * 60d));
+    public string DailyFocusRemainingDisplay => FormatDuration(Math.Max(0, DailyFocusTargetHours * 60 - TodayFocusMinutes));
+    public bool IsGoalRepeatDaySelected(DayOfWeek day) => _customGoalDays.Contains(day);
+    public bool IsMondaySelected => IsGoalRepeatDaySelected(DayOfWeek.Monday);
+    public bool IsTuesdaySelected => IsGoalRepeatDaySelected(DayOfWeek.Tuesday);
+    public bool IsWednesdaySelected => IsGoalRepeatDaySelected(DayOfWeek.Wednesday);
+    public bool IsThursdaySelected => IsGoalRepeatDaySelected(DayOfWeek.Thursday);
+    public bool IsFridaySelected => IsGoalRepeatDaySelected(DayOfWeek.Friday);
+    public bool IsSaturdaySelected => IsGoalRepeatDaySelected(DayOfWeek.Saturday);
+    public bool IsSundaySelected => IsGoalRepeatDaySelected(DayOfWeek.Sunday);
+    public string TodaySuggestedFocusDisplay
+    {
+        get
+        {
+            var remaining = Math.Max(0, MonthlyFocusTargetHours * 60 - MonthlyFocusCompletedMinutes);
+            var days = Math.Max(1, DateTime.DaysInMonth(DateTime.Today.Year, DateTime.Today.Month) - DateTime.Today.Day + 1);
+            return FormatDuration((int)Math.Ceiling(remaining / (double)days));
+        }
+    }
+    public string MonthlyFocusRemainingDaysDisplay => $"{Math.Max(0, DateTime.DaysInMonth(DateTime.Today.Year, DateTime.Today.Month) - DateTime.Today.Day + 1)}天";
+    public string MonthlyFocusRemainingTargetDisplay => FormatDuration(Math.Max(0, MonthlyFocusTargetHours * 60 - MonthlyFocusCompletedMinutes));
     public int MonthlyFocusCompletedMinutes => MonthlyTotalMinutes;
     public int MonthlyFocusCompletedHours => MonthlyFocusCompletedMinutes / 60;
     public int MonthlyFocusCompletedMinutesRemainder => MonthlyFocusCompletedMinutes % 60;
@@ -1353,10 +1451,12 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             return;
         }
 
-        MonthlyFocusTargetInput = editing && HasMonthlyFocusTarget
-            ? MonthlyFocusTargetHours.ToString()
-            : string.Empty;
+        IsMonthlyGoalMode = editing && HasMonthlyFocusTarget;
+        IsCustomGoalRepeat = false;
+        MonthlyFocusTargetInput = editing && HasMonthlyFocusTarget ? MonthlyFocusTargetHours.ToString() : "100";
+        DailyFocusTargetInput = editing && !HasMonthlyFocusTarget ? DailyFocusTargetInput : "4";
         IsMonthlyFocusTargetPopupOpen = true;
+        OnPropertyChanged(nameof(GoalTargetHoursInput));
     }
 
     private void ToggleMonthlyFocusTargetMenu()
@@ -1373,14 +1473,23 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     private void SaveMonthlyFocusTarget()
     {
-        if (!int.TryParse(MonthlyFocusTargetInput, out var hours) || hours <= 0)
+        // Keep the legacy command contract: callers that open the monthly target
+        // command and write MonthlyFocusTargetInput directly still save a month goal.
+        var legacyMonthlyEdit = !IsMonthlyGoalMode && DailyFocusTargetInput == "4" && MonthlyFocusTargetInput != "100";
+        var saveMonthly = IsMonthlyGoalMode || legacyMonthlyEdit;
+        var input = saveMonthly ? MonthlyFocusTargetInput : DailyFocusTargetInput;
+        if (!int.TryParse(input, out var hours) || hours <= 0)
         {
             return;
         }
 
-        _monthlyFocusTargetHours = Math.Min(hours, 10000);
+        if (saveMonthly)
+            _monthlyFocusTargetHours = Math.Min(hours, 10000);
+        else
+            _hasDailyFocusTarget = true;
         IsMonthlyFocusTargetPopupOpen = false;
         NotifyMonthlyFocusTargetChanged();
+        RefreshTodayGoalDistributions();
         MonthlyFocusTargetChanged?.Invoke(this, EventArgs.Empty);
     }
 
@@ -1388,6 +1497,31 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     {
         _ = int.TryParse(MonthlyFocusTargetInput, out var currentHours);
         MonthlyFocusTargetInput = Math.Clamp(currentHours + delta, 1, 10000).ToString();
+    }
+
+    private void AdjustGoalTarget(int delta)
+    {
+        if (IsMonthlyGoalMode)
+        {
+            AdjustMonthlyFocusTarget(delta);
+            return;
+        }
+
+        _ = int.TryParse(DailyFocusTargetInput, out var currentHours);
+        DailyFocusTargetInput = Math.Clamp(currentHours + delta, 1, 24).ToString();
+    }
+
+    private void ToggleGoalRepeatDay(object? parameter)
+    {
+        if (parameter is not string value || !Enum.TryParse<DayOfWeek>(value, out var day)) return;
+        if (!_customGoalDays.Add(day)) _customGoalDays.Remove(day);
+        OnPropertyChanged(nameof(IsMondaySelected));
+        OnPropertyChanged(nameof(IsTuesdaySelected));
+        OnPropertyChanged(nameof(IsWednesdaySelected));
+        OnPropertyChanged(nameof(IsThursdaySelected));
+        OnPropertyChanged(nameof(IsFridaySelected));
+        OnPropertyChanged(nameof(IsSaturdaySelected));
+        OnPropertyChanged(nameof(IsSundaySelected));
     }
 
     private void DeleteMonthlyFocusTarget()
@@ -1414,6 +1548,23 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(MonthlyFocusTargetDisplay));
         OnPropertyChanged(nameof(MonthlyFocusRemainingDisplay));
         OnPropertyChanged(nameof(MonthlyFocusProgressRatio));
+        OnPropertyChanged(nameof(TodaySuggestedFocusDisplay));
+        OnPropertyChanged(nameof(MonthlyFocusRemainingDaysDisplay));
+        OnPropertyChanged(nameof(MonthlyFocusRemainingTargetDisplay));
+        OnPropertyChanged(nameof(GoalTargetHoursInput));
+        OnPropertyChanged(nameof(HasDailyFocusTarget));
+        OnPropertyChanged(nameof(HasAnyFocusTarget));
+        OnPropertyChanged(nameof(IsMonthlyTargetActive));
+        OnPropertyChanged(nameof(FocusTargetValueDisplay));
+        OnPropertyChanged(nameof(FocusTargetProgressRatio));
+        OnPropertyChanged(nameof(FocusTargetProgressPercent));
+        OnPropertyChanged(nameof(FocusTargetFooterDisplay));
+        OnPropertyChanged(nameof(DailyFocusTargetHours));
+        OnPropertyChanged(nameof(DailyFocusTargetDisplay));
+        OnPropertyChanged(nameof(DailyFocusProgressPercent));
+        OnPropertyChanged(nameof(IsDailyFocusTargetCompleted));
+        OnPropertyChanged(nameof(DailyFocusProgressRatio));
+        OnPropertyChanged(nameof(DailyFocusRemainingDisplay));
     }
 
     private void RefreshGoalSummaries()
@@ -1439,6 +1590,58 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
                 goal.UpdateProgressSummary(0, 0, todayMinutes);
             }
         }
+        RefreshTodayGoalDistributions();
+    }
+
+    private void RefreshTodayGoalDistributions()
+    {
+        TodayGoalDistributions.Clear();
+        var today = FocusSessionRecords.Where(record => record.StartTime.Date == DateTime.Today && record.EndTime > record.StartTime).ToArray();
+        var totalMinutes = today.Sum(record => Math.Max(0, record.DurationMinutes));
+        if (totalMinutes <= 0)
+        {
+            OnPropertyChanged(nameof(HasTodayGoalInvestmentData));
+            OnPropertyChanged(nameof(TodayGoalTotalMinutes));
+            OnPropertyChanged(nameof(TodayGoalTotalDurationDisplay));
+            OnPropertyChanged(nameof(TodayFocusDuration));
+            OnPropertyChanged(nameof(TodayFocusCount));
+            OnPropertyChanged(nameof(FocusTargetValueDisplay));
+            OnPropertyChanged(nameof(FocusTargetProgressRatio));
+            OnPropertyChanged(nameof(FocusTargetProgressPercent));
+            OnPropertyChanged(nameof(FocusTargetFooterDisplay));
+            return;
+        }
+
+        var groups = today.GroupBy(record => string.IsNullOrWhiteSpace(record.GoalId) ? "goal-unassigned" : record.GoalId, StringComparer.Ordinal)
+            .Select(group =>
+            {
+                var minutes = group.Sum(record => Math.Max(0, record.DurationMinutes));
+                var goal = Goals.FirstOrDefault(item => item.GoalId == group.Key);
+                var name = group.Key == "goal-unassigned" ? "自由专注" : goal?.Name ?? group.First().GoalName;
+                return (Id: group.Key, Name: string.IsNullOrWhiteSpace(name) ? "自由专注" : name!, Icon: goal?.IconSource ?? TargetIconCatalog.GetIconSource(null), Minutes: minutes);
+            })
+            .Where(item => item.Minutes > 0)
+            .OrderByDescending(item => item.Minutes)
+            .ToArray();
+
+        var offset = 0d;
+        for (var index = 0; index < groups.Length; index++)
+        {
+            var item = groups[index];
+            var ratio = item.Minutes / (double)totalMinutes;
+            TodayGoalDistributions.Add(new GoalDistributionViewModel(item.Name, item.Icon, item.Minutes, ratio, index, offset));
+            offset += ratio;
+        }
+
+        OnPropertyChanged(nameof(HasTodayGoalInvestmentData));
+        OnPropertyChanged(nameof(TodayGoalTotalMinutes));
+        OnPropertyChanged(nameof(TodayGoalTotalDurationDisplay));
+        OnPropertyChanged(nameof(TodayFocusDuration));
+        OnPropertyChanged(nameof(TodayFocusCount));
+        OnPropertyChanged(nameof(FocusTargetValueDisplay));
+        OnPropertyChanged(nameof(FocusTargetProgressRatio));
+        OnPropertyChanged(nameof(FocusTargetProgressPercent));
+        OnPropertyChanged(nameof(FocusTargetFooterDisplay));
     }
 
     private void RefreshSelectedGoalProgressData()
@@ -2247,18 +2450,26 @@ public sealed class FocusSessionRecordViewModel : INotifyPropertyChanged
 
 public sealed class GoalDistributionViewModel
 {
-    public GoalDistributionViewModel(string targetName, string iconSource, int minutes, double ratio)
+    private static readonly string[] Palette = ["#FF7A00", "#3478F6", "#8E55D6", "#34C759", "#FF9F0A", "#AF52DE"];
+
+    public GoalDistributionViewModel(string targetName, string iconSource, int minutes, double ratio, int colorIndex = 0, double startRatio = 0)
     {
         TargetName = targetName;
         IconSource = iconSource;
         Minutes = minutes;
         Ratio = ratio;
+        ColorHex = Palette[Math.Abs(colorIndex) % Palette.Length];
+        ColorBrush = (SolidColorBrush)new BrushConverter().ConvertFromString(ColorHex)!;
+        RingGeometry = BuildRingGeometry(startRatio, ratio);
     }
 
     public string TargetName { get; }
     public string IconSource { get; }
     public int Minutes { get; }
     public double Ratio { get; }
+    public string ColorHex { get; }
+    public Brush ColorBrush { get; }
+    public PathGeometry RingGeometry { get; }
     public double ProgressWidth => Ratio * 220;
     public string CompactDurationDisplay => Minutes < 1 ? "<1m" : Minutes < 60 ? $"{Minutes}m" : $"{Minutes / 60}h {Minutes % 60:00}m";
     public string MonthlyDurationDisplay => Minutes < 60
@@ -2270,6 +2481,29 @@ public sealed class GoalDistributionViewModel
     public string RatioDisplay => $"{Ratio:P0}";
     public string PoptipDurationAndRatioDisplay => FormattableString.Invariant(
         $"{Minutes / 60d:0.#} 小时（{Math.Round(Ratio * 100, MidpointRounding.AwayFromZero):0}%）");
+
+    private static PathGeometry BuildRingGeometry(double startRatio, double ratio)
+    {
+        var geometry = new PathGeometry();
+        if (ratio <= 0) return geometry;
+        var start = -90 + 360 * startRatio;
+        var sweep = Math.Min(359.8, Math.Max(0.1, 360 * ratio));
+        var end = start + sweep;
+        const double center = 60;
+        const double radius = 48;
+        var radians = Math.PI / 180;
+        var figure = new PathFigure { StartPoint = new Point(center + radius * Math.Cos(start * radians), center + radius * Math.Sin(start * radians)) };
+        figure.Segments.Add(new ArcSegment
+        {
+            Point = new Point(center + radius * Math.Cos(end * radians), center + radius * Math.Sin(end * radians)),
+            Size = new Size(radius, radius),
+            IsLargeArc = sweep > 180,
+            SweepDirection = SweepDirection.Clockwise,
+            IsStroked = true
+        });
+        geometry.Figures.Add(figure);
+        return geometry;
+    }
 }
 
 public sealed class GoalOverviewItemViewModel : INotifyPropertyChanged
