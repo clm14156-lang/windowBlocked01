@@ -2,6 +2,7 @@ bin/
 obj/
 .vs/
 TestResults/
+verify-*/
 .verify/
 .codex-build/
 .dotnet/
