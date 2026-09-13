@@ -1,0 +1,14 @@
+E:\windofoucs01\verify-tests2\FocusApp.Infrastructure.deps.json
+E:\windofoucs01\verify-tests2\FocusApp.Infrastructure.dll
+E:\windofoucs01\verify-tests2\FocusApp.Infrastructure.pdb
+E:\windofoucs01\verify-tests2-obj\FocusApp.Infrastructure.csproj.AssemblyReference.cache
+E:\windofoucs01\verify-tests2-obj\FocusApp.Infrastructure.GeneratedMSBuildEditorConfig.editorconfig
+E:\windofoucs01\verify-tests2-obj\FocusApp.Infrastructure.AssemblyInfoInputs.cache
+E:\windofoucs01\verify-tests2-obj\FocusApp.Infrastructure.AssemblyInfo.cs
+E:\windofoucs01\verify-tests2-obj\FocusApp.Infrastructure.csproj.CoreCompileInputs.cache
+E:\windofoucs01\verify-tests2-obj\FocusApp.Infrastructure.sourcelink.json
+E:\windofoucs01\verify-tests2-obj\FocusApp.E6E0977D.Up2Date
+E:\windofoucs01\verify-tests2-obj\FocusApp.Infrastructure.dll
+E:\windofoucs01\verify-tests2-obj\refint\FocusApp.Infrastructure.dll
+E:\windofoucs01\verify-tests2-obj\FocusApp.Infrastructure.pdb
+E:\windofoucs01\verify-tests2-obj\ref\FocusApp.Infrastructure.dll

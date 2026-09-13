@@ -4,13 +4,14 @@
              Width="390"
              Height="{Binding DialogHeight, Mode=OneWay}"
              UseLayoutRounding="True"
-             SnapsToDevicePixels="True">
+             SnapsToDevicePixels="True"
+             PreviewMouseDown="FocusGoalSettingsModal_PreviewMouseDown">
     <UserControl.Resources>
         <Style x:Key="FocusGoalSegmentButtonStyle" TargetType="{x:Type Button}">
             <Setter Property="Background" Value="{DynamicResource BackgroundSecondary}" />
             <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+            <Setter Property="Foreground" Value="#6E6E73" />
             <Setter Property="FontSize" Value="14" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Cursor" Value="Hand" />
@@ -78,13 +79,29 @@
             <Setter Property="FontWeight" Value="Medium" />
         </Style>
 
+        <Style x:Key="FocusGoalTargetHoursInputStyle" TargetType="{x:Type TextBox}">
+            <Setter Property="Width" Value="78" />
+            <Setter Property="Height" Value="58" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="FontFamily" Value="{DynamicResource FontFamilyNumeric}" />
+            <Setter Property="FontSize" Value="38" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+
         <Style x:Key="FocusGoalWeekdayButtonStyle" TargetType="{x:Type Button}">
             <Setter Property="Height" Value="30" />
             <Setter Property="Margin" Value="2,0" />
             <Setter Property="Background" Value="{DynamicResource BackgroundSecondary}" />
             <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+            <Setter Property="Foreground" Value="#6E6E73" />
             <Setter Property="FontSize" Value="13" />
             <Setter Property="FontWeight" Value="Medium" />
             <Setter Property="Cursor" Value="Hand" />
@@ -96,6 +113,7 @@
                                 Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
+                                TextElement.Foreground="{TemplateBinding Foreground}"
                                 CornerRadius="8">
                             <ContentPresenter HorizontalAlignment="Center"
                                               VerticalAlignment="Center"
@@ -150,7 +168,7 @@
             <Setter Property="Height" Value="40" />
             <Setter Property="Background" Value="{DynamicResource AccentPrimary}" />
             <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Foreground" Value="#FFFFFF" />
             <Setter Property="FontSize" Value="14" />
             <Setter Property="FontWeight" Value="Normal" />
             <Setter Property="Cursor" Value="Hand" />
@@ -158,10 +176,17 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type Button}">
-                        <Border x:Name="PrimaryChrome" Background="{TemplateBinding Background}" CornerRadius="11">
-                            <ContentPresenter HorizontalAlignment="Center"
-                                              VerticalAlignment="Center"
-                                              TextElement.Foreground="{TemplateBinding Foreground}" />
+                        <Border x:Name="PrimaryChrome"
+                                Background="{TemplateBinding Background}"
+                                TextElement.Foreground="{TemplateBinding Foreground}"
+                                CornerRadius="11">
+                            <TextBlock HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       FontFamily="{TemplateBinding FontFamily}"
+                                       FontSize="{TemplateBinding FontSize}"
+                                       FontWeight="{TemplateBinding FontWeight}"
+                                       Foreground="{TemplateBinding Foreground}"
+                                       Text="{TemplateBinding Content}" />
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
@@ -169,6 +194,40 @@
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="PrimaryChrome" Property="Opacity" Value="0.78" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="FocusGoalDangerMenuItemStyle" TargetType="{x:Type Button}">
+            <Setter Property="Height" Value="34" />
+            <Setter Property="Padding" Value="10,0" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="{DynamicResource Danger}" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border x:Name="DangerMenuItemChrome"
+                                Padding="{TemplateBinding Padding}"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="Center"
+                                              TextElement.Foreground="{TemplateBinding Foreground}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="DangerMenuItemChrome" Property="Background" Value="#FFF1F0" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="DangerMenuItemChrome" Property="Background" Value="#FFE5E2" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -191,7 +250,7 @@
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="30" />
-                <RowDefinition Height="70" />
+                <RowDefinition Height="86" />
                 <RowDefinition Height="*" />
                 <RowDefinition Height="60" />
             </Grid.RowDefinitions>
@@ -202,16 +261,68 @@
                            FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimary}"
                            Text="专注目标" />
-                <Button Width="38"
+                <Button x:Name="FocusGoalMoreButton"
+                        Width="38"
                         Height="30"
                         HorizontalAlignment="Right"
                         VerticalAlignment="Center"
-                        Background="{DynamicResource BackgroundSecondary}"
-                        BorderThickness="0"
                         Content="•••"
+                        Click="FocusGoalMoreButton_Click"
+                        PreviewMouseDown="FocusGoalMoreButton_PreviewMouseDown"
                         FontSize="15"
                         Foreground="{DynamicResource TextSecondary}"
-                        FocusVisualStyle="{x:Null}" />
+                        FocusVisualStyle="{x:Null}">
+                    <Button.Style>
+                        <Style TargetType="{x:Type Button}">
+                            <Setter Property="Background" Value="Transparent" />
+                            <Setter Property="BorderThickness" Value="0" />
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="{x:Type Button}">
+                                        <Border x:Name="MoreButtonChrome"
+                                                Background="{TemplateBinding Background}"
+                                                CornerRadius="8">
+                                            <ContentPresenter HorizontalAlignment="Center"
+                                                              VerticalAlignment="Center"
+                                                              TextElement.Foreground="{TemplateBinding Foreground}" />
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="MoreButtonChrome"
+                                                        Property="Background"
+                                                        Value="{DynamicResource ControlHoverBackground}" />
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </Button.Style>
+                </Button>
+                <Popup x:Name="FocusGoalMoreMenu"
+                       AllowsTransparency="True"
+                       Closed="FocusGoalMoreMenu_Closed"
+                       Focusable="False"
+                       HorizontalOffset="-66"
+                       Placement="Bottom"
+                       PlacementTarget="{Binding ElementName=FocusGoalMoreButton}"
+                       StaysOpen="False"
+                       VerticalOffset="4">
+                    <Border Width="104"
+                            Padding="5"
+                            Background="#FFFFFF"
+                            BorderBrush="#E5E5EA"
+                            BorderThickness="1"
+                            CornerRadius="9">
+                        <Border.Effect>
+                            <DropShadowEffect BlurRadius="12" Direction="270" Opacity="0.14" ShadowDepth="3" />
+                        </Border.Effect>
+                        <Button Content="删除目标"
+                                Click="DeleteFocusGoalMenuItem_Click"
+                                Foreground="{DynamicResource Danger}"
+                                Style="{StaticResource FocusGoalDangerMenuItemStyle}" />
+                    </Border>
+                </Popup>
             </Grid>
 
             <StackPanel Grid.Row="1" Margin="0,8,0,0">
@@ -309,11 +420,16 @@
                                     Content="−"
                                     Style="{StaticResource FocusGoalStepperButtonStyle}" />
                             <StackPanel Grid.Column="1" HorizontalAlignment="Center" Orientation="Horizontal">
-                                <TextBlock VerticalAlignment="Center"
-                                           FontFamily="{DynamicResource FontFamilyNumeric}"
-                                           FontSize="38"
-                                           FontWeight="SemiBold"
-                                           Text="{Binding DailyTargetHours, Mode=OneWay}" />
+                                <TextBox x:Name="DailyTargetHoursInputBox"
+                                         Tag="Daily"
+                                         MaxLength="2"
+                                         Style="{StaticResource FocusGoalTargetHoursInputStyle}"
+                                         Text="{Binding DailyTargetHoursInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                         TextChanged="TargetHoursInputBox_TextChanged"
+                                         PreviewKeyDown="TargetHoursInputBox_PreviewKeyDown"
+                                         PreviewTextInput="TargetHoursInputBox_PreviewTextInput"
+                                         LostKeyboardFocus="TargetHoursInputBox_LostKeyboardFocus"
+                                         DataObject.Pasting="TargetHoursInputBox_Pasting" />
                                 <TextBlock Margin="8,7,0,0"
                                            VerticalAlignment="Center"
                                            FontSize="15"
@@ -382,7 +498,7 @@
                             </StackPanel>
                         </Button>
                     </Grid>
-                    <ItemsControl Margin="0,4,0,0" ItemsSource="{Binding Weekdays}">
+                    <ItemsControl Margin="0,12,0,0" ItemsSource="{Binding Weekdays}">
                         <ItemsControl.Style>
                             <Style TargetType="{x:Type ItemsControl}">
                                 <Setter Property="Visibility" Value="Collapsed" />
@@ -407,14 +523,15 @@
                                         <Style TargetType="{x:Type Button}" BasedOn="{StaticResource FocusGoalWeekdayButtonStyle}">
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                                    <Setter Property="Background" Value="{DynamicResource AccentTint}" />
-                                                    <Setter Property="BorderBrush" Value="{DynamicResource AccentSoftBorder}" />
-                                                    <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}" />
+                                                    <Setter Property="Background" Value="#FF8000" />
+                                                    <Setter Property="BorderBrush" Value="#FF8000" />
+                                                    <Setter Property="Foreground" Value="#FFFFFF" />
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
                                     </Button.Style>
-                                    <TextBlock Text="{Binding Label}" />
+                                    <TextBlock Text="{Binding Label}"
+                                               Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}" />
                                 </Button>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
@@ -450,11 +567,16 @@
                                     Content="−"
                                     Style="{StaticResource FocusGoalStepperButtonStyle}" />
                             <StackPanel Grid.Column="1" HorizontalAlignment="Center" Orientation="Horizontal">
-                                <TextBlock VerticalAlignment="Center"
-                                           FontFamily="{DynamicResource FontFamilyNumeric}"
-                                           FontSize="38"
-                                           FontWeight="SemiBold"
-                                           Text="{Binding MonthlyTargetHours, Mode=OneWay}" />
+                                <TextBox x:Name="MonthlyTargetHoursInputBox"
+                                         Tag="Monthly"
+                                         MaxLength="3"
+                                         Style="{StaticResource FocusGoalTargetHoursInputStyle}"
+                                         Text="{Binding MonthlyTargetHoursInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                         TextChanged="TargetHoursInputBox_TextChanged"
+                                         PreviewKeyDown="TargetHoursInputBox_PreviewKeyDown"
+                                         PreviewTextInput="TargetHoursInputBox_PreviewTextInput"
+                                         LostKeyboardFocus="TargetHoursInputBox_LostKeyboardFocus"
+                                         DataObject.Pasting="TargetHoursInputBox_Pasting" />
                                 <TextBlock Margin="8,7,0,0"
                                            VerticalAlignment="Center"
                                            FontSize="15"

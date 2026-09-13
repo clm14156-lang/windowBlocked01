@@ -38,6 +38,39 @@ public sealed class FocusGoalSettingsModalViewModelTests
     }
 
     [Fact]
+    public void DeletingSavedTargetResetsTargetStateAndClosesModal()
+    {
+        var viewModel = new FocusGoalSettingsModalViewModel();
+        viewModel.SaveCommand.Execute(null);
+        viewModel.OpenCommand.Execute(null);
+
+        viewModel.ToggleMoreMenuCommand.Execute(null);
+
+        Assert.True(viewModel.IsMoreMenuOpen);
+        Assert.True(viewModel.HasSavedTarget);
+
+        viewModel.DeleteTargetCommand.Execute(null);
+
+        Assert.False(viewModel.HasSavedTarget);
+        Assert.False(viewModel.HasSavedDailyFixedTarget);
+        Assert.False(viewModel.IsMoreMenuOpen);
+        Assert.False(viewModel.IsOpen);
+        Assert.Equal(FocusGoalMode.DailyFixed, viewModel.Mode);
+        Assert.Equal(FocusGoalRepeatMode.EveryDay, viewModel.RepeatMode);
+    }
+
+    [Fact]
+    public void MoreMenuDoesNotOpenWhenNoTargetHasBeenSaved()
+    {
+        var viewModel = new FocusGoalSettingsModalViewModel();
+
+        viewModel.ToggleMoreMenuCommand.Execute(null);
+
+        Assert.False(viewModel.HasSavedTarget);
+        Assert.False(viewModel.IsMoreMenuOpen);
+    }
+
+    [Fact]
     public void SelectingCustomRepeatShowsWeekdaysAndAllowsMultiSelect()
     {
         var viewModel = new FocusGoalSettingsModalViewModel();
@@ -94,10 +127,91 @@ public sealed class FocusGoalSettingsModalViewModelTests
         viewModel.IncreaseDailyTargetCommand.Execute(null);
         Assert.Equal(4, viewModel.DailyTargetHours);
 
+        viewModel.DailyTargetHoursInput = "0";
+        viewModel.DecreaseDailyTargetCommand.Execute(null);
+        Assert.Equal(0, viewModel.DailyTargetHours);
+
+        viewModel.DailyTargetHoursInput = "24";
+        viewModel.IncreaseDailyTargetCommand.Execute(null);
+        Assert.Equal(24, viewModel.DailyTargetHours);
+
         viewModel.SelectMonthlyModeCommand.Execute(null);
         viewModel.IncreaseMonthlyTargetCommand.Execute(null);
         Assert.Equal(61, viewModel.MonthlyTargetHours);
         viewModel.DecreaseMonthlyTargetCommand.Execute(null);
         Assert.Equal(60, viewModel.MonthlyTargetHours);
+
+        viewModel.MonthlyTargetHoursInput = "720";
+        viewModel.IncreaseMonthlyTargetCommand.Execute(null);
+        Assert.Equal(720, viewModel.MonthlyTargetHours);
+    }
+
+    [Fact]
+    public void DailyTargetInputAcceptsTwoDigitIntegersAndClampsAtTwentyFour()
+    {
+        var viewModel = new FocusGoalSettingsModalViewModel
+        {
+            DailyTargetHoursInput = "23"
+        };
+
+        viewModel.CommitDailyTargetHoursInput();
+
+        Assert.Equal(23, viewModel.DailyTargetHours);
+        Assert.Equal("23", viewModel.DailyTargetHoursInput);
+
+        viewModel.DailyTargetHoursInput = "25";
+
+        Assert.Equal(24, viewModel.DailyTargetHours);
+        Assert.Equal("24", viewModel.DailyTargetHoursInput);
+
+        viewModel.DailyTargetHoursInput = "99";
+
+        Assert.Equal(24, viewModel.DailyTargetHours);
+        Assert.Equal("24", viewModel.DailyTargetHoursInput);
+
+        viewModel.DailyTargetHoursInput = "";
+        viewModel.CommitDailyTargetHoursInput();
+
+        Assert.Equal(24, viewModel.DailyTargetHours);
+        Assert.Equal("24", viewModel.DailyTargetHoursInput);
+    }
+
+    [Fact]
+    public void StepperUsesTheLatestManuallyEnteredValue()
+    {
+        var viewModel = new FocusGoalSettingsModalViewModel
+        {
+            DailyTargetHoursInput = "23"
+        };
+
+        viewModel.IncreaseDailyTargetCommand.Execute(null);
+
+        Assert.Equal(24, viewModel.DailyTargetHours);
+        Assert.Equal("24", viewModel.DailyTargetHoursInput);
+
+        viewModel.IncreaseDailyTargetCommand.Execute(null);
+        viewModel.DecreaseDailyTargetCommand.Execute(null);
+
+        Assert.Equal(23, viewModel.DailyTargetHours);
+        Assert.Equal("23", viewModel.DailyTargetHoursInput);
+    }
+
+    [Fact]
+    public void MonthlyTargetUsesTheSameInputAndStepperSynchronization()
+    {
+        var viewModel = new FocusGoalSettingsModalViewModel
+        {
+            MonthlyTargetHoursInput = "80"
+        };
+
+        viewModel.IncreaseMonthlyTargetCommand.Execute(null);
+
+        Assert.Equal(81, viewModel.MonthlyTargetHours);
+        Assert.Equal("81", viewModel.MonthlyTargetHoursInput);
+
+        viewModel.DecreaseMonthlyTargetCommand.Execute(null);
+
+        Assert.Equal(80, viewModel.MonthlyTargetHours);
+        Assert.Equal("80", viewModel.MonthlyTargetHoursInput);
     }
 }

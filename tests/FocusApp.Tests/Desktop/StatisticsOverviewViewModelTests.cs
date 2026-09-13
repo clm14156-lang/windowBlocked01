@@ -30,6 +30,42 @@ public sealed class StatisticsOverviewViewModelTests
     }
 
     [Fact]
+    public void SavingDailyFixedFocusTargetSwitchesHomeSummaryToTargetState()
+    {
+        var viewModel = new StatisticsOverviewViewModel(false);
+
+        viewModel.FocusGoalSettingsModal.DailyTargetHoursInput = "4";
+        viewModel.FocusGoalSettingsModal.SaveCommand.Execute(null);
+
+        Assert.True(viewModel.HasDailyFixedFocusTarget);
+        Assert.Equal("4小时", viewModel.DailyFixedFocusTargetDisplay);
+        Assert.Equal(0, viewModel.TodayFocusTargetProgressPercent);
+        Assert.Equal("还差 4小时", viewModel.TodayFocusTargetRemainingDisplay);
+
+        viewModel.FocusGoalSettingsModal.SelectMonthlyModeCommand.Execute(null);
+        viewModel.FocusGoalSettingsModal.SaveCommand.Execute(null);
+
+        Assert.False(viewModel.HasDailyFixedFocusTarget);
+    }
+
+    [Fact]
+    public void DeletingFocusTargetRestoresHomeSummaryToUnsetState()
+    {
+        var viewModel = new StatisticsOverviewViewModel(false);
+
+        viewModel.FocusGoalSettingsModal.DailyTargetHoursInput = "4";
+        viewModel.FocusGoalSettingsModal.SaveCommand.Execute(null);
+        Assert.True(viewModel.HasDailyFixedFocusTarget);
+
+        viewModel.FocusGoalSettingsModal.OpenCommand.Execute(null);
+        viewModel.FocusGoalSettingsModal.ToggleMoreMenuCommand.Execute(null);
+        viewModel.FocusGoalSettingsModal.DeleteTargetCommand.Execute(null);
+
+        Assert.False(viewModel.HasDailyFixedFocusTarget);
+        Assert.False(viewModel.FocusGoalSettingsModal.IsOpen);
+    }
+
+    [Fact]
     public void GoalDetailStatisticsFollowSelectedGoalsAndRecordChanges()
     {
         var model = new StatisticsOverviewViewModel(false);

@@ -1,0 +1,12 @@
+E:\windofoucs01\verify-range-bin\FocusApp.Core.deps.json
+E:\windofoucs01\verify-range-bin\FocusApp.Core.dll
+E:\windofoucs01\verify-range-bin\FocusApp.Core.pdb
+E:\windofoucs01\verify-range-obj\FocusApp.Core.GeneratedMSBuildEditorConfig.editorconfig
+E:\windofoucs01\verify-range-obj\FocusApp.Core.AssemblyInfoInputs.cache
+E:\windofoucs01\verify-range-obj\FocusApp.Core.AssemblyInfo.cs
+E:\windofoucs01\verify-range-obj\FocusApp.Core.csproj.CoreCompileInputs.cache
+E:\windofoucs01\verify-range-obj\FocusApp.Core.sourcelink.json
+E:\windofoucs01\verify-range-obj\FocusApp.Core.dll
+E:\windofoucs01\verify-range-obj\refint\FocusApp.Core.dll
+E:\windofoucs01\verify-range-obj\FocusApp.Core.pdb
+E:\windofoucs01\verify-range-obj\ref\FocusApp.Core.dll

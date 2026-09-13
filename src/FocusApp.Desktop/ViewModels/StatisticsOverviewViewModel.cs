@@ -51,6 +51,8 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     private GoalTrendPointViewModel? _hoveredGoalTrendPoint;
     private readonly HashSet<FocusSessionRecordViewModel> _subscribedFocusSessionRecords = [];
     private int? _monthlyFocusTargetHours;
+    private bool _hasDailyFixedFocusTarget;
+    private int _dailyFixedFocusTargetHours;
     private bool _isMonthlyFocusTargetPopupOpen;
     private bool _isMonthlyFocusTargetMenuOpen;
     private string _monthlyFocusTargetInput = string.Empty;
@@ -117,6 +119,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         SelectGoalTrendPointCommand = new RelayCommand<GoalTrendPointViewModel>(SelectGoalTrendPoint);
         ToggleGoalDateCommand = new RelayCommand<GoalDateGroupViewModel>(ToggleGoalDate);
         _focusGoalSettingsModal = new FocusGoalSettingsModalViewModel();
+        _focusGoalSettingsModal.DailyFixedTargetChanged += FocusGoalSettingsModal_DailyFixedTargetChanged;
         OpenFocusGoalSettingsCommand = new RelayCommand<object>(_ => _focusGoalSettingsModal.OpenCommand.Execute(null));
         OpenMonthlyFocusTargetCommand = new RelayCommand<object>(parameter =>
         {
@@ -283,8 +286,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         NotifyMonthlyFocusTargetChanged();
         OnPropertyChanged(nameof(VisibleGoals));
         OnPropertyChanged(nameof(TodayDateDisplay));
-        OnPropertyChanged(nameof(TodayFocusDuration));
-        OnPropertyChanged(nameof(TodayFocusCount));
+        NotifyTodayFocusDisplayChanged();
     }
 
     public bool IsLoggedIn => _isLoggedIn;
@@ -1347,16 +1349,46 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     private void FocusSessionRecord_PropertyChanged(object? sender, PropertyChangedEventArgs e) => RefreshFocusSessionData();
 
+    private void FocusGoalSettingsModal_DailyFixedTargetChanged(object? sender, EventArgs e)
+    {
+        if (sender is not FocusGoalSettingsModalViewModel modal)
+        {
+            return;
+        }
+
+        _hasDailyFixedFocusTarget = modal.HasSavedDailyFixedTarget;
+        _dailyFixedFocusTargetHours = modal.DailyTargetHours;
+        NotifyTodayFocusTargetChanged();
+    }
+
     private void RefreshFocusSessionData()
     {
         RefreshGoalSummaries();
         RefreshSelectedGoalProgressData();
         RefreshCalendar(_selectedCalendarDay?.Date);
         NotifyMonthlyFocusTargetChanged();
+        NotifyTodayFocusDisplayChanged();
         if (_usesRuntimeFocusData)
         {
             RefreshTrend();
         }
+    }
+
+    private void NotifyTodayFocusDisplayChanged()
+    {
+        OnPropertyChanged(nameof(TodayFocusDuration));
+        OnPropertyChanged(nameof(TodayFocusCount));
+        NotifyTodayFocusTargetChanged();
+    }
+
+    private void NotifyTodayFocusTargetChanged()
+    {
+        OnPropertyChanged(nameof(HasDailyFixedFocusTarget));
+        OnPropertyChanged(nameof(TodayFocusDurationCompact));
+        OnPropertyChanged(nameof(DailyFixedFocusTargetDisplay));
+        OnPropertyChanged(nameof(TodayFocusTargetProgressPercent));
+        OnPropertyChanged(nameof(TodayFocusTargetProgressRatio));
+        OnPropertyChanged(nameof(TodayFocusTargetRemainingDisplay));
     }
 
     private void OpenMonthlyFocusTarget(bool editing)
@@ -1794,6 +1826,42 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     public int TodayFocusCount => GetDailySummary(DateTime.Today).SessionCount;
 
+    public bool HasDailyFixedFocusTarget => _hasDailyFixedFocusTarget;
+
+    public string TodayFocusDurationCompact => FormatTargetDuration(GetDailySummary(DateTime.Today).FocusMinutes);
+
+    public string DailyFixedFocusTargetDisplay => $"{_dailyFixedFocusTargetHours}小时";
+
+    public int TodayFocusTargetProgressPercent
+    {
+        get
+        {
+            if (!HasDailyFixedFocusTarget || _dailyFixedFocusTargetHours <= 0)
+            {
+                return 0;
+            }
+
+            var minutes = GetDailySummary(DateTime.Today).FocusMinutes;
+            return Math.Min(100, (int)Math.Round(minutes / (_dailyFixedFocusTargetHours * 60d) * 100));
+        }
+    }
+
+    public double TodayFocusTargetProgressRatio
+    {
+        get
+        {
+            if (!HasDailyFixedFocusTarget || _dailyFixedFocusTargetHours <= 0)
+            {
+                return 0;
+            }
+
+            return Math.Min(1, GetDailySummary(DateTime.Today).FocusMinutes / (_dailyFixedFocusTargetHours * 60d));
+        }
+    }
+
+    public string TodayFocusTargetRemainingDisplay =>
+        $"还差 {FormatTargetDuration(Math.Max(0, _dailyFixedFocusTargetHours * 60 - GetDailySummary(DateTime.Today).FocusMinutes))}";
+
     public void SetHoveredPointNearestTo(double chartX)
     {
         var nearestPoint = TrendPoints.MinBy(point => Math.Abs(point.ChartX - chartX));
@@ -2025,6 +2093,15 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     {
         return totalMinutes >= 60
             ? $"{totalMinutes / 60}小时{totalMinutes % 60}分钟"
+            : $"{totalMinutes}分钟";
+    }
+
+    private static string FormatTargetDuration(int totalMinutes)
+    {
+        return totalMinutes >= 60
+            ? totalMinutes % 60 == 0
+                ? $"{totalMinutes / 60}小时"
+                : $"{totalMinutes / 60}小时{totalMinutes % 60}分钟"
             : $"{totalMinutes}分钟";
     }
 

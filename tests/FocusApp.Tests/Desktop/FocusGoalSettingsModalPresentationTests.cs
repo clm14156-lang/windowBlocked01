@@ -72,6 +72,19 @@ public sealed class FocusGoalSettingsModalPresentationTests
     }
 
     [Fact]
+    public void DailyInputAllowsTwoDigitsWhileMonthlyInputKeepsThree()
+    {
+        var root = LoadModal();
+        var dailyInput = Assert.Single(root.Descendants(Presentation + "TextBox").Where(textBox =>
+            (string?)textBox.Attribute(Xaml + "Name") == "DailyTargetHoursInputBox"));
+        var monthlyInput = Assert.Single(root.Descendants(Presentation + "TextBox").Where(textBox =>
+            (string?)textBox.Attribute(Xaml + "Name") == "MonthlyTargetHoursInputBox"));
+
+        Assert.Equal("2", (string?)dailyInput.Attribute("MaxLength"));
+        Assert.Equal("3", (string?)monthlyInput.Attribute("MaxLength"));
+    }
+
+    [Fact]
     public void FooterButtonStylesUseNormalFontWeight()
     {
         var root = LoadModal();
@@ -85,7 +98,7 @@ public sealed class FocusGoalSettingsModalPresentationTests
     {
         var root = LoadModal();
 
-        Assert.Equal("White", GetSetterValue(root, "FocusGoalPrimaryButtonStyle", "Foreground"));
+        Assert.Equal("#FFFFFF", GetSetterValue(root, "FocusGoalPrimaryButtonStyle", "Foreground"));
     }
 
     [Fact]
@@ -105,6 +118,26 @@ public sealed class FocusGoalSettingsModalPresentationTests
             (string?)button.Attribute(Xaml + "Name") == "SetTodayFocusTargetButton" &&
             (string?)button.Attribute("Command") == "{Binding OpenMonthlyFocusTargetCommand}" &&
             (string?)button.Attribute("CommandParameter") == "FocusGoalSettings");
+    }
+
+    [Fact]
+    public void MoreButtonOpensOnlyTheDeleteTargetContextMenu()
+    {
+        var root = LoadModal();
+        var moreButton = Assert.Single(root.Descendants(Presentation + "Button").Where(button =>
+            (string?)button.Attribute(Xaml + "Name") == "FocusGoalMoreButton"));
+        Assert.Equal("FocusGoalMoreButton_Click", (string?)moreButton.Attribute("Click"));
+        Assert.Equal("FocusGoalMoreButton_PreviewMouseDown", (string?)moreButton.Attribute("PreviewMouseDown"));
+
+        var menu = Assert.Single(root.Descendants(Presentation + "Popup").Where(popup =>
+            (string?)popup.Attribute(Xaml + "Name") == "FocusGoalMoreMenu"));
+        Assert.Equal("False", (string?)menu.Attribute("StaysOpen"));
+        Assert.Equal("FocusGoalMoreMenu_Closed", (string?)menu.Attribute("Closed"));
+
+        var deleteButton = Assert.Single(menu.Descendants(Presentation + "Button"));
+        Assert.Equal("删除目标", (string?)deleteButton.Attribute("Content"));
+        Assert.Equal("DeleteFocusGoalMenuItem_Click", (string?)deleteButton.Attribute("Click"));
+        Assert.Equal("{DynamicResource Danger}", (string?)deleteButton.Attribute("Foreground"));
     }
 
     private static XElement LoadModal() => XDocument.Load(Path.Combine(

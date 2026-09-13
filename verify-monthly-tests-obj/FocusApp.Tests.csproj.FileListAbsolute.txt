@@ -1,0 +1,6 @@
+E:\windofoucs01\verify-monthly-tests-obj\FocusApp.Tests.csproj.AssemblyReference.cache
+E:\windofoucs01\verify-monthly-tests-obj\FocusApp.Tests.GeneratedMSBuildEditorConfig.editorconfig
+E:\windofoucs01\verify-monthly-tests-obj\FocusApp.Tests.AssemblyInfoInputs.cache
+E:\windofoucs01\verify-monthly-tests-obj\FocusApp.Tests.AssemblyInfo.cs
+E:\windofoucs01\verify-monthly-tests-obj\FocusApp.Tests.csproj.CoreCompileInputs.cache
+E:\windofoucs01\verify-monthly-tests-obj\FocusApp.Tests.sourcelink.json

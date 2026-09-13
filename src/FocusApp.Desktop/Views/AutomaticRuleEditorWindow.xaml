@@ -54,7 +54,7 @@
    <Style.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#F1F1F3"/></Trigger></Style.Triggers>
   </Style>
   <Style x:Key="RepeatButton" TargetType="ToggleButton">
-   <Setter Property="Background" Value="#F3F3F5"/><Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/><Setter Property="BorderBrush" Value="Transparent"/>
+   <Setter Property="Background" Value="#F3F3F5"/><Setter Property="Foreground" Value="#6E6E73"/><Setter Property="BorderBrush" Value="Transparent"/>
    <Setter Property="FontSize" Value="13"/><Setter Property="FontWeight" Value="Medium"/><Setter Property="Padding" Value="12,6"/><Setter Property="Margin" Value="0,0,6,0"/>
    <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ToggleButton">
     <Grid>
@@ -64,7 +64,7 @@
      <Border BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="10" IsHitTestVisible="False"/>
     </Grid>
    </ControlTemplate></Setter.Value></Setter>
-   <Style.Triggers><Trigger Property="IsChecked" Value="True"><Setter Property="Background" Value="#FFF0E3"/><Setter Property="Foreground" Value="#FF8000"/><Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}"/></Trigger></Style.Triggers>
+   <Style.Triggers><Trigger Property="IsChecked" Value="True"><Setter Property="Background" Value="#FF8000"/><Setter Property="Foreground" Value="#FFFFFF"/><Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}"/></Trigger></Style.Triggers>
   </Style>
  </Window.Resources>
  <Border Margin="10" Padding="14,10" Background="White" BorderBrush="#E4E4E9" BorderThickness="1" CornerRadius="14">

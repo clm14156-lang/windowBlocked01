@@ -1,0 +1,12 @@
+E:\windofoucs01\verify-home-target-tests\FocusApp.Contracts.deps.json
+E:\windofoucs01\verify-home-target-tests\FocusApp.Contracts.dll
+E:\windofoucs01\verify-home-target-tests\FocusApp.Contracts.pdb
+E:\windofoucs01\verify-home-target-tests-obj\FocusApp.Contracts.GeneratedMSBuildEditorConfig.editorconfig
+E:\windofoucs01\verify-home-target-tests-obj\FocusApp.Contracts.AssemblyInfoInputs.cache
+E:\windofoucs01\verify-home-target-tests-obj\FocusApp.Contracts.AssemblyInfo.cs
+E:\windofoucs01\verify-home-target-tests-obj\FocusApp.Contracts.csproj.CoreCompileInputs.cache
+E:\windofoucs01\verify-home-target-tests-obj\FocusApp.Contracts.sourcelink.json
+E:\windofoucs01\verify-home-target-tests-obj\FocusApp.Contracts.dll
+E:\windofoucs01\verify-home-target-tests-obj\refint\FocusApp.Contracts.dll
+E:\windofoucs01\verify-home-target-tests-obj\FocusApp.Contracts.pdb
+E:\windofoucs01\verify-home-target-tests-obj\ref\FocusApp.Contracts.dll
