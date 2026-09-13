@@ -54,6 +54,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     private bool _isMonthlyFocusTargetPopupOpen;
     private bool _isMonthlyFocusTargetMenuOpen;
     private string _monthlyFocusTargetInput = string.Empty;
+    private readonly FocusGoalSettingsModalViewModel _focusGoalSettingsModal;
     private bool _isLoggedIn;
     private bool _isVip;
     private bool _isTrendVipGuideOpen;
@@ -115,7 +116,18 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         ToggleGoalMonthMenuCommand = new RelayCommand<object>(_ => IsGoalMonthMenuOpen = !IsGoalMonthMenuOpen);
         SelectGoalTrendPointCommand = new RelayCommand<GoalTrendPointViewModel>(SelectGoalTrendPoint);
         ToggleGoalDateCommand = new RelayCommand<GoalDateGroupViewModel>(ToggleGoalDate);
-        OpenMonthlyFocusTargetCommand = new RelayCommand<object>(_ => OpenMonthlyFocusTarget(false));
+        _focusGoalSettingsModal = new FocusGoalSettingsModalViewModel();
+        OpenFocusGoalSettingsCommand = new RelayCommand<object>(_ => _focusGoalSettingsModal.OpenCommand.Execute(null));
+        OpenMonthlyFocusTargetCommand = new RelayCommand<object>(parameter =>
+        {
+            if (string.Equals(parameter as string, "FocusGoalSettings", StringComparison.Ordinal))
+            {
+                _focusGoalSettingsModal.OpenCommand.Execute(null);
+                return;
+            }
+
+            OpenMonthlyFocusTarget(false);
+        });
         ToggleMonthlyFocusTargetMenuCommand = new RelayCommand<object>(_ => ToggleMonthlyFocusTargetMenu());
         EditMonthlyFocusTargetCommand = new RelayCommand<object>(_ => OpenMonthlyFocusTarget(true));
         SaveMonthlyFocusTargetCommand = new RelayCommand<object>(_ => SaveMonthlyFocusTarget());
@@ -426,6 +438,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     public ICommand ToggleGoalDateCommand { get; }
 
     public ICommand OpenMonthlyFocusTargetCommand { get; }
+    public ICommand OpenFocusGoalSettingsCommand { get; }
     public ICommand ToggleMonthlyFocusTargetMenuCommand { get; }
     public ICommand EditMonthlyFocusTargetCommand { get; }
     public ICommand SaveMonthlyFocusTargetCommand { get; }
@@ -433,6 +446,8 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     public ICommand DeleteMonthlyFocusTargetCommand { get; }
     public ICommand IncreaseMonthlyFocusTargetCommand { get; }
     public ICommand DecreaseMonthlyFocusTargetCommand { get; }
+
+    public FocusGoalSettingsModalViewModel FocusGoalSettingsModal => _focusGoalSettingsModal;
 
     public ObservableCollection<CalendarDayViewModel> CalendarDays { get; } = [];
 

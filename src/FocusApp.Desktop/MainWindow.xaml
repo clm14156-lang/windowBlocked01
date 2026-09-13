@@ -562,6 +562,25 @@
                 </Border>
             </Grid>
 
+            <Grid Grid.ColumnSpan="2" Panel.ZIndex="160">
+                <Grid.Style>
+                    <Style TargetType="{x:Type Grid}">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding StatisticsPage.FocusGoalSettingsModal.IsOpen}" Value="True">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
+                <Border Background="{DynamicResource ModalScrim}"
+                        MouseDown="FocusGoalSettingsScrim_MouseDown">
+                    <views:FocusGoalSettingsModal HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"
+                                                  DataContext="{Binding StatisticsPage.FocusGoalSettingsModal}" />
+                </Border>
+            </Grid>
+
             <Grid Grid.ColumnSpan="2"
                   Panel.ZIndex="180"
                   HorizontalAlignment="Center"

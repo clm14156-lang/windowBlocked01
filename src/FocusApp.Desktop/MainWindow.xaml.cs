@@ -605,6 +605,16 @@ public partial class MainWindow : Window
         }
     }
 
+    private void FocusGoalSettingsScrim_MouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (ReferenceEquals(e.OriginalSource, sender) &&
+            DataContext is ViewModels.MainWindowViewModel viewModel)
+        {
+            viewModel.StatisticsPage.FocusGoalSettingsModal.CancelCommand.Execute(null);
+            Keyboard.ClearFocus();
+        }
+    }
+
     private void Window_PreviewMouseDown(object sender, MouseButtonEventArgs e)
     {
         if (DataContext is not ViewModels.MainWindowViewModel viewModel)

@@ -7,6 +7,29 @@ namespace FocusApp.Tests.Desktop;
 public sealed class StatisticsOverviewViewModelTests
 {
     [Fact]
+    public void FocusGoalSettingsCommandOpensUiOnlyModal()
+    {
+        var viewModel = new StatisticsOverviewViewModel(false);
+
+        viewModel.OpenFocusGoalSettingsCommand.Execute(null);
+
+        Assert.True(viewModel.FocusGoalSettingsModal.IsOpen);
+        viewModel.FocusGoalSettingsModal.SaveCommand.Execute(null);
+        Assert.False(viewModel.FocusGoalSettingsModal.IsOpen);
+    }
+
+    [Fact]
+    public void ExistingMonthlyTargetCommandRoutesTheHomeSettingsButtonToUiOnlyModal()
+    {
+        var viewModel = new StatisticsOverviewViewModel(false);
+
+        viewModel.OpenMonthlyFocusTargetCommand.Execute("FocusGoalSettings");
+
+        Assert.True(viewModel.FocusGoalSettingsModal.IsOpen);
+        Assert.False(viewModel.IsMonthlyFocusTargetPopupOpen);
+    }
+
+    [Fact]
     public void GoalDetailStatisticsFollowSelectedGoalsAndRecordChanges()
     {
         var model = new StatisticsOverviewViewModel(false);
