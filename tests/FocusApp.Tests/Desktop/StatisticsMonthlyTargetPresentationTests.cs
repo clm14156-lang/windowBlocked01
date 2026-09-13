@@ -73,6 +73,64 @@ public sealed class StatisticsMonthlyTargetPresentationTests
             (string?)text.Attribute("Text") == "{Binding MonthlyFocusRemainingDisplay, Mode=OneWay}");
     }
 
+    [Fact]
+    public void TodayStatisticsCard_UsesCompactUnsetTargetLayout()
+    {
+        var page = XDocument.Load(Path.Combine(
+            FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
+        var card = Assert.Single(page.Descendants(Presentation + "Border").Where(border =>
+            (string?)border.Attribute(Xaml + "Name") == "TodayStatisticsCard"));
+
+        Assert.Null(card.Descendants().FirstOrDefault(element =>
+            (string?)element.Attribute(Xaml + "Name") == "TodayStatisticsDivider"));
+        Assert.Single(card.Descendants(Presentation + "Ellipse"));
+        Assert.DoesNotContain(card.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "{DynamicResource StatisticsTodayCount}");
+        Assert.Contains(card.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "{Binding TodayFocusDuration}");
+        Assert.Contains(card.Descendants(Presentation + "Run"), run =>
+            (string?)run.Attribute("Text") == "{Binding TodayFocusCount, Mode=OneWay}");
+        Assert.Contains(card.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "未设置今日目标");
+
+        var setTargetButton = Assert.Single(card.Descendants(Presentation + "Button").Where(button =>
+            (string?)button.Attribute(Xaml + "Name") == "SetTodayFocusTargetButton"));
+        Assert.Equal("{Binding OpenMonthlyFocusTargetCommand}", (string?)setTargetButton.Attribute("Command"));
+        Assert.Contains(setTargetButton.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "设置目标");
+        Assert.Contains(setTargetButton.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "›");
+    }
+
+    [Fact]
+    public void TrendCard_UsesCompactTopSummaryLayout()
+    {
+        var page = XDocument.Load(Path.Combine(
+            FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
+        var card = Assert.Single(page.Descendants(Presentation + "Border").Where(border =>
+            (string?)border.Attribute(Xaml + "Name") == "TrendCard"));
+
+        Assert.Equal("270", (string?)card.Attribute("Height"));
+        Assert.DoesNotContain(card.Descendants(), element =>
+            (string?)element.Attribute(Xaml + "Name") == "LockedTrendSummary");
+        Assert.DoesNotContain(card.Descendants(Presentation + "Border"), border =>
+            (string?)border.Attribute(Xaml + "Name") == "TrendSummaryFooter");
+
+        var header = Assert.Single(card.Descendants(Presentation + "StackPanel").Where(panel =>
+            (string?)panel.Attribute(Xaml + "Name") == "TrendSummaryHeader"));
+        Assert.Contains(header.Descendants(Presentation + "Run"), run =>
+            (string?)run.Attribute("Text") == "{Binding PeriodTotalHoursValueDisplay, Mode=OneWay}");
+        Assert.Contains(header.Descendants(Presentation + "Run"), run =>
+            (string?)run.Attribute("Text") == "{Binding AverageDurationMinutesValueDisplay, Mode=OneWay}");
+        Assert.Contains(header.Descendants(Presentation + "Run"), run =>
+            (string?)run.Attribute("Text") == "{Binding ComparisonDirectionDisplay, Mode=OneWay}");
+        Assert.Contains(header.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "·");
+
+        Assert.Contains(card.Descendants(Presentation + "ComboBox"), combo =>
+            (string?)combo.Attribute("ItemsSource") == "{Binding RangeOptions}");
+    }
+
     private static string FindRepositoryRoot()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
