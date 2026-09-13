@@ -1484,9 +1484,15 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         }
 
         if (saveMonthly)
+        {
             _monthlyFocusTargetHours = Math.Min(hours, 10000);
+            _hasDailyFocusTarget = false;
+        }
         else
+        {
             _hasDailyFocusTarget = true;
+            _monthlyFocusTargetHours = null;
+        }
         IsMonthlyFocusTargetPopupOpen = false;
         NotifyMonthlyFocusTargetChanged();
         RefreshTodayGoalDistributions();
@@ -1528,8 +1534,13 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     {
         IsMonthlyFocusTargetMenuOpen = false;
         _monthlyFocusTargetHours = null;
+        _hasDailyFocusTarget = false;
+        IsMonthlyGoalMode = false;
+        MonthlyFocusTargetInput = "100";
+        DailyFocusTargetInput = "4";
         IsMonthlyFocusTargetPopupOpen = false;
         NotifyMonthlyFocusTargetChanged();
+        RefreshTodayGoalDistributions();
         MonthlyFocusTargetChanged?.Invoke(this, EventArgs.Empty);
     }
 

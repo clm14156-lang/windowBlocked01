@@ -9,7 +9,7 @@ public sealed class StatisticsMonthlyTargetPresentationTests
     private static readonly XNamespace Xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
 
     [Fact]
-    public void MonthlyTargetOverflow_OpensEditDeleteMenuAndEditorContainsNoDeleteAction()
+    public void MonthlyTargetOverflow_OpensEditDeleteMenu()
     {
         var page = XDocument.Load(Path.Combine(
             FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
@@ -29,11 +29,20 @@ public sealed class StatisticsMonthlyTargetPresentationTests
             (string?)button.Attribute("Click") == "DeleteMonthlyFocusTargetMenuItem_Click" &&
             (string?)button.Attribute("Foreground") == "{DynamicResource Danger}"));
 
-        var editor = Assert.Single(page.Descendants(Presentation + "Popup").Where(popup =>
-            (string?)popup.Attribute(Xaml + "Name") == "MonthlyFocusTargetPopup"));
-        Assert.DoesNotContain(editor.Descendants(Presentation + "Button"), button =>
-            (string?)button.Attribute("Content") == "删除目标" ||
-            (string?)button.Attribute("Command") == "{Binding DeleteMonthlyFocusTargetCommand}");
+        var editor = XDocument.Load(Path.Combine(
+            FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "MonthlyFocusTargetModal.xaml"));
+        var moreButton = Assert.Single(editor.Descendants(Presentation + "Button").Where(button =>
+            (string?)button.Attribute(Xaml + "Name") == "MonthlyFocusTargetMoreButton"));
+        Assert.Equal("MonthlyFocusTargetMoreButton_Click", (string?)moreButton.Attribute("Click"));
+        var moreMenu = Assert.Single(editor.Descendants(Presentation + "Popup").Where(popup =>
+            (string?)popup.Attribute(Xaml + "Name") == "MonthlyFocusTargetMoreMenu"));
+        Assert.Equal("False", (string?)moreMenu.Attribute("StaysOpen"));
+        Assert.Equal("Bottom", (string?)moreMenu.Attribute("Placement"));
+        Assert.Equal("None", (string?)moreMenu.Attribute("PopupAnimation"));
+        var deleteButton = Assert.Single(moreMenu.Descendants(Presentation + "Button").Where(button =>
+            (string?)button.Attribute("Click") == "DeleteMonthlyFocusTargetMenuItem_Click"));
+        Assert.Contains(deleteButton.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "删除目标");
     }
 
     [Fact]
@@ -71,6 +80,26 @@ public sealed class StatisticsMonthlyTargetPresentationTests
         Assert.DoesNotContain(setState.Descendants(Presentation + "TextBlock"), text =>
             (string?)text.Attribute("Text") == "{Binding MonthlyFocusCompletedHours}" ||
             (string?)text.Attribute("Text") == "{Binding MonthlyFocusRemainingDisplay, Mode=OneWay}");
+    }
+
+    [Fact]
+    public void TodayFocusCard_UnsetTargetStateOmitsProgressAndMonthlyDetails()
+    {
+        var page = XDocument.Load(Path.Combine(
+            FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
+        var card = Assert.Single(page.Descendants(Presentation + "Border").Where(border =>
+            (string?)border.Attribute(Xaml + "Name") == "TodayStatisticsCard"));
+        var unsetState = Assert.Single(card.Descendants(Presentation + "Grid").Where(grid =>
+            (string?)grid.Attribute(Xaml + "Name") == "NoFocusTargetState"));
+
+        Assert.Contains(unsetState.Descendants(Presentation + "DataTrigger"), trigger =>
+            (string?)trigger.Attribute("Binding") == "{Binding HasAnyFocusTarget}" &&
+            (string?)trigger.Attribute("Value") == "False");
+        Assert.Empty(unsetState.Descendants(Presentation + "ProgressBar"));
+        Assert.Contains(unsetState.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "未设置今日目标");
+        Assert.Contains(unsetState.Descendants(Presentation + "Button"), button =>
+            (string?)button.Attribute("Command") == "{Binding OpenMonthlyFocusTargetCommand}");
     }
 
     private static string FindRepositoryRoot()

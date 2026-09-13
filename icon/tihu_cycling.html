@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>醍醐骑自行车</title>
+<style>
+:root{--sky:#dff4ff;--ink:#18324b;--grass:#9bd67a;--road:#35516b;--accent:#ff8a3d}
+*{box-sizing:border-box} body{margin:0;min-height:100vh;display:grid;place-items:center;background:#edf7fb;font-family:system-ui,"Microsoft YaHei",sans-serif;color:var(--ink)}
+.card{width:min(1000px,94vw);padding:22px;border-radius:28px;background:#fff;box-shadow:0 20px 60px #27516b22}.title{font-weight:800;font-size:clamp(20px,3vw,30px);margin:0 0 12px 8px}.sub{margin:0 0 16px 8px;color:#64809a}
+svg{width:100%;height:auto;display:block;border-radius:20px;background:var(--sky)}
+#rider{animation:ride 0.55s ease-in-out infinite alternate;transform-box:fill-box;transform-origin:center bottom}
+#wheels{animation:spin 1.15s linear infinite;transform-box:fill-box;transform-origin:center}
+#pedal{animation:spin .8s linear infinite;transform-box:fill-box;transform-origin:center}
+#bike{animation:bob .55s ease-in-out infinite alternate;transform-box:fill-box;transform-origin:center bottom}
+#roadDash{animation:road 1s linear infinite}
+@keyframes ride{from{transform:translateY(0) rotate(-1deg)}to{transform:translateY(-4px) rotate(1deg)}}
+@keyframes bob{from{transform:translateY(0)}to{transform:translateY(2px)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes road{to{transform:translateX(-120px)}}
+</style></head>
+<body><main class="card"><h1 class="title">醍醐骑自行车</h1><p class="sub">SVG 原生动画 · 车轮、踏板与道路同步运动</p>
+<svg viewBox="0 0 960 540" role="img" aria-label="醍醐骑自行车动画">
+<defs><linearGradient id="sky" x2="0" y2="1"><stop stop-color="#bdeaff"/><stop offset="1" stop-color="#f4fbff"/></linearGradient><linearGradient id="road" x2="0" y2="1"><stop stop-color="#4d6b84"/><stop offset="1" stop-color="#29435b"/></linearGradient></defs>
+<rect width="960" height="540" fill="url(#sky)"/><circle cx="790" cy="106" r="52" fill="#fff4bd" opacity=".9"/><path d="M0 320 Q180 265 350 320T700 310T960 300V420H0Z" fill="#9bd67a"/><path d="M0 365 Q220 330 430 370T960 355V540H0Z" fill="url(#road)"/>
+<g id="roadDash" fill="#b9d1df" opacity=".7"><rect x="20" y="460" width="80" height="9" rx="4"/><rect x="190" y="430" width="80" height="9" rx="4"/><rect x="360" y="480" width="80" height="9" rx="4"/><rect x="530" y="440" width="80" height="9" rx="4"/><rect x="700" y="485" width="80" height="9" rx="4"/><rect x="870" y="435" width="80" height="9" rx="4"/></g>
+<g id="bike"><g id="wheels" fill="none" stroke="#182f44" stroke-width="10"><circle cx="300" cy="400" r="76"/><circle cx="650" cy="400" r="76"/><path d="M300 400L400 400L475 300L650 400M400 400L475 300M475 300L560 400L400 400" stroke="#ff8a3d" stroke-width="8"/><circle cx="400" cy="400" r="10" fill="#ff8a3d" stroke="none"/></g><g id="pedal" stroke="#ff8a3d" stroke-width="7" stroke-linecap="round"><path d="M400 400l-24 27M400 400l28-25"/><path d="M365 430h-28M428 373h28"/></g><path d="M470 300h-30" stroke="#182f44" stroke-width="8" stroke-linecap="round"/></g>
+<g id="rider"><circle cx="455" cy="188" r="34" fill="#f5b88a"/><path d="M423 183q10-42 57-26l17 31-21-7-12 18z" fill="#273d61"/><path d="M455 222q-38 18-53 75l71 13 20-57 44 49 30-21-59-73z" fill="#ff6f61"/><path d="M450 298l-50 101M493 310l-3 90" stroke="#f5b88a" stroke-width="17" stroke-linecap="round"/><path d="M398 399l-30 15M490 399l32 13" stroke="#273d61" stroke-width="12" stroke-linecap="round"/><path d="M447 244l-2 61M500 260l60 40" stroke="#f5b88a" stroke-width="14" stroke-linecap="round"/><circle cx="575" cy="309" r="9" fill="#f5b88a"/><path d="M440 150q38-28 73 5" fill="none" stroke="#273d61" stroke-width="9" stroke-linecap="round"/></g>
+<g fill="#fff" opacity=".9"><circle cx="120" cy="110" r="7"/><circle cx="145" cy="95" r="11"/><circle cx="180" cy="118" r="6"/></g></svg></main></body></html>

@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>醍醐的可爱骑行</title>
+  <style>
+    :root { --purple:#7652c9; --pink:#f26b91; --ink:#403456; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; display:grid; place-items:center; background:#fff0f7; font-family:system-ui,"Microsoft YaHei",sans-serif; color:var(--ink); }
+    .card { width:min(1000px,94vw); padding:20px; border-radius:30px; background:#fff; box-shadow:0 18px 55px #754b7b2b; }
+    h1 { margin:0 0 5px 8px; font-size:clamp(21px,3vw,30px); }
+    p { margin:0 0 14px 8px; color:#8b7895; }
+    svg { display:block; width:100%; height:auto; border-radius:22px; background:#c9f1ff; }
+    #character { animation:hop .58s ease-in-out infinite alternate; transform-box:fill-box; transform-origin:center bottom; }
+    #bike { animation:bikeBob .58s ease-in-out infinite alternate; transform-box:fill-box; transform-origin:center bottom; }
+    #wheels { animation:spin 1.1s linear infinite; transform-box:fill-box; transform-origin:center; }
+    #pedals { animation:spin .75s linear infinite; transform-box:fill-box; transform-origin:center; }
+    .cloud { animation:cloud 12s linear infinite; }
+    .flower { animation:sway 1.8s ease-in-out infinite alternate; transform-box:fill-box; transform-origin:bottom center; }
+    @keyframes hop { from{transform:translateY(0) rotate(-1deg)} to{transform:translateY(-5px) rotate(1deg)} }
+    @keyframes bikeBob { from{transform:translateY(0)} to{transform:translateY(2px)} }
+    @keyframes spin { to{transform:rotate(360deg)} }
+    @keyframes cloud { to{transform:translateX(90px)} }
+    @keyframes sway { to{transform:rotate(7deg)} }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>🌼 醍醐的可爱骑行</h1>
+    <p>SVG 原生动画：车轮旋转、身体起伏、云朵漂浮</p>
+    <svg viewBox="0 0 960 540" role="img" aria-label="可爱的醍醐骑自行车">
+      <defs>
+        <linearGradient id="sky" x2="0" y2="1"><stop stop-color="#a8e7ff"/><stop offset="1" stop-color="#fff7df"/></linearGradient>
+        <linearGradient id="road" x2="0" y2="1"><stop stop-color="#80628f"/><stop offset="1" stop-color="#4d426a"/></linearGradient>
+        <linearGradient id="shirt" x2="0" y2="1"><stop stop-color="#ff9bb0"/><stop offset="1" stop-color="#ef6b91"/></linearGradient>
+      </defs>
+      <rect width="960" height="540" fill="url(#sky)"/>
+      <circle cx="790" cy="95" r="52" fill="#ffe99e" opacity=".9"/>
+      <g class="cloud" fill="#fff" opacity=".86"><circle cx="120" cy="95" r="25"/><circle cx="155" cy="78" r="35"/><circle cx="195" cy="100" r="23"/></g>
+      <path d="M0 322Q180 270 360 325T700 316T960 300V418H0Z" fill="#a9df91"/>
+      <path d="M0 376Q220 337 430 378T960 366V540H0Z" fill="url(#road)"/>
+      <g fill="#f9d59e" opacity=".9"><path d="M35 456h95" stroke="#f9d59e" stroke-width="8" stroke-linecap="round"/><path d="M220 432h95" stroke="#f9d59e" stroke-width="8" stroke-linecap="round"/><path d="M420 470h95" stroke="#f9d59e" stroke-width="8" stroke-linecap="round"/><path d="M650 438h95" stroke="#f9d59e" stroke-width="8" stroke-linecap="round"/><path d="M835 478h95" stroke="#f9d59e" stroke-width="8" stroke-linecap="round"/></g>
+      <g class="flower" fill="#ff8eb0"><path d="M92 382q-5-32 8-52" fill="none" stroke="#4d9d69" stroke-width="6"/><circle cx="99" cy="326" r="11"/><circle cx="86" cy="334" r="9"/><circle cx="112" cy="337" r="9"/></g>
+      <g class="flower" fill="#ffd36d"><path d="M850 382q-4-28 10-53" fill="none" stroke="#4d9d69" stroke-width="6"/><circle cx="860" cy="322" r="11"/><circle cx="847" cy="331" r="9"/><circle cx="873" cy="332" r="9"/></g>
+
+      <g id="bike">
+        <g id="wheels" fill="none" stroke="#403456" stroke-width="10"><circle cx="270" cy="401" r="72"/><circle cx="650" cy="401" r="72"/><path d="M270 401h145l76-108 159 108H491l-76-108m76 108 76-108" stroke="#ef7195" stroke-width="8"/><circle cx="415" cy="401" r="11" fill="#ef7195" stroke="none"/></g>
+        <g id="pedals" stroke="#ef7195" stroke-width="7" stroke-linecap="round"><path d="M415 401l-27 27M415 401l28-25"/><path d="M378 428h-29M443 376h29"/></g>
+        <path d="M491 293h-34" stroke="#403456" stroke-width="8" stroke-linecap="round"/>
+      </g>
+
+      <g id="character">
+        <circle cx="467" cy="179" r="39" fill="#ffe0be"/>
+        <path d="M427 170q10-58 72-45 33 7 40 49-28-22-56-13-27 9-56 9" fill="#8d5bc9"/>
+        <circle cx="452" cy="184" r="5.5" fill="#403456"/><circle cx="483" cy="184" r="5.5" fill="#403456"/>
+        <path d="M458 204q11 11 22 0" fill="none" stroke="#ef7195" stroke-width="5" stroke-linecap="round"/>
+        <circle cx="438" cy="200" r="9" fill="#ff9aac" opacity=".7"/><circle cx="500" cy="200" r="9" fill="#ff9aac" opacity=".7"/>
+        <path d="M410 243q42-26 92 0l28 77-108 0z" fill="url(#shirt)"/>
+        <path d="M435 318l-27 78m67-78 26 78" stroke="#ffe0be" stroke-width="15" stroke-linecap="round"/>
+        <path d="M408 396l-30 10m97-10 30 10" stroke="#8d5bc9" stroke-width="11" stroke-linecap="round"/>
+        <path d="M430 260l-16 50m76-47 64 31" stroke="#ffe0be" stroke-width="14" stroke-linecap="round"/>
+        <circle cx="558" cy="294" r="8" fill="#ffe0be"/>
+        <path d="M441 151q34-29 72 2" fill="none" stroke="#6d4aad" stroke-width="8" stroke-linecap="round"/>
+      </g>
+    </svg>
+  </main>
+</body>
+</html>

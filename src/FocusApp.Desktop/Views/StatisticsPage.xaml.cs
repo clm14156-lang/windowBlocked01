@@ -93,7 +93,6 @@ public partial class StatisticsPage : UserControl
         _goalInvestmentDetailsVipGuideCloseTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(150) };
         _goalInvestmentDetailsVipGuideCloseTimer.Tick += GoalInvestmentDetailsVipGuideCloseTimer_Tick;
         InitializeComponent();
-        MonthlyFocusTargetPopup.CustomPopupPlacementCallback = PlaceMonthlyFocusTargetPopup;
         TrendVipGuidePopup.CustomPopupPlacementCallback = PlaceTrendVipGuidePopup;
         DailyFocusRecordVipGuidePopup.CustomPopupPlacementCallback = PlaceDailyFocusRecordVipGuidePopup;
         GoalInvestmentDetailsVipGuidePopup.CustomPopupPlacementCallback = PlaceGoalInvestmentDetailsVipGuidePopup;
@@ -485,19 +484,10 @@ public partial class StatisticsPage : UserControl
     private void GoalNameTextBox_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e) =>
         ExecuteGoalCommand(sender, viewModel => viewModel.SaveGoalRenameCommand);
 
-    private void MonthlyFocusTargetPopup_Opened(object? sender, EventArgs e)
-    {
-        Dispatcher.BeginInvoke(() =>
-        {
-            MonthlyFocusTargetInputBox.Focus();
-            MonthlyFocusTargetInputBox.SelectAll();
-        });
-    }
-
     private void MonthlyFocusTargetAnchor_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         _monthlyFocusTargetPopupWasOpenOnAnchorPress =
-            MonthlyFocusTargetPopup.IsOpen && ReferenceEquals(MonthlyFocusTargetPopup.PlacementTarget, sender);
+            DataContext is StatisticsOverviewViewModel { IsMonthlyFocusTargetPopupOpen: true };
     }
 
     private void SetMonthlyFocusTargetButton_Click(object sender, RoutedEventArgs e) =>
@@ -531,7 +521,6 @@ public partial class StatisticsPage : UserControl
     {
         if (DataContext is StatisticsOverviewViewModel viewModel)
         {
-            MonthlyFocusTargetPopup.PlacementTarget = EditMonthlyFocusTargetButton;
             viewModel.EditMonthlyFocusTargetCommand.Execute(null);
         }
 
@@ -550,7 +539,7 @@ public partial class StatisticsPage : UserControl
 
     private void ToggleMonthlyFocusTargetPopup(object sender, Func<StatisticsOverviewViewModel, ICommand> commandSelector)
     {
-        if (sender is not FrameworkElement anchor || DataContext is not StatisticsOverviewViewModel viewModel)
+        if (DataContext is not StatisticsOverviewViewModel viewModel)
         {
             return;
         }
@@ -562,22 +551,7 @@ public partial class StatisticsPage : UserControl
             return;
         }
 
-        MonthlyFocusTargetPopup.PlacementTarget = anchor;
         commandSelector(viewModel).Execute(null);
-    }
-
-    private static CustomPopupPlacement[] PlaceMonthlyFocusTargetPopup(
-        Size popupSize,
-        Size targetSize,
-        Point offset)
-    {
-        const double gap = 8;
-        return
-        [
-            new CustomPopupPlacement(
-                new Point((targetSize.Width - popupSize.Width) / 2, -popupSize.Height - gap),
-                PopupPrimaryAxis.Horizontal)
-        ];
     }
 
     private void EditGoalButton_Click(object sender, RoutedEventArgs e) => ExecuteGoalCommand(sender, viewModel => viewModel.EditGoalCommand);

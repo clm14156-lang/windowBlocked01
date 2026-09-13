@@ -179,6 +179,12 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
 
     public bool HasTarget => ActiveTarget is not null;
 
+    public void ClearActiveTarget(string targetId)
+    {
+        if (ActiveTarget?.TargetId == targetId && Stage != FocusFlowStage.Focusing)
+            ActiveTarget = null;
+    }
+
     public string TargetName => ActiveTarget?.Name ?? string.Empty;
 
     public string? ActiveTargetId => ActiveTarget?.TargetId;

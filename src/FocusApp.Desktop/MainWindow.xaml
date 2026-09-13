@@ -562,6 +562,25 @@
                 </Border>
             </Grid>
 
+            <Grid Grid.ColumnSpan="2" Panel.ZIndex="154">
+                <Grid.Style>
+                    <Style TargetType="{x:Type Grid}">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding StatisticsPage.IsMonthlyFocusTargetPopupOpen}" Value="True">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
+                <Border Background="{DynamicResource ModalScrim}"
+                        MouseDown="MonthlyFocusTargetScrim_MouseDown">
+                    <views:MonthlyFocusTargetModal HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center"
+                                                   DataContext="{Binding StatisticsPage}" />
+                </Border>
+            </Grid>
+
             <Grid Grid.ColumnSpan="2"
                   Panel.ZIndex="180"
                   HorizontalAlignment="Center"

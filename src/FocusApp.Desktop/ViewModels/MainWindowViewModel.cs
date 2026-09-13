@@ -889,6 +889,8 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     private async void StatisticsPage_GoalDeleted(object? sender, string targetId)
     {
+        HomePage.FocusTargetModal.RemoveTarget(targetId);
+        HomePage.FocusSession.ClearActiveTarget(targetId);
         if (ServiceConnection is null || !ServiceConnection.IsConnected) return;
         await _targetPersistenceGate.WaitAsync();
         try

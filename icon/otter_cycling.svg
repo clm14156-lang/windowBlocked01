@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="640" viewBox="0 0 800 640" role="img" aria-labelledby="title desc">
+ <title id="title">水獭的春日骑行</title>
+ <desc id="desc">戴黄色头盔的棕色小水獭，骑着薄荷绿色自行车，车篮里放着一条小鱼。</desc>
+ <defs>
+  <linearGradient id="sky" x2="0" y2="1"><stop stop-color="#f3f9ef"/><stop offset="1" stop-color="#fff5e5"/></linearGradient>
+  <linearGradient id="fur" x2=".8" y2="1"><stop stop-color="#b8845b"/><stop offset="1" stop-color="#916043"/></linearGradient>
+  <linearGradient id="helmet" x2="0" y2="1"><stop stop-color="#ffdd7b"/><stop offset="1" stop-color="#efb950"/></linearGradient>
+  <g id="wheel" fill="none">
+   <circle r="77" fill="#fffaf0" stroke="#485653" stroke-width="12"/>
+   <circle r="67" stroke="#d0d9cc" stroke-width="3"/>
+   <g stroke="#b2c3b8" stroke-width="3">
+    <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="4s" repeatCount="indefinite"/>
+    <path d="M-66 0H66M0-66V66M-47-47L47 47M-47 47L47-47"/>
+   </g>
+   <circle r="8" fill="#687e71" stroke="#fffaf0" stroke-width="3"/>
+  </g>
+ </defs>
+ <rect width="800" height="640" rx="48" fill="url(#sky)"/>
+ <circle cx="643" cy="112" r="42" fill="#f9dfa0" opacity=".7"/>
+ <g fill="#fff" opacity=".9"><path d="M82 139a20 20 0 014-40 30 30 0 0157-8 23 23 0 0127 48Z"/><path d="M551 191a14 14 0 012-28 22 22 0 0142-7 17 17 0 0119 35Z"/></g>
+ <path d="M0 464Q139 423 260 457T526 450T800 456V640H0" fill="#e1ead2"/>
+ <path d="M0 538Q199 510 400 532T800 527V640H0" fill="#f1dfc3"/>
+ <path d="M81 555H167M598 564H694" stroke="#fff6e6" stroke-width="5" stroke-linecap="round"/>
+ <ellipse cx="401" cy="538" rx="249" ry="17" fill="#9e9c7d" opacity=".16"/>
+ <!-- Long tapered tail, behind the bicycle and body. -->
+ <path d="M341 340C300 369 285 408 224 405 186 403 150 367 158 351 164 340 191 377 225 370 253 364 259 323 302 306Z" fill="#966346" stroke="#674b39" stroke-width="5" stroke-linejoin="round"/>
+ <use href="#wheel" x="232" y="455"/>
+ <use href="#wheel" x="565" y="455"/>
+ <!-- Far leg and pedal. -->
+ <path d="M375 342Q417 355 413 387L379 438" fill="none" stroke="#73503b" stroke-width="30" stroke-linecap="round"/>
+ <path d="M369 440H402" stroke="#455852" stroke-width="8" stroke-linecap="round"/>
+ <!-- Frame, fixed while the spokes turn around their own hubs. -->
+ <g fill="none" stroke-linejoin="round" stroke-linecap="round">
+  <path d="M232 455L310 342 369 455H232L502 352 369 455M502 352L565 455" stroke="#416d5e" stroke-width="14"/>
+  <path d="M232 455L310 342 369 455H232L502 352 369 455M502 352L565 455" stroke="#88c5a5" stroke-width="9"/>
+  <path d="M310 342L302 318M502 352L489 306Q485 290 509 289H527" stroke="#597269" stroke-width="9"/>
+  <path d="M280 316H326" stroke="#735341" stroke-width="14"/>
+  <path d="M519 290H536" stroke="#735341" stroke-width="11"/>
+  <circle cx="369" cy="455" r="20" fill="#cde0c8" stroke="#597269" stroke-width="5"/>
+  <path d="M369 455L396 477" stroke="#597269" stroke-width="7"/>
+ </g>
+ <!-- Basket and a tiny travelling fish. -->
+ <path d="M538 306L604 303 595 354 547 354Z" fill="#dfb978" stroke="#a47c4a" stroke-width="4" stroke-linejoin="round"/>
+ <g stroke="#bd945b" stroke-width="3"><path d="M549 313L554 347M563 311L567 350M578 310V350M592 309L587 348M543 322H600M545 337H598"/></g>
+ <g transform="rotate(-18 572 297)"><path d="M580 296L604 279V310Z" fill="#83afa9" stroke="#557e7b" stroke-width="3" stroke-linejoin="round"/><ellipse cx="563" cy="295" rx="24" ry="13" fill="#a5cdc2" stroke="#557e7b" stroke-width="3"/><circle cx="550" cy="292" r="2.5" fill="#365951"/><path d="M565 284L572 276 578 286" fill="#83afa9"/></g>
+ <path d="M538 305H605" stroke="#a47c4a" stroke-width="6" stroke-linecap="round"/>
+ <g>
+  <animateTransform attributeName="transform" type="translate" values="0 0;0 -2;0 0" dur="1.8s" repeatCount="indefinite"/>
+  <!-- Soft pear-shaped body and cream belly. -->
+  <path d="M320 238C286 264 278 310 290 336 307 369 374 375 401 340 425 309 395 258 375 243Z" fill="url(#fur)" stroke="#674b39" stroke-width="5"/>
+  <path d="M347 255C324 270 317 310 326 334 335 353 366 354 381 334 397 310 371 259 347 255Z" fill="#e8c7a0"/>
+  <!-- Scarf fluttering behind the neck. -->
+  <path d="M319 256Q286 281 255 255L269 279 247 286Q293 304 333 269" fill="#dc795e" stroke="#aa5948" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M315 248Q348 272 384 250L384 269Q345 287 310 265Z" fill="#ea9476" stroke="#aa5948" stroke-width="4"/>
+  <!-- Face, small round ears, and muzzle. -->
+  <circle cx="289" cy="173" r="22" fill="#a57550" stroke="#674b39" stroke-width="5"/>
+  <circle cx="290" cy="174" r="11" fill="#deb38e"/>
+  <circle cx="405" cy="172" r="21" fill="#a57550" stroke="#674b39" stroke-width="5"/>
+  <circle cx="404" cy="173" r="10" fill="#deb38e"/>
+  <path d="M277 198C274 155 306 136 348 137 393 135 423 159 422 202 425 242 395 262 350 264 305 264 276 244 277 198Z" fill="url(#fur)" stroke="#674b39" stroke-width="5"/>
+  <path d="M303 220C300 197 330 189 349 209 369 189 400 198 398 220 399 246 368 252 350 251 328 254 300 244 303 220Z" fill="#f6ddba"/>
+  <g fill="#3f332d"><ellipse cx="318" cy="196" rx="6" ry="8"/><ellipse cx="384" cy="196" rx="6" ry="8"/></g>
+  <g fill="#fff4dc"><circle cx="316" cy="193" r="2"/><circle cx="382" cy="193" r="2"/></g>
+  <ellipse cx="296" cy="218" rx="12" ry="7" fill="#d88f7c" opacity=".7"/><ellipse cx="405" cy="218" rx="11" ry="7" fill="#d88f7c" opacity=".7"/>
+  <path d="M339 211Q350 205 362 211Q363 218 351 223 338 218 339 211" fill="#4b392f"/>
+  <path d="M351 221V227M351 227Q342 235 335 227M351 227Q359 235 367 227" fill="none" stroke="#674b39" stroke-width="3" stroke-linecap="round"/>
+  <g stroke="#765642" stroke-width="2.5" stroke-linecap="round"><path d="M308 222L285 217M309 231L283 235M391 222L414 217M390 232L416 237"/></g>
+  <!-- Tiny fitted helmet. -->
+  <path d="M287 161Q290 108 349 108 404 108 414 156L399 166Q348 154 296 170Z" fill="url(#helmet)" stroke="#b38945" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M296 165Q352 151 415 159" fill="none" stroke="#d7a04d" stroke-width="7" stroke-linecap="round"/>
+  <path d="M321 129L317 141M345 121V135M371 126L375 138" stroke="#b98b46" stroke-width="6" stroke-linecap="round"/>
+  <path d="M316 157Q320 163 330 163" stroke="#fff1bf" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <!-- Near arm reaches the handlebar, near foot rests on pedal. -->
+  <path d="M385 282Q419 297 442 289L492 287" fill="none" stroke="#674b39" stroke-width="27" stroke-linecap="round"/>
+  <path d="M385 282Q419 297 442 289L492 287" fill="none" stroke="#b17c53" stroke-width="19" stroke-linecap="round"/>
+  <path d="M360 342Q331 358 349 385L395 464" fill="none" stroke="#674b39" stroke-width="33" stroke-linecap="round"/>
+  <path d="M360 342Q331 358 349 385L395 464" fill="none" stroke="#ae7850" stroke-width="24" stroke-linecap="round"/>
+  <ellipse cx="401" cy="468" rx="23" ry="12" transform="rotate(12 401 468)" fill="#976443" stroke="#674b39" stroke-width="4"/>
+ </g>
+ <path d="M385 482H421" stroke="#455852" stroke-width="8" stroke-linecap="round"/>
+ <g stroke="#87a66f" stroke-width="3" stroke-linecap="round"><path d="M102 501V478M698 510V484M712 511V497"/></g>
+ <g fill="#fff9e7"><circle cx="102" cy="475" r="8"/><circle cx="698" cy="482" r="9"/><circle cx="712" cy="495" r="6"/></g>
+ <g fill="#e2b859"><circle cx="102" cy="475" r="3"/><circle cx="698" cy="482" r="3"/><circle cx="712" cy="495" r="2"/></g>
+</svg>

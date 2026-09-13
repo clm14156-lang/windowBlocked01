@@ -79,6 +79,23 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
 
     public IReadOnlyList<FocusTargetViewModel> Targets => _targets;
 
+    public void RemoveTarget(string targetId)
+    {
+        var target = _targets.FirstOrDefault(item => item.TargetId == targetId);
+        if (target is null) return;
+        var wasSelected = HasSelectedTarget && SelectedTarget.TargetId == targetId;
+        _targets.Remove(target);
+        if (wasSelected)
+        {
+            HasSelectedTarget = false;
+            HasDraftSelectedTarget = false;
+            SelectionChanged?.Invoke(this, null);
+            OnPropertyChanged(nameof(SelectedTarget));
+            OnPropertyChanged(nameof(DraftSelectedTarget));
+        }
+        RefreshVisibleTargets();
+    }
+
     public bool HasTargets => _targets.Count > 0;
 
     public void ApplyState(

@@ -737,6 +737,37 @@ public sealed class StatisticsOverviewViewModelTests
     }
 
     [Fact]
+    public void FocusTargetModesAreExclusiveAndDeleteReturnsToUnsetState()
+    {
+        var viewModel = new StatisticsOverviewViewModel();
+        var changes = 0;
+        viewModel.MonthlyFocusTargetChanged += (_, _) => changes++;
+
+        viewModel.OpenMonthlyFocusTargetCommand.Execute(null);
+        viewModel.SelectDailyGoalModeCommand.Execute(null);
+        viewModel.DailyFocusTargetInput = "4";
+        viewModel.SaveMonthlyFocusTargetCommand.Execute(null);
+        Assert.True(viewModel.HasDailyFocusTarget);
+        Assert.False(viewModel.HasMonthlyFocusTarget);
+
+        viewModel.SelectMonthlyGoalModeCommand.Execute(null);
+        viewModel.MonthlyFocusTargetInput = "50";
+        viewModel.SaveMonthlyFocusTargetCommand.Execute(null);
+        Assert.False(viewModel.HasDailyFocusTarget);
+        Assert.True(viewModel.HasMonthlyFocusTarget);
+
+        viewModel.DeleteMonthlyFocusTargetCommand.Execute(null);
+
+        Assert.False(viewModel.HasDailyFocusTarget);
+        Assert.False(viewModel.HasMonthlyFocusTarget);
+        Assert.False(viewModel.HasAnyFocusTarget);
+        Assert.False(viewModel.IsMonthlyFocusTargetPopupOpen);
+        Assert.Equal(viewModel.TodayFocusDuration, viewModel.FocusTargetValueDisplay);
+        Assert.Contains("未设置今日目标", viewModel.FocusTargetFooterDisplay);
+        Assert.Equal(3, changes);
+    }
+
+    [Fact]
     public void MonthlyFocusTargetStepButtonsStaySynchronizedWithManualInput()
     {
         var viewModel = new StatisticsOverviewViewModel

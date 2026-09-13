@@ -396,6 +396,18 @@ public sealed class NamedPipeCommunicationTests
         Assert.Equal(settings, state.Settings);
         Assert.Equal(preset, Assert.Single(state.DurationPresets));
         Assert.Equal(monthlyTarget, Assert.Single(state.MonthlyFocusTargets));
+
+        var deleteResult = await client.SendAsync<SaveSettingsCommand, MutationResult>(
+            IpcOperations.SaveSettings,
+            new SaveSettingsCommand(settings, [preset], []),
+            RequestTimeout);
+        Assert.Empty(deleteResult.State.MonthlyFocusTargets);
+
+        var stateAfterDelete = await client.SendAsync<EmptyPayload, LocalDataSnapshotDto>(
+            IpcOperations.GetState,
+            new EmptyPayload(),
+            RequestTimeout);
+        Assert.Empty(stateAfterDelete.MonthlyFocusTargets);
     }
 
     [Fact]
