@@ -815,6 +815,26 @@ public sealed class StatisticsOverviewViewModelTests
     }
 
     [Fact]
+    public void TodayFocusDistribution_GroupsTodayRecordsAndAssignsSortedPercentagesAndColors()
+    {
+        var viewModel = new StatisticsOverviewViewModel(useSampleData: false);
+        var today = DateTime.Today;
+        viewModel.FocusSessionRecords.Add(new FocusSessionRecordViewModel(today.AddHours(8), today.AddHours(9).AddMinutes(20), "goal-model", "建模", string.Empty, 0));
+        viewModel.FocusSessionRecords.Add(new FocusSessionRecordViewModel(today.AddHours(9).AddMinutes(30), today.AddHours(9).AddMinutes(50), "goal-model", "建模", string.Empty, 0));
+        viewModel.FocusSessionRecords.Add(new FocusSessionRecordViewModel(today.AddHours(10), today.AddHours(10).AddMinutes(45), "goal-drawing", "绘画", string.Empty, 0));
+        viewModel.FocusSessionRecords.Add(new FocusSessionRecordViewModel(today.AddHours(12), today.AddHours(12).AddMinutes(10), "goal-english", "英语", string.Empty, 0));
+        viewModel.FocusSessionRecords.Add(new FocusSessionRecordViewModel(today.AddHours(14), today.AddHours(14).AddMinutes(5), "goal-unassigned", "", string.Empty, 0));
+
+        Assert.Equal(160, viewModel.TodayFocusDistributionTotalMinutes);
+        Assert.Equal("2 小时 40 分钟", viewModel.TodayFocusDistributionTotalDisplay);
+        Assert.Equal(["建模", "绘画", "英语", "自由专注"], viewModel.TodayFocusDistributions.Select(item => item.TargetName));
+        Assert.Equal([100, 45, 10, 5], viewModel.TodayFocusDistributions.Select(item => item.Minutes));
+        Assert.Equal(["1小时40分钟", "45分钟", "10分钟", "5分钟"], viewModel.TodayFocusDistributions.Select(item => item.DurationDisplay));
+        Assert.Equal([63, 28, 6, 3], viewModel.TodayFocusDistributions.Select(item => item.Percent));
+        Assert.Equal(["#FF8000", "#3B82F6", "#8B5CF6", "#34C759"], viewModel.TodayFocusDistributions.Select(item => item.ColorHex));
+    }
+
+    [Fact]
     public void DeletingGoalOnlyRemovesArchivedGoals()
     {
         var viewModel = new StatisticsOverviewViewModel();

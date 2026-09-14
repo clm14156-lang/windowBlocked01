@@ -28,6 +28,15 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     private const int GoalTrendExpandedTickIntervalHours = 4;
     private const int GoalTrendPreferredMaximumTickCount = 6;
     private const int GoalTrendMaximumHours = 24;
+    private static readonly string[] TodayFocusDistributionColors =
+    [
+        "#FF8000",
+        "#3B82F6",
+        "#8B5CF6",
+        "#34C759",
+        "#FF2D55",
+        "#5856D6"
+    ];
     private StatisticsRangeOptionViewModel _selectedRange;
     private TrendDataPointViewModel? _hoveredPoint;
     private StatisticsTab _selectedTab = StatisticsTab.Overview;
@@ -210,6 +219,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             }
 
             RefreshCalendar();
+            NotifyTodayFocusDisplayChanged();
         }
         finally
         {
@@ -454,6 +464,11 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     public ObservableCollection<CalendarDayViewModel> CalendarDays { get; } = [];
 
     public ObservableCollection<FocusSessionRecordViewModel> FocusSessionRecords { get; } = [];
+
+    public ObservableCollection<TodayFocusDistributionViewModel> TodayFocusDistributions { get; } = [];
+    public int TodayFocusDistributionTotalMinutes { get; private set; }
+    public string TodayFocusDistributionTotalDisplay => FormatDuration(TodayFocusDistributionTotalMinutes);
+    public bool HasTodayFocusDistribution => TodayFocusDistributions.Count > 0;
 
     public ObservableCollection<FocusSessionRecordViewModel> SelectedDayRecords { get; } = [];
     public ObservableCollection<GoalDistributionViewModel> SelectedDayDistributions { get; } = [];
@@ -1374,10 +1389,61 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         }
     }
 
+    private void RefreshTodayFocusDistribution()
+    {
+        TodayFocusDistributions.Clear();
+        var slices = FocusStatisticsCalculator.GetSlices(GetCoreFocusSessionRecords())
+            .Where(slice => slice.StartsAt.Date == DateTime.Today)
+            .ToArray();
+        var totalTicks = slices.Sum(slice => slice.Duration.Ticks);
+        TodayFocusDistributionTotalMinutes = (int)TimeSpan.FromTicks(totalTicks).TotalMinutes;
+
+        var startAngle = 0d;
+        var colorIndex = 0;
+        foreach (var group in slices
+                     .GroupBy(slice => string.IsNullOrWhiteSpace(slice.Record.TargetId) ? "goal-unassigned" : slice.Record.TargetId)
+                     .Select(group => new
+                     {
+                         Key = group.Key,
+                         Slices = group.ToArray(),
+                         Ticks = group.Sum(slice => slice.Duration.Ticks)
+                     })
+                     .OrderByDescending(group => group.Ticks)
+                     .ThenBy(group => group.Key, StringComparer.Ordinal))
+        {
+            var minutes = (int)TimeSpan.FromTicks(group.Ticks).TotalMinutes;
+            if (minutes <= 0 || totalTicks <= 0)
+            {
+                continue;
+            }
+
+            var goal = Goals.FirstOrDefault(item => item.GoalId == group.Key);
+            var name = goal?.Name ?? group.Slices.First().Record.TargetName;
+            var targetName = group.Key == "goal-unassigned" || string.IsNullOrWhiteSpace(name)
+                ? "自由专注"
+                : name;
+            var ratio = group.Ticks / (double)totalTicks;
+            var sweepAngle = ratio * 360d;
+            TodayFocusDistributions.Add(new TodayFocusDistributionViewModel(
+                targetName,
+                minutes,
+                ratio,
+                TodayFocusDistributionColors[colorIndex % TodayFocusDistributionColors.Length],
+                startAngle,
+                sweepAngle));
+            startAngle += sweepAngle;
+            colorIndex++;
+        }
+    }
+
     private void NotifyTodayFocusDisplayChanged()
     {
+        RefreshTodayFocusDistribution();
         OnPropertyChanged(nameof(TodayFocusDuration));
         OnPropertyChanged(nameof(TodayFocusCount));
+        OnPropertyChanged(nameof(TodayFocusDistributionTotalMinutes));
+        OnPropertyChanged(nameof(TodayFocusDistributionTotalDisplay));
+        OnPropertyChanged(nameof(HasTodayFocusDistribution));
         NotifyTodayFocusTargetChanged();
     }
 
@@ -2335,6 +2401,90 @@ public sealed class FocusSessionRecordViewModel : INotifyPropertyChanged
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+}
+
+public sealed class TodayFocusDistributionViewModel
+{
+    private const double ChartCenter = 70;
+    private const double OuterRadius = 60;
+    private const double InnerRadius = 42;
+    private const double SegmentGapDegrees = 1.4;
+
+    public TodayFocusDistributionViewModel(
+        string targetName,
+        int minutes,
+        double ratio,
+        string colorHex,
+        double startAngle,
+        double sweepAngle)
+    {
+        TargetName = targetName;
+        Minutes = minutes;
+        Ratio = ratio;
+        ColorHex = colorHex;
+        ColorBrush = CreateBrush(colorHex);
+        Percent = (int)Math.Round(ratio * 100, MidpointRounding.AwayFromZero);
+        Geometry = CreateGeometry(startAngle, sweepAngle);
+    }
+
+    public string TargetName { get; }
+    public int Minutes { get; }
+    public double Ratio { get; }
+    public int Percent { get; }
+    public string ColorHex { get; }
+    public Brush ColorBrush { get; }
+    public PathGeometry Geometry { get; }
+    public string DurationDisplay => Minutes >= 60
+        ? $"{Minutes / 60}小时{Minutes % 60}分钟"
+        : $"{Minutes}分钟";
+    public string PercentDisplay => $"{Percent}%";
+
+    private static Brush CreateBrush(string colorHex)
+    {
+        var brush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(colorHex));
+        brush.Freeze();
+        return brush;
+    }
+
+    private static PathGeometry CreateGeometry(double startAngle, double sweepAngle)
+    {
+        var effectiveSweep = Math.Min(359.8, Math.Max(0.1, sweepAngle - SegmentGapDegrees));
+        var outerStart = PointOnCircle(OuterRadius, startAngle);
+        var outerEnd = PointOnCircle(OuterRadius, startAngle + effectiveSweep);
+        var innerEnd = PointOnCircle(InnerRadius, startAngle + effectiveSweep);
+        var innerStart = PointOnCircle(InnerRadius, startAngle);
+        var isLargeArc = effectiveSweep > 180;
+        var figure = new PathFigure
+        {
+            StartPoint = outerStart,
+            IsClosed = true,
+            IsFilled = true
+        };
+        figure.Segments.Add(new ArcSegment(
+            outerEnd,
+            new Size(OuterRadius, OuterRadius),
+            0,
+            isLargeArc,
+            SweepDirection.Clockwise,
+            true));
+        figure.Segments.Add(new LineSegment(innerEnd, true));
+        figure.Segments.Add(new ArcSegment(
+            innerStart,
+            new Size(InnerRadius, InnerRadius),
+            0,
+            isLargeArc,
+            SweepDirection.Counterclockwise,
+            true));
+        return new PathGeometry([figure]);
+    }
+
+    private static Point PointOnCircle(double radius, double angle)
+    {
+        var radians = (angle - 90) * Math.PI / 180;
+        return new Point(
+            ChartCenter + radius * Math.Cos(radians),
+            ChartCenter + radius * Math.Sin(radians));
+    }
 }
 
 public sealed class GoalDistributionViewModel

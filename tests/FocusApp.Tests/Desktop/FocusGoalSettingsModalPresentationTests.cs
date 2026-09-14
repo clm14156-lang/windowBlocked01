@@ -126,6 +126,9 @@ public sealed class FocusGoalSettingsModalPresentationTests
         var root = LoadModal();
         var moreButton = Assert.Single(root.Descendants(Presentation + "Button").Where(button =>
             (string?)button.Attribute(Xaml + "Name") == "FocusGoalMoreButton"));
+        Assert.Equal(
+            "{Binding HasSavedTarget, Converter={StaticResource BooleanToVisibilityConverter}}",
+            (string?)moreButton.Attribute("Visibility"));
         Assert.Equal("FocusGoalMoreButton_Click", (string?)moreButton.Attribute("Click"));
         Assert.Equal("FocusGoalMoreButton_PreviewMouseDown", (string?)moreButton.Attribute("PreviewMouseDown"));
 

@@ -62,8 +62,6 @@ public partial class StatisticsPage : UserControl
     }
     private const int WmNcHitTest = 0x0084;
     private static readonly IntPtr HitTestTransparent = new(-1);
-    private bool _monthlyFocusTargetPopupWasOpenOnAnchorPress;
-    private bool _monthlyFocusTargetMenuWasOpenOnAnchorPress;
     private readonly DispatcherTimer _trendVipGuideOpenTimer;
     private readonly DispatcherTimer _trendVipGuideCloseTimer;
     private bool _isTrendVipHoverTargetHovered;
@@ -93,7 +91,6 @@ public partial class StatisticsPage : UserControl
         _goalInvestmentDetailsVipGuideCloseTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(150) };
         _goalInvestmentDetailsVipGuideCloseTimer.Tick += GoalInvestmentDetailsVipGuideCloseTimer_Tick;
         InitializeComponent();
-        MonthlyFocusTargetPopup.CustomPopupPlacementCallback = PlaceMonthlyFocusTargetPopup;
         TrendVipGuidePopup.CustomPopupPlacementCallback = PlaceTrendVipGuidePopup;
         DailyFocusRecordVipGuidePopup.CustomPopupPlacementCallback = PlaceDailyFocusRecordVipGuidePopup;
         GoalInvestmentDetailsVipGuidePopup.CustomPopupPlacementCallback = PlaceGoalInvestmentDetailsVipGuidePopup;
@@ -484,101 +481,6 @@ public partial class StatisticsPage : UserControl
 
     private void GoalNameTextBox_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e) =>
         ExecuteGoalCommand(sender, viewModel => viewModel.SaveGoalRenameCommand);
-
-    private void MonthlyFocusTargetPopup_Opened(object? sender, EventArgs e)
-    {
-        Dispatcher.BeginInvoke(() =>
-        {
-            MonthlyFocusTargetInputBox.Focus();
-            MonthlyFocusTargetInputBox.SelectAll();
-        });
-    }
-
-    private void MonthlyFocusTargetAnchor_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-    {
-        _monthlyFocusTargetPopupWasOpenOnAnchorPress =
-            MonthlyFocusTargetPopup.IsOpen && ReferenceEquals(MonthlyFocusTargetPopup.PlacementTarget, sender);
-    }
-
-    private void SetMonthlyFocusTargetButton_Click(object sender, RoutedEventArgs e) =>
-        ToggleMonthlyFocusTargetPopup(sender, viewModel => viewModel.OpenMonthlyFocusTargetCommand);
-
-    private void MonthlyFocusTargetMenuButton_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-    {
-        _monthlyFocusTargetMenuWasOpenOnAnchorPress =
-            DataContext is StatisticsOverviewViewModel { IsMonthlyFocusTargetMenuOpen: true };
-    }
-
-    private void MonthlyFocusTargetMenuButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (DataContext is not StatisticsOverviewViewModel viewModel)
-        {
-            return;
-        }
-
-        if (_monthlyFocusTargetMenuWasOpenOnAnchorPress)
-        {
-            viewModel.IsMonthlyFocusTargetMenuOpen = false;
-            _monthlyFocusTargetMenuWasOpenOnAnchorPress = false;
-            return;
-        }
-
-        viewModel.ToggleMonthlyFocusTargetMenuCommand.Execute(null);
-        e.Handled = true;
-    }
-
-    private void EditMonthlyFocusTargetMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        if (DataContext is StatisticsOverviewViewModel viewModel)
-        {
-            MonthlyFocusTargetPopup.PlacementTarget = EditMonthlyFocusTargetButton;
-            viewModel.EditMonthlyFocusTargetCommand.Execute(null);
-        }
-
-        e.Handled = true;
-    }
-
-    private void DeleteMonthlyFocusTargetMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        if (DataContext is StatisticsOverviewViewModel viewModel)
-        {
-            viewModel.DeleteMonthlyFocusTargetCommand.Execute(null);
-        }
-
-        e.Handled = true;
-    }
-
-    private void ToggleMonthlyFocusTargetPopup(object sender, Func<StatisticsOverviewViewModel, ICommand> commandSelector)
-    {
-        if (sender is not FrameworkElement anchor || DataContext is not StatisticsOverviewViewModel viewModel)
-        {
-            return;
-        }
-
-        if (_monthlyFocusTargetPopupWasOpenOnAnchorPress)
-        {
-            viewModel.IsMonthlyFocusTargetPopupOpen = false;
-            _monthlyFocusTargetPopupWasOpenOnAnchorPress = false;
-            return;
-        }
-
-        MonthlyFocusTargetPopup.PlacementTarget = anchor;
-        commandSelector(viewModel).Execute(null);
-    }
-
-    private static CustomPopupPlacement[] PlaceMonthlyFocusTargetPopup(
-        Size popupSize,
-        Size targetSize,
-        Point offset)
-    {
-        const double gap = 8;
-        return
-        [
-            new CustomPopupPlacement(
-                new Point((targetSize.Width - popupSize.Width) / 2, -popupSize.Height - gap),
-                PopupPrimaryAxis.Horizontal)
-        ];
-    }
 
     private void EditGoalButton_Click(object sender, RoutedEventArgs e) => ExecuteGoalCommand(sender, viewModel => viewModel.EditGoalCommand);
 
