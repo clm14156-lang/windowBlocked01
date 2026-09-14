@@ -8,18 +8,10 @@ namespace FocusApp.Desktop.ViewModels;
 
 public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
 {
-    private const int VisibleTargetCount = 3;
     private readonly ObservableCollection<FocusTargetViewModel> _targets;
-    private readonly ObservableCollection<FocusTaskViewModel> _emptyTasks = [];
-    private readonly RelayCommand<object> _beginAddTaskCommand;
     private FocusTargetViewModel _selectedTarget;
     private bool _isOpen;
-    private bool _isAddingTask;
-    private string _newTaskName = string.Empty;
-    private int _visibleTargetStart;
     private bool _hasSelectedTarget;
-    private FocusTargetViewModel _draftSelectedTarget;
-    private bool _hasDraftSelectedTarget;
 
     public FocusTargetModalViewModel(bool useSampleData = true)
     {
@@ -48,128 +40,24 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
             ])
         ] : [];
 
-        _selectedTarget = _targets.FirstOrDefault() ?? new FocusTargetViewModel("未选择目标");
-        _draftSelectedTarget = _selectedTarget;
-        VisibleTargets = new ObservableCollection<FocusTargetViewModel>();
-        RefreshVisibleTargets();
-
+        _selectedTarget = _targets.FirstOrDefault() ?? CreatePlaceholderTarget();
         OpenCommand = new RelayCommand<object>(_ => Open());
         CloseCommand = new RelayCommand<object>(_ => Close());
-        CancelSelectionCommand = new RelayCommand<object>(_ => CancelSelection());
-        ConfirmSelectionCommand = new RelayCommand<object>(_ => ConfirmSelection());
-        SelectTargetCommand = new RelayCommand<FocusTargetViewModel>(SelectTarget);
-        ShowPreviousTargetsCommand = new RelayCommand<object>(_ => ShowPreviousTargets());
-        ShowNextTargetsCommand = new RelayCommand<object>(_ => ShowNextTargets());
         CreateNewTargetCommand = new RelayCommand<object>(_ => RequestCreateTarget());
-        _beginAddTaskCommand = new RelayCommand<object>(_ => BeginAddTask(), _ => HasActiveSelectedTarget);
-        BeginAddTaskCommand = _beginAddTaskCommand;
-        ConfirmAddTaskCommand = new RelayCommand<object>(_ => ConfirmAddTask());
-        ToggleTaskMenuCommand = new RelayCommand<FocusTaskViewModel>(ToggleTaskMenu);
-        BeginEditTaskCommand = new RelayCommand<FocusTaskViewModel>(BeginEditTask);
-        ConfirmEditTaskCommand = new RelayCommand<FocusTaskViewModel>(ConfirmEditTask);
-        DeleteTaskCommand = new RelayCommand<FocusTaskViewModel>(DeleteTask);
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
-    public event EventHandler<FocusTargetViewModel>? TargetChanged;
-    public event EventHandler<string?>? SelectionChanged;
     public event EventHandler? CreateTargetRequested;
-
-    public ObservableCollection<FocusTargetViewModel> VisibleTargets { get; }
 
     public IReadOnlyList<FocusTargetViewModel> Targets => _targets;
 
     public bool HasTargets => _targets.Count > 0;
 
-    public void ApplyState(
-        IEnumerable<LocalTargetDto> targets,
-        IEnumerable<LocalTaskDto> tasks,
-        string? selectedTargetId)
-    {
-        var selectedId = selectedTargetId ?? (HasSelectedTarget ? SelectedTarget.TargetId : null);
-        var hadDraftSelection = IsOpen && HasDraftSelectedTarget;
-        var draftSelectedId = hadDraftSelection ? DraftSelectedTarget.TargetId : selectedId;
-        var existingTargets = _targets.ToDictionary(item => item.TargetId, StringComparer.Ordinal);
-        _targets.Clear();
-        foreach (var target in targets.Where(item => !item.IsArchived).OrderBy(item => item.SortOrder))
-        {
-            var viewModel = existingTargets.TryGetValue(target.TargetId, out var existing)
-                ? existing
-                : new FocusTargetViewModel(
-                    target.Name,
-                    targetId: target.TargetId,
-                    iconFileName: target.IconFileName);
-            viewModel.ApplyName(target.Name);
-            viewModel.ApplyIcon(target.IconFileName);
-            var persistedTasks = tasks.Where(item => item.TargetId == target.TargetId).OrderBy(item => item.SortOrder).ToList();
-            var existingTaskMap = viewModel.Tasks.ToDictionary(item => item.TaskId, StringComparer.Ordinal);
-            foreach (var removed in viewModel.Tasks.Where(item => persistedTasks.All(task => task.TaskId != item.TaskId)).ToList())
-                viewModel.RemoveTask(removed);
-            foreach (var task in persistedTasks)
-            {
-                if (existingTaskMap.TryGetValue(task.TaskId, out var existingTask))
-                {
-                    existingTask.ApplyName(task.Name);
-                    existingTask.ApplyCreatedAt(task.CreatedAtUtc);
-                    existingTask.ApplyCompletion(task.IsCompleted, task.CompletedAtUtc);
-                }
-                else viewModel.AddTask(
-                    task.TaskId,
-                    task.Name,
-                    task.IsCompleted,
-                    createdAtUtc: task.CreatedAtUtc,
-                    completedAtUtc: task.CompletedAtUtc);
-            }
-            _targets.Add(viewModel);
-        }
-
-        var selected = _targets.FirstOrDefault(item => item.TargetId == selectedId);
-        var draftSelected = _targets.FirstOrDefault(item => item.TargetId == draftSelectedId);
-        HasSelectedTarget = selected is not null;
-        if (selected is not null) _selectedTarget = selected;
-        _draftSelectedTarget = draftSelected ?? selected ?? _targets.FirstOrDefault() ?? _selectedTarget;
-        _hasDraftSelectedTarget = IsOpen ? hadDraftSelection && draftSelected is not null : HasSelectedTarget;
-        _visibleTargetStart = 0;
-        RefreshVisibleTargets();
-        RefreshTargetSelectionVisuals();
-        OnPropertyChanged(nameof(Targets));
-        OnPropertyChanged(nameof(SelectedTarget));
-        OnPropertyChanged(nameof(SelectedTargetButtonText));
-        OnPropertyChanged(nameof(CurrentTasks));
-        OnPropertyChanged(nameof(HasTargets));
-        OnPropertyChanged(nameof(HasMoreTargets));
-    }
-
-    public ObservableCollection<FocusTaskViewModel> CurrentTasks =>
-        HasActiveSelectedTarget ? ActiveSelectedTarget.Tasks : _emptyTasks;
-
     public ICommand OpenCommand { get; }
 
     public ICommand CloseCommand { get; }
 
-    public ICommand CancelSelectionCommand { get; }
-
-    public ICommand ConfirmSelectionCommand { get; }
-
-    public ICommand SelectTargetCommand { get; }
-
-    public ICommand ShowPreviousTargetsCommand { get; }
-
-    public ICommand ShowNextTargetsCommand { get; }
-
     public ICommand CreateNewTargetCommand { get; }
-
-    public ICommand BeginAddTaskCommand { get; }
-
-    public ICommand ConfirmAddTaskCommand { get; }
-
-    public ICommand ToggleTaskMenuCommand { get; }
-
-    public ICommand BeginEditTaskCommand { get; }
-
-    public ICommand ConfirmEditTaskCommand { get; }
-
-    public ICommand DeleteTaskCommand { get; }
 
     public bool IsOpen
     {
@@ -177,56 +65,10 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
         private set => SetField(ref _isOpen, value);
     }
 
-    public bool IsAddingTask
-    {
-        get => _isAddingTask;
-        private set => SetField(ref _isAddingTask, value);
-    }
-
-    public bool HasMoreTargets => _targets.Count > VisibleTargetCount;
-
-    public bool CanShowPreviousTargets => _visibleTargetStart > 0;
-
-    public bool CanShowNextTargets => _visibleTargetStart < Math.Max(0, _targets.Count - VisibleTargetCount);
-
     public bool HasSelectedTarget
     {
         get => _hasSelectedTarget;
-        private set
-        {
-            if (!SetField(ref _hasSelectedTarget, value))
-            {
-                return;
-            }
-
-            _beginAddTaskCommand.NotifyCanExecuteChanged();
-            OnPropertyChanged(nameof(CurrentTasks));
-            if (!value)
-            {
-                IsAddingTask = false;
-                NewTaskName = string.Empty;
-            }
-        }
-    }
-
-    public bool HasDraftSelectedTarget
-    {
-        get => _hasDraftSelectedTarget;
-        private set
-        {
-            if (!SetField(ref _hasDraftSelectedTarget, value))
-            {
-                return;
-            }
-
-            _beginAddTaskCommand.NotifyCanExecuteChanged();
-            OnPropertyChanged(nameof(CurrentTasks));
-            if (!value)
-            {
-                IsAddingTask = false;
-                NewTaskName = string.Empty;
-            }
-        }
+        private set => SetField(ref _hasSelectedTarget, value);
     }
 
     public string SelectedTargetButtonText => HasSelectedTarget ? SelectedTarget.Name : "选择专注目标(可选)";
@@ -241,311 +83,97 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
                 return;
             }
 
-            _selectedTarget.IsSelected = false;
-            CloseTaskMenus();
             _selectedTarget = value;
-            _selectedTarget.IsSelected = true;
-            HasSelectedTarget = true;
-            IsAddingTask = false;
-            NewTaskName = string.Empty;
             OnPropertyChanged();
-            OnPropertyChanged(nameof(CurrentTasks));
             OnPropertyChanged(nameof(SelectedTargetButtonText));
         }
     }
 
-    public FocusTargetViewModel DraftSelectedTarget
+    public void ApplyState(
+        IEnumerable<LocalTargetDto> targets,
+        IEnumerable<LocalTaskDto> tasks,
+        string? selectedTargetId)
     {
-        get => _draftSelectedTarget;
-        private set
+        var selectedId = selectedTargetId ?? (HasSelectedTarget ? SelectedTarget.TargetId : null);
+        var existingTargets = _targets.ToDictionary(item => item.TargetId, StringComparer.Ordinal);
+        var persistedTasks = tasks.ToList();
+
+        _targets.Clear();
+        foreach (var target in targets.Where(item => !item.IsArchived).OrderBy(item => item.SortOrder))
         {
-            if (ReferenceEquals(_draftSelectedTarget, value))
+            var viewModel = existingTargets.TryGetValue(target.TargetId, out var existing)
+                ? existing
+                : new FocusTargetViewModel(
+                    target.Name,
+                    targetId: target.TargetId,
+                    iconFileName: target.IconFileName);
+            viewModel.ApplyName(target.Name);
+            viewModel.ApplyIcon(target.IconFileName);
+
+            var targetTasks = persistedTasks
+                .Where(item => item.TargetId == target.TargetId)
+                .OrderBy(item => item.SortOrder)
+                .ToList();
+            var existingTaskMap = viewModel.Tasks.ToDictionary(item => item.TaskId, StringComparer.Ordinal);
+            foreach (var removed in viewModel.Tasks
+                         .Where(item => targetTasks.All(task => task.TaskId != item.TaskId))
+                         .ToList())
             {
-                return;
+                viewModel.RemoveTask(removed);
             }
 
-            CloseTaskMenus();
-            _draftSelectedTarget = value;
-            HasDraftSelectedTarget = true;
-            IsAddingTask = false;
-            NewTaskName = string.Empty;
-            OnPropertyChanged();
-            OnPropertyChanged(nameof(CurrentTasks));
-        }
-    }
-
-    private bool HasActiveSelectedTarget => IsOpen ? HasDraftSelectedTarget : HasSelectedTarget;
-
-    private FocusTargetViewModel ActiveSelectedTarget => IsOpen ? DraftSelectedTarget : SelectedTarget;
-
-    public string NewTaskName
-    {
-        get => _newTaskName;
-        set => SetField(ref _newTaskName, value);
-    }
-
-    public void Open()
-    {
-        CancelTaskEdits();
-        _draftSelectedTarget = SelectedTarget;
-        _hasDraftSelectedTarget = HasSelectedTarget;
-        IsAddingTask = false;
-        NewTaskName = string.Empty;
-        CloseTaskMenus();
-        IsOpen = true;
-        RefreshTargetSelectionVisuals();
-        _beginAddTaskCommand.NotifyCanExecuteChanged();
-        OnPropertyChanged(nameof(DraftSelectedTarget));
-        OnPropertyChanged(nameof(HasDraftSelectedTarget));
-        OnPropertyChanged(nameof(CurrentTasks));
-    }
-
-    private void Close()
-    {
-        if (!IsOpen)
-        {
-            return;
-        }
-
-        CancelTaskEdits();
-        CommitDraftSelection();
-        CloseModal();
-    }
-
-    private void CloseModal()
-    {
-        CloseTaskMenus();
-        IsOpen = false;
-        IsAddingTask = false;
-    }
-
-    private void CancelSelection()
-    {
-        if (IsOpen)
-        {
-            HasDraftSelectedTarget = false;
-        }
-        else
-        {
-            HasSelectedTarget = false;
-        }
-
-        ActiveSelectedTarget.IsSelected = false;
-        CloseTaskMenus();
-        IsAddingTask = false;
-        if (!IsOpen)
-        {
-            OnPropertyChanged(nameof(SelectedTargetButtonText));
-            SelectionChanged?.Invoke(this, null);
-        }
-    }
-
-    private void ConfirmSelection()
-    {
-        if (HasDraftSelectedTarget)
-        {
-            CommitDraftSelection();
-            CloseModal();
-        }
-    }
-
-    private void CommitDraftSelection()
-    {
-        if (!ReferenceEquals(SelectedTarget, DraftSelectedTarget))
-        {
-            SelectedTarget = DraftSelectedTarget;
-        }
-
-        HasSelectedTarget = HasDraftSelectedTarget;
-        SelectedTarget.IsSelected = HasSelectedTarget;
-        OnPropertyChanged(nameof(SelectedTargetButtonText));
-        SelectionChanged?.Invoke(this, HasSelectedTarget ? SelectedTarget.TargetId : null);
-    }
-
-    private void SelectTarget(FocusTargetViewModel? target)
-    {
-        if (target is not null)
-        {
-            var selectedTarget = ActiveSelectedTarget;
-            var hasSelectedTarget = HasActiveSelectedTarget;
-            if (ReferenceEquals(selectedTarget, target))
+            foreach (var task in targetTasks)
             {
-                if (IsOpen)
+                if (existingTaskMap.TryGetValue(task.TaskId, out var existingTask))
                 {
-                    HasDraftSelectedTarget = !hasSelectedTarget;
-                    target.IsSelected = HasDraftSelectedTarget;
+                    existingTask.ApplyName(task.Name);
+                    existingTask.ApplyCreatedAt(task.CreatedAtUtc);
+                    existingTask.ApplyCompletion(task.IsCompleted, task.CompletedAtUtc);
                 }
                 else
                 {
-                    HasSelectedTarget = !hasSelectedTarget;
-                    target.IsSelected = HasSelectedTarget;
-                    OnPropertyChanged(nameof(SelectedTargetButtonText));
+                    viewModel.AddTask(
+                        task.TaskId,
+                        task.Name,
+                        task.IsCompleted,
+                        createdAtUtc: task.CreatedAtUtc,
+                        completedAtUtc: task.CompletedAtUtc);
                 }
-
-                CloseTaskMenus();
-                return;
             }
 
-            if (IsOpen)
-            {
-                DraftSelectedTarget = target;
-                HasDraftSelectedTarget = true;
-                RefreshTargetSelectionVisuals();
-            }
-            else
-            {
-                SelectedTarget = target;
-            }
+            _targets.Add(viewModel);
         }
+
+        var selected = _targets.FirstOrDefault(item => item.TargetId == selectedId);
+        HasSelectedTarget = selected is not null;
+        if (selected is not null)
+        {
+            SelectedTarget = selected;
+        }
+        else
+        {
+            _selectedTarget = _targets.FirstOrDefault() ?? CreatePlaceholderTarget();
+            OnPropertyChanged(nameof(SelectedTarget));
+            OnPropertyChanged(nameof(SelectedTargetButtonText));
+        }
+
+        OnPropertyChanged(nameof(Targets));
+        OnPropertyChanged(nameof(HasTargets));
+        OnPropertyChanged(nameof(SelectedTargetButtonText));
     }
 
-    private void ShowPreviousTargets()
-    {
-        if (!CanShowPreviousTargets) return;
-        _visibleTargetStart--;
-        RefreshVisibleTargets();
-    }
+    public void Open() => IsOpen = true;
 
-    private void ShowNextTargets()
-    {
-        if (!CanShowNextTargets) return;
-        _visibleTargetStart++;
-        RefreshVisibleTargets();
-    }
+    private void Close() => IsOpen = false;
 
     private void RequestCreateTarget()
     {
-        if (IsOpen)
-        {
-            Close();
-        }
-
+        Close();
         CreateTargetRequested?.Invoke(this, EventArgs.Empty);
     }
 
-    private void BeginAddTask()
-    {
-        if (!HasActiveSelectedTarget)
-        {
-            return;
-        }
-
-        CloseTaskMenus();
-        NewTaskName = string.Empty;
-        IsAddingTask = true;
-    }
-
-    private void ConfirmAddTask()
-    {
-        if (!HasActiveSelectedTarget)
-        {
-            NewTaskName = string.Empty;
-            IsAddingTask = false;
-            return;
-        }
-
-        var name = NewTaskName.Trim();
-        if (name.Length > 0)
-        {
-            ActiveSelectedTarget.AddTask(name, insertAtTop: true);
-            TargetChanged?.Invoke(this, ActiveSelectedTarget);
-        }
-
-        NewTaskName = string.Empty;
-        IsAddingTask = false;
-    }
-
-    private void ToggleTaskMenu(FocusTaskViewModel? task)
-    {
-        if (task is null)
-        {
-            return;
-        }
-
-        if (!HasActiveSelectedTarget || task.TargetId != ActiveSelectedTarget.TargetId)
-        {
-            return;
-        }
-
-        foreach (var item in CurrentTasks)
-        {
-            item.IsMenuOpen = ReferenceEquals(item, task) && !item.IsMenuOpen;
-        }
-    }
-
-    private void BeginEditTask(FocusTaskViewModel? task)
-    {
-        if (IsCurrentTask(task))
-        {
-            task!.BeginEdit();
-        }
-    }
-
-    private void ConfirmEditTask(FocusTaskViewModel? task)
-    {
-        if (IsCurrentTask(task))
-        {
-            task!.CommitEdit();
-            TargetChanged?.Invoke(this, ActiveSelectedTarget);
-        }
-    }
-
-    private void DeleteTask(FocusTaskViewModel? task)
-    {
-        if (IsCurrentTask(task))
-        {
-            ActiveSelectedTarget.RemoveTask(task!);
-            TargetChanged?.Invoke(this, ActiveSelectedTarget);
-        }
-    }
-
-    private bool IsCurrentTask(FocusTaskViewModel? task) =>
-        task is not null &&
-        HasActiveSelectedTarget &&
-        task.TargetId == ActiveSelectedTarget.TargetId &&
-        CurrentTasks.Contains(task);
-
-    private void RefreshTargetSelectionVisuals()
-    {
-        foreach (var target in _targets)
-        {
-            target.IsSelected = HasDraftSelectedTarget && ReferenceEquals(target, DraftSelectedTarget);
-        }
-    }
-
-    private void RefreshVisibleTargets()
-    {
-        VisibleTargets.Clear();
-        for (var index = 0; index < Math.Min(VisibleTargetCount, _targets.Count); index++)
-        {
-            VisibleTargets.Add(_targets[_visibleTargetStart + index]);
-        }
-
-        OnPropertyChanged(nameof(CanShowPreviousTargets));
-        OnPropertyChanged(nameof(CanShowNextTargets));
-    }
-
-    private void CloseTaskMenus()
-    {
-        foreach (var target in _targets)
-        {
-            foreach (var task in target.Tasks)
-            {
-                task.IsMenuOpen = false;
-            }
-        }
-    }
-
-    private void CancelTaskEdits()
-    {
-        foreach (var target in _targets)
-        {
-            foreach (var task in target.Tasks.Where(task => task.IsEditing))
-            {
-                task.CancelEdit();
-            }
-        }
-    }
+    private static FocusTargetViewModel CreatePlaceholderTarget() =>
+        new("未选择目标");
 
     private bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
     {

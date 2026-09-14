@@ -77,13 +77,11 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         HomePage.DurationOptionsChanged += HomePage_DurationOptionsChanged;
         HomePage.BlockingPageRequested += HomePage_BlockingPageRequested;
         HomePage.ManageAutomaticRuleRequested += HomePage_ManageAutomaticRuleRequested;
-        HomePage.FocusTargetModal.TargetChanged += FocusTargetModal_TargetChanged;
-        HomePage.FocusTargetModal.SelectionChanged += FocusTargetModal_SelectionChanged;
         HomePage.FocusTargetModal.CreateTargetRequested += FocusTargetModal_CreateTargetRequested;
         HomePage.FocusSession.CompletionRecorded += FocusSession_CompletionRecorded;
         HomePage.FocusSession.FocusDiscarded += FocusSession_FocusDiscarded;
         HomePage.FocusSession.FocusResultReturnedHome += FocusSession_FocusResultReturnedHome;
-        HomePage.FocusSession.TargetTasksChanged += FocusTargetModal_TargetChanged;
+        HomePage.FocusSession.TargetTasksChanged += FocusSession_TargetChanged;
         HomePage.FocusSession.TargetTasksChanged += FocusSession_TargetTasksChanged;
         HomePage.FocusSession.PropertyChanged += FocusSession_PropertyChanged;
         StatisticsPage.GoalChanged += StatisticsPage_GoalChanged;
@@ -597,7 +595,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private static DayOfWeek? ParseDayKey(string key)
         => Enum.TryParse<DayOfWeek>(key, out var day) ? day : null;
 
-    private async void FocusTargetModal_TargetChanged(object? sender, FocusTargetViewModel target)
+    private async void FocusSession_TargetChanged(object? sender, FocusTargetViewModel target)
     {
         if (ServiceConnection is null || !ServiceConnection.IsConnected) return;
         var now = DateTimeOffset.UtcNow;
@@ -847,14 +845,6 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             }
         }
         finally { _normalFocusPersistenceGate.Release(); }
-    }
-
-    private async void FocusTargetModal_SelectionChanged(object? sender, string? targetId)
-    {
-        await PersistSettingsAsync(state => new SaveSettingsCommand(
-            state.Settings with { SelectedTargetId = targetId, UpdatedAtUtc = DateTimeOffset.UtcNow },
-            state.DurationPresets,
-            state.MonthlyFocusTargets));
     }
 
     private async void StatisticsPage_GoalChanged(object? sender, GoalOverviewItemViewModel goal)

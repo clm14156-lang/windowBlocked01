@@ -7,7 +7,6 @@ namespace FocusApp.Desktop.ViewModels;
 
 public sealed class FocusTargetViewModel : INotifyPropertyChanged
 {
-    private bool _isSelected;
     private int _totalFocusSeconds;
 
     public FocusTargetViewModel(
@@ -123,21 +122,6 @@ public sealed class FocusTargetViewModel : INotifyPropertyChanged
 
     public bool RemoveTask(FocusTaskViewModel task) =>
         task.TargetId == TargetId && Tasks.Remove(task);
-
-    public bool IsSelected
-    {
-        get => _isSelected;
-        set
-        {
-            if (_isSelected == value)
-            {
-                return;
-            }
-
-            _isSelected = value;
-            OnPropertyChanged();
-        }
-    }
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
     {

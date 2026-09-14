@@ -1426,7 +1426,7 @@
                     </Border>
                 </Popup>
             </StackPanel>
-            <StackPanel x:Name="GoalsPageLayout" Margin="14,0,11,0" TextElement.FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI" Visibility="{Binding IsGoalsSelected, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <StackPanel x:Name="GoalsPageLayout" Margin="4,0,3,0" TextElement.FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI" Visibility="{Binding IsGoalsSelected, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <Grid Height="604" Margin="0" VerticalAlignment="Top" HorizontalAlignment="Stretch">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="207" /><ColumnDefinition Width="8" /><ColumnDefinition /></Grid.ColumnDefinitions>
                     <Border Grid.Column="0" Height="604" VerticalAlignment="Top" Padding="20,16,10,44" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" CornerRadius="16">

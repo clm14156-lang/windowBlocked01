@@ -9,11 +9,10 @@ public sealed class ThemedTextButtonTemplateTests
     private static readonly XNamespace Xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
 
     [Fact]
-    public void FocusTargetFooterButtons_UseThemeSafeTextTemplate()
+    public void FocusTargetModal_NoLongerContainsRemovedFooterButtons()
     {
         var repositoryRoot = FindRepositoryRoot();
         var styles = XDocument.Load(Path.Combine(repositoryRoot, "src", "FocusApp.Desktop", "Resources", "Styles.xaml"));
-        var colors = XDocument.Load(Path.Combine(repositoryRoot, "src", "FocusApp.Desktop", "Resources", "Colors.xaml"));
         var modal = XDocument.Load(Path.Combine(repositoryRoot, "src", "FocusApp.Desktop", "Views", "FocusTargetModal.xaml"));
 
         var contentTemplate = FindKeyedElement(styles, "DataTemplate", "ThemedButtonTextContentTemplate");
@@ -21,11 +20,10 @@ public sealed class ThemedTextButtonTemplateTests
         Assert.Contains("AncestorType={x:Type Button}", (string?)textBlock.Attribute("Foreground"));
         Assert.Contains("AncestorType={x:Type Button}", (string?)textBlock.Attribute("FontWeight"));
 
-        AssertFooterStyle(modal, "TargetCancelButton", "FocusTargetCancelTextBrush");
-        AssertFooterStyle(modal, "TargetConfirmButton", "FocusTargetConfirmTextBrush");
-
-        Assert.Equal("#3A3A3C", FindBrushColor(colors, "FocusTargetCancelTextBrush"));
-        Assert.Equal("#FFFFFF", FindBrushColor(colors, "FocusTargetConfirmTextBrush"));
+        Assert.DoesNotContain(modal.Descendants(Presentation + "Style"), style =>
+            (string?)style.Attribute(Xaml + "Key") is "TargetCancelButton" or "TargetConfirmButton");
+        Assert.DoesNotContain(modal.Descendants(Presentation + "Button"), button =>
+            (string?)button.Attribute("Command") is "{Binding CancelSelectionCommand}" or "{Binding ConfirmSelectionCommand}");
     }
 
     [Fact]
@@ -102,20 +100,6 @@ public sealed class ThemedTextButtonTemplateTests
         Assert.Empty(deleteButton.Elements(Presentation + "StackPanel"));
     }
 
-    private static void AssertFooterStyle(XDocument modal, string styleKey, string brushKey)
-    {
-        var style = FindKeyedElement(modal, "Style", styleKey);
-        Assert.Equal("{StaticResource ThemedTextButtonBaseStyle}", (string?)style.Attribute("BasedOn"));
-
-        var setters = style.Elements(Presentation + "Setter").ToArray();
-        Assert.Contains(setters, setter =>
-            (string?)setter.Attribute("Property") == "Foreground" &&
-            (string?)setter.Attribute("Value") == $"{{DynamicResource {brushKey}}}");
-        Assert.Contains(setters, setter =>
-            (string?)setter.Attribute("Property") == "FontWeight" &&
-            (string?)setter.Attribute("Value") == "Medium");
-    }
-
     private static void AssertContentTemplate(XDocument document, string styleKey, string templateKey)
     {
         var style = FindKeyedElement(document, "Style", styleKey);
@@ -133,11 +117,6 @@ public sealed class ThemedTextButtonTemplateTests
     {
         return Assert.Single(document.Descendants(Presentation + localName)
             .Where(element => (string?)element.Attribute(Xaml + "Key") == key));
-    }
-
-    private static string? FindBrushColor(XDocument colors, string key)
-    {
-        return FindKeyedElement(colors, "SolidColorBrush", key).Attribute("Color")?.Value;
     }
 
     private static string FindRepositoryRoot()

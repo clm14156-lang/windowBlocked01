@@ -35,24 +35,20 @@ public sealed class PersistedDataProjectionTests
     }
 
     [Fact]
-    public void TargetModal_StateRefreshKeepsUnconfirmedDraftSelection()
+    public void TargetModal_StateRefreshUsesPersistedSelection()
     {
         var now = DateTimeOffset.UtcNow;
         var viewModel = new FocusTargetModalViewModel(useSampleData: false);
         var first = new LocalTargetDto("goal-first", "写代码", false, 0, now, now);
         var second = new LocalTargetDto("goal-second", "准备演示", false, 1, now, now);
         viewModel.ApplyState([first, second], [], first.TargetId);
-        viewModel.Open();
-        var draft = viewModel.Targets.Single(target => target.TargetId == second.TargetId);
-        viewModel.SelectTargetCommand.Execute(draft);
-
         viewModel.ApplyState(
             [first, second],
             [],
-            first.TargetId);
+            second.TargetId);
 
-        Assert.True(viewModel.HasDraftSelectedTarget);
-        Assert.Equal(draft.TargetId, viewModel.DraftSelectedTarget.TargetId);
+        Assert.True(viewModel.HasSelectedTarget);
+        Assert.Equal(second.TargetId, viewModel.SelectedTarget.TargetId);
     }
 
     [Fact]

@@ -51,14 +51,8 @@
     <SolidColorBrush x:Key="RecentTargetPressedBackground" Color="#E4E4E8" />
     <SolidColorBrush x:Key="RecentTargetSelectedPressedBackground" Color="#FFEBDD" />
     <SolidColorBrush x:Key="FocusTargetIconBrush" Color="#3A3A3C" />
-    <SolidColorBrush x:Key="FocusTargetChevronBrush" Color="#8E8E93" />
-    <SolidColorBrush x:Key="FocusTargetDividerBrush" Color="#E8E8EA" />
-    <SolidColorBrush x:Key="FocusTargetCancelTextBrush" Color="#3A3A3C" />
-    <SolidColorBrush x:Key="FocusTargetConfirmTextBrush" Color="#FFFFFF" />
     <SolidColorBrush x:Key="FocusTargetSubtleHoverBrush" Color="#F5F5F7" />
     <SolidColorBrush x:Key="FocusTargetSubtlePressedBrush" Color="#ECECEF" />
-    <Color x:Key="CreateTargetDefaultBorderColor">#E5E5EA</Color>
-    <Color x:Key="CreateTargetHoverBorderColor">#CFCFD5</Color>
     <SolidColorBrush x:Key="OverlayBorder" Color="#EFEFF1" />
     <SolidColorBrush x:Key="WhiteText" Color="#FFFFFF" />
     <SolidColorBrush x:Key="ModalScrim" Color="#99000000" />
