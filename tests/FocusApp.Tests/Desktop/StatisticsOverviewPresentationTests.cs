@@ -215,108 +215,50 @@ public sealed class StatisticsOverviewPresentationTests
         var toggle = Assert.Single(contentGrid.Elements(Presentation + "ToggleButton"));
         Assert.Equal("2", (string?)toggle.Attribute("Grid.ColumnSpan"));
 
-        var vipContent = Assert.Single(page.Descendants(Presentation + "Grid").Where(element =>
-            (string?)element.Attribute(Xaml + "Name") == "VipTrendContent"));
-        var selector = Assert.Single(vipContent.Descendants(Presentation + "ComboBox").Where(element =>
+        var trendContent = Assert.Single(page.Descendants(Presentation + "Grid").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "TrendContent"));
+        var selector = Assert.Single(trendContent.Descendants(Presentation + "ComboBox").Where(element =>
             (string?)element.Attribute("ItemsSource") == "{Binding RangeOptions}"));
         Assert.Null(selector.Attribute("Width"));
     }
 
     [Fact]
-    public void TrendCardSwitchesBetweenVipContentAndLockedPlaceholderWithoutChangingItsFrame()
+    public void TrendCardAlwaysShowsRealContentAndRemovesVipPlaceholder()
     {
         var page = XDocument.Load(Path.Combine(
             FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
         var trendCard = Assert.Single(page.Descendants(Presentation + "Border").Where(element =>
             (string?)element.Attribute(Xaml + "Name") == "TrendCard"));
 
-        Assert.Equal("350", (string?)trendCard.Attribute("Height"));
+        Assert.Equal("270", (string?)trendCard.Attribute("Height"));
         Assert.Equal("24,13,24,14", (string?)trendCard.Attribute("Padding"));
         Assert.Equal("16", (string?)trendCard.Attribute("CornerRadius"));
 
-        var vipContent = Assert.Single(trendCard.Descendants(Presentation + "Grid").Where(element =>
-            (string?)element.Attribute(Xaml + "Name") == "VipTrendContent"));
-        Assert.Single(vipContent.Descendants().Where(element => element.Name.LocalName == "TrendChart"));
-        Assert.Contains(vipContent.Descendants(Presentation + "DataTrigger"), trigger =>
-            (string?)trigger.Attribute("Binding") == "{Binding CanViewTrend}" &&
-            (string?)trigger.Attribute("Value") == "True" &&
-            trigger.Descendants(Presentation + "Setter").Any(setter =>
-                (string?)setter.Attribute("Property") == "Visibility" &&
-                (string?)setter.Attribute("Value") == "Visible"));
-
-        var locked = Assert.Single(trendCard.Descendants(Presentation + "Grid").Where(element =>
-            (string?)element.Attribute(Xaml + "Name") == "VipLockedPlaceholder"));
-        Assert.Empty(locked.Descendants().Where(element => element.Name.LocalName == "TrendChart"));
-        Assert.Contains(locked.Descendants(Presentation + "DataTrigger"), trigger =>
-            (string?)trigger.Attribute("Binding") == "{Binding CanViewTrend}" &&
-            (string?)trigger.Attribute("Value") == "True" &&
-            trigger.Descendants(Presentation + "Setter").Any(setter =>
-                (string?)setter.Attribute("Property") == "Visibility" &&
-                (string?)setter.Attribute("Value") == "Collapsed"));
-        Assert.Contains(locked.Descendants(Presentation + "TextBlock"), text =>
-            (string?)text.Attribute("Text") == "推进轨迹");
-        Assert.Contains(locked.Descendants(Presentation + "TextBlock"), text =>
+        var trendContent = Assert.Single(trendCard.Descendants(Presentation + "Grid").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "TrendContent"));
+        Assert.Single(trendContent.Descendants().Where(element => element.Name.LocalName == "TrendChart"));
+        Assert.DoesNotContain(trendCard.Descendants(), element =>
+            (string?)element.Attribute(Xaml + "Name") is "VipLockedPlaceholder" or "LockedTrendSkeletonChart" or "LockedTrendSummary");
+        Assert.DoesNotContain(trendCard.Descendants(Presentation + "TextBlock"), text =>
             (string?)text.Attribute("Text") == "VIP专享");
-        Assert.Contains(locked.Descendants(Presentation + "TextBlock"), text =>
-            (string?)text.Attribute("FontFamily") == "Segoe MDL2 Assets" &&
-            (string?)text.Attribute("Text") == "\uE72E");
-
-        Assert.Empty(locked.Descendants(Presentation + "ComboBox"));
-        Assert.Single(locked.Descendants(Presentation + "Grid").Where(element =>
-            (string?)element.Attribute(Xaml + "Name") == "LockedTrendSkeletonChart"));
-        var lockedSummary = Assert.Single(locked.Descendants(Presentation + "Border").Where(element =>
-            (string?)element.Attribute(Xaml + "Name") == "LockedTrendSummary"));
-        Assert.DoesNotContain(lockedSummary.Descendants(Presentation + "TextBlock"), text =>
-            (string?)text.Attribute("Text") is "{Binding PeriodTotalDisplay}" or
-                "{Binding AverageDurationDisplay}" or "{Binding ComparisonDisplay}");
     }
 
     [Fact]
-    public void LockedTrendVipGuideUsesHoverDelaysAndRoutesClicksToTheMembershipEntry()
+    public void TrendCardKeepsTheRealChartVisibleWhenRuntimeDataHasNoFocusRecords()
     {
         var repositoryRoot = FindRepositoryRoot();
         var page = XDocument.Load(Path.Combine(
             repositoryRoot, "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
-        var locked = Assert.Single(page.Descendants(Presentation + "Grid").Where(element =>
-            (string?)element.Attribute(Xaml + "Name") == "VipLockedPlaceholder"));
-        Assert.Null(locked.Attribute("Cursor"));
-        Assert.Null(locked.Attribute("MouseLeftButtonUp"));
-
-        var hoverTarget = Assert.Single(locked.Descendants(Presentation + "Border").Where(element =>
-            (string?)element.Attribute(Xaml + "Name") == "TrendVipHoverTarget"));
-        Assert.Null(hoverTarget.Attribute("Cursor"));
-        Assert.Equal("TrendVipHoverTarget_MouseEnter", (string?)hoverTarget.Attribute("MouseEnter"));
-        Assert.Equal("TrendVipHoverTarget_MouseLeave", (string?)hoverTarget.Attribute("MouseLeave"));
-        Assert.Equal("10,0,0,0", (string?)hoverTarget.Attribute("Margin"));
-        Assert.Null(hoverTarget.Attribute("Padding"));
-
-        var popup = Assert.Single(page.Descendants(Presentation + "Popup").Where(element =>
-            (string?)element.Attribute(Xaml + "Name") == "TrendVipGuidePopup"));
-        Assert.Equal("300", (string?)popup.Attribute("Width"));
-        Assert.Equal("170", (string?)popup.Attribute("Height"));
-        Assert.Equal("Custom", (string?)popup.Attribute("Placement"));
-        Assert.Equal("{Binding ElementName=TrendVipHoverTarget}", (string?)popup.Attribute("PlacementTarget"));
-        Assert.Equal("{Binding IsTrendVipGuideOpen, Mode=TwoWay}", (string?)popup.Attribute("IsOpen"));
-        var guide = Assert.Single(popup.Elements(Presentation + "Border"));
-        Assert.Equal("TrendVipGuide_MouseEnter", (string?)guide.Attribute("MouseEnter"));
-        Assert.Equal("TrendVipGuide_MouseLeave", (string?)guide.Attribute("MouseLeave"));
-        Assert.Contains(guide.Descendants(Presentation + "TextBlock"), text =>
-            (string?)text.Attribute("Text") == "解锁推进轨迹");
-        Assert.Contains(guide.Descendants(Presentation + "TextBlock"), text =>
-            (string?)text.Attribute("Text") == "VIP");
-        Assert.Contains(guide.Descendants(Presentation + "TextBlock"), text =>
-            (string?)text.Attribute("Text") == "开通 VIP 后可查看每日投入趋势、日均时长和统计分析。");
-        var openButton = Assert.Single(guide.Descendants(Presentation + "Button"));
-        Assert.Equal("立即开通", (string?)openButton.Attribute("Content"));
-        Assert.Equal("TrendVipGuideOpenButton_Click", (string?)openButton.Attribute("Click"));
-
-        var codeBehind = File.ReadAllText(Path.Combine(
-            repositoryRoot, "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml.cs"));
-        Assert.Contains("TimeSpan.FromMilliseconds(180)", codeBehind, StringComparison.Ordinal);
-        Assert.Contains("TimeSpan.FromMilliseconds(150)", codeBehind, StringComparison.Ordinal);
-        Assert.Contains("mainWindowViewModel.OpenVipCommand.Execute(null)", codeBehind, StringComparison.Ordinal);
-        Assert.DoesNotContain("LockedTrendArea_MouseLeftButtonUp", codeBehind, StringComparison.Ordinal);
-        Assert.Contains("Math.Clamp", codeBehind, StringComparison.Ordinal);
+        var trendContent = Assert.Single(page.Descendants(Presentation + "Grid").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "TrendContent"));
+        var plot = Assert.Single(trendContent.Descendants(Presentation + "Grid").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "TrendPlotContent"));
+        Assert.Single(plot.Descendants().Where(element => element.Name.LocalName == "TrendChart"));
+        Assert.Empty(plot.Descendants(Presentation + "DataTrigger"));
+        Assert.DoesNotContain(trendContent.Descendants(Presentation + "Grid"), element =>
+            (string?)element.Attribute(Xaml + "Name") == "TrendEmptyState");
+        Assert.DoesNotContain(page.Descendants(Presentation + "Popup"), popup =>
+            (string?)popup.Attribute(Xaml + "Name") == "TrendVipGuidePopup");
     }
 
     [Fact]

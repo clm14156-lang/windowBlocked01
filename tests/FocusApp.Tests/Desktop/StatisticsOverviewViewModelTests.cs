@@ -1,3 +1,4 @@
+using FocusApp.Contracts;
 using FocusApp.Desktop.ViewModels;
 using System.Windows.Media;
 using Xunit;
@@ -46,6 +47,44 @@ public sealed class StatisticsOverviewViewModelTests
         viewModel.FocusGoalSettingsModal.SaveCommand.Execute(null);
 
         Assert.False(viewModel.HasDailyFixedFocusTarget);
+    }
+
+    [Fact]
+    public void SavingMonthlyFocusTargetSwitchesHomeSummaryToMonthlyModeAndKeepsItWhenReopened()
+    {
+        var viewModel = new StatisticsOverviewViewModel(false);
+        var persistenceNotifications = 0;
+        viewModel.MonthlyFocusTargetChanged += (_, _) => persistenceNotifications++;
+        var todayEnd = DateTime.Today.AddHours(12);
+        viewModel.FocusSessionRecords.Add(new FocusSessionRecordViewModel(
+            todayEnd.AddMinutes(-135),
+            todayEnd,
+            "goal-monthly",
+            "月度目标",
+            string.Empty,
+            0));
+
+        viewModel.FocusGoalSettingsModal.SelectMonthlyModeCommand.Execute(null);
+        viewModel.FocusGoalSettingsModal.MonthlyTargetHoursInput = "100";
+        viewModel.FocusGoalSettingsModal.SaveCommand.Execute(null);
+
+        Assert.False(viewModel.FocusGoalSettingsModal.IsOpen);
+        Assert.False(viewModel.HasDailyFixedFocusTarget);
+        Assert.True(viewModel.HasMonthlyFocusTarget);
+        Assert.True(viewModel.IsMonthlyFocusGoal);
+        Assert.Equal(100, viewModel.MonthlyFocusTargetHours);
+        Assert.Equal(1, persistenceNotifications);
+        var expectedSuggestionMinutes = (100 * 60 - 135) / viewModel.MonthlyFocusRemainingDays;
+        Assert.Equal(expectedSuggestionMinutes, viewModel.MonthlyFocusTodayRecommendationMinutes);
+        Assert.Equal(
+            Math.Min(100, (int)Math.Round(135 / (double)expectedSuggestionMinutes * 100)),
+            viewModel.MonthlyFocusTodayProgressPercent);
+
+        viewModel.FocusGoalSettingsModal.OpenCommand.Execute(null);
+
+        Assert.Equal(FocusGoalMode.MonthlyTotal, viewModel.FocusGoalSettingsModal.Mode);
+        Assert.Equal("100", viewModel.FocusGoalSettingsModal.MonthlyTargetHoursInput);
+        Assert.True(viewModel.FocusGoalSettingsModal.HasSavedTarget);
     }
 
     [Fact]
@@ -180,6 +219,48 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.False(viewModel.IsGoalMonthMenuOpen);
         Assert.Null(viewModel.HoveredGoalTrendPoint);
         Assert.False(viewModel.IsGoalTrendTooltipOpen);
+    }
+
+    [Fact]
+    public void NonVipUsersKeepZeroValueTrendPointsUntilRuntimeRecordsExist()
+    {
+        var viewModel = new StatisticsOverviewViewModel(useSampleData: false);
+        viewModel.SetUserAccess(true, false);
+        Assert.Equal(7, viewModel.TrendPoints.Count);
+        Assert.All(viewModel.TrendPoints, point => Assert.Equal(0, point.Minutes));
+        var emptyState = new LocalDataSnapshotDto(
+            1, [], [], [], [], [], [],
+            new LocalAppSettingsDto(false, true, true, true, false, false, "Orange", null, DateTimeOffset.UtcNow),
+            [], []);
+
+        viewModel.ApplyState(emptyState);
+
+        Assert.False(viewModel.CanViewTrend);
+        Assert.Equal(7, viewModel.TrendPoints.Count);
+        Assert.All(viewModel.TrendPoints, point => Assert.Equal(0, point.Minutes));
+
+        var now = DateTimeOffset.Now;
+        var session = new LocalFocusSessionDto(
+            Guid.NewGuid(),
+            LocalFocusSessionStatusDto.Completed,
+            false,
+            1800,
+            1800,
+            now.AddMinutes(-30),
+            now.AddMinutes(-30),
+            now,
+            now,
+            FocusCompletionKindDto.Natural,
+            null,
+            null,
+            false,
+            null,
+            null,
+            []);
+        viewModel.ApplyState(emptyState with { Revision = 2, FocusSessions = [session] });
+
+        Assert.False(viewModel.CanViewTrend);
+        Assert.Contains(viewModel.TrendPoints, point => point.Minutes == 30);
     }
 
     [Fact]

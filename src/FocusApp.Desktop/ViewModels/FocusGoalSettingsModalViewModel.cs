@@ -86,6 +86,7 @@ public sealed class FocusGoalSettingsModalViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(HasSavedTarget));
             _hasSavedDailyFixedTarget = IsDailyFixedMode;
             OnPropertyChanged(nameof(HasSavedDailyFixedTarget));
+            GoalSettingsChanged?.Invoke(this, EventArgs.Empty);
             DailyFixedTargetChanged?.Invoke(this, EventArgs.Empty);
             Close();
         });
@@ -105,6 +106,8 @@ public sealed class FocusGoalSettingsModalViewModel : INotifyPropertyChanged
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public event EventHandler? DailyFixedTargetChanged;
+
+    public event EventHandler? GoalSettingsChanged;
 
     public ObservableCollection<FocusGoalWeekdayOptionViewModel> Weekdays { get; }
 
@@ -267,6 +270,33 @@ public sealed class FocusGoalSettingsModalViewModel : INotifyPropertyChanged
         CommitTargetHoursInput(false);
     }
 
+    public void ApplyPersistedMonthlyTarget(int? targetHours)
+    {
+        if (targetHours is > 0)
+        {
+            MonthlyTargetHours = Math.Clamp(targetHours.Value, 0, MonthlyTargetMaximumHours);
+            Mode = FocusGoalMode.MonthlyTotal;
+            _hasSavedTarget = true;
+            OnPropertyChanged(nameof(HasSavedTarget));
+            _hasSavedDailyFixedTarget = false;
+            OnPropertyChanged(nameof(HasSavedDailyFixedTarget));
+            IsMoreMenuOpen = false;
+            return;
+        }
+
+        if (!HasSavedTarget || !IsMonthlyTotalMode)
+        {
+            return;
+        }
+
+        _hasSavedTarget = false;
+        OnPropertyChanged(nameof(HasSavedTarget));
+        _hasSavedDailyFixedTarget = false;
+        OnPropertyChanged(nameof(HasSavedDailyFixedTarget));
+        Mode = FocusGoalMode.DailyFixed;
+        IsMoreMenuOpen = false;
+    }
+
     public void CommitTargetHoursInput(bool isMonthly)
     {
         var input = isMonthly ? MonthlyTargetHoursInput : DailyTargetHoursInput;
@@ -341,6 +371,7 @@ public sealed class FocusGoalSettingsModalViewModel : INotifyPropertyChanged
         }
 
         DailyFixedTargetChanged?.Invoke(this, EventArgs.Empty);
+        GoalSettingsChanged?.Invoke(this, EventArgs.Empty);
         Close();
     }
 

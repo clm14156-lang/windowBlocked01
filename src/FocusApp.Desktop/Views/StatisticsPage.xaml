@@ -292,7 +292,7 @@
                                 <Style TargetType="Grid">
                                     <Setter Property="Visibility" Value="Visible" />
                                     <Style.Triggers>
-                                        <DataTrigger Binding="{Binding HasDailyFixedFocusTarget}" Value="True">
+                                        <DataTrigger Binding="{Binding HasFocusGoal}" Value="True">
                                             <Setter Property="Visibility" Value="Collapsed" />
                                         </DataTrigger>
                                     </Style.Triggers>
@@ -423,23 +423,105 @@
                                 </Button.Template>
                             </Button>
                         </Grid>
+                        <Grid x:Name="TodayFocusMonthlyTargetState">
+                            <Grid.Style>
+                                <Style TargetType="Grid">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsMonthlyFocusGoal}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Grid.Style>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="58" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid Grid.Column="0" Width="58" Height="58" VerticalAlignment="Center">
+                                <Ellipse Width="58" Height="58" Fill="{DynamicResource AccentTint}" />
+                                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="28" Foreground="{DynamicResource AccentPrimary}" Text="&#xE823;" />
+                            </Grid>
+                            <Grid Grid.Column="1" Margin="14,0,0,0" VerticalAlignment="Center">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="18" />
+                                    <RowDefinition Height="40" />
+                                    <RowDefinition Height="16" />
+                                    <RowDefinition Height="18" />
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" VerticalAlignment="Center" FontSize="15" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource StatisticsTodayDuration}" />
+                                <StackPanel Grid.Row="1" VerticalAlignment="Center" Orientation="Horizontal">
+                                    <TextBlock VerticalAlignment="Center" FontSize="36" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="{Binding TodayFocusDurationCompact}" />
+                                    <TextBlock Margin="8,7,0,0" VerticalAlignment="Center" FontSize="18" Foreground="{DynamicResource TextSecondary}" Text="/" />
+                                    <TextBlock Margin="8,0,0,0" VerticalAlignment="Center" FontSize="14" Foreground="{DynamicResource TextSecondary}" Text="今日建议 " />
+                                    <TextBlock VerticalAlignment="Center" FontSize="18" Foreground="{DynamicResource TextSecondary}" Text="{Binding MonthlyFocusTodayRecommendationDisplay}" />
+                                </StackPanel>
+                                <Grid Grid.Row="2">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="48" />
+                                    </Grid.ColumnDefinitions>
+                                    <ProgressBar Grid.Column="0" Height="8" VerticalAlignment="Center" Maximum="1" Style="{StaticResource StatisticsProgressBarStyle}" Value="{Binding MonthlyFocusTodayProgressRatio, Mode=OneWay}" />
+                                    <TextBlock Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center" FontSize="13" Foreground="{DynamicResource TextSecondary}" Text="{Binding MonthlyFocusTodayProgressPercent, StringFormat={}{0}%}" />
+                                </Grid>
+                                <StackPanel Grid.Row="3" HorizontalAlignment="Left" VerticalAlignment="Center" Orientation="Horizontal">
+                                    <TextBlock VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource TextSecondary}" Text="{Binding MonthlyFocusCompletedSummaryDisplay}" />
+                                    <Border Width="1" Height="12" Margin="10,0" VerticalAlignment="Center" Background="{DynamicResource BorderPrimary}" />
+                                    <TextBlock VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource TextSecondary}" Text="{Binding MonthlyFocusRemainingSummaryDisplay}" />
+                                    <Border Width="1" Height="12" Margin="10,0" VerticalAlignment="Center" Background="{DynamicResource BorderPrimary}" />
+                                    <TextBlock VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource TextSecondary}" Text="{Binding MonthlyFocusRemainingDaysSummaryDisplay}" />
+                                </StackPanel>
+                            </Grid>
+                            <Button x:Name="TodayFocusMonthlyTargetMoreButton"
+                                    Grid.Column="1"
+                                    Width="30"
+                                    Height="28"
+                                    Margin="0,-5,-7,0"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Top"
+                                    Panel.ZIndex="1"
+                                    AutomationProperties.Name="编辑专注目标"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Command="{Binding OpenFocusGoalSettingsCommand}"
+                                    Content="···"
+                                    Cursor="Hand"
+                                    FocusVisualStyle="{x:Null}"
+                                    FontSize="16"
+                                    FontWeight="SemiBold"
+                                    Foreground="{DynamicResource TextPrimary}">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Grid Background="Transparent">
+                                            <Border x:Name="HoverSurface" Background="#F5F5F7" CornerRadius="8" Opacity="0" />
+                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                        </Grid>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="HoverSurface" Property="Opacity" Value="1" />
+                                            </Trigger>
+                                            <Trigger Property="IsPressed" Value="True">
+                                                <Setter TargetName="HoverSurface" Property="Background" Value="#EBEBED" />
+                                                <Setter TargetName="HoverSurface" Property="Opacity" Value="1" />
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+                        </Grid>
                     </Grid>
                 </Border>
             </Grid>
 
             <Border x:Name="TrendCard" Height="270" Padding="24,13,24,14" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" CornerRadius="16">
                 <Grid>
-                    <Grid x:Name="VipTrendContent">
+                    <Grid x:Name="TrendContent">
                         <Grid.Style>
                             <Style TargetType="{x:Type Grid}">
-                                <Setter Property="Visibility" Value="Collapsed" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding CanViewTrend}" Value="True">
-                                        <Setter Property="Visibility" Value="Visible" />
-                                    </DataTrigger>
-                                </Style.Triggers>
+                                <Setter Property="Visibility" Value="Visible" />
                             </Style>
                         </Grid.Style>
+                        <Grid x:Name="TrendPlotContent">
                         <StackPanel>
                             <Grid Height="30">
                                 <StackPanel x:Name="TrendSummaryHeader" VerticalAlignment="Center" Orientation="Horizontal">
@@ -471,7 +553,7 @@
                                 </StackPanel>
                                 <ComboBox HorizontalAlignment="Right" VerticalAlignment="Center" ItemsSource="{Binding RangeOptions}" SelectedItem="{Binding SelectedRange}" DisplayMemberPath="Label" Style="{StaticResource StatisticsRangeComboBoxStyle}" />
                             </Grid>
-                            <Grid Height="194" Margin="0,4,0,0">
+                            <Grid Height="194" Margin="0,22,0,0">
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="34" /><ColumnDefinition /></Grid.ColumnDefinitions>
                                 <ItemsControl ItemsSource="{Binding YAxisTicks}">
                                     <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
@@ -491,121 +573,10 @@
                                 <Grid Grid.Column="1"><Border Margin="0,0,0,36" VerticalAlignment="Bottom" Height="1" Background="{DynamicResource BorderPrimary}" /><views:TrendChart x:Name="TrendChartControl" DataContext="{Binding}" /></Grid>
                             </Grid>
                         </StackPanel>
-                    </Grid>
-
-                    <Grid x:Name="VipLockedPlaceholder">
-                        <Grid.Style>
-                            <Style TargetType="{x:Type Grid}">
-                                <Setter Property="Visibility" Value="Visible" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding CanViewTrend}" Value="True">
-                                        <Setter Property="Visibility" Value="Collapsed" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Grid.Style>
-                        <StackPanel>
-                            <Grid Height="30">
-                                <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
-                                    <TextBlock FontSize="15" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="推进轨迹" />
-                                    <Border x:Name="TrendVipHoverTarget" Margin="10,0,0,0" Background="{DynamicResource TransparentBrush}" MouseEnter="TrendVipHoverTarget_MouseEnter" MouseLeave="TrendVipHoverTarget_MouseLeave">
-                                        <StackPanel Orientation="Horizontal">
-                                            <Border Width="24" Height="24" Background="{DynamicResource AccentTint}" CornerRadius="12">
-                                                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="{DynamicResource AccentPrimary}" Text="&#xE72E;" />
-                                            </Border>
-                                            <TextBlock Margin="7,0,0,0" VerticalAlignment="Center" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource TextSecondary}" Text="VIP专享" />
-                                        </StackPanel>
-                                    </Border>
-                                </StackPanel>
-                            </Grid>
-                            <Grid x:Name="LockedTrendSkeletonChart" Height="194" Margin="0,4,0,0">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="34" /><ColumnDefinition /></Grid.ColumnDefinitions>
-                                <UniformGrid Margin="0,4,0,45" Rows="5">
-                                    <Border Width="25" Height="8" HorizontalAlignment="Left" VerticalAlignment="Center" Background="{DynamicResource BorderPrimary}" CornerRadius="4" />
-                                    <Border Width="25" Height="8" HorizontalAlignment="Left" VerticalAlignment="Center" Background="{DynamicResource BorderPrimary}" CornerRadius="4" />
-                                    <Border Width="25" Height="8" HorizontalAlignment="Left" VerticalAlignment="Center" Background="{DynamicResource BorderPrimary}" CornerRadius="4" />
-                                    <Border Width="25" Height="8" HorizontalAlignment="Left" VerticalAlignment="Center" Background="{DynamicResource BorderPrimary}" CornerRadius="4" />
-                                    <Border Width="25" Height="8" HorizontalAlignment="Left" VerticalAlignment="Center" Background="{DynamicResource BorderPrimary}" CornerRadius="4" />
-                                </UniformGrid>
-                                <Grid Grid.Column="1">
-                                    <Grid.RowDefinitions><RowDefinition Height="147" /><RowDefinition Height="47" /></Grid.RowDefinitions>
-                                    <Border VerticalAlignment="Bottom" Height="1" Background="{DynamicResource BorderPrimary}" />
-                                    <Viewbox Margin="0,11,0,0" Stretch="Fill">
-                                        <Canvas Width="506" Height="148">
-                                            <Path Fill="{DynamicResource AccentTint}" Opacity="0.68" Data="M 0,100 C 45,96 65,57 108,62 C 151,67 167,104 217,92 C 267,80 278,48 322,53 C 365,58 387,99 430,89 C 466,81 481,63 506,68 L 506,148 L 0,148 Z" />
-                                            <Path Stroke="{DynamicResource AccentPrimary}" StrokeThickness="2" Opacity="0.34" Data="M 0,100 C 45,96 65,57 108,62 C 151,67 167,104 217,92 C 267,80 278,48 322,53 C 365,58 387,99 430,89 C 466,81 481,63 506,68" />
-                                            <Ellipse Canvas.Left="103" Canvas.Top="57" Width="10" Height="10" Fill="{DynamicResource AccentPrimary}" Opacity="0.42" />
-                                            <Ellipse Canvas.Left="317" Canvas.Top="48" Width="10" Height="10" Fill="{DynamicResource AccentPrimary}" Opacity="0.42" />
-                                            <Ellipse Canvas.Left="501" Canvas.Top="63" Width="10" Height="10" Fill="{DynamicResource AccentPrimary}" Opacity="0.42" />
-                                        </Canvas>
-                                    </Viewbox>
-                                    <UniformGrid Grid.Row="1" Columns="7">
-                                        <Border Width="38" Height="8" HorizontalAlignment="Center" VerticalAlignment="Center" Background="{DynamicResource BorderPrimary}" CornerRadius="4" />
-                                        <Border Width="38" Height="8" HorizontalAlignment="Center" VerticalAlignment="Center" Background="{DynamicResource BorderPrimary}" CornerRadius="4" />
-                                        <Border Width="38" Height="8" HorizontalAlignment="Center" VerticalAlignment="Center" Background="{DynamicResource BorderPrimary}" CornerRadius="4" />
-                                        <Border Width="38" Height="8" HorizontalAlignment="Center" VerticalAlignment="Center" Background="{DynamicResource BorderPrimary}" CornerRadius="4" />
-                                        <Border Width="38" Height="8" HorizontalAlignment="Center" VerticalAlignment="Center" Background="{DynamicResource BorderPrimary}" CornerRadius="4" />
-                                        <Border Width="38" Height="8" HorizontalAlignment="Center" VerticalAlignment="Center" Background="{DynamicResource BorderPrimary}" CornerRadius="4" />
-                                        <Border Width="38" Height="8" HorizontalAlignment="Center" VerticalAlignment="Center" Background="{DynamicResource BorderPrimary}" CornerRadius="4" />
-                                    </UniformGrid>
-                                </Grid>
-                            </Grid>
-                        </StackPanel>
+                        </Grid>
                     </Grid>
                 </Grid>
             </Border>
-
-            <Popup x:Name="TrendVipGuidePopup"
-                   Width="300"
-                   Height="170"
-                   AllowsTransparency="True"
-                   IsOpen="{Binding IsTrendVipGuideOpen, Mode=TwoWay}"
-                   Placement="Custom"
-                   PlacementTarget="{Binding ElementName=TrendVipHoverTarget}"
-                   PopupAnimation="Fade"
-                   StaysOpen="True">
-                <Border Width="300"
-                        Height="170"
-                        Padding="18"
-                        Background="{DynamicResource SurfacePrimary}"
-                        BorderBrush="{DynamicResource BorderPrimary}"
-                        BorderThickness="1"
-                        CornerRadius="12"
-                        MouseEnter="TrendVipGuide_MouseEnter"
-                        MouseLeave="TrendVipGuide_MouseLeave">
-                    <Border.Effect><DropShadowEffect BlurRadius="18" Direction="270" Opacity="0.12" ShadowDepth="4" /></Border.Effect>
-                    <Grid>
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="56" /><ColumnDefinition /></Grid.ColumnDefinitions>
-                        <Border Width="54" Height="54" HorizontalAlignment="Left" VerticalAlignment="Top" Background="{DynamicResource AccentTint}" CornerRadius="27">
-                            <Viewbox Width="29" Height="25">
-                                <Path Data="M 2,6 L 8,13 L 14,4 L 20,13 L 26,6 L 23,22 L 5,22 Z M 5,18 L 23,18" Fill="{DynamicResource TransparentBrush}" Stroke="{DynamicResource AccentPrimary}" StrokeEndLineCap="Round" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeThickness="2" />
-                            </Viewbox>
-                        </Border>
-                        <StackPanel Grid.Column="1" Margin="14,0,0,0">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock VerticalAlignment="Center" FontSize="15" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="解锁推进轨迹" />
-                                <Border Margin="9,0,0,0" Padding="8,2" Background="{DynamicResource AccentTint}" BorderBrush="{DynamicResource AccentSoftBorder}" BorderThickness="1" CornerRadius="9">
-                                    <TextBlock FontSize="12" FontWeight="Medium" Foreground="{DynamicResource AccentPrimary}" Text="VIP" />
-                                </Border>
-                            </StackPanel>
-                            <TextBlock Margin="0,12,0,0" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" LineHeight="19" Text="开通 VIP 后可查看每日投入趋势、日均时长和统计分析。" TextWrapping="Wrap" />
-                            <Button Width="120" Height="34" Margin="0,12,0,0" HorizontalAlignment="Left" Padding="0" Background="{DynamicResource AccentPrimary}" BorderThickness="0" Click="TrendVipGuideOpenButton_Click" Cursor="Hand" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource WhiteText}" Content="立即开通">
-                                <Button.Template>
-                                    <ControlTemplate TargetType="{x:Type Button}">
-                                        <Border x:Name="GuideButtonBackground" Background="{TemplateBinding Background}" CornerRadius="9">
-                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                        </Border>
-                                        <ControlTemplate.Triggers>
-                                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="GuideButtonBackground" Property="Opacity" Value="0.9" /></Trigger>
-                                            <Trigger Property="IsPressed" Value="True"><Setter TargetName="GuideButtonBackground" Property="Opacity" Value="0.78" /></Trigger>
-                                        </ControlTemplate.Triggers>
-                                    </ControlTemplate>
-                                </Button.Template>
-                            </Button>
-                        </StackPanel>
-                    </Grid>
-                </Border>
-            </Popup>
 
             <Border x:Name="MonthlyFocusTargetCard" Height="200" Margin="0,10,0,0" Padding="24,12" Background="{DynamicResource SurfacePrimary}" BorderBrush="#ECECEF" BorderThickness="1" CornerRadius="16">
                 <Grid>

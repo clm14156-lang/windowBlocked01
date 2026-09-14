@@ -62,10 +62,6 @@ public partial class StatisticsPage : UserControl
     }
     private const int WmNcHitTest = 0x0084;
     private static readonly IntPtr HitTestTransparent = new(-1);
-    private readonly DispatcherTimer _trendVipGuideOpenTimer;
-    private readonly DispatcherTimer _trendVipGuideCloseTimer;
-    private bool _isTrendVipHoverTargetHovered;
-    private bool _isTrendVipGuideHovered;
     private readonly DispatcherTimer _dailyFocusRecordVipGuideOpenTimer;
     private readonly DispatcherTimer _dailyFocusRecordVipGuideCloseTimer;
     private bool _isDailyFocusRecordVipHoverTargetHovered;
@@ -78,10 +74,6 @@ public partial class StatisticsPage : UserControl
 
     public StatisticsPage()
     {
-        _trendVipGuideOpenTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(180) };
-        _trendVipGuideOpenTimer.Tick += TrendVipGuideOpenTimer_Tick;
-        _trendVipGuideCloseTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(150) };
-        _trendVipGuideCloseTimer.Tick += TrendVipGuideCloseTimer_Tick;
         _dailyFocusRecordVipGuideOpenTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(180) };
         _dailyFocusRecordVipGuideOpenTimer.Tick += DailyFocusRecordVipGuideOpenTimer_Tick;
         _dailyFocusRecordVipGuideCloseTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(150) };
@@ -91,7 +83,6 @@ public partial class StatisticsPage : UserControl
         _goalInvestmentDetailsVipGuideCloseTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(150) };
         _goalInvestmentDetailsVipGuideCloseTimer.Tick += GoalInvestmentDetailsVipGuideCloseTimer_Tick;
         InitializeComponent();
-        TrendVipGuidePopup.CustomPopupPlacementCallback = PlaceTrendVipGuidePopup;
         DailyFocusRecordVipGuidePopup.CustomPopupPlacementCallback = PlaceDailyFocusRecordVipGuidePopup;
         GoalInvestmentDetailsVipGuidePopup.CustomPopupPlacementCallback = PlaceGoalInvestmentDetailsVipGuidePopup;
         DataContextChanged += StatisticsPage_DataContextChanged;
@@ -100,8 +91,6 @@ public partial class StatisticsPage : UserControl
         {
             _recordDetails?.Close();
             DetachTrendTooltipWindowHook();
-            _trendVipGuideOpenTimer.Stop();
-            _trendVipGuideCloseTimer.Stop();
             _dailyFocusRecordVipGuideOpenTimer.Stop();
             _dailyFocusRecordVipGuideCloseTimer.Stop();
             _goalInvestmentDetailsVipGuideOpenTimer.Stop();
@@ -170,66 +159,6 @@ public partial class StatisticsPage : UserControl
         {
             Dispatcher.BeginInvoke(UpdateTooltipPlacement);
         }
-    }
-
-    private void TrendVipHoverTarget_MouseEnter(object sender, MouseEventArgs e)
-    {
-        _isTrendVipHoverTargetHovered = true;
-        _trendVipGuideCloseTimer.Stop();
-        if (DataContext is StatisticsOverviewViewModel { CanViewTrend: false })
-        {
-            _trendVipGuideOpenTimer.Stop();
-            _trendVipGuideOpenTimer.Start();
-        }
-    }
-
-    private void TrendVipHoverTarget_MouseLeave(object sender, MouseEventArgs e)
-    {
-        _isTrendVipHoverTargetHovered = false;
-        _trendVipGuideOpenTimer.Stop();
-        ScheduleTrendVipGuideClose();
-    }
-
-    private void TrendVipGuide_MouseEnter(object sender, MouseEventArgs e)
-    {
-        _isTrendVipGuideHovered = true;
-        _trendVipGuideCloseTimer.Stop();
-    }
-
-    private void TrendVipGuide_MouseLeave(object sender, MouseEventArgs e)
-    {
-        _isTrendVipGuideHovered = false;
-        ScheduleTrendVipGuideClose();
-    }
-
-    private void TrendVipGuideOpenTimer_Tick(object? sender, EventArgs e)
-    {
-        _trendVipGuideOpenTimer.Stop();
-        if (_isTrendVipHoverTargetHovered && DataContext is StatisticsOverviewViewModel { CanViewTrend: false } viewModel)
-        {
-            viewModel.IsTrendVipGuideOpen = true;
-        }
-    }
-
-    private void TrendVipGuideCloseTimer_Tick(object? sender, EventArgs e)
-    {
-        _trendVipGuideCloseTimer.Stop();
-        if (!_isTrendVipHoverTargetHovered && !_isTrendVipGuideHovered && DataContext is StatisticsOverviewViewModel viewModel)
-        {
-            viewModel.IsTrendVipGuideOpen = false;
-        }
-    }
-
-    private void ScheduleTrendVipGuideClose()
-    {
-        _trendVipGuideCloseTimer.Stop();
-        _trendVipGuideCloseTimer.Start();
-    }
-
-    private void TrendVipGuideOpenButton_Click(object sender, RoutedEventArgs e)
-    {
-        OpenVipPurchase();
-        e.Handled = true;
     }
 
     private void DailyFocusRecordVipHoverTarget_MouseEnter(object sender, MouseEventArgs e)
@@ -360,15 +289,12 @@ public partial class StatisticsPage : UserControl
 
     private void OpenVipPurchase()
     {
-        _trendVipGuideOpenTimer.Stop();
-        _trendVipGuideCloseTimer.Stop();
         _dailyFocusRecordVipGuideOpenTimer.Stop();
         _dailyFocusRecordVipGuideCloseTimer.Stop();
         _goalInvestmentDetailsVipGuideOpenTimer.Stop();
         _goalInvestmentDetailsVipGuideCloseTimer.Stop();
         if (DataContext is StatisticsOverviewViewModel viewModel)
         {
-            viewModel.IsTrendVipGuideOpen = false;
             viewModel.IsDailyFocusRecordVipGuideOpen = false;
             viewModel.IsGoalInvestmentDetailsVipGuideOpen = false;
         }
@@ -379,11 +305,6 @@ public partial class StatisticsPage : UserControl
             mainWindowViewModel.OpenVipCommand.Execute(null);
         }
     }
-
-    private CustomPopupPlacement[] PlaceTrendVipGuidePopup(
-        Size popupSize,
-        Size targetSize,
-        Point offset) => PlaceVipGuidePopup(TrendVipHoverTarget, popupSize, targetSize);
 
     private CustomPopupPlacement[] PlaceDailyFocusRecordVipGuidePopup(
         Size popupSize,

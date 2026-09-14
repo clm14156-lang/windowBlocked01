@@ -113,6 +113,29 @@ public sealed class StatisticsMonthlyTargetPresentationTests
     }
 
     [Fact]
+    public void TodayStatisticsCard_HasIndependentMonthlyGoalStateAndSummaryBindings()
+    {
+        var page = XDocument.Load(Path.Combine(
+            FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
+        var monthlyState = Assert.Single(page.Descendants(Presentation + "Grid").Where(grid =>
+            (string?)grid.Attribute(Xaml + "Name") == "TodayFocusMonthlyTargetState"));
+
+        Assert.Contains(monthlyState.Descendants(Presentation + "DataTrigger"), trigger =>
+            (string?)trigger.Attribute("Binding") == "{Binding IsMonthlyFocusGoal}" &&
+            (string?)trigger.Attribute("Value") == "True");
+        Assert.Contains(monthlyState.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "{Binding MonthlyFocusTodayRecommendationDisplay}");
+        Assert.Contains(monthlyState.Descendants(Presentation + "ProgressBar"), progress =>
+            (string?)progress.Attribute("Value") == "{Binding MonthlyFocusTodayProgressRatio, Mode=OneWay}");
+        Assert.Contains(monthlyState.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "{Binding MonthlyFocusCompletedSummaryDisplay}");
+        Assert.Contains(monthlyState.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "{Binding MonthlyFocusRemainingSummaryDisplay}");
+        Assert.Contains(monthlyState.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "{Binding MonthlyFocusRemainingDaysSummaryDisplay}");
+    }
+
+    [Fact]
     public void TrendCard_UsesCompactTopSummaryLayout()
     {
         var page = XDocument.Load(Path.Combine(
@@ -139,6 +162,10 @@ public sealed class StatisticsMonthlyTargetPresentationTests
 
         Assert.Contains(card.Descendants(Presentation + "ComboBox"), combo =>
             (string?)combo.Attribute("ItemsSource") == "{Binding RangeOptions}");
+
+        var plot = Assert.Single(card.Descendants(Presentation + "Grid").Where(grid =>
+            (string?)grid.Attribute("Height") == "194"));
+        Assert.Equal("0,22,0,0", (string?)plot.Attribute("Margin"));
     }
 
     private static string FindRepositoryRoot()
