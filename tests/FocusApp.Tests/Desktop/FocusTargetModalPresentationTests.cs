@@ -217,8 +217,8 @@ public sealed class FocusTargetModalPresentationTests
         var modal = XDocument.Load(Path.Combine(
             root, "src", "FocusApp.Desktop", "Views", "FocusTargetModal.xaml"));
 
-        Assert.Equal("336", (string?)modal.Root!.Attribute("Width"));
-        Assert.Equal("430", (string?)modal.Root.Attribute("Height"));
+        Assert.Equal("350", (string?)modal.Root!.Attribute("Width"));
+        Assert.Equal("380", (string?)modal.Root.Attribute("Height"));
 
         var emptyState = Assert.Single(modal.Descendants(Presentation + "Grid").Where(grid =>
             (string?)grid.Attribute(Xaml + "Name") == "EmptyTargetState"));

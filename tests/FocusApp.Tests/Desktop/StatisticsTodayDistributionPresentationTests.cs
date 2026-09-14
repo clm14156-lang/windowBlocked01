@@ -57,6 +57,43 @@ public sealed class StatisticsTodayDistributionPresentationTests
             (string?)text.Attribute("Text") == "{Binding PercentDisplay}");
     }
 
+    [Fact]
+    public void EmptyStateKeepsTheRingAndShowsCenteredIllustrationBesideADivider()
+    {
+        var page = XDocument.Load(Path.Combine(
+            FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
+        var card = Assert.Single(page.Descendants(Presentation + "Border").Where(border =>
+            (string?)border.Attribute(Xaml + "Name") == "MonthlyFocusTargetCard"));
+
+        var divider = Assert.Single(card.Descendants(Presentation + "Border").Where(border =>
+            (string?)border.Attribute(Xaml + "Name") == "TodayFocusDistributionDivider"));
+        Assert.Equal("1", (string?)divider.Attribute("Width"));
+        Assert.Equal("120", (string?)divider.Attribute("Height"));
+
+        var emptyState = Assert.Single(card.Descendants(Presentation + "Grid").Where(grid =>
+            (string?)grid.Attribute(Xaml + "Name") == "TodayFocusDistributionEmptyState"));
+        Assert.Contains(emptyState.Descendants(Presentation + "DataTrigger"), trigger =>
+            (string?)trigger.Attribute("Binding") == "{Binding HasTodayFocusDistribution}" &&
+            (string?)trigger.Attribute("Value") == "True");
+
+        var illustration = Assert.Single(emptyState.Descendants(Presentation + "Image"));
+        Assert.Equal("56", (string?)illustration.Attribute("Width"));
+        Assert.Equal("56", (string?)illustration.Attribute("Height"));
+        Assert.Equal(
+            "/FocusApp.Desktop;component/Assets/Icons/Common/zonglan_tongji01.png",
+            (string?)illustration.Attribute("Source"));
+        Assert.Contains(emptyState.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "今天还没有专注记录");
+        Assert.Contains(emptyState.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "开始专注后，这里会显示时间分布");
+
+        var list = Assert.Single(card.Descendants(Presentation + "ScrollViewer").Where(viewer =>
+            (string?)viewer.Attribute(Xaml + "Name") == "TodayFocusDistributionScrollViewer"));
+        Assert.Contains(list.Descendants(Presentation + "DataTrigger"), trigger =>
+            (string?)trigger.Attribute("Binding") == "{Binding HasTodayFocusDistribution}" &&
+            (string?)trigger.Attribute("Value") == "True");
+    }
+
     private static string FindRepositoryRoot()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);

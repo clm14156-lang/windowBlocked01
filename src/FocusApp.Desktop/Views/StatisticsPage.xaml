@@ -593,6 +593,7 @@
                     <Grid Grid.Row="1" Margin="0,5,0,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="176" />
+                            <ColumnDefinition Width="1" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
                         <Grid Grid.Column="0" Width="140" Height="140" HorizontalAlignment="Left" VerticalAlignment="Center">
@@ -628,12 +629,29 @@
                                            Text="总时长" />
                             </StackPanel>
                         </Grid>
+                        <Border x:Name="TodayFocusDistributionDivider"
+                                Grid.Column="1"
+                                Width="1"
+                                Height="120"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Background="#ECECEF" />
                         <ScrollViewer x:Name="TodayFocusDistributionScrollViewer"
-                                      Grid.Column="1"
+                                      Grid.Column="2"
                                       MaxHeight="132"
                                       HorizontalScrollBarVisibility="Disabled"
                                       VerticalAlignment="Center"
                                       VerticalScrollBarVisibility="Auto">
+                            <ScrollViewer.Style>
+                                <Style TargetType="ScrollViewer">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasTodayFocusDistribution}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ScrollViewer.Style>
                             <ScrollViewer.Resources>
                                 <Style x:Key="TodayFocusThinScrollBarStyle" TargetType="{x:Type ScrollBar}">
                                     <Setter Property="OverridesDefaultStyle" Value="True" />
@@ -664,7 +682,7 @@
                                 </Style>
                                 <Style TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource TodayFocusThinScrollBarStyle}" />
                             </ScrollViewer.Resources>
-                            <Grid Margin="10,0,0,0">
+                            <Grid Margin="24,0,0,0">
                                 <ItemsControl x:Name="TodayFocusDistributionList"
                                               ItemsSource="{Binding TodayFocusDistributions}">
                                     <ItemsControl.ItemsPanel>
@@ -710,24 +728,40 @@
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
-                                <TextBlock HorizontalAlignment="Left"
-                                           VerticalAlignment="Center"
-                                           FontSize="12"
-                                           Foreground="{DynamicResource TextSecondary}"
-                                           Text="今天暂无专注记录">
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock">
-                                            <Setter Property="Visibility" Value="Collapsed" />
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding HasTodayFocusDistribution}" Value="False">
-                                                    <Setter Property="Visibility" Value="Visible" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
                             </Grid>
                         </ScrollViewer>
+                        <Grid x:Name="TodayFocusDistributionEmptyState"
+                              Grid.Column="2"
+                              Margin="24,0,0,0"
+                              VerticalAlignment="Center">
+                            <Grid.Style>
+                                <Style TargetType="Grid">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasTodayFocusDistribution}" Value="True">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Grid.Style>
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <Image Width="56"
+                                       Height="56"
+                                       HorizontalAlignment="Center"
+                                       Source="/FocusApp.Desktop;component/Assets/Icons/Common/zonglan_tongji01.png" />
+                                <TextBlock Margin="0,10,0,0"
+                                           HorizontalAlignment="Center"
+                                           FontSize="15"
+                                           FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextPrimary}"
+                                           Text="今天还没有专注记录" />
+                                <TextBlock Margin="0,6,0,0"
+                                           HorizontalAlignment="Center"
+                                           FontSize="12"
+                                           Foreground="{DynamicResource TextWeak}"
+                                           Text="开始专注后，这里会显示时间分布" />
+                            </StackPanel>
+                        </Grid>
                     </Grid>
                 </Grid>
                 <Border.Style><Style TargetType="Border"><Setter Property="Background" Value="{DynamicResource SurfacePrimary}" /></Style></Border.Style>
