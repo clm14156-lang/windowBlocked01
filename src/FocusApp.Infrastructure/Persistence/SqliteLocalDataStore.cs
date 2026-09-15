@@ -111,15 +111,17 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
             await using (var command = CreateCommand(connection, transaction, """
                 INSERT INTO targets (
                     target_id, name, is_archived, sort_order, created_utc, updated_utc, archived_utc,
-                    icon_file_name)
-                VALUES ($id, $name, $archived, $sort, $created, $updated, $archivedAt, $icon)
+                    icon_file_name, remark, target_duration_minutes)
+                VALUES ($id, $name, $archived, $sort, $created, $updated, $archivedAt, $icon, $remark, $durationMinutes)
                 ON CONFLICT(target_id) DO UPDATE SET
                     name = excluded.name,
                     is_archived = excluded.is_archived,
                     sort_order = excluded.sort_order,
                     updated_utc = excluded.updated_utc,
                     archived_utc = excluded.archived_utc,
-                    icon_file_name = excluded.icon_file_name;
+                    icon_file_name = excluded.icon_file_name,
+                    remark = excluded.remark,
+                    target_duration_minutes = excluded.target_duration_minutes;
                 """))
             {
                 command.Parameters.AddWithValue("$id", target.TargetId);
@@ -130,6 +132,8 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
                 command.Parameters.AddWithValue("$updated", FormatDateTime(target.UpdatedAtUtc));
                 command.Parameters.AddWithValue("$archivedAt", FormatNullableDateTime(target.ArchivedAtUtc));
                 command.Parameters.AddWithValue("$icon", (object?)target.IconFileName ?? DBNull.Value);
+                command.Parameters.AddWithValue("$remark", (object?)target.Remark ?? DBNull.Value);
+                command.Parameters.AddWithValue("$durationMinutes", (object?)target.TargetDurationMinutes ?? DBNull.Value);
                 await command.ExecuteNonQueryAsync(cancellationToken);
             }
 
@@ -789,7 +793,7 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
         await using var command = connection.CreateCommand();
         command.CommandText = """
             SELECT target_id, name, is_archived, sort_order, created_utc, updated_utc, archived_utc,
-                   icon_file_name
+                   icon_file_name, remark, target_duration_minutes
             FROM targets ORDER BY is_archived, sort_order, target_id;
             """;
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
@@ -804,7 +808,9 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
                 ParseDateTime(reader.GetString(5)))
             {
                 ArchivedAtUtc = ReadNullableDateTime(reader, 6),
-                IconFileName = reader.IsDBNull(7) ? null : reader.GetString(7)
+                IconFileName = reader.IsDBNull(7) ? null : reader.GetString(7),
+                Remark = reader.IsDBNull(8) ? null : reader.GetString(8),
+                TargetDurationMinutes = reader.IsDBNull(9) ? null : reader.GetInt32(9)
             });
         }
 
@@ -1019,7 +1025,9 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
         if (string.IsNullOrWhiteSpace(target.TargetId) ||
             string.IsNullOrWhiteSpace(target.Name) ||
             target.SortOrder < 0 ||
-            target.IconFileName is not null && !IsSafeIconFileName(target.IconFileName))
+            target.IconFileName is not null && !IsSafeIconFileName(target.IconFileName) ||
+            target.Remark is not null && target.Remark.Length > 150 ||
+            target.TargetDurationMinutes is <= 0 or > 999 * 60)
         {
             throw new ArgumentException("目标数据无效。", nameof(target));
         }

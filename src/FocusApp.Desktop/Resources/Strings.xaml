@@ -280,6 +280,9 @@
     <system:String x:Key="FocusAgainConfirmationCancel">取消</system:String>
     <system:String x:Key="FocusAgainConfirmationConfirm">确认</system:String>
     <system:String x:Key="FocusReturnHome">返回首页</system:String>
+    <system:String x:Key="FocusTargetTitle">选择目标</system:String>
+    <system:String x:Key="FocusTargetManage">管理目标 &gt;</system:String>
+    <system:String x:Key="FocusTargetStartFocus">开始专注</system:String>
     <system:String x:Key="FocusTargetRecent">当前目标</system:String>
     <system:String x:Key="FocusTargetClose">关闭目标弹窗</system:String>
     <system:String x:Key="FocusTargetEmptyTitle">还没有目标</system:String>

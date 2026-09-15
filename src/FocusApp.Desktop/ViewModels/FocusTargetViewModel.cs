@@ -8,6 +8,7 @@ namespace FocusApp.Desktop.ViewModels;
 public sealed class FocusTargetViewModel : INotifyPropertyChanged
 {
     private int _totalFocusSeconds;
+    private bool _isSelected;
 
     public FocusTargetViewModel(
         string name,
@@ -38,6 +39,17 @@ public sealed class FocusTargetViewModel : INotifyPropertyChanged
     public string IconSource => TargetIconCatalog.GetIconSource(IconFileName);
 
     public bool IsArchived { get; private set; }
+
+    public bool IsSelected
+    {
+        get => _isSelected;
+        private set
+        {
+            if (_isSelected == value) return;
+            _isSelected = value;
+            OnPropertyChanged();
+        }
+    }
 
     public ObservableCollection<FocusTaskViewModel> Tasks { get; }
 
@@ -103,6 +115,8 @@ public sealed class FocusTargetViewModel : INotifyPropertyChanged
     }
 
     public void ApplyArchived(bool archived) => IsArchived = archived;
+
+    internal void ApplySelection(bool selected) => IsSelected = selected;
 
     public void ApplyName(string name)
     {

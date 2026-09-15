@@ -87,6 +87,27 @@ public sealed class CreateGoalModalTests
     }
 
     [Fact]
+    public void DialogUsesTheFixed400By470DesignSize()
+    {
+        Exception? failure = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                var modal = new CreateGoalModal();
+                var dialog = (Border)modal.FindName("DialogCard");
+                Assert.Equal(400, dialog.Width);
+                Assert.Equal(470, dialog.Height);
+            }
+            catch (Exception exception) { failure = exception; }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        Assert.True(thread.Join(TimeSpan.FromSeconds(10)));
+        Assert.Null(failure);
+    }
+
+    [Fact]
     public void ModalIsHostedAboveBothMainWindowColumns()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);

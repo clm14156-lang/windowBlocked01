@@ -78,6 +78,8 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         HomePage.BlockingPageRequested += HomePage_BlockingPageRequested;
         HomePage.ManageAutomaticRuleRequested += HomePage_ManageAutomaticRuleRequested;
         HomePage.FocusTargetModal.CreateTargetRequested += FocusTargetModal_CreateTargetRequested;
+        HomePage.FocusTargetModal.ManageTargetsRequested += FocusTargetModal_ManageTargetsRequested;
+        HomePage.FocusTargetModal.Opened += FocusTargetModal_Opened;
         HomePage.FocusSession.CompletionRecorded += FocusSession_CompletionRecorded;
         HomePage.FocusSession.FocusDiscarded += FocusSession_FocusDiscarded;
         HomePage.FocusSession.FocusResultReturnedHome += FocusSession_FocusResultReturnedHome;
@@ -467,6 +469,38 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         StatisticsPage.AddGoalCommand.Execute(null);
     }
 
+    private void FocusTargetModal_ManageTargetsRequested(object? sender, EventArgs e)
+    {
+        var statisticsNavigationItem = PrimaryNavigationItems.FirstOrDefault(
+            item => item.Page == NavigationPage.Statistics);
+        if (statisticsNavigationItem is null)
+        {
+            return;
+        }
+
+        Navigate(statisticsNavigationItem);
+        StatisticsPage.EnsureInitialized();
+        StatisticsPage.SelectGoalsCommand.Execute(null);
+    }
+
+    private async void FocusTargetModal_Opened(object? sender, EventArgs e)
+    {
+        if (ServiceConnection is null || !ServiceConnection.IsConnected)
+        {
+            return;
+        }
+
+        try
+        {
+            var state = await ServiceConnection.RefreshStateAsync();
+            HomePage.FocusTargetModal.ApplyState(state.Targets, state.Tasks, null);
+        }
+        catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException)
+        {
+            // The last published state remains available while the service reconnects.
+        }
+    }
+
     private void HomePage_BlockingPageRequested(object? sender, EventArgs e)
     {
         var blockingNavigationItem = PrimaryNavigationItems.FirstOrDefault(
@@ -608,7 +642,9 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             existingTarget?.CreatedAtUtc ?? now, now)
         {
             ArchivedAtUtc = target.IsArchived ? existingTarget?.ArchivedAtUtc ?? now : null,
-            IconFileName = target.IconFileName
+            IconFileName = target.IconFileName,
+            Remark = existingTarget?.Remark,
+            TargetDurationMinutes = existingTarget?.TargetDurationMinutes
         };
         var tasks = target.Tasks.Select((task, index) =>
         {
@@ -858,7 +894,9 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             existing?.CreatedAtUtc ?? now, now)
         {
             ArchivedAtUtc = goal.IsArchived ? existing?.ArchivedAtUtc ?? now : null,
-            IconFileName = goal.IconFileName
+            IconFileName = goal.IconFileName,
+            Remark = goal.Remark,
+            TargetDurationMinutes = goal.TargetDurationMinutes
         };
         var tasks = state.Tasks.Where(item => item.TargetId == goal.GoalId).ToArray();
         var recentIconsJson = TargetIconCatalog.SerializeRecentIconFileNames(StatisticsPage.RecentTargetIconFileNames);

@@ -32,7 +32,7 @@ public sealed class SqliteLocalDataStoreTests
         await store.InitializeAsync();
         var snapshot = await store.LoadAsync();
 
-        Assert.Equal(6, await ReadUserVersionAsync(database.Path));
+        Assert.Equal(7, await ReadUserVersionAsync(database.Path));
         Assert.Empty(snapshot.FocusSessions);
         Assert.Empty(snapshot.Targets);
         Assert.Empty(snapshot.Tasks);
@@ -71,10 +71,12 @@ public sealed class SqliteLocalDataStoreTests
 
         await database.CreateStore().InitializeAsync();
 
-        Assert.Equal(6, await ReadUserVersionAsync(database.Path));
+        Assert.Equal(7, await ReadUserVersionAsync(database.Path));
         Assert.True(await TableExistsAsync(database.Path, "focus_session_website_rules"));
         Assert.True(await TableExistsAsync(database.Path, "focus_session_application_rules"));
         Assert.True(await ColumnExistsAsync(database.Path, "targets", "icon_file_name"));
+        Assert.True(await ColumnExistsAsync(database.Path, "targets", "remark"));
+        Assert.True(await ColumnExistsAsync(database.Path, "targets", "target_duration_minutes"));
         Assert.True(await ColumnExistsAsync(database.Path, "app_settings", "recent_target_icons_json"));
         Assert.True(await ColumnExistsAsync(database.Path, "automatic_rules", "target_id"));
         Assert.Equal("1", await ReadSingleValueAsync(database.Path, "SELECT is_custom FROM automatic_rules LIMIT 1;"));
@@ -187,6 +189,23 @@ public sealed class SqliteLocalDataStoreTests
         Assert.Equal(taskCompletedAt, completedTask.CompletedAtUtc);
         Assert.Equal(websiteRuleId, Assert.Single(session.WebsiteRuleSnapshots).Id);
         Assert.Equal(applicationRuleId, Assert.Single(session.ApplicationRuleSnapshots).Id);
+    }
+
+    [Fact]
+    public async Task Reopen_RestoresTargetRemarkAndDuration()
+    {
+        using var database = new TemporaryDatabase();
+        var now = DateTimeOffset.UtcNow;
+        var target = new LocalTarget("target-with-details", "有详情的目标", false, 0, now, now)
+        {
+            Remark = "完成一套练习",
+            TargetDurationMinutes = 25 * 60
+        };
+
+        await database.CreateStore().SaveTargetAsync(target, []);
+
+        var restored = Assert.Single((await database.CreateStore().LoadAsync()).Targets);
+        Assert.Equal(target, restored);
     }
 
     [Fact]

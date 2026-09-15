@@ -634,9 +634,10 @@ public sealed class StatisticsOverviewViewModelTests
 
         Assert.True(viewModel.IsCreateGoalDialogOpen);
         Assert.Equal(originalCount, viewModel.Goals.Count);
-        Assert.True(viewModel.ConfirmCreateGoalCommand.CanExecute(null));
+        Assert.False(viewModel.ConfirmCreateGoalCommand.CanExecute(null));
 
         viewModel.NewGoalName = "学习 UE5";
+        Assert.True(viewModel.ConfirmCreateGoalCommand.CanExecute(null));
         var shortcutsBeforeSelection = viewModel.QuickTargetIcons.Select(icon => icon.FileName).ToArray();
         var codeIcon = viewModel.AllTargetIcons.Single(icon => icon.FileName == "code.png");
         viewModel.SelectTargetIconCommand.Execute(codeIcon);
@@ -664,24 +665,93 @@ public sealed class StatisticsOverviewViewModelTests
     }
 
     [Fact]
-    public void EmptyGoalNamesUseTheFirstAvailableNumberedDefaults()
+    public void CreatingGoalCapturesRemarkAndPresetDuration()
+    {
+        var viewModel = new StatisticsOverviewViewModel();
+        viewModel.AddGoalCommand.Execute(null);
+        viewModel.NewGoalName = "学习 UE5";
+        viewModel.NewGoalRemark = "完成基础材质练习";
+        var fiftyHours = viewModel.GoalDurationOptions.Single(option => option.Minutes == 50 * 60);
+        viewModel.SelectGoalDurationCommand.Execute(fiftyHours);
+
+        viewModel.ConfirmCreateGoalCommand.Execute(null);
+
+        var goal = Assert.IsType<GoalOverviewItemViewModel>(viewModel.SelectedGoal);
+        Assert.Equal("完成基础材质练习", goal.Remark);
+        Assert.Equal(50 * 60, goal.TargetDurationMinutes);
+    }
+
+    [Fact]
+    public void EmptyGoalNameCannotBeSubmitted()
+    {
+        var viewModel = new StatisticsOverviewViewModel();
+        viewModel.AddGoalCommand.Execute(null);
+
+        Assert.False(viewModel.ConfirmCreateGoalCommand.CanExecute(null));
+        viewModel.ConfirmCreateGoalCommand.Execute(null);
+
+        Assert.True(viewModel.IsCreateGoalDialogOpen);
+        Assert.DoesNotContain(viewModel.Goals, goal => goal.Name.StartsWith("目标", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void RemarkIsLimitedTo150CharactersAndCustomDurationRequiresValidHours()
+    {
+        var viewModel = new StatisticsOverviewViewModel();
+        viewModel.AddGoalCommand.Execute(null);
+
+        viewModel.NewGoalRemark = new string('字', 151);
+        Assert.Equal(150, viewModel.NewGoalRemark.Length);
+        Assert.Equal("150/150", viewModel.RemarkCharacterCountDisplay);
+
+        var custom = viewModel.GoalDurationOptions.Single(option => option.IsCustom);
+        viewModel.SelectGoalDurationCommand.Execute(custom);
+        Assert.True(viewModel.IsCustomDurationPopupOpen);
+        viewModel.CustomDurationInput = "1000";
+        viewModel.ConfirmCustomDurationCommand.Execute(null);
+        Assert.True(viewModel.IsCustomDurationPopupOpen);
+        Assert.Null(viewModel.SelectedGoalDurationMinutes);
+
+        viewModel.CustomDurationInput = "25";
+        viewModel.ConfirmCustomDurationCommand.Execute(null);
+        Assert.False(viewModel.IsCustomDurationPopupOpen);
+        Assert.Equal(25 * 60, viewModel.SelectedGoalDurationMinutes);
+    }
+
+    [Fact]
+    public void EditingGoalEchoesRemarkAndTargetDuration()
+    {
+        var viewModel = new StatisticsOverviewViewModel();
+        viewModel.AddGoalCommand.Execute(null);
+        viewModel.NewGoalName = "目标";
+        viewModel.NewGoalRemark = "备注";
+        viewModel.SelectGoalDurationCommand.Execute(viewModel.GoalDurationOptions.Single(option => option.IsCustom));
+        viewModel.CustomDurationInput = "37";
+        viewModel.ConfirmCustomDurationCommand.Execute(null);
+        viewModel.ConfirmCreateGoalCommand.Execute(null);
+        var goal = Assert.IsType<GoalOverviewItemViewModel>(viewModel.SelectedGoal);
+
+        viewModel.EditGoalCommand.Execute(goal);
+
+        Assert.Equal("备注", viewModel.NewGoalRemark);
+        Assert.Equal(37 * 60, viewModel.SelectedGoalDurationMinutes);
+        Assert.True(viewModel.GoalDurationOptions.Single(option => option.IsCustom).IsSelected);
+    }
+
+    [Fact]
+    public void EmptyGoalNamesRemainUnsubmitted()
     {
         var viewModel = new StatisticsOverviewViewModel();
         var originalCount = viewModel.Goals.Count;
         viewModel.AddGoalCommand.Execute(null);
         viewModel.NewGoalName = "   ";
 
+        Assert.False(viewModel.ConfirmCreateGoalCommand.CanExecute(null));
         viewModel.ConfirmCreateGoalCommand.Execute(null);
-        var first = Assert.IsType<GoalOverviewItemViewModel>(viewModel.SelectedGoal);
         viewModel.AddGoalCommand.Execute(null);
-        viewModel.ConfirmCreateGoalCommand.Execute(null);
-        var second = Assert.IsType<GoalOverviewItemViewModel>(viewModel.SelectedGoal);
+        Assert.True(viewModel.IsCreateGoalDialogOpen);
 
-        Assert.Equal(originalCount + 2, viewModel.Goals.Count);
-        Assert.Equal("目标01", first.Name);
-        Assert.Equal("目标02", second.Name);
-        Assert.Equal(2, viewModel.Goals.Count(goal => goal.Name is "目标01" or "目标02"));
-        Assert.False(viewModel.IsCreateGoalDialogOpen);
+        Assert.Equal(originalCount, viewModel.Goals.Count);
     }
 
     [Fact]

@@ -22,7 +22,9 @@ internal static class LocalDataContractMapper
         => new LocalTarget(source.TargetId, source.Name, source.IsArchived, source.SortOrder, source.CreatedAtUtc, source.UpdatedAtUtc)
         {
             ArchivedAtUtc = source.ArchivedAtUtc,
-            IconFileName = source.IconFileName
+            IconFileName = source.IconFileName,
+            Remark = source.Remark,
+            TargetDurationMinutes = source.TargetDurationMinutes
         };
 
     public static LocalTask ToCore(LocalTaskDto source)
@@ -119,7 +121,9 @@ internal static class LocalDataContractMapper
         => new LocalTargetDto(source.TargetId, source.Name, source.IsArchived, source.SortOrder, source.CreatedAtUtc, source.UpdatedAtUtc)
         {
             ArchivedAtUtc = source.ArchivedAtUtc,
-            IconFileName = source.IconFileName
+            IconFileName = source.IconFileName,
+            Remark = source.Remark,
+            TargetDurationMinutes = source.TargetDurationMinutes
         };
 
     private static LocalTaskDto ToDto(LocalTask source)

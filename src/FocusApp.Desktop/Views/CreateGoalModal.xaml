@@ -7,10 +7,21 @@
              PreviewKeyDown="Modal_PreviewKeyDown">
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+
+        <Style x:Key="GoalModalTextInputStyle" TargetType="{x:Type TextBox}">
+            <Setter Property="Padding" Value="12,0" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+            <Setter Property="CaretBrush" Value="{DynamicResource AccentPrimary}" />
+        </Style>
+
         <Style x:Key="TargetIconChoiceButtonStyle" TargetType="{x:Type Button}">
-            <Setter Property="Width" Value="36" />
-            <Setter Property="Height" Value="36" />
-            <Setter Property="Margin" Value="0,0,6,0" />
+            <Setter Property="Width" Value="40" />
+            <Setter Property="Height" Value="40" />
+            <Setter Property="Margin" Value="0,0,4,0" />
             <Setter Property="Padding" Value="0" />
             <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
             <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
@@ -24,37 +35,69 @@
                                 Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="18">
-                            <ContentPresenter HorizontalAlignment="Center"
-                                              VerticalAlignment="Center"
-                                              TextElement.Foreground="{TemplateBinding Foreground}" />
+                                CornerRadius="20">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="IconChoiceChrome" Property="Background" Value="#F7F7F9" />
                             </Trigger>
                             <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                <Setter TargetName="IconChoiceChrome" Property="Background" Value="#EBEBEB" />
-                                <Setter TargetName="IconChoiceChrome" Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
+                                <Setter TargetName="IconChoiceChrome" Property="Background" Value="#F0F0F2" />
+                                <Setter TargetName="IconChoiceChrome" Property="BorderBrush" Value="#E3E3E8" />
                             </DataTrigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
+
         <DataTemplate x:Key="TargetIconChoiceTemplate">
             <Button Command="{Binding DataContext.SelectTargetIconCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                     CommandParameter="{Binding}"
                     Style="{StaticResource TargetIconChoiceButtonStyle}">
-                <Image Width="28"
-                       Height="28"
-                       RenderOptions.BitmapScalingMode="HighQuality"
-                       Source="{Binding IconSource}"
-                       Stretch="Uniform" />
+                <Image Width="28" Height="28" RenderOptions.BitmapScalingMode="HighQuality" Source="{Binding IconSource}" Stretch="Uniform" />
             </Button>
         </DataTemplate>
+
+        <Style x:Key="GoalDurationButtonStyle" TargetType="{x:Type Button}">
+            <Setter Property="Height" Value="38" />
+            <Setter Property="Padding" Value="8,0" />
+            <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
+            <Setter Property="BorderBrush" Value="#E6E6EC" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border x:Name="DurationButtonChrome"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="19">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" TextElement.Foreground="{TemplateBinding Foreground}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="DurationButtonChrome" Property="Background" Value="#FFF7EE" />
+                            </Trigger>
+                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                <Setter TargetName="DurationButtonChrome" Property="Background" Value="#FFF7EE" />
+                                <Setter TargetName="DurationButtonChrome" Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
+                                <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}" />
+                            </DataTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="CreateGoalSecondaryButtonStyle" TargetType="{x:Type Button}">
-            <Setter Property="Height" Value="36" />
+            <Setter Property="Height" Value="38" />
+            <Setter Property="Padding" Value="14,0" />
             <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
@@ -66,34 +109,32 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type Button}">
                         <Border x:Name="SecondaryButtonChrome" Background="{TemplateBinding Background}" CornerRadius="10">
-                            <ContentPresenter HorizontalAlignment="Center"
-                                              VerticalAlignment="Center"
-                                              TextElement.Foreground="{TemplateBinding Foreground}" />
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" TextElement.Foreground="{TemplateBinding Foreground}" />
                         </Border>
                         <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="SecondaryButtonChrome" Property="Background" Value="{DynamicResource ControlHoverBackground}" /></Trigger>
-                            <Trigger Property="IsPressed" Value="True"><Setter TargetName="SecondaryButtonChrome" Property="Background" Value="{DynamicResource ControlPressedBackground}" /></Trigger>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="SecondaryButtonChrome" Property="Background" Value="#F5F5F7" /></Trigger>
+                            <Trigger Property="IsPressed" Value="True"><Setter TargetName="SecondaryButtonChrome" Property="Background" Value="#EDEDF0" /></Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
+
         <Style x:Key="CreateGoalPrimaryButtonStyle" TargetType="{x:Type Button}">
-            <Setter Property="Height" Value="36" />
+            <Setter Property="Height" Value="40" />
+            <Setter Property="Padding" Value="22,0" />
             <Setter Property="Background" Value="{DynamicResource AccentPrimary}" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Foreground" Value="{DynamicResource WhiteText}" />
             <Setter Property="FontSize" Value="13" />
-            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type Button}">
-                        <Border x:Name="PrimaryButtonChrome" Background="{TemplateBinding Background}" CornerRadius="10">
-                            <ContentPresenter HorizontalAlignment="Center"
-                                              VerticalAlignment="Center"
-                                              TextElement.Foreground="{TemplateBinding Foreground}" />
+                        <Border x:Name="PrimaryButtonChrome" Background="{TemplateBinding Background}" CornerRadius="12">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" TextElement.Foreground="{TemplateBinding Foreground}" />
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="PrimaryButtonChrome" Property="Opacity" Value="0.9" /></Trigger>
@@ -105,158 +146,137 @@
             </Setter>
         </Style>
     </UserControl.Resources>
+
     <Grid>
-    <Grid x:Name="CreateGoalDialogOverlay"
-          Panel.ZIndex="100"
-          Background="#66000000"
-          MouseDown="Overlay_MouseDown"
-          TextElement.FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI"
-          Visibility="{Binding IsCreateGoalDialogOpen, Converter={StaticResource BooleanToVisibilityConverter}}">
-        <Border x:Name="DialogCard" Width="340"
-                Height="280"
-                Padding="24,20"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center"
-                Background="{DynamicResource SurfacePrimary}"
-                BorderBrush="{DynamicResource BorderPrimary}"
-                BorderThickness="1"
-                CornerRadius="18">
-            <Border.Effect>
-                <DropShadowEffect BlurRadius="24" Direction="270" Opacity="0.18" ShadowDepth="6" />
-            </Border.Effect>
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="38" />
-                    <RowDefinition Height="78" />
-                    <RowDefinition Height="66" />
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
-                <TextBlock Grid.Row="0"
-                           VerticalAlignment="Top"
-                           FontSize="17"
-                           FontWeight="SemiBold"
-                           Foreground="{DynamicResource TextPrimary}"
-                           Text="{Binding GoalDialogTitle}" />
-                <Button Grid.Row="0"
-                        Width="26" Height="26"
-                        HorizontalAlignment="Right" VerticalAlignment="Top"
-                        AutomationProperties.Name="关闭目标弹窗"
-                        Command="{Binding CancelCreateGoalCommand}"
-                        Style="{StaticResource CreateGoalSecondaryButtonStyle}"
-                        Content="×" />
-                <StackPanel Grid.Row="1" VerticalAlignment="Top">
-                    <TextBlock Margin="0,0,0,7"
-                               FontSize="13"
-                               FontWeight="Normal"
-                               Foreground="{DynamicResource TextSecondary}"
-                               Text="目标名称" />
-                    <Border Height="42"
-                            Background="{DynamicResource SurfacePrimary}"
-                            BorderBrush="{DynamicResource BorderPrimary}"
-                            BorderThickness="1"
-                            CornerRadius="10">
-                        <Grid>
-                            <TextBox x:Name="NewGoalNameTextBox"
-                                     Padding="12,0"
-                                     VerticalContentAlignment="Center"
-                                     Background="{DynamicResource TransparentBrush}"
-                                     BorderThickness="0"
-                                     FontSize="13"
-                                     FontWeight="Normal"
-                                     Foreground="{DynamicResource TextPrimary}"
-                                     IsVisibleChanged="NewGoalNameTextBox_IsVisibleChanged"
-                                     PreviewKeyDown="NewGoalNameTextBox_PreviewKeyDown"
-                                     Text="{Binding NewGoalName, UpdateSourceTrigger=PropertyChanged}" />
-                        </Grid>
-                    </Border>
-                </StackPanel>
-                <StackPanel Grid.Row="2" VerticalAlignment="Top">
-                    <TextBlock Margin="0,0,0,7"
-                               FontSize="13"
-                               FontWeight="Normal"
-                               Foreground="{DynamicResource TextSecondary}"
-                               Text="选择图标" />
-                    <StackPanel Orientation="Horizontal">
-                        <ItemsControl ItemTemplate="{StaticResource TargetIconChoiceTemplate}"
-                                      ItemsSource="{Binding QuickTargetIcons}">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <StackPanel Orientation="Horizontal" />
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
+        <Grid x:Name="CreateGoalDialogOverlay"
+              Panel.ZIndex="100"
+              Background="#66000000"
+              MouseDown="Overlay_MouseDown"
+              TextElement.FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI"
+              Visibility="{Binding IsCreateGoalDialogOpen, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <Border x:Name="DialogCard"
+                    Width="400"
+                    Height="470"
+                    Padding="24"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Background="{DynamicResource SurfacePrimary}"
+                    BorderBrush="#E3E3E8"
+                    BorderThickness="1"
+                    CornerRadius="20">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="26" Direction="270" Opacity="0.2" ShadowDepth="7" />
+                </Border.Effect>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="38" />
+                        <RowDefinition Height="74" />
+                        <RowDefinition Height="125" />
+                        <RowDefinition Height="72" />
+                        <RowDefinition Height="74" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" VerticalAlignment="Top" FontSize="20" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="{Binding GoalDialogTitle}" />
+                    <Button Grid.Row="0" Width="28" Height="28" HorizontalAlignment="Right" VerticalAlignment="Top" AutomationProperties.Name="关闭目标弹窗" Command="{Binding CancelCreateGoalCommand}" Style="{StaticResource CreateGoalSecondaryButtonStyle}" Padding="0" Content="×" FontSize="19" FontWeight="Normal" />
+
+                    <StackPanel Grid.Row="1" VerticalAlignment="Top">
+                        <TextBlock Margin="0,0,0,8" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}"><Run Text="目标名称" /><Run Foreground="#FF4D4F" Text=" *" /></TextBlock>
+                        <Border Height="42" Background="{DynamicResource SurfacePrimary}" CornerRadius="11">
+                            <Border.Style>
+                                <Style TargetType="{x:Type Border}">
+                                    <Setter Property="BorderBrush" Value="#E1E1E7" />
+                                    <Style.Triggers><DataTrigger Binding="{Binding IsKeyboardFocusWithin, ElementName=NewGoalNameTextBox}" Value="True"><Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}" /><Setter Property="BorderThickness" Value="2" /></DataTrigger></Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <Grid>
+                                <TextBox x:Name="NewGoalNameTextBox" AutomationProperties.Name="目标名称" FontSize="13" IsVisibleChanged="NewGoalNameTextBox_IsVisibleChanged" PreviewKeyDown="NewGoalNameTextBox_PreviewKeyDown" Style="{StaticResource GoalModalTextInputStyle}" Text="{Binding NewGoalName, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock Margin="12,0" VerticalAlignment="Center" IsHitTestVisible="False" Foreground="{DynamicResource TextWeak}" Text="例如：学习 UE5、健身、阅读...">
+                                    <TextBlock.Style>
+                                        <Style TargetType="{x:Type TextBlock}"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding NewGoalName}" Value=""><Setter Property="Visibility" Value="Visible" /></DataTrigger><DataTrigger Binding="{Binding IsKeyboardFocusWithin, ElementName=NewGoalNameTextBox}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers></Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="2" VerticalAlignment="Top">
+                        <TextBlock Margin="0,0,0,8" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="备注（可选）" />
+                        <Border Height="91" Background="{DynamicResource SurfacePrimary}" CornerRadius="11">
+                            <Border.Style>
+                                <Style TargetType="{x:Type Border}">
+                                    <Setter Property="BorderBrush" Value="#E1E1E7" />
+                                    <Style.Triggers><DataTrigger Binding="{Binding IsKeyboardFocusWithin, ElementName=NewGoalRemarkTextBox}" Value="True"><Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}" /><Setter Property="BorderThickness" Value="2" /></DataTrigger></Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <Grid>
+                                <TextBox x:Name="NewGoalRemarkTextBox" AutomationProperties.Name="备注" AcceptsReturn="True" MaxLength="150" Padding="12,10,12,24" TextWrapping="Wrap" VerticalScrollBarVisibility="Disabled" Style="{StaticResource GoalModalTextInputStyle}" Text="{Binding NewGoalRemark, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Top" />
+                                <TextBlock Margin="12,10" IsHitTestVisible="False" Foreground="{DynamicResource TextWeak}" Text="写下目标的方向、标准或提醒...">
+                                    <TextBlock.Style>
+                                        <Style TargetType="{x:Type TextBlock}"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding NewGoalRemark}" Value=""><Setter Property="Visibility" Value="Visible" /></DataTrigger><DataTrigger Binding="{Binding IsKeyboardFocusWithin, ElementName=NewGoalRemarkTextBox}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers></Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <TextBlock Margin="0,0,12,8" HorizontalAlignment="Right" VerticalAlignment="Bottom" Foreground="{DynamicResource TextWeak}" FontSize="11" Text="{Binding RemarkCharacterCountDisplay}" />
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="3" VerticalAlignment="Top">
+                        <TextBlock Margin="0,0,0,7" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="选择图标" />
+                        <StackPanel Orientation="Horizontal">
+                            <ItemsControl ItemTemplate="{StaticResource TargetIconChoiceTemplate}" ItemsSource="{Binding QuickTargetIcons}">
+                                <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                            </ItemsControl>
+                            <Button x:Name="GoalIconLibraryButton" Width="40" Height="40" Padding="0" Background="{DynamicResource TransparentBrush}" BorderThickness="0" Command="{Binding ToggleGoalIconLibraryCommand}" Cursor="Hand" FocusVisualStyle="{x:Null}">
+                                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="18" FontWeight="Medium" Foreground="{DynamicResource TextSecondary}" Text="..." />
+                            </Button>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="4" VerticalAlignment="Top">
+                        <TextBlock Margin="0,0,0,7" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="目标投入（可选）" />
+                        <ItemsControl ItemsSource="{Binding GoalDurationOptions}">
+                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Width="64" Margin="0,0,6,0" Command="{Binding DataContext.SelectGoalDurationCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}" Content="{Binding Label}" Style="{StaticResource GoalDurationButtonStyle}" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
                         </ItemsControl>
-                        <Button x:Name="GoalIconLibraryButton"
-                                Width="36"
-                                Height="36"
-                                Padding="0"
-                                Background="{DynamicResource TransparentBrush}"
-                                BorderThickness="0"
-                                Command="{Binding ToggleGoalIconLibraryCommand}"
-                                Cursor="Hand"
-                                FocusVisualStyle="{x:Null}">
-                            <Button.Template>
-                                <ControlTemplate TargetType="{x:Type Button}">
-                                    <Border x:Name="MoreIconChrome" Background="{TemplateBinding Background}" CornerRadius="18">
-                                        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="17" FontWeight="Medium" Foreground="{DynamicResource TextSecondary}" Text="..." />
-                                    </Border>
-                                    <ControlTemplate.Triggers>
-                                        <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="MoreIconChrome" Property="Background" Value="#F7F7F9" /></Trigger>
-                                        <Trigger Property="IsPressed" Value="True"><Setter TargetName="MoreIconChrome" Property="Background" Value="{DynamicResource ControlPressedBackground}" /></Trigger>
-                                    </ControlTemplate.Triggers>
-                                </ControlTemplate>
-                            </Button.Template>
-                        </Button>
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="5" HorizontalAlignment="Right" VerticalAlignment="Bottom" Orientation="Horizontal">
+                        <Button Width="64" Command="{Binding CancelCreateGoalCommand}" Style="{StaticResource CreateGoalSecondaryButtonStyle}"><TextBlock Text="取消" Foreground="{DynamicResource TextSecondary}" /></Button>
+                        <Button Width="84" Margin="10,0,0,0" Command="{Binding ConfirmCreateGoalCommand}" IsEnabled="{Binding CanCreateGoal}" Style="{StaticResource CreateGoalPrimaryButtonStyle}"><TextBlock Text="{Binding GoalDialogConfirmText}" Foreground="#FFFFFF" /></Button>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <Popup x:Name="GoalIconLibraryPopup" DataContext="{Binding}" AllowsTransparency="True" IsOpen="{Binding IsGoalIconLibraryOpen, Mode=TwoWay}" Placement="Custom" PlacementTarget="{Binding ElementName=DialogCard}" PopupAnimation="Fade" StaysOpen="False">
+            <Border Width="344" Height="230" Padding="18" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" CornerRadius="16">
+                <Border.Effect><DropShadowEffect BlurRadius="22" Direction="270" Opacity="0.16" ShadowDepth="5" /></Border.Effect>
+                <ItemsControl ItemTemplate="{StaticResource TargetIconChoiceTemplate}" ItemsSource="{Binding AllTargetIcons}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="6" /></ItemsPanelTemplate></ItemsControl.ItemsPanel></ItemsControl>
+            </Border>
+        </Popup>
+
+        <Popup x:Name="CustomDurationPopup" DataContext="{Binding}" AllowsTransparency="True" IsOpen="{Binding IsCustomDurationPopupOpen, Mode=TwoWay}" Placement="Custom" PlacementTarget="{Binding ElementName=DialogCard}" PopupAnimation="Fade" StaysOpen="False">
+            <Border Width="214" Padding="16" Background="{DynamicResource SurfacePrimary}" BorderBrush="#E3E3E8" BorderThickness="1" CornerRadius="14">
+                <Border.Effect><DropShadowEffect BlurRadius="20" Direction="270" Opacity="0.18" ShadowDepth="5" /></Border.Effect>
+                <StackPanel>
+                    <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="自定义投入" />
+                    <Grid Margin="0,12,0,0">
+                        <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <TextBox x:Name="CustomDurationTextBox" AutomationProperties.Name="自定义投入小时数" IsVisibleChanged="CustomDurationTextBox_IsVisibleChanged" PreviewKeyDown="CustomDurationTextBox_PreviewKeyDown" Text="{Binding CustomDurationInput, UpdateSourceTrigger=PropertyChanged}" MaxLength="3" Padding="9,0" Height="34" VerticalContentAlignment="Center" />
+                        <TextBlock Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}" Text="小时" />
+                    </Grid>
+                    <TextBlock Margin="0,5,0,0" FontSize="11" Foreground="#D93025" Text="{Binding CustomDurationError}" />
+                    <StackPanel Margin="0,12,0,0" HorizontalAlignment="Right" Orientation="Horizontal">
+                        <Button Width="52" Command="{Binding CancelCustomDurationCommand}" Style="{StaticResource CreateGoalSecondaryButtonStyle}" Content="取消" />
+                        <Button Width="52" Margin="8,0,0,0" Command="{Binding ConfirmCustomDurationCommand}" Style="{StaticResource CreateGoalPrimaryButtonStyle}" Content="确定" />
                     </StackPanel>
                 </StackPanel>
-                <StackPanel Grid.Row="3"
-                            HorizontalAlignment="Right"
-                            VerticalAlignment="Bottom"
-                            Orientation="Horizontal">
-                    <Button Width="72"
-                            Command="{Binding CancelCreateGoalCommand}"
-                            Style="{StaticResource CreateGoalSecondaryButtonStyle}">
-                        <TextBlock Text="取消" Foreground="{DynamicResource TextSecondary}" />
-                    </Button>
-                    <Button Width="80"
-                            Margin="10,0,0,0"
-                            Command="{Binding ConfirmCreateGoalCommand}"
-                            IsEnabled="{Binding CanCreateGoal}"
-                            Style="{StaticResource CreateGoalPrimaryButtonStyle}">
-                        <TextBlock Text="{Binding GoalDialogConfirmText}" Foreground="#FFFFFF" />
-                    </Button>
-                </StackPanel>
-            </Grid>
-        </Border>
-    </Grid>
-    <Popup x:Name="GoalIconLibraryPopup"
-           DataContext="{Binding}"
-           AllowsTransparency="True"
-           IsOpen="{Binding IsGoalIconLibraryOpen, Mode=TwoWay}"
-           Placement="Custom"
-           PlacementTarget="{Binding ElementName=DialogCard}"
-           PopupAnimation="Fade"
-           StaysOpen="False">
-        <Border Width="344"
-                Height="230"
-                Padding="18"
-                Background="{DynamicResource SurfacePrimary}"
-                BorderBrush="{DynamicResource BorderPrimary}"
-                BorderThickness="1"
-                CornerRadius="16">
-            <Border.Effect>
-                <DropShadowEffect BlurRadius="22" Direction="270" Opacity="0.16" ShadowDepth="5" />
-            </Border.Effect>
-            <Grid>
-                <ItemsControl ItemTemplate="{StaticResource TargetIconChoiceTemplate}"
-                              ItemsSource="{Binding AllTargetIcons}">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <UniformGrid Columns="6" />
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                </ItemsControl>
-            </Grid>
-        </Border>
-    </Popup>
+            </Border>
+        </Popup>
     </Grid>
 </UserControl>

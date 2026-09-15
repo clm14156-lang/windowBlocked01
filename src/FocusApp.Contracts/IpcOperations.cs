@@ -274,6 +274,10 @@ public sealed record LocalTargetDto(
     public DateTimeOffset? ArchivedAtUtc { get; init; }
 
     public string? IconFileName { get; init; }
+
+    public string? Remark { get; init; }
+
+    public int? TargetDurationMinutes { get; init; }
 }
 
 public sealed record LocalTaskDto(

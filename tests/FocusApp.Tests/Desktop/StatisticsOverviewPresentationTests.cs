@@ -109,8 +109,8 @@ public sealed class StatisticsOverviewPresentationTests
             (string?)overlay.Attribute("Visibility"));
 
         var dialog = Assert.Single(overlay.Elements(Presentation + "Border"));
-        Assert.Equal("340", (string?)dialog.Attribute("Width"));
-        Assert.Equal("280", (string?)dialog.Attribute("Height"));
+        Assert.Equal("400", (string?)dialog.Attribute("Width"));
+        Assert.Equal("470", (string?)dialog.Attribute("Height"));
         Assert.DoesNotContain(dialog.Descendants(Presentation + "Image"), image =>
             (string?)image.Attribute("Source") == "{Binding SelectedTargetIcon.IconSource}");
         Assert.Contains(dialog.Descendants(Presentation + "TextBox"), textBox =>
@@ -124,24 +124,24 @@ public sealed class StatisticsOverviewPresentationTests
         var iconChoiceStyle = Assert.Single(page.Descendants(Presentation + "Style").Where(element =>
             (string?)element.Attribute(Xaml + "Key") == "TargetIconChoiceButtonStyle"));
         Assert.Contains(iconChoiceStyle.Elements(Presentation + "Setter"), setter =>
-            (string?)setter.Attribute("Property") == "Width" && (string?)setter.Attribute("Value") == "36");
+            (string?)setter.Attribute("Property") == "Width" && (string?)setter.Attribute("Value") == "40");
         Assert.Contains(iconChoiceStyle.Elements(Presentation + "Setter"), setter =>
-            (string?)setter.Attribute("Property") == "Height" && (string?)setter.Attribute("Value") == "36");
+            (string?)setter.Attribute("Property") == "Height" && (string?)setter.Attribute("Value") == "40");
         Assert.Contains(iconChoiceStyle.Elements(Presentation + "Setter"), setter =>
             (string?)setter.Attribute("Property") == "Background" &&
             (string?)setter.Attribute("Value") == "{DynamicResource TransparentBrush}");
         var iconChrome = Assert.Single(iconChoiceStyle.Descendants(Presentation + "Border").Where(element =>
             (string?)element.Attribute(Xaml + "Name") == "IconChoiceChrome"));
-        Assert.Equal("18", (string?)iconChrome.Attribute("CornerRadius"));
+        Assert.Equal("20", (string?)iconChrome.Attribute("CornerRadius"));
         var selectedIconTrigger = Assert.Single(iconChoiceStyle.Descendants(Presentation + "DataTrigger").Where(trigger =>
             (string?)trigger.Attribute("Binding") == "{Binding IsSelected}" &&
             (string?)trigger.Attribute("Value") == "True"));
         Assert.Contains(selectedIconTrigger.Elements(Presentation + "Setter"), setter =>
             (string?)setter.Attribute("Property") == "Background" &&
-            (string?)setter.Attribute("Value") == "#EBEBEB");
+            (string?)setter.Attribute("Value") == "#F0F0F2");
         Assert.Contains(selectedIconTrigger.Elements(Presentation + "Setter"), setter =>
             (string?)setter.Attribute("Property") == "BorderBrush" &&
-            (string?)setter.Attribute("Value") == "{DynamicResource TransparentBrush}");
+            (string?)setter.Attribute("Value") == "#E3E3E8");
 
         Assert.DoesNotContain(dialog.Descendants(Presentation + "Button"), button =>
             (string?)button.Attribute("Command") == "{Binding ClearNewGoalNameCommand}");

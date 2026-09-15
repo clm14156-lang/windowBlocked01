@@ -68,6 +68,7 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
 
         CustomTimeModal = new CustomTimeModalViewModel(ConfirmCustomTime, commonOptions, ToggleCommonTimeVisibility, DeleteCommonTime);
         FocusTargetModal = focusTargetModal ?? new FocusTargetModalViewModel();
+        FocusTargetModal.StartFocusRequested += FocusTargetModal_StartFocusRequested;
         FocusSession = focusSession ?? new FocusSessionViewModel();
         FocusSession.SetForcedModeStartPermission(() =>
             ForcedModeAccessPolicy.EvaluateStart(_isLoggedIn, _isVip, _isForcedModeRequested) ==
@@ -450,6 +451,9 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
             target,
             decision == FocusStartModeDecision.Forced);
     }
+
+    private void FocusTargetModal_StartFocusRequested(FocusTargetViewModel target)
+        => StartFocus(automaticTarget: target);
 
     private async Task StartForcedFocusAsync(
         int minutes,
