@@ -119,6 +119,76 @@ public sealed class StatisticsGoalProgressPresentationTests
     }
 
     [Fact]
+    public void GoalListPanelUses190WidthAndSelectedRowsReachItsLeftEdge()
+    {
+        var page = XDocument.Load(Path.Combine(FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
+        var layout = page.Descendants(Presentation + "StackPanel").Single(element =>
+            (string?)element.Attribute(Xaml + "Name") == "GoalsPageLayout");
+        Assert.Equal("4,0,3,0", (string?)layout.Attribute("Margin"));
+
+        var columns = Assert.Single(layout.Descendants(Presentation + "Grid").Where(grid =>
+            grid.Elements(Presentation + "Grid.ColumnDefinitions").Any(definitions =>
+                definitions.Elements(Presentation + "ColumnDefinition").Any(column =>
+                    (string?)column.Attribute("Width") == "190"))))
+            .Elements(Presentation + "Grid.ColumnDefinitions")
+            .Elements(Presentation + "ColumnDefinition")
+            .Select(column => (string?)column.Attribute("Width"));
+        Assert.Equal(new[] { "190", "8", null }, columns);
+
+        var goalList = layout.Descendants(Presentation + "ItemsControl").Single(control =>
+            (string?)control.Attribute("ItemsSource") == "{Binding VisibleGoals}");
+        var scrollViewer = Assert.Single(goalList.Ancestors(Presentation + "ScrollViewer")
+            .Where(element => (string?)element.Attribute("Margin") == "-20,10,-10,0"));
+        Assert.Equal("-20,10,-10,0", (string?)scrollViewer.Attribute("Margin"));
+        var goalRow = Assert.Single(goalList.Descendants(Presentation + "Button")
+            .Where(button => (string?)button.Attribute("Height") == "70"));
+        Assert.Equal("0,0,0,6", (string?)goalRow.Attribute("Margin"));
+        Assert.Equal("12,8,22,8", (string?)goalRow.Attribute("Padding"));
+    }
+
+    [Fact]
+    public void GoalListRowsStayInsideOuterCardBorder()
+    {
+        var page = XDocument.Load(Path.Combine(FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
+        var outerCard = page.Descendants(Presentation + "Border").Single(element =>
+            (string?)element.Attribute(Xaml + "Name") == null &&
+            (string?)element.Attribute("Grid.Column") == "0" &&
+            (string?)element.Attribute("BorderThickness") == "1");
+
+        Assert.Contains(outerCard.Elements(Presentation + "Grid"), element =>
+            (string?)element.Attribute(Xaml + "Name") == "GoalListContentContainer");
+
+        var goalList = outerCard.Descendants(Presentation + "ItemsControl").Single(control =>
+            (string?)control.Attribute("ItemsSource") == "{Binding VisibleGoals}");
+        var scrollViewer = Assert.Single(goalList.Ancestors(Presentation + "ScrollViewer")
+            .Where(element => (string?)element.Attribute("Margin") == "-20,10,-10,0"));
+        Assert.Equal("-20,10,-10,0", (string?)scrollViewer.Attribute("Margin"));
+    }
+
+    [Fact]
+    public void GoalRowsGiveNameSpaceTheRemovedChevronColumn()
+    {
+        var page = XDocument.Load(Path.Combine(FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
+        var goalList = page.Descendants(Presentation + "ItemsControl").Single(control =>
+            (string?)control.Attribute("ItemsSource") == "{Binding VisibleGoals}");
+        var template = goalList.Descendants(Presentation + "DataTemplate").Single();
+        var row = template.Descendants(Presentation + "Grid")
+            .Single(grid => grid.Elements(Presentation + "Grid.ColumnDefinitions").Any());
+
+        Assert.Equal(new[] { "38", "10", "*" }, row.Elements(Presentation + "Grid.ColumnDefinitions")
+            .Elements(Presentation + "ColumnDefinition")
+            .Select(column => (string?)column.Attribute("Width")));
+        Assert.DoesNotContain(template.Descendants(), element =>
+            (string?)element.Attribute(Xaml + "Name") == "GoalChevron");
+        Assert.Contains(template.Descendants(Presentation + "Button"), button =>
+            (string?)button.Attribute("Click") == "SaveGoalRenameButton_Click" &&
+            (string?)button.Attribute("Grid.Column") == "2");
+        var goalRow = Assert.Single(template.Descendants(Presentation + "Button")
+            .Where(button => (string?)button.Attribute("Height") == "70"));
+        Assert.Equal("12,8,22,8", (string?)goalRow.Attribute("Padding"));
+    }
+
+    [Fact]
     public void GoalDetailsPreserveAccessGatingAndExistingGoalActions()
     {
         var page = XDocument.Load(Path.Combine(FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));

@@ -1428,8 +1428,9 @@
             </StackPanel>
             <StackPanel x:Name="GoalsPageLayout" Margin="4,0,3,0" TextElement.FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI" Visibility="{Binding IsGoalsSelected, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <Grid Height="604" Margin="0" VerticalAlignment="Top" HorizontalAlignment="Stretch">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="207" /><ColumnDefinition Width="8" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="190" /><ColumnDefinition Width="8" /><ColumnDefinition /></Grid.ColumnDefinitions>
                     <Border Grid.Column="0" Height="604" VerticalAlignment="Top" Padding="20,16,10,44" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" CornerRadius="16">
+                        <Grid x:Name="GoalListContentContainer">
                         <DockPanel>
                             <Grid DockPanel.Dock="Top" Height="38">
                                 <Button x:Name="GoalListMenuButton" Height="34" Margin="1,0,0,0" HorizontalAlignment="Left" Padding="0" Background="{DynamicResource TransparentBrush}" BorderThickness="0" Command="{Binding ToggleGoalListMenuCommand}">
@@ -1454,14 +1455,14 @@
                                     </Border>
                                 </Popup>
                             </Grid>
-                            <ScrollViewer Margin="-11,10,-7,0" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                            <ScrollViewer Margin="-20,10,-10,0" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
                                 <ScrollViewer.Resources>
                                     <Style TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource StatisticsThinScrollBarStyle}" />
                                 </ScrollViewer.Resources>
                                 <ItemsControl ItemsSource="{Binding VisibleGoals}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate DataType="{x:Type vm:GoalOverviewItemViewModel}">
-                                            <Button Height="70" Margin="0,0,13,6" Padding="12,8" HorizontalContentAlignment="Stretch" Command="{Binding DataContext.SelectGoalCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}" Background="{DynamicResource SurfacePrimary}" BorderThickness="0" FocusVisualStyle="{x:Null}">
+                                            <Button Height="70" Margin="0,0,0,6" Padding="12,8,22,8" HorizontalContentAlignment="Stretch" Command="{Binding DataContext.SelectGoalCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}" Background="{DynamicResource SurfacePrimary}" BorderThickness="0" FocusVisualStyle="{x:Null}">
                                                 <Button.Template>
                                                     <ControlTemplate TargetType="Button">
                                                         <Grid>
@@ -1471,7 +1472,6 @@
                                                                     <ColumnDefinition Width="38" />
                                                                     <ColumnDefinition Width="10" />
                                                                     <ColumnDefinition Width="*" />
-                                                                    <ColumnDefinition Width="18" />
                                                                 </Grid.ColumnDefinitions>
                                                                 <Border x:Name="GoalIconBackground" Grid.Column="0" Width="38" Height="38" HorizontalAlignment="Center" VerticalAlignment="Center" Background="{DynamicResource TransparentBrush}">
                                                                     <Image Width="28" Height="28" RenderOptions.BitmapScalingMode="HighQuality" Source="{Binding IconSource}" Stretch="Uniform" />
@@ -1483,8 +1483,7 @@
                                                                     </TextBlock>
                                                                     <TextBlock x:Name="GoalTodayDurationText" Margin="0,3,0,0" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextWeak}" Text="{Binding TodayDurationDisplay}" />
                                                                 </StackPanel>
-                                                                <TextBlock x:Name="GoalChevron" Grid.Column="3" HorizontalAlignment="Right" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="{DynamicResource TextSecondary}" Opacity="0.72" Text="&#xE76C;" />
-                                                                <Button Grid.Column="3" Width="30" Height="26" Margin="0,0,-6,0" HorizontalAlignment="Right" VerticalAlignment="Center" Padding="0" Background="{DynamicResource TransparentBrush}" BorderThickness="0" Click="SaveGoalRenameButton_Click" Content="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{DynamicResource AccentPrimary}" Visibility="{Binding IsRenaming, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                                                <Button Grid.Column="2" Width="30" Height="26" Margin="0,0,-6,0" HorizontalAlignment="Right" VerticalAlignment="Center" Padding="0" Background="{DynamicResource TransparentBrush}" BorderThickness="0" Click="SaveGoalRenameButton_Click" Content="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{DynamicResource AccentPrimary}" Visibility="{Binding IsRenaming, Converter={StaticResource BooleanToVisibilityConverter}}" />
                                                             </Grid>
                                                         </Border>
                                                         <Border x:Name="GoalSelectionStripe" Width="3" HorizontalAlignment="Left" Background="{DynamicResource AccentPrimary}" CornerRadius="2" Visibility="Collapsed" IsHitTestVisible="False"/>
@@ -1503,6 +1502,7 @@
                                 </ItemsControl>
                             </ScrollViewer>
                         </DockPanel>
+                        </Grid>
                     </Border>
                     <Border x:Name="GoalInvestmentDetailsCard" Grid.Column="2" Height="604" Padding="20,18,20,14" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" CornerRadius="16">
                         <Grid>
