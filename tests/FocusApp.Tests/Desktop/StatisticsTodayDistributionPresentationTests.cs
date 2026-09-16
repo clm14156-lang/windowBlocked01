@@ -16,7 +16,7 @@ public sealed class StatisticsTodayDistributionPresentationTests
         var card = Assert.Single(page.Descendants(Presentation + "Border").Where(border =>
             (string?)border.Attribute(Xaml + "Name") == "MonthlyFocusTargetCard"));
 
-        Assert.Equal("200", (string?)card.Attribute("Height"));
+        Assert.Equal("190", (string?)card.Attribute("Height"));
         Assert.Contains(card.Descendants(Presentation + "TextBlock"), text =>
             (string?)text.Attribute("Text") == "今日时间分布");
 

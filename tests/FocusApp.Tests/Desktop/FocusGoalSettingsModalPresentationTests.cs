@@ -19,7 +19,7 @@ public sealed class FocusGoalSettingsModalPresentationTests
         Assert.Equal("390", (string?)card.Attribute("Width"));
         Assert.Equal("{Binding DialogHeight, Mode=OneWay}", (string?)card.Attribute("Height"));
         Assert.Contains(root.Descendants(Presentation + "RowDefinition"), row =>
-            (string?)row.Attribute("Height") == "60");
+            (string?)row.Attribute("Height") == "62");
         Assert.Contains(root.Descendants(Presentation + "Button"), button =>
             (string?)button.Attribute(Xaml + "Name") == "DailyFixedModeButton" &&
             (string?)button.Attribute("Command") == "{Binding SelectDailyModeCommand}");

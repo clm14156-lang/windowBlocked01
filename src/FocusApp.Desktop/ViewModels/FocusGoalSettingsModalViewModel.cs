@@ -263,7 +263,7 @@ public sealed class FocusGoalSettingsModalViewModel : INotifyPropertyChanged
 
     public int RemainingHours => 55;
 
-    public double DialogHeight => IsDailyFixedMode && IsCustomRepeat ? 430 : 390;
+    public double DialogHeight => IsDailyFixedMode && IsCustomRepeat ? 460 : 420;
 
     public void CommitDailyTargetHoursInput()
     {

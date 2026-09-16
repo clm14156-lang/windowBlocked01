@@ -12,6 +12,7 @@ namespace FocusApp.Desktop.Views;
 public partial class StatisticsPage : UserControl
 {
     private Popup? _completedTaskGoalPopup;
+    private ToggleButton? _openGoalListMoreButton;
 
     private void CompletedTaskRow_MouseEnter(object sender, MouseEventArgs e)
     {
@@ -351,6 +352,32 @@ public partial class StatisticsPage : UserControl
 
     private void SelectArchivedGoalListButton_Click(object sender, RoutedEventArgs e) => ExecuteGoalListCommand("Archived");
 
+    private void GoalListMoreButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not ToggleButton { DataContext: GoalOverviewItemViewModel goal } button ||
+            DataContext is not StatisticsOverviewViewModel viewModel)
+        {
+            return;
+        }
+
+        if (button.IsChecked == true)
+        {
+            if (_openGoalListMoreButton is not null && !ReferenceEquals(_openGoalListMoreButton, button))
+            {
+                _openGoalListMoreButton.SetCurrentValue(ToggleButton.IsCheckedProperty, false);
+            }
+
+            _openGoalListMoreButton = button;
+            viewModel.SelectGoalCommand.Execute(goal);
+        }
+        else if (ReferenceEquals(_openGoalListMoreButton, button))
+        {
+            _openGoalListMoreButton = null;
+        }
+
+        e.Handled = true;
+    }
+
     private void SaveGoalRenameButton_Click(object sender, RoutedEventArgs e)
     {
         ExecuteGoalCommand(sender, viewModel => viewModel.SaveGoalRenameCommand);
@@ -404,7 +431,8 @@ public partial class StatisticsPage : UserControl
     {
         if (sender is FrameworkElement { DataContext: GoalOverviewItemViewModel goal } && DataContext is StatisticsOverviewViewModel viewModel)
         {
-            GoalDetailMorePopup.IsOpen = false;
+            _openGoalListMoreButton?.SetCurrentValue(ToggleButton.IsCheckedProperty, false);
+            _openGoalListMoreButton = null;
             commandSelector(viewModel).Execute(goal);
         }
     }

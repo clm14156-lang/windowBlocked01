@@ -6,7 +6,7 @@ namespace FocusApp.Tests.Desktop;
 public sealed class FocusGoalSettingsModalViewModelTests
 {
     [Fact]
-    public void NewModal_UsesDailyEveryDayDefaultsAnd390DipHeight()
+    public void NewModal_UsesDailyEveryDayDefaultsAnd420DipHeight()
     {
         var viewModel = new FocusGoalSettingsModalViewModel();
 
@@ -15,7 +15,7 @@ public sealed class FocusGoalSettingsModalViewModelTests
         Assert.Equal(FocusGoalRepeatMode.EveryDay, viewModel.RepeatMode);
         Assert.Equal(4, viewModel.DailyTargetHours);
         Assert.Equal(60, viewModel.MonthlyTargetHours);
-        Assert.Equal(390, viewModel.DialogHeight);
+        Assert.Equal(420, viewModel.DialogHeight);
         Assert.Equal(7, viewModel.Weekdays.Count);
         Assert.All(viewModel.Weekdays.Take(5), weekday => Assert.True(weekday.IsSelected));
         Assert.All(viewModel.Weekdays.Skip(5), weekday => Assert.False(weekday.IsSelected));
@@ -78,7 +78,7 @@ public sealed class FocusGoalSettingsModalViewModelTests
         viewModel.SelectCustomRepeatCommand.Execute(null);
 
         Assert.Equal(FocusGoalRepeatMode.Custom, viewModel.RepeatMode);
-        Assert.Equal(430, viewModel.DialogHeight);
+        Assert.Equal(460, viewModel.DialogHeight);
         Assert.Equal(5, viewModel.Weekdays.Count(weekday => weekday.IsSelected));
 
         var saturday = viewModel.Weekdays[5];
@@ -89,7 +89,7 @@ public sealed class FocusGoalSettingsModalViewModelTests
     }
 
     [Fact]
-    public void SelectingEveryDayHidesWeekdaysAndRestores390DipHeight()
+    public void SelectingEveryDayHidesWeekdaysAndRestores420DipHeight()
     {
         var viewModel = new FocusGoalSettingsModalViewModel();
         viewModel.SelectCustomRepeatCommand.Execute(null);
@@ -97,7 +97,7 @@ public sealed class FocusGoalSettingsModalViewModelTests
         viewModel.SelectEveryDayCommand.Execute(null);
 
         Assert.Equal(FocusGoalRepeatMode.EveryDay, viewModel.RepeatMode);
-        Assert.Equal(390, viewModel.DialogHeight);
+        Assert.Equal(420, viewModel.DialogHeight);
     }
 
     [Fact]
@@ -114,7 +114,7 @@ public sealed class FocusGoalSettingsModalViewModelTests
         Assert.Equal(60, viewModel.MonthlyTargetHours);
         Assert.Equal(18, viewModel.RemainingDays);
         Assert.Equal(55, viewModel.RemainingHours);
-        Assert.Equal(390, viewModel.DialogHeight);
+        Assert.Equal(420, viewModel.DialogHeight);
     }
 
     [Fact]

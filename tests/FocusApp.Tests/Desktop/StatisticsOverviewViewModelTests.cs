@@ -76,6 +76,8 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.Equal(1, persistenceNotifications);
         var expectedSuggestionMinutes = (100 * 60 - 135) / viewModel.MonthlyFocusRemainingDays;
         Assert.Equal(expectedSuggestionMinutes, viewModel.MonthlyFocusTodayRecommendationMinutes);
+        Assert.Equal("本月 2小时15分钟 / 100小时", viewModel.MonthlyFocusCompletedSummaryDisplay);
+        Assert.Equal($"剩余{viewModel.MonthlyFocusRemainingDays}天", viewModel.MonthlyFocusRemainingDaysSummaryDisplay);
         Assert.Equal(
             Math.Min(100, (int)Math.Round(135 / (double)expectedSuggestionMinutes * 100)),
             viewModel.MonthlyFocusTodayProgressPercent);

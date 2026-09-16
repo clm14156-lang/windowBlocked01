@@ -864,10 +864,8 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     }
 
     public double MonthlyFocusTodayProgressRatio => MonthlyFocusTodayProgressPercent / 100d;
-    public string MonthlyFocusCompletedSummaryDisplay => $"本月已专注 {FormatTargetDuration(CurrentMonthFocusMinutes)}";
-    public string MonthlyFocusRemainingSummaryDisplay =>
-        $"还差 {FormatTargetDuration(Math.Max(0, MonthlyFocusTargetHours * 60 - CurrentMonthFocusMinutes))}";
-    public string MonthlyFocusRemainingDaysSummaryDisplay => $"剩余 {MonthlyFocusRemainingDays}天";
+    public string MonthlyFocusCompletedSummaryDisplay => $"本月 {FormatTargetDuration(CurrentMonthFocusMinutes)} / {MonthlyFocusTargetHours}小时";
+    public string MonthlyFocusRemainingDaysSummaryDisplay => $"剩余{MonthlyFocusRemainingDays}天";
 
     private int CurrentMonthFocusMinutes => GetRecordsForMonth(DateTime.Today).Sum(record => record.DurationMinutes);
 
@@ -1542,7 +1540,6 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(MonthlyFocusTodayProgressPercent));
         OnPropertyChanged(nameof(MonthlyFocusTodayProgressRatio));
         OnPropertyChanged(nameof(MonthlyFocusCompletedSummaryDisplay));
-        OnPropertyChanged(nameof(MonthlyFocusRemainingSummaryDisplay));
         OnPropertyChanged(nameof(MonthlyFocusRemainingDaysSummaryDisplay));
     }
 

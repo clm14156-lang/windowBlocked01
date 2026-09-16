@@ -34,21 +34,34 @@ public sealed class StatisticsGoalProgressPresentationTests
             Assert.Equal(label == "全部任务  ›" ? "{Binding GoalTasks.OpenCommand}" : null, (string?)button.Attribute("Command"));
             Assert.Null(button.Attribute("Click"));
         }
+        var trend = card.Descendants(Presentation + "Button").Single(button =>
+            (string?)button.Attribute(Xaml + "Name") == "GoalInvestmentTrendButton");
+        Assert.Equal("投入趋势  ›", (string?)trend.Attribute("Content"));
+        Assert.Null(trend.Attribute("Command"));
+        Assert.Null(trend.Attribute("Click"));
     }
 
     [Fact]
-    public void GoalListHoverOnlyChangesTheRowBackground()
+    public void GoalListHoverRevealsTheRowActionMenu()
     {
         var page = XDocument.Load(Path.Combine(FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
         var goalList = page.Descendants(Presentation + "ItemsControl").Single(control =>
             (string?)control.Attribute("ItemsSource") == "{Binding VisibleGoals}");
         var template = goalList.Descendants(Presentation + "DataTemplate").Single();
 
-        Assert.DoesNotContain(template.Descendants(), element =>
-            (string?)element.Attribute(Xaml + "Name") == "GoalMenuButton" || element.Name == Presentation + "Popup");
-        Assert.DoesNotContain(template.Descendants().Attributes(), attribute =>
-            attribute.Value.Contains("ToggleGoalMenuCommand", StringComparison.Ordinal) ||
-            attribute.Value.Contains("IsMenuOpen", StringComparison.Ordinal));
+        var moreButton = template.Descendants(Presentation + "ToggleButton").Single(element =>
+            (string?)element.Attribute(Xaml + "Name") == "GoalListMoreButton");
+        Assert.Equal("GoalListMoreButton_Click", (string?)moreButton.Attribute("Click"));
+        Assert.Equal("Right", (string?)template.Descendants(Presentation + "Popup").Single(element =>
+            (string?)element.Attribute(Xaml + "Name") == "GoalListMorePopup").Attribute("Placement"));
+
+        var hoverVisibilityTrigger = moreButton.Descendants(Presentation + "DataTrigger").Single(trigger =>
+            ((string?)trigger.Attribute("Binding"))?.Contains("GoalRowRoot", StringComparison.Ordinal) == true &&
+            (string?)trigger.Attribute("Value") == "True");
+        Assert.Contains(hoverVisibilityTrigger.Elements(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("Property") == "Opacity" && (string?)setter.Attribute("Value") == "1");
+        Assert.Contains(hoverVisibilityTrigger.Elements(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("Property") == "IsHitTestVisible" && (string?)setter.Attribute("Value") == "True");
 
         var hoverTriggers = template.Descendants(Presentation + "Trigger")
             .Where(trigger =>
@@ -59,8 +72,6 @@ public sealed class StatisticsGoalProgressPresentationTests
         Assert.Contains(hoverSetters, setter =>
             (string?)setter.Attribute("TargetName") == "GoalBorder" &&
             (string?)setter.Attribute("Property") == "Background");
-        Assert.DoesNotContain(hoverSetters, setter =>
-            (string?)setter.Attribute("Property") is "Visibility" or "Opacity");
     }
 
     [Fact]
@@ -85,10 +96,13 @@ public sealed class StatisticsGoalProgressPresentationTests
         var scrollViewer = Assert.Single(goalList.Ancestors(Presentation + "ScrollViewer")
             .Where(element => (string?)element.Attribute("Margin") == "-20,10,-10,0"));
         Assert.Equal("-20,10,-10,0", (string?)scrollViewer.Attribute("Margin"));
-        var goalRow = Assert.Single(goalList.Descendants(Presentation + "Button")
-            .Where(button => (string?)button.Attribute("Height") == "70"));
+        var goalRow = goalList.Descendants(Presentation + "Grid").Single(grid =>
+            (string?)grid.Attribute(Xaml + "Name") == "GoalRowRoot");
         Assert.Equal("0,0,0,6", (string?)goalRow.Attribute("Margin"));
-        Assert.Equal("12,8,22,8", (string?)goalRow.Attribute("Padding"));
+        Assert.Equal("70", (string?)goalRow.Attribute("Height"));
+        var selectionButton = goalRow.Elements(Presentation + "Button").Single(button =>
+            (string?)button.Attribute(Xaml + "Name") == "GoalSelectionButton");
+        Assert.Equal("12,8,22,8", (string?)selectionButton.Attribute("Padding"));
     }
 
     [Fact]
@@ -128,8 +142,8 @@ public sealed class StatisticsGoalProgressPresentationTests
         Assert.Contains(template.Descendants(Presentation + "Button"), button =>
             (string?)button.Attribute("Click") == "SaveGoalRenameButton_Click" &&
             (string?)button.Attribute("Grid.Column") == "2");
-        var goalRow = Assert.Single(template.Descendants(Presentation + "Button")
-            .Where(button => (string?)button.Attribute("Height") == "70"));
+        var goalRow = template.Descendants(Presentation + "Button").Single(button =>
+            (string?)button.Attribute(Xaml + "Name") == "GoalSelectionButton");
         Assert.Equal("12,8,22,8", (string?)goalRow.Attribute("Padding"));
     }
 
@@ -141,7 +155,13 @@ public sealed class StatisticsGoalProgressPresentationTests
         Assert.Equal("{Binding CanViewGoalInvestmentDetails, Converter={StaticResource BooleanToVisibilityConverter}}", (string?)content.Attribute("Visibility"));
         var locked = page.Descendants(Presentation + "Grid").Single(element => (string?)element.Attribute(Xaml + "Name") == "GoalInvestmentDetailsLockedPlaceholder");
         Assert.Equal("{Binding CanViewGoalInvestmentDetails, Converter={StaticResource GoalInverseVisibilityConverter}}", (string?)locked.Attribute("Visibility"));
-        var menu = page.Descendants(Presentation + "Popup").Single(element => (string?)element.Attribute(Xaml + "Name") == "GoalDetailMorePopup");
+        var header = page.Descendants(Presentation + "Grid").Single(element =>
+            (string?)element.Attribute(Xaml + "Name") == "GoalDetailHeader");
+        Assert.Empty(header.Descendants(Presentation + "Image"));
+        Assert.Empty(header.Descendants(Presentation + "ToggleButton"));
+        Assert.Empty(header.Descendants(Presentation + "Popup"));
+
+        var menu = page.Descendants(Presentation + "Popup").Single(element => (string?)element.Attribute(Xaml + "Name") == "GoalListMorePopup");
         foreach (var action in new[] { "EditGoalButton_Click", "ArchiveGoalButton_Click", "RestoreGoalButton_Click", "DeleteGoalButton_Click" })
             Assert.Contains(menu.Descendants(Presentation + "Button"), button => (string?)button.Attribute("Click") == action);
         Assert.Contains(locked.Descendants(Presentation + "Border"), border => (string?)border.Attribute("MouseEnter") == "GoalInvestmentDetailsVipHoverTarget_MouseEnter");

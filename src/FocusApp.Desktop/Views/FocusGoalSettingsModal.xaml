@@ -10,12 +10,13 @@
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
 
         <Style x:Key="FocusGoalSegmentButtonStyle" TargetType="{x:Type Button}">
-            <Setter Property="Background" Value="{DynamicResource BackgroundSecondary}" />
+            <Setter Property="Margin" Value="3" />
+            <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
             <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Foreground" Value="#6E6E73" />
-            <Setter Property="FontSize" Value="14" />
-            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontWeight" Value="Medium" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Template">
@@ -32,10 +33,10 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="SegmentChrome" Property="Opacity" Value="0.88" />
+                                <Setter TargetName="SegmentChrome" Property="Background" Value="#FAFAFB" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="SegmentChrome" Property="Opacity" Value="0.72" />
+                                <Setter TargetName="SegmentChrome" Property="Background" Value="#EEEEF0" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -44,11 +45,12 @@
         </Style>
 
         <Style x:Key="FocusGoalStepperButtonStyle" TargetType="{x:Type Button}">
-            <Setter Property="Width" Value="64" />
-            <Setter Property="Height" Value="58" />
-            <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+            <Setter Property="Width" Value="46" />
+            <Setter Property="Height" Value="42" />
+            <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderPrimary}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
             <Setter Property="FontSize" Value="28" />
             <Setter Property="FontWeight" Value="Light" />
             <Setter Property="Cursor" Value="Hand" />
@@ -56,7 +58,11 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type Button}">
-                        <Border x:Name="StepperChrome" Background="{TemplateBinding Background}" CornerRadius="10">
+                        <Border x:Name="StepperChrome"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="12">
                             <ContentPresenter HorizontalAlignment="Center"
                                               VerticalAlignment="Center"
                                               TextElement.Foreground="{TemplateBinding Foreground}" />
@@ -77,13 +83,13 @@
         <Style x:Key="FocusGoalRepeatButtonStyle"
                TargetType="{x:Type Button}"
                BasedOn="{StaticResource FocusGoalSegmentButtonStyle}">
-            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontSize" Value="15" />
             <Setter Property="FontWeight" Value="Medium" />
         </Style>
 
         <Style x:Key="FocusGoalTargetHoursInputStyle" TargetType="{x:Type TextBox}">
             <Setter Property="Width" Value="78" />
-            <Setter Property="Height" Value="58" />
+            <Setter Property="Height" Value="64" />
             <Setter Property="VerticalAlignment" Value="Center" />
             <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
@@ -98,9 +104,9 @@
         </Style>
 
         <Style x:Key="FocusGoalWeekdayButtonStyle" TargetType="{x:Type Button}">
-            <Setter Property="Height" Value="30" />
+            <Setter Property="Height" Value="32" />
             <Setter Property="Margin" Value="2,0" />
-            <Setter Property="Background" Value="{DynamicResource BackgroundSecondary}" />
+            <Setter Property="Background" Value="#F4F4F6" />
             <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Foreground" Value="#6E6E73" />
@@ -116,7 +122,7 @@
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
                                 TextElement.Foreground="{TemplateBinding Foreground}"
-                                CornerRadius="8">
+                                CornerRadius="9">
                             <ContentPresenter HorizontalAlignment="Center"
                                               VerticalAlignment="Center"
                                               TextElement.Foreground="{TemplateBinding Foreground}" />
@@ -241,7 +247,7 @@
     <Border x:Name="FocusGoalSettingsCard"
             Width="390"
             Height="{Binding DialogHeight, Mode=OneWay}"
-            Padding="24,16,24,16"
+            Padding="24,20,24,18"
             Background="{DynamicResource SurfacePrimary}"
             BorderBrush="{DynamicResource BorderPrimary}"
             BorderThickness="1"
@@ -251,15 +257,15 @@
         </Border.Effect>
         <Grid>
             <Grid.RowDefinitions>
-                <RowDefinition Height="30" />
-                <RowDefinition Height="86" />
+                <RowDefinition Height="38" />
+                <RowDefinition Height="90" />
                 <RowDefinition Height="*" />
-                <RowDefinition Height="60" />
+                <RowDefinition Height="62" />
             </Grid.RowDefinitions>
 
             <Grid Grid.Row="0">
                 <TextBlock VerticalAlignment="Center"
-                           FontSize="26"
+                           FontSize="28"
                            FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimary}"
                            Text="专注目标" />
@@ -328,14 +334,13 @@
                 </Popup>
             </Grid>
 
-            <StackPanel Grid.Row="1" Margin="0,8,0,0">
-                <TextBlock FontSize="16" FontWeight="SemiBold" Text="目标模式" />
-                <Border Height="50"
-                        Margin="0,6,0,0"
-                        Background="{DynamicResource BackgroundSecondary}"
-                        BorderBrush="{DynamicResource BorderPrimary}"
-                        BorderThickness="1"
-                        CornerRadius="12">
+            <StackPanel Grid.Row="1" Margin="0,10,0,0">
+                <TextBlock FontSize="15" FontWeight="SemiBold" Text="目标模式" />
+                <Border Height="52"
+                        Margin="0,7,0,0"
+                        Background="#F3F3F5"
+                        BorderThickness="0"
+                        CornerRadius="14">
                     <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
@@ -348,22 +353,14 @@
                             <Style TargetType="{x:Type Button}" BasedOn="{StaticResource FocusGoalSegmentButtonStyle}">
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding IsDailyFixedMode}" Value="True">
-                                        <Setter Property="Background" Value="{DynamicResource AccentTint}" />
-                                        <Setter Property="BorderBrush" Value="{DynamicResource AccentSoftBorder}" />
-                                        <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}" />
+                                        <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
+                                        <Setter Property="BorderBrush" Value="{DynamicResource BorderPrimary}" />
+                                        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
                                     </DataTrigger>
                                 </Style.Triggers>
                             </Style>
                         </Button.Style>
-                        <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
-                            <TextBlock Margin="0,0,7,0"
-                                       VerticalAlignment="Center"
-                                       FontFamily="Segoe MDL2 Assets"
-                                       FontSize="17"
-                                       Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
-                                       Text="&#xE787;" />
-                            <TextBlock VerticalAlignment="Center" Text="每日固定" />
-                        </StackPanel>
+                        <TextBlock VerticalAlignment="Center" Text="每日固定" />
                     </Button>
                     <Button x:Name="MonthlyTotalModeButton"
                             Grid.Column="1"
@@ -372,28 +369,20 @@
                             <Style TargetType="{x:Type Button}" BasedOn="{StaticResource FocusGoalSegmentButtonStyle}">
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding IsMonthlyTotalMode}" Value="True">
-                                        <Setter Property="Background" Value="{DynamicResource AccentTint}" />
-                                        <Setter Property="BorderBrush" Value="{DynamicResource AccentSoftBorder}" />
-                                        <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}" />
+                                        <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
+                                        <Setter Property="BorderBrush" Value="{DynamicResource BorderPrimary}" />
+                                        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
                                     </DataTrigger>
                                 </Style.Triggers>
                             </Style>
                         </Button.Style>
-                        <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
-                            <TextBlock Margin="0,0,7,0"
-                                       VerticalAlignment="Center"
-                                       FontFamily="Segoe MDL2 Assets"
-                                       FontSize="17"
-                                       Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
-                                       Text="&#xE9D2;" />
-                            <TextBlock VerticalAlignment="Center" Text="每月总目标" />
-                        </StackPanel>
+                        <TextBlock VerticalAlignment="Center" Text="每月总目标" />
                     </Button>
                     </Grid>
                 </Border>
             </StackPanel>
 
-            <Grid Grid.Row="2" Margin="0,4,0,0">
+            <Grid Grid.Row="2">
                 <StackPanel x:Name="DailyFixedContent">
                     <StackPanel.Style>
                         <Style TargetType="{x:Type StackPanel}">
@@ -405,12 +394,11 @@
                             </Style.Triggers>
                         </Style>
                     </StackPanel.Style>
-                    <TextBlock Margin="0,10,0,5" FontSize="16" FontWeight="SemiBold" Text="目标时长" />
-                    <Border Height="58"
-                            Background="{DynamicResource SurfacePrimary}"
-                            BorderBrush="{DynamicResource BorderPrimary}"
-                            BorderThickness="1"
-                            CornerRadius="12">
+                    <TextBlock Margin="0,10,0,6" FontSize="15" FontWeight="SemiBold" Text="目标时长" />
+                    <Border Height="64"
+                            Background="#F3F3F5"
+                            BorderThickness="0"
+                            CornerRadius="14">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="64" />
@@ -446,8 +434,9 @@
                                     Style="{StaticResource FocusGoalStepperButtonStyle}" />
                         </Grid>
                     </Border>
-                    <TextBlock Margin="0,10,0,5" FontSize="16" FontWeight="SemiBold" Text="重复" />
-                    <Grid Height="48">
+                    <TextBlock Margin="0,10,0,6" FontSize="15" FontWeight="SemiBold" Text="重复" />
+                    <Border Height="52" Background="#F3F3F5" CornerRadius="14">
+                    <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="*" />
@@ -459,22 +448,14 @@
                                 <Style TargetType="{x:Type Button}" BasedOn="{StaticResource FocusGoalRepeatButtonStyle}">
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding IsEveryDay}" Value="True">
-                                            <Setter Property="Background" Value="{DynamicResource AccentTint}" />
-                                            <Setter Property="BorderBrush" Value="{DynamicResource AccentSoftBorder}" />
-                                            <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}" />
+                                            <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
+                                            <Setter Property="BorderBrush" Value="{DynamicResource BorderPrimary}" />
+                                            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
                             </Button.Style>
-                            <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
-                                <TextBlock Margin="0,0,7,0"
-                                           VerticalAlignment="Center"
-                                           FontFamily="Segoe MDL2 Assets"
-                                           FontSize="18"
-                                           Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
-                                           Text="&#xE895;" />
-                                <TextBlock VerticalAlignment="Center" Text="每天" />
-                            </StackPanel>
+                            <TextBlock VerticalAlignment="Center" Text="每天" />
                         </Button>
                         <Button x:Name="CustomRepeatButton"
                                 Grid.Column="1"
@@ -483,25 +464,18 @@
                                 <Style TargetType="{x:Type Button}" BasedOn="{StaticResource FocusGoalRepeatButtonStyle}">
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding IsCustomRepeat}" Value="True">
-                                            <Setter Property="Background" Value="{DynamicResource AccentTint}" />
-                                            <Setter Property="BorderBrush" Value="{DynamicResource AccentSoftBorder}" />
-                                            <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}" />
+                                            <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
+                                            <Setter Property="BorderBrush" Value="{DynamicResource BorderPrimary}" />
+                                            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
                             </Button.Style>
-                            <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
-                                <TextBlock Margin="0,0,7,0"
-                                           VerticalAlignment="Center"
-                                           FontFamily="Segoe MDL2 Assets"
-                                           FontSize="17"
-                                           Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
-                                           Text="&#xE787;" />
-                                <TextBlock VerticalAlignment="Center" Text="自定义" />
-                            </StackPanel>
+                            <TextBlock VerticalAlignment="Center" Text="自定义" />
                         </Button>
                     </Grid>
-                    <ItemsControl Margin="0,12,0,0" ItemsSource="{Binding Weekdays}">
+                    </Border>
+                    <ItemsControl Margin="0,10,0,0" ItemsSource="{Binding Weekdays}">
                         <ItemsControl.Style>
                             <Style TargetType="{x:Type ItemsControl}">
                                 <Setter Property="Visibility" Value="Collapsed" />
@@ -526,9 +500,9 @@
                                         <Style TargetType="{x:Type Button}" BasedOn="{StaticResource FocusGoalWeekdayButtonStyle}">
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                                    <Setter Property="Background" Value="#FF8000" />
-                                                    <Setter Property="BorderBrush" Value="#FF8000" />
-                                                    <Setter Property="Foreground" Value="#FFFFFF" />
+                                                    <Setter Property="Background" Value="{DynamicResource AccentTint}" />
+                                                    <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
+                                                    <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}" />
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
@@ -552,12 +526,11 @@
                             </Style.Triggers>
                         </Style>
                     </StackPanel.Style>
-                    <TextBlock Margin="0,10,0,5" FontSize="16" FontWeight="SemiBold" Text="目标时长" />
-                    <Border Height="58"
-                            Background="{DynamicResource SurfacePrimary}"
-                            BorderBrush="{DynamicResource BorderPrimary}"
-                            BorderThickness="1"
-                            CornerRadius="12">
+                    <TextBlock Margin="0,10,0,6" FontSize="15" FontWeight="SemiBold" Text="目标时长" />
+                    <Border Height="64"
+                            Background="#F3F3F5"
+                            BorderThickness="0"
+                            CornerRadius="14">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="64" />
@@ -593,7 +566,7 @@
                                     Style="{StaticResource FocusGoalStepperButtonStyle}" />
                         </Grid>
                     </Border>
-                    <Grid Margin="0,14,0,0" Height="56">
+                    <Grid Margin="0,16,0,0" Height="56">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="1" />
@@ -608,7 +581,7 @@
                                        Text="&#xE787;" />
                             <StackPanel>
                                 <TextBlock FontSize="13" Foreground="{DynamicResource TextSecondary}" Text="剩余" />
-                                <TextBlock Margin="0,2,0,0" FontSize="18" FontWeight="SemiBold">
+                                <TextBlock Margin="0,2,0,0" FontSize="18" FontWeight="Normal">
                                     <Run Text="{Binding RemainingDays, Mode=OneWay}" />
                                     <Run Text="天" />
                                 </TextBlock>
@@ -624,7 +597,7 @@
                                        Text="&#xE9D2;" />
                             <StackPanel>
                                 <TextBlock FontSize="13" Foreground="{DynamicResource TextSecondary}" Text="还差" />
-                                <TextBlock Margin="0,2,0,0" FontSize="18" FontWeight="SemiBold">
+                                <TextBlock Margin="0,2,0,0" FontSize="18" FontWeight="Normal">
                                     <Run Text="{Binding RemainingHours, Mode=OneWay}" />
                                     <Run Text="小时" />
                                 </TextBlock>
@@ -637,8 +610,7 @@
             <Border Grid.Row="3"
                     Margin="0,10,0,0"
                     Padding="0,10,0,0"
-                    BorderBrush="{DynamicResource BorderPrimary}"
-                    BorderThickness="0,1,0,0">
+                    BorderThickness="0">
                 <Grid Height="40">
                     <Button x:Name="TargetSettingsCancelButton"
                             HorizontalAlignment="Right"

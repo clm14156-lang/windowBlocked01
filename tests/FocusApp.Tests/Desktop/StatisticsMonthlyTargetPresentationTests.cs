@@ -15,7 +15,7 @@ public sealed class StatisticsMonthlyTargetPresentationTests
             FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
         var card = Assert.Single(page.Descendants(Presentation + "Border").Where(border =>
             (string?)border.Attribute(Xaml + "Name") == "MonthlyFocusTargetCard"));
-        Assert.Equal("200", (string?)card.Attribute("Height"));
+        Assert.Equal("190", (string?)card.Attribute("Height"));
         var content = Assert.Single(card.Elements(Presentation + "Grid"));
         Assert.Contains(content.Descendants(Presentation + "TextBlock"), text =>
             (string?)text.Attribute("Text") == "今日时间分布");
@@ -40,13 +40,16 @@ public sealed class StatisticsMonthlyTargetPresentationTests
 
         Assert.Null(card.Descendants().FirstOrDefault(element =>
             (string?)element.Attribute(Xaml + "Name") == "TodayStatisticsDivider"));
-        Assert.Single(emptyState.Descendants(Presentation + "Ellipse"));
+        Assert.Empty(card.Descendants(Presentation + "Ellipse"));
+        Assert.DoesNotContain(card.Descendants(Presentation + "ColumnDefinition"), column => (string?)column.Attribute("Width") == "58");
         Assert.DoesNotContain(emptyState.Descendants(Presentation + "TextBlock"), text =>
             (string?)text.Attribute("Text") == "{DynamicResource StatisticsTodayCount}");
         Assert.Contains(emptyState.Descendants(Presentation + "TextBlock"), text =>
-            (string?)text.Attribute("Text") == "{Binding TodayFocusDuration}");
-        Assert.Contains(emptyState.Descendants(Presentation + "Run"), run =>
-            (string?)run.Attribute("Text") == "{Binding TodayFocusCount, Mode=OneWay}");
+            (string?)text.Attribute("Text") == "{Binding TodayFocusDurationCompact, Converter={StaticResource DurationTextPartConverter}, ConverterParameter=Value}");
+        Assert.Contains(emptyState.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "今日专注");
+        Assert.Contains(emptyState.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "{Binding TodayFocusCount, StringFormat='今日 {0} 次专注'}");
         Assert.Contains(emptyState.Descendants(Presentation + "TextBlock"), text =>
             (string?)text.Attribute("Text") == "未设置今日目标");
 
@@ -67,7 +70,7 @@ public sealed class StatisticsMonthlyTargetPresentationTests
         var cardHost = Assert.Single(page.Descendants(Presentation + "Grid").Where(grid =>
             grid.Element(Presentation + "Border")?.Attribute(Xaml + "Name")?.Value == "TodayStatisticsCard"));
 
-        Assert.Equal("130", (string?)cardHost.Attribute("Height"));
+        Assert.Equal("140", (string?)cardHost.Attribute("Height"));
         Assert.Null(cardHost.Element(Presentation + "Grid")?.Element(Presentation + "Style"));
     }
 
@@ -87,9 +90,9 @@ public sealed class StatisticsMonthlyTargetPresentationTests
         Assert.Equal("1", (string?)divider.Attribute("Width"));
         Assert.Equal("12,0", (string?)divider.Attribute("Margin"));
         Assert.Contains(details.Elements(Presentation + "TextBlock"), text =>
-            (string?)text.Attribute("Text") == "{Binding TodayFocusTargetRemainingDisplay}");
-        Assert.Contains(details.Descendants(Presentation + "Run"), run =>
-            (string?)run.Attribute("Text") == "{Binding TodayFocusCount, Mode=OneWay}");
+            (string?)text.Attribute("Text") == "{Binding TodayFocusTargetRemainingDisplay, Converter={StaticResource DurationTextPartConverter}, ConverterParameter=ReadableSummary}");
+        Assert.Contains(details.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "{Binding TodayFocusCount, StringFormat='今日 {0} 次专注'}");
     }
 
     [Fact]
@@ -124,15 +127,18 @@ public sealed class StatisticsMonthlyTargetPresentationTests
             (string?)trigger.Attribute("Binding") == "{Binding IsMonthlyFocusGoal}" &&
             (string?)trigger.Attribute("Value") == "True");
         Assert.Contains(monthlyState.Descendants(Presentation + "TextBlock"), text =>
-            (string?)text.Attribute("Text") == "{Binding MonthlyFocusTodayRecommendationDisplay}");
+            (string?)text.Attribute("Text") == "{Binding MonthlyFocusTodayRecommendationDisplay, Converter={StaticResource DurationTextPartConverter}, ConverterParameter=Value}");
         Assert.Contains(monthlyState.Descendants(Presentation + "ProgressBar"), progress =>
             (string?)progress.Attribute("Value") == "{Binding MonthlyFocusTodayProgressRatio, Mode=OneWay}");
         Assert.Contains(monthlyState.Descendants(Presentation + "TextBlock"), text =>
-            (string?)text.Attribute("Text") == "{Binding MonthlyFocusCompletedSummaryDisplay}");
-        Assert.Contains(monthlyState.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "{Binding MonthlyFocusCompletedSummaryDisplay, Converter={StaticResource DurationTextPartConverter}, ConverterParameter=ReadableSummary}");
+        Assert.DoesNotContain(monthlyState.Descendants(Presentation + "TextBlock"), text =>
             (string?)text.Attribute("Text") == "{Binding MonthlyFocusRemainingSummaryDisplay}");
-        Assert.Contains(monthlyState.Descendants(Presentation + "TextBlock"), text =>
-            (string?)text.Attribute("Text") == "{Binding MonthlyFocusRemainingDaysSummaryDisplay}");
+        var remainingDays = Assert.Single(monthlyState.Descendants(Presentation + "TextBlock").Where(text =>
+            (string?)text.Attribute("Text") == "{Binding MonthlyFocusRemainingDaysSummaryDisplay, Converter={StaticResource DurationTextPartConverter}, ConverterParameter=ReadableSummary}"));
+        Assert.Equal("Right", (string?)remainingDays.Attribute("HorizontalAlignment"));
+        Assert.Equal("1", (string?)remainingDays.Attribute("Grid.Column"));
+        Assert.DoesNotContain(monthlyState.Descendants().Attributes(), attribute => attribute.Value.Contains("今日建议", StringComparison.Ordinal));
     }
 
     [Fact]

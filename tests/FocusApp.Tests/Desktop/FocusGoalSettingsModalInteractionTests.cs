@@ -22,7 +22,7 @@ public sealed class FocusGoalSettingsModalInteractionTests
                 viewModel.SaveCommand.Execute(null);
                 viewModel.OpenCommand.Execute(null);
                 var modal = new FocusGoalSettingsModal { DataContext = viewModel };
-                var window = new Window { Width = 390, Height = 390, Content = modal, ShowInTaskbar = false };
+                var window = new Window { SizeToContent = SizeToContent.WidthAndHeight, WindowStyle = WindowStyle.None, Content = modal, ShowInTaskbar = false };
                 window.Show();
                 window.UpdateLayout();
 
