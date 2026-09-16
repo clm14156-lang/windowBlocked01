@@ -72,6 +72,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     private bool _usesPersistedState;
     private readonly bool _useSampleData;
     private readonly Func<DateTime> _localNowProvider;
+    private IReadOnlyList<LocalTaskDto> _goalTaskSnapshot = [];
     private bool _isInitialized;
     private bool _isApplyingState;
     private LocalDataSnapshotDto? _pendingState;
@@ -83,6 +84,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     {
         _useSampleData = useSampleData;
         _localNowProvider = localNowProvider ?? (() => DateTime.Now);
+        GoalTasks = new GoalTasksViewModel(() => new DateTimeOffset(_localNowProvider()));
         RangeOptions =
         [
             new StatisticsRangeOptionViewModel("近7天", 7),
@@ -236,6 +238,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     private void ApplyStateCore(LocalDataSnapshotDto state)
     {
+        _goalTaskSnapshot = state.Tasks;
         var selectedGoalId = SelectedGoal?.GoalId;
         var calendarMonth = _usesPersistedState
             ? _calendarMonth
@@ -678,6 +681,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             if (_selectedGoal is not null) _selectedGoal.PropertyChanged -= SelectedGoal_PropertyChanged;
             _selectedGoal = value;
             if (_selectedGoal is not null) _selectedGoal.PropertyChanged += SelectedGoal_PropertyChanged;
+            GoalTasks.ApplyState(value, _goalTaskSnapshot);
             OnPropertyChanged();
             OnPropertyChanged(nameof(SelectedGoalName));
             OnPropertyChanged(nameof(HasSelectedGoal));
@@ -686,6 +690,8 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     }
 
     public string SelectedGoalName => SelectedGoal?.Name ?? string.Empty;
+
+    public GoalTasksViewModel GoalTasks { get; }
 
     public bool HasSelectedGoal => SelectedGoal is not null;
 

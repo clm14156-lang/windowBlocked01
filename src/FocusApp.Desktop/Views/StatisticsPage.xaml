@@ -1554,25 +1554,18 @@
                                     <Grid.RowDefinitions><RowDefinition Height="32"/><RowDefinition Height="*"/></Grid.RowDefinitions>
                                     <Grid>
                                         <TextBlock Text="下一步任务" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimary}"/>
-                                        <Button HorizontalAlignment="Right" VerticalAlignment="Center" Padding="6,4" Background="Transparent" Style="{StaticResource GoalQuietActionStyle}"><TextBlock Text="全部任务  ›" FontSize="12" Foreground="{DynamicResource TextWeak}"/></Button>
+                                        <Button HorizontalAlignment="Right" VerticalAlignment="Center" Padding="6,4" Background="Transparent" Style="{StaticResource GoalQuietActionStyle}" Command="{Binding GoalTasks.OpenCommand}"><TextBlock Text="全部任务  ›" FontSize="12" Foreground="{DynamicResource TextWeak}"/></Button>
                                     </Grid>
                                     <ScrollViewer Grid.Row="1" Margin="0,6,0,0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                                         <ScrollViewer.Resources><Style TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource StatisticsThinScrollBarStyle}"/></ScrollViewer.Resources>
-                                        <ItemsControl x:Name="GoalNextTaskPlaceholders" xmlns:system="clr-namespace:System;assembly=mscorlib">
-                                            <ItemsControl.Items>
-                                                <system:String>完成登录页面</system:String>
-                                                <system:String>修复自动屏蔽时间轴</system:String>
-                                                <system:String>测试跨日数据</system:String>
-                                                <system:String>优化任务列表交互</system:String>
-                                                <system:String>整理项目文档</system:String>
-                                            </ItemsControl.Items>
+                                        <ItemsControl x:Name="GoalNextTasks" ItemsSource="{Binding GoalTasks.PendingTasks}">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
                                                     <Border Height="40" BorderBrush="#F2F2F5" BorderThickness="0,0,0,1">
                                                         <Grid>
                                                             <Grid.ColumnDefinitions><ColumnDefinition Width="22"/><ColumnDefinition Width="*"/><ColumnDefinition Width="24"/></Grid.ColumnDefinitions>
                                                             <Border Width="17" Height="17" HorizontalAlignment="Left" VerticalAlignment="Center" BorderBrush="#D5D7DD" BorderThickness="1.3" CornerRadius="4"/>
-                                                            <TextBlock Grid.Column="1" Margin="12,0,12,0" Text="{Binding}" VerticalAlignment="Center" FontSize="14" Foreground="{DynamicResource TextPrimary}" TextTrimming="CharacterEllipsis"/>
+                                                            <TextBlock Grid.Column="1" Margin="12,0,12,0" Text="{Binding Name}" VerticalAlignment="Center" FontSize="14" Foreground="{DynamicResource TextPrimary}" TextTrimming="CharacterEllipsis"/>
                                                             <Path Grid.Column="2" Width="13" Height="10" HorizontalAlignment="Right" VerticalAlignment="Center" Data="M 0,0 L 13,0 M 0,5 L 13,5 M 0,10 L 13,10" Stroke="#C9CCD2" StrokeThickness="1.4"/>
                                                         </Grid>
                                                     </Border>

@@ -72,7 +72,7 @@ public sealed class StatisticsGoalProgressPresentationTests
     }
 
     [Fact]
-    public void GoalDetailsUseInvestmentAndReadOnlyTaskPlaceholders()
+    public void GoalDetailsUseInvestmentAndSharedTasks()
     {
         var page = XDocument.Load(Path.Combine(FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
         var card = page.Descendants(Presentation + "Border").Single(element => (string?)element.Attribute(Xaml + "Name") == "GoalInvestmentDetailsCard");
@@ -82,13 +82,13 @@ public sealed class StatisticsGoalProgressPresentationTests
             Assert.DoesNotContain(card.Descendants(Presentation + "TextBlock"), text => (string?)text.Attribute("Text") == oldText);
         var progress = card.Descendants(Presentation + "Grid").Single(element => (string?)element.Attribute(Xaml + "Name") == "GoalInvestmentProgress");
         Assert.Equal("{Binding HasSelectedGoalTargetDuration, Converter={StaticResource BooleanToVisibilityConverter}}", (string?)progress.Attribute("Visibility"));
-        var placeholders = card.Descendants(Presentation + "ItemsControl").Single(element => (string?)element.Attribute(Xaml + "Name") == "GoalNextTaskPlaceholders");
-        Assert.Equal(5, placeholders.Elements(Presentation + "ItemsControl.Items").Elements().Count());
-        Assert.DoesNotContain(placeholders.DescendantsAndSelf().Attributes(), attribute => attribute.Name == "Command" || attribute.Name == "Click" || attribute.Name == "ItemsSource");
+        var tasks = card.Descendants(Presentation + "ItemsControl").Single(element => (string?)element.Attribute(Xaml + "Name") == "GoalNextTasks");
+        Assert.Equal("{Binding GoalTasks.PendingTasks}", (string?)tasks.Attribute("ItemsSource"));
+        Assert.Empty(tasks.Elements(Presentation + "ItemsControl.Items"));
         foreach (var label in new[] { "全部任务  ›", "查看已完成任务  ›" })
         {
             var button = card.Descendants(Presentation + "Button").Single(element => element.Descendants(Presentation + "TextBlock").Any(text => (string?)text.Attribute("Text") == label));
-            Assert.Null(button.Attribute("Command"));
+            Assert.Equal(label == "全部任务  ›" ? "{Binding GoalTasks.OpenCommand}" : null, (string?)button.Attribute("Command"));
             Assert.Null(button.Attribute("Click"));
         }
     }

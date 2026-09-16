@@ -325,6 +325,8 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
 
     public DateTimeOffset? CompletedAtUtc => _completedAtUtc;
 
+    public string CompletedTimeDisplay => CompletedAtUtc?.ToLocalTime().ToString("HH:mm") ?? "—";
+
     internal void ApplyCreatedAt(DateTimeOffset createdAtUtc)
     {
         var normalizedCreatedAtUtc = createdAtUtc.ToUniversalTime();
@@ -352,7 +354,11 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
 
         _isCompleted = isCompleted;
         _completedAtUtc = normalizedCompletedAtUtc;
-        if (completedAtChanged) OnPropertyChanged(nameof(CompletedAtUtc));
+        if (completedAtChanged)
+        {
+            OnPropertyChanged(nameof(CompletedAtUtc));
+            OnPropertyChanged(nameof(CompletedTimeDisplay));
+        }
         if (completionChanged) OnPropertyChanged(nameof(IsCompleted));
     }
 

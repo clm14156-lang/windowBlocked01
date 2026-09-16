@@ -88,6 +88,8 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         HomePage.FocusSession.PropertyChanged += FocusSession_PropertyChanged;
         StatisticsPage.GoalChanged += StatisticsPage_GoalChanged;
         StatisticsPage.GoalDeleted += StatisticsPage_GoalDeleted;
+        StatisticsPage.GoalTasks.RefreshTasksAsync = RefreshGoalTasksAsync;
+        StatisticsPage.GoalTasks.PersistTaskAsync = PersistGoalTaskAsync;
         StatisticsPage.PersistRecordDeletion = async sessionId =>
         {
             if (ServiceConnection is null || !ServiceConnection.IsConnected) return false;
@@ -942,6 +944,39 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             {
                 return false;
             }
+        }
+        finally { _targetPersistenceGate.Release(); }
+    }
+
+    private async Task RefreshGoalTasksAsync()
+    {
+        if (ServiceConnection is null || !ServiceConnection.IsConnected) return;
+        try
+        {
+            var state = await ServiceConnection.RefreshStateAsync();
+            HomePage.FocusTargetModal.ApplyState(state.Targets, state.Tasks, state.Settings.SelectedTargetId);
+            StatisticsPage.ApplyState(state);
+        }
+        catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException) { }
+    }
+
+    private async Task<LocalTaskDto?> PersistGoalTaskAsync(LocalTaskDto task, bool insertAtTop)
+    {
+        if (ServiceConnection is null || !ServiceConnection.IsConnected) return null;
+        await _targetPersistenceGate.WaitAsync();
+        try
+        {
+            if (ServiceConnection.State is not { } state) return null;
+            var command = GoalTaskPersistence.CreateSaveCommand(state, task, insertAtTop);
+            if (command is null) return null;
+            try
+            {
+                var result = await ServiceConnection.SaveTargetAsync(command);
+                HomePage.FocusTargetModal.ApplyState(result.State.Targets, result.State.Tasks, result.State.Settings.SelectedTargetId);
+                StatisticsPage.ApplyState(result.State);
+                return result.State.Tasks.FirstOrDefault(item => item.TaskId == task.TaskId && item.TargetId == task.TargetId);
+            }
+            catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException) { return null; }
         }
         finally { _targetPersistenceGate.Release(); }
     }

@@ -964,6 +964,12 @@
                                    HorizontalAlignment="Stretch"
                                    VerticalAlignment="Stretch"
                                    DataContext="{Binding StatisticsPage}" />
+            <views:GoalTasksModal Grid.ColumnSpan="2"
+                                  Panel.ZIndex="205"
+                                  Margin="-1"
+                                  HorizontalAlignment="Stretch"
+                                  VerticalAlignment="Stretch"
+                                  DataContext="{Binding StatisticsPage.GoalTasks}" />
         </Grid>
     </Border>
 </Window>
