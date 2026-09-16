@@ -85,6 +85,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         _useSampleData = useSampleData;
         _localNowProvider = localNowProvider ?? (() => DateTime.Now);
         GoalTasks = new GoalTasksViewModel(() => new DateTimeOffset(_localNowProvider()));
+        GoalInvestmentTrend = new GoalInvestmentTrendViewModel(_localNowProvider);
         RangeOptions =
         [
             new StatisticsRangeOptionViewModel("近7天", 7),
@@ -99,14 +100,11 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         QuickTargetIcons = [];
         GoalDurationOptions = new ObservableCollection<GoalDurationOptionViewModel>
         {
-            new("不设置", null),
-            new("20 小时", 20 * 60),
-            new("50 小时", 50 * 60),
-            new("100 小时", 100 * 60),
+            new("20小时", 20 * 60),
+            new("50小时", 50 * 60),
+            new("100小时", 100 * 60),
             new("自定义", null, true)
         };
-        _selectedGoalDurationOption = GoalDurationOptions[0];
-        _selectedGoalDurationOption.IsSelected = true;
         _selectedTargetIcon = AllTargetIcons.FirstOrDefault(icon =>
                                   string.Equals(
                                       icon.FileName,
@@ -667,6 +665,8 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     public GoalTasksViewModel GoalTasks { get; }
 
+    public GoalInvestmentTrendViewModel GoalInvestmentTrend { get; }
+
     public bool HasSelectedGoal => SelectedGoal is not null;
 
     public bool HasSelectedGoalRemark => !string.IsNullOrWhiteSpace(SelectedGoal?.Remark);
@@ -721,6 +721,8 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(SelectedGoalName));
         if (e.PropertyName is nameof(GoalOverviewItemViewModel.Remark) or nameof(GoalOverviewItemViewModel.TargetDurationMinutes))
             NotifyGoalDetailStatistics();
+        else
+            GoalInvestmentTrend.ApplyState(SelectedGoal, FocusSessionRecords);
     }
 
     private void NotifyGoalDetailStatistics()
@@ -734,6 +736,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(SelectedGoalTargetDurationDisplay));
         OnPropertyChanged(nameof(SelectedGoalInvestmentProgressRatio));
         OnPropertyChanged(nameof(SelectedGoalInvestmentProgressDisplay));
+        GoalInvestmentTrend.ApplyState(SelectedGoal, FocusSessionRecords);
     }
 
     private bool _isGoalAddFeedbackVisible;
@@ -1202,6 +1205,13 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     private void SelectGoalDuration(GoalDurationOptionViewModel? option)
     {
         if (option is null || !GoalDurationOptions.Contains(option)) return;
+        if (ReferenceEquals(option, _selectedGoalDurationOption))
+        {
+            SetGoalDuration(null);
+            IsCustomDurationPopupOpen = false;
+            return;
+        }
+
         if (option.IsCustom)
         {
             CustomDurationInput = _selectedGoalDurationOption?.IsCustom == true && _selectedGoalDurationMinutes is { } minutes
@@ -1246,17 +1256,17 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     private void SetGoalDuration(int? minutes)
     {
-        var option = minutes switch
+        GoalDurationOptionViewModel? option = minutes switch
         {
-            null => GoalDurationOptions[0],
-            20 * 60 => GoalDurationOptions[1],
-            50 * 60 => GoalDurationOptions[2],
-            100 * 60 => GoalDurationOptions[3],
+            null => null,
+            20 * 60 => GoalDurationOptions.Single(item => item.Minutes == 20 * 60),
+            50 * 60 => GoalDurationOptions.Single(item => item.Minutes == 50 * 60),
+            100 * 60 => GoalDurationOptions.Single(item => item.Minutes == 100 * 60),
             _ => GoalDurationOptions.Single(item => item.IsCustom)
         };
         _selectedGoalDurationOption = option;
         _selectedGoalDurationMinutes = minutes;
-        CustomDurationInput = minutes is { } value && option.IsCustom
+        CustomDurationInput = minutes is { } value && option?.IsCustom == true
             ? (value / 60).ToString(CultureInfo.InvariantCulture)
             : string.Empty;
         UpdateGoalDurationSelection();
@@ -1840,9 +1850,12 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
             _selectedRange = value;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(TrendRangeTitle));
             RefreshTrend();
         }
     }
+
+    public string TrendRangeTitle => $"{SelectedRange.Label}趋势";
 
     public PointCollection TrendLinePoints { get; } = [];
 
@@ -1874,6 +1887,10 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     public string AverageDurationMinutesValueDisplay => (_averageDurationDisplayMinutes % 60).ToString();
 
+    public string PeriodTotalOverviewDisplay => FormatCompactDuration(_periodTotalDisplayMinutes);
+
+    public string AverageDurationOverviewDisplay => FormatCompactDuration(_averageDurationDisplayMinutes);
+
     public int TrendAverageMinutes { get; private set; }
 
     public double TrendAverageY { get; private set; }
@@ -1890,6 +1907,11 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         : string.Empty;
     public string ComparisonHoursUnitDisplay => Math.Abs(_comparisonDifferenceMinutes) >= 60 ? " 小时 " : string.Empty;
     public string ComparisonMinutesValueDisplay => (Math.Abs(_comparisonDifferenceMinutes) % 60).ToString();
+
+    public string ComparisonOverviewDisplay =>
+        $"{ComparisonDirectionDisplay.Trim()}{FormatCompactDuration(Math.Abs(_comparisonDifferenceMinutes))}";
+
+    public bool IsComparisonIncrease => _comparisonDifferenceMinutes > 0;
 
     public string TodayDateDisplay
     {
@@ -2057,6 +2079,8 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(AverageDurationHoursValueDisplay));
         OnPropertyChanged(nameof(AverageDurationHoursUnitDisplay));
         OnPropertyChanged(nameof(AverageDurationMinutesValueDisplay));
+        OnPropertyChanged(nameof(PeriodTotalOverviewDisplay));
+        OnPropertyChanged(nameof(AverageDurationOverviewDisplay));
         OnPropertyChanged(nameof(TrendAverageMinutes));
         OnPropertyChanged(nameof(TrendAverageY));
         OnPropertyChanged(nameof(TrendAverageLabelTop));
@@ -2066,6 +2090,8 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(ComparisonHoursValueDisplay));
         OnPropertyChanged(nameof(ComparisonHoursUnitDisplay));
         OnPropertyChanged(nameof(ComparisonMinutesValueDisplay));
+        OnPropertyChanged(nameof(ComparisonOverviewDisplay));
+        OnPropertyChanged(nameof(IsComparisonIncrease));
         OnPropertyChanged(nameof(TrendCurveGeometry));
         OnPropertyChanged(nameof(TrendAreaGeometry));
         OnPropertyChanged(nameof(YAxisTicks));

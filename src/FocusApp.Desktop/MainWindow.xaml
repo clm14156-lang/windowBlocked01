@@ -970,6 +970,12 @@
                                   HorizontalAlignment="Stretch"
                                   VerticalAlignment="Stretch"
                                   DataContext="{Binding StatisticsPage.GoalTasks}" />
+            <views:GoalInvestmentTrendModal Grid.ColumnSpan="2"
+                                            Panel.ZIndex="206"
+                                            Margin="-1"
+                                            HorizontalAlignment="Stretch"
+                                            VerticalAlignment="Stretch"
+                                            DataContext="{Binding StatisticsPage.GoalInvestmentTrend}" />
         </Grid>
     </Border>
 </Window>

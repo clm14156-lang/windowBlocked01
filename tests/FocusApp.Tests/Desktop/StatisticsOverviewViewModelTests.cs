@@ -231,6 +231,7 @@ public sealed class StatisticsOverviewViewModelTests
         var viewModel = new StatisticsOverviewViewModel();
 
         Assert.Equal("近7天", viewModel.SelectedRange.Label);
+        Assert.Equal("近7天趋势", viewModel.TrendRangeTitle);
         Assert.Equal(7, viewModel.TrendPoints.Count);
         Assert.Equal(7, viewModel.TrendLinePoints.Count);
         Assert.Equal(8, viewModel.TrendPoints[0].ChartX);
@@ -274,6 +275,10 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.Equal(zeroHourTick.ChartY, areaFigure.StartPoint.Y);
         Assert.Equal(zeroHourTick.ChartY, ((LineSegment)areaFigure.Segments[^1]).Point.Y);
         Assert.Equal("14 小时 20 分钟", viewModel.PeriodTotalDisplay);
+        Assert.Equal("14小时20分钟", viewModel.PeriodTotalOverviewDisplay);
+        Assert.Equal("2小时2分钟", viewModel.AverageDurationOverviewDisplay);
+        Assert.Equal("↑35分钟", viewModel.ComparisonOverviewDisplay);
+        Assert.True(viewModel.IsComparisonIncrease);
         Assert.Equal(293, viewModel.TrendAverageMinutes);
         Assert.Equal("4小时53分钟", viewModel.TrendAverageDurationDisplay);
         Assert.Equal(126.6479166667, viewModel.TrendAverageY, 5);
@@ -287,6 +292,7 @@ public sealed class StatisticsOverviewViewModelTests
 
         viewModel.SelectedRange = viewModel.RangeOptions[1];
 
+        Assert.Equal("近30天趋势", viewModel.TrendRangeTitle);
         Assert.Equal(30, viewModel.TrendPoints.Count);
         Assert.Equal(30, viewModel.TrendLinePoints.Count);
         Assert.Equal("本月总计", viewModel.PeriodTotalLabel);
@@ -517,6 +523,9 @@ public sealed class StatisticsOverviewViewModelTests
         viewModel.AddGoalCommand.Execute(null);
 
         Assert.True(viewModel.IsCreateGoalDialogOpen);
+        Assert.Equal(new[] { "20小时", "50小时", "100小时", "自定义" }, viewModel.GoalDurationOptions.Select(option => option.Label));
+        Assert.Null(viewModel.SelectedGoalDurationMinutes);
+        Assert.DoesNotContain(viewModel.GoalDurationOptions, option => option.IsSelected);
         Assert.Equal(originalCount, viewModel.Goals.Count);
         Assert.False(viewModel.ConfirmCreateGoalCommand.CanExecute(null));
 
@@ -538,9 +547,35 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.Equal("code.png", viewModel.RecentTargetIconFileNames[0]);
         Assert.Equal("code.png", viewModel.QuickTargetIcons[0].FileName);
         Assert.Equal(6, viewModel.QuickTargetIcons.Count);
+        Assert.Null(added.TargetDurationMinutes);
         Assert.False(viewModel.IsCreateGoalDialogOpen);
         Assert.Equal("0分钟", viewModel.SelectedGoalTotalInvestmentDisplay);
         Assert.DoesNotContain(viewModel.FocusSessionRecords, record => record.GoalId == added.GoalId);
+    }
+
+    [Fact]
+    public void GoalDurationSelectionSwitchesAndCanReturnToEmpty()
+    {
+        var viewModel = new StatisticsOverviewViewModel();
+        viewModel.AddGoalCommand.Execute(null);
+        var twentyHours = viewModel.GoalDurationOptions.Single(option => option.Minutes == 20 * 60);
+        var fiftyHours = viewModel.GoalDurationOptions.Single(option => option.Minutes == 50 * 60);
+
+        viewModel.SelectGoalDurationCommand.Execute(twentyHours);
+
+        Assert.Equal(20 * 60, viewModel.SelectedGoalDurationMinutes);
+        Assert.True(twentyHours.IsSelected);
+
+        viewModel.SelectGoalDurationCommand.Execute(fiftyHours);
+
+        Assert.Equal(50 * 60, viewModel.SelectedGoalDurationMinutes);
+        Assert.False(twentyHours.IsSelected);
+        Assert.True(fiftyHours.IsSelected);
+
+        viewModel.SelectGoalDurationCommand.Execute(fiftyHours);
+
+        Assert.Null(viewModel.SelectedGoalDurationMinutes);
+        Assert.DoesNotContain(viewModel.GoalDurationOptions, option => option.IsSelected);
     }
 
     [Fact]
@@ -595,6 +630,11 @@ public sealed class StatisticsOverviewViewModelTests
         viewModel.ConfirmCustomDurationCommand.Execute(null);
         Assert.False(viewModel.IsCustomDurationPopupOpen);
         Assert.Equal(25 * 60, viewModel.SelectedGoalDurationMinutes);
+
+        viewModel.SelectGoalDurationCommand.Execute(custom);
+        Assert.False(viewModel.IsCustomDurationPopupOpen);
+        Assert.Null(viewModel.SelectedGoalDurationMinutes);
+        Assert.DoesNotContain(viewModel.GoalDurationOptions, option => option.IsSelected);
     }
 
     [Fact]

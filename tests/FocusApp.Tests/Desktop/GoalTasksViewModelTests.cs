@@ -196,6 +196,25 @@ public sealed class GoalTasksViewModelTests
         Assert.Null(model.GoalId);
         Assert.Empty(model.PendingTasks);
         Assert.False(model.OpenCommand.CanExecute(null));
+        Assert.False(model.OpenCompletedCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public async Task CompletedEntryOpensModalOnCompletedTabWithoutChangingDefaultEntry()
+    {
+        var model = new GoalTasksViewModel(() => Now);
+        model.ApplyState(Goal(), [TaskData("pending"), TaskData("done", completedAt: Now)]);
+
+        model.OpenCompletedCommand.Execute(null);
+        Assert.True(model.IsOpen);
+        Assert.True(model.IsCompletedTab);
+        Assert.False(model.IsPendingTab);
+
+        Assert.True(await model.CloseAsync());
+        model.OpenCommand.Execute(null);
+        Assert.True(model.IsOpen);
+        Assert.False(model.IsCompletedTab);
+        Assert.True(model.IsPendingTab);
     }
 
     [Fact]

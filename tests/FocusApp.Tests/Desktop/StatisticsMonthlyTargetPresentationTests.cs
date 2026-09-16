@@ -142,7 +142,7 @@ public sealed class StatisticsMonthlyTargetPresentationTests
     }
 
     [Fact]
-    public void TrendCard_UsesCompactTopSummaryLayout()
+    public void TrendCard_UsesHierarchicalToolbarAndOverviewPopTip()
     {
         var page = XDocument.Load(Path.Combine(
             FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
@@ -155,23 +155,36 @@ public sealed class StatisticsMonthlyTargetPresentationTests
         Assert.DoesNotContain(card.Descendants(Presentation + "Border"), border =>
             (string?)border.Attribute(Xaml + "Name") == "TrendSummaryFooter");
 
-        var header = Assert.Single(card.Descendants(Presentation + "StackPanel").Where(panel =>
-            (string?)panel.Attribute(Xaml + "Name") == "TrendSummaryHeader"));
-        Assert.Contains(header.Descendants(Presentation + "Run"), run =>
-            (string?)run.Attribute("Text") == "{Binding PeriodTotalHoursValueDisplay, Mode=OneWay}");
-        Assert.Contains(header.Descendants(Presentation + "Run"), run =>
-            (string?)run.Attribute("Text") == "{Binding AverageDurationMinutesValueDisplay, Mode=OneWay}");
-        Assert.Contains(header.Descendants(Presentation + "Run"), run =>
-            (string?)run.Attribute("Text") == "{Binding ComparisonDirectionDisplay, Mode=OneWay}");
-        Assert.Contains(header.Descendants(Presentation + "TextBlock"), text =>
-            (string?)text.Attribute("Text") == "·");
+        Assert.DoesNotContain(card.Descendants(), element =>
+            (string?)element.Attribute(Xaml + "Name") == "TrendSummaryHeader");
+        var toolbar = Assert.Single(card.Descendants(Presentation + "Grid").Where(grid =>
+            (string?)grid.Attribute(Xaml + "Name") == "TrendToolbar"));
+        var title = Assert.Single(toolbar.Elements(Presentation + "TextBlock"));
+        Assert.Equal("{Binding TrendRangeTitle, Mode=OneWay}", (string?)title.Attribute("Text"));
+        Assert.Equal("20", (string?)title.Attribute("FontSize"));
+        Assert.Equal("SemiBold", (string?)title.Attribute("FontWeight"));
+
+        var overviewButton = Assert.Single(toolbar.Descendants(Presentation + "ToggleButton").Where(button =>
+            (string?)button.Attribute(Xaml + "Name") == "TrendOverviewButton"));
+        Assert.Contains(overviewButton.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "数据概览");
+        var overviewPopup = Assert.Single(toolbar.Descendants(Presentation + "Popup").Where(popup =>
+            (string?)popup.Attribute(Xaml + "Name") == "TrendOverviewPopup"));
+        Assert.Equal("False", (string?)overviewPopup.Attribute("StaysOpen"));
+        Assert.Equal("{Binding ElementName=TrendOverviewButton}", (string?)overviewPopup.Attribute("PlacementTarget"));
+        Assert.Contains(overviewPopup.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "{Binding PeriodTotalOverviewDisplay, Mode=OneWay}");
+        Assert.Contains(overviewPopup.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "{Binding AverageDurationOverviewDisplay, Mode=OneWay}");
+        Assert.Contains(overviewPopup.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "{Binding ComparisonOverviewDisplay, Mode=OneWay}");
 
         Assert.Contains(card.Descendants(Presentation + "ComboBox"), combo =>
             (string?)combo.Attribute("ItemsSource") == "{Binding RangeOptions}");
 
         var plot = Assert.Single(card.Descendants(Presentation + "Grid").Where(grid =>
             (string?)grid.Attribute("Height") == "194"));
-        Assert.Equal("0,22,0,0", (string?)plot.Attribute("Margin"));
+        Assert.Equal("0,12,0,0", (string?)plot.Attribute("Margin"));
     }
 
     private static string FindRepositoryRoot()

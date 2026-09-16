@@ -31,13 +31,13 @@ public sealed class StatisticsGoalProgressPresentationTests
         foreach (var label in new[] { "全部任务  ›", "查看已完成任务  ›" })
         {
             var button = card.Descendants(Presentation + "Button").Single(element => element.Descendants(Presentation + "TextBlock").Any(text => (string?)text.Attribute("Text") == label));
-            Assert.Equal(label == "全部任务  ›" ? "{Binding GoalTasks.OpenCommand}" : null, (string?)button.Attribute("Command"));
+            Assert.Equal(label == "全部任务  ›" ? "{Binding GoalTasks.OpenCommand}" : "{Binding GoalTasks.OpenCompletedCommand}", (string?)button.Attribute("Command"));
             Assert.Null(button.Attribute("Click"));
         }
         var trend = card.Descendants(Presentation + "Button").Single(button =>
             (string?)button.Attribute(Xaml + "Name") == "GoalInvestmentTrendButton");
         Assert.Equal("投入趋势  ›", (string?)trend.Attribute("Content"));
-        Assert.Null(trend.Attribute("Command"));
+        Assert.Equal("{Binding GoalInvestmentTrend.OpenCommand}", (string?)trend.Attribute("Command"));
         Assert.Null(trend.Attribute("Click"));
     }
 

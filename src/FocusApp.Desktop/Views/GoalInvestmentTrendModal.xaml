@@ -1,0 +1,232 @@
+<UserControl x:Class="FocusApp.Desktop.Views.GoalInvestmentTrendModal"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:views="clr-namespace:FocusApp.Desktop.Views"
+             UseLayoutRounding="True" SnapsToDevicePixels="True" Focusable="True"
+             TextElement.FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI"
+             TextElement.FontSize="13" TextElement.FontWeight="Normal"
+             KeyboardNavigation.TabNavigation="Cycle" PreviewKeyDown="Modal_PreviewKeyDown"
+             IsVisibleChanged="Modal_IsVisibleChanged">
+    <UserControl.Style>
+        <Style TargetType="UserControl"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding IsOpen}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style>
+    </UserControl.Style>
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        <Style TargetType="{x:Type TextBlock}">
+            <Setter Property="FontFamily" Value="Segoe UI Variable, Microsoft YaHei UI, Segoe UI"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="Normal"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+        </Style>
+        <Style x:Key="TrendQuietButton" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/><Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+                <Border x:Name="Surface" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" CornerRadius="7"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Surface" Property="Background" Value="#F5F6F8"/></Trigger><Trigger Property="IsPressed" Value="True"><Setter TargetName="Surface" Property="Background" Value="#ECEEF1"/></Trigger></ControlTemplate.Triggers>
+            </ControlTemplate></Setter.Value></Setter>
+        </Style>
+        <Style x:Key="TrendRangeButton" TargetType="Button">
+            <Setter Property="Height" Value="32"/><Setter Property="Padding" Value="14,0"/><Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontFamily" Value="Segoe UI Variable, Microsoft YaHei UI, Segoe UI"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/><Setter Property="FontSize" Value="13"/><Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="Cursor" Value="Hand"/><Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+                <Border x:Name="Surface" Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}" CornerRadius="9">
+                    <Border.Effect><DropShadowEffect BlurRadius="9" ShadowDepth="2" Direction="270" Color="#8B93A1" Opacity="0.10"/></Border.Effect>
+                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" TextElement.FontFamily="{TemplateBinding FontFamily}" TextElement.FontSize="{TemplateBinding FontSize}" TextElement.FontWeight="{TemplateBinding FontWeight}" TextElement.Foreground="{TemplateBinding Foreground}"/>
+                </Border>
+                <ControlTemplate.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#F0F1F3"/></Trigger>
+                    <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource Self}}" Value="True"><Setter Property="Background" Value="White"/><Setter Property="Foreground" Value="{DynamicResource AccentPrimary}"/></DataTrigger>
+                </ControlTemplate.Triggers>
+            </ControlTemplate></Setter.Value></Setter>
+        </Style>
+        <Style x:Key="TrendYearNavigationButton" TargetType="Button">
+            <Setter Property="Width" Value="30"/><Setter Property="Height" Value="30"/><Setter Property="Padding" Value="0"/>
+            <Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Foreground" Value="#8D929B"/><Setter Property="FontSize" Value="19"/><Setter Property="FontWeight" Value="Normal"/>
+            <Setter Property="Cursor" Value="Hand"/><Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+                <Border x:Name="Surface" Background="{TemplateBinding Background}" CornerRadius="7"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                <ControlTemplate.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Surface" Property="Background" Value="#F5F6F8"/></Trigger>
+                    <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.28"/><Setter Property="Cursor" Value="Arrow"/></Trigger>
+                </ControlTemplate.Triggers>
+            </ControlTemplate></Setter.Value></Setter>
+        </Style>
+        <Style x:Key="TrendMonthOptionButton" TargetType="Button">
+            <Setter Property="Width" Value="48"/><Setter Property="Height" Value="32"/><Setter Property="Padding" Value="0"/>
+            <Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/><Setter Property="FontSize" Value="13"/><Setter Property="FontWeight" Value="Normal"/>
+            <Setter Property="Cursor" Value="Hand"/><Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+                <Border x:Name="MonthSurface" Background="{TemplateBinding Background}" CornerRadius="8"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" TextElement.Foreground="{TemplateBinding Foreground}" TextElement.FontSize="{TemplateBinding FontSize}" TextElement.FontWeight="{TemplateBinding FontWeight}"/></Border>
+                <ControlTemplate.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#F7F8FA"/></Trigger>
+                    <DataTrigger Binding="{Binding IsSelected}" Value="True"><Setter Property="Background" Value="#FFF2E8"/><Setter Property="Foreground" Value="{DynamicResource AccentPrimary}"/><Setter Property="FontWeight" Value="Medium"/></DataTrigger>
+                </ControlTemplate.Triggers>
+            </ControlTemplate></Setter.Value></Setter>
+        </Style>
+        <Style x:Key="TrendProgressBarStyle" TargetType="ProgressBar">
+            <Setter Property="Height" Value="6"/><Setter Property="Background" Value="#ECEEF1"/><Setter Property="Foreground" Value="{DynamicResource AccentPrimary}"/>
+            <Setter Property="BorderThickness" Value="0"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ProgressBar">
+                <Grid><Border Background="{TemplateBinding Background}" CornerRadius="3"/><Grid x:Name="PART_Indicator" HorizontalAlignment="Left"><Border Background="{TemplateBinding Foreground}" CornerRadius="3"/></Grid></Grid>
+            </ControlTemplate></Setter.Value></Setter>
+        </Style>
+        <Style x:Key="TrendTaskButton" TargetType="ToggleButton">
+            <Setter Property="Padding" Value="5,3"/><Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontFamily" Value="Segoe UI Variable, Microsoft YaHei UI, Segoe UI"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/><Setter Property="FontSize" Value="13"/><Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="Cursor" Value="Hand"/><Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ToggleButton">
+                <Border x:Name="Surface" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" CornerRadius="6"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" TextElement.FontFamily="{TemplateBinding FontFamily}" TextElement.FontSize="{TemplateBinding FontSize}" TextElement.FontWeight="{TemplateBinding FontWeight}" TextElement.Foreground="{TemplateBinding Foreground}"/></Border>
+                <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Surface" Property="Background" Value="#F5F6F8"/></Trigger><Trigger Property="IsChecked" Value="True"><Setter TargetName="Surface" Property="Background" Value="#FFF3E9"/><Setter Property="Foreground" Value="{DynamicResource AccentPrimary}"/></Trigger></ControlTemplate.Triggers>
+            </ControlTemplate></Setter.Value></Setter>
+        </Style>
+        <Style x:Key="TrendMetricValueStyle" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{DynamicResource FontFamilyNumeric}"/>
+            <Setter Property="FontSize" Value="24"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+        </Style>
+        <Style x:Key="TrendThinScrollBar" TargetType="ScrollBar">
+            <Setter Property="Width" Value="5"/><Setter Property="MinWidth" Value="5"/><Setter Property="Opacity" Value="0.35"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ScrollBar"><Grid Width="5"><Track x:Name="PART_Track" Margin="0,2" IsDirectionReversed="True" Orientation="{TemplateBinding Orientation}"><Track.DecreaseRepeatButton><RepeatButton Command="{x:Static ScrollBar.PageUpCommand}" CommandTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}" Background="Transparent" BorderThickness="0"/></Track.DecreaseRepeatButton><Track.Thumb><Thumb MinHeight="22"><Thumb.Template><ControlTemplate TargetType="Thumb"><Border Width="3" Background="#A8ADB7" CornerRadius="1.5"/></ControlTemplate></Thumb.Template></Thumb></Track.Thumb><Track.IncreaseRepeatButton><RepeatButton Command="{x:Static ScrollBar.PageDownCommand}" CommandTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}" Background="Transparent" BorderThickness="0"/></Track.IncreaseRepeatButton></Track></Grid></ControlTemplate></Setter.Value></Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Background="{DynamicResource ModalScrim}" MouseDown="Overlay_MouseDown">
+        <Border x:Name="TrendModalCard" Width="700" Height="540" HorizontalAlignment="Center" VerticalAlignment="Center"
+                Padding="22,18,22,18" Background="White" BorderBrush="#E8E9EC" BorderThickness="1" CornerRadius="18"
+                MouseDown="ModalCard_MouseDown">
+            <Border.Effect><DropShadowEffect BlurRadius="28" ShadowDepth="5" Direction="270" Opacity="0.12"/></Border.Effect>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="68"/><RowDefinition Height="10"/><RowDefinition Height="96"/><RowDefinition Height="10"/>
+                    <RowDefinition Height="184"/><RowDefinition Height="10"/><RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Top">
+                        <Border Width="48" Height="48" Background="#FFF2E8" CornerRadius="24">
+                            <Image Width="30" Height="30" Source="{Binding GoalIconSource}" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"/>
+                        </Border>
+                        <StackPanel Margin="12,2,0,0">
+                            <TextBlock FontSize="17" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="{Binding GoalName}" TextTrimming="CharacterEllipsis" MaxWidth="280"/>
+                            <TextBlock Margin="0,4,0,0" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding GoalRemark}" TextTrimming="CharacterEllipsis" MaxWidth="300" Visibility="{Binding HasGoalRemark, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                        </StackPanel>
+                    </StackPanel>
+                    <Button Grid.Column="1" Width="28" Height="28" Margin="0,-5,-5,0" HorizontalAlignment="Right" VerticalAlignment="Top" Style="{StaticResource TrendQuietButton}" Command="{Binding CloseCommand}" AutomationProperties.Name="关闭投入趋势">
+                        <TextBlock Text="×" FontSize="23" FontWeight="Light" Foreground="{DynamicResource TextWeak}"/>
+                    </Button>
+                    <Border x:Name="RangeSelectorSurface" Grid.Column="1" Height="40" Margin="0,24,0,0" Padding="3" HorizontalAlignment="Right" VerticalAlignment="Top" Background="#F7F8FA" BorderBrush="#EFF0F2" BorderThickness="1" CornerRadius="13">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="70"/><ColumnDefinition Width="70"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <Button Content="7天" Tag="{Binding IsSevenDaysRange}" Style="{StaticResource TrendRangeButton}" Command="{Binding SelectSevenDaysCommand}"/>
+                            <Button Grid.Column="1" Content="30天" Tag="{Binding IsThirtyDaysRange}" Style="{StaticResource TrendRangeButton}" Command="{Binding SelectThirtyDaysCommand}"/>
+                            <Button x:Name="MonthRangeButton" Grid.Column="2" MinWidth="88" Tag="{Binding IsMonthRange}" Command="{Binding SelectMonthModeCommand}">
+                                <Button.Style><Style TargetType="Button" BasedOn="{StaticResource TrendRangeButton}"><Style.Triggers><MultiDataTrigger><MultiDataTrigger.Conditions><Condition Binding="{Binding IsMonthMenuOpen}" Value="True"/><Condition Binding="{Binding IsMonthRange}" Value="False"/></MultiDataTrigger.Conditions><Setter Property="Background" Value="#FFF2E8"/><Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/></MultiDataTrigger></Style.Triggers></Style></Button.Style>
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center"><TextBlock FontSize="13" FontWeight="Medium" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Text="{Binding MonthButtonText}" TextWrapping="NoWrap"/><TextBlock Margin="6,1,0,0" FontFamily="Segoe MDL2 Assets" FontSize="9" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Text="&#xE70D;"/></StackPanel>
+                            </Button>
+                            <Popup x:Name="MonthPickerPopup" Grid.Column="2" HorizontalOffset="-108" IsOpen="{Binding IsMonthMenuOpen, Mode=TwoWay}" Placement="Bottom" PlacementTarget="{Binding ElementName=MonthRangeButton}" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
+                                <Border x:Name="MonthPickerSurface" Width="220" Height="220" Margin="0,8,0,0" Padding="14,12" Background="White" BorderBrush="#ECEEF1" BorderThickness="1" CornerRadius="14">
+                                    <Border.Effect><DropShadowEffect BlurRadius="20" ShadowDepth="4" Direction="270" Color="#687080" Opacity="0.13"/></Border.Effect>
+                                    <Grid>
+                                        <Grid.RowDefinitions><RowDefinition Height="32"/><RowDefinition Height="10"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="32"/><ColumnDefinition Width="*"/><ColumnDefinition Width="32"/></Grid.ColumnDefinitions>
+                                            <Button Content="‹" Style="{StaticResource TrendYearNavigationButton}" Command="{Binding PreviousMonthYearCommand}" AutomationProperties.Name="上一数据年份"/>
+                                            <TextBlock Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{Binding MonthPickerYearDisplay}"/>
+                                            <Button Grid.Column="2" Content="›" Style="{StaticResource TrendYearNavigationButton}" Command="{Binding NextMonthYearCommand}" AutomationProperties.Name="下一数据年份"/>
+                                        </Grid>
+                                        <ItemsControl x:Name="AvailableMonthGrid" Grid.Row="2" HorizontalAlignment="Left" VerticalAlignment="Top" ItemsSource="{Binding AvailableMonths}">
+                                            <ItemsControl.Style><Style TargetType="ItemsControl"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding HasAvailableMonths}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></ItemsControl.Style>
+                                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel Width="174" ItemWidth="58" ItemHeight="38"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate><DataTemplate>
+                                                <Button Content="{Binding PickerDisplay}" Style="{StaticResource TrendMonthOptionButton}" Command="{Binding DataContext.SelectMonthCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
+                                            </DataTemplate></ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        <TextBlock x:Name="MonthPickerEmptyState" Grid.Row="2" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="13" FontWeight="Normal" Foreground="#A1A1A6" Text="暂无数据">
+                                            <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Visible"/><Style.Triggers><DataTrigger Binding="{Binding HasAvailableMonths}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                                        </TextBlock>
+                                    </Grid>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <Grid Grid.Row="2">
+                    <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="12"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                    <Border Padding="16,10" Background="#FCFCFD" BorderBrush="#ECEEF1" BorderThickness="1" CornerRadius="12">
+                        <StackPanel>
+                            <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondary}" Text="{Binding PeriodInvestmentTitle}"/>
+                            <TextBlock Margin="0,6,0,0" Style="{StaticResource TrendMetricValueStyle}">
+                                <Run Text="{Binding PeriodInvestment.HoursValue, Mode=OneWay}"/><Run Text="{Binding PeriodInvestment.HoursUnit, Mode=OneWay}" FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI" FontSize="15" FontWeight="Medium" Foreground="{DynamicResource TextSecondary}"/><Run Text="{Binding PeriodInvestment.MinutesValue, Mode=OneWay}"/><Run Text="{Binding PeriodInvestment.MinutesUnit, Mode=OneWay}" FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI" FontSize="15" FontWeight="Medium" Foreground="{DynamicResource TextSecondary}"/>
+                            </TextBlock>
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="2" Padding="16,10" Background="#FCFCFD" BorderBrush="#ECEEF1" BorderThickness="1" CornerRadius="12">
+                        <StackPanel>
+                            <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondary}" Text="累计投入"/>
+                            <StackPanel Margin="0,6,0,0" Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource TrendMetricValueStyle}"><Run Text="{Binding TotalInvestment.HoursValue, Mode=OneWay}"/><Run Text="{Binding TotalInvestment.HoursUnit, Mode=OneWay}" FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI" FontSize="15" FontWeight="Medium" Foreground="{DynamicResource TextSecondary}"/><Run Text="{Binding TotalInvestment.MinutesValue, Mode=OneWay}"/><Run Text="{Binding TotalInvestment.MinutesUnit, Mode=OneWay}" FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI" FontSize="15" FontWeight="Medium" Foreground="{DynamicResource TextSecondary}"/></TextBlock>
+                                <TextBlock Margin="6,8,0,0" FontSize="13" Foreground="{DynamicResource TextSecondary}" Text="{Binding TargetDurationDisplay, StringFormat=/ {0}}" Visibility="{Binding HasTargetDuration, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                            </StackPanel>
+                            <Grid Margin="0,5,0,0" Visibility="{Binding HasTargetDuration, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <ProgressBar VerticalAlignment="Center" Maximum="1" Value="{Binding TotalInvestmentProgress, Mode=OneWay}" Style="{StaticResource TrendProgressBarStyle}"/>
+                                <TextBlock Grid.Column="1" Margin="9,0,0,0" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding TotalInvestmentProgressDisplay}"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <Grid Grid.Row="4">
+                    <Grid.RowDefinitions><RowDefinition Height="24"/><RowDefinition Height="6"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <TextBlock x:Name="TrendSectionTitle" VerticalAlignment="Center" FontSize="15" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{Binding TrendTitle}"/>
+                    <Border x:Name="TrendChartCard" Grid.Row="2" Padding="14,6" Background="White" BorderBrush="#ECEEF1" BorderThickness="1" CornerRadius="12">
+                        <views:GoalInvestmentTrendChart HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                </Grid>
+
+                <Grid Grid.Row="6">
+                    <Grid.RowDefinitions><RowDefinition Height="28"/><RowDefinition Height="1"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <Grid>
+                        <TextBlock VerticalAlignment="Center" FontSize="15" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{Binding SelectedDateTitle}"/>
+                        <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding SelectedDateSummary}"/>
+                    </Grid>
+                    <Border Grid.Row="1" Background="#ECEEF1"/>
+                    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <ScrollViewer.Resources><Style TargetType="ScrollBar" BasedOn="{StaticResource TrendThinScrollBar}"/></ScrollViewer.Resources>
+                        <ItemsControl ItemsSource="{Binding SelectedDateRecords}">
+                            <ItemsControl.ItemTemplate><DataTemplate>
+                                <Grid Height="31">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="122"/><ColumnDefinition Width="*"/><ColumnDefinition Width="74"/><ColumnDefinition Width="118"/></Grid.ColumnDefinitions>
+                                    <TextBlock Margin="6,0,0,0" VerticalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding TimeRangeDisplay}"/>
+                                    <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}" Text="{Binding GoalName}" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Grid.Column="2" VerticalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding DurationDisplay}"/>
+                                    <ToggleButton x:Name="CompletedTaskButton" Grid.Column="3" HorizontalAlignment="Right" VerticalAlignment="Center" Content="{Binding CompletedTaskSummary}" Style="{StaticResource TrendTaskButton}" Visibility="{Binding HasCompletedTasks, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                    <Popup Grid.Column="3" IsOpen="{Binding IsChecked, ElementName=CompletedTaskButton, Mode=TwoWay}" Placement="Top" PlacementTarget="{Binding ElementName=CompletedTaskButton}" HorizontalOffset="-55" VerticalOffset="-4" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
+                                        <Border MinWidth="190" MaxWidth="240" MaxHeight="190" Padding="10,8" Background="White" BorderBrush="#E3E5E8" BorderThickness="1" CornerRadius="10">
+                                            <Border.Effect><DropShadowEffect BlurRadius="16" ShadowDepth="3" Direction="270" Opacity="0.12"/></Border.Effect>
+                                            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                                <ItemsControl ItemsSource="{Binding CompletedTasks}"><ItemsControl.ItemTemplate><DataTemplate><Grid MinHeight="28"><Grid.ColumnDefinitions><ColumnDefinition Width="24"/><ColumnDefinition/></Grid.ColumnDefinitions><Border Width="16" Height="16" Background="{DynamicResource AccentPrimary}" CornerRadius="8"><TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="9" Foreground="White" Text="&#xE73E;"/></Border><TextBlock Grid.Column="1" Margin="5,0,0,0" VerticalAlignment="Center" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}" Text="{Binding}" TextWrapping="Wrap"/></Grid></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                                            </ScrollViewer>
+                                        </Border>
+                                    </Popup>
+                                    <Border Grid.ColumnSpan="4" Height="1" VerticalAlignment="Bottom" Background="#F1F2F4" IsHitTestVisible="False"/>
+                                </Grid>
+                            </DataTemplate></ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                    <TextBlock Grid.Row="2" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource TextWeak}" Text="这一天暂无专注记录">
+                        <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding HasSelectedDateRecords}" Value="False"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                    </TextBlock>
+                </Grid>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

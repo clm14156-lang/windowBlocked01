@@ -24,6 +24,7 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
     {
         _now = nowProvider ?? (() => DateTimeOffset.UtcNow);
         OpenCommand = new RelayCommand<object>(async _ => await OpenAsync(), _ => _target is not null);
+        OpenCompletedCommand = new RelayCommand<object>(async _ => await OpenAsync(true), _ => _target is not null);
         CloseCommand = new RelayCommand<object>(async _ => await CloseAsync());
         SelectPendingTabCommand = new RelayCommand<object>(async _ => await SelectTabAsync(false));
         SelectCompletedTabCommand = new RelayCommand<object>(async _ => await SelectTabAsync(true));
@@ -36,6 +37,7 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
     public Func<Task>? RefreshTasksAsync { get; set; }
     public Func<LocalTaskDto, bool, Task<LocalTaskDto?>>? PersistTaskAsync { get; set; }
     public ICommand OpenCommand { get; }
+    public ICommand OpenCompletedCommand { get; }
     public ICommand CloseCommand { get; }
     public ICommand SelectPendingTabCommand { get; }
     public ICommand SelectCompletedTabCommand { get; }
@@ -86,6 +88,7 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
         ProjectTasks();
         Notify(nameof(CanCreateTask));
         ((RelayCommand<object>)OpenCommand).NotifyCanExecuteChanged();
+        ((RelayCommand<object>)OpenCompletedCommand).NotifyCanExecuteChanged();
         ((RelayCommand<object>)NewTaskCommand).NotifyCanExecuteChanged();
     }
 
@@ -114,10 +117,10 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
         NotifyViews();
     }
 
-    public async Task OpenAsync()
+    public async Task OpenAsync(bool completed = false)
     {
         if (_target is null) return;
-        IsCompletedTab = false;
+        IsCompletedTab = completed;
         ErrorMessage = null;
         IsOpen = true;
         if (RefreshTasksAsync is not null) await RefreshTasksAsync();

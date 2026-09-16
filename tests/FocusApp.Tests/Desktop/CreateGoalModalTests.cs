@@ -89,7 +89,7 @@ public sealed class CreateGoalModalTests
     }
 
     [Fact]
-    public void DialogUsesTheFixed400By470DesignSize()
+    public void DialogUsesTheExpanded430By520DesignSize()
     {
         Exception? failure = null;
         var thread = new Thread(() =>
@@ -98,8 +98,16 @@ public sealed class CreateGoalModalTests
             {
                 var modal = new CreateGoalModal();
                 var dialog = (Border)modal.FindName("DialogCard");
-                Assert.Equal(400, dialog.Width);
-                Assert.Equal(470, dialog.Height);
+                Assert.Equal(430, dialog.Width);
+                Assert.Equal(520, dialog.Height);
+                var remark = (Border)modal.FindName("GoalRemarkContainer");
+                Assert.Equal(80, remark.Height);
+                Assert.Equal(new CornerRadius(12), remark.CornerRadius);
+                var content = (Grid)modal.FindName("DialogContentGrid");
+                Assert.Equal(
+                    new[] { 50d, 84d, 116d, 80d, 80d },
+                    content.RowDefinitions.Take(5).Select(row => row.Height.Value));
+                Assert.True(content.RowDefinitions[5].Height.IsStar);
             }
             catch (Exception exception) { failure = exception; }
         });
@@ -107,6 +115,25 @@ public sealed class CreateGoalModalTests
         thread.Start();
         Assert.True(thread.Join(TimeSpan.FromSeconds(10)));
         Assert.Null(failure);
+    }
+
+    [Fact]
+    public void DurationOptionsUseFourEqualColumnsWithoutFixedButtonWidths()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "FocusApp.sln")))
+            directory = directory.Parent;
+        Assert.NotNull(directory);
+
+        var modal = XDocument.Load(Path.Combine(directory.FullName, "src", "FocusApp.Desktop", "Views", "CreateGoalModal.xaml"));
+        XNamespace p = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
+        var options = Assert.Single(modal.Descendants(p + "ItemsControl")
+            .Where(element => (string?)element.Attribute("ItemsSource") == "{Binding GoalDurationOptions}"));
+        var panel = Assert.Single(options.Descendants(p + "UniformGrid"));
+        Assert.Equal("4", (string?)panel.Attribute("Columns"));
+        var button = Assert.Single(options.Descendants(p + "Button"));
+        Assert.Null(button.Attribute("Width"));
+        Assert.Equal("4,0", (string?)button.Attribute("Margin"));
     }
 
     [Fact]

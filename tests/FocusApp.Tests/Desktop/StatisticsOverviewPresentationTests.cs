@@ -194,8 +194,17 @@ public sealed class StatisticsOverviewPresentationTests
         var setters = style.Elements(Presentation + "Setter").ToArray();
 
         Assert.Contains(setters, setter =>
+            (string?)setter.Attribute("Property") == "Height"
+            && (string?)setter.Attribute("Value") == "32");
+        Assert.Contains(setters, setter =>
             (string?)setter.Attribute("Property") == "MinWidth"
             && (string?)setter.Attribute("Value") == "84");
+        Assert.Contains(setters, setter =>
+            (string?)setter.Attribute("Property") == "BorderThickness"
+            && (string?)setter.Attribute("Value") == "0");
+        Assert.Contains(setters, setter =>
+            (string?)setter.Attribute("Property") == "Background"
+            && (string?)setter.Attribute("Value") == "{DynamicResource TransparentBrush}");
 
         var template = Assert.Single(style.Descendants(Presentation + "ControlTemplate").Where(element =>
             (string?)element.Attribute("TargetType") == "{x:Type ComboBox}"));
@@ -254,7 +263,8 @@ public sealed class StatisticsOverviewPresentationTests
         var plot = Assert.Single(trendContent.Descendants(Presentation + "Grid").Where(element =>
             (string?)element.Attribute(Xaml + "Name") == "TrendPlotContent"));
         Assert.Single(plot.Descendants().Where(element => element.Name.LocalName == "TrendChart"));
-        Assert.Empty(plot.Descendants(Presentation + "DataTrigger"));
+        Assert.Empty(plot.Descendants(Presentation + "DataTrigger").Where(trigger =>
+            !trigger.Ancestors(Presentation + "Popup").Any()));
         Assert.DoesNotContain(trendContent.Descendants(Presentation + "Grid"), element =>
             (string?)element.Attribute(Xaml + "Name") == "TrendEmptyState");
         Assert.DoesNotContain(page.Descendants(Presentation + "Popup"), popup =>
