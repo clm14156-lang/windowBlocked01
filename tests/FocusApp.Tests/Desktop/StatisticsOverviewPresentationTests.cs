@@ -28,7 +28,7 @@ public sealed class StatisticsOverviewPresentationTests
 
         var durationText = Assert.Single(button.Descendants(Presentation + "TextBlock").Where(element =>
             (string?)element.Attribute(Xaml + "Name") == "DayDurationText"));
-        Assert.Equal("11", (string?)durationText.Attribute("FontSize"));
+        Assert.Equal("12", (string?)durationText.Attribute("FontSize"));
 
         var selectedTrigger = Assert.Single(button.Descendants(Presentation + "DataTrigger").Where(trigger =>
             (string?)trigger.Attribute("Binding") == "{Binding IsSelected}" &&
@@ -59,7 +59,7 @@ public sealed class StatisticsOverviewPresentationTests
     }
 
     [Fact]
-    public void CalendarDayInteractionAndHoverRequireARealFocusRecord()
+    public void CalendarCurrentMonthDatesAllowSelectionAndHover()
     {
         var page = XDocument.Load(Path.Combine(
             FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
@@ -68,10 +68,10 @@ public sealed class StatisticsOverviewPresentationTests
             element.Descendants(Presentation + "TextBlock").Any(text =>
                 (string?)text.Attribute("Text") == "{Binding DayNumber}")));
 
-        Assert.Equal("{Binding HasFocus}", (string?)button.Attribute("Focusable"));
-        Assert.Equal("{Binding HasFocus}", (string?)button.Attribute("IsEnabled"));
-        Assert.Equal("{Binding HasFocus}", (string?)button.Attribute("IsHitTestVisible"));
-        Assert.Equal("{Binding HasFocus}", (string?)button.Attribute("IsTabStop"));
+        Assert.Equal("{Binding IsCurrentMonth}", (string?)button.Attribute("Focusable"));
+        Assert.Equal("{Binding IsCurrentMonth}", (string?)button.Attribute("IsEnabled"));
+        Assert.Equal("{Binding IsCurrentMonth}", (string?)button.Attribute("IsHitTestVisible"));
+        Assert.Equal("{Binding IsCurrentMonth}", (string?)button.Attribute("IsTabStop"));
 
         var buttonStyle = Assert.Single(button.Elements(Presentation + "Button.Style")
             .Elements(Presentation + "Style"));
@@ -79,7 +79,7 @@ public sealed class StatisticsOverviewPresentationTests
             (string?)setter.Attribute("Property") == "Cursor" &&
             (string?)setter.Attribute("Value") == "Arrow");
         Assert.Contains(buttonStyle.Descendants(Presentation + "DataTrigger"), trigger =>
-            (string?)trigger.Attribute("Binding") == "{Binding HasFocus}" &&
+            (string?)trigger.Attribute("Binding") == "{Binding IsCurrentMonth}" &&
             (string?)trigger.Attribute("Value") == "True" &&
             trigger.Elements(Presentation + "Setter").Any(setter =>
                 (string?)setter.Attribute("Property") == "Cursor" &&
@@ -262,127 +262,6 @@ public sealed class StatisticsOverviewPresentationTests
     }
 
     [Fact]
-    public void CalendarFocusRecordsOpenCardsAndKeepTaskNamesInDetails()
-    {
-        var page = XDocument.Load(Path.Combine(
-            FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
-        var records = Assert.Single(page.Descendants(Presentation + "ItemsControl").Where(element =>
-            (string?)element.Attribute("ItemsSource") == "{Binding SelectedDayRecords}"));
-        var recordTemplate = Assert.Single(records.Elements(Presentation + "ItemsControl.ItemTemplate")
-            .Elements(Presentation + "DataTemplate"));
-
-        Assert.Contains(recordTemplate.Descendants(Presentation + "Button"), button =>
-            (string?)button.Attribute("Click") == "FocusRecord_Click");
-        Assert.Contains(recordTemplate.Descendants(Presentation + "TextBlock"), text =>
-            (string?)text.Attribute("Text") == "{Binding CalendarDurationDisplay}");
-        Assert.DoesNotContain(recordTemplate.Descendants(Presentation + "ItemsControl"), item =>
-            (string?)item.Attribute("ItemsSource") == "{Binding CompletedTaskNames}");
-        var details = XDocument.Load(Path.Combine(FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "FocusRecordDetailsWindow.xaml"));
-        Assert.Equal(Presentation + "Window", details.Root!.Name);
-        Assert.Equal("Height", (string?)details.Root.Attribute("SizeToContent"));
-        Assert.DoesNotContain(details.Descendants(Presentation + "TextBlock"), text =>
-            (string?)text.Attribute("Text") == "专注详情");
-        var compactHeader = Assert.Single(details.Descendants(Presentation + "Grid").Where(grid =>
-            grid.Descendants(Presentation + "TextBlock").Any(text =>
-                (string?)text.Attribute("Text") == "{Binding TimeRangeDisplay}") &&
-            grid.Descendants(Presentation + "Button").Any(button =>
-                (string?)button.Attribute("Click") == "Close_Click")));
-        Assert.Contains(compactHeader.Descendants(Presentation + "Button"), button =>
-            (string?)button.Attribute("Click") == "More_Click");
-        Assert.DoesNotContain(details.Descendants(Presentation + "Button"), button =>
-            (string?)button.Attribute("Click") == "Delete_Click");
-        Assert.Contains(details.Descendants(Presentation + "MenuItem"), item =>
-            (string?)item.Attribute("Header") == "删除记录" &&
-            (string?)item.Attribute("Click") == "Delete_Click");
-        Assert.Contains(details.Descendants(Presentation + "ItemsControl"), item =>
-            (string?)item.Attribute("ItemsSource") == "{Binding CompletedTaskNames}");
-    }
-
-    [Fact]
-    public void CalendarRecordDetailsDefersDeactivationCloseAndReusesTheVisibleWindow()
-    {
-        var repositoryRoot = FindRepositoryRoot();
-        var details = XDocument.Load(Path.Combine(
-            repositoryRoot, "src", "FocusApp.Desktop", "Views", "FocusRecordDetailsWindow.xaml"));
-        Assert.Equal("#01FFFFFF", (string?)details.Root!.Attribute("Background"));
-
-        var detailsCode = File.ReadAllText(Path.Combine(
-            repositoryRoot, "src", "FocusApp.Desktop", "Views", "FocusRecordDetailsWindow.xaml.cs"));
-        Assert.Contains("TimeSpan.FromMilliseconds(250)", detailsCode, StringComparison.Ordinal);
-        Assert.Contains("DeactivateCloseTimer_Tick", detailsCode, StringComparison.Ordinal);
-        Assert.Contains("ActivateFromOwner", detailsCode, StringComparison.Ordinal);
-        Assert.DoesNotContain("Deactivated += (_, _) => Close();", detailsCode, StringComparison.Ordinal);
-
-        var pageCode = File.ReadAllText(Path.Combine(
-            repositoryRoot, "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml.cs"));
-        Assert.Contains("_recordDetails is { IsVisible: true } existingWindow", pageCode, StringComparison.Ordinal);
-        Assert.Contains("ReferenceEquals(_recordDetailsRecord, record)", pageCode, StringComparison.Ordinal);
-        Assert.Contains("existingWindow.ActivateFromOwner();", pageCode, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void CalendarDetailUsesCompactSummaryAndRemainingHeightForRecords()
-    {
-        var page = XDocument.Load(Path.Combine(
-            FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
-        var panel = Assert.Single(page.Descendants(Presentation + "Border").Where(element =>
-            (string?)element.Attribute(Xaml + "Name") == "DailyFocusRecordCard"));
-        var layout = Assert.Single(panel.Descendants(Presentation + "Grid").Where(element =>
-            (string?)element.Attribute(Xaml + "Name") == "DailyFocusRecordContent"));
-        Assert.Equal("*", layout.Elements(Presentation + "Grid.RowDefinitions")
-            .Elements(Presentation + "RowDefinition").Last().Attribute("Height")?.Value);
-
-        var date = Assert.Single(layout.Elements(Presentation + "TextBlock").Where(text =>
-            (string?)text.Attribute("Text") == "{Binding SelectedDateDisplay}"));
-        Assert.Equal("17", (string?)date.Attribute("FontSize"));
-        Assert.Equal("SemiBold", (string?)date.Attribute("FontWeight"));
-
-        var summary = Assert.Single(layout.Elements(Presentation + "Border").Where(element =>
-            (string?)element.Attribute(Xaml + "Name") == "CalendarDayMetrics"));
-        Assert.Contains(summary.Descendants(Presentation + "Run"), run =>
-            (string?)run.Attribute("Text") == "{Binding SelectedDayMinutesValueDisplay, Mode=OneWay}" &&
-            (string?)run.Attribute("FontSize") == "30");
-        Assert.DoesNotContain(summary.Descendants(Presentation + "TextBlock"), text =>
-            (string?)text.Attribute("Text") == "专注次数");
-        var distribution = Assert.Single(layout.Descendants(Presentation + "ScrollViewer").Where(element =>
-            (string?)element.Attribute(Xaml + "Name") == "DailyDistributionScrollViewer"));
-        Assert.Equal("144", (string?)distribution.Attribute("Height"));
-        Assert.Equal("Auto", (string?)distribution.Attribute("VerticalScrollBarVisibility"));
-        Assert.Contains(layout.Elements(Presentation + "TextBlock"), text =>
-            (string?)text.Attribute("Text") == "专注记录" && (string?)text.Attribute("Grid.Row") == "3");
-
-        var scrollViewer = Assert.Single(layout.Elements(Presentation + "ScrollViewer"));
-        Assert.Equal("4", (string?)scrollViewer.Attribute("Grid.Row"));
-        Assert.Equal("0", (string?)scrollViewer.Attribute("Margin"));
-        Assert.Null(scrollViewer.Attribute("MaxHeight"));
-
-        var scrollStyle = Assert.Single(page.Descendants(Presentation + "Style").Where(style =>
-            (string?)style.Attribute(Xaml + "Key") == "StatisticsRecordScrollBarStyle"));
-        Assert.Contains(scrollStyle.Elements(Presentation + "Setter"), setter =>
-            (string?)setter.Attribute("Property") == "Width" &&
-            (string?)setter.Attribute("Value") == "5");
-        Assert.Contains(scrollStyle.Descendants(Presentation + "Border"), border =>
-            (string?)border.Attribute(Xaml + "Name") == "ThumbBody" &&
-            (string?)border.Attribute("Width") == "3");
-
-        var recordButton = Assert.Single(scrollViewer.Descendants(Presentation + "Button").Where(button =>
-            (string?)button.Attribute("Click") == "FocusRecord_Click"));
-        Assert.Equal("0", (string?)recordButton.Attribute("BorderThickness"));
-        Assert.Equal("{DynamicResource TransparentBrush}", (string?)recordButton.Attribute("Background"));
-        var hover = Assert.Single(recordButton.Descendants(Presentation + "Border").Where(border =>
-            (string?)border.Attribute(Xaml + "Name") == "RecordHoverBackground"));
-        Assert.Equal("#F7F7F8", (string?)hover.Attribute("Background"));
-        Assert.Equal("0", (string?)hover.Attribute("Opacity"));
-        var chevron = Assert.Single(recordButton.Descendants(Presentation + "TextBlock").Where(text =>
-            (string?)text.Attribute(Xaml + "Name") == "RecordChevron"));
-        Assert.Equal("0", (string?)chevron.Attribute("Opacity"));
-        Assert.Contains(recordButton.Descendants(Presentation + "StackPanel"), stack =>
-            (string?)stack.Attribute("Visibility") == "{Binding HasCompletedTasks, Converter={StaticResource BooleanToVisibilityConverter}}");
-        Assert.Contains(recordButton.Descendants(Presentation + "Run"), run =>
-            (string?)run.Attribute("Text") == "{Binding CompletedTaskCount, Mode=OneWay}");
-    }
-
-    [Fact]
     public void DailyFocusRecordCardSwitchesBetweenVipContentAndLockedSkeletonWithoutChangingItsFrame()
     {
         var page = XDocument.Load(Path.Combine(
@@ -492,11 +371,13 @@ public sealed class StatisticsOverviewPresentationTests
         Assert.DoesNotContain(page.Descendants(Presentation + "Button"), button =>
             (string?)button.Attribute("Command") == "{Binding ReturnToTodayCommand}");
         var left = Assert.Single(page.Descendants(Presentation + "Border").Where(border =>
-            (string?)border.Attribute(Xaml + "Name") == "CalendarAndDistributionContainer"));
+            (string?)border.Attribute(Xaml + "Name") == "CalendarCard"));
         Assert.Contains(left.Descendants(Presentation + "ItemsControl"), items =>
             (string?)items.Attribute("ItemsSource") == "{Binding CalendarDays}");
-        Assert.Contains(left.Descendants(Presentation + "ItemsControl"), items =>
-            (string?)items.Attribute("ItemsSource") == "{Binding GoalDistributions}");
+        Assert.Contains(left.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "{Binding MonthlyTotalDurationDisplay}");
+        Assert.Contains(left.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "{Binding MonthlyFocusDaysDisplay}");
         Assert.Equal("602", (string?)left.Attribute("Height"));
     }
 

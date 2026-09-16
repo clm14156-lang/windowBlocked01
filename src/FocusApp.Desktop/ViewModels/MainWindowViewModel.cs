@@ -90,12 +90,6 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         StatisticsPage.GoalDeleted += StatisticsPage_GoalDeleted;
         StatisticsPage.GoalTasks.RefreshTasksAsync = RefreshGoalTasksAsync;
         StatisticsPage.GoalTasks.PersistTaskAsync = PersistGoalTaskAsync;
-        StatisticsPage.PersistRecordDeletion = async sessionId =>
-        {
-            if (ServiceConnection is null || !ServiceConnection.IsConnected) return false;
-            try { await ServiceConnection.DeleteFocusRecordAsync(sessionId); return true; }
-            catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException) { return false; }
-        };
         StatisticsPage.MonthlyFocusTargetChanged += StatisticsPage_MonthlyFocusTargetChanged;
         StateCoordinator = new FocusStateCoordinator(HomePage, SettingsPage, BlockingPage, StatisticsPage);
         SettingsPage.SetUserAccess(IsLoggedIn, IsVipMember);

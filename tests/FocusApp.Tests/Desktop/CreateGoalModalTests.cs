@@ -16,6 +16,8 @@ public sealed class CreateGoalModalTests
     {
                 var viewModel = new StatisticsOverviewViewModel();
                 var modal = new CreateGoalModal { DataContext = viewModel };
+                foreach (var resource in new[] { "Colors", "Typography", "Strings", "Styles" })
+                    modal.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri($"/FocusApp.Desktop;component/Resources/{resource}.xaml", UriKind.Relative) });
                 viewModel.AddGoalCommand.Execute(null);
                 modal.Measure(new Size(800, 710));
                 modal.Arrange(new Rect(0, 0, 800, 710));

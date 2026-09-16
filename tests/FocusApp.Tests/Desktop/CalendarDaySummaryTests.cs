@@ -6,7 +6,7 @@ namespace FocusApp.Tests.Desktop;
 public sealed class CalendarDaySummaryTests
 {
     [Fact]
-    public void DistributionSplitsMidnightAndComparisonFollowsSelection()
+    public void DistributionSplitsMidnightAndFollowsSelection()
     {
         var model = new StatisticsOverviewViewModel(false);
         var day = DateTime.Today;
@@ -14,8 +14,11 @@ public sealed class CalendarDaySummaryTests
         model.FocusSessionRecords.Add(new FocusSessionRecordViewModel(day.AddHours(1), day.AddHours(2), "b", "开发", "", 0));
         model.ReturnToTodayCommand.Execute(null);
         Assert.Equal(90, model.SelectedDayMinutes);
+        Assert.Equal(2, model.SelectedDaySessionCount);
+        Assert.Equal(2, model.SelectedDayRecords.Count);
         Assert.Equal(1, model.SelectedDayCompletedTasks);
-        Assert.Equal("比昨日 +60 分钟", model.SelectedDayComparisonDisplay);
+        Assert.Equal("学习", Assert.Single(model.SelectedDayCompletedTaskItems).GoalName);
+        Assert.Equal("—", Assert.Single(model.SelectedDayCompletedTaskItems).TimeDisplay);
         Assert.Equal(new[] { 60, 30 }, model.SelectedDayDistributions.Select(item => item.Minutes));
         Assert.Equal(1d, model.SelectedDayDistributions.Sum(item => item.Ratio), 8);
         model.SelectCalendarDateCommand.Execute(model.CalendarDays.Single(item => item.Date.Date == day.AddDays(-1)));

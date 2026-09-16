@@ -371,7 +371,7 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.Equal(string.Empty, viewModel.SelectedDayHoursValueDisplay);
         Assert.Equal(string.Empty, viewModel.SelectedDayHoursUnitDisplay);
         Assert.Equal("35", viewModel.SelectedDayMinutesValueDisplay);
-        Assert.Equal("1 个任务", viewModel.SelectedDayTasksDisplay);
+        Assert.Equal(1, viewModel.SelectedDayCompletedTasks);
         Assert.Contains(viewModel.CalendarDays, day => day.Date == new DateTime(2026, 2, 28) && day.IsSelected);
     }
 
@@ -411,33 +411,22 @@ public sealed class StatisticsOverviewViewModelTests
     }
 
     [Fact]
-    public void CalendarDatesWithoutFocusRecordsDoNotChangeSelectionOrDetails()
+    public void CurrentMonthEmptyDateCanBeSelectedAndAdjacentMonthDateIsIgnored()
     {
         var viewModel = new StatisticsOverviewViewModel();
-        viewModel.NextCalendarMonthCommand.Execute(null);
-        CalendarDayViewModel[] targets =
-        [
-            viewModel.CalendarDays.First(item => item.IsCurrentMonth && !item.HasFocus && !item.IsSelected),
-            viewModel.CalendarDays.First(item => !item.IsCurrentMonth && !item.HasFocus)
-        ];
-
-        foreach (var target in targets)
-        {
-            var selectedBefore = Assert.Single(viewModel.CalendarDays.Where(item => item.IsSelected));
-            var dateDisplayBefore = viewModel.SelectedDateDisplay;
-            var recordsBefore = viewModel.SelectedDayRecords.ToArray();
-
-            viewModel.SelectCalendarDateCommand.Execute(target);
-
-            Assert.False(target.IsSelected);
-            Assert.Same(selectedBefore, Assert.Single(viewModel.CalendarDays.Where(item => item.IsSelected)));
-            Assert.Equal(dateDisplayBefore, viewModel.SelectedDateDisplay);
-            Assert.Equal(recordsBefore, viewModel.SelectedDayRecords);
-        }
+        var empty = viewModel.CalendarDays.First(item => item.IsCurrentMonth && !item.HasFocus && !item.IsSelected);
+        viewModel.SelectCalendarDateCommand.Execute(empty);
+        Assert.True(empty.IsSelected);
+        Assert.Empty(viewModel.SelectedDayRecords);
+        Assert.Equal(0, viewModel.SelectedDayMinutes);
+        var adjacent = viewModel.CalendarDays.First(item => !item.IsCurrentMonth);
+        viewModel.SelectCalendarDateCommand.Execute(adjacent);
+        Assert.True(empty.IsSelected);
+        Assert.False(adjacent.IsSelected);
     }
 
     [Fact]
-    public void AdjacentMonthDateWithAFocusRecordRemainsSelectable()
+    public void AdjacentMonthDateWithAFocusRecordDoesNotChangeSelection()
     {
         var viewModel = new StatisticsOverviewViewModel();
         viewModel.NextCalendarMonthCommand.Execute(null);
@@ -450,13 +439,12 @@ public sealed class StatisticsOverviewViewModelTests
 
         viewModel.SelectCalendarDateCommand.Execute(target);
 
-        Assert.True(target.IsSelected);
-        Assert.StartsWith($"{target.Date:M月d日}", viewModel.SelectedDateDisplay);
-        Assert.NotEmpty(viewModel.SelectedDayRecords);
+        Assert.False(target.IsSelected);
+        Assert.NotEqual(target.Date.Date, viewModel.CalendarDays.Single(day => day.IsSelected).Date.Date);
     }
 
     [Fact]
-    public void ChangingCalendarMonthRefreshesCellsAndDistribution()
+    public void ChangingCalendarMonthRefreshesCellsAndMonthlyStatistics()
     {
         var viewModel = new StatisticsOverviewViewModel();
 
@@ -465,13 +453,9 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.Equal("2026年1月", viewModel.CalendarMonthDisplay);
         Assert.Equal(42, viewModel.CalendarDays.Count);
         Assert.Equal("1月31日 · 周六", viewModel.SelectedDateDisplay);
-        var distribution = Assert.Single(viewModel.GoalDistributions);
-        var readingGoal = viewModel.Goals.Single(goal => goal.Name == "读书");
-        Assert.Equal("读书", distribution.TargetName);
-        Assert.Equal(readingGoal.IconSource, distribution.IconSource);
-        Assert.Equal("2 小时 19 分钟", distribution.DurationDisplay);
-        Assert.Equal(1, distribution.Ratio);
-        Assert.Equal("2.3 小时（100%）", distribution.PoptipDurationAndRatioDisplay);
+        Assert.Equal(139, viewModel.MonthlyTotalMinutes);
+        Assert.Equal("2h 19m", viewModel.MonthlyTotalDurationDisplay);
+        Assert.Equal(4, viewModel.MonthlyFocusDays);
     }
 
 
@@ -976,7 +960,7 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.Equal(2, viewModel.SelectedDaySessionCount);
         Assert.Contains(subMinute, viewModel.SelectedDayRecords);
         Assert.DoesNotContain(zeroLength, viewModel.SelectedDayRecords);
-        Assert.Equal("<1分钟", subMinute.CalendarDurationDisplay);
+        Assert.Equal("<1m", subMinute.CompactDurationDisplay);
     }
 
     [Fact]
@@ -1002,9 +986,7 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.Equal(" 小时 ", viewModel.SelectedDayHoursUnitDisplay);
         Assert.Equal("35", viewModel.SelectedDayMinutesValueDisplay);
         Assert.Equal("9小时2分钟", viewModel.SelectedGoalTotalInvestmentDisplay);
-        Assert.Equal(viewModel.MonthlyTotalMinutes, viewModel.GoalDistributions.Sum(item => item.Minutes));
-        Assert.All(viewModel.GoalDistributions, distribution =>
-            Assert.Equal(distribution.Minutes / (double)viewModel.MonthlyTotalMinutes, distribution.Ratio, 10));
+        Assert.Equal(60 + viewModel.FocusSessionRecords.Where(record => record.StartTime.Year == 2026 && record.StartTime.Month == 2 && record != added).Sum(record => record.DurationMinutes), viewModel.MonthlyTotalMinutes);
 
         added.EndTime = new DateTime(2026, 2, 28, 21, 30, 0);
         Assert.Equal("2 小时 5 分钟", viewModel.SelectedDayDurationDisplay);

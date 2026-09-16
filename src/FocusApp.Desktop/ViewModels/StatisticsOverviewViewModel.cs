@@ -123,6 +123,8 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         SelectGoalsCommand = new RelayCommand<object>(_ => SelectedTab = StatisticsTab.Goals);
         PreviousCalendarMonthCommand = new RelayCommand<object>(_ => ChangeCalendarMonth(-1));
         NextCalendarMonthCommand = new RelayCommand<object>(_ => ChangeCalendarMonth(1));
+        PreviousCalendarDayCommand = new RelayCommand<object>(_ => ChangeCalendarDay(-1));
+        NextCalendarDayCommand = new RelayCommand<object>(_ => ChangeCalendarDay(1));
         SelectCalendarDateCommand = new RelayCommand<CalendarDayViewModel>(SelectCalendarDay);
         ReturnToTodayCommand = new RelayCommand<object>(_ => ReturnToToday());
         SelectGoalCommand = new RelayCommand<GoalOverviewItemViewModel>(SelectGoal);
@@ -174,17 +176,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     public event PropertyChangedEventHandler? PropertyChanged;
     public event EventHandler<GoalOverviewItemViewModel>? GoalChanged;
     public event EventHandler<string>? GoalDeleted;
-    public Func<Guid, Task<bool>>? PersistRecordDeletion { get; set; }
-
-    public async Task<bool> DeleteFocusRecordAsync(FocusSessionRecordViewModel record)
-    {
-        if (record.SessionId is Guid id &&
-            (PersistRecordDeletion is null || !await PersistRecordDeletion(id))) return false;
-        FocusSessionRecords.Remove(record);
-        return true;
-    }
     public event EventHandler? MonthlyFocusTargetChanged;
-
     public void ApplyState(LocalDataSnapshotDto state)
     {
         ArgumentNullException.ThrowIfNull(state);
@@ -282,6 +274,8 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
                     start, end, goalId!, goalName!, taskNames.FirstOrDefault() ?? string.Empty, taskNames.Length, taskNames)
                 {
                     SessionId = session.SessionId,
+                    CompletedTaskIds = session.CompletedTasks.OrderBy(task => task.SortOrder)
+                        .Select(task => task.TaskId).ToArray(),
                     CompletedTaskTimes = session.CompletedTasks.OrderBy(task => task.SortOrder)
                         .Select(task => task.CompletedAtUtc?.LocalDateTime).ToArray(),
                     IconSource = Goals.FirstOrDefault(goal => goal.GoalId == goalId)?.IconSource ?? TargetIconCatalog.GetIconSource(null)
@@ -425,6 +419,8 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     public ICommand PreviousCalendarMonthCommand { get; }
 
     public ICommand NextCalendarMonthCommand { get; }
+    public ICommand PreviousCalendarDayCommand { get; }
+    public ICommand NextCalendarDayCommand { get; }
 
     public ICommand SelectCalendarDateCommand { get; }
 
@@ -489,32 +485,10 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     public bool HasTodayFocusDistribution => TodayFocusDistributions.Count > 0;
 
     public ObservableCollection<FocusSessionRecordViewModel> SelectedDayRecords { get; } = [];
-    public ObservableCollection<GoalDistributionViewModel> SelectedDayDistributions { get; } = [];
+    public ObservableCollection<CalendarTimeDistributionViewModel> SelectedDayDistributions { get; } = [];
     public bool HasSelectedDayFocusData => SelectedDayMinutes > 0 || SelectedDayRecords.Count > 0;
-    public int SelectedDayDifference => SelectedDayMinutes - (_selectedCalendarDay is null ? 0 : GetDailySummary(_selectedCalendarDay.Date.AddDays(-1)).FocusMinutes);
-    public string SelectedDayTrendColor => SelectedDayDifference > 0 ? "#FF7415" : SelectedDayDifference < 0 ? "#2684FF" : "#8E98A8";
-    public string SelectedDayTrendIcon => "/FocusApp.Desktop;component/Assets/Icons/Common/" + (SelectedDayDifference < 0 ? "zengzhang_Blue.png" : "zengzhang.png");
-    public bool HasSelectedDayChange => SelectedDayDifference != 0;
-    public bool IsSelectedDayIncrease => SelectedDayDifference > 0;
-    public bool IsSelectedDayDecrease => SelectedDayDifference < 0;
-    public string SelectedDayComparisonLabel => HasSelectedDayChange ? "比昨日 " : "与昨日持平";
-    public string SelectedDayChangeDisplay => HasSelectedDayChange ? $"{SelectedDayDifference:+0;-0} 分钟" : string.Empty;
-    public IReadOnlyList<CalendarCompletedTaskViewModel> SelectedDayCompletedTaskItems => FocusSessionRecords
-        .Where(record => record.EndTime.Date == _selectedCalendarDay?.Date.Date && IsMeaningfulCalendarRecord(record))
-        .SelectMany(record => record.CompletedTaskNames.Select((name, index) => new CalendarCompletedTaskViewModel(
-            name, index < record.CompletedTaskTimes.Count ? record.CompletedTaskTimes[index] : null)))
-        .ToArray();
-    public string SelectedDayComparisonDisplay
-    {
-        get
-        {
-            var difference = SelectedDayMinutes - (_selectedCalendarDay is null ? 0 : GetDailySummary(_selectedCalendarDay.Date.AddDays(-1)).FocusMinutes);
-            return $"比昨日 {difference:+0;-0;0} 分钟";
-        }
-    }
-
-    public ObservableCollection<GoalDistributionViewModel> GoalDistributions { get; } = [];
-    public bool HasMonthlyGoalInvestmentData => GoalDistributions.Count > 0;
+    public IReadOnlyList<CalendarCompletedTaskViewModel> SelectedDayCompletedTaskItems { get; private set; } = [];
+    public bool HasSelectedDayCompletedTasks => SelectedDayCompletedTaskItems.Count > 0;
 
     public ObservableCollection<GoalOverviewItemViewModel> Goals { get; } = [];
 
@@ -787,21 +761,24 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     public string SelectedDayMinutesValueDisplay => (SelectedDayMinutes % 60).ToString();
 
-    public string SelectedDayTasksDisplay => $"{SelectedDayCompletedTasks} 个任务";
-
     public int SelectedDayMinutes => _selectedCalendarDay is null
         ? 0
         : GetDailySummary(_selectedCalendarDay.Date).FocusMinutes;
 
-    public int SelectedDayCompletedTasks => _selectedCalendarDay is null
-        ? 0
-        : GetDailySummary(_selectedCalendarDay.Date).CompletedTaskCount;
+    public int SelectedDayCompletedTasks => SelectedDayCompletedTaskItems.Count;
 
     public int SelectedDaySessionCount => _selectedCalendarDay is null
         ? 0
         : GetRecordsForDate(_selectedCalendarDay.Date).Count(IsMeaningfulCalendarRecord);
 
-    public int MonthlyTotalMinutes => GoalDistributions.Sum(item => item.Minutes);
+    public int MonthlyTotalMinutes { get; private set; }
+    public int MonthlyFocusDays { get; private set; }
+    public string MonthlyTotalDurationDisplay => FormatShortDuration(MonthlyTotalMinutes);
+    public string MonthlyFocusDaysDisplay => $"专注 {MonthlyFocusDays} 天";
+
+    private static string FormatShortDuration(int minutes) => minutes >= 60
+        ? minutes % 60 == 0 ? $"{minutes / 60}h" : $"{minutes / 60}h {minutes % 60}m"
+        : $"{minutes}m";
 
     /// <summary>
     /// Adds one completed in-memory focus session to the statistics source.
@@ -1672,6 +1649,13 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         RefreshCalendar();
     }
 
+    private void ChangeCalendarDay(int offset)
+    {
+        var date = (_selectedCalendarDay?.Date ?? _localNowProvider().Date).AddDays(offset);
+        _calendarMonth = new DateTime(date.Year, date.Month, 1);
+        RefreshCalendar(date);
+    }
+
     private void SelectCalendarDay(CalendarDayViewModel? day)
     {
         if (day is null || !day.IsCurrentMonth)
@@ -1703,26 +1687,18 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             SelectedDayRecords.Add(record);
         }
 
+        SelectedDayCompletedTaskItems = GetCalendarCompletedTasks(date);
+        OnPropertyChanged(nameof(HasSelectedDayCompletedTasks));
         OnPropertyChanged(nameof(SelectedDateDisplay));
         OnPropertyChanged(nameof(IsReturnToTodayVisible));
         OnPropertyChanged(nameof(SelectedDayDurationDisplay));
         OnPropertyChanged(nameof(SelectedDayHoursValueDisplay));
         OnPropertyChanged(nameof(SelectedDayHoursUnitDisplay));
         OnPropertyChanged(nameof(SelectedDayMinutesValueDisplay));
-        OnPropertyChanged(nameof(SelectedDayTasksDisplay));
         OnPropertyChanged(nameof(SelectedDayMinutes));
         OnPropertyChanged(nameof(SelectedDayCompletedTasks));
         OnPropertyChanged(nameof(SelectedDaySessionCount));
         OnPropertyChanged(nameof(HasSelectedDayFocusData));
-        OnPropertyChanged(nameof(SelectedDayComparisonDisplay));
-        OnPropertyChanged(nameof(SelectedDayDifference));
-        OnPropertyChanged(nameof(SelectedDayTrendColor));
-        OnPropertyChanged(nameof(SelectedDayTrendIcon));
-        OnPropertyChanged(nameof(HasSelectedDayChange));
-        OnPropertyChanged(nameof(IsSelectedDayIncrease));
-        OnPropertyChanged(nameof(IsSelectedDayDecrease));
-        OnPropertyChanged(nameof(SelectedDayComparisonLabel));
-        OnPropertyChanged(nameof(SelectedDayChangeDisplay));
         OnPropertyChanged(nameof(SelectedDayCompletedTaskItems));
         SelectedDayDistributions.Clear();
         var slices = FocusStatisticsCalculator.GetSlices(GetCoreFocusSessionRecords())
@@ -1734,9 +1710,8 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             var ticks = group.Sum(slice => slice.Duration.Ticks);
             var goal = Goals.FirstOrDefault(item => item.GoalId == group.Key);
             var name = goal?.Name ?? group.First().Record.TargetName;
-            SelectedDayDistributions.Add(new GoalDistributionViewModel(
+            SelectedDayDistributions.Add(new CalendarTimeDistributionViewModel(
                 group.Key == "goal-unassigned" || string.IsNullOrWhiteSpace(name) ? "自由专注" : name,
-                goal?.IconSource ?? TargetIconCatalog.GetIconSource(null),
                 (int)TimeSpan.FromTicks(ticks).TotalMinutes,
                 totalTicks == 0 ? 0 : ticks / (double)totalTicks));
         }
@@ -1773,34 +1748,63 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             selectedDate = firstDay;
         }
 
-        GoalDistributions.Clear();
-        var monthRecords = GetRecordsForMonth(_calendarMonth);
-        var totalMinutes = monthRecords.Sum(record => record.DurationMinutes);
-        foreach (var grouping in monthRecords.GroupBy(record => record.GoalId).OrderByDescending(group => group.Sum(record => record.DurationMinutes)))
-        {
-            var minutes = grouping.Sum(record => record.DurationMinutes);
-            var goal = Goals.FirstOrDefault(item => item.GoalId == grouping.Key);
-            var goalName = goal?.Name ?? grouping.First().GoalName;
-            var iconSource = goal?.IconSource ?? TargetIconCatalog.GetIconSource(null);
-            GoalDistributions.Add(new GoalDistributionViewModel(
-                goalName,
-                iconSource,
-                minutes,
-                totalMinutes == 0 ? 0 : minutes / (double)totalMinutes));
-        }
+        var monthSummaries = dailySummaries.Values.Where(summary =>
+            summary.Date.Year == _calendarMonth.Year && summary.Date.Month == _calendarMonth.Month).ToArray();
+        MonthlyTotalMinutes = (int)TimeSpan.FromTicks(monthSummaries.Sum(summary => summary.FocusDuration.Ticks)).TotalMinutes;
+        MonthlyFocusDays = monthSummaries.Count(summary => summary.SessionCount > 0);
 
         OnPropertyChanged(nameof(CalendarMonth));
         OnPropertyChanged(nameof(CalendarMonthDisplay));
         OnPropertyChanged(nameof(MonthlyTotalMinutes));
-        OnPropertyChanged(nameof(HasMonthlyGoalInvestmentData));
+        OnPropertyChanged(nameof(MonthlyFocusDays));
+        OnPropertyChanged(nameof(MonthlyTotalDurationDisplay));
+        OnPropertyChanged(nameof(MonthlyFocusDaysDisplay));
         SelectCalendarDayInternal(selectedDate);
+    }
+
+    private IReadOnlyList<CalendarCompletedTaskViewModel> GetCalendarCompletedTasks(DateTime date)
+    {
+        // Canonical tasks include completions outside a focus session. Session snapshots
+        // preserve older history, including deleted tasks and missing completion times.
+        var canonicalTasks = _goalTaskSnapshot.Where(task => task.IsCompleted && task.CompletedAtUtc is not null).ToArray();
+        var knownCompletionIds = canonicalTasks
+            .Select(task => task.TaskId).ToHashSet(StringComparer.Ordinal);
+        var canonicalIds = canonicalTasks.Where(task => task.CompletedAtUtc?.LocalDateTime.Date == date.Date)
+            .Select(task => task.TaskId).ToHashSet(StringComparer.Ordinal);
+        var items = new List<CalendarCompletedTaskViewModel>();
+        foreach (var task in _goalTaskSnapshot.Where(task => task.IsCompleted &&
+                     task.CompletedAtUtc?.LocalDateTime.Date == date.Date))
+        {
+            var goal = Goals.FirstOrDefault(goal => goal.GoalId == task.TargetId);
+            items.Add(new(task.Name, task.CompletedAtUtc?.LocalDateTime, task.TargetId,
+                goal?.Name ?? string.Empty, goal?.IconSource ?? TargetIconCatalog.GetIconSource(null)));
+        }
+
+        var seenSnapshotIds = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var record in FocusSessionRecords.OrderByDescending(record => record.EndTime))
+        {
+            for (var index = 0; index < record.CompletedTaskNames.Count; index++)
+            {
+                var id = index < record.CompletedTaskIds.Count ? record.CompletedTaskIds[index] : null;
+                var completedAt = index < record.CompletedTaskTimes.Count ? record.CompletedTaskTimes[index] : null;
+                if (id is not null && (canonicalIds.Contains(id) || completedAt is null && knownCompletionIds.Contains(id))) continue;
+                if ((completedAt ?? record.EndTime).Date != date.Date) continue;
+                if (id is not null && !seenSnapshotIds.Add(id)) continue;
+                var goal = Goals.FirstOrDefault(goal => goal.GoalId == record.GoalId);
+                items.Add(new(record.CompletedTaskNames[index], completedAt, record.GoalId,
+                    record.HasGoal ? goal?.Name ?? record.GoalName : string.Empty,
+                    goal?.IconSource ?? record.IconSource));
+            }
+        }
+        return items.OrderBy(item => item.CompletedAt is null).ThenBy(item => item.CompletedAt).ToArray();
     }
 
     private IEnumerable<FocusSessionRecordViewModel> GetRecordsForGoal(string goalId) =>
         FocusSessionRecords.Where(record => record.GoalId == goalId);
 
     private IEnumerable<FocusSessionRecordViewModel> GetRecordsForDate(DateTime date) =>
-        FocusSessionRecords.Where(record => record.StartTime.Date == date.Date);
+        FocusSessionRecords.Where(record => record.StartTime < date.Date.AddDays(1) && record.EndTime > date.Date)
+            .OrderBy(record => record.StartTime);
 
     private static bool IsMeaningfulCalendarRecord(FocusSessionRecordViewModel record) =>
         record.EndTime > record.StartTime;
@@ -2185,8 +2189,6 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             : $"{totalMinutes}分钟";
     }
 
-    internal static string FormatDurationForDisplay(int totalMinutes) => FormatDuration(totalMinutes);
-
     private TrendMockData[] GetRuntimeTrendData(int days, int offsetDays = 0)
     {
         var startDate = _trendReferenceDate.Date.AddDays(1 - days + offsetDays);
@@ -2291,20 +2293,20 @@ public sealed class CalendarDayViewModel : INotifyPropertyChanged
     }
 }
 
-public sealed record CalendarCompletedTaskViewModel(string Name, DateTime? CompletedAt)
+public sealed record CalendarCompletedTaskViewModel(
+    string Name, DateTime? CompletedAt, string GoalId, string GoalName, string GoalIconSource)
 {
     public string TimeDisplay => CompletedAt?.ToString("HH:mm") ?? "—";
+    public bool HasGoal => !string.IsNullOrWhiteSpace(GoalName) && GoalId != "goal-unassigned";
 }
 
 public sealed class FocusSessionRecordViewModel : INotifyPropertyChanged
 {
     public Guid? SessionId { get; init; }
     public IReadOnlyList<DateTime?> CompletedTaskTimes { get; init; } = [];
+    public IReadOnlyList<string> CompletedTaskIds { get; init; } = [];
     public string IconSource { get; init; } = TargetIconCatalog.GetIconSource(null);
     public string CalendarTitle => HasGoal ? GoalName : "自由专注";
-    public bool HasCompletedTasks => CompletedTaskCount > 0;
-    public bool ShowDetailTasks => HasGoal && HasCompletedTasks;
-    public string CalendarDateDisplay => StartTime.ToString("M月d日 · dddd", System.Globalization.CultureInfo.GetCultureInfo("zh-CN"));
     private DateTime _startTime;
     private DateTime _endTime;
     private string _goalId;
@@ -2389,15 +2391,15 @@ public sealed class FocusSessionRecordViewModel : INotifyPropertyChanged
             if (_completedTaskCount == value) return;
             _completedTaskCount = value;
             OnPropertyChanged();
-            OnPropertyChanged(nameof(HasCompletedTasks));
-            OnPropertyChanged(nameof(ShowDetailTasks));
         }
     }
     public int DurationMinutes => (int)(EndTime - StartTime).TotalMinutes;
     public string TimeRangeDisplay => $"{StartTime:HH:mm} - {EndTime:HH:mm}";
-    public string CalendarDurationDisplay => EndTime > StartTime && EndTime - StartTime < TimeSpan.FromMinutes(1)
-        ? "<1分钟"
-        : DurationMinutes >= 60 ? $"{DurationMinutes / 60}小时{DurationMinutes % 60:00}分钟" : $"{DurationMinutes}分钟";
+    public string CompactDurationDisplay => EndTime > StartTime && EndTime - StartTime < TimeSpan.FromMinutes(1)
+        ? "<1m"
+        : DurationMinutes >= 60
+            ? DurationMinutes % 60 == 0 ? $"{DurationMinutes / 60}h" : $"{DurationMinutes / 60}h {DurationMinutes % 60}m"
+            : $"{DurationMinutes}m";
 
     private void NotifyTimeChanged()
     {
@@ -2405,7 +2407,7 @@ public sealed class FocusSessionRecordViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(EndTime));
         OnPropertyChanged(nameof(TimeRangeDisplay));
         OnPropertyChanged(nameof(DurationMinutes));
-        OnPropertyChanged(nameof(CalendarDurationDisplay));
+        OnPropertyChanged(nameof(CompactDurationDisplay));
     }
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
@@ -2496,31 +2498,20 @@ public sealed class TodayFocusDistributionViewModel
     }
 }
 
-public sealed class GoalDistributionViewModel
+public sealed class CalendarTimeDistributionViewModel
 {
-    public GoalDistributionViewModel(string targetName, string iconSource, int minutes, double ratio)
+    public CalendarTimeDistributionViewModel(string targetName, int minutes, double ratio)
     {
         TargetName = targetName;
-        IconSource = iconSource;
         Minutes = minutes;
         Ratio = ratio;
     }
 
     public string TargetName { get; }
-    public string IconSource { get; }
     public int Minutes { get; }
     public double Ratio { get; }
-    public double ProgressWidth => Ratio * 220;
-    public string CompactDurationDisplay => Minutes < 1 ? "<1m" : Minutes < 60 ? $"{Minutes}m" : $"{Minutes / 60}h {Minutes % 60:00}m";
-    public string MonthlyDurationDisplay => Minutes < 60
-        ? $"{Minutes}m"
-        : Minutes % 60 == 0
-            ? $"{Minutes / 60}h"
-            : $"{Minutes / 60}h {Minutes % 60}m";
-    public string DurationDisplay => StatisticsOverviewViewModel.FormatDurationForDisplay(Minutes);
-    public string RatioDisplay => $"{Ratio:P0}";
-    public string PoptipDurationAndRatioDisplay => FormattableString.Invariant(
-        $"{Minutes / 60d:0.#} 小时（{Math.Round(Ratio * 100, MidpointRounding.AwayFromZero):0}%）");
+    public string CompactDurationDisplay => Minutes < 1 ? "<1m" : Minutes < 60 ? $"{Minutes}m"
+        : Minutes % 60 == 0 ? $"{Minutes / 60}h" : $"{Minutes / 60}h {Minutes % 60}m";
 }
 
 public sealed class GoalOverviewItemViewModel : INotifyPropertyChanged

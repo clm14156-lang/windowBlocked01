@@ -11,55 +11,36 @@ namespace FocusApp.Desktop.Views;
 
 public partial class StatisticsPage : UserControl
 {
-    private void CompletedTasks_Click(object sender, RoutedEventArgs e)
+    private Popup? _completedTaskGoalPopup;
+
+    private void CompletedTaskRow_MouseEnter(object sender, MouseEventArgs e)
     {
-        if (DataContext is not StatisticsOverviewViewModel model) return;
-        CompletedTasksList.ItemsSource = model.SelectedDayCompletedTaskItems;
-        CompletedTasksEmpty.Visibility = model.SelectedDayCompletedTaskItems.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-        CompletedTasksPopup.IsOpen = !CompletedTasksPopup.IsOpen;
+        _completedTaskGoalPopup?.SetCurrentValue(Popup.IsOpenProperty, false);
+        _completedTaskGoalPopup = sender is Grid { DataContext: CalendarCompletedTaskViewModel { HasGoal: true } } row
+            ? row.Children.OfType<Popup>().SingleOrDefault() : null;
+        _completedTaskGoalPopup?.SetCurrentValue(Popup.IsOpenProperty, true);
     }
-    private void CompletedTasks_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e) { }
-    private void CompletedTasksPopup_Closed(object? sender, EventArgs e) { if (CompletedTasksButton is not null) CompletedTasksButton.IsChecked = false; }
-    private void CompletedTasksPopup_KeyDown(object sender, KeyEventArgs e) { if (e.Key == Key.Escape) CompletedTasksPopup.IsOpen = false; }
-    private FocusRecordDetailsWindow? _recordDetails;
-    private FocusSessionRecordViewModel? _recordDetailsRecord;
 
-    private void FocusRecord_Click(object sender, RoutedEventArgs e)
+    private void CompletedTaskRow_MouseLeave(object sender, MouseEventArgs e) => CloseCompletedTaskGoalPopup();
+
+    private void CompletedTasksPopup_Closed(object? sender, EventArgs e) => CloseCompletedTaskGoalPopup();
+
+    private void CloseCompletedTaskGoalPopup()
     {
-        if (sender is not FrameworkElement { DataContext: FocusSessionRecordViewModel record } card ||
-            DataContext is not StatisticsOverviewViewModel model) return;
+        _completedTaskGoalPopup?.SetCurrentValue(Popup.IsOpenProperty, false);
+        _completedTaskGoalPopup = null;
+    }
 
-        if (_recordDetails is { IsVisible: true } existingWindow &&
-            ReferenceEquals(_recordDetailsRecord, record))
+    private void CompletedTasksPopup_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape)
         {
-            PositionRecordDetailsWindow(existingWindow, card);
-            existingWindow.ActivateFromOwner();
-            return;
+            CompletedTasksPopup.IsOpen = false;
+            CompletedTasksButton.Focus();
+            e.Handled = true;
         }
-
-        _recordDetails?.Close();
-        var window = new FocusRecordDetailsWindow(model, record) { Owner = Window.GetWindow(this) };
-        PositionRecordDetailsWindow(window, card);
-        _recordDetails = window;
-        _recordDetailsRecord = record;
-        window.Closed += (_, _) =>
-        {
-            if (!ReferenceEquals(_recordDetails, window)) return;
-            _recordDetails = null;
-            _recordDetailsRecord = null;
-        };
-        window.Show();
-        window.Activate();
     }
 
-    private static void PositionRecordDetailsWindow(FocusRecordDetailsWindow window, FrameworkElement card)
-    {
-        var point = card.PointToScreen(new Point(card.ActualWidth + 4, 0));
-        var source = PresentationSource.FromVisual(card);
-        var position = source?.CompositionTarget?.TransformFromDevice.Transform(point) ?? point;
-        window.Left = position.X;
-        window.Top = position.Y - 6;
-    }
     private const int WmNcHitTest = 0x0084;
     private static readonly IntPtr HitTestTransparent = new(-1);
     private readonly DispatcherTimer _dailyFocusRecordVipGuideOpenTimer;
@@ -89,7 +70,7 @@ public partial class StatisticsPage : UserControl
         Loaded += (_, _) => UpdateTooltipPlacement();
         Unloaded += (_, _) =>
         {
-            _recordDetails?.Close();
+            CompletedTasksPopup.IsOpen = false;
             DetachTrendTooltipWindowHook();
             _dailyFocusRecordVipGuideOpenTimer.Stop();
             _dailyFocusRecordVipGuideCloseTimer.Stop();
@@ -139,7 +120,7 @@ public partial class StatisticsPage : UserControl
 
     private void StatisticsPage_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
-        _recordDetails?.Close();
+        CompletedTasksPopup.IsOpen = false;
         if (e.OldValue is StatisticsOverviewViewModel oldViewModel)
         {
             oldViewModel.PropertyChanged -= StatisticsViewModel_PropertyChanged;
@@ -154,7 +135,7 @@ public partial class StatisticsPage : UserControl
     private void StatisticsViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName is nameof(StatisticsOverviewViewModel.SelectedTab) or nameof(StatisticsOverviewViewModel.SelectedDateDisplay))
-            _recordDetails?.Close();
+            CompletedTasksPopup.IsOpen = false;
         if (e.PropertyName is nameof(StatisticsOverviewViewModel.HoveredPoint) or nameof(StatisticsOverviewViewModel.IsTooltipOpen))
         {
             Dispatcher.BeginInvoke(UpdateTooltipPlacement);

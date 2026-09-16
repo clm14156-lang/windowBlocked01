@@ -15,63 +15,6 @@ public sealed class StatisticsGoalProgressPresentationTests
     private static readonly XNamespace Xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
 
     [Fact]
-    public void GoalDistributionUsesBoundIconsLongBarsAndHoverPoptips()
-    {
-        var page = XDocument.Load(Path.Combine(
-            FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
-        var distributions = Assert.Single(page.Descendants(Presentation + "ItemsControl").Where(control =>
-            (string?)control.Attribute(Xaml + "Name") == "GoalDistributionItemsControl"));
-        var template = Assert.Single(distributions.Elements(Presentation + "ItemsControl.ItemTemplate")
-            .Elements(Presentation + "DataTemplate"));
-        var row = Assert.Single(template.Elements(Presentation + "Grid"));
-
-        Assert.Equal(
-            new[] { "14", "9", "72", "12", "*" },
-            row.Elements(Presentation + "Grid.ColumnDefinitions")
-                .Elements(Presentation + "ColumnDefinition")
-                .Select(column => (string?)column.Attribute("Width")));
-
-        var icon = Assert.Single(row.Elements(Presentation + "Image"));
-        Assert.Equal("14", (string?)icon.Attribute("Width"));
-        Assert.Equal("14", (string?)icon.Attribute("Height"));
-        Assert.Equal("{Binding IconSource}", (string?)icon.Attribute("Source"));
-        Assert.Equal("HighQuality", (string?)icon.Attribute("RenderOptions.BitmapScalingMode"));
-
-        var hoverArea = Assert.Single(row.Elements(Presentation + "Grid").Where(grid =>
-            (string?)grid.Attribute(Xaml + "Name") == "GoalDistributionHoverArea"));
-        Assert.Equal("2", (string?)hoverArea.Attribute("Grid.Column"));
-        Assert.Equal("3", (string?)hoverArea.Attribute("Grid.ColumnSpan"));
-        Assert.Equal("{DynamicResource TransparentBrush}", (string?)hoverArea.Attribute("Background"));
-        Assert.Equal("0", (string?)hoverArea.Attribute("ToolTipService.BetweenShowDelay"));
-        Assert.Equal(
-            new[] { "72", "12", "*" },
-            hoverArea.Elements(Presentation + "Grid.ColumnDefinitions")
-                .Elements(Presentation + "ColumnDefinition")
-                .Select(column => (string?)column.Attribute("Width")));
-
-        var progress = Assert.Single(hoverArea.Elements(Presentation + "ProgressBar"));
-        Assert.Equal("2", (string?)progress.Attribute("Grid.Column"));
-        Assert.Equal("Stretch", (string?)progress.Attribute("HorizontalAlignment"));
-        Assert.Equal("{Binding Ratio, Mode=OneWay}", (string?)progress.Attribute("Value"));
-        Assert.Empty(progress.Descendants(Presentation + "ToolTip"));
-        Assert.Equal("Top", (string?)hoverArea.Descendants(Presentation + "ToolTip").Single().Attribute("Placement"));
-
-        var poptipBindings = hoverArea.Descendants(Presentation + "ToolTip")
-            .Descendants(Presentation + "TextBlock")
-            .Select(text => (string?)text.Attribute("Text"))
-            .ToArray();
-        Assert.Equal(new[] { "{Binding TargetName}", "{Binding PoptipDurationAndRatioDisplay}" }, poptipBindings);
-        Assert.Single(hoverArea.Descendants(Presentation + "ToolTip").Descendants(Presentation + "Polygon"));
-
-        var directRowBindings = hoverArea.Elements(Presentation + "TextBlock")
-            .Select(text => (string?)text.Attribute("Text"))
-            .ToArray();
-        Assert.Equal(new[] { "{Binding TargetName}" }, directRowBindings);
-        Assert.DoesNotContain("{Binding DurationDisplay}", directRowBindings);
-        Assert.DoesNotContain("{Binding RatioDisplay}", directRowBindings);
-    }
-
-    [Fact]
     public void GoalDetailsUseInvestmentAndSharedTasks()
     {
         var page = XDocument.Load(Path.Combine(FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
@@ -221,15 +164,14 @@ public sealed class StatisticsGoalProgressPresentationTests
         Exception? failure = null;
         var thread = new Thread(() =>
         {
-            FocusApp.Desktop.App? app = null;
             try
             {
-                app = new FocusApp.Desktop.App();
-                app.InitializeComponent();
                 CreateGoalModalTests.VerifyButtonLabelsWithApplicationTextStyles();
                 var now = new DateTime(2026, 9, 16, 12, 0, 0);
                 var viewModel = new StatisticsOverviewViewModel(localNowProvider: () => now);
                 var page = new StatisticsPage { DataContext = viewModel };
+                foreach (var resource in new[] { "Colors", "Typography", "Strings", "Styles" })
+                    page.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri($"/FocusApp.Desktop;component/Resources/{resource}.xaml", UriKind.Relative) });
                 viewModel.SelectGoalsCommand.Execute(null);
                 viewModel.SetUserAccess(true, true);
                 viewModel.SelectedGoal!.UpdateDetails("专注于提升游戏开发能力", 100 * 60);
@@ -269,27 +211,10 @@ public sealed class StatisticsGoalProgressPresentationTests
                 Assert.Equal(Visibility.Collapsed, remark.Visibility);
                 Assert.True(remarkHeight > 0);
 
-                var calendarVisualQaPath = Environment.GetEnvironmentVariable("FOCUSAPP_CALENDAR_DISTRIBUTION_QA_PATH");
-                if (!string.IsNullOrWhiteSpace(calendarVisualQaPath))
-                {
-                    viewModel.SetUserAccess(true, true);
-                    viewModel.SelectCalendarCommand.Execute(null);
-                    page.UpdateLayout();
-                    var bitmap = new RenderTargetBitmap(800, 710, 96, 96, PixelFormats.Pbgra32);
-                    bitmap.Render(page);
-                    var encoder = new PngBitmapEncoder();
-                    encoder.Frames.Add(BitmapFrame.Create(bitmap));
-                    using var stream = File.Create(calendarVisualQaPath);
-                    encoder.Save(stream);
-                }
             }
             catch (Exception exception)
             {
                 failure = exception;
-            }
-            finally
-            {
-                app?.Shutdown();
             }
         });
         thread.SetApartmentState(ApartmentState.STA);
