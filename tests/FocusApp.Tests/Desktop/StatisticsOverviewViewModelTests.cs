@@ -104,41 +104,6 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.False(viewModel.FocusGoalSettingsModal.IsOpen);
     }
 
-    [Fact]
-    public void GoalDetailStatisticsFollowSelectedGoalsAndRecordChanges()
-    {
-        var model = new StatisticsOverviewViewModel(false);
-        var created = new DateTimeOffset(2026, 8, 2, 12, 0, 0, TimeSpan.Zero);
-        var goal = new GoalOverviewItemViewModel("test", "测试目标", "", "", false, false, createdAtUtc: created);
-        var empty = new GoalOverviewItemViewModel("empty", "空目标", "", "", false, false);
-        model.Goals.Add(goal);
-        model.Goals.Add(empty);
-        var record = new FocusSessionRecordViewModel(new DateTime(2026, 8, 5, 15, 0, 0), new DateTime(2026, 8, 5, 16, 12, 0), goal.GoalId, goal.Name, "", 0);
-        model.FocusSessionRecords.Add(record);
-        model.SelectGoalCommand.Execute(goal);
-        Assert.Equal("1.2", model.SelectedGoalTotalHours);
-        Assert.Equal(1, model.SelectedGoalFocusCount);
-        Assert.Equal("8月5日", model.SelectedGoalLatestDate);
-        Assert.Equal("15:00–16:12", model.SelectedGoalLatestTime);
-        Assert.Equal($"创建于 {created.ToLocalTime():M月d日}", goal.CreatedDateDisplay);
-        var changed = new List<string?>();
-        model.PropertyChanged += (_, args) => changed.Add(args.PropertyName);
-        record.EndTime = record.StartTime.AddMinutes(90);
-        Assert.Equal("1.5", model.SelectedGoalTotalHours);
-        Assert.Contains(nameof(model.SelectedGoalTotalHours), changed);
-        Assert.Equal("15:00–16:30", model.SelectedGoalLatestTime);
-        model.SelectGoalCommand.Execute(empty);
-        Assert.Equal("0", model.SelectedGoalTotalHours);
-        Assert.Equal(0, model.SelectedGoalFocusCount);
-        Assert.Equal("暂无专注", model.SelectedGoalLatestDate);
-        Assert.Empty(model.GoalDateGroups);
-        model.SelectGoalCommand.Execute(goal);
-        Assert.Single(model.GoalDateGroups);
-        model.FocusSessionRecords.Remove(record);
-        Assert.Equal(0, model.SelectedGoalFocusCount);
-        Assert.Equal("暂无专注", model.SelectedGoalLatestDate);
-        Assert.Empty(model.GoalDateGroups);
-    }
 
     [Fact]
     public void FocusSessionGoalTagIsVisibleOnlyForAssociatedGoals()
@@ -208,17 +173,12 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.False(viewModel.IsTrendVipGuideOpen);
         Assert.False(viewModel.IsDailyFocusRecordVipGuideOpen);
         Assert.False(viewModel.IsGoalInvestmentDetailsVipGuideOpen);
-        viewModel.IsGoalMonthMenuOpen = true;
-        viewModel.SetHoveredGoalTrendPoint(viewModel.GoalTrendPoints[0]);
 
         viewModel.SetUserAccess(false, true);
 
         Assert.False(viewModel.CanViewTrend);
         Assert.False(viewModel.CanViewDailyFocusRecord);
         Assert.False(viewModel.CanViewGoalInvestmentDetails);
-        Assert.False(viewModel.IsGoalMonthMenuOpen);
-        Assert.Null(viewModel.HoveredGoalTrendPoint);
-        Assert.False(viewModel.IsGoalTrendTooltipOpen);
     }
 
     [Fact]
@@ -514,83 +474,21 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.Equal("2.3 小时（100%）", distribution.PoptipDurationAndRatioDisplay);
     }
 
+
     [Fact]
-    public void GoalTrendUsesThirtyDailyPointsWithSparseDatesAndRoundedAxisScale()
+    public void FeaturedGoalKeepsItsMockFocusSessionData()
     {
         var viewModel = new StatisticsOverviewViewModel();
+        var sessions = viewModel.FocusSessionRecords
+            .Where(record => record.GoalId == viewModel.SelectedGoal!.GoalId && record.StartTime.Date == new DateTime(2026, 7, 30))
+            .OrderByDescending(record => record.StartTime).ToArray();
 
-        Assert.Equal(31, viewModel.GoalTrendPoints.Count);
-        Assert.Equal(7, viewModel.GoalTrendDateLabels.Count);
-        Assert.Equal(new[] { "2026年7月", "2026年5月", "2026年3月" }, viewModel.GoalMonths.Select(month => month.Label));
-        Assert.Equal(new[] { "7/1", "7/6", "7/11", "7/16", "7/21", "7/26", "7/31" }, viewModel.GoalTrendDateLabels.Select(label => label.Label));
-        Assert.Equal(new[] { "6h", "4h", "2h", "0h" }, viewModel.GoalTrendAxisTicks.Select(tick => tick.Label));
-        Assert.All(viewModel.GoalTrendAxisTicks.SkipLast(1), tick => Assert.True(tick.ShowGuideLine));
-        Assert.False(viewModel.GoalTrendAxisTicks[^1].ShowGuideLine);
-        Assert.All(viewModel.GoalTrendPoints, point => Assert.InRange(point.Ratio, 0, 1));
-        Assert.All(
-            viewModel.GoalTrendPoints.Where(point => point.Minutes > 0),
-            point => Assert.Contains(viewModel.GoalDateGroups, group => group.Date == point.Date));
-        Assert.All(
-            viewModel.GoalDateGroups.Where(group => group.Date.Month == 7),
-            group => Assert.Equal(
-                group.Sessions.Sum(record => record.DurationMinutes),
-                viewModel.GoalTrendPoints.Single(point => point.Date == group.Date).Minutes));
+        Assert.Equal(11, sessions.Length);
+        Assert.Equal(216, sessions.Sum(session => session.DurationMinutes));
+        Assert.Equal(new[] { "当日学习复盘", "修改登录页面", "修复登录验证" }, sessions[0].CompletedTaskNames);
+        Assert.Equal(4, sessions.Count(session => session.CompletedTaskNames.Count == 0));
     }
 
-    [Fact]
-    public void FeaturedGoalHasTenAdditionalMockSessionsOnJulyThirtieth()
-    {
-        var viewModel = new StatisticsOverviewViewModel();
-        var group = Assert.Single(viewModel.GoalDateGroups, item => item.Date == new DateTime(2026, 7, 30));
-
-        Assert.Equal(11, group.Sessions.Count);
-        Assert.Equal(10, group.Sessions.Count(session => session.StartTime != new DateTime(2026, 7, 30, 11, 15, 0)));
-        Assert.Equal(216, group.Sessions.Sum(session => session.DurationMinutes));
-        Assert.Equal("当日学习复盘", group.RepresentativeTaskDisplay);
-        Assert.Equal(" · 13项任务", group.TaskCountDisplay);
-        Assert.Equal(
-            new[] { "当日学习复盘", "修改登录页面", "修复登录验证" },
-            group.Sessions[0].CompletedTaskNames);
-        Assert.Equal(4, group.Sessions.Count(session => session.CompletedTaskNames.Count == 0));
-        Assert.True(group.Sessions[^1].IsLastInGoalDateGroup);
-        Assert.All(group.Sessions.SkipLast(1), session => Assert.False(session.IsLastInGoalDateGroup));
-    }
-
-    [Fact]
-    public void GoalDateGroupSummaryUsesLatestTaskCountAndCompactDuration()
-    {
-        var date = new DateTime(2026, 7, 30);
-        var group = new GoalDateGroupViewModel(date,
-        [
-            new FocusSessionRecordViewModel(date.AddHours(9), date.AddHours(9.5), "goal", "目标", "较早任务", 1),
-            new FocusSessionRecordViewModel(date.AddHours(11), date.AddHours(13).AddMinutes(6), "goal", "目标", "最后任务", 2)
-        ]);
-
-        Assert.Equal("最后任务", group.RepresentativeTaskDisplay);
-        Assert.Equal(" · 3项任务", group.TaskCountDisplay);
-        Assert.Equal("最后任务 · 3项任务", group.TaskSummaryDisplay);
-        Assert.Equal("2小时36分", group.DurationDisplay);
-        Assert.Equal("最后任务", group.Sessions[0].TaskName);
-        Assert.Equal(2, group.Sessions[0].CompletedTaskNames.Count);
-
-        var singleTask = new GoalDateGroupViewModel(date,
-        [
-            new FocusSessionRecordViewModel(date, date.AddMinutes(54), "goal", "目标", "唯一任务", 1)
-        ]);
-        Assert.Equal("唯一任务", singleTask.RepresentativeTaskDisplay);
-        Assert.Empty(singleTask.TaskCountDisplay);
-        Assert.Equal("唯一任务", singleTask.TaskSummaryDisplay);
-        Assert.Equal("54分钟", singleTask.DurationDisplay);
-
-        var noTask = new GoalDateGroupViewModel(date,
-        [
-            new FocusSessionRecordViewModel(date, date.AddMinutes(20), "goal", "目标", "不应显示", 0)
-        ]);
-        Assert.Empty(noTask.RepresentativeTaskDisplay);
-        Assert.Empty(noTask.TaskCountDisplay);
-        Assert.Empty(noTask.TaskSummaryDisplay);
-        Assert.Empty(noTask.Sessions[0].CompletedTaskNames);
-    }
 
     [Fact]
     public void GoalArchiveAndRestoreMoveItemsBetweenFilteredLists()
@@ -655,12 +553,7 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.Equal("code.png", viewModel.QuickTargetIcons[0].FileName);
         Assert.Equal(6, viewModel.QuickTargetIcons.Count);
         Assert.False(viewModel.IsCreateGoalDialogOpen);
-        Assert.Equal("0 分钟", viewModel.SelectedGoalDurationDisplay);
-        Assert.Equal("0 次推进", viewModel.SelectedGoalProgressDisplay);
-        Assert.Empty(viewModel.GoalMonths);
-        Assert.Empty(viewModel.GoalTrendPoints);
-        Assert.Empty(viewModel.GoalDateGroups);
-        Assert.False(viewModel.HasSelectedGoalRecords);
+        Assert.Equal("0分钟", viewModel.SelectedGoalTotalInvestmentDisplay);
         Assert.DoesNotContain(viewModel.FocusSessionRecords, record => record.GoalId == added.GoalId);
     }
 
@@ -1001,201 +894,47 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.DoesNotContain(currentGoal, viewModel.Goals);
     }
 
-    [Fact]
-    public void GoalMonthSelectionRefreshesTrendWithoutFilteringHistory()
-    {
-        var viewModel = new StatisticsOverviewViewModel();
-        var historyBeforeMonthChange = viewModel.GoalDateGroups.ToArray();
 
-        Assert.Equal("2026年7月", viewModel.SelectedGoalMonth?.Label);
-        Assert.Equal(31, viewModel.GoalTrendPoints.Count);
-        Assert.Contains(viewModel.GoalDateGroups, group => group.Date.Month == 7);
-        Assert.Contains(viewModel.GoalDateGroups, group => group.Date.Month == 5);
-        Assert.Contains(viewModel.GoalDateGroups, group => group.Date.Month == 3);
-        Assert.Equal(
-            viewModel.GoalDateGroups.OrderByDescending(group => group.Date).Select(group => group.Date),
-            viewModel.GoalDateGroups.Select(group => group.Date));
-        Assert.All(
-            viewModel.GoalDateGroups,
-            group => Assert.Equal(
-                group.Sessions.OrderByDescending(session => session.StartTime),
-                group.Sessions));
 
-        viewModel.SelectGoalMonthCommand.Execute(viewModel.GoalMonths[1]);
 
-        Assert.Equal("2026年5月", viewModel.SelectedGoalMonth?.Label);
-        Assert.Equal(31, viewModel.GoalTrendPoints.Count);
-        Assert.All(viewModel.GoalTrendPoints, point => Assert.Equal(5, point.Date.Month));
-        Assert.Equal(new[] { "5/1", "5/6", "5/11", "5/16", "5/21", "5/26", "5/31" }, viewModel.GoalTrendDateLabels.Select(label => label.Label));
-        Assert.Equal(new DateTime(2026, 5, 1), viewModel.GoalTrendPoints[0].Date);
-        Assert.Equal(new DateTime(2026, 5, 31), viewModel.GoalTrendPoints[^1].Date);
-        Assert.Equal(historyBeforeMonthChange, viewModel.GoalDateGroups);
-    }
 
     [Fact]
-    public void MonthMenuSelectionDoesNotChangeTrendExpansionState()
-    {
-        var viewModel = new StatisticsOverviewViewModel();
-
-        Assert.False(viewModel.IsGoalTrendExpanded);
-        Assert.False(viewModel.IsGoalMonthMenuOpen);
-        Assert.True(viewModel.SelectedGoalMonth?.IsSelected);
-
-        viewModel.ToggleGoalTrendCommand.Execute(null);
-        viewModel.ToggleGoalMonthMenuCommand.Execute(null);
-
-        Assert.True(viewModel.IsGoalTrendExpanded);
-        Assert.True(viewModel.IsGoalMonthMenuOpen);
-
-        var previousMonth = viewModel.SelectedGoalMonth;
-        var selectedMonth = viewModel.GoalMonths[1];
-        viewModel.SelectGoalMonthCommand.Execute(selectedMonth);
-
-        Assert.Same(selectedMonth, viewModel.SelectedGoalMonth);
-        Assert.True(selectedMonth.IsSelected);
-        Assert.False(previousMonth?.IsSelected);
-        Assert.False(viewModel.IsGoalMonthMenuOpen);
-        Assert.True(viewModel.IsGoalTrendExpanded);
-        Assert.All(viewModel.GoalTrendPoints, point => Assert.Equal(selectedMonth.Month, point.Date.Month));
-    }
-
-    [Fact]
-    public void SelectingTrendPointExpandsMatchingDateGroup()
-    {
-        var viewModel = new StatisticsOverviewViewModel();
-        var point = viewModel.GoalTrendPoints.Single(item => item.Date.Date == viewModel.GoalDateGroups[0].Date.Date);
-
-        viewModel.SelectGoalTrendPointCommand.Execute(point);
-
-        Assert.True(viewModel.GoalDateGroups.Single(group => group.Date == point.Date.Date).IsExpanded);
-        Assert.Single(viewModel.GoalDateGroups.Where(group => group.IsExpanded));
-    }
-
-    [Fact]
-    public void GoalTrendHoverUsesStableOffsetsAndClosesWhenMonthChanges()
-    {
-        var viewModel = new StatisticsOverviewViewModel();
-        var point = viewModel.GoalTrendPoints[10];
-
-        viewModel.SetGoalTrendTooltipOffsets(84, -22);
-        viewModel.SetHoveredGoalTrendPoint(point);
-
-        Assert.Same(point, viewModel.HoveredGoalTrendPoint);
-        Assert.True(viewModel.IsGoalTrendTooltipOpen);
-        Assert.Equal(84, viewModel.GoalTrendTooltipOffsetX);
-        Assert.Equal(-22, viewModel.GoalTrendTooltipOffsetY);
-        Assert.Equal("7月23日 周四", new GoalTrendPointViewModel(0, new DateTime(2026, 7, 23), 270, 1).TooltipDateDisplay);
-
-        viewModel.SelectGoalMonthCommand.Execute(viewModel.GoalMonths[1]);
-
-        Assert.Null(viewModel.HoveredGoalTrendPoint);
-        Assert.False(viewModel.IsGoalTrendTooltipOpen);
-    }
-
-    [Fact]
-    public void ChangingProgressRecordsRefreshesHistoryAndTrendFromTheSameSource()
+    public void ChangingFocusRecordsRefreshesGoalInvestmentFromTheSameSource()
     {
         var viewModel = new StatisticsOverviewViewModel();
         var goal = viewModel.SelectedGoal!;
-        var records = viewModel.FocusSessionRecords;
         var added = new FocusSessionRecordViewModel(
             new DateTime(2026, 7, 14, 10, 0, 0),
             new DateTime(2026, 7, 14, 11, 20, 0),
-            goal.GoalId,
-            goal.Name,
-            "新增推进",
-            1);
+            goal.GoalId, goal.Name, "新增推进", 1);
 
-        records.Add(added);
-
-        Assert.Equal(80, viewModel.GoalTrendPoints.Single(point => point.Date == new DateTime(2026, 7, 14)).Minutes);
-        Assert.Contains(viewModel.GoalDateGroups, group => group.Date == new DateTime(2026, 7, 14));
-        Assert.Equal("29 小时 50 分钟", viewModel.SelectedGoalDurationDisplay);
-        Assert.Equal("43 次推进", viewModel.SelectedGoalProgressDisplay);
+        viewModel.FocusSessionRecords.Add(added);
+        Assert.Equal("29小时50分钟", viewModel.SelectedGoalTotalInvestmentDisplay);
 
         added.EndTime = new DateTime(2026, 7, 14, 12, 0, 0);
-        Assert.Equal(120, viewModel.GoalTrendPoints.Single(point => point.Date == new DateTime(2026, 7, 14)).Minutes);
-        Assert.Equal("30 小时 30 分钟", viewModel.SelectedGoalDurationDisplay);
+        Assert.Equal("30小时30分钟", viewModel.SelectedGoalTotalInvestmentDisplay);
 
-        records.Remove(added);
-
-        Assert.Equal(0, viewModel.GoalTrendPoints.Single(point => point.Date == new DateTime(2026, 7, 14)).Minutes);
-        Assert.DoesNotContain(viewModel.GoalDateGroups, group => group.Date == new DateTime(2026, 7, 14));
-        Assert.Equal("28 小时 30 分钟", viewModel.SelectedGoalDurationDisplay);
-        Assert.Equal("28", viewModel.SelectedGoalHoursValueDisplay);
-        Assert.Equal(" 小时 ", viewModel.SelectedGoalHoursUnitDisplay);
-        Assert.Equal("30", viewModel.SelectedGoalMinutesValueDisplay);
-        Assert.Equal("42 次推进", viewModel.SelectedGoalProgressDisplay);
-        Assert.Equal("42", viewModel.SelectedGoalProgressValueDisplay);
+        viewModel.FocusSessionRecords.Remove(added);
+        Assert.Equal("28小时30分钟", viewModel.SelectedGoalTotalInvestmentDisplay);
     }
 
-    [Fact]
-    public void GoalMonthsAreRecomputedFromProgressRecordsAfterAddEditAndDelete()
-    {
-        var viewModel = new StatisticsOverviewViewModel();
-        var goal = viewModel.SelectedGoal!;
-        var records = viewModel.FocusSessionRecords;
-        var added = new FocusSessionRecordViewModel(
-            new DateTime(2026, 4, 10, 10, 0, 0),
-            new DateTime(2026, 4, 10, 11, 0, 0),
-            goal.GoalId,
-            goal.Name,
-            "月份同步",
-            1);
-
-        records.Add(added);
-
-        Assert.Equal(
-            new[] { "2026年7月", "2026年5月", "2026年4月", "2026年3月" },
-            viewModel.GoalMonths.Select(month => month.Label));
-        Assert.Equal("2026年7月", viewModel.SelectedGoalMonth?.Label);
-
-        added.EndTime = new DateTime(2026, 8, 10, 11, 0, 0);
-        added.StartTime = new DateTime(2026, 8, 10, 10, 0, 0);
-
-        Assert.Equal(
-            new[] { "2026年8月", "2026年7月", "2026年5月", "2026年3月" },
-            viewModel.GoalMonths.Select(month => month.Label));
-
-        records.Remove(added);
-        foreach (var record in records.Where(record => record.GoalId == goal.GoalId && record.StartTime.Month == 7).ToArray())
-        {
-            records.Remove(record);
-        }
-
-        Assert.Equal(new[] { "2026年5月", "2026年3月" }, viewModel.GoalMonths.Select(month => month.Label));
-        Assert.Equal("2026年5月", viewModel.SelectedGoalMonth?.Label);
-    }
 
     [Fact]
-    public void SelectingGoalReloadsAllStatisticsFromThatGoalsOwnRecords()
+    public void SelectingGoalReloadsInvestmentFromThatGoalsOwnRecords()
     {
         var viewModel = new StatisticsOverviewViewModel();
-        var ue5 = viewModel.Goals.Single(goal => goal.GoalId == "goal-ue5");
         var design = viewModel.Goals.Single(goal => goal.GoalId == "goal-design");
-        var ue5Records = viewModel.FocusSessionRecords.Where(record => record.GoalId == ue5.GoalId).ToArray();
-        var designRecords = viewModel.FocusSessionRecords.Where(record => record.GoalId == design.GoalId).ToArray();
 
-        Assert.Equal("28 小时 30 分钟", viewModel.SelectedGoalDurationDisplay);
-        Assert.Equal("42 次推进", viewModel.SelectedGoalProgressDisplay);
-
+        Assert.Equal("28小时30分钟", viewModel.SelectedGoalTotalInvestmentDisplay);
         viewModel.SelectGoalCommand.Execute(design);
 
         Assert.Same(design, viewModel.SelectedGoal);
         Assert.Equal("做设计", viewModel.SelectedGoalName);
-        Assert.Equal("8 小时 36 分钟", viewModel.SelectedGoalDurationDisplay);
-        Assert.Equal("14 次推进", viewModel.SelectedGoalProgressDisplay);
-        Assert.Equal(new[] { "2026年3月" }, viewModel.GoalMonths.Select(month => month.Label));
-        Assert.All(viewModel.GoalDateGroups, group => Assert.Equal(3, group.Date.Month));
-        Assert.Equal(designRecords.Length, viewModel.GoalDateGroups.Sum(group => group.Sessions.Count));
-        Assert.False(ue5Records.Select(record => record.StartTime).SequenceEqual(designRecords.Select(record => record.StartTime)));
-        Assert.Equal(
-            designRecords.Sum(record => record.DurationMinutes),
-            viewModel.GoalTrendPoints.Sum(point => point.Minutes));
+        Assert.Equal("8小时36分钟", viewModel.SelectedGoalTotalInvestmentDisplay);
     }
 
     [Fact]
-    public void CalendarAndGoalHistoryUseTheSameFocusSessionRecord()
+    public void CalendarAndGoalInvestmentUseTheSameFocusSessionData()
     {
         var viewModel = new StatisticsOverviewViewModel();
         var reading = viewModel.Goals.Single(goal => goal.GoalId == "goal-reading");
@@ -1205,10 +944,10 @@ public sealed class StatisticsOverviewViewModelTests
         viewModel.SelectGoalCommand.Execute(reading);
 
         var calendarRecord = Assert.Single(viewModel.SelectedDayRecords);
-        var goalRecord = Assert.Single(viewModel.GoalDateGroups.Single(group => group.Date == februaryTwentyEighth.Date).Sessions);
-        Assert.Same(calendarRecord, goalRecord);
+        Assert.Contains(calendarRecord, viewModel.FocusSessionRecords);
+        Assert.Equal(reading.GoalId, calendarRecord.GoalId);
         Assert.Equal("读书", calendarRecord.GoalName);
-        Assert.Equal(calendarRecord.DurationMinutes, viewModel.GoalTrendPoints.Single(point => point.Date == februaryTwentyEighth.Date).Minutes);
+        Assert.Equal("8小时2分钟", viewModel.SelectedGoalTotalInvestmentDisplay);
     }
 
     [Fact]
@@ -1262,9 +1001,7 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.Equal("1", viewModel.SelectedDayHoursValueDisplay);
         Assert.Equal(" 小时 ", viewModel.SelectedDayHoursUnitDisplay);
         Assert.Equal("35", viewModel.SelectedDayMinutesValueDisplay);
-        Assert.Equal(95, viewModel.GoalTrendPoints.Single(point => point.Date == new DateTime(2026, 2, 28)).Minutes);
-        Assert.Equal("9 小时 2 分钟", viewModel.SelectedGoalDurationDisplay);
-        Assert.Equal("15 次推进", viewModel.SelectedGoalProgressDisplay);
+        Assert.Equal("9小时2分钟", viewModel.SelectedGoalTotalInvestmentDisplay);
         Assert.Equal(viewModel.MonthlyTotalMinutes, viewModel.GoalDistributions.Sum(item => item.Minutes));
         Assert.All(viewModel.GoalDistributions, distribution =>
             Assert.Equal(distribution.Minutes / (double)viewModel.MonthlyTotalMinutes, distribution.Ratio, 10));
@@ -1273,10 +1010,8 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.Equal("2 小时 5 分钟", viewModel.SelectedDayDurationDisplay);
         Assert.Equal("2", viewModel.SelectedDayHoursValueDisplay);
         Assert.Equal("5", viewModel.SelectedDayMinutesValueDisplay);
-        Assert.Equal(125, viewModel.GoalTrendPoints.Single(point => point.Date == new DateTime(2026, 2, 28)).Minutes);
 
         viewModel.FocusSessionRecords.Remove(added);
         Assert.Single(viewModel.SelectedDayRecords);
-        Assert.Equal(35, viewModel.GoalTrendPoints.Single(point => point.Date == new DateTime(2026, 2, 28)).Minutes);
     }
 }

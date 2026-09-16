@@ -72,23 +72,25 @@ public sealed class StatisticsGoalProgressPresentationTests
     }
 
     [Fact]
-    public void GoalDetailsUseRecordsAndSummaryBindingsWithoutTrendControls()
+    public void GoalDetailsUseInvestmentAndReadOnlyTaskPlaceholders()
     {
         var page = XDocument.Load(Path.Combine(FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
         var card = page.Descendants(Presentation + "Border").Single(element => (string?)element.Attribute(Xaml + "Name") == "GoalInvestmentDetailsCard");
-        Assert.DoesNotContain(card.DescendantsAndSelf().Attributes(), attribute =>
-            attribute.Value.Contains("GoalTrend", StringComparison.Ordinal) || attribute.Value.Contains("SelectedGoalMonth", StringComparison.Ordinal));
-        foreach (var property in new[] { "SelectedGoalTotalHours", "SelectedGoalFocusCount", "SelectedGoalLatestDate", "SelectedGoal.CreatedDateDisplay" })
+        foreach (var property in new[] { "SelectedGoalWeeklyInvestment.", "SelectedGoalTotalInvestment.", "SelectedGoal.Remark", "SelectedGoalTargetDurationDisplay" })
             Assert.Contains(card.Descendants().Attributes(), attribute => attribute.Value.Contains(property, StringComparison.Ordinal));
-        var placeholder = card.Descendants(Presentation + "TextBlock").Single(element => (string?)element.Attribute("Text") == "查看趋势  ›");
-        Assert.DoesNotContain(placeholder.Ancestors(), element => element.Name == Presentation + "Button");
-        var groups = card.Descendants(Presentation + "ItemsControl").Single(element => (string?)element.Attribute(Xaml + "Name") == "GoalDateGroupsControl");
-        Assert.Contains(groups.Descendants(Presentation + "Button"), button =>
-            (string?)button.Attribute("Command") == "{Binding DataContext.ToggleGoalDateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}");
-        Assert.Contains(groups.Descendants(Presentation + "Button"), button => (string?)button.Attribute("Click") == "FocusRecord_Click");
-        Assert.Contains(groups.Descendants().Attributes(), attribute => attribute.Value == "{Binding WeekdayDisplay}");
-        Assert.Contains(groups.Descendants().Attributes(), attribute => attribute.Value == "{Binding CalendarDurationDisplay}");
-        Assert.Contains(groups.Descendants().Attributes(), attribute => attribute.Value == "{Binding HasCompletedTasks, Converter={StaticResource BooleanToVisibilityConverter}}");
+        foreach (var oldText in new[] { "专注次数", "最近一次专注", "专注记录", "查看趋势  ›", "暂无专注记录" })
+            Assert.DoesNotContain(card.Descendants(Presentation + "TextBlock"), text => (string?)text.Attribute("Text") == oldText);
+        var progress = card.Descendants(Presentation + "Grid").Single(element => (string?)element.Attribute(Xaml + "Name") == "GoalInvestmentProgress");
+        Assert.Equal("{Binding HasSelectedGoalTargetDuration, Converter={StaticResource BooleanToVisibilityConverter}}", (string?)progress.Attribute("Visibility"));
+        var placeholders = card.Descendants(Presentation + "ItemsControl").Single(element => (string?)element.Attribute(Xaml + "Name") == "GoalNextTaskPlaceholders");
+        Assert.Equal(5, placeholders.Elements(Presentation + "ItemsControl.Items").Elements().Count());
+        Assert.DoesNotContain(placeholders.DescendantsAndSelf().Attributes(), attribute => attribute.Name == "Command" || attribute.Name == "Click" || attribute.Name == "ItemsSource");
+        foreach (var label in new[] { "全部任务  ›", "查看已完成任务  ›" })
+        {
+            var button = card.Descendants(Presentation + "Button").Single(element => element.Descendants(Presentation + "TextBlock").Any(text => (string?)text.Attribute("Text") == label));
+            Assert.Null(button.Attribute("Command"));
+            Assert.Null(button.Attribute("Click"));
+        }
     }
 
     [Fact]
@@ -214,7 +216,7 @@ public sealed class StatisticsGoalProgressPresentationTests
     }
 
     [Fact]
-    public void GoalProgressTemplateInstantiatesReadOnlySummaryBindings()
+    public void GoalDetailTemplateSupportsOptionalRemarkAndInvestment()
     {
         Exception? failure = null;
         var thread = new Thread(() =>
@@ -225,26 +227,47 @@ public sealed class StatisticsGoalProgressPresentationTests
                 app = new FocusApp.Desktop.App();
                 app.InitializeComponent();
                 CreateGoalModalTests.VerifyButtonLabelsWithApplicationTextStyles();
-                var viewModel = new StatisticsOverviewViewModel();
+                var now = new DateTime(2026, 9, 16, 12, 0, 0);
+                var viewModel = new StatisticsOverviewViewModel(localNowProvider: () => now);
                 var page = new StatisticsPage { DataContext = viewModel };
                 viewModel.SelectGoalsCommand.Execute(null);
-                viewModel.ToggleGoalDateCommand.Execute(
-                    viewModel.GoalDateGroups.Single(group => group.Date == new DateTime(2026, 7, 30)));
+                viewModel.SetUserAccess(true, true);
+                viewModel.SelectedGoal!.UpdateDetails("专注于提升游戏开发能力", 100 * 60);
 
-                page.Measure(new Size(800, 710));
-                page.Arrange(new Rect(0, 0, 800, 710));
+                var selectedGoal = viewModel.SelectedGoal;
+                foreach (var record in viewModel.FocusSessionRecords.Where(record => record.GoalId == selectedGoal.GoalId).ToArray())
+                    viewModel.FocusSessionRecords.Remove(record);
+                viewModel.FocusSessionRecords.Add(new FocusSessionRecordViewModel(now.AddMinutes(-392), now, selectedGoal.GoalId, selectedGoal.Name, "", 0));
+                viewModel.FocusSessionRecords.Add(new FocusSessionRecordViewModel(now.AddDays(-7).AddMinutes(-1528), now.AddDays(-7), selectedGoal.GoalId, selectedGoal.Name, "", 0));
+
+                page.Measure(new Size(728, 667));
+                page.Arrange(new Rect(0, 0, 728, 667));
                 page.UpdateLayout();
 
                 var visualQaPath = Environment.GetEnvironmentVariable("FOCUSAPP_VISUAL_QA_PATH");
                 if (!string.IsNullOrWhiteSpace(visualQaPath))
                 {
-                    var bitmap = new RenderTargetBitmap(800, 710, 96, 96, PixelFormats.Pbgra32);
+                    var bitmap = new RenderTargetBitmap(728, 667, 96, 96, PixelFormats.Pbgra32);
                     bitmap.Render(page);
                     var encoder = new PngBitmapEncoder();
                     encoder.Frames.Add(BitmapFrame.Create(bitmap));
                     using var stream = File.Create(visualQaPath);
                     encoder.Save(stream);
                 }
+
+                var progress = (FrameworkElement)page.FindName("GoalInvestmentProgress");
+                var remark = (FrameworkElement)page.FindName("GoalDetailRemark");
+                Assert.Equal(Visibility.Visible, progress.Visibility);
+                Assert.Equal(Visibility.Visible, remark.Visibility);
+                Assert.Equal("6小时32分钟", viewModel.SelectedGoalWeeklyInvestmentDisplay);
+                Assert.Equal("32小时", viewModel.SelectedGoalTotalInvestmentDisplay);
+                Assert.Equal("32%", viewModel.SelectedGoalInvestmentProgressDisplay);
+                var remarkHeight = remark.ActualHeight + remark.Margin.Top;
+                viewModel.SelectedGoal.UpdateDetails(null, null);
+                page.UpdateLayout();
+                Assert.Equal(Visibility.Collapsed, progress.Visibility);
+                Assert.Equal(Visibility.Collapsed, remark.Visibility);
+                Assert.True(remarkHeight > 0);
 
                 var calendarVisualQaPath = Environment.GetEnvironmentVariable("FOCUSAPP_CALENDAR_DISTRIBUTION_QA_PATH");
                 if (!string.IsNullOrWhiteSpace(calendarVisualQaPath))
