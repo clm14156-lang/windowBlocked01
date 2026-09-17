@@ -382,14 +382,14 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" VerticalAlignment="Center" FontSize="14" Foreground="{DynamicResource TextSecondary}"><Run Text="{DynamicResource FocusCompletedTasksPrefix}" /><Run Text="{Binding CompletedTasks.Count, Mode=OneWay}" /><Run Text="{DynamicResource FocusCompletedTasksSuffix}" /></TextBlock>
+                            <TextBlock Grid.Column="0" VerticalAlignment="Center" FontSize="14" Foreground="{DynamicResource TextSecondary}"><Run Text="{DynamicResource FocusCompletedTasksPrefix}" /><Run Text="{Binding SessionCompletedTaskCount, Mode=OneWay}" /><Run Text="{DynamicResource FocusCompletedTasksSuffix}" /></TextBlock>
                             <Viewbox Grid.Column="1"
                                      Width="10"
                                      Height="10"
                                      HorizontalAlignment="Right"
                                      VerticalAlignment="Center"
                                      RenderTransformOrigin="0.5,0.5"
-                                     Visibility="{Binding CompletedTasks.Count, Mode=OneWay, Converter={StaticResource PositiveIntToVisibilityConverter}}">
+                                     Visibility="{Binding SessionCompletedTaskCount, Mode=OneWay, Converter={StaticResource PositiveIntToVisibilityConverter}}">
                                 <Viewbox.RenderTransform>
                                     <RotateTransform Angle="0" />
                                 </Viewbox.RenderTransform>
@@ -437,7 +437,7 @@
                             </Viewbox>
                         </Grid>
                     </Button>
-                    <ItemsControl ItemsSource="{Binding CompletedTasks}" Visibility="{Binding IsCompletedTasksExpanded, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <ItemsControl ItemsSource="{Binding SessionCompletedTasks}" Visibility="{Binding IsCompletedTasksExpanded, Converter={StaticResource BooleanToVisibilityConverter}}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
                                 <Grid x:Name="CompletedTaskRow"

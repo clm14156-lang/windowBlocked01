@@ -85,12 +85,12 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         _toggleTaskPanelCompletedTasksCommand = new RelayCommand<object>(
             _ =>
             {
-                if (CompletedTasks.Count > 0)
+                if (SessionCompletedTaskCount > 0)
                 {
                     IsCompletedTasksExpanded = !IsCompletedTasksExpanded;
                 }
             },
-            _ => CompletedTasks.Count > 0);
+            _ => SessionCompletedTaskCount > 0);
         ToggleTaskPanelCompletedTasksCommand = _toggleTaskPanelCompletedTasksCommand;
         DismissTaskMenusCommand = new RelayCommand<object>(_ => CloseTaskMenus());
     }
@@ -152,7 +152,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
 
     public bool CanExpandCompletedTasks => SessionCompletedTaskCount > 0;
 
-    public string SessionCompletedTaskSummary => $"本次完成 {SessionCompletedTaskCount} 个任务";
+    public string SessionCompletedTaskSummary => $"本次完成 {SessionCompletedTaskCount} 项";
 
     public FocusTargetViewModel? ActiveTarget
     {
@@ -446,6 +446,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(SessionCompletedTaskCount));
         OnPropertyChanged(nameof(SessionCompletedTaskSummary));
         OnPropertyChanged(nameof(CanExpandCompletedTasks));
+        _toggleTaskPanelCompletedTasksCommand.NotifyCanExecuteChanged();
         IsCompletedTasksExpanded = false;
         CloseTaskMenus();
         Stage = FocusFlowStage.Preparing;
@@ -1031,7 +1032,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(PendingTaskCount));
         OnPropertyChanged(nameof(PendingTaskSummary));
         _toggleTaskPanelCompletedTasksCommand.NotifyCanExecuteChanged();
-        if (CompletedTasks.Count == 0)
+        if (SessionCompletedTaskCount == 0)
         {
             IsCompletedTasksExpanded = false;
         }

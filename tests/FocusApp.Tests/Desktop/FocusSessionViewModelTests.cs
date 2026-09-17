@@ -568,18 +568,22 @@ public sealed class FocusSessionViewModelTests
         Advance(viewModel, 5);
 
         var task = viewModel.PendingTasks[0];
+        Assert.Equal(1, viewModel.PendingTaskCount);
         viewModel.ToggleTaskCompletedCommand.Execute(task);
         Assert.Empty(viewModel.PendingTasks);
+        Assert.Equal(0, viewModel.PendingTaskCount);
         Assert.Single(viewModel.CompletedTasks);
 
         viewModel.AddTaskCommand.Execute(null);
         var newTask = viewModel.PendingTasks.Single();
+        Assert.Equal(1, viewModel.PendingTaskCount);
         newTask.EditName = "新任务名称";
         viewModel.ConfirmEditTaskCommand.Execute(newTask);
         Assert.Equal("新任务名称", newTask.Name);
 
         viewModel.DeleteTaskCommand.Execute(newTask);
         Assert.Empty(viewModel.PendingTasks);
+        Assert.Equal(0, viewModel.PendingTaskCount);
     }
 
     [Fact]
@@ -630,18 +634,25 @@ public sealed class FocusSessionViewModelTests
     }
 
     [Fact]
-    public void TaskPanelCompletedGroup_TogglesForTasksCompletedEarlierToday()
+    public void TaskPanelCompletedGroup_ExcludesHistoryAndTracksCurrentSessionOnly()
     {
         var now = new DateTime(2026, 8, 17, 12, 0, 0);
-        var target = new FocusTargetViewModel("学习 Blender", ["已完成任务"]);
+        var target = new FocusTargetViewModel("学习 Blender", ["历史已完成", "本次待完成"]);
         target.Tasks[0].ApplyCompletion(true, new DateTimeOffset(now.AddHours(-1)).ToUniversalTime());
         var viewModel = CreateViewModel(now);
         viewModel.Start(25, target);
 
         Assert.Empty(viewModel.SessionCompletedTasks);
         Assert.Single(viewModel.CompletedTasks);
-        Assert.True(viewModel.ToggleTaskPanelCompletedTasksCommand.CanExecute(null));
+        Assert.False(viewModel.ToggleTaskPanelCompletedTasksCommand.CanExecute(null));
+        viewModel.ToggleTaskPanelCompletedTasksCommand.Execute(null);
+        Assert.False(viewModel.IsCompletedTasksExpanded);
 
+        Advance(viewModel, 5);
+        viewModel.ToggleTaskCompletedCommand.Execute(Assert.Single(viewModel.PendingTasks));
+
+        Assert.Equal("本次待完成", Assert.Single(viewModel.SessionCompletedTasks).Name);
+        Assert.True(viewModel.ToggleTaskPanelCompletedTasksCommand.CanExecute(null));
         viewModel.ToggleTaskPanelCompletedTasksCommand.Execute(null);
         Assert.True(viewModel.IsCompletedTasksExpanded);
 
@@ -772,8 +783,15 @@ public sealed class FocusSessionViewModelTests
 
         Assert.True(viewModel.HasTarget);
         Assert.Equal(1, viewModel.SessionCompletedTaskCount);
-        Assert.Equal("本次完成 1 个任务", viewModel.SessionCompletedTaskSummary);
+        Assert.Equal("本次完成 1 项", viewModel.SessionCompletedTaskSummary);
         Assert.Equal("本次任务一", viewModel.SessionCompletedTasks[0].Name);
+
+        viewModel.ReturnHomeCommand.Execute(null);
+        viewModel.Start(1, target);
+        Advance(viewModel, 5);
+        Assert.Equal(0, viewModel.SessionCompletedTaskCount);
+        Assert.Empty(viewModel.SessionCompletedTasks);
+        Assert.False(viewModel.ToggleTaskPanelCompletedTasksCommand.CanExecute(null));
     }
 
     [Fact]

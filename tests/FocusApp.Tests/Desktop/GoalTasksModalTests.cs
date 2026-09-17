@@ -1,11 +1,10 @@
 using System.Windows;
-using System.Windows.Automation.Peers;
-using System.Windows.Automation.Provider;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using System.Xml.Linq;
 using FocusApp.Contracts;
 using FocusApp.Desktop.ViewModels;
 using FocusApp.Desktop.Views;
@@ -15,8 +14,49 @@ namespace FocusApp.Tests.Desktop;
 
 public sealed class GoalTasksModalTests
 {
+    private static readonly XNamespace Presentation = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
+    private static readonly XNamespace Xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
+
     [Fact]
-    public void ModalSupportsTabsInlineInputAndFixedHeaderWhileContentScrolls()
+    public void ModalIsCompletedOnlyWithFixedSizeAndNoCreationOrTabs()
+    {
+        var document = XDocument.Load(Path.Combine(FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "GoalTasksModal.xaml"));
+        var card = document.Descendants(Presentation + "Border").Single(element =>
+            (string?)element.Attribute(Xaml + "Name") == "GoalTasksCard");
+        Assert.Equal("330", (string?)card.Attribute("Width"));
+        Assert.Equal("400", (string?)card.Attribute("Height"));
+        Assert.Contains(card.Descendants(Presentation + "TextBlock"), element =>
+            (string?)element.Attribute("Text") == "已完成任务");
+        Assert.DoesNotContain(card.Descendants(Presentation + "TextBlock"), element =>
+            (string?)element.Attribute("Text") is "全部任务" or "未完成");
+        Assert.DoesNotContain(card.Descendants(Presentation + "Button"), element =>
+            ((string?)element.Attribute("Command"))?.Contains("NewTaskCommand", StringComparison.Ordinal) == true ||
+            ((string?)element.Attribute("Command"))?.Contains("SelectPendingTabCommand", StringComparison.Ordinal) == true ||
+            ((string?)element.Attribute("Command"))?.Contains("SelectCompletedTabCommand", StringComparison.Ordinal) == true);
+        var completed = Assert.Single(card.Descendants(Presentation + "ItemsControl").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "CompletedTasksControl"));
+        Assert.Equal("{Binding CompletedGroups}", (string?)completed.Attribute("ItemsSource"));
+        var groupHeader = Assert.Single(completed.Descendants(Presentation + "Grid").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "CompletedTaskGroupHeader"));
+        Assert.Contains(groupHeader.Descendants(Presentation + "TextBlock"), element =>
+            (string?)element.Attribute("Text") == "{Binding Title}");
+        Assert.Contains(groupHeader.Descendants(Presentation + "TextBlock"), element =>
+            (string?)element.Attribute("Text") == "{Binding Subtitle}");
+        var taskRow = Assert.Single(completed.Descendants(Presentation + "Border").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "CompletedTaskRow"));
+        Assert.Equal("38", (string?)taskRow.Attribute("Height"));
+        Assert.Equal("0,0,0,1", (string?)taskRow.Attribute("BorderThickness"));
+        Assert.Contains(taskRow.Descendants(Presentation + "TextBlock"), element =>
+            (string?)element.Attribute("Text") == "{Binding Name}");
+        Assert.Contains(taskRow.Descendants(Presentation + "TextBlock"), element =>
+            (string?)element.Attribute("Text") == "{Binding CompletedTimeDisplay}" &&
+            (string?)element.Attribute("HorizontalAlignment") == "Right");
+        Assert.DoesNotContain(card.Descendants(Presentation + "ItemsControl"), element =>
+            (string?)element.Attribute("ItemsSource") == "{Binding PendingTasks}");
+    }
+
+    [Fact]
+    public void CompletedModalRendersGroupsAtFixedSizeAndClosesWithEscape()
     {
         Exception? failure = null;
         var thread = new Thread(() =>
@@ -27,89 +67,33 @@ public sealed class GoalTasksModalTests
                 var now = new DateTimeOffset(new DateTime(2026, 9, 18, 14, 32, 0));
                 var model = new GoalTasksViewModel(() => now);
                 var goal = new GoalOverviewItemViewModel("goal", "学习", "", "", false, false);
-                var names = new[] { "完成登录页面", "修复自动屏蔽时间轴", "测试跨日数据", "优化移动端适配", "整理产品需求文档", "阅读技术文章", "准备下周分享", "设计新版图标" };
-                var data = names.Select((name, index) => new LocalTaskDto($"task-{index}", goal.GoalId, name, false, index, now.AddDays(-8), now)).ToList();
-                data.AddRange(names.Take(4).Select((name, index) => new LocalTaskDto($"completed-{index}", goal.GoalId, name, true, index + 8, now.AddDays(-8), now)
+                var names = new[] { "完成登录页面", "修复自动屏蔽时间轴", "测试跨日数据", "优化移动端适配" };
+                var data = names.Select((name, index) => new LocalTaskDto($"pending-{index}", goal.GoalId, name, false, index, now.AddDays(-8), now)).ToList();
+                data.AddRange(names.Take(2).Select((name, index) => new LocalTaskDto($"completed-{index}", goal.GoalId, name, true, index + 4, now.AddDays(-8), now)
                     { CompletedAtUtc = now.AddMinutes(-index * 60) }));
-                data.AddRange(names.Skip(4).Select((name, index) => new LocalTaskDto($"yesterday-{index}", goal.GoalId, name, true, index + 12, now.AddDays(-8), now)
+                data.AddRange(names.Skip(2).Select((name, index) => new LocalTaskDto($"yesterday-{index}", goal.GoalId, name, true, index + 6, now.AddDays(-8), now)
                     { CompletedAtUtc = now.AddDays(-1).AddMinutes(-index * 60) }));
                 model.ApplyState(goal, data);
-                model.PersistTaskAsync = (task, _) => Task.FromResult<LocalTaskDto?>(task);
-                model.OpenCommand.Execute(null);
+                model.OpenCompletedCommand.Execute(null);
+
                 var modal = new GoalTasksModal { DataContext = model };
                 foreach (var resource in new[] { "Colors", "Typography", "Strings", "Styles" })
                     modal.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri($"/FocusApp.Desktop;component/Resources/{resource}.xaml", UriKind.Relative) });
-                window = new Window { Width = 800, Height = 600, Content = modal, ShowInTaskbar = false, ShowActivated = false, WindowStyle = WindowStyle.None, Left = -32000, Top = -32000 };
+                window = new Window { Width = 900, Height = 700, Content = modal, ShowInTaskbar = false, ShowActivated = false, WindowStyle = WindowStyle.None, Left = -32000, Top = -32000 };
                 window.Show();
                 Pump();
+
                 var card = (Border)modal.FindName("GoalTasksCard");
-                var newButton = (Button)modal.FindName("NewTaskButton");
-                var editor = (TextBox)modal.FindName("NewTaskNameTextBox");
-                var pendingScroll = (ScrollViewer)modal.FindName("PendingTasksScrollViewer");
-                Assert.Equal(450, card.ActualWidth);
+                var completed = (ItemsControl)modal.FindName("CompletedTasksControl");
+                Assert.Equal(330, card.ActualWidth);
                 Assert.Equal(400, card.ActualHeight);
-                Assert.Equal(Visibility.Visible, newButton.Visibility);
-                SavePreview(card, "pending");
-                model.SelectCompletedTabCommand.Execute(null);
-                Pump();
-                Assert.True(model.IsCompletedTab);
-                Assert.Equal(Visibility.Collapsed, newButton.Visibility);
-                SavePreview(card, "completed");
-                model.SelectPendingTabCommand.Execute(null);
-                Pump();
-                InvokeButton(newButton);
-                Pump();
-                Assert.True(model.IsCreating);
-                // The offscreen host stays inactive; verify the focus target without activating the user's window.
-                Assert.Same(editor, FocusManager.GetFocusedElement(window));
-                InvokeButton(newButton);
-                Pump();
-                Assert.Equal(8, model.PendingCount);
-                SavePreview(card, "editor");
-                editor.Text = "学习 UE5 材质";
-                PressKey(editor, Key.Enter);
-                Pump();
-                Assert.Equal(9, model.PendingCount);
-                Assert.Equal("学习 UE5 材质", model.PendingTasks[0].Name);
-                Assert.False(model.IsCreating);
-                model.BeginCreation();
-                Pump();
-                editor.Text = "取消输入";
-                PressKey(editor, Key.Escape);
-                Assert.False(model.IsCreating);
-                Assert.Equal(9, model.PendingCount);
-                model.BeginCreation();
-                Pump();
-                editor.Text = "失焦保存";
-                editor.RaiseEvent(new KeyboardFocusChangedEventArgs(Keyboard.PrimaryDevice, 0, editor, newButton) { RoutedEvent = Keyboard.LostKeyboardFocusEvent });
-                Pump();
-                Assert.Equal("失焦保存", model.PendingTasks[0].Name);
-                model.BeginCreation();
-                Pump();
-                card.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left) { RoutedEvent = Mouse.PreviewMouseDownEvent });
-                Assert.False(model.IsCreating);
-                Assert.Equal(10, model.PendingCount);
-                var before = newButton.TranslatePoint(new Point(), modal);
-                pendingScroll.ScrollToBottom();
-                Pump();
-                Assert.True(pendingScroll.ScrollableHeight > 0);
-                Assert.Equal(before, newButton.TranslatePoint(new Point(), modal));
-                Assert.Equal(400, card.ActualHeight);
-                pendingScroll.ScrollToTop();
-                Pump();
-                var firstTask = model.PendingTasks[0];
-                var checkbox = Descendants<Button>((ItemsControl)modal.FindName("PendingTasksControl")).First();
-                InvokeButton(checkbox);
-                Pump();
-                Assert.Equal(9, model.PendingCount);
-                Assert.Equal(9, model.CompletedCount);
-                Assert.Contains(model.CompletedGroups[0].Tasks, task => task.TaskId == firstTask.TaskId);
-                var closeButton = Descendants<Button>(modal).Single(button => ReferenceEquals(button.Command, model.CloseCommand));
-                InvokeButton(closeButton);
-                Pump();
-                Assert.False(model.IsOpen);
-                model.OpenCommand.Execute(null);
-                Pump();
+                Assert.Equal(2, completed.Items.Count);
+                Assert.Equal(4, model.PendingCount);
+                Assert.Equal(4, model.CompletedCount);
+                Assert.Null(modal.FindName("NewTaskButton"));
+                Assert.Null(modal.FindName("PendingTasksControl"));
+                SavePreview(card);
+
                 PressKey(modal, Key.Escape);
                 Pump();
                 Assert.False(model.IsOpen);
@@ -120,23 +104,18 @@ public sealed class GoalTasksModalTests
         });
         thread.SetApartmentState(ApartmentState.STA);
         thread.Start();
-        Assert.True(thread.Join(TimeSpan.FromSeconds(20)), "Goal task dialog verification did not finish.");
+        Assert.True(thread.Join(TimeSpan.FromSeconds(20)), "Completed task dialog verification did not finish.");
         Assert.Null(failure);
     }
 
     private static void Pump() => Dispatcher.CurrentDispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
-    private static void InvokeButton(Button button) => ((IInvokeProvider)new ButtonAutomationPeer(button).GetPattern(PatternInterface.Invoke)).Invoke();
-    private static IEnumerable<T> Descendants<T>(DependencyObject root) where T : DependencyObject
-    {
-        for (var index = 0; index < VisualTreeHelper.GetChildrenCount(root); index++)
+    private static void PressKey(UIElement element, Key key) =>
+        element.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(element), 0, key)
         {
-            var child = VisualTreeHelper.GetChild(root, index);
-            if (child is T match) yield return match;
-            foreach (var descendant in Descendants<T>(child)) yield return descendant;
-        }
-    }
-    private static void PressKey(UIElement element, Key key) => element.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(element), 0, key) { RoutedEvent = Keyboard.PreviewKeyDownEvent });
-    private static void SavePreview(FrameworkElement card, string state)
+            RoutedEvent = Keyboard.PreviewKeyDownEvent
+        });
+
+    private static void SavePreview(FrameworkElement card)
     {
         var directory = Environment.GetEnvironmentVariable("FOCUSAPP_GOAL_TASKS_QA_PATH");
         if (string.IsNullOrEmpty(directory)) return;
@@ -153,7 +132,15 @@ public sealed class GoalTasksModalTests
         bitmap.Render(visual);
         var encoder = new PngBitmapEncoder();
         encoder.Frames.Add(BitmapFrame.Create(bitmap));
-        using var stream = File.Create(Path.Combine(directory, $"all-tasks-{state}.png"));
+        using var stream = File.Create(Path.Combine(directory, "completed-tasks.png"));
         encoder.Save(stream);
+    }
+
+    private static string FindRepositoryRoot()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "FocusApp.sln")))
+            directory = directory.Parent;
+        return directory?.FullName ?? throw new DirectoryNotFoundException("Could not locate the FocusApp repository root.");
     }
 }

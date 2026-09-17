@@ -31,12 +31,13 @@ public sealed class GoalTasksViewModelTests
         model.ApplyState(Goal(), data);
 
         Assert.Equal(new[] { "pending-first", "pending-later" }, model.PendingTasks.Select(task => task.TaskId));
-        Assert.Equal("未完成 2", model.PendingTabTitle);
-        Assert.Equal("已完成 5", model.CompletedTabTitle);
+        Assert.Equal(2, model.PendingCount);
+        Assert.Equal(5, model.CompletedCount);
         Assert.Equal(new[] { "今天", "昨天", "9月15日", "完成日期未知" }, model.CompletedGroups.Select(group => group.Title));
-        Assert.Equal("9月18日 周五 · 2项", model.CompletedGroups[0].Subtitle);
-        Assert.Equal("9月17日 周四 · 1项", model.CompletedGroups[1].Subtitle);
-        Assert.Equal("周二 · 1项", model.CompletedGroups[2].Subtitle);
+        Assert.Equal("2项", model.CompletedGroups[0].Subtitle);
+        Assert.Equal("1项", model.CompletedGroups[1].Subtitle);
+        Assert.Equal("1项", model.CompletedGroups[2].Subtitle);
+        Assert.Equal("1项", model.CompletedGroups[3].Subtitle);
         Assert.Equal(new[] { "late", "early" }, model.CompletedGroups[0].Tasks.Select(task => task.TaskId));
         Assert.Equal("14:32", model.CompletedGroups[0].Tasks[0].CompletedTimeDisplay);
         Assert.Equal("—", model.CompletedGroups[^1].Tasks[0].CompletedTimeDisplay);
@@ -66,7 +67,6 @@ public sealed class GoalTasksViewModelTests
         model.ApplyState(Goal(), [TaskData("existing", 8)]);
         LocalTaskDto? saved = null;
         model.PersistTaskAsync = (task, top) => { Assert.True(top); saved = task; return System.Threading.Tasks.Task.FromResult<LocalTaskDto?>(task); };
-        await model.OpenAsync();
         model.BeginCreation();
         model.DraftName = " 学习 UE5 材质 ";
         Assert.True(await model.CommitCreationAsync());
@@ -80,10 +80,13 @@ public sealed class GoalTasksViewModelTests
         Assert.Equal("existing", model.PendingTasks[1].TaskId);
         Assert.Equal(2, model.PendingCount);
         Assert.False(model.IsCreating);
-        await model.SelectTabAsync(true);
-        Assert.False(model.CanCreateTask);
+        model.OpenCompletedCommand.Execute(null);
+        Assert.True(model.IsOpen);
+        Assert.True(model.CanCreateTask);
+        Assert.True(await model.CloseAsync());
         model.BeginCreation();
-        Assert.False(model.IsCreating);
+        Assert.True(model.IsCreating);
+        model.CancelCreation();
     }
 
     [Fact]
@@ -146,8 +149,8 @@ public sealed class GoalTasksViewModelTests
         var completed = Assert.Single(model.CompletedGroups[0].Tasks);
         Assert.Equal(Now.ToUniversalTime(), completed.CompletedAtUtc);
         Assert.Equal(Local(1).ToUniversalTime(), completed.CreatedAtUtc);
-        Assert.Contains(nameof(model.PendingTabTitle), changes);
-        Assert.Contains(nameof(model.CompletedTabTitle), changes);
+        Assert.Contains(nameof(model.PendingCount), changes);
+        Assert.Contains(nameof(model.CompletedCount), changes);
         Assert.False(await model.CompleteTaskAsync(completed));
         var foreign = new FocusTargetViewModel("其他目标", targetId: "other").AddTask("other");
         Assert.False(await model.CompleteTaskAsync(foreign));
@@ -201,7 +204,7 @@ public sealed class GoalTasksViewModelTests
         var model = new GoalTasksViewModel(() => Now);
         model.ApplyState(Goal(), [TaskData("existing")]);
         model.PersistTaskAsync = (_, _) => System.Threading.Tasks.Task.FromResult<LocalTaskDto?>(null);
-        await model.OpenAsync();
+        await model.OpenCompletedAsync();
         model.BeginCreation();
         model.DraftName = "保留输入";
         Assert.False(await model.CloseAsync());
@@ -222,10 +225,10 @@ public sealed class GoalTasksViewModelTests
         model.ApplyState(Goal(), []);
         var refreshes = 0;
         model.RefreshTasksAsync = () => { model.ApplyState(Goal(), [TaskData($"fresh-{++refreshes}")]); return System.Threading.Tasks.Task.CompletedTask; };
-        await model.OpenAsync();
+        await model.OpenCompletedAsync();
         Assert.Equal("fresh-1", Assert.Single(model.PendingTasks).TaskId);
         await model.CloseAsync();
-        await model.OpenAsync();
+        await model.OpenCompletedAsync();
         Assert.Equal("fresh-2", Assert.Single(model.PendingTasks).TaskId);
         model.BeginCreation();
         model.DraftName = "旧目标草稿";
@@ -237,26 +240,21 @@ public sealed class GoalTasksViewModelTests
         model.ApplyState(null, []);
         Assert.Null(model.GoalId);
         Assert.Empty(model.PendingTasks);
-        Assert.False(model.OpenCommand.CanExecute(null));
         Assert.False(model.OpenCompletedCommand.CanExecute(null));
     }
 
     [Fact]
-    public async Task CompletedEntryOpensModalOnCompletedTabWithoutChangingDefaultEntry()
+    public async Task CompletedEntryIsTheOnlyModalEntryAndRefreshesCompletedContent()
     {
         var model = new GoalTasksViewModel(() => Now);
         model.ApplyState(Goal(), [TaskData("pending"), TaskData("done", completedAt: Now)]);
 
         model.OpenCompletedCommand.Execute(null);
         Assert.True(model.IsOpen);
-        Assert.True(model.IsCompletedTab);
-        Assert.False(model.IsPendingTab);
-
         Assert.True(await model.CloseAsync());
-        model.OpenCommand.Execute(null);
+        await model.OpenCompletedAsync();
         Assert.True(model.IsOpen);
-        Assert.False(model.IsCompletedTab);
-        Assert.True(model.IsPendingTab);
+        Assert.Single(model.CompletedGroups);
     }
 
     [Fact]
@@ -372,7 +370,7 @@ public sealed class GoalTasksViewModelTests
                 statistics.ApplyState(state);
                 return command.Tasks.Single(item => item.TaskId == task.TaskId);
             };
-            await model.OpenAsync();
+            await model.OpenCompletedAsync();
             model.BeginCreation();
             model.DraftName = "学习材质";
             await model.CommitCreationAsync();

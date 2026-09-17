@@ -137,12 +137,47 @@ public partial class StatisticsPage : UserControl
         if (e.OldValue is StatisticsOverviewViewModel oldViewModel)
         {
             oldViewModel.PropertyChanged -= StatisticsViewModel_PropertyChanged;
+            oldViewModel.GoalTasks.DraftFocusRequested -= FocusGoalTaskDraft;
         }
 
         if (e.NewValue is StatisticsOverviewViewModel newViewModel)
         {
             newViewModel.PropertyChanged += StatisticsViewModel_PropertyChanged;
+            newViewModel.GoalTasks.DraftFocusRequested += FocusGoalTaskDraft;
         }
+    }
+
+    private void FocusGoalTaskDraft(object? sender, EventArgs e) => Dispatcher.BeginInvoke(() =>
+    {
+        if (DataContext is not StatisticsOverviewViewModel { GoalTasks.IsCreating: true }) return;
+        GoalNextTasksScroll.ScrollToTop();
+        GoalNewTaskNameTextBox.Focus();
+    });
+
+    private void GoalTaskEditor_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        if (GoalNewTaskNameTextBox.IsVisible) FocusGoalTaskDraft(this, EventArgs.Empty);
+    }
+
+    private async void GoalTaskEditor_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        if (DataContext is StatisticsOverviewViewModel viewModel)
+            await viewModel.GoalTasks.CommitCreationAsync();
+    }
+
+    private async void GoalTaskEditor_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (DataContext is not StatisticsOverviewViewModel viewModel) return;
+        if (e.Key == Key.Escape)
+        {
+            e.Handled = true;
+            viewModel.GoalTasks.CancelCreation();
+            Focus();
+            return;
+        }
+        if (e.Key != Key.Enter) return;
+        e.Handled = true;
+        if (await viewModel.GoalTasks.CommitCreationAsync()) Focus();
     }
 
     private void StatisticsViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)

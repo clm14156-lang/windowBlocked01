@@ -28,12 +28,17 @@ public sealed class StatisticsGoalProgressPresentationTests
         var tasks = card.Descendants(Presentation + "ItemsControl").Single(element => (string?)element.Attribute(Xaml + "Name") == "GoalNextTasks");
         Assert.Equal("{Binding GoalTasks.PendingTasks}", (string?)tasks.Attribute("ItemsSource"));
         Assert.Empty(tasks.Elements(Presentation + "ItemsControl.Items"));
-        foreach (var label in new[] { "全部任务  ›", "查看已完成任务  ›" })
-        {
-            var button = card.Descendants(Presentation + "Button").Single(element => element.Descendants(Presentation + "TextBlock").Any(text => (string?)text.Attribute("Text") == label));
-            Assert.Equal(label == "全部任务  ›" ? "{Binding GoalTasks.OpenCommand}" : "{Binding GoalTasks.OpenCompletedCommand}", (string?)button.Attribute("Command"));
-            Assert.Null(button.Attribute("Click"));
-        }
+        var createTask = card.Descendants(Presentation + "Button").Single(element =>
+            (string?)element.Attribute(Xaml + "Name") == "CreateNextTaskButton");
+        Assert.Equal("{Binding GoalTasks.NewTaskCommand}", (string?)createTask.Attribute("Command"));
+        Assert.Contains(createTask.Descendants(Presentation + "TextBlock"), text => (string?)text.Attribute("Text") == "+ 创建任务");
+        var completed = card.Descendants(Presentation + "Button").Single(element =>
+            (string?)element.Attribute("AutomationProperties.Name") == "查看已完成任务");
+        Assert.Equal("{Binding GoalTasks.OpenCompletedCommand}", (string?)completed.Attribute("Command"));
+        Assert.DoesNotContain(card.Descendants(Presentation + "TextBlock"), text => (string?)text.Attribute("Text") == "全部任务  ›");
+        var editor = card.Descendants(Presentation + "TextBox").Single(element =>
+            (string?)element.Attribute(Xaml + "Name") == "GoalNewTaskNameTextBox");
+        Assert.Equal("{Binding GoalTasks.DraftName, UpdateSourceTrigger=PropertyChanged}", (string?)editor.Attribute("Text"));
         var trend = card.Descendants(Presentation + "Button").Single(button =>
             (string?)button.Attribute(Xaml + "Name") == "GoalInvestmentTrendButton");
         Assert.Equal("投入趋势  ›", (string?)trend.Attribute("Content"));

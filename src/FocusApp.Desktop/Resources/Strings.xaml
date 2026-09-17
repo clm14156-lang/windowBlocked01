@@ -248,7 +248,7 @@
     <system:String x:Key="FocusRenameTask">重命名</system:String>
     <system:String x:Key="FocusDeleteTask">删除任务</system:String>
     <system:String x:Key="FocusTaskMenu">任务菜单</system:String>
-    <system:String x:Key="FocusCompletedTasksPrefix">已完成 </system:String>
+    <system:String x:Key="FocusCompletedTasksPrefix">本次完成 </system:String>
     <system:String x:Key="FocusCompletedTasksSuffix"> 项</system:String>
     <system:String x:Key="FocusSessionCompletedPrefix">本次完成 </system:String>
     <system:String x:Key="FocusSessionCompletedSuffix"> 个任务</system:String>

@@ -46,10 +46,12 @@ public sealed class FocusTargetTaskPresentationTests
         Assert.Equal("Normal", (string?)viewTasksButton.Attribute("FontWeight"));
         Assert.Equal("#353535", (string?)viewTasksButton.Attribute("Foreground"));
         Assert.Equal("1", (string?)viewTasksButton.Attribute("BorderThickness"));
-        Assert.Contains(viewTasksButton.Descendants(Presentation + "TextBlock"), text =>
-            (string?)text.Attribute("Text") == "{DynamicResource FocusViewTasks}" &&
+        var viewTasksLabel = Assert.Single(viewTasksButton.Descendants(Presentation + "TextBlock").Where(text =>
             (string?)text.Attribute("FontWeight") == "Normal" &&
-            (string?)text.Attribute("Foreground") == "#353535");
+            (string?)text.Attribute("Foreground") == "#353535"));
+        Assert.Equal(
+            new[] { "{DynamicResource FocusViewTasks}", "（", "{Binding PendingTaskCount, Mode=OneWay}", "）" },
+            viewTasksLabel.Elements(Presentation + "Run").Select(run => (string?)run.Attribute("Text")));
 
         var endButton = Assert.Single(targetView.Descendants(Presentation + "Button").Where(button =>
             (string?)button.Attribute("Command") == "{Binding RequestEndCommand}"));
@@ -76,6 +78,12 @@ public sealed class FocusTargetTaskPresentationTests
         Assert.Equal("UserControl", window.Name.LocalName);
         Assert.Contains(window.Descendants(Presentation + "ItemsControl"), items =>
             (string?)items.Attribute("ItemsSource") == "{Binding PendingTasks}");
+        Assert.Contains(window.Descendants(Presentation + "ItemsControl"), items =>
+            (string?)items.Attribute("ItemsSource") == "{Binding SessionCompletedTasks}");
+        Assert.DoesNotContain(window.Descendants(Presentation + "ItemsControl"), items =>
+            (string?)items.Attribute("ItemsSource") == "{Binding CompletedTasks}");
+        Assert.Contains(window.Descendants(Presentation + "Run"), run =>
+            (string?)run.Attribute("Text") == "{Binding SessionCompletedTaskCount, Mode=OneWay}");
         Assert.Contains(window.Descendants(Presentation + "Button"), button =>
             (string?)button.Attribute("Command") == "{Binding AddTaskCommand}");
         Assert.Contains(window.Descendants(Presentation + "Button"), button =>
