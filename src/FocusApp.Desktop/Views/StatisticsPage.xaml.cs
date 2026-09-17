@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Controls.Primitives;
 using System.Windows.Interop;
+using System.Windows.Media;
 using System.Windows.Threading;
 using FocusApp.Desktop.ViewModels;
 
@@ -53,6 +54,13 @@ public partial class StatisticsPage : UserControl
     private bool _isGoalInvestmentDetailsVipHoverTargetHovered;
     private bool _isGoalInvestmentDetailsVipGuideHovered;
     private HwndSource? _trendTooltipHwndSource;
+    private Point _goalTaskDragStartPoint;
+    private DateTime _goalTaskDragPressedAtUtc;
+    private FocusTaskViewModel? _goalTaskDragCandidate;
+    private FrameworkElement? _goalTaskDragSourceRow;
+    private FocusTaskViewModel? _goalTaskDropTarget;
+    private bool _goalTaskDropAfter;
+    private bool _isGoalTaskDragInProgress;
 
     public StatisticsPage()
     {
@@ -77,6 +85,8 @@ public partial class StatisticsPage : UserControl
             _dailyFocusRecordVipGuideCloseTimer.Stop();
             _goalInvestmentDetailsVipGuideOpenTimer.Stop();
             _goalInvestmentDetailsVipGuideCloseTimer.Stop();
+            ResetGoalTaskDropIndicator();
+            ResetGoalTaskDragCandidate();
         };
         TrendCard.SizeChanged += (_, _) => UpdateTooltipPlacement();
     }
@@ -122,6 +132,8 @@ public partial class StatisticsPage : UserControl
     private void StatisticsPage_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
         CompletedTasksPopup.IsOpen = false;
+        ResetGoalTaskDropIndicator();
+        ResetGoalTaskDragCandidate();
         if (e.OldValue is StatisticsOverviewViewModel oldViewModel)
         {
             oldViewModel.PropertyChanged -= StatisticsViewModel_PropertyChanged;
@@ -435,5 +447,174 @@ public partial class StatisticsPage : UserControl
             _openGoalListMoreButton = null;
             commandSelector(viewModel).Execute(goal);
         }
+    }
+
+    private void GoalNextTaskRow_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.LeftButton != MouseButtonState.Pressed ||
+            IsWithinGoalTaskControl(e.OriginalSource as DependencyObject) ||
+            sender is not FrameworkElement { DataContext: FocusTaskViewModel { IsCompleted: false } task } row)
+        {
+            return;
+        }
+
+        _goalTaskDragCandidate = task;
+        _goalTaskDragSourceRow = row;
+        _goalTaskDragStartPoint = e.GetPosition(GoalNextTasks);
+        _goalTaskDragPressedAtUtc = DateTime.UtcNow;
+        row.CaptureMouse();
+    }
+
+    private void GoalNextTaskRow_PreviewMouseMove(object sender, MouseEventArgs e)
+    {
+        if (_goalTaskDragCandidate is null || _isGoalTaskDragInProgress) return;
+        if (e.LeftButton != MouseButtonState.Pressed)
+        {
+            ResetGoalTaskDragCandidate();
+            return;
+        }
+
+        if (DateTime.UtcNow - _goalTaskDragPressedAtUtc < TimeSpan.FromMilliseconds(140)) return;
+        var currentPoint = e.GetPosition(GoalNextTasks);
+        if (Math.Abs(currentPoint.X - _goalTaskDragStartPoint.X) < SystemParameters.MinimumHorizontalDragDistance &&
+            Math.Abs(currentPoint.Y - _goalTaskDragStartPoint.Y) < SystemParameters.MinimumVerticalDragDistance)
+        {
+            return;
+        }
+
+        var draggedTask = _goalTaskDragCandidate;
+        var sourceRow = _goalTaskDragSourceRow;
+        _isGoalTaskDragInProgress = true;
+        draggedTask.IsDragging = true;
+        sourceRow?.ReleaseMouseCapture();
+        try
+        {
+            DragDrop.DoDragDrop(sourceRow ?? GoalNextTasks, draggedTask, DragDropEffects.Move);
+        }
+        finally
+        {
+            draggedTask.IsDragging = false;
+            _isGoalTaskDragInProgress = false;
+            ResetGoalTaskDropIndicator();
+            ResetGoalTaskDragCandidate();
+        }
+        e.Handled = true;
+    }
+
+    private void GoalNextTaskRow_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e) =>
+        ResetGoalTaskDragCandidate();
+
+    private void GoalNextTasksScroll_DragOver(object sender, DragEventArgs e)
+    {
+        AutoScrollGoalNextTasks(e.GetPosition(GoalNextTasksScroll));
+        if (!_isGoalTaskDragInProgress ||
+            e.Data.GetData(typeof(FocusTaskViewModel)) is not FocusTaskViewModel draggedTask ||
+            FindVisualAncestor<ScrollBar>(e.OriginalSource as DependencyObject) is not null)
+        {
+            ResetGoalTaskDropIndicator();
+            e.Effects = DragDropEffects.None;
+            e.Handled = true;
+            return;
+        }
+
+        var container = ItemsControl.ContainerFromElement(
+            GoalNextTasks,
+            e.OriginalSource as DependencyObject) as FrameworkElement;
+        var targetTask = container?.DataContext as FocusTaskViewModel;
+        var insertAfter = container is not null && e.GetPosition(container).Y >= container.ActualHeight / 2;
+        if (targetTask is null && GoalNextTasks.Items.Count > 0)
+        {
+            targetTask = GoalNextTasks.Items[GoalNextTasks.Items.Count - 1] as FocusTaskViewModel;
+            insertAfter = true;
+        }
+
+        if (targetTask is null || ReferenceEquals(targetTask, draggedTask))
+        {
+            ResetGoalTaskDropIndicator();
+            e.Effects = DragDropEffects.None;
+        }
+        else
+        {
+            SetGoalTaskDropIndicator(targetTask, insertAfter);
+            e.Effects = DragDropEffects.Move;
+        }
+        e.Handled = true;
+    }
+
+    private async void GoalNextTasksScroll_Drop(object sender, DragEventArgs e)
+    {
+        if (_isGoalTaskDragInProgress &&
+            e.Data.GetData(typeof(FocusTaskViewModel)) is FocusTaskViewModel draggedTask &&
+            _goalTaskDropTarget is not null &&
+            DataContext is StatisticsOverviewViewModel viewModel)
+        {
+            e.Effects = await viewModel.GoalTasks.MovePendingTaskAsync(
+                draggedTask,
+                _goalTaskDropTarget,
+                _goalTaskDropAfter)
+                ? DragDropEffects.Move
+                : DragDropEffects.None;
+        }
+        else
+        {
+            e.Effects = DragDropEffects.None;
+        }
+        ResetGoalTaskDropIndicator();
+        e.Handled = true;
+    }
+
+    private void AutoScrollGoalNextTasks(Point position)
+    {
+        const double edge = 20;
+        const double step = 8;
+        if (position.Y < edge)
+            GoalNextTasksScroll.ScrollToVerticalOffset(GoalNextTasksScroll.VerticalOffset - step);
+        else if (position.Y > GoalNextTasksScroll.ActualHeight - edge)
+            GoalNextTasksScroll.ScrollToVerticalOffset(GoalNextTasksScroll.VerticalOffset + step);
+    }
+
+    private void SetGoalTaskDropIndicator(FocusTaskViewModel targetTask, bool insertAfter)
+    {
+        if (ReferenceEquals(_goalTaskDropTarget, targetTask) && _goalTaskDropAfter == insertAfter) return;
+        ResetGoalTaskDropIndicator();
+        _goalTaskDropTarget = targetTask;
+        _goalTaskDropAfter = insertAfter;
+        targetTask.ShowDropBefore = !insertAfter;
+        targetTask.ShowDropAfter = insertAfter;
+    }
+
+    private void ResetGoalTaskDropIndicator()
+    {
+        if (_goalTaskDropTarget is not null)
+        {
+            _goalTaskDropTarget.ShowDropBefore = false;
+            _goalTaskDropTarget.ShowDropAfter = false;
+        }
+        _goalTaskDropTarget = null;
+        _goalTaskDropAfter = false;
+    }
+
+    private void ResetGoalTaskDragCandidate()
+    {
+        if (_goalTaskDragSourceRow?.IsMouseCaptured == true)
+            _goalTaskDragSourceRow.ReleaseMouseCapture();
+        _goalTaskDragCandidate = null;
+        _goalTaskDragSourceRow = null;
+    }
+
+    private static bool IsWithinGoalTaskControl(DependencyObject? source) =>
+        FindVisualAncestor<ButtonBase>(source) is not null ||
+        FindVisualAncestor<ScrollBar>(source) is not null;
+
+    private static T? FindVisualAncestor<T>(DependencyObject? source) where T : DependencyObject
+    {
+        while (source is not null)
+        {
+            if (source is T match) return match;
+            source = source is Visual or System.Windows.Media.Media3D.Visual3D
+                ? VisualTreeHelper.GetParent(source)
+                : LogicalTreeHelper.GetParent(source);
+        }
+        return null;
     }
 }

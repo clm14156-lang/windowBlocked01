@@ -121,9 +121,10 @@ public partial class CreateGoalModal : UserControl
         Size targetSize,
         Point offset)
     {
-        const double gap = 8;
-        var x = targetSize.Width - popupSize.Width;
-        var y = targetSize.Height - popupSize.Height - 62 - gap;
+        const double rightInset = 18;
+        const double bottomClearance = 126;
+        var x = targetSize.Width - popupSize.Width - rightInset;
+        var y = targetSize.Height - popupSize.Height - bottomClearance;
         return [new CustomPopupPlacement(new Point(Math.Max(0, x), Math.Max(0, y)), PopupPrimaryAxis.Vertical)];
     }
 

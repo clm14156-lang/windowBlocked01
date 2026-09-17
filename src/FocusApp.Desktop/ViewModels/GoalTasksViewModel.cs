@@ -19,6 +19,7 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
     private Task<bool>? _draftCommit;
     private int _draftRevision;
     private readonly HashSet<string> _completingTasks = [];
+    private bool _isReorderingTasks;
 
     public GoalTasksViewModel(Func<DateTimeOffset>? nowProvider = null)
     {
@@ -36,6 +37,7 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
     public event EventHandler? DraftFocusRequested;
     public Func<Task>? RefreshTasksAsync { get; set; }
     public Func<LocalTaskDto, bool, Task<LocalTaskDto?>>? PersistTaskAsync { get; set; }
+    public Func<string, IReadOnlyList<string>, Task<bool>>? PersistPendingTaskOrderAsync { get; set; }
     public ICommand OpenCommand { get; }
     public ICommand OpenCompletedCommand { get; }
     public ICommand CloseCommand { get; }
@@ -114,6 +116,7 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
                 if (oldIndex != index) _target.Tasks.Move(oldIndex, index);
             }
         }
+        UpdatePendingTaskPriorities();
         NotifyViews();
     }
 
@@ -196,6 +199,7 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
     public async Task<bool> CompleteTaskAsync(FocusTaskViewModel task)
     {
         if (task.TargetId != GoalId || task.IsCompleted || !_completingTasks.Add(task.TaskId)) return false;
+        task.IsCompleting = true;
         try
         {
             if (!await CommitCreationAsync() || task.TargetId != GoalId) return false;
@@ -204,7 +208,69 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
             var now = _now().ToUniversalTime();
             return await SaveAsync(existing with { IsCompleted = true, CompletedAtUtc = now, UpdatedAtUtc = now }, false) is not null;
         }
-        finally { _completingTasks.Remove(task.TaskId); }
+        finally
+        {
+            task.IsCompleting = false;
+            _completingTasks.Remove(task.TaskId);
+        }
+    }
+
+    public async Task<bool> MovePendingTaskAsync(
+        FocusTaskViewModel task,
+        FocusTaskViewModel target,
+        bool insertAfter)
+    {
+        if (_isReorderingTasks || GoalId is not { } goalId ||
+            task.TargetId != goalId || target.TargetId != goalId ||
+            task.IsCompleted || target.IsCompleted || ReferenceEquals(task, target))
+        {
+            return false;
+        }
+
+        var previousOrder = PendingTasks.Select(item => item.TaskId).ToArray();
+        var reordered = PendingTasks.ToList();
+        var oldIndex = reordered.IndexOf(task);
+        if (oldIndex < 0 || !reordered.Remove(task)) return false;
+        var targetIndex = reordered.IndexOf(target);
+        if (targetIndex < 0) return false;
+        reordered.Insert(targetIndex + (insertAfter ? 1 : 0), task);
+        var reorderedIds = reordered.Select(item => item.TaskId).ToArray();
+        if (previousOrder.SequenceEqual(reorderedIds, StringComparer.Ordinal)) return false;
+
+        _isReorderingTasks = true;
+        ErrorMessage = null;
+        ApplyPendingOrder(reorderedIds);
+        try
+        {
+            bool persisted;
+            try
+            {
+                persisted = PersistPendingTaskOrderAsync is not null &&
+                    await PersistPendingTaskOrderAsync(goalId, reorderedIds);
+            }
+            catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException or IOException)
+            {
+                persisted = false;
+            }
+
+            if (!persisted)
+            {
+                if (GoalId == goalId) ProjectTasks();
+                ErrorMessage = "任务排序失败，请重试。";
+                return false;
+            }
+
+            if (GoalId == goalId)
+            {
+                CommitPendingOrderToSnapshot(goalId, reorderedIds);
+                ProjectTasks();
+            }
+            return true;
+        }
+        finally
+        {
+            _isReorderingTasks = false;
+        }
     }
 
     private async Task<LocalTaskDto?> SaveAsync(LocalTaskDto task, bool insertAtTop)
@@ -233,6 +299,64 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
         _snapshot = tasks;
         ProjectTasks();
         return saved;
+    }
+
+    private void ApplyPendingOrder(IReadOnlyList<string> orderedPendingTaskIds)
+    {
+        if (_target is null) return;
+        var pendingById = _target.Tasks
+            .Where(item => !item.IsCompleted)
+            .ToDictionary(item => item.TaskId, StringComparer.Ordinal);
+        if (orderedPendingTaskIds.Any(taskId => !pendingById.ContainsKey(taskId))) return;
+
+        var orderedPending = orderedPendingTaskIds.Select(taskId => pendingById[taskId]).ToArray();
+        var desired = _target.Tasks.ToArray();
+        var pendingIndex = 0;
+        for (var index = 0; index < desired.Length; index++)
+        {
+            if (!desired[index].IsCompleted) desired[index] = orderedPending[pendingIndex++];
+        }
+
+        for (var index = 0; index < desired.Length; index++)
+        {
+            var oldIndex = _target.Tasks.IndexOf(desired[index]);
+            if (oldIndex != index) _target.Tasks.Move(oldIndex, index);
+        }
+        UpdatePendingTaskPriorities();
+        NotifyViews();
+    }
+
+    private void CommitPendingOrderToSnapshot(string goalId, IReadOnlyList<string> orderedPendingTaskIds)
+    {
+        var ownTasks = _snapshot
+            .Where(item => item.TargetId == goalId)
+            .OrderBy(item => item.SortOrder)
+            .ToList();
+        var pendingById = ownTasks
+            .Where(item => !item.IsCompleted)
+            .ToDictionary(item => item.TaskId, StringComparer.Ordinal);
+        if (orderedPendingTaskIds.Any(taskId => !pendingById.ContainsKey(taskId))) return;
+
+        var orderedPending = orderedPendingTaskIds.Select(taskId => pendingById[taskId]).ToArray();
+        var pendingIndex = 0;
+        for (var index = 0; index < ownTasks.Count; index++)
+        {
+            var task = ownTasks[index];
+            if (!task.IsCompleted) task = orderedPending[pendingIndex++];
+            ownTasks[index] = task with { SortOrder = index };
+        }
+
+        _snapshot = _snapshot.Where(item => item.TargetId != goalId).Concat(ownTasks).ToArray();
+    }
+
+    private void UpdatePendingTaskPriorities()
+    {
+        if (_target is null) return;
+        var rank = 0;
+        foreach (var task in _target.Tasks)
+        {
+            task.ListPriorityRank = !task.IsCompleted && rank < 3 ? ++rank : 0;
+        }
     }
 
     private void NotifyViews()

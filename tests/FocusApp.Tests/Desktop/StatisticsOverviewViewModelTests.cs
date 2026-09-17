@@ -621,20 +621,79 @@ public sealed class StatisticsOverviewViewModelTests
         var custom = viewModel.GoalDurationOptions.Single(option => option.IsCustom);
         viewModel.SelectGoalDurationCommand.Execute(custom);
         Assert.True(viewModel.IsCustomDurationPopupOpen);
-        viewModel.CustomDurationInput = "1000";
+        Assert.Equal("请输入 1-9999 小时", viewModel.CustomDurationMessage);
+        viewModel.CustomDurationInput = "10000";
         viewModel.ConfirmCustomDurationCommand.Execute(null);
         Assert.True(viewModel.IsCustomDurationPopupOpen);
         Assert.Null(viewModel.SelectedGoalDurationMinutes);
+        Assert.True(viewModel.HasCustomDurationError);
 
         viewModel.CustomDurationInput = "25";
         viewModel.ConfirmCustomDurationCommand.Execute(null);
         Assert.False(viewModel.IsCustomDurationPopupOpen);
         Assert.Equal(25 * 60, viewModel.SelectedGoalDurationMinutes);
+        Assert.Equal("25小时", custom.Label);
+        Assert.True(custom.HasCustomValue);
+        Assert.True(custom.IsSelected);
+
+        var fiftyHours = viewModel.GoalDurationOptions.Single(option => option.Minutes == 50 * 60 && !option.IsCustom);
+        viewModel.SelectGoalDurationCommand.Execute(fiftyHours);
+        Assert.Equal(50 * 60, viewModel.SelectedGoalDurationMinutes);
+        Assert.False(custom.IsSelected);
+        Assert.Equal("25小时", custom.Label);
+
+        viewModel.SelectGoalDurationCommand.Execute(custom);
+        Assert.False(viewModel.IsCustomDurationPopupOpen);
+        Assert.Equal(25 * 60, viewModel.SelectedGoalDurationMinutes);
+        Assert.True(custom.IsSelected);
+
+        viewModel.EditCustomDurationCommand.Execute(null);
+        Assert.True(viewModel.IsCustomDurationPopupOpen);
+        Assert.Equal("25", viewModel.CustomDurationInput);
+        viewModel.CustomDurationInput = "30";
+        viewModel.ConfirmCustomDurationCommand.Execute(null);
+        Assert.Equal("30小时", custom.Label);
+        Assert.Equal(30 * 60, viewModel.SelectedGoalDurationMinutes);
+        Assert.True(custom.IsSelected);
 
         viewModel.SelectGoalDurationCommand.Execute(custom);
         Assert.False(viewModel.IsCustomDurationPopupOpen);
         Assert.Null(viewModel.SelectedGoalDurationMinutes);
         Assert.DoesNotContain(viewModel.GoalDurationOptions, option => option.IsSelected);
+
+        viewModel.EditCustomDurationCommand.Execute(null);
+        viewModel.CustomDurationInput = "35";
+        viewModel.ConfirmCustomDurationCommand.Execute(null);
+        Assert.Equal("35小时", custom.Label);
+        Assert.Null(viewModel.SelectedGoalDurationMinutes);
+        Assert.False(custom.IsSelected);
+
+        viewModel.SelectGoalDurationCommand.Execute(custom);
+        Assert.Equal(35 * 60, viewModel.SelectedGoalDurationMinutes);
+        Assert.False(viewModel.IsCustomDurationPopupOpen);
+
+        viewModel.EditCustomDurationCommand.Execute(null);
+        viewModel.CustomDurationInput = "40";
+        viewModel.CancelCustomDurationCommand.Execute(null);
+        Assert.Equal("35小时", custom.Label);
+        Assert.Equal(35 * 60, viewModel.SelectedGoalDurationMinutes);
+    }
+
+    [Fact]
+    public void CustomDurationAccepts9999Hours()
+    {
+        var viewModel = new StatisticsOverviewViewModel();
+        viewModel.AddGoalCommand.Execute(null);
+        var custom = viewModel.GoalDurationOptions.Single(option => option.IsCustom);
+
+        viewModel.SelectGoalDurationCommand.Execute(custom);
+        viewModel.CustomDurationInput = "9999";
+        viewModel.ConfirmCustomDurationCommand.Execute(null);
+
+        Assert.False(viewModel.IsCustomDurationPopupOpen);
+        Assert.Equal(9999 * 60, viewModel.SelectedGoalDurationMinutes);
+        Assert.Equal("9999小时", custom.Label);
+        Assert.True(custom.IsSelected);
     }
 
     [Fact]

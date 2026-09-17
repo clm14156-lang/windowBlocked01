@@ -154,6 +154,48 @@ public sealed class GoalTasksViewModelTests
     }
 
     [Fact]
+    public async Task ReorderUpdatesPendingTasksAndDynamicTopThreePriorities()
+    {
+        var model = new GoalTasksViewModel(() => Now);
+        model.ApplyState(Goal(),
+        [
+            TaskData("first", 0),
+            TaskData("second", 1),
+            TaskData("third", 2),
+            TaskData("fourth", 3)
+        ]);
+        string? persistedGoal = null;
+        IReadOnlyList<string>? persistedOrder = null;
+        model.PersistPendingTaskOrderAsync = (goalId, order) =>
+        {
+            persistedGoal = goalId;
+            persistedOrder = order.ToArray();
+            return System.Threading.Tasks.Task.FromResult(true);
+        };
+
+        Assert.Equal([1, 2, 3, 0], model.PendingTasks.Select(task => task.ListPriorityRank));
+        Assert.True(await model.MovePendingTaskAsync(model.PendingTasks[3], model.PendingTasks[0], insertAfter: false));
+
+        Assert.Equal("goal", persistedGoal);
+        Assert.Equal(["fourth", "first", "second", "third"], persistedOrder);
+        Assert.Equal(["fourth", "first", "second", "third"], model.PendingTasks.Select(task => task.TaskId));
+        Assert.Equal([1, 2, 3, 0], model.PendingTasks.Select(task => task.ListPriorityRank));
+    }
+
+    [Fact]
+    public async Task FailedReorderRestoresOriginalOrder()
+    {
+        var model = new GoalTasksViewModel(() => Now);
+        model.ApplyState(Goal(), [TaskData("first", 0), TaskData("second", 1)]);
+        model.PersistPendingTaskOrderAsync = (_, _) => System.Threading.Tasks.Task.FromResult(false);
+
+        Assert.False(await model.MovePendingTaskAsync(model.PendingTasks[1], model.PendingTasks[0], insertAfter: false));
+
+        Assert.Equal(["first", "second"], model.PendingTasks.Select(task => task.TaskId));
+        Assert.Equal("任务排序失败，请重试。", model.ErrorMessage);
+    }
+
+    [Fact]
     public async Task FailedWritesKeepDraftAndCompletionStateAndDoNotCloseDialog()
     {
         var model = new GoalTasksViewModel(() => Now);
@@ -236,6 +278,68 @@ public sealed class GoalTasksViewModelTests
         Assert.Equal(alreadyCompleted.CompletedAtUtc, duplicate.Tasks[0].CompletedAtUtc);
         Assert.Null(GoalTaskPersistence.CreateSaveCommand(state, TaskData("deleted"), false));
         Assert.Null(GoalTaskPersistence.CreateSaveCommand(state, TaskData("other", goal: "other"), true));
+    }
+
+    [Fact]
+    public void ReorderAdapterPreservesCompletedSlotsAndRenumbersPersistedOrder()
+    {
+        var completed = TaskData("done", 4, completedAt: Local(17));
+        var state = State(
+            TaskData("first", 2),
+            completed,
+            TaskData("second", 7),
+            TaskData("third", 9));
+
+        var command = GoalTaskPersistence.CreateReorderCommand(
+            state,
+            "goal",
+            ["third", "first", "second"],
+            Now)!;
+
+        Assert.Same(state.Targets[0], command.Target);
+        Assert.Equal(["third", "done", "first", "second"], command.Tasks.Select(task => task.TaskId));
+        Assert.Equal([0, 1, 2, 3], command.Tasks.Select(task => task.SortOrder));
+        Assert.Equal(completed.CompletedAtUtc, command.Tasks[1].CompletedAtUtc);
+        Assert.Null(GoalTaskPersistence.CreateReorderCommand(state, "goal", ["first"], Now));
+        Assert.Null(GoalTaskPersistence.CreateReorderCommand(state, "other", ["third", "first", "second"], Now));
+    }
+
+    [Fact]
+    public async Task ReorderedTasksKeepTheirOrderAfterSqliteReopen()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "FocusApp.Tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        var path = Path.Combine(directory, "goal-task-order.db");
+        try
+        {
+            var store = new SqliteLocalDataStore(path);
+            var state = State(TaskData("first", 0), TaskData("second", 1), TaskData("third", 2));
+            var initialTarget = state.Targets[0];
+            await store.SaveTargetAsync(
+                new LocalTarget(initialTarget.TargetId, initialTarget.Name, initialTarget.IsArchived, initialTarget.SortOrder, initialTarget.CreatedAtUtc, initialTarget.UpdatedAtUtc),
+                state.Tasks.Select(task => new LocalTask(task.TaskId, task.TargetId, task.Name, task.IsCompleted, task.SortOrder, task.CreatedAtUtc, task.UpdatedAtUtc)).ToArray());
+
+            var command = GoalTaskPersistence.CreateReorderCommand(
+                state,
+                "goal",
+                ["third", "first", "second"],
+                Now)!;
+            await store.SaveTargetAsync(
+                new LocalTarget(command.Target.TargetId, command.Target.Name, command.Target.IsArchived, command.Target.SortOrder, command.Target.CreatedAtUtc, command.Target.UpdatedAtUtc),
+                command.Tasks.Select(task => new LocalTask(task.TaskId, task.TargetId, task.Name, task.IsCompleted, task.SortOrder, task.CreatedAtUtc, task.UpdatedAtUtc)).ToArray());
+
+            var reopened = await new SqliteLocalDataStore(path).LoadAsync();
+            Assert.Equal(
+                ["third", "first", "second"],
+                reopened.Tasks.Where(task => task.TargetId == "goal").OrderBy(task => task.SortOrder).Select(task => task.TaskId));
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+            var resolved = Path.GetFullPath(directory);
+            var expected = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "FocusApp.Tests")) + Path.DirectorySeparatorChar;
+            if (resolved.StartsWith(expected, StringComparison.OrdinalIgnoreCase)) Directory.Delete(resolved, true);
+        }
     }
 
     [Fact]

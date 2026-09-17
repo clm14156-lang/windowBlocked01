@@ -199,7 +199,7 @@ public sealed class SqliteLocalDataStoreTests
         var target = new LocalTarget("target-with-details", "有详情的目标", false, 0, now, now)
         {
             Remark = "完成一套练习",
-            TargetDurationMinutes = 25 * 60
+            TargetDurationMinutes = 9999 * 60
         };
 
         await database.CreateStore().SaveTargetAsync(target, []);

@@ -42,6 +42,60 @@ public sealed class StatisticsGoalProgressPresentationTests
     }
 
     [Fact]
+    public void NextTasksSupportCompletionHoverActionsDragAndDynamicPriorities()
+    {
+        var page = XDocument.Load(Path.Combine(FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
+        var tasks = Assert.Single(page.Descendants(Presentation + "ItemsControl").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "GoalNextTasks"));
+        var template = Assert.Single(tasks.Descendants(Presentation + "DataTemplate"));
+        var row = Assert.Single(template.Descendants(Presentation + "Grid").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "GoalNextTaskRow"));
+        Assert.Equal("GoalNextTaskRow_PreviewMouseLeftButtonDown", (string?)row.Attribute("PreviewMouseLeftButtonDown"));
+        Assert.Equal("GoalNextTaskRow_PreviewMouseMove", (string?)row.Attribute("PreviewMouseMove"));
+
+        var checkbox = Assert.Single(template.Descendants(Presentation + "Button").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "GoalNextTaskCheckButton"));
+        Assert.Equal(
+            "{Binding DataContext.GoalTasks.CompleteTaskCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}",
+            (string?)checkbox.Attribute("Command"));
+        Assert.Equal("{Binding}", (string?)checkbox.Attribute("CommandParameter"));
+
+        var more = Assert.Single(template.Descendants(Presentation + "Button").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "GoalNextTaskMoreButton"));
+        Assert.Contains(more.Descendants(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("Property") == "Visibility" &&
+            (string?)setter.Attribute("Value") == "Collapsed");
+        Assert.Contains(more.Descendants(Presentation + "DataTrigger"), trigger =>
+            ((string?)trigger.Attribute("Binding"))?.Contains("GoalNextTaskRow", StringComparison.Ordinal) == true &&
+            trigger.Descendants(Presentation + "Setter").Any(setter =>
+                (string?)setter.Attribute("Property") == "Visibility" &&
+                (string?)setter.Attribute("Value") == "Visible"));
+
+        var hoverSurface = Assert.Single(template.Descendants(Presentation + "Border").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "GoalNextTaskHoverSurface"));
+        Assert.Contains(hoverSurface.Descendants(Presentation + "DataTrigger"), trigger =>
+            ((string?)trigger.Attribute("Binding"))?.Contains("GoalNextTaskRow", StringComparison.Ordinal) == true &&
+            trigger.Descendants(Presentation + "Setter").Any(setter =>
+                (string?)setter.Attribute("Property") == "Background" &&
+                (string?)setter.Attribute("Value") == "#F7F7F8"));
+
+        var priority = Assert.Single(template.Descendants(Presentation + "Border").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "GoalTaskPriorityBar"));
+        Assert.Equal("3", (string?)priority.Attribute("Width"));
+        Assert.Equal(new[] { "1", "2", "3" }, priority.Descendants(Presentation + "DataTrigger")
+            .Where(trigger => (string?)trigger.Attribute("Binding") == "{Binding ListPriorityRank}")
+            .Select(trigger => (string?)trigger.Attribute("Value")));
+
+        var scroll = Assert.Single(tasks.Ancestors(Presentation + "ScrollViewer").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "GoalNextTasksScroll"));
+        Assert.Equal("True", (string?)scroll.Attribute("AllowDrop"));
+        Assert.Equal("GoalNextTasksScroll_DragOver", (string?)scroll.Attribute("DragOver"));
+        Assert.Equal("GoalNextTasksScroll_Drop", (string?)scroll.Attribute("Drop"));
+        Assert.DoesNotContain(template.Descendants(Presentation + "Path"), path =>
+            (string?)path.Attribute("Data") == "M 0,0 L 13,0 M 0,5 L 13,5 M 0,10 L 13,10");
+    }
+
+    [Fact]
     public void GoalListHoverRevealsTheRowActionMenu()
     {
         var page = XDocument.Load(Path.Combine(FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));

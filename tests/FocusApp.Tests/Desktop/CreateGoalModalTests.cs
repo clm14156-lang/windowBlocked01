@@ -131,9 +131,75 @@ public sealed class CreateGoalModalTests
             .Where(element => (string?)element.Attribute("ItemsSource") == "{Binding GoalDurationOptions}"));
         var panel = Assert.Single(options.Descendants(p + "UniformGrid"));
         Assert.Equal("4", (string?)panel.Attribute("Columns"));
-        var button = Assert.Single(options.Descendants(p + "Button"));
+        var optionRoot = Assert.Single(options.Descendants(p + "Grid").Where(element =>
+            (string?)element.Attribute(XName("Name")) == "DurationOptionRoot"));
+        Assert.Equal("4,0", (string?)optionRoot.Attribute("Margin"));
+        var button = Assert.Single(options.Descendants(p + "Button").Where(element =>
+            (string?)element.Attribute(XName("Name")) == "DurationOptionButton"));
         Assert.Null(button.Attribute("Width"));
-        Assert.Equal("4,0", (string?)button.Attribute("Margin"));
+        var editButton = Assert.Single(options.Descendants(p + "Button").Where(element =>
+            (string?)element.Attribute(XName("Name")) == "CustomDurationEditButton"));
+        Assert.Equal("{Binding DataContext.EditCustomDurationCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}", (string?)editButton.Attribute("Command"));
+        var editStyle = Assert.Single(modal.Descendants(p + "Style").Where(element =>
+            (string?)element.Attribute(XName("Key")) == "GoalDurationEditButtonStyle"));
+        Assert.Contains(editStyle.Elements(p + "Setter"), setter =>
+            (string?)setter.Attribute("Property") == "Visibility" &&
+            (string?)setter.Attribute("Value") == "Collapsed");
+        Assert.Contains(options.Descendants(p + "Condition"), condition =>
+            (string?)condition.Attribute("Binding") == "{Binding HasCustomValue}" &&
+            (string?)condition.Attribute("Value") == "True");
+    }
+
+    [Fact]
+    public void CustomDurationPopTipUsesCompactInlineUnitInput()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "FocusApp.sln")))
+            directory = directory.Parent;
+        Assert.NotNull(directory);
+
+        var modal = XDocument.Load(Path.Combine(directory.FullName, "src", "FocusApp.Desktop", "Views", "CreateGoalModal.xaml"));
+        XNamespace p = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
+        var popup = Assert.Single(modal.Descendants(p + "Popup").Where(element =>
+            (string?)element.Attribute(XName("Name")) == "CustomDurationPopup"));
+        var popupRoot = Assert.Single(popup.Elements(p + "Grid"));
+        Assert.Equal("248", (string?)popupRoot.Attribute("Width"));
+        var inputBorder = Assert.Single(popup.Descendants(p + "Border").Where(element =>
+            (string?)element.Attribute(XName("Name")) == "CustomDurationInputBorder"));
+        Assert.Equal("44", (string?)inputBorder.Attribute("Height"));
+        var input = Assert.Single(inputBorder.Descendants(p + "TextBox"));
+        Assert.Equal("0", (string?)input.Attribute("BorderThickness"));
+        Assert.Equal("{x:Null}", (string?)input.Attribute("FocusVisualStyle"));
+        Assert.Equal("4", (string?)input.Attribute("MaxLength"));
+        Assert.Contains(inputBorder.Descendants(p + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "小时");
+        Assert.Contains(popup.Descendants(p + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "{Binding CustomDurationMessage}");
+    }
+
+    [Fact]
+    public void CustomDurationPopTipAnchorsAboveTheCustomOption()
+    {
+        Exception? failure = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                var modal = new CreateGoalModal();
+                var popup = (Popup)modal.FindName("CustomDurationPopup");
+                var placements = popup.CustomPopupPlacementCallback!(
+                    new Size(248, 170), new Size(430, 520), default);
+
+                var placement = Assert.Single(placements);
+                Assert.Equal(new Point(164, 224), placement.Point);
+                Assert.Equal(PopupPrimaryAxis.Vertical, placement.PrimaryAxis);
+            }
+            catch (Exception exception) { failure = exception; }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        Assert.True(thread.Join(TimeSpan.FromSeconds(10)));
+        Assert.Null(failure);
     }
 
     [Fact]
@@ -155,6 +221,9 @@ public sealed class CreateGoalModalTests
         Assert.All(rootGrid.Elements().Where(e => e != modal), e =>
             Assert.True(int.Parse((string?)e.Attribute("Panel.ZIndex") ?? "0") < modalLayer));
     }
+
+    private static XName XName(string localName) =>
+        XNamespace.Get("http://schemas.microsoft.com/winfx/2006/xaml") + localName;
 
     [Theory]
     [InlineData(800, 710, 1)]

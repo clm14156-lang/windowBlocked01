@@ -90,6 +90,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         StatisticsPage.GoalDeleted += StatisticsPage_GoalDeleted;
         StatisticsPage.GoalTasks.RefreshTasksAsync = RefreshGoalTasksAsync;
         StatisticsPage.GoalTasks.PersistTaskAsync = PersistGoalTaskAsync;
+        StatisticsPage.GoalTasks.PersistPendingTaskOrderAsync = PersistGoalTaskOrderAsync;
         StatisticsPage.MonthlyFocusTargetChanged += StatisticsPage_MonthlyFocusTargetChanged;
         StateCoordinator = new FocusStateCoordinator(HomePage, SettingsPage, BlockingPage, StatisticsPage);
         SettingsPage.SetUserAccess(IsLoggedIn, IsVipMember);
@@ -971,6 +972,39 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
                 return result.State.Tasks.FirstOrDefault(item => item.TaskId == task.TaskId && item.TargetId == task.TargetId);
             }
             catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException) { return null; }
+        }
+        finally { _targetPersistenceGate.Release(); }
+    }
+
+    private async Task<bool> PersistGoalTaskOrderAsync(
+        string targetId,
+        IReadOnlyList<string> orderedPendingTaskIds)
+    {
+        if (ServiceConnection is null || !ServiceConnection.IsConnected) return false;
+        await _targetPersistenceGate.WaitAsync();
+        try
+        {
+            if (ServiceConnection.State is not { } state) return false;
+            var command = GoalTaskPersistence.CreateReorderCommand(
+                state,
+                targetId,
+                orderedPendingTaskIds,
+                DateTimeOffset.UtcNow);
+            if (command is null) return false;
+            try
+            {
+                var result = await ServiceConnection.SaveTargetAsync(command);
+                HomePage.FocusTargetModal.ApplyState(
+                    result.State.Targets,
+                    result.State.Tasks,
+                    result.State.Settings.SelectedTargetId);
+                StatisticsPage.ApplyState(result.State);
+                return true;
+            }
+            catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException)
+            {
+                return false;
+            }
         }
         finally { _targetPersistenceGate.Release(); }
     }

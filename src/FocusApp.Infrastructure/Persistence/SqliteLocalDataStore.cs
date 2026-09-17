@@ -1027,7 +1027,7 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
             target.SortOrder < 0 ||
             target.IconFileName is not null && !IsSafeIconFileName(target.IconFileName) ||
             target.Remark is not null && target.Remark.Length > 150 ||
-            target.TargetDurationMinutes is <= 0 or > 999 * 60)
+            target.TargetDurationMinutes is <= 0 or > 9999 * 60)
         {
             throw new ArgumentException("目标数据无效。", nameof(target));
         }

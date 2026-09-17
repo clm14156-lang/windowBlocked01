@@ -181,6 +181,8 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
     private bool _isDragging;
     private bool _showDropBefore;
     private bool _showDropAfter;
+    private bool _isCompleting;
+    private int _listPriorityRank;
 
     internal FocusTaskViewModel(
         string targetId,
@@ -403,6 +405,36 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
             }
 
             _showDropAfter = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool IsCompleting
+    {
+        get => _isCompleting;
+        internal set
+        {
+            if (_isCompleting == value)
+            {
+                return;
+            }
+
+            _isCompleting = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public int ListPriorityRank
+    {
+        get => _listPriorityRank;
+        internal set
+        {
+            if (_listPriorityRank == value)
+            {
+                return;
+            }
+
+            _listPriorityRank = value;
             OnPropertyChanged();
         }
     }

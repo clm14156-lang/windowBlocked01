@@ -48,6 +48,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     private string _newGoalRemark = string.Empty;
     private int? _selectedGoalDurationMinutes;
     private GoalDurationOptionViewModel? _selectedGoalDurationOption;
+    private bool _selectCustomDurationOnConfirm;
     private bool _isCustomDurationPopupOpen;
     private string _customDurationInput = string.Empty;
     private string _customDurationError = string.Empty;
@@ -160,6 +161,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         ConfirmCreateGoalCommand = _confirmCreateGoalCommand;
         SelectTargetIconCommand = new RelayCommand<TargetIconOptionViewModel>(SelectTargetIcon);
         SelectGoalDurationCommand = new RelayCommand<GoalDurationOptionViewModel>(SelectGoalDuration);
+        EditCustomDurationCommand = new RelayCommand<object>(_ => OpenCustomDurationEditor(false));
         ConfirmCustomDurationCommand = new RelayCommand<object>(_ => ConfirmCustomDuration());
         CancelCustomDurationCommand = new RelayCommand<object>(_ => CloseCustomDurationPopup());
         ToggleGoalIconLibraryCommand = new RelayCommand<object>(_ => IsGoalIconLibraryOpen = !IsGoalIconLibraryOpen);
@@ -453,6 +455,8 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     public ICommand SelectGoalDurationCommand { get; }
 
+    public ICommand EditCustomDurationCommand { get; }
+
     public ICommand ConfirmCustomDurationCommand { get; }
 
     public ICommand CancelCustomDurationCommand { get; }
@@ -576,13 +580,18 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             OnPropertyChanged();
             if (_customDurationError.Length > 0)
             {
-                _customDurationError = string.Empty;
-                OnPropertyChanged(nameof(CustomDurationError));
+                SetCustomDurationError(string.Empty);
             }
         }
     }
 
     public string CustomDurationError => _customDurationError;
+
+    public string CustomDurationMessage => HasCustomDurationError
+        ? _customDurationError
+        : "请输入 1-9999 小时";
+
+    public bool HasCustomDurationError => _customDurationError.Length > 0;
 
     public TargetIconOptionViewModel? SelectedTargetIcon
     {
@@ -1205,21 +1214,16 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     private void SelectGoalDuration(GoalDurationOptionViewModel? option)
     {
         if (option is null || !GoalDurationOptions.Contains(option)) return;
+        if (option.IsCustom && !option.HasCustomValue)
+        {
+            OpenCustomDurationEditor(true);
+            return;
+        }
+
         if (ReferenceEquals(option, _selectedGoalDurationOption))
         {
             SetGoalDuration(null);
             IsCustomDurationPopupOpen = false;
-            return;
-        }
-
-        if (option.IsCustom)
-        {
-            CustomDurationInput = _selectedGoalDurationOption?.IsCustom == true && _selectedGoalDurationMinutes is { } minutes
-                ? (minutes / 60).ToString(CultureInfo.InvariantCulture)
-                : string.Empty;
-            _customDurationError = string.Empty;
-            OnPropertyChanged(nameof(CustomDurationError));
-            IsCustomDurationPopupOpen = true;
             return;
         }
 
@@ -1230,19 +1234,42 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(SelectedGoalDurationMinutes));
     }
 
-    private void ConfirmCustomDuration()
+    private void OpenCustomDurationEditor(bool selectOnConfirm)
     {
-        if (!int.TryParse(CustomDurationInput, NumberStyles.None, CultureInfo.InvariantCulture, out var hours) ||
-            hours is < 1 or > 999)
+        var customOption = GoalDurationOptions.Single(option => option.IsCustom);
+        if (!selectOnConfirm && !customOption.HasCustomValue)
         {
-            _customDurationError = "请输入 1–999 的小时数";
-            OnPropertyChanged(nameof(CustomDurationError));
             return;
         }
 
-        _selectedGoalDurationOption = GoalDurationOptions.Single(option => option.IsCustom);
-        _selectedGoalDurationMinutes = hours * 60;
+        _selectCustomDurationOnConfirm = selectOnConfirm;
+        CustomDurationInput = customOption.Minutes is { } minutes
+            ? (minutes / 60).ToString(CultureInfo.InvariantCulture)
+            : string.Empty;
+        SetCustomDurationError(string.Empty);
+        IsCustomDurationPopupOpen = true;
+    }
+
+    private void ConfirmCustomDuration()
+    {
+        if (!int.TryParse(CustomDurationInput, NumberStyles.None, CultureInfo.InvariantCulture, out var hours) ||
+            hours is < 1 or > 9999)
+        {
+            SetCustomDurationError("请输入 1-9999 小时");
+            return;
+        }
+
+        var customOption = GoalDurationOptions.Single(option => option.IsCustom);
+        var wasCustomSelected = ReferenceEquals(_selectedGoalDurationOption, customOption);
+        customOption.SetCustomDuration(hours * 60);
+        if (_selectCustomDurationOnConfirm || wasCustomSelected)
+        {
+            _selectedGoalDurationOption = customOption;
+            _selectedGoalDurationMinutes = customOption.Minutes;
+        }
+
         UpdateGoalDurationSelection();
+        _selectCustomDurationOnConfirm = false;
         IsCustomDurationPopupOpen = false;
         OnPropertyChanged(nameof(SelectedGoalDurationMinutes));
     }
@@ -1250,30 +1277,46 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     private void CloseCustomDurationPopup()
     {
         IsCustomDurationPopupOpen = false;
-        _customDurationError = string.Empty;
-        OnPropertyChanged(nameof(CustomDurationError));
+        _selectCustomDurationOnConfirm = false;
+        SetCustomDurationError(string.Empty);
     }
 
     private void SetGoalDuration(int? minutes)
     {
-        GoalDurationOptionViewModel? option = minutes switch
+        var option = minutes is null
+            ? null
+            : GoalDurationOptions.FirstOrDefault(item => !item.IsCustom && item.Minutes == minutes);
+        if (minutes is not null && option is null)
         {
-            null => null,
-            20 * 60 => GoalDurationOptions.Single(item => item.Minutes == 20 * 60),
-            50 * 60 => GoalDurationOptions.Single(item => item.Minutes == 50 * 60),
-            100 * 60 => GoalDurationOptions.Single(item => item.Minutes == 100 * 60),
-            _ => GoalDurationOptions.Single(item => item.IsCustom)
-        };
+            option = GoalDurationOptions.Single(item => item.IsCustom);
+            option.SetCustomDuration(minutes.Value);
+        }
+
         _selectedGoalDurationOption = option;
         _selectedGoalDurationMinutes = minutes;
-        CustomDurationInput = minutes is { } value && option?.IsCustom == true
-            ? (value / 60).ToString(CultureInfo.InvariantCulture)
+        CustomDurationInput = option?.IsCustom == true && option.Minutes is { } customMinutes
+            ? (customMinutes / 60).ToString(CultureInfo.InvariantCulture)
             : string.Empty;
         UpdateGoalDurationSelection();
         OnPropertyChanged(nameof(SelectedGoalDurationMinutes));
     }
 
-    private void ResetGoalDuration() => SetGoalDuration(null);
+    private void ResetGoalDuration()
+    {
+        GoalDurationOptions.Single(option => option.IsCustom).ResetCustomDuration();
+        _selectCustomDurationOnConfirm = false;
+        SetGoalDuration(null);
+        SetCustomDurationError(string.Empty);
+    }
+
+    private void SetCustomDurationError(string value)
+    {
+        if (_customDurationError == value) return;
+        _customDurationError = value;
+        OnPropertyChanged(nameof(CustomDurationError));
+        OnPropertyChanged(nameof(CustomDurationMessage));
+        OnPropertyChanged(nameof(HasCustomDurationError));
+    }
 
     private void UpdateGoalDurationSelection()
     {
@@ -2717,21 +2760,25 @@ public sealed class TargetIconOptionViewModel : INotifyPropertyChanged
 public sealed class GoalDurationOptionViewModel : INotifyPropertyChanged
 {
     private bool _isSelected;
+    private string _label;
+    private int? _minutes;
 
     public GoalDurationOptionViewModel(string label, int? minutes, bool isCustom = false)
     {
-        Label = label;
-        Minutes = minutes;
+        _label = label;
+        _minutes = minutes;
         IsCustom = isCustom;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
-    public string Label { get; }
+    public string Label => _label;
 
-    public int? Minutes { get; }
+    public int? Minutes => _minutes;
 
     public bool IsCustom { get; }
+
+    public bool HasCustomValue => IsCustom && _minutes is not null;
 
     public bool IsSelected
     {
@@ -2742,6 +2789,26 @@ public sealed class GoalDurationOptionViewModel : INotifyPropertyChanged
             _isSelected = value;
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsSelected)));
         }
+    }
+
+    public void SetCustomDuration(int minutes)
+    {
+        if (!IsCustom || minutes <= 0) return;
+        _minutes = minutes;
+        _label = $"{minutes / 60}小时";
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Minutes)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Label)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasCustomValue)));
+    }
+
+    public void ResetCustomDuration()
+    {
+        if (!IsCustom || _minutes is null && _label == "自定义") return;
+        _minutes = null;
+        _label = "自定义";
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Minutes)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Label)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasCustomValue)));
     }
 }
 
