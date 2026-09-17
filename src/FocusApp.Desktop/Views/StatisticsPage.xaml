@@ -1102,8 +1102,13 @@
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="40"/><ColumnDefinition/></Grid.ColumnDefinitions>
                                     <Image Width="38" Height="38" Source="/FocusApp.Desktop;component/Assets/Icons/Common/clock_icon.png" RenderOptions.BitmapScalingMode="HighQuality"/>
                                     <StackPanel Grid.Column="1" Margin="7,0,0,0" VerticalAlignment="Center">
-                                        <TextBlock Text="本月总专注" FontSize="11" Foreground="{DynamicResource TextSecondary}"/>
-                                        <TextBlock Margin="0,4,0,0" Text="{Binding MonthlyTotalDurationDisplay}" FontSize="18" FontWeight="SemiBold" FontFamily="{DynamicResource FontFamilyNumeric}" Foreground="{DynamicResource TextPrimary}"/>
+                                        <TextBlock Text="本月总专注" FontSize="12" Foreground="{DynamicResource TextSecondary}"/>
+                                        <TextBlock Margin="0,4,0,0" FontFamily="{DynamicResource FontFamilyNumeric}" Foreground="{DynamicResource TextPrimary}">
+                                            <Run Text="{Binding MonthlyTotalHoursValueDisplay, Mode=OneWay}" FontSize="15" FontWeight="SemiBold"/>
+                                            <Run Text="{Binding MonthlyTotalHoursUnitDisplay, Mode=OneWay}" FontSize="12"/>
+                                            <Run Text="{Binding MonthlyTotalMinutesValueDisplay, Mode=OneWay}" FontSize="15" FontWeight="SemiBold"/>
+                                            <Run Text="{Binding MonthlyTotalMinutesUnitDisplay, Mode=OneWay}" FontSize="12"/>
+                                        </TextBlock>
                                     </StackPanel>
                                 </Grid>
                                 <Border Grid.Column="1" Height="48" Background="#EEEEF0"/>
@@ -1117,8 +1122,11 @@
                                         </StackPanel>
                                     </Border>
                                     <StackPanel Grid.Column="1" Margin="7,0,0,0" VerticalAlignment="Center">
-                                        <TextBlock Text="{Binding MonthlyFocusDaysDisplay}" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}"/>
-                                        <TextBlock Margin="0,5,0,0" Text="本月有记录的天数" FontSize="10" Foreground="{DynamicResource TextSecondary}"/>
+                                        <TextBlock Text="专注天数" FontSize="12" Foreground="{DynamicResource TextSecondary}"/>
+                                        <TextBlock Margin="0,4,0,0" FontFamily="{DynamicResource FontFamilyNumeric}" Foreground="{DynamicResource TextPrimary}">
+                                            <Run Text="{Binding MonthlyFocusDaysValueDisplay, Mode=OneWay}" FontSize="15" FontWeight="SemiBold"/>
+                                            <Run Text="{Binding MonthlyFocusDaysUnitDisplay, Mode=OneWay}" FontSize="12"/>
+                                        </TextBlock>
                                     </StackPanel>
                                 </Grid>
                             </Grid>
@@ -1546,6 +1554,21 @@
                                     <StackPanel Margin="0,0,18,0">
                                         <TextBlock Text="本周投入" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}"/>
                                         <TextBlock x:Name="GoalWeeklyInvestmentText" Margin="0,4,0,0" Style="{StaticResource GoalMetricValueStyle}"><Run Text="{Binding SelectedGoalWeeklyInvestment.HoursValue, Mode=OneWay}"/><Run Text="{Binding SelectedGoalWeeklyInvestment.HoursUnitWithLeadingSpace, Mode=OneWay}" FontSize="16" FontWeight="SemiBold"/><Run Text="{Binding SelectedGoalWeeklyInvestment.MinutesValueWithLeadingSpace, Mode=OneWay}"/><Run Text="{Binding SelectedGoalWeeklyInvestment.MinutesUnitWithLeadingSpace, Mode=OneWay}" FontSize="16" FontWeight="SemiBold"/></TextBlock>
+                                        <StackPanel x:Name="GoalWeeklyInvestmentComparison" Margin="0,7,0,0" Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Image x:Name="GoalWeeklyInvestmentComparisonIcon" Width="16" Height="16" Stretch="Uniform" Source="{Binding SelectedGoalWeeklyInvestmentComparisonIconSource, Mode=OneWay}" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                            <TextBlock Margin="5,0,0,0" VerticalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="较上周"/>
+                                            <TextBlock x:Name="GoalWeeklyInvestmentComparisonPercent" Margin="4,0,0,0" VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold" Text="{Binding SelectedGoalWeeklyInvestmentComparisonDisplay, Mode=OneWay}">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding SelectedGoalWeeklyInvestmentComparisonState}" Value="Increase"><Setter Property="Foreground" Value="{DynamicResource SuccessPositive}"/></DataTrigger>
+                                                            <DataTrigger Binding="{Binding SelectedGoalWeeklyInvestmentComparisonState}" Value="Decrease"><Setter Property="Foreground" Value="{DynamicResource Danger}"/></DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </StackPanel>
                                     </StackPanel>
                                     <Border Grid.Column="1" Background="#F0F0F3"/>
                                     <StackPanel Grid.Column="2" Margin="26,0,0,0">

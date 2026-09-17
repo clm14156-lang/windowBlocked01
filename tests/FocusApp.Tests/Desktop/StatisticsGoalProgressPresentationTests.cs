@@ -19,6 +19,52 @@ public sealed class StatisticsGoalProgressPresentationTests
     private static readonly XNamespace Xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
 
     [Fact]
+    public void GoalWeeklyInvestmentShowsPreviousWeekComparisonWithStateDrivenIconAndTone()
+    {
+        var root = FindRepositoryRoot();
+        var page = XDocument.Load(Path.Combine(root, "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
+        var comparison = Assert.Single(page.Descendants(Presentation + "StackPanel").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "GoalWeeklyInvestmentComparison"));
+
+        var icon = Assert.Single(comparison.Descendants(Presentation + "Image").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "GoalWeeklyInvestmentComparisonIcon"));
+        Assert.Equal("16", (string?)icon.Attribute("Width"));
+        Assert.Equal("16", (string?)icon.Attribute("Height"));
+        Assert.Equal("{Binding SelectedGoalWeeklyInvestmentComparisonIconSource, Mode=OneWay}",
+            (string?)icon.Attribute("Source"));
+
+        Assert.Contains(comparison.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "较上周" &&
+            (string?)text.Attribute("Foreground") == "{DynamicResource TextSecondary}");
+        var percent = Assert.Single(comparison.Descendants(Presentation + "TextBlock").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "GoalWeeklyInvestmentComparisonPercent"));
+        Assert.Equal("{Binding SelectedGoalWeeklyInvestmentComparisonDisplay, Mode=OneWay}",
+            (string?)percent.Attribute("Text"));
+        var percentStyle = Assert.Single(percent.Elements(Presentation + "TextBlock.Style")
+            .Elements(Presentation + "Style"));
+        Assert.Contains(percentStyle.Elements(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("Property") == "Foreground" &&
+            (string?)setter.Attribute("Value") == "{DynamicResource TextSecondary}");
+        Assert.Contains(percentStyle.Descendants(Presentation + "DataTrigger"), trigger =>
+            (string?)trigger.Attribute("Binding") == "{Binding SelectedGoalWeeklyInvestmentComparisonState}" &&
+            (string?)trigger.Attribute("Value") == "Increase" &&
+            trigger.Elements(Presentation + "Setter").Any(setter =>
+                (string?)setter.Attribute("Property") == "Foreground" &&
+                (string?)setter.Attribute("Value") == "{DynamicResource SuccessPositive}"));
+        Assert.Contains(percentStyle.Descendants(Presentation + "DataTrigger"), trigger =>
+            (string?)trigger.Attribute("Binding") == "{Binding SelectedGoalWeeklyInvestmentComparisonState}" &&
+            (string?)trigger.Attribute("Value") == "Decrease" &&
+            trigger.Elements(Presentation + "Setter").Any(setter =>
+                (string?)setter.Attribute("Property") == "Foreground" &&
+                (string?)setter.Attribute("Value") == "{DynamicResource Danger}"));
+
+        var project = XDocument.Load(Path.Combine(root, "src", "FocusApp.Desktop", "FocusApp.Desktop.csproj"));
+        foreach (var iconName in new[] { "week_zengjia.png", "week_jianshao.png", "week_chiping.png" })
+            Assert.Contains(project.Descendants("Resource"), resource =>
+                (string?)resource.Attribute("Include") == $"Assets\\Icons\\Common\\{iconName}");
+    }
+
+    [Fact]
     public void GoalDetailsUseInvestmentAndSharedTasks()
     {
         var page = XDocument.Load(Path.Combine(FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
@@ -296,6 +342,9 @@ public sealed class StatisticsGoalProgressPresentationTests
                 var metrics = (FrameworkElement)page.FindName("GoalInvestmentMetrics");
                 var progressBar = (ProgressBar)page.FindName("GoalInvestmentProgressBar");
                 var totalInvestmentText = (TextBlock)page.FindName("GoalTotalInvestmentText");
+                var weeklyComparison = (FrameworkElement)page.FindName("GoalWeeklyInvestmentComparison");
+                var weeklyComparisonIcon = (Image)page.FindName("GoalWeeklyInvestmentComparisonIcon");
+                var weeklyComparisonPercent = (TextBlock)page.FindName("GoalWeeklyInvestmentComparisonPercent");
                 var remark = (FrameworkElement)page.FindName("GoalDetailRemark");
                 Assert.Equal(Visibility.Visible, progress.Visibility);
                 Assert.Equal(BindingStatus.Active,
@@ -311,6 +360,16 @@ public sealed class StatisticsGoalProgressPresentationTests
                 Assert.Equal("32 小时 / 100小时", new TextRange(
                     totalInvestmentText.ContentStart,
                     totalInvestmentText.ContentEnd).Text);
+                Assert.Equal(Visibility.Visible, weeklyComparison.Visibility);
+                Assert.Equal("-74%", weeklyComparisonPercent.Text);
+                Assert.Equal(BindingStatus.Active,
+                    weeklyComparisonPercent.GetBindingExpression(TextBlock.TextProperty)!.Status);
+                Assert.Equal(BindingStatus.Active,
+                    weeklyComparisonIcon.GetBindingExpression(Image.SourceProperty)!.Status);
+                Assert.Contains("week_jianshao.png",
+                    weeklyComparisonIcon.Source?.ToString() ?? string.Empty,
+                    StringComparison.OrdinalIgnoreCase);
+                Assert.True(weeklyComparison.ActualHeight > 0);
                 Assert.Equal(Visibility.Visible, remark.Visibility);
                 Assert.Equal("6小时32分钟", viewModel.SelectedGoalWeeklyInvestmentDisplay);
                 Assert.Equal("32小时", viewModel.SelectedGoalTotalInvestmentDisplay);

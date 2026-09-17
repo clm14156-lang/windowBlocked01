@@ -107,6 +107,41 @@ public sealed class CalendarRefactorTests
         Assert.Equal(0, model.MonthlyFocusDays);
     }
 
+    [Theory]
+    [InlineData(0, "", "", "0", "分钟", 0)]
+    [InlineData(45, "", "", "45", "分钟", 1)]
+    [InlineData(60, "1", "小时", "", "", 1)]
+    [InlineData(299, "4", "小时", "59", "分钟", 1)]
+    public void MonthlySummaryExposesChineseDurationAndFocusDayParts(
+        int totalMinutes,
+        string expectedHoursValue,
+        string expectedHoursUnit,
+        string expectedMinutesValue,
+        string expectedMinutesUnit,
+        int expectedFocusDays)
+    {
+        var model = new StatisticsOverviewViewModel(false);
+        if (totalMinutes > 0)
+        {
+            model.FocusSessionRecords.Add(new FocusSessionRecordViewModel(
+                Local(2, 9).DateTime,
+                Local(2, 9).AddMinutes(totalMinutes).DateTime,
+                "goal",
+                "学习",
+                "",
+                0));
+        }
+
+        SelectDate(model, Local(2).Date);
+
+        Assert.Equal(expectedHoursValue, model.MonthlyTotalHoursValueDisplay);
+        Assert.Equal(expectedHoursUnit, model.MonthlyTotalHoursUnitDisplay);
+        Assert.Equal(expectedMinutesValue, model.MonthlyTotalMinutesValueDisplay);
+        Assert.Equal(expectedMinutesUnit, model.MonthlyTotalMinutesUnitDisplay);
+        Assert.Equal(expectedFocusDays.ToString(), model.MonthlyFocusDaysValueDisplay);
+        Assert.Equal("天", model.MonthlyFocusDaysUnitDisplay);
+    }
+
     [Fact]
     public void DayNavigationCrossesMonthBoundaryAndRefreshesTaskData()
     {

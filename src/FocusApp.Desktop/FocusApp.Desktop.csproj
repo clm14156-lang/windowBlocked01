@@ -53,6 +53,9 @@
     <Resource Include="Assets\Icons\Common\rili_mubiao.png" />
     <Resource Include="Assets\Icons\Common\lajitong.png" />
     <Resource Include="Assets\Icons\Common\rili.png" />
+    <Resource Include="Assets\Icons\Common\week_zengjia.png" />
+    <Resource Include="Assets\Icons\Common\week_jianshao.png" />
+    <Resource Include="Assets\Icons\Common\week_chiping.png" />
     <Resource Include="Assets\Images\Illustrations\create-target.png" />
     <Resource Include="Assets\Images\Illustrations\UserAvatar.png" />
     <Resource Include="Assets\Images\Illustrations\MemberCenter_Background.png" />

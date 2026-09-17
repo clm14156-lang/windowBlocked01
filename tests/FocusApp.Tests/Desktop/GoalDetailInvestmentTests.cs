@@ -30,6 +30,39 @@ public sealed class GoalDetailInvestmentTests
     }
 
     [Theory]
+    [InlineData(120, 60, "+100%", "Increase", "/FocusApp.Desktop;component/Assets/Icons/Common/week_zengjia.png")]
+    [InlineData(60, 60, "0%", "Unchanged", "/FocusApp.Desktop;component/Assets/Icons/Common/week_chiping.png")]
+    [InlineData(30, 60, "-50%", "Decrease", "/FocusApp.Desktop;component/Assets/Icons/Common/week_jianshao.png")]
+    [InlineData(10, 3, "+233%", "Increase", "/FocusApp.Desktop;component/Assets/Icons/Common/week_zengjia.png")]
+    [InlineData(1, 3, "-67%", "Decrease", "/FocusApp.Desktop;component/Assets/Icons/Common/week_jianshao.png")]
+    [InlineData(45, 0, "+100%", "Increase", "/FocusApp.Desktop;component/Assets/Icons/Common/week_zengjia.png")]
+    [InlineData(0, 0, "0%", "Unchanged", "/FocusApp.Desktop;component/Assets/Icons/Common/week_chiping.png")]
+    public void WeeklyInvestmentComparisonUsesRealPreviousWeekMinutesAndHandlesZeroDenominator(
+        int currentWeekMinutes,
+        int previousWeekMinutes,
+        string expectedDisplay,
+        string expectedState,
+        string expectedIcon)
+    {
+        var now = new DateTime(2026, 9, 16, 12, 0, 0);
+        var model = new StatisticsOverviewViewModel(false, localNowProvider: () => now);
+        var goal = new GoalOverviewItemViewModel("goal", "目标", "", "", false, false);
+        model.Goals.Add(goal);
+        model.SelectGoalCommand.Execute(goal);
+        if (currentWeekMinutes > 0)
+            AddRecord(model, goal.GoalId, now.AddMinutes(-currentWeekMinutes), now);
+        if (previousWeekMinutes > 0)
+        {
+            var previousWeekNow = now.AddDays(-7);
+            AddRecord(model, goal.GoalId, previousWeekNow.AddMinutes(-previousWeekMinutes), previousWeekNow);
+        }
+
+        Assert.Equal(expectedDisplay, model.SelectedGoalWeeklyInvestmentComparisonDisplay);
+        Assert.Equal(expectedState, model.SelectedGoalWeeklyInvestmentComparisonState);
+        Assert.Equal(expectedIcon, model.SelectedGoalWeeklyInvestmentComparisonIconSource);
+    }
+
+    [Theory]
     [InlineData(0, "0分钟")]
     [InlineData(32, "32分钟")]
     [InlineData(60, "1小时")]
@@ -114,6 +147,9 @@ public sealed class GoalDetailInvestmentTests
         record.EndTime = record.StartTime.AddMinutes(30);
         Assert.Equal("30分钟", model.SelectedGoalTotalInvestmentDisplay);
         Assert.Contains(nameof(model.SelectedGoalWeeklyInvestmentDisplay), changes);
+        Assert.Contains(nameof(model.SelectedGoalWeeklyInvestmentComparisonDisplay), changes);
+        Assert.Contains(nameof(model.SelectedGoalWeeklyInvestmentComparisonState), changes);
+        Assert.Contains(nameof(model.SelectedGoalWeeklyInvestmentComparisonIconSource), changes);
         goal.UpdateDetails("新的备注", 120);
         Assert.Equal(0.25, model.SelectedGoalInvestmentProgressRatio);
         Assert.Contains(nameof(model.SelectedGoalTargetDurationDisplay), changes);
@@ -167,4 +203,5 @@ public sealed class GoalDetailInvestmentTests
         model.FocusSessionRecords.Add(record);
         return record;
     }
+
 }

@@ -700,6 +700,31 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     public string SelectedGoalTotalInvestmentDisplay => SelectedGoalTotalInvestment.Display;
 
+    public string SelectedGoalWeeklyInvestmentComparisonDisplay
+    {
+        get
+        {
+            var percentage = GetSelectedGoalWeeklyInvestmentComparisonPercentage();
+            return percentage > 0 ? $"+{percentage}%" : $"{percentage}%";
+        }
+    }
+
+    public string SelectedGoalWeeklyInvestmentComparisonState =>
+        GetSelectedGoalWeeklyInvestmentComparisonPercentage() switch
+        {
+            > 0 => "Increase",
+            < 0 => "Decrease",
+            _ => "Unchanged"
+        };
+
+    public string SelectedGoalWeeklyInvestmentComparisonIconSource =>
+        SelectedGoalWeeklyInvestmentComparisonState switch
+        {
+            "Increase" => "/FocusApp.Desktop;component/Assets/Icons/Common/week_zengjia.png",
+            "Decrease" => "/FocusApp.Desktop;component/Assets/Icons/Common/week_jianshao.png",
+            _ => "/FocusApp.Desktop;component/Assets/Icons/Common/week_chiping.png"
+        };
+
     public GoalInvestmentDurationViewModel? SelectedGoalTargetDuration => HasSelectedGoalTargetDuration
         ? new(SelectedGoal!.TargetDurationMinutes!.Value)
         : null;
@@ -730,6 +755,21 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         return (int)(ticks / TimeSpan.TicksPerMinute);
     }
 
+    private int GetSelectedGoalWeeklyInvestmentComparisonPercentage()
+    {
+        var now = _localNowProvider();
+        var daysSinceMonday = ((int)now.DayOfWeek + 6) % 7;
+        var monday = now.Date.AddDays(-daysSinceMonday);
+        var currentWeekMinutes = GetSelectedGoalInvestmentMinutes(monday, now);
+        var previousWeekMinutes = GetSelectedGoalInvestmentMinutes(monday.AddDays(-7), monday);
+        if (previousWeekMinutes == 0)
+            return currentWeekMinutes == 0 ? 0 : 100;
+
+        return (int)Math.Round(
+            (currentWeekMinutes - previousWeekMinutes) / (double)previousWeekMinutes * 100,
+            MidpointRounding.AwayFromZero);
+    }
+
     private void SelectedGoal_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(GoalOverviewItemViewModel.Name))
@@ -747,6 +787,9 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(SelectedGoalTotalInvestment));
         OnPropertyChanged(nameof(SelectedGoalWeeklyInvestmentDisplay));
         OnPropertyChanged(nameof(SelectedGoalTotalInvestmentDisplay));
+        OnPropertyChanged(nameof(SelectedGoalWeeklyInvestmentComparisonDisplay));
+        OnPropertyChanged(nameof(SelectedGoalWeeklyInvestmentComparisonState));
+        OnPropertyChanged(nameof(SelectedGoalWeeklyInvestmentComparisonIconSource));
         OnPropertyChanged(nameof(HasSelectedGoalTargetDuration));
         OnPropertyChanged(nameof(SelectedGoalTargetDuration));
         OnPropertyChanged(nameof(SelectedGoalTargetDurationSeparator));
@@ -795,6 +838,27 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     public int MonthlyFocusDays { get; private set; }
     public string MonthlyTotalDurationDisplay => FormatShortDuration(MonthlyTotalMinutes);
     public string MonthlyFocusDaysDisplay => $"专注 {MonthlyFocusDays} 天";
+
+    // Calendar summary values are exposed as separate runs so the numeric values
+    // and Chinese units can share one baseline while keeping the requested type
+    // hierarchy. These are derived from the existing monthly aggregate only.
+    public string MonthlyTotalHoursValueDisplay => MonthlyTotalMinutes >= 60
+        ? (MonthlyTotalMinutes / 60).ToString()
+        : string.Empty;
+
+    public string MonthlyTotalHoursUnitDisplay => MonthlyTotalMinutes >= 60 ? "小时" : string.Empty;
+
+    public string MonthlyTotalMinutesValueDisplay => MonthlyTotalMinutes == 0 || MonthlyTotalMinutes < 60 || MonthlyTotalMinutes % 60 > 0
+        ? (MonthlyTotalMinutes % 60).ToString()
+        : string.Empty;
+
+    public string MonthlyTotalMinutesUnitDisplay => MonthlyTotalMinutes == 0 || MonthlyTotalMinutes < 60 || MonthlyTotalMinutes % 60 > 0
+        ? "分钟"
+        : string.Empty;
+
+    public string MonthlyFocusDaysValueDisplay => MonthlyFocusDays.ToString();
+
+    public string MonthlyFocusDaysUnitDisplay => "天";
 
     private static string FormatShortDuration(int minutes) => minutes >= 60
         ? minutes % 60 == 0 ? $"{minutes / 60}h" : $"{minutes / 60}h {minutes % 60}m"
@@ -1817,6 +1881,12 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(MonthlyFocusDays));
         OnPropertyChanged(nameof(MonthlyTotalDurationDisplay));
         OnPropertyChanged(nameof(MonthlyFocusDaysDisplay));
+        OnPropertyChanged(nameof(MonthlyTotalHoursValueDisplay));
+        OnPropertyChanged(nameof(MonthlyTotalHoursUnitDisplay));
+        OnPropertyChanged(nameof(MonthlyTotalMinutesValueDisplay));
+        OnPropertyChanged(nameof(MonthlyTotalMinutesUnitDisplay));
+        OnPropertyChanged(nameof(MonthlyFocusDaysValueDisplay));
+        OnPropertyChanged(nameof(MonthlyFocusDaysUnitDisplay));
         SelectCalendarDayInternal(selectedDate);
     }
 

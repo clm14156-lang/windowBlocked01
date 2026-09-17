@@ -446,10 +446,50 @@ public sealed class StatisticsOverviewPresentationTests
         Assert.Contains(left.Descendants(Presentation + "ItemsControl"), items =>
             (string?)items.Attribute("ItemsSource") == "{Binding CalendarDays}");
         Assert.Contains(left.Descendants(Presentation + "TextBlock"), text =>
-            (string?)text.Attribute("Text") == "{Binding MonthlyTotalDurationDisplay}");
+            (string?)text.Attribute("Text") == "本月总专注");
         Assert.Contains(left.Descendants(Presentation + "TextBlock"), text =>
-            (string?)text.Attribute("Text") == "{Binding MonthlyFocusDaysDisplay}");
+            (string?)text.Attribute("Text") == "专注天数");
         Assert.Equal("602", (string?)left.Attribute("Height"));
+    }
+
+    [Fact]
+    public void CalendarMonthlySummaryUsesChineseRunBasedTypography()
+    {
+        var page = XDocument.Load(Path.Combine(
+            FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
+        var left = Assert.Single(page.Descendants(Presentation + "Border").Where(border =>
+            (string?)border.Attribute(Xaml + "Name") == "CalendarCard"));
+
+        var monthlyTitle = Assert.Single(left.Descendants(Presentation + "TextBlock").Where(text =>
+            (string?)text.Attribute("Text") == "本月总专注"));
+        Assert.Equal("12", (string?)monthlyTitle.Attribute("FontSize"));
+
+        var monthlyDuration = Assert.Single(left.Descendants(Presentation + "TextBlock").Where(text =>
+            text.Elements(Presentation + "Run").Any(run =>
+                (string?)run.Attribute("Text") == "{Binding MonthlyTotalHoursValueDisplay, Mode=OneWay}")));
+        var durationRuns = monthlyDuration.Elements(Presentation + "Run").ToArray();
+        Assert.Equal(4, durationRuns.Length);
+        Assert.Equal("{Binding MonthlyTotalHoursValueDisplay, Mode=OneWay}", (string?)durationRuns[0].Attribute("Text"));
+        Assert.Equal("15", (string?)durationRuns[0].Attribute("FontSize"));
+        Assert.Equal("{Binding MonthlyTotalHoursUnitDisplay, Mode=OneWay}", (string?)durationRuns[1].Attribute("Text"));
+        Assert.Equal("12", (string?)durationRuns[1].Attribute("FontSize"));
+        Assert.Equal("{Binding MonthlyTotalMinutesValueDisplay, Mode=OneWay}", (string?)durationRuns[2].Attribute("Text"));
+        Assert.Equal("15", (string?)durationRuns[2].Attribute("FontSize"));
+        Assert.Equal("{Binding MonthlyTotalMinutesUnitDisplay, Mode=OneWay}", (string?)durationRuns[3].Attribute("Text"));
+        Assert.Equal("12", (string?)durationRuns[3].Attribute("FontSize"));
+
+        var focusDaysTitle = Assert.Single(left.Descendants(Presentation + "TextBlock").Where(text =>
+            (string?)text.Attribute("Text") == "专注天数"));
+        Assert.Equal("12", (string?)focusDaysTitle.Attribute("FontSize"));
+        var focusDaysValue = Assert.Single(left.Descendants(Presentation + "TextBlock").Where(text =>
+            text.Elements(Presentation + "Run").Any(run =>
+                (string?)run.Attribute("Text") == "{Binding MonthlyFocusDaysValueDisplay, Mode=OneWay}")));
+        var focusDayRuns = focusDaysValue.Elements(Presentation + "Run").ToArray();
+        Assert.Equal(2, focusDayRuns.Length);
+        Assert.Equal("15", (string?)focusDayRuns[0].Attribute("FontSize"));
+        Assert.Equal("12", (string?)focusDayRuns[1].Attribute("FontSize"));
+        Assert.DoesNotContain(left.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "本月有记录的天数");
     }
 
     private static string FindRepositoryRoot()
