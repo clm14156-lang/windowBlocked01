@@ -5,6 +5,15 @@ namespace FocusApp.Desktop.Services;
 // Adapt a single task change to the existing atomic target-and-tasks save operation.
 public static class GoalTaskPersistence
 {
+    public static SaveTargetCommand? CreateDeleteCommand(LocalDataSnapshotDto state, string targetId, string taskId)
+    {
+        var target = state.Targets.FirstOrDefault(item => item.TargetId == targetId);
+        if (target is null || !state.Tasks.Any(item => item.TargetId == targetId && item.TaskId == taskId && item.IsCompleted)) return null;
+        return new SaveTargetCommand(target, state.Tasks
+            .Where(item => item.TargetId == targetId && item.TaskId != taskId)
+            .OrderBy(item => item.SortOrder).ToArray());
+    }
+
     public static SaveTargetCommand? CreateSaveCommand(LocalDataSnapshotDto state, LocalTaskDto change, bool insertAtTop)
     {
         var target = state.Targets.FirstOrDefault(item => item.TargetId == change.TargetId);

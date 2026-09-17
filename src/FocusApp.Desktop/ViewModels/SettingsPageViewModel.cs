@@ -297,6 +297,7 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
                 rule.IsCustom);
             _editingRule.SetTarget(rule.TargetId, ResolveTargetName(rule.TargetId));
             _editingRule = null;
+            RuleModal.RefreshTimeline();
             RulesChanged?.Invoke(this, EventArgs.Empty);
             return;
         }
@@ -307,6 +308,7 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
         item.SetTarget(rule.TargetId, ResolveTargetName(rule.TargetId));
         item.PropertyChanged += AutomaticRule_PropertyChanged;
         AutomaticRules.Add(item);
+        RuleModal.RefreshTimeline();
         RulesChanged?.Invoke(this, EventArgs.Empty);
     }
 
@@ -441,6 +443,7 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
             if (_editingRule?.Id == rule.Id) _editingRule = null;
             rule.PropertyChanged -= AutomaticRule_PropertyChanged;
             AutomaticRules.Remove(rule);
+            RuleModal.RefreshTimeline();
             RulesChanged?.Invoke(this, EventArgs.Empty);
         }
     }
@@ -449,6 +452,7 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
     {
         if (e.PropertyName == nameof(AutomaticRuleItemViewModel.IsEnabled))
         {
+            RuleModal.RefreshTimeline();
             RulesChanged?.Invoke(this, EventArgs.Empty);
         }
     }

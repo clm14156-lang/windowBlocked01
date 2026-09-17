@@ -90,6 +90,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         StatisticsPage.GoalDeleted += StatisticsPage_GoalDeleted;
         StatisticsPage.GoalTasks.RefreshTasksAsync = RefreshGoalTasksAsync;
         StatisticsPage.GoalTasks.PersistTaskAsync = PersistGoalTaskAsync;
+        StatisticsPage.GoalTasks.PersistCompletedTaskDeletionAsync = DeleteCompletedGoalTaskAsync;
         StatisticsPage.GoalTasks.PersistPendingTaskOrderAsync = PersistGoalTaskOrderAsync;
         StatisticsPage.MonthlyFocusTargetChanged += StatisticsPage_MonthlyFocusTargetChanged;
         StateCoordinator = new FocusStateCoordinator(HomePage, SettingsPage, BlockingPage, StatisticsPage);
@@ -972,6 +973,23 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
                 return result.State.Tasks.FirstOrDefault(item => item.TaskId == task.TaskId && item.TargetId == task.TargetId);
             }
             catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException) { return null; }
+        }
+        finally { _targetPersistenceGate.Release(); }
+    }
+
+    private async Task<bool> DeleteCompletedGoalTaskAsync(string targetId, string taskId)
+    {
+        if (ServiceConnection is null || !ServiceConnection.IsConnected) return false;
+        await _targetPersistenceGate.WaitAsync();
+        try
+        {
+            if (ServiceConnection.State is not { } state) return false;
+            var command = GoalTaskPersistence.CreateDeleteCommand(state, targetId, taskId);
+            if (command is null) return false;
+            var result = await ServiceConnection.SaveTargetAsync(command);
+            HomePage.FocusTargetModal.ApplyState(result.State.Targets, result.State.Tasks, result.State.Settings.SelectedTargetId);
+            StatisticsPage.ApplyState(result.State);
+            return !result.State.Tasks.Any(item => item.TaskId == taskId && item.TargetId == targetId);
         }
         finally { _targetPersistenceGate.Release(); }
     }

@@ -130,9 +130,24 @@
         </Style>
         <Style x:Key="GoalMetricValueStyle" TargetType="TextBlock">
             <Setter Property="FontFamily" Value="{DynamicResource FontFamilyNumeric}"/>
-            <Setter Property="FontSize" Value="23"/>
+            <Setter Property="FontSize" Value="24"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+        </Style>
+        <Style x:Key="GoalInvestmentProgressBarStyle" TargetType="{x:Type ProgressBar}">
+            <Setter Property="Height" Value="7" />
+            <Setter Property="Background" Value="#F0F0F3" />
+            <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ProgressBar}">
+                        <Grid x:Name="PART_Track">
+                            <Border Background="{TemplateBinding Background}" CornerRadius="3.5" />
+                            <Border x:Name="PART_Indicator" HorizontalAlignment="Left" Background="{TemplateBinding Foreground}" CornerRadius="3.5" />
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <views:CompactDurationConverter x:Key="CompactDurationConverter" />
@@ -1505,16 +1520,16 @@
                                 </Grid.RowDefinitions>
                                 <Grid x:Name="GoalDetailHeader" Margin="8,4,8,20">
                                     <StackPanel>
-                                        <TextBlock FontSize="20" FontWeight="SemiBold" Text="{Binding SelectedGoalName}" Foreground="{DynamicResource TextPrimary}" TextTrimming="CharacterEllipsis" ToolTip="{Binding SelectedGoal.CreatedDateDisplay}"/>
+                                        <TextBlock FontSize="28" FontWeight="SemiBold" Text="{Binding SelectedGoalName}" Foreground="{DynamicResource TextPrimary}" TextTrimming="CharacterEllipsis" ToolTip="{Binding SelectedGoal.CreatedDateDisplay}"/>
                                         <TextBlock x:Name="GoalDetailRemark" Margin="0,7,0,0" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding SelectedGoal.Remark}" ToolTip="{Binding SelectedGoal.Remark}" TextWrapping="Wrap" MaxHeight="54" TextTrimming="CharacterEllipsis" Visibility="{Binding HasSelectedGoalRemark, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                     </StackPanel>
                                 </Grid>
                                 <Border Grid.Row="1" Background="#F0F0F3"/>
-                                <Grid Grid.Row="2" Margin="2,18,2,18">
+                                <Grid x:Name="GoalInvestmentMetrics" Grid.Row="2" Margin="2,12,2,10">
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="0.85*"/><ColumnDefinition Width="1"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                     <StackPanel Margin="0,0,18,0">
                                         <TextBlock Text="本周投入" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}"/>
-                                        <TextBlock Margin="0,7,0,0" Style="{StaticResource GoalMetricValueStyle}"><Run Text="{Binding SelectedGoalWeeklyInvestment.HoursValue, Mode=OneWay}"/><Run Text="{Binding SelectedGoalWeeklyInvestment.HoursUnit, Mode=OneWay}" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}"/><Run Text="{Binding SelectedGoalWeeklyInvestment.MinutesValue, Mode=OneWay}"/><Run Text="{Binding SelectedGoalWeeklyInvestment.MinutesUnit, Mode=OneWay}" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}"/></TextBlock>
+                                        <TextBlock x:Name="GoalWeeklyInvestmentText" Margin="0,4,0,0" Style="{StaticResource GoalMetricValueStyle}"><Run Text="{Binding SelectedGoalWeeklyInvestment.HoursValue, Mode=OneWay}"/><Run Text="{Binding SelectedGoalWeeklyInvestment.HoursUnitWithLeadingSpace, Mode=OneWay}" FontSize="16" FontWeight="SemiBold"/><Run Text="{Binding SelectedGoalWeeklyInvestment.MinutesValueWithLeadingSpace, Mode=OneWay}"/><Run Text="{Binding SelectedGoalWeeklyInvestment.MinutesUnitWithLeadingSpace, Mode=OneWay}" FontSize="16" FontWeight="SemiBold"/></TextBlock>
                                     </StackPanel>
                                     <Border Grid.Column="1" Background="#F0F0F3"/>
                                     <StackPanel Grid.Column="2" Margin="26,0,0,0">
@@ -1522,16 +1537,11 @@
                                             <TextBlock VerticalAlignment="Center" Text="累计投入" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}"/>
                                             <Button x:Name="GoalInvestmentTrendButton" HorizontalAlignment="Right" VerticalAlignment="Center" Content="投入趋势  ›" Style="{StaticResource GoalInlineActionStyle}" Command="{Binding GoalInvestmentTrend.OpenCommand}" AutomationProperties.Name="查看投入趋势"/>
                                         </Grid>
-                                        <WrapPanel Margin="0,7,0,0">
-                                            <TextBlock Style="{StaticResource GoalMetricValueStyle}"><Run Text="{Binding SelectedGoalTotalInvestment.HoursValue, Mode=OneWay}"/><Run Text="{Binding SelectedGoalTotalInvestment.HoursUnit, Mode=OneWay}" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}"/><Run Text="{Binding SelectedGoalTotalInvestment.MinutesValue, Mode=OneWay}"/><Run Text="{Binding SelectedGoalTotalInvestment.MinutesUnit, Mode=OneWay}" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}"/></TextBlock>
-                                            <TextBlock Margin="5,8,0,0" FontSize="13" Foreground="{DynamicResource TextSecondary}" Visibility="{Binding HasSelectedGoalTargetDuration, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                                <Run Text="/ "/><Run Text="{Binding SelectedGoalTargetDurationDisplay, Mode=OneWay}"/>
-                                            </TextBlock>
-                                        </WrapPanel>
-                                        <Grid x:Name="GoalInvestmentProgress" Margin="0,10,0,0" Visibility="{Binding HasSelectedGoalTargetDuration, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <TextBlock x:Name="GoalTotalInvestmentText" Margin="0,4,0,0" Style="{StaticResource GoalMetricValueStyle}"><Run Text="{Binding SelectedGoalTotalInvestment.HoursValue, Mode=OneWay}"/><Run Text="{Binding SelectedGoalTotalInvestment.HoursUnitWithLeadingSpace, Mode=OneWay}" FontSize="16" FontWeight="SemiBold"/><Run Text="{Binding SelectedGoalTotalInvestment.MinutesValueWithLeadingSpace, Mode=OneWay}"/><Run Text="{Binding SelectedGoalTotalInvestment.MinutesUnitWithLeadingSpace, Mode=OneWay}" FontSize="16" FontWeight="SemiBold"/><Run Text="{Binding SelectedGoalTargetDurationSeparator, Mode=OneWay}" FontSize="16" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}"/><Run Text="{Binding SelectedGoalTargetDuration.HoursValue, Mode=OneWay}" FontSize="16" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}"/><Run Text="{Binding SelectedGoalTargetDuration.HoursUnit, Mode=OneWay}" FontSize="16" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}"/><Run Text="{Binding SelectedGoalTargetDuration.MinutesValueWithLeadingSpace, Mode=OneWay}" FontSize="16" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}"/><Run Text="{Binding SelectedGoalTargetDuration.MinutesUnit, Mode=OneWay}" FontSize="16" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}"/></TextBlock>
+                                        <Grid x:Name="GoalInvestmentProgress" Margin="0,6,0,0" Visibility="{Binding HasSelectedGoalTargetDuration, Converter={StaticResource BooleanToVisibilityConverter}}">
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                            <ProgressBar Height="7" VerticalAlignment="Center" Maximum="1" Value="{Binding SelectedGoalInvestmentProgressRatio, Mode=OneWay}" Style="{StaticResource StatisticsProgressBarStyle}"/>
-                                            <TextBlock Grid.Column="1" Margin="10,0,0,0" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding SelectedGoalInvestmentProgressDisplay}"/>
+                                            <ProgressBar x:Name="GoalInvestmentProgressBar" VerticalAlignment="Center" Minimum="0" Maximum="1" Value="{Binding SelectedGoalInvestmentProgressRatio, Mode=OneWay}" Style="{StaticResource GoalInvestmentProgressBarStyle}"/>
+                                            <TextBlock x:Name="GoalInvestmentProgressPercentage" Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding SelectedGoalInvestmentProgressDisplay}"/>
                                         </Grid>
                                     </StackPanel>
                                 </Grid>

@@ -19,6 +19,7 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
     private int _draftRevision;
     private readonly HashSet<string> _completingTasks = [];
     private bool _isReorderingTasks;
+    private readonly HashSet<string> _deletingTasks = [];
 
     public GoalTasksViewModel(Func<DateTimeOffset>? nowProvider = null)
     {
@@ -33,6 +34,7 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
     public event EventHandler? DraftFocusRequested;
     public Func<Task>? RefreshTasksAsync { get; set; }
     public Func<LocalTaskDto, bool, Task<LocalTaskDto?>>? PersistTaskAsync { get; set; }
+    public Func<string, string, Task<bool>>? PersistCompletedTaskDeletionAsync { get; set; }
     public Func<string, IReadOnlyList<string>, Task<bool>>? PersistPendingTaskOrderAsync { get; set; }
     public ICommand OpenCompletedCommand { get; }
     public ICommand CloseCommand { get; }
@@ -193,6 +195,33 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
             task.IsCompleting = false;
             _completingTasks.Remove(task.TaskId);
         }
+    }
+
+    public async Task<bool> DeleteCompletedTaskAsync(FocusTaskViewModel task)
+    {
+        if (task.TargetId != GoalId || !task.IsCompleted ||
+            !_snapshot.Any(item => item.TaskId == task.TaskId && item.TargetId == task.TargetId && item.IsCompleted) ||
+            !_deletingTasks.Add(task.TaskId)) return false;
+        ErrorMessage = null;
+        try
+        {
+            var deleted = false;
+            try
+            {
+                deleted = PersistCompletedTaskDeletionAsync is not null &&
+                    await PersistCompletedTaskDeletionAsync(task.TargetId, task.TaskId);
+            }
+            catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException or IOException) { }
+            if (!deleted)
+            {
+                if (GoalId == task.TargetId) ErrorMessage = "任务删除失败，请重试。";
+                return false;
+            }
+            _snapshot = _snapshot.Where(item => item.TaskId != task.TaskId || item.TargetId != task.TargetId).ToArray();
+            ProjectTasks();
+            return true;
+        }
+        finally { _deletingTasks.Remove(task.TaskId); }
     }
 
     public async Task<bool> MovePendingTaskAsync(

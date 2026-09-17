@@ -85,9 +85,14 @@
   <Border.Effect><DropShadowEffect BlurRadius="18" ShadowDepth="3" Opacity="0.12"/></Border.Effect>
   <Grid>
    <Grid Margin="20,14,20,12">
-    <Grid.RowDefinitions><RowDefinition Height="32"/><RowDefinition Height="*"/><RowDefinition Height="30"/></Grid.RowDefinitions>
-    <TextBlock Text="选择时间段" FontSize="17" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center"/>
-    <Button Content="×" Style="{StaticResource CloseButton}" HorizontalAlignment="Right" Command="{Binding CloseCommand}" AutomationProperties.Name="关闭时间轴"/>
+    <Grid.RowDefinitions><RowDefinition Height="58"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+    <Grid>
+     <StackPanel VerticalAlignment="Top">
+      <TextBlock Text="选择时间段" FontSize="17" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}"/>
+      <TextBlock x:Name="EnabledRulesSummary" Margin="0,5,0,0" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}"><Run Text="已开启 "/><Run Text="{Binding EnabledRuleCount, Mode=OneWay}" FontWeight="SemiBold" Foreground="{DynamicResource AccentPrimary}"/><Run Text=" 段  ·  总时长 "/><Run Text="{Binding EnabledRuleTotalDurationDisplay, Mode=OneWay}" FontWeight="SemiBold" Foreground="{DynamicResource AccentPrimary}"/></TextBlock>
+     </StackPanel>
+     <Button Content="×" Style="{StaticResource CloseButton}" HorizontalAlignment="Right" VerticalAlignment="Top" Command="{Binding CloseCommand}" AutomationProperties.Name="关闭时间轴"/>
+    </Grid>
     <Border Grid.Row="1" Background="#FCFCFD" BorderBrush="#EEEEF2" BorderThickness="1" CornerRadius="10" Padding="8">
      <ScrollViewer x:Name="TimelineScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" CanContentScroll="False" PanningMode="VerticalOnly">
       <ScrollViewer.Template><ControlTemplate TargetType="ScrollViewer">
@@ -102,7 +107,6 @@
        MouseLeftButtonDown="Timeline_MouseDown" MouseMove="Timeline_MouseMove" MouseLeftButtonUp="Timeline_MouseUp" LostMouseCapture="Timeline_LostCapture"/>
      </ScrollViewer>
     </Border>
-    <TextBlock x:Name="TimelineHint" Grid.Row="2" Text="拖拽空白创建 · 单击编辑 · 按住拖动移动" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center"/>
    </Grid>
   </Grid>
  </Border>

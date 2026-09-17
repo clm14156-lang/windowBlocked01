@@ -6,6 +6,7 @@ namespace FocusApp.Tests.Desktop;
 public sealed class AutomaticBlockingDailyLimitPresentationTests
 {
     private static readonly XNamespace Presentation = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
+    private static readonly XNamespace Xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
 
     [Fact]
     public void SettingsRuleSection_ShowsDailyLimitHintBelowHeading()
@@ -45,11 +46,24 @@ public sealed class AutomaticBlockingDailyLimitPresentationTests
     }
 
     [Fact]
-    public void RuleModal_HeaderDoesNotRepeatTheBlockTime()
+    public void RuleModal_HeaderShowsEnabledSummaryAndRemovesTheInstructionFooter()
     {
         var modal = XDocument.Load(Path.Combine(FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "AutomaticRuleModal.xaml"));
-        Assert.DoesNotContain(modal.Descendants(), element => (string?)element.Attribute("{http://schemas.microsoft.com/winfx/2006/xaml}Name") == "SelectionSummary");
         Assert.Contains(modal.Descendants(Presentation + "TextBlock"), element => (string?)element.Attribute("Text") == "选择时间段");
+        var summary = Assert.Single(modal.Descendants(Presentation + "TextBlock").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "EnabledRulesSummary"));
+        Assert.Contains(summary.Elements(Presentation + "Run"), run =>
+            (string?)run.Attribute("Text") == "{Binding EnabledRuleCount, Mode=OneWay}" &&
+            (string?)run.Attribute("Foreground") == "{DynamicResource AccentPrimary}" &&
+            (string?)run.Attribute("FontWeight") == "SemiBold");
+        Assert.Contains(summary.Elements(Presentation + "Run"), run =>
+            (string?)run.Attribute("Text") == "{Binding EnabledRuleTotalDurationDisplay, Mode=OneWay}" &&
+            (string?)run.Attribute("Foreground") == "{DynamicResource AccentPrimary}" &&
+            (string?)run.Attribute("FontWeight") == "SemiBold");
+        Assert.DoesNotContain(modal.Descendants(), element =>
+            (string?)element.Attribute(Xaml + "Name") == "TimelineHint");
+        Assert.DoesNotContain(modal.Descendants(Presentation + "TextBlock"), element =>
+            ((string?)element.Attribute("Text"))?.Contains("拖拽空白创建", StringComparison.Ordinal) == true);
     }
 
     [Fact]

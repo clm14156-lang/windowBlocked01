@@ -2,6 +2,8 @@ using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Data;
+using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -13,6 +15,86 @@ namespace FocusApp.Tests.Desktop;
 
 public class RuleTimelineLayoutTests
 {
+    [Fact]
+    public void BlocksPrioritizeSelectedThenEnabledThenOrdinaryVisualStates()
+    {
+        Exception? failure = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                var settings = new SettingsPageViewModel([], []);
+                var ordinary = new AutomaticRuleItemViewModel(
+                    Guid.NewGuid(), "每天", "01:00–02:00", ["Monday"], 60, 120) { IsEnabled = false };
+                var enabled = new AutomaticRuleItemViewModel(
+                    Guid.NewGuid(), "每天", "03:00–04:00", ["Monday"], 180, 240) { IsEnabled = true };
+                var selected = new AutomaticRuleItemViewModel(
+                    Guid.NewGuid(), "每天", "05:00–06:00", ["Monday"], 300, 360) { IsEnabled = false };
+                settings.AutomaticRules.Add(ordinary);
+                settings.AutomaticRules.Add(enabled);
+                settings.AutomaticRules.Add(selected);
+                settings.RuleModal.SelectedRuleId = selected.Id;
+
+                var view = new AutomaticRuleModal { DataContext = settings.RuleModal };
+                view.Measure(new Size(370, 620));
+                view.Arrange(new Rect(0, 0, 370, 620));
+                view.UpdateLayout();
+                var visualQaPath = Environment.GetEnvironmentVariable("FOCUSAPP_RULE_TIMELINE_QA_PATH");
+                if (!string.IsNullOrWhiteSpace(visualQaPath))
+                {
+                    var bitmap = new RenderTargetBitmap(370, 620, 96, 96, PixelFormats.Pbgra32);
+                    bitmap.Render(view);
+                    var encoder = new PngBitmapEncoder();
+                    encoder.Frames.Add(BitmapFrame.Create(bitmap));
+                    using var stream = File.Create(visualQaPath);
+                    encoder.Save(stream);
+                }
+                var timeline = (Canvas)view.FindName("Timeline");
+                var summary = (TextBlock)view.FindName("EnabledRulesSummary");
+                var summaryBindings = summary.Inlines.OfType<Run>()
+                    .Select(run => run.GetBindingExpression(Run.TextProperty))
+                    .Where(binding => binding is not null)
+                    .ToArray();
+                Assert.Equal(2, summaryBindings.Length);
+                Assert.All(summaryBindings, binding => Assert.Equal(BindingStatus.Active, binding!.Status));
+                Assert.Equal("已开启 1 段  ·  总时长 1小时", new TextRange(
+                    summary.ContentStart,
+                    summary.ContentEnd).Text);
+                var blocks = timeline.Children.OfType<Border>()
+                    .Where(block => block.Tag is Guid)
+                    .ToDictionary(block => (Guid)block.Tag);
+
+                Assert.Equal(ColorOf("#F0F0F2"), ColorOf(blocks[ordinary.Id].Background));
+                Assert.Equal(new Thickness(0), blocks[ordinary.Id].BorderThickness);
+                Assert.Equal(ColorOf("#D1D1D6"), StripeColor(blocks[ordinary.Id]));
+
+                Assert.Equal(ColorOf("#FFF1E6"), ColorOf(blocks[enabled.Id].Background));
+                Assert.Equal(new Thickness(0), blocks[enabled.Id].BorderThickness);
+                Assert.Equal(ColorOf("#FF7A00"), StripeColor(blocks[enabled.Id]));
+
+                Assert.Equal(ColorOf("#FFF1E6"), ColorOf(blocks[selected.Id].Background));
+                Assert.Equal(new Thickness(1), blocks[selected.Id].BorderThickness);
+                Assert.Equal(ColorOf("#FF7A00"), ColorOf(blocks[selected.Id].BorderBrush));
+                Assert.Equal(ColorOf("#FF7A00"), StripeColor(blocks[selected.Id]));
+
+                settings.RuleModal.SelectedRuleId = enabled.Id;
+                view.UpdateLayout();
+                blocks = timeline.Children.OfType<Border>()
+                    .Where(block => block.Tag is Guid)
+                    .ToDictionary(block => (Guid)block.Tag);
+                Assert.Equal(new Thickness(1), blocks[enabled.Id].BorderThickness);
+                Assert.Equal(ColorOf("#FF7A00"), ColorOf(blocks[enabled.Id].BorderBrush));
+                Assert.Equal(ColorOf("#F0F0F2"), ColorOf(blocks[selected.Id].Background));
+                Assert.Equal(new Thickness(0), blocks[selected.Id].BorderThickness);
+                Assert.Equal(ColorOf("#D1D1D6"), StripeColor(blocks[selected.Id]));
+            }
+            catch (Exception e) { failure = e; }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start(); thread.Join();
+        Assert.Null(failure);
+    }
+
     [Fact]
     public void CompletedBlocksShowOptionalEllipsizedTargetAndAlwaysKeepTimeRangeSeparate()
     {
@@ -297,6 +379,14 @@ public class RuleTimelineLayoutTests
             foreach (var nested in Descendants(child)) yield return nested;
         }
     }
+    private static Color StripeColor(Border block)
+    {
+        var content = Assert.IsType<Grid>(block.Child);
+        var stripe = Assert.Single(content.Children.OfType<Border>().Where(border => border.Width == 3));
+        return ColorOf(stripe.Background);
+    }
+    private static Color ColorOf(Brush brush) => Assert.IsType<SolidColorBrush>(brush).Color;
+    private static Color ColorOf(string value) => (Color)ColorConverter.ConvertFromString(value);
     private static void Render(Visual view, double scale, string name)
         => Render(view, scale, name, 370, 620);
     private static void Render(Visual view, double scale, string name, double width, double height)

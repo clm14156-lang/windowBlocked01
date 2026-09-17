@@ -15,7 +15,6 @@ public partial class AutomaticRuleModal : UserControl
 {
     // WPF device-independent units: one minute per DIP, plus room for endpoint labels.
     private const double TopInset = 12, LabelWidth = 60, ResizeHandleHeight = 6;
-    private const string DefaultHint = "拖拽空白创建 · 单击编辑 · 拖动中间移动 · 拖动边缘调整";
     private enum RuleDragMode { Move, ResizeStart, ResizeEnd }
     private AutomaticRuleItemViewModel? _pressedRule;
     private Point _pressPoint;
@@ -148,7 +147,8 @@ public partial class AutomaticRuleModal : UserControl
                 false,
                 RuleTargetName(rule),
                 RuleCustomPeriod(rule),
-                rule.Id == Model.SelectedRuleId);
+                rule.Id == Model.SelectedRuleId,
+                rule.IsEnabled);
             block.PreviewMouseLeftButtonDown += (_, e) => BeginRuleInteraction(
                 rule,
                 (e.OriginalSource as FrameworkElement)?.Tag is RuleDragMode mode ? mode : RuleDragMode.Move,
@@ -230,16 +230,30 @@ public partial class AutomaticRuleModal : UserControl
         bool draft,
         string? targetName,
         string? customPeriod = null,
-        bool selected = false)
+        bool selected = false,
+        bool enabled = false)
     {
+        var accent = ResourceBrush("AccentPrimary", "#FF7A00");
+        var accentTint = ResourceBrush("AccentTint", "#FFF1E6");
+        var textPrimary = ResourceBrush("TextPrimary", "#1D1D1F");
+        var isHighlighted = draft || selected || enabled;
         var content = new Grid();
+        content.Children.Add(new Border
+        {
+            Width = 3,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Stretch,
+            Background = isHighlighted ? accent : Brush("#D1D1D6"),
+            CornerRadius = new CornerRadius(4, 0, 0, 4),
+            IsHitTestVisible = false
+        });
         content.Children.Add(MakeBlockText(
             start,
             end,
             draft && _pressedRule is null,
             targetName,
             customPeriod,
-            draft || selected ? "#BE5C00" : "#6E6E73"));
+            draft && _pressedRule is null ? ResourceBrush("AccentPressed", "#E96800") : textPrimary));
         if (!draft)
         {
             content.Children.Add(MakeResizeHandle(RuleDragMode.ResizeStart, VerticalAlignment.Top));
@@ -249,8 +263,10 @@ public partial class AutomaticRuleModal : UserControl
         var block = new Border
         {
             Width = Math.Max(0, Timeline.ActualWidth - LabelWidth - 8), Height = Math.Max(1, end - start),
-            Background = Brush(draft || selected ? "#FFF0DF" : "#EEEEF1"), BorderBrush = Brush(draft || selected ? "#FF8000" : "#CCCCD3"),
-            BorderThickness = new Thickness(3, 0, 0, 0), CornerRadius = new CornerRadius(4),
+            Background = isHighlighted ? accentTint : Brush("#F0F0F2"),
+            BorderBrush = selected ? accent : Brushes.Transparent,
+            BorderThickness = selected ? new Thickness(1) : new Thickness(0),
+            CornerRadius = new CornerRadius(5),
             Cursor = Cursors.Hand, ClipToBounds = true,
             Child = content
         };
@@ -275,7 +291,7 @@ public partial class AutomaticRuleModal : UserControl
         bool isCreating,
         string? targetName,
         string? customPeriod,
-        string foreground)
+        Brush foreground)
     {
         var margin = new Thickness(8, end - start >= 30 ? 6 : 0, 6, 0);
         var timeRange = $"{Time(start)}–{Time(end)}";
@@ -286,7 +302,7 @@ public partial class AutomaticRuleModal : UserControl
                 Text = $"{timeRange} · {Duration(end - start)}",
                 FontSize = 12,
                 FontWeight = FontWeights.Normal,
-                Foreground = Brush(foreground),
+                Foreground = foreground,
                 Margin = margin,
                 VerticalAlignment = VerticalAlignment.Top,
                 TextWrapping = TextWrapping.NoWrap,
@@ -305,7 +321,7 @@ public partial class AutomaticRuleModal : UserControl
                 Text = scheduleText,
                 FontSize = 12,
                 FontWeight = FontWeights.Normal,
-                Foreground = Brush(foreground),
+                Foreground = foreground,
                 Margin = margin,
                 MaxWidth = availableWidth,
                 VerticalAlignment = VerticalAlignment.Top,
@@ -320,7 +336,7 @@ public partial class AutomaticRuleModal : UserControl
             Text = targetName,
             FontSize = 13,
             FontWeight = FontWeights.Medium,
-            Foreground = Brush(foreground),
+            Foreground = foreground,
             MaxWidth = availableWidth,
             TextTrimming = TextTrimming.CharacterEllipsis,
             TextWrapping = TextWrapping.NoWrap
@@ -330,7 +346,7 @@ public partial class AutomaticRuleModal : UserControl
             Text = scheduleText,
             FontSize = 12,
             FontWeight = FontWeights.Normal,
-            Foreground = Brush(foreground),
+            Foreground = foreground,
             Margin = new Thickness(0, 1, 0, 0),
             MaxWidth = availableWidth,
             TextTrimming = TextTrimming.CharacterEllipsis,
@@ -371,7 +387,7 @@ public partial class AutomaticRuleModal : UserControl
             Text = "·",
             FontSize = 12,
             FontWeight = FontWeights.Normal,
-            Foreground = Brush(foreground),
+            Foreground = foreground,
             Margin = new Thickness(4, 0, 4, 0)
         };
         var range = new TextBlock
@@ -379,7 +395,7 @@ public partial class AutomaticRuleModal : UserControl
             Text = scheduleText,
             FontSize = 12,
             FontWeight = FontWeights.Normal,
-            Foreground = Brush(foreground),
+            Foreground = foreground,
             TextTrimming = TextTrimming.CharacterEllipsis,
             TextWrapping = TextWrapping.NoWrap
         };
@@ -391,7 +407,7 @@ public partial class AutomaticRuleModal : UserControl
             Text = targetName,
             FontSize = 12,
             FontWeight = FontWeights.Normal,
-            Foreground = Brush(foreground),
+            Foreground = foreground,
             MaxWidth = Math.Max(
                 0,
                 availableWidth - separator.DesiredSize.Width - Math.Min(range.DesiredSize.Width, range.MaxWidth)),
@@ -429,7 +445,6 @@ public partial class AutomaticRuleModal : UserControl
         Timeline.Cursor = mode is RuleDragMode.ResizeStart or RuleDragMode.ResizeEnd
             ? Cursors.SizeNS
             : Cursors.Hand;
-        TimelineHint.Text = DefaultHint;
         Timeline.CaptureMouse();
     }
     private static string Time(double minute) => $"{(int)minute / 60:00}:{(int)minute % 60:00}";
@@ -442,7 +457,6 @@ public partial class AutomaticRuleModal : UserControl
         if (Model is null || Model.IsEditorOpen || e.GetPosition(Timeline).X < LabelWidth) return;
         var minute = e.GetPosition(Timeline).Y - TopInset;
         if (RuleTimelineRange.Drag(minute, minute, Model.GetRules().Select(r => (r.StartMinutes, r.EndMinutes))) is null) return;
-        TimelineHint.Text = DefaultHint;
         _anchor = minute;
         Timeline.CaptureMouse();
         _scrollTimer.Start();
@@ -529,16 +543,14 @@ public partial class AutomaticRuleModal : UserControl
                         releaseMinute,
                         Model?.GetRules().Where(candidate => candidate.Id != rule.Id)
                             .Select(candidate => (candidate.StartMinutes, candidate.EndMinutes)) ?? []);
-                    TimelineHint.Text = resolved is { } placement
-                        ? Model?.MoveRequested?.Invoke(rule, placement.Start, placement.End) ?? DefaultHint
-                        : "没有可放置的空白时段，已恢复原位置";
+                    if (resolved is { } placement)
+                        Model?.MoveRequested?.Invoke(rule, placement.Start, placement.End);
                 }
                 else
                 {
-                    TimelineHint.Text = Model?.ResizeRequested?.Invoke(rule, moved.Start, moved.End) ?? DefaultHint;
+                    Model?.ResizeRequested?.Invoke(rule, moved.Start, moved.End);
                 }
             }
-            else if (moving) TimelineHint.Text = "当前位置无法调整，请重新拖动";
             RenderTimeline();
         }
         else if (range is { } r && r.End > r.Start) Model?.BeginEditor(null, r.Start, r.End);

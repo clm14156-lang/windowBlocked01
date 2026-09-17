@@ -8,6 +8,56 @@ namespace FocusApp.Tests.Desktop;
 public class RuleTimelineTests
 {
     [Fact]
+    public void EnabledSummaryTracksRealRuleTogglesAndFormatsCombinedDuration()
+    {
+        var settings = new SettingsPageViewModel([], [], dailyLabel: "每天");
+        settings.OpenRuleModalCommand.Execute(null);
+        foreach (var range in new[] { (135d, 195d), (270d, 360d), (390d, 450d) })
+        {
+            settings.RuleModal.BeginEditor(null, range.Item1, range.Item2);
+            Assert.True(settings.RuleModal.SaveEditor());
+        }
+
+        Assert.Equal(0, settings.RuleModal.EnabledRuleCount);
+        Assert.Equal("0分钟", settings.RuleModal.EnabledRuleTotalDurationDisplay);
+        var changes = new List<string?>();
+        settings.RuleModal.PropertyChanged += (_, args) => changes.Add(args.PropertyName);
+
+        foreach (var rule in settings.AutomaticRules)
+            settings.ToggleRuleCommand.Execute(rule);
+
+        Assert.Equal(3, settings.RuleModal.EnabledRuleCount);
+        Assert.Equal(210, settings.RuleModal.EnabledRuleTotalMinutes);
+        Assert.Equal("3小时30分钟", settings.RuleModal.EnabledRuleTotalDurationDisplay);
+        Assert.Contains(nameof(AutomaticRuleModalViewModel.EnabledRuleCount), changes);
+        Assert.Contains(nameof(AutomaticRuleModalViewModel.EnabledRuleTotalDurationDisplay), changes);
+
+        settings.ToggleRuleCommand.Execute(settings.AutomaticRules[1]);
+
+        Assert.Equal(2, settings.RuleModal.EnabledRuleCount);
+        Assert.Equal("2小时", settings.RuleModal.EnabledRuleTotalDurationDisplay);
+    }
+
+    [Theory]
+    [InlineData(0, 45, "45分钟")]
+    [InlineData(0, 180, "3小时")]
+    [InlineData(0, 210, "3小时30分钟")]
+    [InlineData(1380, 60, "2小时")]
+    public void EnabledSummaryFormatsMinuteHourAndLegacyOvernightDurations(
+        double start,
+        double end,
+        string expected)
+    {
+        var rule = new AutomaticRuleItemViewModel(
+            Guid.NewGuid(), "每天", "", ["Monday"], start, end) { IsEnabled = true };
+        var modal = AutomaticRuleModalViewModel.CreateDefault();
+        modal.GetRules = () => [rule];
+
+        Assert.Equal(1, modal.EnabledRuleCount);
+        Assert.Equal(expected, modal.EnabledRuleTotalDurationDisplay);
+    }
+
+    [Fact]
     public void RuleManagementEditSelectsRuleAndNormalOpenClearsSelection()
     {
         var settings = new SettingsPageViewModel([], [], dailyLabel: "每天");

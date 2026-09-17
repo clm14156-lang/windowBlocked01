@@ -13,7 +13,18 @@ public sealed partial class AutomaticRuleModalViewModel
     private Guid? _selectedRuleId;
     public Guid? SelectedRuleId { get => _selectedRuleId; set => SetField(ref _selectedRuleId, value); }
     public Func<IReadOnlyList<AutomaticRuleItemViewModel>> GetRules { get; set; } = () => [];
-    public void RefreshTimeline() => OnPropertyChanged(nameof(GetRules));
+    public int EnabledRuleCount => GetRules().Count(rule => rule.IsEnabled);
+    public int EnabledRuleTotalMinutes => GetRules()
+        .Where(rule => rule.IsEnabled)
+        .Sum(RuleDurationMinutes);
+    public string EnabledRuleTotalDurationDisplay => FormatDuration(EnabledRuleTotalMinutes);
+    public void RefreshTimeline()
+    {
+        OnPropertyChanged(nameof(GetRules));
+        OnPropertyChanged(nameof(EnabledRuleCount));
+        OnPropertyChanged(nameof(EnabledRuleTotalMinutes));
+        OnPropertyChanged(nameof(EnabledRuleTotalDurationDisplay));
+    }
     public Action? NewRequested { get; set; }
     public Action<AutomaticRuleItemViewModel>? EditRequested { get; set; }
     public Action<AutomaticRuleItemViewModel>? DeleteRequested { get; set; }
@@ -113,6 +124,24 @@ public sealed partial class AutomaticRuleModalViewModel
 
     private bool IsAvailableTarget(string? targetId)
         => !string.IsNullOrEmpty(targetId) && Targets.Any(target => target.Id == targetId);
+
+    private static int RuleDurationMinutes(AutomaticRuleItemViewModel rule)
+    {
+        var duration = rule.EndMinutes >= rule.StartMinutes
+            ? rule.EndMinutes - rule.StartMinutes
+            : 1440 - rule.StartMinutes + rule.EndMinutes;
+        return Math.Max(0, (int)Math.Round(duration, MidpointRounding.AwayFromZero));
+    }
+
+    private static string FormatDuration(int minutes)
+    {
+        var hours = minutes / 60;
+        var remainingMinutes = minutes % 60;
+        if (hours == 0) return $"{remainingMinutes}分钟";
+        return remainingMinutes == 0
+            ? $"{hours}小时"
+            : $"{hours}小时{remainingMinutes}分钟";
+    }
 
 }
 

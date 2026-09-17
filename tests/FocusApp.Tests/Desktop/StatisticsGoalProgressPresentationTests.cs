@@ -1,5 +1,9 @@
 using System.Xml.Linq;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Data;
+using System.Windows.Documents;
 using System.Globalization;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -19,12 +23,24 @@ public sealed class StatisticsGoalProgressPresentationTests
     {
         var page = XDocument.Load(Path.Combine(FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
         var card = page.Descendants(Presentation + "Border").Single(element => (string?)element.Attribute(Xaml + "Name") == "GoalInvestmentDetailsCard");
-        foreach (var property in new[] { "SelectedGoalWeeklyInvestment.", "SelectedGoalTotalInvestment.", "SelectedGoal.Remark", "SelectedGoalTargetDurationDisplay" })
+        foreach (var property in new[] { "SelectedGoalWeeklyInvestment.", "SelectedGoalTotalInvestment.", "SelectedGoal.Remark", "SelectedGoalTargetDuration." })
             Assert.Contains(card.Descendants().Attributes(), attribute => attribute.Value.Contains(property, StringComparison.Ordinal));
         foreach (var oldText in new[] { "专注次数", "最近一次专注", "专注记录", "查看趋势  ›", "暂无专注记录" })
             Assert.DoesNotContain(card.Descendants(Presentation + "TextBlock"), text => (string?)text.Attribute("Text") == oldText);
         var progress = card.Descendants(Presentation + "Grid").Single(element => (string?)element.Attribute(Xaml + "Name") == "GoalInvestmentProgress");
         Assert.Equal("{Binding HasSelectedGoalTargetDuration, Converter={StaticResource BooleanToVisibilityConverter}}", (string?)progress.Attribute("Visibility"));
+        var totalInvestment = card.Descendants(Presentation + "TextBlock").Single(element =>
+            (string?)element.Attribute(Xaml + "Name") == "GoalTotalInvestmentText");
+        Assert.Empty(totalInvestment.Elements(Presentation + "TextBlock"));
+        Assert.DoesNotContain(totalInvestment.Ancestors(Presentation + "WrapPanel"), _ => true);
+        Assert.Contains(totalInvestment.Elements(Presentation + "Run"), run =>
+            (string?)run.Attribute("Text") == "{Binding SelectedGoalTotalInvestment.MinutesUnitWithLeadingSpace, Mode=OneWay}" &&
+            (string?)run.Attribute("FontSize") == "16" &&
+            (string?)run.Attribute("FontWeight") == "SemiBold");
+        var progressBar = Assert.Single(progress.Descendants(Presentation + "ProgressBar"));
+        Assert.Equal("{StaticResource GoalInvestmentProgressBarStyle}", (string?)progressBar.Attribute("Style"));
+        Assert.Equal("1", (string?)progressBar.Attribute("Maximum"));
+        Assert.Equal("{Binding SelectedGoalInvestmentProgressRatio, Mode=OneWay}", (string?)progressBar.Attribute("Value"));
         var tasks = card.Descendants(Presentation + "ItemsControl").Single(element => (string?)element.Attribute(Xaml + "Name") == "GoalNextTasks");
         Assert.Equal("{Binding GoalTasks.PendingTasks}", (string?)tasks.Attribute("ItemsSource"));
         Assert.Empty(tasks.Elements(Presentation + "ItemsControl.Items"));
@@ -277,8 +293,24 @@ public sealed class StatisticsGoalProgressPresentationTests
                 }
 
                 var progress = (FrameworkElement)page.FindName("GoalInvestmentProgress");
+                var metrics = (FrameworkElement)page.FindName("GoalInvestmentMetrics");
+                var progressBar = (ProgressBar)page.FindName("GoalInvestmentProgressBar");
+                var totalInvestmentText = (TextBlock)page.FindName("GoalTotalInvestmentText");
                 var remark = (FrameworkElement)page.FindName("GoalDetailRemark");
                 Assert.Equal(Visibility.Visible, progress.Visibility);
+                Assert.Equal(BindingStatus.Active,
+                    progress.GetBindingExpression(UIElement.VisibilityProperty)!.Status);
+                Assert.Equal(BindingStatus.Active,
+                    progressBar.GetBindingExpression(RangeBase.ValueProperty)!.Status);
+                Assert.True(progress.ActualHeight > 0);
+                var progressBounds = progress.TransformToAncestor(metrics)
+                    .TransformBounds(new Rect(progress.RenderSize));
+                Assert.True(progressBounds.Bottom <= metrics.ActualHeight + 0.5,
+                    "The goal progress row must remain inside the investment metrics area instead of being clipped.");
+                Assert.Equal(0.32, progressBar.Value, 8);
+                Assert.Equal("32 小时 / 100小时", new TextRange(
+                    totalInvestmentText.ContentStart,
+                    totalInvestmentText.ContentEnd).Text);
                 Assert.Equal(Visibility.Visible, remark.Visibility);
                 Assert.Equal("6小时32分钟", viewModel.SelectedGoalWeeklyInvestmentDisplay);
                 Assert.Equal("32小时", viewModel.SelectedGoalTotalInvestmentDisplay);
@@ -287,7 +319,11 @@ public sealed class StatisticsGoalProgressPresentationTests
                 viewModel.SelectedGoal.UpdateDetails(null, null);
                 page.UpdateLayout();
                 Assert.Equal(Visibility.Collapsed, progress.Visibility);
+                Assert.Equal(0, progressBar.Value);
                 Assert.Equal(Visibility.Collapsed, remark.Visibility);
+                Assert.Equal("32 小时", new TextRange(
+                    totalInvestmentText.ContentStart,
+                    totalInvestmentText.ContentEnd).Text);
                 Assert.True(remarkHeight > 0);
 
             }

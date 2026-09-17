@@ -24,6 +24,8 @@ public sealed class GoalDetailInvestmentTests
         Assert.Equal("2小时32分钟", model.SelectedGoalTotalInvestmentDisplay);
         Assert.True(model.HasSelectedGoalTargetDuration);
         Assert.Equal("100小时", model.SelectedGoalTargetDurationDisplay);
+        Assert.Equal("100", model.SelectedGoalTargetDuration!.HoursValue);
+        Assert.Equal("小时", model.SelectedGoalTargetDuration.HoursUnit);
         Assert.Equal(152d / 6000, model.SelectedGoalInvestmentProgressRatio, 8);
     }
 
@@ -46,8 +48,51 @@ public sealed class GoalDetailInvestmentTests
         Assert.Equal(expected, model.SelectedGoalWeeklyInvestment.Display);
         Assert.Equal(minutes >= 60 ? "小时" : "", model.SelectedGoalWeeklyInvestment.HoursUnit);
         Assert.Equal(minutes == 0 || minutes % 60 > 0 ? "分钟" : "", model.SelectedGoalWeeklyInvestment.MinutesUnit);
+        Assert.Equal(minutes >= 60 ? " 小时" : "", model.SelectedGoalWeeklyInvestment.HoursUnitWithLeadingSpace);
+        Assert.Equal(minutes == 0 || minutes % 60 > 0 ? " 分钟" : "", model.SelectedGoalWeeklyInvestment.MinutesUnitWithLeadingSpace);
         Assert.False(model.HasSelectedGoalTargetDuration);
+        Assert.Null(model.SelectedGoalTargetDuration);
+        Assert.Empty(model.SelectedGoalTargetDurationSeparator);
         Assert.Empty(model.SelectedGoalTargetDurationDisplay);
+    }
+
+    [Theory]
+    [InlineData(0, "0 分钟")]
+    [InlineData(11, "11 分钟")]
+    [InlineData(60, "1 小时")]
+    [InlineData(92, "1 小时 32 分钟")]
+    [InlineData(32 * 60, "32 小时")]
+    [InlineData(102 * 60, "102 小时")]
+    public void InlineDurationPartsKeepReadableSpacingAcrossSupportedShapes(int minutes, string expected)
+    {
+        var duration = new GoalInvestmentDurationViewModel(minutes);
+
+        Assert.Equal(expected, string.Concat(
+            duration.HoursValue,
+            duration.HoursUnitWithLeadingSpace,
+            duration.MinutesValueWithLeadingSpace,
+            duration.MinutesUnitWithLeadingSpace));
+    }
+
+    [Theory]
+    [InlineData(11, "0%", 11d / 6000)]
+    [InlineData(32 * 60, "32%", 0.32)]
+    [InlineData(102 * 60, "100%", 1)]
+    public void ProgressUsesRealMinutesRoundsForDisplayAndClampsAtOne(
+        int investedMinutes,
+        string expectedDisplay,
+        double expectedRatio)
+    {
+        var now = new DateTime(2026, 9, 16, 12, 0, 0);
+        var model = new StatisticsOverviewViewModel(false, localNowProvider: () => now);
+        var goal = new GoalOverviewItemViewModel(
+            "goal", "目标", "", "", false, false, targetDurationMinutes: 100 * 60);
+        model.Goals.Add(goal);
+        model.SelectGoalCommand.Execute(goal);
+        AddRecord(model, goal.GoalId, now.AddMinutes(-investedMinutes), now);
+
+        Assert.Equal(expectedRatio, model.SelectedGoalInvestmentProgressRatio, 8);
+        Assert.Equal(expectedDisplay, model.SelectedGoalInvestmentProgressDisplay);
     }
 
     [Fact]

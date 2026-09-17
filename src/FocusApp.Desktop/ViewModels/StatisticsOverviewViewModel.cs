@@ -700,8 +700,14 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     public string SelectedGoalTotalInvestmentDisplay => SelectedGoalTotalInvestment.Display;
 
+    public GoalInvestmentDurationViewModel? SelectedGoalTargetDuration => HasSelectedGoalTargetDuration
+        ? new(SelectedGoal!.TargetDurationMinutes!.Value)
+        : null;
+
+    public string SelectedGoalTargetDurationSeparator => HasSelectedGoalTargetDuration ? " / " : string.Empty;
+
     public string SelectedGoalTargetDurationDisplay => HasSelectedGoalTargetDuration
-        ? new GoalInvestmentDurationViewModel(SelectedGoal!.TargetDurationMinutes!.Value).Display
+        ? SelectedGoalTargetDuration!.Display
         : string.Empty;
 
     public double SelectedGoalInvestmentProgressRatio => HasSelectedGoalTargetDuration
@@ -742,6 +748,8 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(SelectedGoalWeeklyInvestmentDisplay));
         OnPropertyChanged(nameof(SelectedGoalTotalInvestmentDisplay));
         OnPropertyChanged(nameof(HasSelectedGoalTargetDuration));
+        OnPropertyChanged(nameof(SelectedGoalTargetDuration));
+        OnPropertyChanged(nameof(SelectedGoalTargetDurationSeparator));
         OnPropertyChanged(nameof(SelectedGoalTargetDurationDisplay));
         OnPropertyChanged(nameof(SelectedGoalInvestmentProgressRatio));
         OnPropertyChanged(nameof(SelectedGoalInvestmentProgressDisplay));
@@ -2818,6 +2826,9 @@ public sealed record GoalInvestmentDurationViewModel(int TotalMinutes)
     public string HoursUnit => TotalMinutes >= 60 ? "小时" : string.Empty;
     public string MinutesValue => TotalMinutes == 0 || TotalMinutes % 60 > 0 ? (TotalMinutes % 60).ToString() : string.Empty;
     public string MinutesUnit => TotalMinutes == 0 || TotalMinutes % 60 > 0 ? "分钟" : string.Empty;
+    public string HoursUnitWithLeadingSpace => HoursUnit.Length == 0 ? string.Empty : $" {HoursUnit}";
+    public string MinutesValueWithLeadingSpace => HoursValue.Length > 0 && MinutesValue.Length > 0 ? $" {MinutesValue}" : MinutesValue;
+    public string MinutesUnitWithLeadingSpace => MinutesUnit.Length == 0 ? string.Empty : $" {MinutesUnit}";
     public string Display => $"{HoursValue}{HoursUnit}{MinutesValue}{MinutesUnit}";
 }
 
