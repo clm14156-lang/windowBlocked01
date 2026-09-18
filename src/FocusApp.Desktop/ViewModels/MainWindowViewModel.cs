@@ -910,7 +910,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             existing?.SortOrder ?? state.Targets.Count,
             existing?.CreatedAtUtc ?? now, now)
         {
-            ArchivedAtUtc = goal.IsArchived ? existing?.ArchivedAtUtc ?? now : null,
+            ArchivedAtUtc = goal.IsArchived ? goal.ArchivedAtUtc ?? existing?.ArchivedAtUtc ?? now : null,
             IconFileName = goal.IconFileName,
             Remark = goal.Remark,
             TargetDurationMinutes = goal.TargetDurationMinutes

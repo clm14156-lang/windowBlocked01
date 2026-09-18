@@ -1495,7 +1495,8 @@
                                                                         <TextBlock x:Name="GoalListName" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{Binding Name}" TextTrimming="CharacterEllipsis">
                                                                             <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Visible" /><Style.Triggers><DataTrigger Binding="{Binding IsRenaming}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers></Style></TextBlock.Style>
                                                                         </TextBlock>
-                                                                        <TextBlock x:Name="GoalTodayDurationText" Margin="0,3,0,0" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding TodayDurationDisplay}" />
+                                                                        <TextBlock x:Name="GoalTodayDurationText" Margin="0,3,0,0" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding TodayDurationDisplay}" Visibility="{Binding IsArchived, Converter={StaticResource GoalInverseVisibilityConverter}}" />
+                                                                        <TextBlock x:Name="GoalTotalDurationText" Margin="0,3,0,0" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding TotalDurationDisplay}" Visibility="{Binding IsArchived, Converter={StaticResource BooleanToVisibilityConverter}}" />
                                                                     </StackPanel>
                                                                     <Button Grid.Column="2" Width="30" Height="26" Margin="0,0,-6,0" HorizontalAlignment="Right" VerticalAlignment="Center" Padding="0" Background="{DynamicResource TransparentBrush}" BorderThickness="0" Click="SaveGoalRenameButton_Click" Content="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{DynamicResource AccentPrimary}" Visibility="{Binding IsRenaming, Converter={StaticResource BooleanToVisibilityConverter}}" />
                                                                 </Grid>
@@ -1528,7 +1529,7 @@
                                                     <Border Width="120" Margin="6" Padding="6" Background="White" BorderBrush="#E8E8EA" BorderThickness="1" CornerRadius="9">
                                                         <Border.Effect><DropShadowEffect BlurRadius="14" Direction="270" ShadowDepth="3" Opacity="0.10" Color="#000000"/></Border.Effect>
                                                         <StackPanel>
-                                                            <Button Content="编辑" Style="{StaticResource GoalDetailMenuItemStyle}" Click="EditGoalButton_Click"/>
+                                                            <Button Content="编辑" Style="{StaticResource GoalDetailMenuItemStyle}" Click="EditGoalButton_Click" Visibility="{Binding IsArchived, Converter={StaticResource GoalInverseVisibilityConverter}}"/>
                                                             <Button Content="归档" Style="{StaticResource GoalDetailMenuItemStyle}" Click="ArchiveGoalButton_Click" Visibility="{Binding IsArchived, Converter={StaticResource GoalInverseVisibilityConverter}}"/>
                                                             <Button Content="恢复目标" Style="{StaticResource GoalDetailMenuItemStyle}" Click="RestoreGoalButton_Click" Visibility="{Binding IsArchived, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                             <Button Content="删除目标" Foreground="{DynamicResource Danger}" Style="{StaticResource GoalDetailMenuItemStyle}" Click="DeleteGoalButton_Click" Visibility="{Binding IsArchived, Converter={StaticResource BooleanToVisibilityConverter}}"/>
@@ -1546,6 +1547,7 @@
                     <Border x:Name="GoalInvestmentDetailsCard" Grid.Column="2" Height="604" Padding="20,18,20,14" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" CornerRadius="16">
                         <Grid>
                             <Grid x:Name="GoalInvestmentDetailsContent" Visibility="{Binding CanViewGoalInvestmentDetails, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <Grid x:Name="CurrentGoalDetails" Visibility="{Binding IsCurrentGoalView, Converter={StaticResource BooleanToVisibilityConverter}}">
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="1"/>
@@ -1818,7 +1820,55 @@
                                         <Button Grid.Column="2" Padding="4,5" VerticalAlignment="Center" Background="Transparent" Style="{StaticResource GoalQuietActionStyle}" Command="{Binding GoalTasks.OpenCompletedCommand}" AutomationProperties.Name="查看已完成任务"><TextBlock Text="查看已完成任务  ›"/></Button>
                                     </Grid>
                                 </Border>
-                                <Border Grid.RowSpan="6" Background="{DynamicResource SurfacePrimary}" Visibility="{Binding HasSelectedGoal, Converter={StaticResource GoalInverseVisibilityConverter}}"><TextBlock Text="暂无目标" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextWeak}"/></Border>
+                                </Grid>
+                                <Grid x:Name="ArchivedGoalDetails" Visibility="{Binding IsArchivedGoalView, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="1"/>
+                                        <RowDefinition Height="108"/>
+                                        <RowDefinition Height="1"/>
+                                        <RowDefinition Height="*"/>
+                                    </Grid.RowDefinitions>
+                                    <Grid x:Name="ArchivedGoalDetailHeader" Margin="8,4,8,20">
+                                        <StackPanel>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                                <TextBlock MaxWidth="350" FontSize="28" FontWeight="SemiBold" Text="{Binding SelectedGoalName}" Foreground="{DynamicResource TextPrimary}" TextTrimming="CharacterEllipsis"/>
+                                                <Border Grid.Column="1" Margin="12,4,0,0" Padding="9,2" Height="22" VerticalAlignment="Top" Background="#EEF0F3" CornerRadius="11">
+                                                    <TextBlock VerticalAlignment="Center" FontSize="11" FontWeight="Medium" Foreground="#777E8B" Text="已归档"/>
+                                                </Border>
+                                            </Grid>
+                                            <TextBlock x:Name="ArchivedGoalDetailMetadata" Margin="0,7,0,0" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextWeak}" Text="{Binding SelectedGoal.ArchivedDetailMetadataDisplay}" ToolTip="{Binding SelectedGoal.ArchivedDetailMetadataDisplay}" TextTrimming="CharacterEllipsis"/>
+                                        </StackPanel>
+                                    </Grid>
+                                    <Border Grid.Row="1" Background="#F0F0F3"/>
+                                    <Grid x:Name="ArchivedGoalInvestmentMetrics" Grid.Row="2" Margin="2,12,2,10">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="0.85*"/><ColumnDefinition Width="1"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <StackPanel Margin="0,0,18,0">
+                                            <TextBlock Text="累计投入" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}"/>
+                                            <TextBlock x:Name="ArchivedGoalTotalInvestmentText" Margin="0,4,0,0" Style="{StaticResource GoalMetricValueStyle}"><Run Text="{Binding SelectedGoalTotalInvestment.HoursValue, Mode=OneWay}"/><Run Text="{Binding SelectedGoalTotalInvestment.HoursUnitWithLeadingSpace, Mode=OneWay}" FontSize="16" FontWeight="SemiBold"/><Run Text="{Binding SelectedGoalTotalInvestment.MinutesValueWithLeadingSpace, Mode=OneWay}"/><Run Text="{Binding SelectedGoalTotalInvestment.MinutesUnitWithLeadingSpace, Mode=OneWay}" FontSize="16" FontWeight="SemiBold"/></TextBlock>
+                                        </StackPanel>
+                                        <Border Grid.Column="1" Background="#F0F0F3"/>
+                                        <StackPanel Grid.Column="2" Margin="26,0,0,0">
+                                            <Grid>
+                                                <TextBlock VerticalAlignment="Center" Text="专注次数" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}"/>
+                                                <Button x:Name="ArchivedGoalInvestmentTrendButton" HorizontalAlignment="Right" VerticalAlignment="Center" Content="投入趋势  ›" Style="{StaticResource GoalInlineActionStyle}" Command="{Binding GoalInvestmentTrend.OpenCommand}" AutomationProperties.Name="查看归档目标投入趋势"/>
+                                            </Grid>
+                                            <TextBlock x:Name="ArchivedGoalFocusSessionCountText" Margin="0,4,0,0" Style="{StaticResource GoalMetricValueStyle}"><Run Text="{Binding SelectedGoalFocusSessionCount, Mode=OneWay}"/><Run Text=" 次" FontSize="16" FontWeight="SemiBold"/></TextBlock>
+                                        </StackPanel>
+                                    </Grid>
+                                    <Border Grid.Row="3" Background="#F0F0F3"/>
+                                    <Grid Grid.Row="4" Margin="0,22,0,0">
+                                        <Grid.RowDefinitions><RowDefinition Height="32"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                        <TextBlock Text="下一步任务" FontSize="15" FontWeight="Medium" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimary}"/>
+                                        <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False">
+                                            <Image Width="112" Height="112" HorizontalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality" Source="/FocusApp.Desktop;component/Assets/Images/Illustrations/guidang_renwu.png" Stretch="Uniform"/>
+                                            <TextBlock Margin="0,16,0,0" HorizontalAlignment="Center" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="该目标已归档"/>
+                                            <TextBlock Margin="0,7,0,0" HorizontalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="归档后目标不再新增或修改任务"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Grid>
+                                <Border Background="{DynamicResource SurfacePrimary}" Visibility="{Binding HasSelectedGoal, Converter={StaticResource GoalInverseVisibilityConverter}}"><TextBlock Text="暂无目标" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextWeak}"/></Border>
                             </Grid>
                             <Grid x:Name="GoalInvestmentDetailsLockedPlaceholder" Visibility="{Binding CanViewGoalInvestmentDetails, Converter={StaticResource GoalInverseVisibilityConverter}}">
                                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">

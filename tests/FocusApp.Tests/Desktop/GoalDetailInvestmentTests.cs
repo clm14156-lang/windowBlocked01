@@ -200,6 +200,48 @@ public sealed class GoalDetailInvestmentTests
         Assert.Equal(2, model.FocusSessionRecords.Count);
     }
 
+    [Fact]
+    public void ArchivedGoalViewUsesPersistedDatesHistoricalTotalsAndReadOnlyTaskState()
+    {
+        var now = new DateTimeOffset(new DateTime(2026, 10, 6, 12, 0, 0, DateTimeKind.Local));
+        var createdAt = now.AddDays(-21);
+        var archivedAt = now.AddDays(-1);
+        var target = new LocalTargetDto("archived", "新目标", true, 0, createdAt, archivedAt)
+        {
+            ArchivedAtUtc = archivedAt.ToUniversalTime()
+        };
+        LocalFocusSessionDto Session(DateTimeOffset end, int minutes) => new(
+            Guid.NewGuid(), LocalFocusSessionStatusDto.Completed, false,
+            minutes * 60, minutes * 60, end.AddMinutes(-minutes - 1), end.AddMinutes(-minutes), end,
+            end, FocusCompletionKindDto.Natural, target.TargetId, target.Name, false, null, null, []);
+        var task = new LocalTaskDto("task", target.TargetId, "历史任务", false, 0, createdAt, archivedAt);
+        var state = new LocalDataSnapshotDto(
+            1,
+            [Session(now.AddDays(-5), 60), Session(now.AddDays(-4), 30)],
+            [target],
+            [task],
+            [], [], [],
+            new LocalAppSettingsDto(false, true, true, true, false, false, "Orange", null, now),
+            [], []);
+        var model = new StatisticsOverviewViewModel(false, localNowProvider: () => now.LocalDateTime);
+
+        model.ApplyState(state);
+        model.SelectGoalListCommand.Execute("Archived");
+
+        Assert.Equal(GoalDetailsViewState.ArchivedGoal, model.GoalViewState);
+        Assert.True(model.IsArchivedGoalView);
+        Assert.False(model.IsCurrentGoalView);
+        Assert.Same(model.Goals.Single(), model.SelectedGoal);
+        Assert.Equal(archivedAt.ToUniversalTime(), model.SelectedGoal!.ArchivedAtUtc);
+        Assert.Equal("创建于 9月15日 · 归档于 10月5日", model.SelectedGoal.ArchivedDetailMetadataDisplay);
+        Assert.Equal("累计投入 1.5 小时", model.SelectedGoal.TotalDurationDisplay);
+        Assert.Equal("1小时30分钟", model.SelectedGoalTotalInvestmentDisplay);
+        Assert.Equal(2, model.SelectedGoalFocusSessionCount);
+        Assert.Equal("2 次", model.SelectedGoalFocusSessionCountDisplay);
+        Assert.Null(model.GoalTasks.GoalId);
+        Assert.Empty(model.GoalTasks.PendingTasks);
+    }
+
     private static FocusSessionRecordViewModel AddRecord(StatisticsOverviewViewModel model, string goalId, DateTime start, DateTime end)
     {
         var record = new FocusSessionRecordViewModel(start, end, goalId, "目标", "", 0);

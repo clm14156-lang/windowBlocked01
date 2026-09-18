@@ -69,11 +69,13 @@ public sealed class StatisticsGoalProgressPresentationTests
     {
         var page = XDocument.Load(Path.Combine(FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
         var card = page.Descendants(Presentation + "Border").Single(element => (string?)element.Attribute(Xaml + "Name") == "GoalInvestmentDetailsCard");
+        var current = card.Descendants(Presentation + "Grid").Single(element =>
+            (string?)element.Attribute(Xaml + "Name") == "CurrentGoalDetails");
         foreach (var property in new[] { "SelectedGoalWeeklyInvestment.", "SelectedGoalTotalInvestment.", "SelectedGoal.DetailMetadataDisplay", "SelectedGoalTargetDuration." })
-            Assert.Contains(card.Descendants().Attributes(), attribute => attribute.Value.Contains(property, StringComparison.Ordinal));
+            Assert.Contains(current.Descendants().Attributes(), attribute => attribute.Value.Contains(property, StringComparison.Ordinal));
         foreach (var oldText in new[] { "专注次数", "最近一次专注", "专注记录", "查看趋势  ›", "暂无专注记录" })
-            Assert.DoesNotContain(card.Descendants(Presentation + "TextBlock"), text => (string?)text.Attribute("Text") == oldText);
-        var progress = card.Descendants(Presentation + "Grid").Single(element => (string?)element.Attribute(Xaml + "Name") == "GoalInvestmentProgress");
+            Assert.DoesNotContain(current.Descendants(Presentation + "TextBlock"), text => (string?)text.Attribute("Text") == oldText);
+        var progress = current.Descendants(Presentation + "Grid").Single(element => (string?)element.Attribute(Xaml + "Name") == "GoalInvestmentProgress");
         Assert.Equal("{Binding HasSelectedGoalTargetDuration, Converter={StaticResource BooleanToVisibilityConverter}}", (string?)progress.Attribute("Visibility"));
         var totalInvestment = card.Descendants(Presentation + "TextBlock").Single(element =>
             (string?)element.Attribute(Xaml + "Name") == "GoalTotalInvestmentText");
@@ -87,29 +89,78 @@ public sealed class StatisticsGoalProgressPresentationTests
         Assert.Equal("{StaticResource GoalInvestmentProgressBarStyle}", (string?)progressBar.Attribute("Style"));
         Assert.Equal("1", (string?)progressBar.Attribute("Maximum"));
         Assert.Equal("{Binding SelectedGoalInvestmentProgressRatio, Mode=OneWay}", (string?)progressBar.Attribute("Value"));
-        var tasks = card.Descendants(Presentation + "ItemsControl").Single(element => (string?)element.Attribute(Xaml + "Name") == "GoalNextTasks");
+        var tasks = current.Descendants(Presentation + "ItemsControl").Single(element => (string?)element.Attribute(Xaml + "Name") == "GoalNextTasks");
         Assert.Equal("{Binding GoalTasks.PendingTasks}", (string?)tasks.Attribute("ItemsSource"));
         Assert.Empty(tasks.Elements(Presentation + "ItemsControl.Items"));
-        var createTask = card.Descendants(Presentation + "Button").Single(element =>
+        var createTask = current.Descendants(Presentation + "Button").Single(element =>
             (string?)element.Attribute(Xaml + "Name") == "CreateNextTaskButton");
         Assert.Equal("{Binding GoalTasks.NewTaskCommand}", (string?)createTask.Attribute("Command"));
         Assert.Contains(createTask.Descendants(Presentation + "TextBlock"), text => (string?)text.Attribute("Text") == "+ 创建任务");
-        var completed = card.Descendants(Presentation + "Button").Single(element =>
+        var completed = current.Descendants(Presentation + "Button").Single(element =>
             (string?)element.Attribute("AutomationProperties.Name") == "查看已完成任务");
         Assert.Equal("{Binding GoalTasks.OpenCompletedCommand}", (string?)completed.Attribute("Command"));
-        Assert.Contains(card.Descendants(Presentation + "TextBlock"), text =>
+        Assert.Contains(current.Descendants(Presentation + "TextBlock"), text =>
             (string?)text.Attribute("Text") == "{Binding GoalTasks.TodayCompletedSummary}");
-        Assert.DoesNotContain(card.Descendants(Presentation + "TextBlock"), text =>
+        Assert.DoesNotContain(current.Descendants(Presentation + "TextBlock"), text =>
             (string?)text.Attribute("Text") == "今日已完成 3 项");
-        Assert.DoesNotContain(card.Descendants(Presentation + "TextBlock"), text => (string?)text.Attribute("Text") == "全部任务  ›");
-        var editor = card.Descendants(Presentation + "TextBox").Single(element =>
+        Assert.DoesNotContain(current.Descendants(Presentation + "TextBlock"), text => (string?)text.Attribute("Text") == "全部任务  ›");
+        var editor = current.Descendants(Presentation + "TextBox").Single(element =>
             (string?)element.Attribute(Xaml + "Name") == "GoalNewTaskNameTextBox");
         Assert.Equal("{Binding GoalTasks.DraftName, UpdateSourceTrigger=PropertyChanged}", (string?)editor.Attribute("Text"));
-        var trend = card.Descendants(Presentation + "Button").Single(button =>
+        var trend = current.Descendants(Presentation + "Button").Single(button =>
             (string?)button.Attribute(Xaml + "Name") == "GoalInvestmentTrendButton");
         Assert.Equal("投入趋势  ›", (string?)trend.Attribute("Content"));
         Assert.Equal("{Binding GoalInvestmentTrend.OpenCommand}", (string?)trend.Attribute("Command"));
         Assert.Null(trend.Attribute("Click"));
+    }
+
+    [Fact]
+    public void ArchivedGoalDetailsAreASeparateReadOnlyHistoryView()
+    {
+        var root = FindRepositoryRoot();
+        var page = XDocument.Load(Path.Combine(root, "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
+        var archivedListSubtitle = Assert.Single(page.Descendants(Presentation + "TextBlock").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "GoalTotalDurationText"));
+        Assert.Equal("{Binding TotalDurationDisplay}", (string?)archivedListSubtitle.Attribute("Text"));
+        Assert.Equal(
+            "{Binding IsArchived, Converter={StaticResource BooleanToVisibilityConverter}}",
+            (string?)archivedListSubtitle.Attribute("Visibility"));
+        var currentListSubtitle = Assert.Single(page.Descendants(Presentation + "TextBlock").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "GoalTodayDurationText"));
+        Assert.Equal("{Binding TodayDurationDisplay}", (string?)currentListSubtitle.Attribute("Text"));
+        Assert.Equal(
+            "{Binding IsArchived, Converter={StaticResource GoalInverseVisibilityConverter}}",
+            (string?)currentListSubtitle.Attribute("Visibility"));
+        var archived = Assert.Single(page.Descendants(Presentation + "Grid").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "ArchivedGoalDetails"));
+
+        Assert.Equal(
+            "{Binding IsArchivedGoalView, Converter={StaticResource BooleanToVisibilityConverter}}",
+            (string?)archived.Attribute("Visibility"));
+        Assert.Contains(archived.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "已归档");
+        Assert.Contains(archived.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "{Binding SelectedGoal.ArchivedDetailMetadataDisplay}");
+        Assert.Contains(archived.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "累计投入");
+        Assert.Contains(archived.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "专注次数");
+        Assert.Contains(archived.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "该目标已归档");
+        Assert.Contains(archived.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "归档后目标不再新增或修改任务");
+        Assert.Contains(archived.Descendants(Presentation + "Image"), image =>
+            (string?)image.Attribute("Source") == "/FocusApp.Desktop;component/Assets/Images/Illustrations/guidang_renwu.png");
+        Assert.DoesNotContain(archived.Descendants(Presentation + "Button"), button =>
+            (string?)button.Attribute("AutomationProperties.Name") is "创建任务" or "查看已完成任务");
+        Assert.Empty(archived.Descendants(Presentation + "ItemsControl"));
+        Assert.DoesNotContain(archived.Descendants(Presentation + "TextBlock"), text =>
+            ((string?)text.Attribute("Text"))?.Contains("较上周", StringComparison.Ordinal) == true ||
+            ((string?)text.Attribute("Text"))?.Contains("今日已完成", StringComparison.Ordinal) == true);
+
+        var project = XDocument.Load(Path.Combine(root, "src", "FocusApp.Desktop", "FocusApp.Desktop.csproj"));
+        Assert.Contains(project.Descendants("Resource"), resource =>
+            (string?)resource.Attribute("Include") == "Assets\\Images\\Illustrations\\guidang_renwu.png");
     }
 
     [Fact]

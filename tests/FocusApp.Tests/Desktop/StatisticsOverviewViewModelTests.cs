@@ -491,13 +491,19 @@ public sealed class StatisticsOverviewViewModelTests
         viewModel.ArchiveGoalCommand.Execute(selected);
 
         Assert.DoesNotContain(selected, viewModel.VisibleGoals);
+        Assert.NotNull(selected.ArchivedAtUtc);
         Assert.Equal("写代码", viewModel.SelectedGoalName);
 
         viewModel.SelectGoalListCommand.Execute("Archived");
 
         Assert.Contains(selected, viewModel.VisibleGoals);
+        Assert.Equal(GoalDetailsViewState.ArchivedGoal, viewModel.GoalViewState);
+        Assert.Null(viewModel.GoalTasks.GoalId);
+        viewModel.EditGoalCommand.Execute(selected);
+        Assert.False(viewModel.IsCreateGoalDialogOpen);
         viewModel.RestoreGoalCommand.Execute(selected);
         Assert.DoesNotContain(selected, viewModel.VisibleGoals);
+        Assert.Null(selected.ArchivedAtUtc);
     }
 
     [Fact]
@@ -828,6 +834,7 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.Equal(162, goal.TotalMinutes);
         Assert.Equal(72, goal.TodayMinutes);
         Assert.Equal("今日 1.2 小时", goal.TodayDurationDisplay);
+        Assert.Equal("累计投入 2.7 小时", goal.TotalDurationDisplay);
     }
 
     [Fact]
