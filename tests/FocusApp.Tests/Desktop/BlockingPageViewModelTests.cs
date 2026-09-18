@@ -54,8 +54,32 @@ public sealed class BlockingPageViewModelTests
 
         var website = Assert.Single(viewModel.Websites);
         Assert.Equal("youtube.com", website.Name);
-        Assert.Equal("https://www.youtube.com/watch?v=123", website.Address);
+        Assert.Equal("youtube.com", website.Address);
         Assert.False(viewModel.WebsiteModal.IsOpen);
+    }
+
+    [Theory]
+    [InlineData("abc")]
+    [InlineData("baidu..com")]
+    [InlineData("bai du.com")]
+    [InlineData("-baidu.com")]
+    [InlineData("baidu-.com")]
+    [InlineData("@@@.com")]
+    public void WebsiteModal_InvalidDomainKeepsInputOpenAndRequestsExistingFailureToast(string input)
+    {
+        var viewModel = CreateViewModel();
+        var validationFailures = 0;
+        viewModel.WebsiteModal.WebsiteAddressValidationFailed += (_, _) => validationFailures++;
+        viewModel.WebsiteModal.Open();
+        viewModel.WebsiteModal.WebsiteAddress = input;
+
+        Assert.True(viewModel.WebsiteModal.SaveCommand.CanExecute(null));
+        viewModel.WebsiteModal.SaveCommand.Execute(null);
+
+        Assert.Empty(viewModel.Websites);
+        Assert.True(viewModel.WebsiteModal.IsOpen);
+        Assert.Equal(input, viewModel.WebsiteModal.WebsiteAddress);
+        Assert.Equal(1, validationFailures);
     }
 
     [Fact]
@@ -107,7 +131,7 @@ public sealed class BlockingPageViewModelTests
 
         Assert.Same(website, Assert.Single(viewModel.Websites));
         Assert.Equal("百度搜索", website.Name);
-        Assert.Equal("https://www.baidu.com", website.Address);
+        Assert.Equal("baidu.com", website.Address);
         Assert.False(website.IsEnabled);
         Assert.False(viewModel.WebsiteModal.IsOpen);
         Assert.Equal(1, changeCount);
@@ -163,7 +187,7 @@ public sealed class BlockingPageViewModelTests
         var website = Assert.Single(viewModel.Websites);
         Assert.Null(website.Favicon);
         Assert.Equal("example.com", website.Name);
-        Assert.Equal("https://www.example.com/path", metadataService.RequestedAddress);
+        Assert.Equal("example.com", metadataService.RequestedAddress);
 
         var changed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         website.PropertyChanged += (_, args) =>

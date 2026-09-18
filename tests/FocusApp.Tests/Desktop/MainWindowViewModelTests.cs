@@ -7,6 +7,28 @@ namespace FocusApp.Tests.Desktop;
 public sealed class MainWindowViewModelTests
 {
     [Fact]
+    public void InvalidWebsiteAddressUsesTheExistingCenteredRuleFailureToast()
+    {
+        var homePage = new HomePageViewModel(
+            [new HomeDurationOptionViewModel("25 minutes", string.Empty, true, 25)]);
+        var home = new NavigationItemViewModel(NavigationPage.Home, "Home", "H");
+        var account = new NavigationItemViewModel(NavigationPage.Account, "Account", "A");
+        var settings = new SettingsPageViewModel([], []);
+        var blocking = new BlockingPageViewModel([], [], "Websites {0}", "Applications {0}");
+        _ = new MainWindowViewModel([home], account, homePage, settings, blocking);
+        blocking.WebsiteModal.Open();
+        blocking.WebsiteModal.WebsiteAddress = "abc";
+
+        blocking.WebsiteModal.SaveCommand.Execute(null);
+
+        Assert.True(settings.IsRuleLimitToastVisible);
+        Assert.Equal("网站地址格式不正确", settings.RuleLimitToastTitle);
+        Assert.Equal("请输入有效的网站地址，例如 youtube.com", settings.RuleLimitToastMessage);
+        Assert.True(blocking.WebsiteModal.IsOpen);
+        Assert.Empty(blocking.Websites);
+    }
+
+    [Fact]
     public void ForcedMode_StartRequiresTheCurrentVipAccessAndDoesNotFallBackToNormalFocus()
     {
         var duration = new HomeDurationOptionViewModel("25 minutes", string.Empty, true, 25);

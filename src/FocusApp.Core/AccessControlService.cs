@@ -74,6 +74,12 @@ public sealed class AccessControlService
 
     public static string? NormalizeWebsiteHost(string? address)
     {
+        var host = NormalizeWebsiteInput(address);
+        return host is not null && IsValidDomain(host) ? host : null;
+    }
+
+    public static string? NormalizeWebsiteInput(string? address)
+    {
         if (string.IsNullOrWhiteSpace(address))
         {
             return null;
@@ -86,21 +92,53 @@ public sealed class AccessControlService
         }
 
         if (!Uri.TryCreate(value, UriKind.Absolute, out var uri) ||
-            uri.Scheme is not ("http" or "https") ||
+            (!string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)) ||
             string.IsNullOrWhiteSpace(uri.Host))
         {
             return null;
         }
 
-        var host = uri.Host.TrimEnd('.').ToLowerInvariant();
-        if (Uri.CheckHostName(host) == UriHostNameType.Unknown)
-        {
-            return null;
-        }
-
-        return host.StartsWith("www.", StringComparison.OrdinalIgnoreCase) && host.Length > 4
+        var host = uri.IdnHost.ToLowerInvariant();
+        return host.StartsWith("www.", StringComparison.Ordinal) && host.Length > 4
             ? host[4..]
             : host;
+    }
+
+    public static bool IsValidDomain(string? host)
+    {
+        if (string.IsNullOrWhiteSpace(host) ||
+            host.Length > 253 ||
+            host[0] == '.' ||
+            host[^1] == '.' ||
+            host.Any(char.IsWhiteSpace) ||
+            Uri.CheckHostName(host) != UriHostNameType.Dns)
+        {
+            return false;
+        }
+
+        var labels = host.Split('.');
+        if (labels.Length < 2)
+        {
+            return false;
+        }
+
+        foreach (var label in labels)
+        {
+            if (label.Length is < 1 or > 63 ||
+                label[0] == '-' ||
+                label[^1] == '-' ||
+                label.Any(character =>
+                    character != '-' &&
+                    (character < 'a' || character > 'z') &&
+                    (character < 'A' || character > 'Z') &&
+                    (character < '0' || character > '9')))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public static string NormalizeApplicationPath(string? path)

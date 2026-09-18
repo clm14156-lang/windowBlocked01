@@ -76,6 +76,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         SettingsPage.WindowsNotificationsChanged += SettingsPage_WindowsNotificationsChanged;
         SettingsPage.FocusSoundChanged += SettingsPage_FocusSoundChanged;
         SettingsPage.RulesChanged += SettingsPage_RulesChanged;
+        BlockingPage.WebsiteModal.WebsiteAddressValidationFailed += WebsiteModal_WebsiteAddressValidationFailed;
         HomePage.DurationOptionsChanged += HomePage_DurationOptionsChanged;
         HomePage.BlockingPageRequested += HomePage_BlockingPageRequested;
         HomePage.ManageAutomaticRuleRequested += HomePage_ManageAutomaticRuleRequested;
@@ -123,6 +124,11 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         LogoutCommand = new RelayCommand<object>(_ => Logout());
         ToggleThemePanelCommand = new RelayCommand<object>(_ => ThemePanel.Toggle());
     }
+
+    private void WebsiteModal_WebsiteAddressValidationFailed(object? sender, EventArgs e)
+        => SettingsPage.ShowRuleCreationFailureToast(
+            "网站地址格式不正确",
+            "请输入有效的网站地址，例如 youtube.com");
 
     public event PropertyChangedEventHandler? PropertyChanged;
 

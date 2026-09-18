@@ -28,6 +28,8 @@ public sealed class AddWebsiteModalViewModel : INotifyPropertyChanged
 
     public event EventHandler<WebsiteEdit>? WebsiteUpdated;
 
+    public event EventHandler? WebsiteAddressValidationFailed;
+
     public ICommand CloseCommand { get; }
 
     public ICommand SaveCommand { get; }
@@ -51,7 +53,7 @@ public sealed class AddWebsiteModalViewModel : INotifyPropertyChanged
 
     public bool IsEditMode => _editingWebsiteId.HasValue;
 
-    public bool CanSave => AccessControlService.NormalizeWebsiteHost(WebsiteAddress) is not null;
+    public bool CanSave => !string.IsNullOrWhiteSpace(WebsiteAddress);
 
     public bool IsWebsiteNameExpanded
     {
@@ -131,7 +133,14 @@ public sealed class AddWebsiteModalViewModel : INotifyPropertyChanged
             return;
         }
 
-        var draft = new WebsiteDraft(name, address);
+        var normalizedDomain = AccessControlService.NormalizeWebsiteInput(address);
+        if (!AccessControlService.IsValidDomain(normalizedDomain))
+        {
+            WebsiteAddressValidationFailed?.Invoke(this, EventArgs.Empty);
+            return;
+        }
+
+        var draft = new WebsiteDraft(name, normalizedDomain!);
         if (_editingWebsiteId is Guid websiteId)
         {
             WebsiteUpdated?.Invoke(this, new WebsiteEdit(websiteId, draft));

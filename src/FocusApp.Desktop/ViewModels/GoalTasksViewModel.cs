@@ -23,6 +23,7 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
     private string? _errorMessage;
     private Task<bool>? _draftCommit;
     private int _draftRevision;
+    private bool _creationRequestedDuringCommit;
     private readonly HashSet<string> _completingTasks = [];
     private bool _isReorderingTasks;
     private readonly HashSet<string> _deletingTasks = [];
@@ -80,6 +81,7 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
         _snapshot = tasks;
         if (GoalId != goal?.GoalId)
         {
+            _creationRequestedDuringCommit = false;
             CancelCreation();
             IsOpen = false;
             _target = goal is null ? null : new FocusTargetViewModel(goal.Name, targetId: goal.GoalId);
@@ -146,7 +148,12 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
     public void BeginCreation()
     {
         if (!CanCreateTask) return;
-        if (!IsCreating && _draftCommit is null)
+        if (_draftCommit is not null)
+        {
+            _creationRequestedDuringCommit = true;
+            return;
+        }
+        if (!IsCreating)
         {
             _draftRevision++;
             DraftName = string.Empty;
@@ -178,21 +185,77 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
     private async Task<bool> CommitDraftAsync(LocalTaskDto task, int revision)
     {
         // Assign before awaiting so Enter, blur and close share one save operation.
-        var completion = new TaskCompletionSource<bool>();
+        var completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         _draftCommit = completion.Task;
+        var optimisticTask = PromoteDraftToPendingTask(task, revision);
+        var succeeded = false;
         try
         {
             var saved = await SaveAsync(task, insertAtTop: true);
             if (saved is not null)
             {
                 if (_draftRevision == revision) CancelCreation();
+                succeeded = true;
                 completion.SetResult(true);
                 return true;
             }
+            RestoreDraftAfterFailedCommit(task, revision, optimisticTask);
             completion.SetResult(false);
             return false;
         }
-        finally { _draftCommit = null; }
+        finally
+        {
+            _draftCommit = null;
+            var beginNext = succeeded &&
+                _creationRequestedDuringCommit &&
+                GoalId == task.TargetId;
+            _creationRequestedDuringCommit = false;
+            if (beginNext) BeginCreation();
+        }
+    }
+
+    private FocusTaskViewModel? PromoteDraftToPendingTask(LocalTaskDto task, int revision)
+    {
+        if (_draftRevision != revision || GoalId != task.TargetId || _target is null)
+        {
+            return null;
+        }
+
+        // End the editor state before the formal row enters the collection. WPF
+        // therefore never receives a state where both rows are visible together.
+        IsCreating = false;
+        var pendingTask = _target.AddTask(
+            task.TaskId,
+            task.Name,
+            false,
+            insertAtTop: true,
+            createdAtUtc: task.CreatedAtUtc);
+        SynchronizePendingTasks();
+        UpdatePendingTaskPriorities();
+        NotifyViews();
+        return pendingTask;
+    }
+
+    private void RestoreDraftAfterFailedCommit(
+        LocalTaskDto task,
+        int revision,
+        FocusTaskViewModel? optimisticTask)
+    {
+        if (_draftRevision != revision || GoalId != task.TargetId || _target is null)
+        {
+            return;
+        }
+
+        if (optimisticTask is not null)
+        {
+            _target.RemoveTask(optimisticTask);
+            SynchronizePendingTasks();
+            UpdatePendingTaskPriorities();
+            NotifyViews();
+        }
+
+        IsCreating = true;
+        DraftFocusRequested?.Invoke(this, EventArgs.Empty);
     }
 
     public async Task<bool> CompleteTaskAsync(FocusTaskViewModel task)

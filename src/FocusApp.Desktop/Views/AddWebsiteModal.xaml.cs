@@ -8,9 +8,13 @@ namespace FocusApp.Desktop.Views;
 
 public partial class AddWebsiteModal : UserControl
 {
+    private AddWebsiteModalViewModel? _viewModel;
+
     public AddWebsiteModal()
     {
         InitializeComponent();
+        DataContextChanged += Modal_DataContextChanged;
+        AttachViewModel(DataContext as AddWebsiteModalViewModel);
     }
 
     private void ModalCard_MouseDown(object sender, MouseButtonEventArgs e)
@@ -33,6 +37,31 @@ public partial class AddWebsiteModal : UserControl
             FocusTextBox(WebsiteNameTextBox);
         }
     }
+
+    private void Modal_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+        => AttachViewModel(e.NewValue as AddWebsiteModalViewModel);
+
+    private void AttachViewModel(AddWebsiteModalViewModel? viewModel)
+    {
+        if (ReferenceEquals(_viewModel, viewModel))
+        {
+            return;
+        }
+
+        if (_viewModel is not null)
+        {
+            _viewModel.WebsiteAddressValidationFailed -= WebsiteModal_AddressValidationFailed;
+        }
+
+        _viewModel = viewModel;
+        if (_viewModel is not null)
+        {
+            _viewModel.WebsiteAddressValidationFailed += WebsiteModal_AddressValidationFailed;
+        }
+    }
+
+    private void WebsiteModal_AddressValidationFailed(object? sender, EventArgs e)
+        => FocusTextBox(WebsiteAddressTextBox);
 
     private void Modal_PreviewKeyDown(object sender, KeyEventArgs e)
     {

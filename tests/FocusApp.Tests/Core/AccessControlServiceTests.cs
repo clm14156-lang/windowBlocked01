@@ -24,9 +24,42 @@ public sealed class AccessControlServiceTests
     [InlineData("www.youtube.com", "youtube.com")]
     [InlineData("https://youtube.com", "youtube.com")]
     [InlineData("https://www.youtube.com/watch?v=123", "youtube.com")]
+    [InlineData(" HTTPS://WWW.YOUTUBE.COM/watch?v=123#top ", "youtube.com")]
+    [InlineData("https://sub.example.com/page", "sub.example.com")]
     public void Website_NormalizesSupportedInputFormatsToBlockingDomain(string input, string expected)
     {
         Assert.Equal(expected, AccessControlService.NormalizeWebsiteHost(input));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("abc")]
+    [InlineData("baidu..com")]
+    [InlineData(".baidu.com")]
+    [InlineData("baidu.com.")]
+    [InlineData("bai du.com")]
+    [InlineData("-baidu.com")]
+    [InlineData("baidu-.com")]
+    [InlineData("@@@.com")]
+    [InlineData("baidu@com")]
+    [InlineData("http://")]
+    [InlineData("https:///")]
+    public void Website_RejectsMalformedDomainsWithoutCheckingWhetherTheyExist(string input)
+    {
+        Assert.Null(AccessControlService.NormalizeWebsiteHost(input));
+    }
+
+    [Fact]
+    public void Website_NormalizationAndValidationRemainSeparateSteps()
+    {
+        var normalized = AccessControlService.NormalizeWebsiteInput("abc");
+
+        Assert.Equal("abc", normalized);
+        Assert.False(AccessControlService.IsValidDomain(normalized));
+        Assert.True(AccessControlService.IsValidDomain("example123456789.com"));
+        Assert.True(AccessControlService.IsValidDomain("EXAMPLE.COM"));
+        Assert.False(AccessControlService.IsValidDomain($"{new string('a', 64)}.com"));
+        Assert.False(AccessControlService.IsValidDomain($"{new string('a', 250)}.com"));
     }
 
     [Fact]

@@ -38,7 +38,7 @@ public sealed class AutomaticBlockingDailyLimitPresentationTests
         Assert.Equal("60", (string?)toast.Attribute("Height"));
         Assert.Equal("0,65,0,0", (string?)toast.Attribute("Margin"));
         Assert.Contains(toast.Descendants(Presentation + "TextBlock"), element =>
-            (string?)element.Attribute("Text") == "{DynamicResource AutomaticRuleLimitTitle}");
+            (string?)element.Attribute("Text") == "{Binding SettingsPage.RuleLimitToastTitle, Mode=OneWay}");
         Assert.Contains(toast.Descendants(Presentation + "TextBlock"), element =>
             (string?)element.Attribute("Text") == "{Binding SettingsPage.RuleLimitToastMessage, Mode=OneWay}");
         Assert.Contains(toast.Descendants(Presentation + "Button"), element =>

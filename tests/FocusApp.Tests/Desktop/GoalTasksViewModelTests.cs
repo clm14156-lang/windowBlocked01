@@ -4,6 +4,7 @@ using FocusApp.Desktop.ViewModels;
 using FocusApp.Infrastructure.Persistence;
 using FocusApp.Core;
 using Microsoft.Data.Sqlite;
+using System.Collections.Specialized;
 using Xunit;
 
 namespace FocusApp.Tests.Desktop;
@@ -92,6 +93,39 @@ public sealed class GoalTasksViewModelTests
     }
 
     [Fact]
+    public async Task CreatingTaskPromotesTheDraftBeforeTheFormalRowIsAddedAndReusesItAfterRefresh()
+    {
+        var model = new GoalTasksViewModel(() => Now);
+        model.ApplyState(Goal(), [TaskData("existing", 0)]);
+        var rowAddedWhileEditorVisible = false;
+        var createdRows = 0;
+        ((INotifyCollectionChanged)model.PendingTasks).CollectionChanged += (_, args) =>
+        {
+            foreach (FocusTaskViewModel task in args.NewItems ?? Array.Empty<object>())
+            {
+                if (task.Name != "阿萨德") continue;
+                createdRows++;
+                rowAddedWhileEditorVisible |= model.IsCreating;
+            }
+        };
+        model.PersistTaskAsync = (task, _) =>
+        {
+            // Simulate the SQLite/service snapshot arriving before the save call returns.
+            model.ApplyState(Goal(), [task, TaskData("existing", 1)]);
+            return System.Threading.Tasks.Task.FromResult<LocalTaskDto?>(task);
+        };
+        model.BeginCreation();
+        model.DraftName = "阿萨德";
+
+        Assert.True(await model.CommitCreationAsync());
+
+        Assert.False(rowAddedWhileEditorVisible);
+        Assert.Equal(1, createdRows);
+        Assert.False(model.IsCreating);
+        Assert.Equal(["阿萨德", "existing"], model.PendingTasks.Select(task => task.Name));
+    }
+
+    [Fact]
     public async Task EmptyBlurAndEscapeDiscardDraftWithoutSaving()
     {
         var model = new GoalTasksViewModel(() => Now);
@@ -127,12 +161,53 @@ public sealed class GoalTasksViewModelTests
         var blur = model.CommitCreationAsync();
         var close = model.CloseAsync();
         Assert.Equal(1, saves);
+        Assert.False(model.IsCreating);
+        Assert.Equal("唯一任务", Assert.Single(model.PendingTasks).Name);
         completion.SetResult(requested);
         Assert.True(await enter);
         Assert.True(await blur);
         Assert.True(await close);
         Assert.Single(model.PendingTasks);
         Assert.False(model.IsCreating);
+    }
+
+    [Fact]
+    public async Task NewTaskRequestDuringCommitOpensOneFreshEditorAfterPersistenceCompletes()
+    {
+        var model = new GoalTasksViewModel(() => Now);
+        model.ApplyState(Goal(), []);
+        var firstSave = new TaskCompletionSource<LocalTaskDto?>();
+        var saves = 0;
+        model.PersistTaskAsync = (task, _) =>
+        {
+            saves++;
+            return saves == 1
+                ? firstSave.Task
+                : System.Threading.Tasks.Task.FromResult<LocalTaskDto?>(task);
+        };
+        model.BeginCreation();
+        model.DraftName = "第一项";
+
+        var firstCommit = model.CommitCreationAsync();
+        model.BeginCreation();
+        model.BeginCreation();
+        var optimistic = model.PendingTasks.Single();
+        firstSave.SetResult(new LocalTaskDto(
+            optimistic.TaskId,
+            optimistic.TargetId,
+            optimistic.Name,
+            false,
+            0,
+            optimistic.CreatedAtUtc,
+            Now));
+        Assert.True(await firstCommit);
+
+        Assert.True(model.IsCreating);
+        Assert.Equal(string.Empty, model.DraftName);
+        model.DraftName = "第二项";
+        Assert.True(await model.CommitCreationAsync());
+        Assert.Equal(2, saves);
+        Assert.Equal(["第二项", "第一项"], model.PendingTasks.Select(task => task.Name));
     }
 
     [Fact]

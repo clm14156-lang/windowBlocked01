@@ -283,6 +283,7 @@ public sealed class SettingsPageViewModelTests
         Assert.Same(existing, viewModel.AutomaticRules[0]);
         Assert.Equal(0, changes);
         Assert.True(viewModel.IsRuleLimitToastVisible);
+        Assert.Equal("无法创建屏蔽规则", viewModel.RuleLimitToastTitle);
         Assert.Equal("周一每日最多屏蔽 12 小时，当前还可添加 45 分钟", viewModel.RuleLimitToastMessage);
         Assert.Empty(modal.ValidationMessage);
 

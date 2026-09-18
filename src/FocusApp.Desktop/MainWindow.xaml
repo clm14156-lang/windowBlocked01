@@ -806,7 +806,7 @@
                             <TextBlock FontSize="14"
                                        FontWeight="Medium"
                                        Foreground="{DynamicResource TextPrimary}"
-                                       Text="{DynamicResource AutomaticRuleLimitTitle}" />
+                                       Text="{Binding SettingsPage.RuleLimitToastTitle, Mode=OneWay}" />
                             <TextBlock Margin="0,2,0,0"
                                        FontSize="11"
                                        Foreground="{DynamicResource TextSecondary}"

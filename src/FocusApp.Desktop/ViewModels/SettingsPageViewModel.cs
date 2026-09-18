@@ -22,6 +22,7 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
     private string _ruleMergeToastRange = string.Empty;
     private DispatcherTimer? _ruleLimitToastTimer;
     private bool _isRuleLimitToastVisible;
+    private string _ruleLimitToastTitle = "无法创建屏蔽规则";
     private string _ruleLimitToastMessage = string.Empty;
     private readonly Func<DateTime> _clock;
 
@@ -198,7 +199,29 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
 
     public bool IsRuleLimitToastVisible => _isRuleLimitToastVisible;
 
+    public string RuleLimitToastTitle => _ruleLimitToastTitle;
+
     public string RuleLimitToastMessage => _ruleLimitToastMessage;
+
+    public void ShowRuleCreationFailureToast(string title, string message)
+    {
+        CloseRuleMergeToast();
+        _ruleLimitToastTitle = title;
+        _ruleLimitToastMessage = message;
+        _isRuleLimitToastVisible = true;
+        OnPropertyChanged(nameof(RuleLimitToastTitle));
+        OnPropertyChanged(nameof(RuleLimitToastMessage));
+        OnPropertyChanged(nameof(IsRuleLimitToastVisible));
+
+        _ruleLimitToastTimer ??= new DispatcherTimer(DispatcherPriority.Normal)
+        {
+            Interval = TimeSpan.FromSeconds(4)
+        };
+        _ruleLimitToastTimer.Stop();
+        _ruleLimitToastTimer.Tick -= RuleLimitToastTimer_Tick;
+        _ruleLimitToastTimer.Tick += RuleLimitToastTimer_Tick;
+        _ruleLimitToastTimer.Start();
+    }
 
     public string? LastActivatedEntryKey => _activeEntry?.Key;
 
@@ -384,23 +407,11 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
             return true;
         }
 
-        CloseRuleMergeToast();
         var dayName = GetDayDisplayName(conflict.Day);
-        _ruleLimitToastMessage = conflict.RemainingMinutes == 0
+        var message = conflict.RemainingMinutes == 0
             ? $"{dayName}已达到每日 12 小时上限，无法继续添加"
             : $"{dayName}每日最多屏蔽 12 小时，当前还可添加 {conflict.RemainingMinutes} 分钟";
-        _isRuleLimitToastVisible = true;
-        OnPropertyChanged(nameof(RuleLimitToastMessage));
-        OnPropertyChanged(nameof(IsRuleLimitToastVisible));
-
-        _ruleLimitToastTimer ??= new DispatcherTimer(DispatcherPriority.Normal)
-        {
-            Interval = TimeSpan.FromSeconds(4)
-        };
-        _ruleLimitToastTimer.Stop();
-        _ruleLimitToastTimer.Tick -= RuleLimitToastTimer_Tick;
-        _ruleLimitToastTimer.Tick += RuleLimitToastTimer_Tick;
-        _ruleLimitToastTimer.Start();
+        ShowRuleCreationFailureToast("无法创建屏蔽规则", message);
         return false;
     }
 
