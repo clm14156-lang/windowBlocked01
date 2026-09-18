@@ -182,6 +182,11 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
     private bool _showDropBefore;
     private bool _showDropAfter;
     private bool _isCompleting;
+    private bool _isCompletionStyled;
+    private bool _isCompletionExiting;
+    private bool _isUncompleting;
+    private bool _isUncompletionRestored;
+    private bool _isUncompletionExiting;
     private int _listPriorityRank;
 
     internal FocusTaskViewModel(
@@ -420,6 +425,81 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
             }
 
             _isCompleting = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool IsCompletionStyled
+    {
+        get => _isCompletionStyled;
+        internal set
+        {
+            if (_isCompletionStyled == value)
+            {
+                return;
+            }
+
+            _isCompletionStyled = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool IsCompletionExiting
+    {
+        get => _isCompletionExiting;
+        internal set
+        {
+            if (_isCompletionExiting == value)
+            {
+                return;
+            }
+
+            _isCompletionExiting = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool IsUncompleting
+    {
+        get => _isUncompleting;
+        internal set
+        {
+            if (_isUncompleting == value)
+            {
+                return;
+            }
+
+            _isUncompleting = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool IsUncompletionRestored
+    {
+        get => _isUncompletionRestored;
+        internal set
+        {
+            if (_isUncompletionRestored == value)
+            {
+                return;
+            }
+
+            _isUncompletionRestored = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool IsUncompletionExiting
+    {
+        get => _isUncompletionExiting;
+        internal set
+        {
+            if (_isUncompletionExiting == value)
+            {
+                return;
+            }
+
+            _isUncompletionExiting = value;
             OnPropertyChanged();
         }
     }

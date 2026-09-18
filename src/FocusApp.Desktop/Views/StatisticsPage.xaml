@@ -80,13 +80,26 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type Button}">
-                        <Border x:Name="CheckSurface" Background="{TemplateBinding Background}" BorderBrush="#C8CCD5" BorderThickness="1.3" CornerRadius="4">
+                        <Border x:Name="CheckSurface" Background="{TemplateBinding Background}" BorderBrush="#C8CCD5" BorderThickness="1.3" CornerRadius="4" RenderTransformOrigin="0.5,0.5">
+                            <Border.RenderTransform><ScaleTransform x:Name="CheckScale" ScaleX="1" ScaleY="1" /></Border.RenderTransform>
                             <Path x:Name="CheckMark" Width="9" Height="6" HorizontalAlignment="Center" VerticalAlignment="Center" Data="M 0,3 L 3.2,6 L 9,0" Stretch="Fill" Stroke="White" StrokeThickness="1.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Visibility="Collapsed" />
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="CheckSurface" Property="BorderBrush" Value="#AEB3BE" /></Trigger>
                             <Trigger Property="IsPressed" Value="True"><Setter TargetName="CheckSurface" Property="Opacity" Value="0.72" /></Trigger>
-                            <DataTrigger Binding="{Binding IsCompleting}" Value="True"><Setter TargetName="CheckSurface" Property="Background" Value="{DynamicResource AccentPrimary}" /><Setter TargetName="CheckSurface" Property="BorderBrush" Value="{DynamicResource AccentPrimary}" /><Setter TargetName="CheckMark" Property="Visibility" Value="Visible" /></DataTrigger>
+                            <DataTrigger Binding="{Binding IsCompleting}" Value="True">
+                                <Setter TargetName="CheckSurface" Property="Background" Value="{DynamicResource AccentPrimary}" />
+                                <Setter TargetName="CheckSurface" Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
+                                <Setter TargetName="CheckMark" Property="Visibility" Value="Visible" />
+                                <DataTrigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="CheckScale" Storyboard.TargetProperty="ScaleX" From="0.88" To="1" Duration="0:0:0.12" />
+                                            <DoubleAnimation Storyboard.TargetName="CheckScale" Storyboard.TargetProperty="ScaleY" From="0.88" To="1" Duration="0:0:0.12" />
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </DataTrigger.EnterActions>
+                            </DataTrigger>
                             <DataTrigger Binding="{Binding IsCompleted}" Value="True"><Setter TargetName="CheckSurface" Property="Background" Value="{DynamicResource AccentPrimary}" /><Setter TargetName="CheckSurface" Property="BorderBrush" Value="{DynamicResource AccentPrimary}" /><Setter TargetName="CheckMark" Property="Visibility" Value="Visible" /></DataTrigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -1515,7 +1528,6 @@
                                                     <Border Width="120" Margin="6" Padding="6" Background="White" BorderBrush="#E8E8EA" BorderThickness="1" CornerRadius="9">
                                                         <Border.Effect><DropShadowEffect BlurRadius="14" Direction="270" ShadowDepth="3" Opacity="0.10" Color="#000000"/></Border.Effect>
                                                         <StackPanel>
-                                                            <TextBlock Margin="6,4,0,6" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding CreatedDateDisplay}"/>
                                                             <Button Content="编辑" Style="{StaticResource GoalDetailMenuItemStyle}" Click="EditGoalButton_Click"/>
                                                             <Button Content="归档" Style="{StaticResource GoalDetailMenuItemStyle}" Click="ArchiveGoalButton_Click" Visibility="{Binding IsArchived, Converter={StaticResource GoalInverseVisibilityConverter}}"/>
                                                             <Button Content="恢复目标" Style="{StaticResource GoalDetailMenuItemStyle}" Click="RestoreGoalButton_Click" Visibility="{Binding IsArchived, Converter={StaticResource BooleanToVisibilityConverter}}"/>
@@ -1544,8 +1556,8 @@
                                 </Grid.RowDefinitions>
                                 <Grid x:Name="GoalDetailHeader" Margin="8,4,8,20">
                                     <StackPanel>
-                                        <TextBlock FontSize="28" FontWeight="SemiBold" Text="{Binding SelectedGoalName}" Foreground="{DynamicResource TextPrimary}" TextTrimming="CharacterEllipsis" ToolTip="{Binding SelectedGoal.CreatedDateDisplay}"/>
-                                        <TextBlock x:Name="GoalDetailRemark" Margin="0,7,0,0" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding SelectedGoal.Remark}" ToolTip="{Binding SelectedGoal.Remark}" TextWrapping="Wrap" MaxHeight="54" TextTrimming="CharacterEllipsis" Visibility="{Binding HasSelectedGoalRemark, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                        <TextBlock FontSize="28" FontWeight="SemiBold" Text="{Binding SelectedGoalName}" Foreground="{DynamicResource TextPrimary}" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock x:Name="GoalDetailMetadata" Margin="0,7,0,0" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextWeak}" Text="{Binding SelectedGoal.DetailMetadataDisplay}" ToolTip="{Binding SelectedGoal.DetailMetadataDisplay}" TextTrimming="CharacterEllipsis"/>
                                     </StackPanel>
                                 </Grid>
                                 <Border Grid.Row="1" Background="#F0F0F3"/>
@@ -1605,6 +1617,7 @@
                                                   Margin="0,6,0,0"
                                                   AllowDrop="True"
                                                   DragOver="GoalNextTasksScroll_DragOver"
+                                                  DragLeave="GoalNextTasksScroll_DragLeave"
                                                   Drop="GoalNextTasksScroll_Drop"
                                                   VerticalScrollBarVisibility="Auto"
                                                   HorizontalScrollBarVisibility="Disabled">
@@ -1645,12 +1658,38 @@
                                                             <Style TargetType="{x:Type Grid}">
                                                                 <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
                                                                 <Setter Property="Cursor" Value="Hand" />
+                                                                <Setter Property="ClipToBounds" Value="True" />
                                                                 <Setter Property="Opacity" Value="1" />
                                                                 <Setter Property="RenderTransform"><Setter.Value><TranslateTransform /></Setter.Value></Setter>
                                                                 <Style.Triggers>
                                                                     <DataTrigger Binding="{Binding IsDragging}" Value="True"><Setter Property="Opacity" Value="0.72" /><Setter Property="Panel.ZIndex" Value="8" /><Setter Property="Effect"><Setter.Value><DropShadowEffect BlurRadius="9" Direction="270" Opacity="0.12" ShadowDepth="2" Color="#777777" /></Setter.Value></Setter></DataTrigger>
                                                                     <DataTrigger Binding="{Binding ShowDropBefore}" Value="True"><Setter Property="RenderTransform"><Setter.Value><TranslateTransform Y="3" /></Setter.Value></Setter></DataTrigger>
                                                                     <DataTrigger Binding="{Binding ShowDropAfter}" Value="True"><Setter Property="RenderTransform"><Setter.Value><TranslateTransform Y="-3" /></Setter.Value></Setter></DataTrigger>
+                                                                    <DataTrigger Binding="{Binding IsCompleting}" Value="True"><Setter Property="IsHitTestVisible" Value="False" /></DataTrigger>
+                                                                    <DataTrigger Binding="{Binding IsCompletionExiting}" Value="True">
+                                                                        <DataTrigger.EnterActions>
+                                                                            <BeginStoryboard>
+                                                                                <Storyboard>
+                                                                                    <DoubleAnimation Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.2" />
+                                                                                    <DoubleAnimation Storyboard.TargetProperty="Height" To="0" Duration="0:0:0.2">
+                                                                                        <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseInOut" /></DoubleAnimation.EasingFunction>
+                                                                                    </DoubleAnimation>
+                                                                                    <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.X)" To="8" Duration="0:0:0.2">
+                                                                                        <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction>
+                                                                                    </DoubleAnimation>
+                                                                                </Storyboard>
+                                                                            </BeginStoryboard>
+                                                                        </DataTrigger.EnterActions>
+                                                                        <DataTrigger.ExitActions>
+                                                                            <BeginStoryboard>
+                                                                                <Storyboard>
+                                                                                    <DoubleAnimation Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.16" />
+                                                                                    <DoubleAnimation Storyboard.TargetProperty="Height" To="40" Duration="0:0:0.16" />
+                                                                                    <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.X)" To="0" Duration="0:0:0.16" />
+                                                                                </Storyboard>
+                                                                            </BeginStoryboard>
+                                                                        </DataTrigger.ExitActions>
+                                                                    </DataTrigger>
                                                                 </Style.Triggers>
                                                             </Style>
                                                         </Grid.Style>
@@ -1674,6 +1713,7 @@
                                                                             <DataTrigger Binding="{Binding ListPriorityRank}" Value="1"><Setter Property="Visibility" Value="Visible" /><Setter Property="Opacity" Value="1" /></DataTrigger>
                                                                             <DataTrigger Binding="{Binding ListPriorityRank}" Value="2"><Setter Property="Visibility" Value="Visible" /><Setter Property="Opacity" Value="0.6" /></DataTrigger>
                                                                             <DataTrigger Binding="{Binding ListPriorityRank}" Value="3"><Setter Property="Visibility" Value="Visible" /><Setter Property="Opacity" Value="0.3" /></DataTrigger>
+                                                                            <DataTrigger Binding="{Binding IsCompletionStyled}" Value="True"><Setter Property="Opacity" Value="0.16" /></DataTrigger>
                                                                         </Style.Triggers>
                                                                     </Style>
                                                                 </Border.Style>
@@ -1686,7 +1726,19 @@
                                                                     Command="{Binding DataContext.GoalTasks.CompleteTaskCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
                                                                     CommandParameter="{Binding}"
                                                                     Style="{StaticResource GoalNextTaskCheckButtonStyle}" />
-                                                            <TextBlock Grid.Column="2" Margin="12,0,10,0" Text="{Binding Name}" VerticalAlignment="Center" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}" TextTrimming="CharacterEllipsis"/>
+                                                            <TextBlock x:Name="GoalNextTaskName" Grid.Column="2" Margin="12,0,10,0" Text="{Binding Name}" VerticalAlignment="Center" FontSize="13" FontWeight="Normal" TextTrimming="CharacterEllipsis">
+                                                                <TextBlock.Style>
+                                                                    <Style TargetType="{x:Type TextBlock}">
+                                                                        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding IsCompletionStyled}" Value="True">
+                                                                                <Setter Property="Foreground" Value="{DynamicResource TextWeak}" />
+                                                                                <Setter Property="TextDecorations" Value="Strikethrough" />
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </TextBlock.Style>
+                                                            </TextBlock>
                                                             <Button x:Name="GoalNextTaskMoreButton"
                                                                     Grid.Column="3"
                                                                     HorizontalAlignment="Right"
@@ -1702,6 +1754,24 @@
                                                                 <TextBlock Margin="0,-4,0,0" FontSize="14" Foreground="#989CA6" Text="..." />
                                                             </Button>
                                                         </Grid>
+                                                        <Border x:Name="GoalTaskDropBeforeIndicator"
+                                                                Height="2"
+                                                                Margin="9,0,8,0"
+                                                                VerticalAlignment="Top"
+                                                                Panel.ZIndex="10"
+                                                                Background="{DynamicResource AccentPrimary}"
+                                                                CornerRadius="1"
+                                                                IsHitTestVisible="False"
+                                                                Visibility="{Binding ShowDropBefore, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                                        <Border x:Name="GoalTaskDropAfterIndicator"
+                                                                Height="2"
+                                                                Margin="9,0,8,0"
+                                                                VerticalAlignment="Bottom"
+                                                                Panel.ZIndex="10"
+                                                                Background="{DynamicResource AccentPrimary}"
+                                                                CornerRadius="1"
+                                                                IsHitTestVisible="False"
+                                                                Visibility="{Binding ShowDropAfter, Converter={StaticResource BooleanToVisibilityConverter}}" />
                                                     </Grid>
                                                     </DataTemplate>
                                                 </ItemsControl.ItemTemplate>
@@ -1715,7 +1785,7 @@
                                         <Border Width="21" Height="21" VerticalAlignment="Center" Background="#7B8595" CornerRadius="11">
                                             <Path Width="10" Height="7" Data="M 0,3.5 L 3.5,7 L 10,0" Stretch="Fill" VerticalAlignment="Center" HorizontalAlignment="Center" Stroke="White" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
                                         </Border>
-                                        <TextBlock Grid.Column="1" Margin="10,0,8,0" Text="今日已完成 3 项" FontSize="12" FontWeight="Medium" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}"/>
+                                        <TextBlock Grid.Column="1" Margin="10,0,8,0" Text="{Binding GoalTasks.TodayCompletedSummary}" FontSize="12" FontWeight="Medium" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}"/>
                                         <Button Grid.Column="2" Padding="4,5" VerticalAlignment="Center" Background="Transparent" Style="{StaticResource GoalQuietActionStyle}" Command="{Binding GoalTasks.OpenCompletedCommand}" AutomationProperties.Name="查看已完成任务"><TextBlock Text="查看已完成任务  ›"/></Button>
                                     </Grid>
                                 </Border>

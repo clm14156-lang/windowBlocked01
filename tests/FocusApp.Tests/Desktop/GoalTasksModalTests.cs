@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -48,9 +49,59 @@ public sealed class GoalTasksModalTests
         Assert.Equal("0,0,0,1", (string?)taskRow.Attribute("BorderThickness"));
         Assert.Contains(taskRow.Descendants(Presentation + "TextBlock"), element =>
             (string?)element.Attribute("Text") == "{Binding Name}");
-        Assert.Contains(taskRow.Descendants(Presentation + "TextBlock"), element =>
-            (string?)element.Attribute("Text") == "{Binding CompletedTimeDisplay}" &&
-            (string?)element.Attribute("HorizontalAlignment") == "Right");
+        var completedTime = Assert.Single(taskRow.Descendants(Presentation + "TextBlock").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "CompletedTaskTime"));
+        Assert.Equal("Right", (string?)completedTime.Attribute("HorizontalAlignment"));
+        Assert.Contains(completedTime.Descendants(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("Property") == "Text" &&
+            (string?)setter.Attribute("Value") == "{Binding CompletedTimeDisplay}");
+        Assert.Contains(completedTime.Descendants(Presentation + "DataTrigger"), trigger =>
+            (string?)trigger.Attribute("Binding") == "{Binding IsUncompletionRestored}" &&
+            trigger.Elements(Presentation + "Setter").Any(setter =>
+                (string?)setter.Attribute("Property") == "Text" &&
+                (string?)setter.Attribute("Value") == "已恢复"));
+        var completedCheck = Assert.Single(taskRow.Descendants(Presentation + "Grid").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "CompletedTaskCheck"));
+        Assert.Equal("CompletedTaskCheck_MouseLeftButtonDown", (string?)completedCheck.Attribute("MouseLeftButtonDown"));
+        var completedMore = Assert.Single(taskRow.Descendants(Presentation + "Button").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "CompletedTaskMore"));
+        Assert.Equal("False", (string?)completedMore.Attribute("Focusable"));
+        Assert.Equal("False", (string?)completedMore.Attribute("IsTabStop"));
+        Assert.Equal("CompletedTaskMore_Click", (string?)completedMore.Attribute("Click"));
+
+        var uncheckingTrigger = Assert.Single(completed.Descendants(Presentation + "DataTrigger").Where(trigger =>
+            (string?)trigger.Attribute("Binding") == "{Binding IsUncompleting}" &&
+            trigger.Descendants(Presentation + "DoubleAnimation").Any(animation =>
+                (string?)animation.Attribute("Storyboard.TargetName") == "CompletedTaskCheckMark")));
+        Assert.Contains(uncheckingTrigger.Elements(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("TargetName") == "CompletedTaskTime" &&
+            (string?)setter.Attribute("Property") == "Visibility" &&
+            (string?)setter.Attribute("Value") == "Visible");
+        Assert.Contains(uncheckingTrigger.Elements(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("TargetName") == "CompletedTaskMore" &&
+            (string?)setter.Attribute("Property") == "Visibility" &&
+            (string?)setter.Attribute("Value") == "Hidden");
+        Assert.Equal(2, uncheckingTrigger
+            .Elements(Presentation + "DataTrigger.EnterActions")
+            .Descendants(Presentation + "DoubleAnimation")
+            .Count(animation => (string?)animation.Attribute("Duration") == "0:0:0.12"));
+
+        var exitTrigger = Assert.Single(taskRow.Descendants(Presentation + "DataTrigger").Where(trigger =>
+            (string?)trigger.Attribute("Binding") == "{Binding IsUncompletionExiting}"));
+        var exitAnimations = exitTrigger
+            .Elements(Presentation + "DataTrigger.EnterActions")
+            .Descendants(Presentation + "DoubleAnimation")
+            .ToArray();
+        Assert.Contains(exitAnimations, animation =>
+            (string?)animation.Attribute("Storyboard.TargetProperty") == "Opacity" &&
+            (string?)animation.Attribute("To") == "0" &&
+            (string?)animation.Attribute("Duration") == "0:0:0.2");
+        Assert.Contains(exitAnimations, animation =>
+            (string?)animation.Attribute("Storyboard.TargetProperty") == "Height" &&
+            (string?)animation.Attribute("To") == "0");
+        Assert.Contains(exitAnimations, animation =>
+            (string?)animation.Attribute("Storyboard.TargetProperty") == "(UIElement.RenderTransform).(TranslateTransform.X)" &&
+            (string?)animation.Attribute("To") == "7");
         Assert.DoesNotContain(card.Descendants(Presentation + "ItemsControl"), element =>
             (string?)element.Attribute("ItemsSource") == "{Binding PendingTasks}");
     }
@@ -108,7 +159,72 @@ public sealed class GoalTasksModalTests
         Assert.Null(failure);
     }
 
+    [Fact]
+    public void FirstCompletedTaskMenuKeepsScrollOffsetAndUsesItsOwnButtonAsAnchor()
+    {
+        Exception? failure = null;
+        var thread = new Thread(() =>
+        {
+            Window? window = null;
+            try
+            {
+                var now = new DateTimeOffset(new DateTime(2026, 9, 18, 14, 32, 0));
+                var model = new GoalTasksViewModel(() => now);
+                var goal = new GoalOverviewItemViewModel("goal", "学习", "", "", false, false);
+                var tasks = Enumerable.Range(0, 15)
+                    .Select(index => new LocalTaskDto(
+                        $"completed-{index}", goal.GoalId, $"任务 {index + 1}", true, index,
+                        now.AddDays(-8), now)
+                    {
+                        CompletedAtUtc = now.AddMinutes(-index)
+                    })
+                    .ToArray();
+                model.ApplyState(goal, tasks);
+                model.OpenCompletedCommand.Execute(null);
+
+                var modal = new GoalTasksModal { DataContext = model };
+                foreach (var resource in new[] { "Colors", "Typography", "Strings", "Styles" })
+                    modal.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri($"/FocusApp.Desktop;component/Resources/{resource}.xaml", UriKind.Relative) });
+                window = new Window { Width = 900, Height = 700, Content = modal, ShowInTaskbar = false, ShowActivated = false, WindowStyle = WindowStyle.None, Left = -32000, Top = -32000 };
+                window.Show();
+                Pump();
+
+                var completed = (ItemsControl)modal.FindName("CompletedTasksControl");
+                var scrollViewer = (ScrollViewer)modal.FindName("CompletedTasksScrollViewer");
+                var menu = (Popup)modal.FindName("CompletedTaskMenu");
+                var firstMore = VisualDescendants<Button>(completed)
+                    .First(button => button.Name == "CompletedTaskMore");
+                firstMore.Visibility = Visibility.Visible;
+                scrollViewer.ScrollToTop();
+                Pump();
+                var offsetBefore = scrollViewer.VerticalOffset;
+
+                firstMore.RaiseEvent(new RoutedEventArgs(Button.ClickEvent, firstMore));
+                Pump();
+
+                Assert.Equal(offsetBefore, scrollViewer.VerticalOffset);
+                Assert.True(menu.IsOpen);
+                Assert.Same(firstMore, menu.PlacementTarget);
+            }
+            catch (Exception exception) { failure = exception; }
+            finally { window?.Close(); }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        Assert.True(thread.Join(TimeSpan.FromSeconds(20)), "First completed task menu verification did not finish.");
+        Assert.Null(failure);
+    }
+
     private static void Pump() => Dispatcher.CurrentDispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
+    private static IEnumerable<T> VisualDescendants<T>(DependencyObject root) where T : DependencyObject
+    {
+        for (var index = 0; index < VisualTreeHelper.GetChildrenCount(root); index++)
+        {
+            var child = VisualTreeHelper.GetChild(root, index);
+            if (child is T match) yield return match;
+            foreach (var descendant in VisualDescendants<T>(child)) yield return descendant;
+        }
+    }
     private static void PressKey(UIElement element, Key key) =>
         element.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(element), 0, key)
         {

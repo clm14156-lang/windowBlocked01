@@ -504,7 +504,10 @@ public sealed class DesktopServiceConnection : INotifyPropertyChanged, IAsyncDis
 
     private void PublishState(LocalDataSnapshotDto state)
     {
-        if (State is not null && state.Revision < State.Revision)
+        // A mutation is delivered both as a response and as a service event.
+        // Equal revisions represent the same committed snapshot and must not
+        // trigger a second UI refresh.
+        if (State is not null && state.Revision <= State.Revision)
         {
             return;
         }

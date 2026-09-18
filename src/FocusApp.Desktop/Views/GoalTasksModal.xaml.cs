@@ -29,9 +29,22 @@ public partial class GoalTasksModal : UserControl
             await model.DeleteCompletedTaskAsync(task);
     }
 
+    private async void CompletedTaskCheck_MouseLeftButtonDown(object sender, MouseButtonEventArgs args)
+    {
+        if (sender is not FrameworkElement { DataContext: FocusTaskViewModel task } ||
+            DataContext is not GoalTasksViewModel model)
+        {
+            return;
+        }
+
+        args.Handled = true;
+        await model.UncompleteTaskAsync(task);
+    }
+
     private void CompletedTaskMenu_Closed(object sender, EventArgs args) => _menuTask = null;
     private void CompletedTasks_ScrollChanged(object sender, ScrollChangedEventArgs args)
     {
+        if (args.HorizontalChange == 0 && args.VerticalChange == 0) return;
         if (CompletedTaskMenu is not null) CompletedTaskMenu.IsOpen = false;
     }
     private void Modal_Unloaded(object sender, RoutedEventArgs args) => CompletedTaskMenu.IsOpen = false;

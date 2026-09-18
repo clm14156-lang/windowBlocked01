@@ -138,21 +138,66 @@
                                                             <Border.Style>
                                                                 <Style TargetType="Border">
                                                                     <Setter Property="Background" Value="Transparent" />
+                                                                    <Setter Property="ClipToBounds" Value="True" />
+                                                                    <Setter Property="Opacity" Value="1" />
+                                                                    <Setter Property="RenderTransform"><Setter.Value><TranslateTransform /></Setter.Value></Setter>
                                                                     <Style.Triggers>
                                                                         <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#F6F5F4" /></Trigger>
+                                                                        <DataTrigger Binding="{Binding IsUncompleting}" Value="True"><Setter Property="IsHitTestVisible" Value="False" /></DataTrigger>
+                                                                        <DataTrigger Binding="{Binding IsUncompletionExiting}" Value="True">
+                                                                            <DataTrigger.EnterActions>
+                                                                                <BeginStoryboard>
+                                                                                    <Storyboard>
+                                                                                        <DoubleAnimation Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.2" />
+                                                                                        <DoubleAnimation Storyboard.TargetProperty="Height" To="0" Duration="0:0:0.2">
+                                                                                            <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseInOut" /></DoubleAnimation.EasingFunction>
+                                                                                        </DoubleAnimation>
+                                                                                        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.X)" To="7" Duration="0:0:0.2">
+                                                                                            <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction>
+                                                                                        </DoubleAnimation>
+                                                                                    </Storyboard>
+                                                                                </BeginStoryboard>
+                                                                            </DataTrigger.EnterActions>
+                                                                            <DataTrigger.ExitActions>
+                                                                                <BeginStoryboard>
+                                                                                    <Storyboard>
+                                                                                        <DoubleAnimation Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.16" />
+                                                                                        <DoubleAnimation Storyboard.TargetProperty="Height" To="38" Duration="0:0:0.16" />
+                                                                                        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.X)" To="0" Duration="0:0:0.16" />
+                                                                                    </Storyboard>
+                                                                                </BeginStoryboard>
+                                                                            </DataTrigger.ExitActions>
+                                                                        </DataTrigger>
                                                                     </Style.Triggers>
                                                                 </Style>
                                                             </Border.Style>
                                                             <Grid>
                                                                 <Grid.ColumnDefinitions><ColumnDefinition Width="30" /><ColumnDefinition Width="*" /><ColumnDefinition Width="48" /></Grid.ColumnDefinitions>
-                                                                <Border Width="18" Height="18" HorizontalAlignment="Left" VerticalAlignment="Center" Background="{DynamicResource AccentPrimary}" CornerRadius="5">
-                                                                    <Path Width="10" Height="7" Data="M 0,3.5 L 3.5,7 L 10,0" Stretch="Fill" Stroke="White" StrokeThickness="1.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                                                </Border>
-                                                                <TextBlock Grid.Column="1" Margin="0,0,12,0" Text="{Binding Name}" FontSize="13" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding Name}" />
+                                                                <Grid x:Name="CompletedTaskCheck" Width="18" Height="18" HorizontalAlignment="Left" VerticalAlignment="Center" Background="Transparent" MouseLeftButtonDown="CompletedTaskCheck_MouseLeftButtonDown">
+                                                                    <Border BorderBrush="#C8CCD5" BorderThickness="1.3" CornerRadius="5" />
+                                                                    <Border x:Name="CompletedTaskCheckFill" Background="{DynamicResource AccentPrimary}" CornerRadius="5" />
+                                                                    <Path x:Name="CompletedTaskCheckMark" Width="10" Height="7" Data="M 0,3.5 L 3.5,7 L 10,0" Stretch="Fill" Stroke="White" StrokeThickness="1.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                                </Grid>
+                                                                <TextBlock x:Name="CompletedTaskName" Grid.Column="1" Margin="0,0,12,0" Text="{Binding Name}" FontSize="13" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding Name}">
+                                                                    <TextBlock.Style>
+                                                                        <Style TargetType="TextBlock">
+                                                                            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+                                                                            <Style.Triggers><DataTrigger Binding="{Binding IsUncompletionRestored}" Value="True"><Setter Property="Foreground" Value="{DynamicResource TextPrimary}" /></DataTrigger></Style.Triggers>
+                                                                        </Style>
+                                                                    </TextBlock.Style>
+                                                                </TextBlock>
                                                                 <Grid Grid.Column="2">
-                                                                    <TextBlock x:Name="CompletedTaskTime" Text="{Binding CompletedTimeDisplay}" FontSize="11.5" Foreground="{DynamicResource TextWeak}" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                                                                    <TextBlock x:Name="CompletedTaskTime" FontSize="11.5" Foreground="{DynamicResource TextWeak}" VerticalAlignment="Center" HorizontalAlignment="Right">
+                                                                        <TextBlock.Style>
+                                                                            <Style TargetType="TextBlock">
+                                                                                <Setter Property="Text" Value="{Binding CompletedTimeDisplay}" />
+                                                                                <Style.Triggers><DataTrigger Binding="{Binding IsUncompletionRestored}" Value="True"><Setter Property="Text" Value="已恢复" /></DataTrigger></Style.Triggers>
+                                                                            </Style>
+                                                                        </TextBlock.Style>
+                                                                    </TextBlock>
                                                                     <Button x:Name="CompletedTaskMore" Width="28" Height="28" HorizontalAlignment="Right" VerticalAlignment="Center"
-                                                                            Visibility="Hidden" Style="{StaticResource TaskQuietButton}" Click="CompletedTaskMore_Click"
+                                                                            Visibility="Hidden" Focusable="False" IsTabStop="False"
+                                                                            Style="{StaticResource TaskQuietButton}" Click="CompletedTaskMore_Click"
                                                                             AutomationProperties.Name="更多操作">
                                                                         <TextBlock Text="&#x2026;" FontSize="18" Foreground="#8B8B93" Margin="0,-5,0,0" />
                                                                     </Button>
@@ -164,6 +209,26 @@
                                                                 <Setter TargetName="CompletedTaskTime" Property="Visibility" Value="Hidden" />
                                                                 <Setter TargetName="CompletedTaskMore" Property="Visibility" Value="Visible" />
                                                             </Trigger>
+                                                            <DataTrigger Binding="{Binding IsUncompleting}" Value="True">
+                                                                <Setter TargetName="CompletedTaskTime" Property="Visibility" Value="Visible" />
+                                                                <Setter TargetName="CompletedTaskMore" Property="Visibility" Value="Hidden" />
+                                                                <DataTrigger.EnterActions>
+                                                                    <BeginStoryboard>
+                                                                        <Storyboard>
+                                                                            <DoubleAnimation Storyboard.TargetName="CompletedTaskCheckFill" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.12" />
+                                                                            <DoubleAnimation Storyboard.TargetName="CompletedTaskCheckMark" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.12" />
+                                                                        </Storyboard>
+                                                                    </BeginStoryboard>
+                                                                </DataTrigger.EnterActions>
+                                                                <DataTrigger.ExitActions>
+                                                                    <BeginStoryboard>
+                                                                        <Storyboard>
+                                                                            <DoubleAnimation Storyboard.TargetName="CompletedTaskCheckFill" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.16" />
+                                                                            <DoubleAnimation Storyboard.TargetName="CompletedTaskCheckMark" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.16" />
+                                                                        </Storyboard>
+                                                                    </BeginStoryboard>
+                                                                </DataTrigger.ExitActions>
+                                                            </DataTrigger>
                                                         </DataTemplate.Triggers>
                                                     </DataTemplate>
                                                 </ItemsControl.ItemTemplate>

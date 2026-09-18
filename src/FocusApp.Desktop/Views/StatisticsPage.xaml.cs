@@ -552,18 +552,11 @@ public partial class StatisticsPage : UserControl
             return;
         }
 
-        var container = ItemsControl.ContainerFromElement(
-            GoalNextTasks,
-            e.OriginalSource as DependencyObject) as FrameworkElement;
-        var targetTask = container?.DataContext as FocusTaskViewModel;
-        var insertAfter = container is not null && e.GetPosition(container).Y >= container.ActualHeight / 2;
-        if (targetTask is null && GoalNextTasks.Items.Count > 0)
-        {
-            targetTask = GoalNextTasks.Items[GoalNextTasks.Items.Count - 1] as FocusTaskViewModel;
-            insertAfter = true;
-        }
-
-        if (targetTask is null || ReferenceEquals(targetTask, draggedTask))
+        if (!TryResolveGoalTaskDropPosition(
+                e.GetPosition(GoalNextTasks),
+                draggedTask,
+                out var targetTask,
+                out var insertAfter))
         {
             ResetGoalTaskDropIndicator();
             e.Effects = DragDropEffects.None;
@@ -574,6 +567,16 @@ public partial class StatisticsPage : UserControl
             e.Effects = DragDropEffects.Move;
         }
         e.Handled = true;
+    }
+
+    private void GoalNextTasksScroll_DragLeave(object sender, DragEventArgs e)
+    {
+        var position = e.GetPosition(GoalNextTasksScroll);
+        if (position.X < 0 || position.X > GoalNextTasksScroll.ActualWidth ||
+            position.Y < 0 || position.Y > GoalNextTasksScroll.ActualHeight)
+        {
+            ResetGoalTaskDropIndicator();
+        }
     }
 
     private async void GoalNextTasksScroll_Drop(object sender, DragEventArgs e)
@@ -606,6 +609,33 @@ public partial class StatisticsPage : UserControl
             GoalNextTasksScroll.ScrollToVerticalOffset(GoalNextTasksScroll.VerticalOffset - step);
         else if (position.Y > GoalNextTasksScroll.ActualHeight - edge)
             GoalNextTasksScroll.ScrollToVerticalOffset(GoalNextTasksScroll.VerticalOffset + step);
+    }
+
+    private bool TryResolveGoalTaskDropPosition(
+        Point position,
+        FocusTaskViewModel draggedTask,
+        out FocusTaskViewModel targetTask,
+        out bool insertAfter)
+    {
+        targetTask = null!;
+        insertAfter = false;
+        if (GoalNextTasks.Items.Count <= 1) return false;
+
+        for (var index = 0; index < GoalNextTasks.Items.Count; index++)
+        {
+            if (GoalNextTasks.ItemContainerGenerator.ContainerFromIndex(index) is not FrameworkElement container ||
+                GoalNextTasks.Items[index] is not FocusTaskViewModel task)
+            {
+                continue;
+            }
+
+            var top = container.TranslatePoint(new Point(), GoalNextTasks).Y;
+            targetTask = task;
+            insertAfter = position.Y >= top + container.ActualHeight / 2;
+            if (!insertAfter) break;
+        }
+
+        return targetTask is not null && !ReferenceEquals(targetTask, draggedTask);
     }
 
     private void SetGoalTaskDropIndicator(FocusTaskViewModel targetTask, bool insertAfter)

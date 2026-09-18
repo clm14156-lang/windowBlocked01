@@ -187,12 +187,15 @@ public sealed class GoalDetailInvestmentTests
         Assert.Equal("32小时", model.SelectedGoalTotalInvestmentDisplay);
         Assert.Equal("32%", model.SelectedGoalInvestmentProgressDisplay);
         Assert.Equal(target.Remark, model.SelectedGoal!.Remark);
+        Assert.Equal("创建于 9月2日", model.SelectedGoal.CreatedDateDisplay);
+        Assert.Equal("专注于提升游戏开发能力  ·  创建于 9月2日", model.SelectedGoal.DetailMetadataDisplay);
         Assert.Equal(target.IconFileName, model.SelectedGoal.IconFileName);
         Assert.Equal(2, model.FocusSessionRecords.Count);
 
         model.ApplyState(state with { Revision = 3, Targets = [target with { Remark = null, TargetDurationMinutes = null }] });
         Assert.Equal("32小时", model.SelectedGoalTotalInvestmentDisplay);
         Assert.False(model.HasSelectedGoalRemark);
+        Assert.Equal("创建于 9月2日", model.SelectedGoal!.DetailMetadataDisplay);
         Assert.False(model.HasSelectedGoalTargetDuration);
         Assert.Equal(2, model.FocusSessionRecords.Count);
     }

@@ -160,6 +160,9 @@ public sealed class PersistedDataProjectionTests
         var viewModel = new StatisticsOverviewViewModel(useSampleData: false);
         viewModel.ApplyState(state);
         viewModel.SelectGoalCommand.Execute(viewModel.Goals.Single(goal => goal.GoalId == second.TargetId));
+        var originalGoals = viewModel.Goals.ToArray();
+        var goalCollectionChanges = 0;
+        viewModel.Goals.CollectionChanged += (_, _) => goalCollectionChanges++;
 
         viewModel.ApplyState(state with { Revision = 2 });
         viewModel.AddCompletedFocusSession(new FocusApp.Core.FocusSessionRecord(
@@ -167,6 +170,44 @@ public sealed class PersistedDataProjectionTests
             now.LocalDateTime, FocusApp.Core.FocusCompletionKind.Natural, false));
 
         Assert.Equal(second.TargetId, viewModel.SelectedGoal?.GoalId);
+        Assert.Equal(0, goalCollectionChanges);
+        Assert.Same(originalGoals[0], viewModel.Goals[0]);
+        Assert.Same(originalGoals[1], viewModel.Goals[1]);
         Assert.Single(viewModel.FocusSessionRecords);
+    }
+
+    [Fact]
+    public void Statistics_TaskRefreshKeepsGoalCollectionObjectsAndSelection()
+    {
+        var now = DateTimeOffset.Now;
+        var first = new LocalTargetDto("goal-1", "目标一", false, 0, now, now);
+        var second = new LocalTargetDto("goal-2", "目标二", false, 1, now, now);
+        var task = new LocalTaskDto("task-1", second.TargetId, "下一步", false, 0, now, now);
+        var state = new LocalDataSnapshotDto(
+            1, [], [first, second], [task], [], [], [],
+            new LocalAppSettingsDto(false, true, true, true, false, false, "Orange", second.TargetId, now),
+            [], []);
+        var viewModel = new StatisticsOverviewViewModel(useSampleData: false);
+        viewModel.ApplyState(state);
+        viewModel.SelectGoalCommand.Execute(viewModel.Goals[1]);
+        var originalGoals = viewModel.Goals.ToArray();
+        var originalSelection = viewModel.SelectedGoal;
+        var collectionChanges = 0;
+        viewModel.Goals.CollectionChanged += (_, _) => collectionChanges++;
+
+        viewModel.ApplyTaskState(state with
+        {
+            Revision = 2,
+            Tasks = [task with { IsCompleted = true, CompletedAtUtc = now }]
+        });
+
+        Assert.Equal(0, collectionChanges);
+        Assert.Same(originalGoals[0], viewModel.Goals[0]);
+        Assert.Same(originalGoals[1], viewModel.Goals[1]);
+        Assert.Same(originalSelection, viewModel.SelectedGoal);
+        Assert.Equal(second.TargetId, viewModel.GoalTasks.GoalId);
+        Assert.Empty(viewModel.GoalTasks.PendingTasks);
+        Assert.Equal(1, viewModel.GoalTasks.CompletedCount);
+        Assert.Equal(1, viewModel.GoalTasks.TodayCompletedCount);
     }
 }

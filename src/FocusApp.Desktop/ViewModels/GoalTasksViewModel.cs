@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Runtime.CompilerServices;
@@ -9,6 +10,11 @@ namespace FocusApp.Desktop.ViewModels;
 public sealed class GoalTasksViewModel : INotifyPropertyChanged
 {
     private readonly Func<DateTimeOffset> _now;
+    private readonly Func<TimeSpan, Task> _completionAnimationDelay;
+    private readonly ObservableCollection<FocusTaskViewModel> _pendingTasks = [];
+    private readonly ReadOnlyObservableCollection<FocusTaskViewModel> _readOnlyPendingTasks;
+    private readonly ObservableCollection<GoalTaskDateGroupViewModel> _completedGroups = [];
+    private readonly ReadOnlyObservableCollection<GoalTaskDateGroupViewModel> _readOnlyCompletedGroups;
     private IReadOnlyList<LocalTaskDto> _snapshot = [];
     private FocusTargetViewModel? _target;
     private bool _isOpen;
@@ -21,9 +27,14 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
     private bool _isReorderingTasks;
     private readonly HashSet<string> _deletingTasks = [];
 
-    public GoalTasksViewModel(Func<DateTimeOffset>? nowProvider = null)
+    public GoalTasksViewModel(
+        Func<DateTimeOffset>? nowProvider = null,
+        Func<TimeSpan, Task>? completionAnimationDelay = null)
     {
         _now = nowProvider ?? (() => DateTimeOffset.UtcNow);
+        _completionAnimationDelay = completionAnimationDelay ?? Task.Delay;
+        _readOnlyPendingTasks = new ReadOnlyObservableCollection<FocusTaskViewModel>(_pendingTasks);
+        _readOnlyCompletedGroups = new ReadOnlyObservableCollection<GoalTaskDateGroupViewModel>(_completedGroups);
         OpenCompletedCommand = new RelayCommand<object>(async _ => await OpenCompletedAsync(), _ => _target is not null);
         CloseCommand = new RelayCommand<object>(async _ => await CloseAsync());
         NewTaskCommand = new RelayCommand<object>(_ => BeginCreation(), _ => _target is not null);
@@ -47,25 +58,22 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
     public string DraftName { get => _draftName; set => SetField(ref _draftName, value); }
     public string? ErrorMessage { get => _errorMessage; private set { if (SetField(ref _errorMessage, value)) Notify(nameof(HasError)); } }
     public bool HasError => !string.IsNullOrEmpty(ErrorMessage);
-    public IReadOnlyList<FocusTaskViewModel> PendingTasks => _target?.Tasks.Where(task => !task.IsCompleted).ToArray() ?? [];
-    public int PendingCount => _target?.Tasks.Count(task => !task.IsCompleted) ?? 0;
-    public int CompletedCount => _target?.Tasks.Count(task => task.IsCompleted) ?? 0;
-    public bool HasPendingTasks => PendingCount > 0;
-    public bool HasCompletedTasks => CompletedCount > 0;
-    public bool ShowPendingEmptyState => !HasPendingTasks && !IsCreating;
-    public IReadOnlyList<GoalTaskDateGroupViewModel> CompletedGroups
+    public IReadOnlyList<FocusTaskViewModel> PendingTasks => _readOnlyPendingTasks;
+    public int PendingCount => _pendingTasks.Count;
+    public int CompletedCount => CompletedTasks.Count;
+    public int TodayCompletedCount
     {
         get
         {
-            var groups = (_target?.Tasks.Where(task => task.IsCompleted) ?? [])
-                .GroupBy(task => task.CompletedAtUtc?.ToLocalTime().Date)
-                .OrderByDescending(group => group.Key)
-                .ToArray();
-            return groups.Select((group, index) => new GoalTaskDateGroupViewModel(
-                group.Key, group.OrderByDescending(task => task.CompletedAtUtc).ToArray(),
-                _now().ToLocalTime().Date, index == groups.Length - 1)).ToArray();
+            var today = _now().ToLocalTime().Date;
+            return CompletedTasks.Count(task => task.CompletedAtUtc?.ToLocalTime().Date == today);
         }
     }
+    public string TodayCompletedSummary => $"今日已完成 {TodayCompletedCount} 项";
+    public bool HasPendingTasks => PendingCount > 0;
+    public bool HasCompletedTasks => CompletedCount > 0;
+    public bool ShowPendingEmptyState => !HasPendingTasks && !IsCreating;
+    public IReadOnlyList<GoalTaskDateGroupViewModel> CompletedGroups => _readOnlyCompletedGroups;
 
     public void ApplyState(GoalOverviewItemViewModel? goal, IReadOnlyList<LocalTaskDto> tasks)
     {
@@ -99,13 +107,22 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
                 {
                     task.ApplyName(source.Name);
                     task.ApplyCreatedAt(source.CreatedAtUtc);
-                    task.ApplyCompletion(source.IsCompleted, source.CompletedAtUtc);
+                    // The service snapshot can arrive before the completion
+                    // animation finishes. Keep this one row pending until its
+                    // fade/collapse completes so the list never removes it early.
+                    var completionIsAnimating = task.IsCompleting && !task.IsCompleted && source.IsCompleted;
+                    var uncompletionIsAnimating = task.IsUncompleting && task.IsCompleted && !source.IsCompleted;
+                    if (!completionIsAnimating && !uncompletionIsAnimating)
+                    {
+                        task.ApplyCompletion(source.IsCompleted, source.CompletedAtUtc);
+                    }
                 }
                 else task = _target.AddTask(source.TaskId, source.Name, source.IsCompleted, createdAtUtc: source.CreatedAtUtc, completedAtUtc: source.CompletedAtUtc);
                 var oldIndex = _target.Tasks.IndexOf(task);
                 if (oldIndex != index) _target.Tasks.Move(oldIndex, index);
             }
         }
+        SynchronizeTaskProjections();
         UpdatePendingTaskPriorities();
         NotifyViews();
     }
@@ -188,13 +205,94 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
             var existing = _snapshot.FirstOrDefault(item => item.TaskId == task.TaskId && item.TargetId == task.TargetId);
             if (existing is null || existing.IsCompleted) return false;
             var now = _now().ToUniversalTime();
-            return await SaveAsync(existing with { IsCompleted = true, CompletedAtUtc = now, UpdatedAtUtc = now }, false) is not null;
+            var animation = RunCompletionAnimationAsync(task);
+            var persistence = SaveAsync(
+                existing with { IsCompleted = true, CompletedAtUtc = now, UpdatedAtUtc = now },
+                false);
+            await animation;
+            var saved = await persistence;
+            if (saved is null || task.TargetId != GoalId)
+            {
+                return false;
+            }
+
+            task.ApplyCompletion(true, saved.CompletedAtUtc);
+            ProjectTasks();
+            return true;
         }
         finally
         {
+            task.IsCompletionExiting = false;
+            task.IsCompletionStyled = false;
             task.IsCompleting = false;
             _completingTasks.Remove(task.TaskId);
         }
+    }
+
+    private async Task RunCompletionAnimationAsync(FocusTaskViewModel task)
+    {
+        await _completionAnimationDelay(TimeSpan.FromMilliseconds(120));
+        if (!task.IsCompleting) return;
+        task.IsCompletionStyled = true;
+
+        await _completionAnimationDelay(TimeSpan.FromMilliseconds(160));
+        if (!task.IsCompleting) return;
+        task.IsCompletionExiting = true;
+
+        await _completionAnimationDelay(TimeSpan.FromMilliseconds(200));
+    }
+
+    public async Task<bool> UncompleteTaskAsync(FocusTaskViewModel task)
+    {
+        if (task.TargetId != GoalId || !task.IsCompleted || !_completingTasks.Add(task.TaskId)) return false;
+        task.IsUncompleting = true;
+        try
+        {
+            if (!await CommitCreationAsync() || task.TargetId != GoalId) return false;
+            var existing = _snapshot.FirstOrDefault(item => item.TaskId == task.TaskId && item.TargetId == task.TargetId);
+            if (existing is null || !existing.IsCompleted) return false;
+            var now = _now().ToUniversalTime();
+            var animation = RunUncompletionAnimationAsync(task);
+            var persistence = SaveAsync(
+                existing with { IsCompleted = false, CompletedAtUtc = null, UpdatedAtUtc = now },
+                false);
+            await animation;
+            var saved = await persistence;
+            if (saved is null || task.TargetId != GoalId)
+            {
+                return false;
+            }
+
+            task.ApplyCompletion(false, null);
+            ProjectTasks();
+            return true;
+        }
+        finally
+        {
+            task.IsUncompletionExiting = false;
+            task.IsUncompletionRestored = false;
+            task.IsUncompleting = false;
+            _completingTasks.Remove(task.TaskId);
+        }
+    }
+
+    private async Task RunUncompletionAnimationAsync(FocusTaskViewModel task)
+    {
+        await _completionAnimationDelay(TimeSpan.FromMilliseconds(120));
+        if (!task.IsUncompleting) return;
+        task.IsUncompletionRestored = true;
+
+        await _completionAnimationDelay(TimeSpan.FromMilliseconds(160));
+        if (!task.IsUncompleting) return;
+        task.IsUncompletionExiting = true;
+
+        await _completionAnimationDelay(TimeSpan.FromMilliseconds(200));
+    }
+
+    public void RefreshDateSensitiveViews()
+    {
+        SynchronizeCompletedGroups();
+        NotifyViews();
     }
 
     public async Task<bool> DeleteCompletedTaskAsync(FocusTaskViewModel task)
@@ -331,8 +429,92 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
             var oldIndex = _target.Tasks.IndexOf(desired[index]);
             if (oldIndex != index) _target.Tasks.Move(oldIndex, index);
         }
+        SynchronizePendingTasks();
         UpdatePendingTaskPriorities();
         NotifyViews();
+    }
+
+    private void SynchronizeTaskProjections()
+    {
+        // Remove from the completed projection before adding to pending so an
+        // uncompleted task has one clear local move between stable sources.
+        SynchronizeCompletedGroups();
+        SynchronizePendingTasks();
+    }
+
+    private void SynchronizePendingTasks()
+    {
+        var desired = _target?.Tasks.Where(task => !task.IsCompleted).ToArray() ?? [];
+        SynchronizeCollection(_pendingTasks, desired);
+    }
+
+    private void SynchronizeCompletedGroups()
+    {
+        var today = _now().ToLocalTime().Date;
+        var desiredGroups = CompletedTasks
+            .GroupBy(task => task.CompletedAtUtc?.ToLocalTime().Date)
+            .OrderByDescending(group => group.Key)
+            .Select(group => new
+            {
+                Date = group.Key,
+                Tasks = group.OrderByDescending(task => task.CompletedAtUtc).ToArray()
+            })
+            .ToArray();
+
+        for (var index = _completedGroups.Count - 1; index >= 0; index--)
+        {
+            if (!desiredGroups.Any(group => group.Date == _completedGroups[index].Date))
+            {
+                _completedGroups.RemoveAt(index);
+            }
+        }
+
+        for (var index = 0; index < desiredGroups.Length; index++)
+        {
+            var desired = desiredGroups[index];
+            var group = _completedGroups.FirstOrDefault(item => item.Date == desired.Date);
+            if (group is null)
+            {
+                group = new GoalTaskDateGroupViewModel(desired.Date, desired.Tasks, today, index == desiredGroups.Length - 1);
+                _completedGroups.Insert(index, group);
+            }
+            else
+            {
+                group.Apply(desired.Tasks, today, index == desiredGroups.Length - 1);
+                var oldIndex = _completedGroups.IndexOf(group);
+                if (oldIndex != index)
+                {
+                    _completedGroups.Move(oldIndex, index);
+                }
+            }
+        }
+    }
+
+    internal static void SynchronizeCollection(
+        ObservableCollection<FocusTaskViewModel> target,
+        IReadOnlyList<FocusTaskViewModel> desired)
+    {
+        for (var index = target.Count - 1; index >= 0; index--)
+        {
+            if (!desired.Contains(target[index]))
+            {
+                target.RemoveAt(index);
+            }
+        }
+
+        for (var index = 0; index < desired.Count; index++)
+        {
+            var task = desired[index];
+            var oldIndex = target.IndexOf(task);
+            if (oldIndex < 0)
+            {
+                target.Insert(index, task);
+            }
+            else if (oldIndex != index)
+            {
+                target.Move(oldIndex, index);
+            }
+        }
     }
 
     private void CommitPendingOrderToSnapshot(string goalId, IReadOnlyList<string> orderedPendingTaskIds)
@@ -370,8 +552,19 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
 
     private void NotifyViews()
     {
-        foreach (var name in new[] { nameof(PendingTasks), nameof(CompletedGroups), nameof(PendingCount), nameof(CompletedCount), nameof(HasPendingTasks), nameof(HasCompletedTasks), nameof(ShowPendingEmptyState) }) Notify(name);
+        foreach (var name in new[]
+                 {
+                     nameof(PendingCount), nameof(CompletedCount),
+                     nameof(TodayCompletedCount), nameof(TodayCompletedSummary), nameof(HasPendingTasks),
+                     nameof(HasCompletedTasks), nameof(ShowPendingEmptyState)
+                 })
+        {
+            Notify(name);
+        }
     }
+
+    private IReadOnlyList<FocusTaskViewModel> CompletedTasks =>
+        _target?.Tasks.Where(task => task.IsCompleted).ToArray() ?? [];
 
     private bool SetField<T>(ref T field, T value, [CallerMemberName] string? name = null)
     {
@@ -383,12 +576,45 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
     private void Notify([CallerMemberName] string? name = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }
 
-public sealed class GoalTaskDateGroupViewModel(DateTime? date, IReadOnlyList<FocusTaskViewModel> tasks, DateTime today, bool isLast)
+public sealed class GoalTaskDateGroupViewModel : INotifyPropertyChanged
 {
-    public IReadOnlyList<FocusTaskViewModel> Tasks => tasks;
-    public DateTime? Date => date;
-    public bool IsLast => isLast;
-    public string Title => date is null ? "完成日期未知" : date == today ? "今天" : date == today.AddDays(-1) ? "昨天" : FormatDate(date.Value);
-    public string Subtitle => $"{tasks.Count}项";
-    private string FormatDate(DateTime value) => value.Year == today.Year ? $"{value:M月d日}" : $"{value:yyyy年M月d日}";
+    private readonly ObservableCollection<FocusTaskViewModel> _tasks = [];
+    private readonly ReadOnlyObservableCollection<FocusTaskViewModel> _readOnlyTasks;
+    private DateTime _today;
+    private bool _isLast;
+
+    public GoalTaskDateGroupViewModel(
+        DateTime? date,
+        IReadOnlyList<FocusTaskViewModel> tasks,
+        DateTime today,
+        bool isLast)
+    {
+        Date = date;
+        _today = today;
+        _isLast = isLast;
+        _readOnlyTasks = new ReadOnlyObservableCollection<FocusTaskViewModel>(_tasks);
+        Apply(tasks, today, isLast);
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    public IReadOnlyList<FocusTaskViewModel> Tasks => _readOnlyTasks;
+    public DateTime? Date { get; }
+    public bool IsLast => _isLast;
+    public string Title => Date is null ? "完成日期未知" : Date == _today ? "今天" : Date == _today.AddDays(-1) ? "昨天" : FormatDate(Date.Value);
+    public string Subtitle => $"{_tasks.Count}项";
+
+    internal void Apply(IReadOnlyList<FocusTaskViewModel> tasks, DateTime today, bool isLast)
+    {
+        var todayChanged = _today != today;
+        var isLastChanged = _isLast != isLast;
+        _today = today;
+        _isLast = isLast;
+        GoalTasksViewModel.SynchronizeCollection(_tasks, tasks);
+        if (todayChanged) PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Title)));
+        if (isLastChanged) PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsLast)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Subtitle)));
+    }
+
+    private string FormatDate(DateTime value) => value.Year == _today.Year ? $"{value:M月d日}" : $"{value:yyyy年M月d日}";
 }

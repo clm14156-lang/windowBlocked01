@@ -69,7 +69,7 @@ public sealed class StatisticsGoalProgressPresentationTests
     {
         var page = XDocument.Load(Path.Combine(FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
         var card = page.Descendants(Presentation + "Border").Single(element => (string?)element.Attribute(Xaml + "Name") == "GoalInvestmentDetailsCard");
-        foreach (var property in new[] { "SelectedGoalWeeklyInvestment.", "SelectedGoalTotalInvestment.", "SelectedGoal.Remark", "SelectedGoalTargetDuration." })
+        foreach (var property in new[] { "SelectedGoalWeeklyInvestment.", "SelectedGoalTotalInvestment.", "SelectedGoal.DetailMetadataDisplay", "SelectedGoalTargetDuration." })
             Assert.Contains(card.Descendants().Attributes(), attribute => attribute.Value.Contains(property, StringComparison.Ordinal));
         foreach (var oldText in new[] { "专注次数", "最近一次专注", "专注记录", "查看趋势  ›", "暂无专注记录" })
             Assert.DoesNotContain(card.Descendants(Presentation + "TextBlock"), text => (string?)text.Attribute("Text") == oldText);
@@ -97,6 +97,10 @@ public sealed class StatisticsGoalProgressPresentationTests
         var completed = card.Descendants(Presentation + "Button").Single(element =>
             (string?)element.Attribute("AutomationProperties.Name") == "查看已完成任务");
         Assert.Equal("{Binding GoalTasks.OpenCompletedCommand}", (string?)completed.Attribute("Command"));
+        Assert.Contains(card.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "{Binding GoalTasks.TodayCompletedSummary}");
+        Assert.DoesNotContain(card.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "今日已完成 3 项");
         Assert.DoesNotContain(card.Descendants(Presentation + "TextBlock"), text => (string?)text.Attribute("Text") == "全部任务  ›");
         var editor = card.Descendants(Presentation + "TextBox").Single(element =>
             (string?)element.Attribute(Xaml + "Name") == "GoalNewTaskNameTextBox");
@@ -119,6 +123,26 @@ public sealed class StatisticsGoalProgressPresentationTests
             (string?)element.Attribute(Xaml + "Name") == "GoalNextTaskRow"));
         Assert.Equal("GoalNextTaskRow_PreviewMouseLeftButtonDown", (string?)row.Attribute("PreviewMouseLeftButtonDown"));
         Assert.Equal("GoalNextTaskRow_PreviewMouseMove", (string?)row.Attribute("PreviewMouseMove"));
+        Assert.Contains(row.Descendants(Presentation + "DataTrigger"), trigger =>
+            (string?)trigger.Attribute("Binding") == "{Binding IsDragging}" &&
+            trigger.Descendants(Presentation + "DropShadowEffect").Any());
+
+        var insertionLines = row.Descendants(Presentation + "Border").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") is
+                "GoalTaskDropBeforeIndicator" or "GoalTaskDropAfterIndicator").ToArray();
+        Assert.Equal(2, insertionLines.Length);
+        Assert.All(insertionLines, line =>
+        {
+            Assert.Equal("2", (string?)line.Attribute("Height"));
+            Assert.Equal("{DynamicResource AccentPrimary}", (string?)line.Attribute("Background"));
+            Assert.Equal("False", (string?)line.Attribute("IsHitTestVisible"));
+        });
+        Assert.Contains(insertionLines, line =>
+            (string?)line.Attribute("Visibility") ==
+            "{Binding ShowDropBefore, Converter={StaticResource BooleanToVisibilityConverter}}");
+        Assert.Contains(insertionLines, line =>
+            (string?)line.Attribute("Visibility") ==
+            "{Binding ShowDropAfter, Converter={StaticResource BooleanToVisibilityConverter}}");
 
         var checkbox = Assert.Single(template.Descendants(Presentation + "Button").Where(element =>
             (string?)element.Attribute(Xaml + "Name") == "GoalNextTaskCheckButton"));
@@ -126,6 +150,42 @@ public sealed class StatisticsGoalProgressPresentationTests
             "{Binding DataContext.GoalTasks.CompleteTaskCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}",
             (string?)checkbox.Attribute("Command"));
         Assert.Equal("{Binding}", (string?)checkbox.Attribute("CommandParameter"));
+
+        var checkStyle = Assert.Single(page.Descendants(Presentation + "Style").Where(style =>
+            (string?)style.Attribute(Xaml + "Key") == "GoalNextTaskCheckButtonStyle"));
+        var completingCheckTrigger = Assert.Single(checkStyle.Descendants(Presentation + "DataTrigger").Where(trigger =>
+            (string?)trigger.Attribute("Binding") == "{Binding IsCompleting}"));
+        Assert.Contains(completingCheckTrigger.Elements(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("TargetName") == "CheckMark" &&
+            (string?)setter.Attribute("Property") == "Visibility" &&
+            (string?)setter.Attribute("Value") == "Visible");
+        Assert.Equal(2, completingCheckTrigger.Descendants(Presentation + "DoubleAnimation").Count(animation =>
+            (string?)animation.Attribute("Duration") == "0:0:0.12"));
+
+        var completionExitTrigger = Assert.Single(row.Descendants(Presentation + "DataTrigger").Where(trigger =>
+            (string?)trigger.Attribute("Binding") == "{Binding IsCompletionExiting}"));
+        var completionExitAnimations = completionExitTrigger
+            .Elements(Presentation + "DataTrigger.EnterActions")
+            .Descendants(Presentation + "DoubleAnimation")
+            .ToArray();
+        Assert.Contains(completionExitAnimations, animation =>
+            (string?)animation.Attribute("Storyboard.TargetProperty") == "Opacity" &&
+            (string?)animation.Attribute("To") == "0" &&
+            (string?)animation.Attribute("Duration") == "0:0:0.2");
+        Assert.Contains(completionExitAnimations, animation =>
+            (string?)animation.Attribute("Storyboard.TargetProperty") == "Height" &&
+            (string?)animation.Attribute("To") == "0");
+        Assert.Contains(completionExitAnimations, animation =>
+            (string?)animation.Attribute("Storyboard.TargetProperty") == "(UIElement.RenderTransform).(TranslateTransform.X)" &&
+            (string?)animation.Attribute("To") == "8");
+
+        var taskName = Assert.Single(template.Descendants(Presentation + "TextBlock").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "GoalNextTaskName"));
+        var completionStyleTrigger = Assert.Single(taskName.Descendants(Presentation + "DataTrigger").Where(trigger =>
+            (string?)trigger.Attribute("Binding") == "{Binding IsCompletionStyled}"));
+        Assert.Contains(completionStyleTrigger.Elements(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("Property") == "TextDecorations" &&
+            (string?)setter.Attribute("Value") == "Strikethrough");
 
         var more = Assert.Single(template.Descendants(Presentation + "Button").Where(element =>
             (string?)element.Attribute(Xaml + "Name") == "GoalNextTaskMoreButton"));
@@ -152,11 +212,17 @@ public sealed class StatisticsGoalProgressPresentationTests
         Assert.Equal(new[] { "1", "2", "3" }, priority.Descendants(Presentation + "DataTrigger")
             .Where(trigger => (string?)trigger.Attribute("Binding") == "{Binding ListPriorityRank}")
             .Select(trigger => (string?)trigger.Attribute("Value")));
+        Assert.Contains(priority.Descendants(Presentation + "DataTrigger"), trigger =>
+            (string?)trigger.Attribute("Binding") == "{Binding IsCompletionStyled}" &&
+            trigger.Elements(Presentation + "Setter").Any(setter =>
+                (string?)setter.Attribute("Property") == "Opacity" &&
+                (string?)setter.Attribute("Value") == "0.16"));
 
         var scroll = Assert.Single(tasks.Ancestors(Presentation + "ScrollViewer").Where(element =>
             (string?)element.Attribute(Xaml + "Name") == "GoalNextTasksScroll"));
         Assert.Equal("True", (string?)scroll.Attribute("AllowDrop"));
         Assert.Equal("GoalNextTasksScroll_DragOver", (string?)scroll.Attribute("DragOver"));
+        Assert.Equal("GoalNextTasksScroll_DragLeave", (string?)scroll.Attribute("DragLeave"));
         Assert.Equal("GoalNextTasksScroll_Drop", (string?)scroll.Attribute("Drop"));
         Assert.DoesNotContain(template.Descendants(Presentation + "Path"), path =>
             (string?)path.Attribute("Data") == "M 0,0 L 13,0 M 0,5 L 13,5 M 0,10 L 13,10");
@@ -283,8 +349,14 @@ public sealed class StatisticsGoalProgressPresentationTests
         Assert.Empty(header.Descendants(Presentation + "Popup"));
 
         var menu = page.Descendants(Presentation + "Popup").Single(element => (string?)element.Attribute(Xaml + "Name") == "GoalListMorePopup");
+        Assert.DoesNotContain(menu.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "{Binding CreatedDateDisplay}");
         foreach (var action in new[] { "EditGoalButton_Click", "ArchiveGoalButton_Click", "RestoreGoalButton_Click", "DeleteGoalButton_Click" })
             Assert.Contains(menu.Descendants(Presentation + "Button"), button => (string?)button.Attribute("Click") == action);
+        var metadata = header.Descendants(Presentation + "TextBlock").Single(element =>
+            (string?)element.Attribute(Xaml + "Name") == "GoalDetailMetadata");
+        Assert.Equal("{Binding SelectedGoal.DetailMetadataDisplay}", (string?)metadata.Attribute("Text"));
+        Assert.Equal("{DynamicResource TextWeak}", (string?)metadata.Attribute("Foreground"));
         Assert.Contains(locked.Descendants(Presentation + "Border"), border => (string?)border.Attribute("MouseEnter") == "GoalInvestmentDetailsVipHoverTarget_MouseEnter");
     }
 
@@ -345,7 +417,7 @@ public sealed class StatisticsGoalProgressPresentationTests
                 var weeklyComparison = (FrameworkElement)page.FindName("GoalWeeklyInvestmentComparison");
                 var weeklyComparisonIcon = (Image)page.FindName("GoalWeeklyInvestmentComparisonIcon");
                 var weeklyComparisonPercent = (TextBlock)page.FindName("GoalWeeklyInvestmentComparisonPercent");
-                var remark = (FrameworkElement)page.FindName("GoalDetailRemark");
+                var metadata = (TextBlock)page.FindName("GoalDetailMetadata");
                 Assert.Equal(Visibility.Visible, progress.Visibility);
                 Assert.Equal(BindingStatus.Active,
                     progress.GetBindingExpression(UIElement.VisibilityProperty)!.Status);
@@ -370,20 +442,22 @@ public sealed class StatisticsGoalProgressPresentationTests
                     weeklyComparisonIcon.Source?.ToString() ?? string.Empty,
                     StringComparison.OrdinalIgnoreCase);
                 Assert.True(weeklyComparison.ActualHeight > 0);
-                Assert.Equal(Visibility.Visible, remark.Visibility);
+                Assert.Equal(Visibility.Visible, metadata.Visibility);
+                Assert.Equal("专注于提升游戏开发能力  ·  创建日期未知", metadata.Text);
                 Assert.Equal("6小时32分钟", viewModel.SelectedGoalWeeklyInvestmentDisplay);
                 Assert.Equal("32小时", viewModel.SelectedGoalTotalInvestmentDisplay);
                 Assert.Equal("32%", viewModel.SelectedGoalInvestmentProgressDisplay);
-                var remarkHeight = remark.ActualHeight + remark.Margin.Top;
+                var metadataHeight = metadata.ActualHeight + metadata.Margin.Top;
                 viewModel.SelectedGoal.UpdateDetails(null, null);
                 page.UpdateLayout();
                 Assert.Equal(Visibility.Collapsed, progress.Visibility);
                 Assert.Equal(0, progressBar.Value);
-                Assert.Equal(Visibility.Collapsed, remark.Visibility);
+                Assert.Equal(Visibility.Visible, metadata.Visibility);
+                Assert.Equal("创建日期未知", metadata.Text);
                 Assert.Equal("32 小时", new TextRange(
                     totalInvestmentText.ContentStart,
                     totalInvestmentText.ContentEnd).Text);
-                Assert.True(remarkHeight > 0);
+                Assert.True(metadataHeight > 0);
 
             }
             catch (Exception exception)

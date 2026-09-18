@@ -171,6 +171,33 @@ public sealed class FocusTargetModalViewModelTests
     }
 
     [Fact]
+    public void ApplyTasks_PreservesTargetsAndSelectionWhileUpdatingTaskOrder()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var target = new LocalTargetDto("goal-1", "目标一", false, 0, now, now);
+        var first = new LocalTaskDto("task-1", target.TargetId, "第一项", false, 0, now, now);
+        var second = new LocalTaskDto("task-2", target.TargetId, "第二项", false, 1, now, now);
+        var viewModel = new FocusTargetModalViewModel(useSampleData: false);
+        viewModel.ApplyState([target], [first, second], target.TargetId);
+        var originalTarget = viewModel.Targets[0];
+        var originalFirstTask = originalTarget.Tasks[0];
+        var originalSecondTask = originalTarget.Tasks[1];
+
+        viewModel.ApplyTasks([
+            second with { SortOrder = 0, IsCompleted = true, CompletedAtUtc = now },
+            first with { SortOrder = 1 }
+        ]);
+
+        Assert.Same(originalTarget, viewModel.Targets[0]);
+        Assert.Same(originalTarget, viewModel.SelectedTarget);
+        Assert.True(viewModel.HasSelectedTarget);
+        Assert.Same(originalSecondTask, originalTarget.Tasks[0]);
+        Assert.Same(originalFirstTask, originalTarget.Tasks[1]);
+        Assert.True(originalTarget.Tasks[0].IsCompleted);
+        Assert.Equal(now, originalTarget.Tasks[0].CompletedAtUtc);
+    }
+
+    [Fact]
     public void PopupOnlySelectionAndTaskEditingApi_IsRemoved()
     {
         var publicMembers = typeof(FocusTargetModalViewModel)

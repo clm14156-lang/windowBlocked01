@@ -36,6 +36,8 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private FocusResultKind _focusResultToastKind;
     private LocalDataSnapshotDto? _pendingServiceState;
     private bool _serviceStateApplyScheduled;
+    private bool _isGoalTaskStateOperation;
+    private long _latestGoalTaskOnlyRevision = -1;
 
     public MainWindowViewModel(
         IEnumerable<NavigationItemViewModel> primaryNavigationItems,
@@ -547,6 +549,11 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     private void ServiceConnection_StateChanged(object? sender, LocalDataSnapshotDto state)
     {
+        if (_isGoalTaskStateOperation)
+        {
+            _latestGoalTaskOnlyRevision = Math.Max(_latestGoalTaskOnlyRevision, state.Revision);
+        }
+
         _pendingServiceState = state;
         if (_serviceStateApplyScheduled)
         {
@@ -573,6 +580,12 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         _pendingServiceState = null;
         if (state is null)
         {
+            return;
+        }
+
+        if (state.Revision == _latestGoalTaskOnlyRevision)
+        {
+            ApplyGoalTaskState(state);
             return;
         }
 
@@ -949,11 +962,15 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         if (ServiceConnection is null || !ServiceConnection.IsConnected) return;
         try
         {
+            _isGoalTaskStateOperation = true;
             var state = await ServiceConnection.RefreshStateAsync();
-            HomePage.FocusTargetModal.ApplyState(state.Targets, state.Tasks, state.Settings.SelectedTargetId);
-            StatisticsPage.ApplyState(state);
+            ApplyGoalTaskState(state);
         }
         catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException) { }
+        finally
+        {
+            _isGoalTaskStateOperation = false;
+        }
     }
 
     private async Task<LocalTaskDto?> PersistGoalTaskAsync(LocalTaskDto task, bool insertAtTop)
@@ -967,12 +984,16 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             if (command is null) return null;
             try
             {
+                _isGoalTaskStateOperation = true;
                 var result = await ServiceConnection.SaveTargetAsync(command);
-                HomePage.FocusTargetModal.ApplyState(result.State.Targets, result.State.Tasks, result.State.Settings.SelectedTargetId);
-                StatisticsPage.ApplyState(result.State);
+                ApplyGoalTaskState(result.State);
                 return result.State.Tasks.FirstOrDefault(item => item.TaskId == task.TaskId && item.TargetId == task.TargetId);
             }
             catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException) { return null; }
+            finally
+            {
+                _isGoalTaskStateOperation = false;
+            }
         }
         finally { _targetPersistenceGate.Release(); }
     }
@@ -986,10 +1007,17 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             if (ServiceConnection.State is not { } state) return false;
             var command = GoalTaskPersistence.CreateDeleteCommand(state, targetId, taskId);
             if (command is null) return false;
-            var result = await ServiceConnection.SaveTargetAsync(command);
-            HomePage.FocusTargetModal.ApplyState(result.State.Targets, result.State.Tasks, result.State.Settings.SelectedTargetId);
-            StatisticsPage.ApplyState(result.State);
-            return !result.State.Tasks.Any(item => item.TaskId == taskId && item.TargetId == targetId);
+            try
+            {
+                _isGoalTaskStateOperation = true;
+                var result = await ServiceConnection.SaveTargetAsync(command);
+                ApplyGoalTaskState(result.State);
+                return !result.State.Tasks.Any(item => item.TaskId == taskId && item.TargetId == targetId);
+            }
+            finally
+            {
+                _isGoalTaskStateOperation = false;
+            }
         }
         finally { _targetPersistenceGate.Release(); }
     }
@@ -1011,20 +1039,28 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             if (command is null) return false;
             try
             {
+                _isGoalTaskStateOperation = true;
                 var result = await ServiceConnection.SaveTargetAsync(command);
-                HomePage.FocusTargetModal.ApplyState(
-                    result.State.Targets,
-                    result.State.Tasks,
-                    result.State.Settings.SelectedTargetId);
-                StatisticsPage.ApplyState(result.State);
+                ApplyGoalTaskState(result.State);
                 return true;
             }
             catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException)
             {
                 return false;
             }
+            finally
+            {
+                _isGoalTaskStateOperation = false;
+            }
         }
         finally { _targetPersistenceGate.Release(); }
+    }
+
+    private void ApplyGoalTaskState(LocalDataSnapshotDto state)
+    {
+        _latestGoalTaskOnlyRevision = Math.Max(_latestGoalTaskOnlyRevision, state.Revision);
+        HomePage.FocusTargetModal.ApplyTasks(state.Tasks);
+        StatisticsPage.ApplyTaskState(state);
     }
 
     private async void StatisticsPage_MonthlyFocusTargetChanged(object? sender, EventArgs e)

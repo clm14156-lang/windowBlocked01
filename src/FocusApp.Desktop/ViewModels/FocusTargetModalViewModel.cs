@@ -106,36 +106,7 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
             viewModel.ApplyIcon(target.IconFileName);
             viewModel.ApplyArchived(false);
 
-            var targetTasks = persistedTasks
-                .Where(item => item.TargetId == target.TargetId)
-                .OrderBy(item => item.SortOrder)
-                .ToList();
-            var existingTaskMap = viewModel.Tasks.ToDictionary(item => item.TaskId, StringComparer.Ordinal);
-            foreach (var removed in viewModel.Tasks
-                         .Where(item => targetTasks.All(task => task.TaskId != item.TaskId))
-                         .ToList())
-            {
-                viewModel.RemoveTask(removed);
-            }
-
-            foreach (var task in targetTasks)
-            {
-                if (existingTaskMap.TryGetValue(task.TaskId, out var existingTask))
-                {
-                    existingTask.ApplyName(task.Name);
-                    existingTask.ApplyCreatedAt(task.CreatedAtUtc);
-                    existingTask.ApplyCompletion(task.IsCompleted, task.CompletedAtUtc);
-                }
-                else
-                {
-                    viewModel.AddTask(
-                        task.TaskId,
-                        task.Name,
-                        task.IsCompleted,
-                        createdAtUtc: task.CreatedAtUtc,
-                        completedAtUtc: task.CompletedAtUtc);
-                }
-            }
+            ApplyTasks(viewModel, persistedTasks);
 
             _targets.Add(viewModel);
         }
@@ -143,6 +114,62 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
         SetSelectedTarget(_targets.FirstOrDefault(item => item.TargetId == selectedId));
         OnPropertyChanged(nameof(Targets));
         OnPropertyChanged(nameof(HasTargets));
+    }
+
+    /// <summary>
+    /// Updates only the nested task collections. Target objects, selection,
+    /// and the target collection itself remain untouched.
+    /// </summary>
+    public void ApplyTasks(IEnumerable<LocalTaskDto> tasks)
+    {
+        var persistedTasks = tasks.ToList();
+        foreach (var target in _targets)
+        {
+            ApplyTasks(target, persistedTasks);
+        }
+    }
+
+    private static void ApplyTasks(
+        FocusTargetViewModel target,
+        IReadOnlyList<LocalTaskDto> persistedTasks)
+    {
+        var targetTasks = persistedTasks
+            .Where(item => item.TargetId == target.TargetId)
+            .OrderBy(item => item.SortOrder)
+            .ToArray();
+        var existingTaskMap = target.Tasks.ToDictionary(item => item.TaskId, StringComparer.Ordinal);
+        foreach (var removed in target.Tasks
+                     .Where(item => targetTasks.All(task => task.TaskId != item.TaskId))
+                     .ToArray())
+        {
+            target.RemoveTask(removed);
+        }
+
+        for (var index = 0; index < targetTasks.Length; index++)
+        {
+            var source = targetTasks[index];
+            if (existingTaskMap.TryGetValue(source.TaskId, out var task))
+            {
+                task.ApplyName(source.Name);
+                task.ApplyCreatedAt(source.CreatedAtUtc);
+                task.ApplyCompletion(source.IsCompleted, source.CompletedAtUtc);
+            }
+            else
+            {
+                task = target.AddTask(
+                    source.TaskId,
+                    source.Name,
+                    source.IsCompleted,
+                    createdAtUtc: source.CreatedAtUtc,
+                    completedAtUtc: source.CompletedAtUtc);
+            }
+
+            var oldIndex = target.Tasks.IndexOf(task);
+            if (oldIndex != index)
+            {
+                target.Tasks.Move(oldIndex, index);
+            }
+        }
     }
 
     public void Open()

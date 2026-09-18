@@ -190,6 +190,25 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     }
 
     /// <summary>
+    /// Applies a task-only snapshot without rebuilding the goals collection.
+    /// Keeping the existing goal objects prevents the left goal list from
+    /// losing its selection and scroll position after task mutations.
+    /// </summary>
+    public void ApplyTaskState(LocalDataSnapshotDto state)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        if (!_isInitialized)
+        {
+            _pendingState = state;
+            return;
+        }
+
+        _goalTaskSnapshot = state.Tasks;
+        GoalTasks.ApplyState(SelectedGoal, _goalTaskSnapshot);
+        RefreshSelectedDayCompletedTasks();
+    }
+
+    /// <summary>
     /// Initializes chart and calendar data on first use. The desktop shell
     /// calls this after the statistics page becomes visible so cold startup
     /// does not spend UI time building a page the user has not opened.
@@ -198,6 +217,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     {
         if (_isInitialized)
         {
+            GoalTasks.RefreshDateSensitiveViews();
             return;
         }
 
@@ -232,6 +252,8 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     {
         _goalTaskSnapshot = state.Tasks;
         var selectedGoalId = SelectedGoal?.GoalId;
+        var orderedTargets = state.Targets.OrderBy(item => item.SortOrder).ToArray();
+        var goalProjectionChanged = HasGoalProjectionChanged(orderedTargets);
         var calendarMonth = _usesPersistedState
             ? _calendarMonth
             : new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
@@ -239,24 +261,28 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         _isApplyingState = true;
         try
         {
-            Goals.Clear();
+            if (goalProjectionChanged)
+            {
+                Goals.Clear();
+                foreach (var target in orderedTargets)
+                {
+                    Goals.Add(new GoalOverviewItemViewModel(
+                        target.TargetId,
+                        target.Name,
+                        "尚未推进",
+                        "暂无记录",
+                        false,
+                        target.IsArchived,
+                        target.IconFileName,
+                        target.CreatedAtUtc,
+                        target.Remark,
+                        target.TargetDurationMinutes));
+                }
+            }
+
             FocusSessionRecords.Clear();
             ApplyRecentTargetIcons(TargetIconCatalog.ParseRecentIconFileNames(
                 state.Settings.RecentTargetIconsJson));
-            foreach (var target in state.Targets.OrderBy(item => item.SortOrder))
-            {
-                Goals.Add(new GoalOverviewItemViewModel(
-                    target.TargetId,
-                    target.Name,
-                    "尚未推进",
-                    "暂无记录",
-                    false,
-                    target.IsArchived,
-                    target.IconFileName,
-                    target.CreatedAtUtc,
-                    target.Remark,
-                    target.TargetDurationMinutes));
-            }
 
             var targetNames = state.Targets.ToDictionary(item => item.TargetId, item => item.Name, StringComparer.Ordinal);
             foreach (var session in state.FocusSessions
@@ -305,15 +331,53 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
         _focusGoalSettingsModal.ApplyPersistedMonthlyTarget(_monthlyFocusTargetHours);
         RefreshGoalSummaries();
-        SelectGoal(Goals.FirstOrDefault(goal =>
+        var nextSelectedGoal = Goals.FirstOrDefault(goal =>
             goal.GoalId == selectedGoalId && goal.IsArchived == ShowArchivedGoals)
-            ?? Goals.FirstOrDefault(goal => goal.IsArchived == ShowArchivedGoals));
+            ?? Goals.FirstOrDefault(goal => goal.IsArchived == ShowArchivedGoals);
+        var selectionUnchanged = ReferenceEquals(SelectedGoal, nextSelectedGoal);
+        SelectGoal(nextSelectedGoal);
+        if (selectionUnchanged)
+        {
+            GoalTasks.ApplyState(SelectedGoal, _goalTaskSnapshot);
+        }
         RefreshCalendar(selectedCalendarDate);
         RefreshTrend();
         NotifyMonthlyFocusTargetChanged();
-        OnPropertyChanged(nameof(VisibleGoals));
+        if (goalProjectionChanged)
+        {
+            OnPropertyChanged(nameof(VisibleGoals));
+        }
         OnPropertyChanged(nameof(TodayDateDisplay));
         NotifyTodayFocusDisplayChanged();
+    }
+
+    private bool HasGoalProjectionChanged(IReadOnlyList<LocalTargetDto> targets)
+    {
+        if (Goals.Count != targets.Count)
+        {
+            return true;
+        }
+
+        for (var index = 0; index < targets.Count; index++)
+        {
+            var goal = Goals[index];
+            var target = targets[index];
+            if (goal.GoalId != target.TargetId ||
+                goal.Name != target.Name ||
+                goal.IsArchived != target.IsArchived ||
+                !string.Equals(
+                    goal.IconFileName,
+                    TargetIconCatalog.ResolveIconFileName(target.IconFileName),
+                    StringComparison.OrdinalIgnoreCase) ||
+                goal.CreatedAtUtc != target.CreatedAtUtc ||
+                goal.Remark != target.Remark ||
+                goal.TargetDurationMinutes != target.TargetDurationMinutes)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public bool IsLoggedIn => _isLoggedIn;
@@ -1018,6 +1082,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             }
 
             _selectedTab = value;
+            if (_selectedTab == StatisticsTab.Goals) GoalTasks.RefreshDateSensitiveViews();
             SetHoveredPoint(null);
             IsTrendVipGuideOpen = false;
             IsDailyFocusRecordVipGuideOpen = false;
@@ -1809,8 +1874,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             SelectedDayRecords.Add(record);
         }
 
-        SelectedDayCompletedTaskItems = GetCalendarCompletedTasks(date);
-        OnPropertyChanged(nameof(HasSelectedDayCompletedTasks));
+        RefreshSelectedDayCompletedTasks(date);
         OnPropertyChanged(nameof(SelectedDateDisplay));
         OnPropertyChanged(nameof(IsReturnToTodayVisible));
         OnPropertyChanged(nameof(SelectedDayDurationDisplay));
@@ -1818,10 +1882,8 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(SelectedDayHoursUnitDisplay));
         OnPropertyChanged(nameof(SelectedDayMinutesValueDisplay));
         OnPropertyChanged(nameof(SelectedDayMinutes));
-        OnPropertyChanged(nameof(SelectedDayCompletedTasks));
         OnPropertyChanged(nameof(SelectedDaySessionCount));
         OnPropertyChanged(nameof(HasSelectedDayFocusData));
-        OnPropertyChanged(nameof(SelectedDayCompletedTaskItems));
         SelectedDayDistributions.Clear();
         var slices = FocusStatisticsCalculator.GetSlices(GetCoreFocusSessionRecords())
             .Where(slice => slice.StartsAt.Date == date.Date).ToArray();
@@ -1974,6 +2036,20 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(TrendRangeTitle));
             RefreshTrend();
         }
+    }
+
+    private void RefreshSelectedDayCompletedTasks(DateTime? date = null)
+    {
+        var selectedDate = date ?? _selectedCalendarDay?.Date;
+        if (selectedDate is null)
+        {
+            return;
+        }
+
+        SelectedDayCompletedTaskItems = GetCalendarCompletedTasks(selectedDate.Value);
+        OnPropertyChanged(nameof(HasSelectedDayCompletedTasks));
+        OnPropertyChanged(nameof(SelectedDayCompletedTasks));
+        OnPropertyChanged(nameof(SelectedDayCompletedTaskItems));
     }
 
     public string TrendRangeTitle => $"{SelectedRange.Label}趋势";
@@ -2710,6 +2786,9 @@ public sealed class GoalOverviewItemViewModel : INotifyPropertyChanged
     public string GoalId { get; }
     public DateTimeOffset? CreatedAtUtc { get; }
     public string CreatedDateDisplay => CreatedAtUtc is { } created ? $"创建于 {created.ToLocalTime():M月d日}" : "创建日期未知";
+    public string DetailMetadataDisplay => string.IsNullOrWhiteSpace(Remark)
+        ? CreatedDateDisplay
+        : $"{Remark}  ·  {CreatedDateDisplay}";
     public string IconFileName { get; private set; }
     public string IconSource { get; private set; }
 
@@ -2723,6 +2802,7 @@ public sealed class GoalOverviewItemViewModel : INotifyPropertyChanged
         {
             Remark = remark;
             OnPropertyChanged(nameof(Remark));
+            OnPropertyChanged(nameof(DetailMetadataDisplay));
         }
         if (TargetDurationMinutes != targetDurationMinutes)
         {
