@@ -113,6 +113,42 @@ public sealed class StatisticsGoalProgressPresentationTests
     }
 
     [Fact]
+    public void NextTasksShowCenteredEmptyStateOnlyWhenThereAreNoPendingTasks()
+    {
+        var root = FindRepositoryRoot();
+        var page = XDocument.Load(Path.Combine(root, "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
+        var card = Assert.Single(page.Descendants(Presentation + "Border").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "GoalInvestmentDetailsCard"));
+        var emptyState = Assert.Single(card.Descendants(Presentation + "Grid").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "GoalNextTasksEmptyState"));
+
+        Assert.Equal(
+            "{Binding GoalTasks.ShowPendingEmptyState, Converter={StaticResource BooleanToVisibilityConverter}}",
+            (string?)emptyState.Attribute("Visibility"));
+        Assert.Equal("Center", (string?)emptyState.Attribute("HorizontalAlignment"));
+        Assert.Equal("Center", (string?)emptyState.Attribute("VerticalAlignment"));
+
+        var image = Assert.Single(emptyState.Descendants(Presentation + "Image"));
+        Assert.Equal(
+            "/FocusApp.Desktop;component/Assets/Images/Illustrations/mubiao_wurenwu.png",
+            (string?)image.Attribute("Source"));
+        Assert.Contains(emptyState.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "还没有任务");
+        Assert.Contains(emptyState.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "点击右上角【创建任务】开始吧。");
+
+        var taskScroll = Assert.Single(card.Descendants(Presentation + "ScrollViewer").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "GoalNextTasksScroll"));
+        Assert.Equal(
+            "{Binding GoalTasks.ShowPendingEmptyState, Converter={StaticResource GoalInverseVisibilityConverter}}",
+            (string?)taskScroll.Attribute("Visibility"));
+
+        var project = XDocument.Load(Path.Combine(root, "src", "FocusApp.Desktop", "FocusApp.Desktop.csproj"));
+        Assert.Contains(project.Descendants("Resource"), resource =>
+            (string?)resource.Attribute("Include") == "Assets\\Images\\Illustrations\\mubiao_wurenwu.png");
+    }
+
+    [Fact]
     public void NextTasksSupportCompletionHoverActionsDragAndDynamicPriorities()
     {
         var page = XDocument.Load(Path.Combine(FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));

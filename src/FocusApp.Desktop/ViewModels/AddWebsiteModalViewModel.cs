@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
+using FocusApp.Core;
 
 namespace FocusApp.Desktop.ViewModels;
 
@@ -10,11 +11,15 @@ public sealed class AddWebsiteModalViewModel : INotifyPropertyChanged
     private Guid? _editingWebsiteId;
     private string _websiteName = string.Empty;
     private string _websiteAddress = string.Empty;
+    private bool _isWebsiteNameExpanded;
+    private readonly RelayCommand<object> _saveCommand;
 
     public AddWebsiteModalViewModel()
     {
         CloseCommand = new RelayCommand<object>(_ => Close());
-        SaveCommand = new RelayCommand<object>(_ => Save());
+        _saveCommand = new RelayCommand<object>(_ => Save(), _ => CanSave);
+        SaveCommand = _saveCommand;
+        ToggleWebsiteNameCommand = new RelayCommand<object>(_ => IsWebsiteNameExpanded = !IsWebsiteNameExpanded);
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -26,6 +31,8 @@ public sealed class AddWebsiteModalViewModel : INotifyPropertyChanged
     public ICommand CloseCommand { get; }
 
     public ICommand SaveCommand { get; }
+
+    public ICommand ToggleWebsiteNameCommand { get; }
 
     public bool IsOpen
     {
@@ -44,11 +51,29 @@ public sealed class AddWebsiteModalViewModel : INotifyPropertyChanged
 
     public bool IsEditMode => _editingWebsiteId.HasValue;
 
+    public bool CanSave => AccessControlService.NormalizeWebsiteHost(WebsiteAddress) is not null;
+
+    public bool IsWebsiteNameExpanded
+    {
+        get => _isWebsiteNameExpanded;
+        private set
+        {
+            if (_isWebsiteNameExpanded == value)
+            {
+                return;
+            }
+
+            _isWebsiteNameExpanded = value;
+            OnPropertyChanged();
+        }
+    }
+
     public string WebsiteName
     {
         get => _websiteName;
         set
         {
+            value ??= string.Empty;
             if (_websiteName == value)
             {
                 return;
@@ -64,6 +89,7 @@ public sealed class AddWebsiteModalViewModel : INotifyPropertyChanged
         get => _websiteAddress;
         set
         {
+            value ??= string.Empty;
             if (_websiteAddress == value)
             {
                 return;
@@ -71,6 +97,8 @@ public sealed class AddWebsiteModalViewModel : INotifyPropertyChanged
 
             _websiteAddress = value;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(CanSave));
+            _saveCommand.NotifyCanExecuteChanged();
         }
     }
 
@@ -80,6 +108,7 @@ public sealed class AddWebsiteModalViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(IsEditMode));
         WebsiteName = string.Empty;
         WebsiteAddress = string.Empty;
+        IsWebsiteNameExpanded = false;
         IsOpen = true;
     }
 
@@ -89,6 +118,7 @@ public sealed class AddWebsiteModalViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(IsEditMode));
         WebsiteName = name;
         WebsiteAddress = address;
+        IsWebsiteNameExpanded = true;
         IsOpen = true;
     }
 
@@ -96,7 +126,7 @@ public sealed class AddWebsiteModalViewModel : INotifyPropertyChanged
     {
         var name = WebsiteName.Trim();
         var address = WebsiteAddress.Trim();
-        if (name.Length == 0 || !IsValidWebsiteAddress(address))
+        if (!CanSave)
         {
             return;
         }
@@ -112,17 +142,6 @@ public sealed class AddWebsiteModalViewModel : INotifyPropertyChanged
         }
 
         Close();
-    }
-
-    private static bool IsValidWebsiteAddress(string address)
-    {
-        var value = address.Contains("://", StringComparison.Ordinal)
-            ? address
-            : $"https://{address}";
-
-        return Uri.TryCreate(value, UriKind.Absolute, out var uri)
-            && uri.Scheme is "http" or "https"
-            && Uri.CheckHostName(uri.Host) != UriHostNameType.Unknown;
     }
 
     private void Close()

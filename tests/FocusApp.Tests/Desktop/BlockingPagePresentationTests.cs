@@ -95,8 +95,10 @@ public sealed class BlockingPagePresentationTests
             FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "AddWebsiteModal.xaml"));
         var root = Assert.IsType<XElement>(modal.Root);
 
-        Assert.Equal("380", (string?)root.Attribute("Width"));
+        Assert.Equal("330", (string?)root.Attribute("Width"));
         Assert.Equal("330", (string?)root.Attribute("Height"));
+        Assert.Equal("Modal_IsVisibleChanged", (string?)root.Attribute("IsVisibleChanged"));
+        Assert.Equal("Modal_PreviewKeyDown", (string?)root.Attribute("PreviewKeyDown"));
 
         var title = Assert.Single(modal.Descendants(Presentation + "TextBlock").Where(element =>
             (string?)element.Attribute("Grid.Row") == "0"));
@@ -116,16 +118,15 @@ public sealed class BlockingPagePresentationTests
             (string?)setter.Attribute("Property") == "Text" &&
             (string?)setter.Attribute("Value") == "{DynamicResource BlockingEditWebsiteModalDescription}");
 
-        var fieldLabels = modal.Descendants(Presentation + "TextBlock").Where(element =>
-            (string?)element.Attribute("Text") is "{DynamicResource BlockingWebsiteNameLabel}" or
-                "{DynamicResource BlockingWebsiteAddressLabel}").ToList();
-        Assert.Equal(2, fieldLabels.Count);
-        Assert.All(fieldLabels, label =>
-        {
-            Assert.Equal("13", (string?)label.Attribute("FontSize"));
-            Assert.Equal("Medium", (string?)label.Attribute("FontWeight"));
-            Assert.Equal("{DynamicResource TextPrimary}", (string?)label.Attribute("Foreground"));
-        });
+        var addressLabel = Assert.Single(modal.Descendants(Presentation + "TextBlock").Where(element =>
+            (string?)element.Attribute("Text") == "{DynamicResource BlockingWebsiteAddressLabel}"));
+        Assert.Equal("13", (string?)addressLabel.Attribute("FontSize"));
+        Assert.Equal("Medium", (string?)addressLabel.Attribute("FontWeight"));
+        Assert.Contains(modal.Descendants(Presentation + "Button"), button =>
+            (string?)button.Attribute("Command") == "{Binding ToggleWebsiteNameCommand}" &&
+            (string?)button.Attribute("Content") == "{DynamicResource BlockingWebsiteOptionalNamePrompt}");
+        Assert.Contains(modal.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "{DynamicResource BlockingWebsiteOptionalNameLabel}");
 
         Assert.DoesNotContain(modal.Descendants(Presentation + "TextBlock"), element =>
             (string?)element.Attribute("Text") == "\uE70F");
@@ -172,6 +173,9 @@ public sealed class BlockingPagePresentationTests
             (string?)button.Attribute("Command") == "{Binding CloseCommand}"));
         Assert.Single(modal.Descendants(Presentation + "Button").Where(button =>
             (string?)button.Attribute("Command") == "{Binding SaveCommand}"));
+        Assert.Contains(modal.Descendants(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("Property") == "Content" &&
+            (string?)setter.Attribute("Value") == "{DynamicResource BlockingWebsiteAdd}");
     }
 
     private static string FindRepositoryRoot()

@@ -20,9 +20,11 @@ public sealed class BlockingPageViewModel : INotifyPropertyChanged
     private readonly string _websiteCountTemplate;
     private readonly string _applicationCountTemplate;
     private readonly IFaviconService _faviconService;
+    private readonly IWebsiteMetadataService _websiteMetadataService;
     private readonly IProgramIconService _programIconService;
     private readonly AccessControlService _accessControlService;
     private BlockingTab _selectedTab = BlockingTab.Websites;
+    private bool _isUpdatingWebsiteDetails;
 
     public BlockingPageViewModel(
         IEnumerable<BlockingWebsiteItemViewModel> websites,
@@ -32,13 +34,15 @@ public sealed class BlockingPageViewModel : INotifyPropertyChanged
         IFaviconService? faviconService = null,
         IEnumerable<RecentProgramRecord>? recentPrograms = null,
         AccessControlService? accessControlService = null,
-        IProgramIconService? programIconService = null)
+        IProgramIconService? programIconService = null,
+        IWebsiteMetadataService? websiteMetadataService = null)
     {
         Websites = new ObservableCollection<BlockingWebsiteItemViewModel>(websites);
         Applications = new ObservableCollection<BlockingApplicationItemViewModel>(applications);
         _websiteCountTemplate = websiteCountTemplate;
         _applicationCountTemplate = applicationCountTemplate;
         _faviconService = faviconService ?? new FaviconService();
+        _websiteMetadataService = websiteMetadataService ?? new WebsiteMetadataService(_faviconService);
         _programIconService = programIconService ?? new ProgramIconService();
         _accessControlService = accessControlService ?? new AccessControlService();
         ProgramModal = new AddProgramModalViewModel(recentPrograms);
@@ -179,12 +183,20 @@ public sealed class BlockingPageViewModel : INotifyPropertyChanged
 
     private void WebsiteModal_WebsiteCreated(object? sender, WebsiteDraft draft)
     {
-        var item = new BlockingWebsiteItemViewModel(Guid.NewGuid(), draft.Name, draft.Address, true);
+        var domain = AccessControlService.NormalizeWebsiteHost(draft.Address);
+        if (domain is null)
+        {
+            return;
+        }
+
+        var note = draft.Name.Trim();
+        var fallbackName = note.Length > 0 ? note : domain;
+        var item = new BlockingWebsiteItemViewModel(Guid.NewGuid(), fallbackName, draft.Address, true);
         item.PropertyChanged += Website_PropertyChanged;
         Websites.Add(item);
         OnPropertyChanged(nameof(WebsiteCountText));
         BlockingChanged?.Invoke(this, EventArgs.Empty);
-        _ = LoadFaviconAsync(item);
+        _ = LoadWebsiteMetadataAsync(item, fallbackName, note.Length == 0);
     }
 
     private void WebsiteModal_WebsiteUpdated(object? sender, WebsiteEdit edit)
@@ -195,12 +207,32 @@ public sealed class BlockingPageViewModel : INotifyPropertyChanged
             return;
         }
 
+        var domain = AccessControlService.NormalizeWebsiteHost(edit.Draft.Address);
+        if (domain is null)
+        {
+            return;
+        }
+
+        var note = edit.Draft.Name.Trim();
+        var displayName = note.Length > 0 ? note : domain;
         var addressChanged = !string.Equals(item.Address, edit.Draft.Address, StringComparison.Ordinal);
-        item.UpdateDetails(edit.Draft.Name, edit.Draft.Address);
+        _isUpdatingWebsiteDetails = true;
+        try
+        {
+            item.UpdateDetails(displayName, edit.Draft.Address);
+        }
+        finally
+        {
+            _isUpdatingWebsiteDetails = false;
+        }
         if (addressChanged)
         {
             item.Favicon = null;
-            _ = LoadFaviconAsync(item);
+            _ = LoadWebsiteMetadataAsync(item, displayName, note.Length == 0);
+        }
+        else if (note.Length == 0)
+        {
+            _ = LoadWebsiteMetadataAsync(item, displayName, true);
         }
 
         BlockingChanged?.Invoke(this, EventArgs.Empty);
@@ -275,6 +307,42 @@ public sealed class BlockingPageViewModel : INotifyPropertyChanged
         }
     }
 
+    private async Task LoadWebsiteMetadataAsync(
+        BlockingWebsiteItemViewModel item,
+        string expectedFallbackName,
+        bool canReplaceDisplayName)
+    {
+        var expectedAddress = item.Address;
+        try
+        {
+            var metadata = await _websiteMetadataService.GetMetadataAsync(expectedAddress);
+            if (!Websites.Contains(item) ||
+                !string.Equals(item.Address, expectedAddress, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            if (metadata.Favicon is not null)
+            {
+                item.Favicon = metadata.Favicon;
+            }
+
+            if (canReplaceDisplayName &&
+                !string.IsNullOrWhiteSpace(metadata.DisplayName) &&
+                string.Equals(item.Name, expectedFallbackName, StringComparison.Ordinal))
+            {
+                item.SetDisplayName(metadata.DisplayName.Trim());
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception exception)
+        {
+            try { File.AppendAllText(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "FocusApp", "Cache", "icon-cache-errors.log"), exception.ToString() + Environment.NewLine); } catch { }
+        }
+    }
+
     private void DeleteWebsite(BlockingWebsiteItemViewModel? website)
     {
         if (website is not null && Websites.Remove(website))
@@ -306,7 +374,10 @@ public sealed class BlockingPageViewModel : INotifyPropertyChanged
 
     private void Website_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(BlockingWebsiteItemViewModel.IsEnabled) or nameof(BlockingWebsiteItemViewModel.Favicon))
+        if (!_isUpdatingWebsiteDetails &&
+            (e.PropertyName is nameof(BlockingWebsiteItemViewModel.IsEnabled) or
+                nameof(BlockingWebsiteItemViewModel.Favicon) or
+                nameof(BlockingWebsiteItemViewModel.Name)))
         {
             BlockingChanged?.Invoke(this, EventArgs.Empty);
         }
@@ -378,6 +449,17 @@ public sealed class BlockingWebsiteItemViewModel : INotifyPropertyChanged
             _address = address;
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Address)));
         }
+    }
+
+    public void SetDisplayName(string name)
+    {
+        if (_name == name)
+        {
+            return;
+        }
+
+        _name = name;
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Name)));
     }
 
     public ImageSource? Favicon

@@ -19,6 +19,16 @@ public sealed class AccessControlServiceTests
         Assert.Equal(rule.Id, result.RuleId);
     }
 
+    [Theory]
+    [InlineData("youtube.com", "youtube.com")]
+    [InlineData("www.youtube.com", "youtube.com")]
+    [InlineData("https://youtube.com", "youtube.com")]
+    [InlineData("https://www.youtube.com/watch?v=123", "youtube.com")]
+    public void Website_NormalizesSupportedInputFormatsToBlockingDomain(string input, string expected)
+    {
+        Assert.Equal(expected, AccessControlService.NormalizeWebsiteHost(input));
+    }
+
     [Fact]
     public void Website_MatchesSubdomainButNotSimilarSuffix()
     {

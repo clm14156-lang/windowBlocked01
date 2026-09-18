@@ -92,7 +92,15 @@ public sealed class AccessControlService
             return null;
         }
 
-        return uri.Host.TrimEnd('.').ToLowerInvariant();
+        var host = uri.Host.TrimEnd('.').ToLowerInvariant();
+        if (Uri.CheckHostName(host) == UriHostNameType.Unknown)
+        {
+            return null;
+        }
+
+        return host.StartsWith("www.", StringComparison.OrdinalIgnoreCase) && host.Length > 4
+            ? host[4..]
+            : host;
     }
 
     public static string NormalizeApplicationPath(string? path)

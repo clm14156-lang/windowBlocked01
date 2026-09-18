@@ -1612,6 +1612,34 @@
                                             <TextBlock Text="+ 创建任务" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource AccentPrimary}" />
                                         </Button>
                                     </Grid>
+                                    <Grid x:Name="GoalNextTasksEmptyState"
+                                          Grid.Row="1"
+                                          Margin="0,6,0,0"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          IsHitTestVisible="False"
+                                          Visibility="{Binding GoalTasks.ShowPendingEmptyState, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <Image Width="72"
+                                                   Height="72"
+                                                   HorizontalAlignment="Center"
+                                                   RenderOptions.BitmapScalingMode="HighQuality"
+                                                   Source="/FocusApp.Desktop;component/Assets/Images/Illustrations/mubiao_wurenwu.png"
+                                                   Stretch="Uniform" />
+                                            <TextBlock Margin="0,8,0,0"
+                                                       HorizontalAlignment="Center"
+                                                       FontSize="13"
+                                                       FontWeight="Medium"
+                                                       Foreground="{DynamicResource TextSecondary}"
+                                                       Text="还没有任务" />
+                                            <TextBlock Margin="0,4,0,0"
+                                                       HorizontalAlignment="Center"
+                                                       FontSize="12"
+                                                       FontWeight="Normal"
+                                                       Foreground="{DynamicResource TextWeak}"
+                                                       Text="点击右上角【创建任务】开始吧。" />
+                                        </StackPanel>
+                                    </Grid>
                                     <ScrollViewer x:Name="GoalNextTasksScroll"
                                                   Grid.Row="1"
                                                   Margin="0,6,0,0"
@@ -1620,7 +1648,8 @@
                                                   DragLeave="GoalNextTasksScroll_DragLeave"
                                                   Drop="GoalNextTasksScroll_Drop"
                                                   VerticalScrollBarVisibility="Auto"
-                                                  HorizontalScrollBarVisibility="Disabled">
+                                                  HorizontalScrollBarVisibility="Disabled"
+                                                  Visibility="{Binding GoalTasks.ShowPendingEmptyState, Converter={StaticResource GoalInverseVisibilityConverter}}">
                                         <ScrollViewer.Resources><Style TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource StatisticsThinScrollBarStyle}"/></ScrollViewer.Resources>
                                         <StackPanel>
                                             <Border x:Name="GoalNewTaskEditorRow"

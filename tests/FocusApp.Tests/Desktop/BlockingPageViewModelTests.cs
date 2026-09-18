@@ -39,6 +39,39 @@ public sealed class BlockingPageViewModelTests
     }
 
     [Fact]
+    public void WebsiteModal_AddressIsTheOnlyRequiredFieldAndUsesDomainFallbackImmediately()
+    {
+        var viewModel = CreateViewModel();
+        viewModel.OpenWebsiteModalCommand.Execute(null);
+
+        Assert.False(viewModel.WebsiteModal.IsWebsiteNameExpanded);
+        Assert.False(viewModel.WebsiteModal.SaveCommand.CanExecute(null));
+
+        viewModel.WebsiteModal.WebsiteAddress = "https://www.youtube.com/watch?v=123";
+
+        Assert.True(viewModel.WebsiteModal.SaveCommand.CanExecute(null));
+        viewModel.WebsiteModal.SaveCommand.Execute(null);
+
+        var website = Assert.Single(viewModel.Websites);
+        Assert.Equal("youtube.com", website.Name);
+        Assert.Equal("https://www.youtube.com/watch?v=123", website.Address);
+        Assert.False(viewModel.WebsiteModal.IsOpen);
+    }
+
+    [Fact]
+    public void WebsiteModal_OptionalNameCanBeExpandedWithoutBecomingRequired()
+    {
+        var modal = new AddWebsiteModalViewModel();
+        modal.Open();
+
+        modal.ToggleWebsiteNameCommand.Execute(null);
+
+        Assert.True(modal.IsWebsiteNameExpanded);
+        modal.WebsiteAddress = "example.com";
+        Assert.True(modal.SaveCommand.CanExecute(null));
+    }
+
+    [Fact]
     public void WebsiteModal_DoesNotSaveIncompleteWebsite()
     {
         var viewModel = CreateViewModel();
@@ -116,35 +149,57 @@ public sealed class BlockingPageViewModelTests
     }
 
     [Fact]
-    public async Task WebsiteModal_AddsDefaultItemBeforeFaviconCompletesThenReplacesIt()
+    public async Task WebsiteModal_AddsDomainBeforeMetadataCompletesThenUpdatesNameAndFavicon()
     {
-        var faviconService = new DeferredFaviconService();
+        var metadataService = new DeferredWebsiteMetadataService();
         var viewModel = new BlockingPageViewModel(
-            [], [], "Added websites {0}", "Added applications {0}", faviconService);
+            [], [], "Added websites {0}", "Added applications {0}", new EmptyFaviconService(),
+            websiteMetadataService: metadataService);
         viewModel.WebsiteModal.Open();
-        viewModel.WebsiteModal.WebsiteName = "Example";
-        viewModel.WebsiteModal.WebsiteAddress = "https://example.com/path";
+        viewModel.WebsiteModal.WebsiteAddress = "https://www.example.com/path";
 
         viewModel.WebsiteModal.SaveCommand.Execute(null);
 
         var website = Assert.Single(viewModel.Websites);
         Assert.Null(website.Favicon);
-        Assert.Equal("https://example.com/path", faviconService.RequestedAddress);
+        Assert.Equal("example.com", website.Name);
+        Assert.Equal("https://www.example.com/path", metadataService.RequestedAddress);
 
         var changed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         website.PropertyChanged += (_, args) =>
         {
-            if (args.PropertyName == nameof(BlockingWebsiteItemViewModel.Favicon))
+            if (args.PropertyName == nameof(BlockingWebsiteItemViewModel.Name) &&
+                website.Favicon is not null)
             {
                 changed.TrySetResult();
             }
         };
         var favicon = new DrawingImage();
         favicon.Freeze();
-        faviconService.Complete(favicon);
+        metadataService.Complete(new WebsiteMetadata("Example Site", favicon));
 
         await changed.Task.WaitAsync(TimeSpan.FromSeconds(1));
+        Assert.Equal("Example Site", website.Name);
         Assert.Same(favicon, website.Favicon);
+    }
+
+    [Fact]
+    public async Task WebsiteModal_UserNoteIsNeverOverwrittenByFetchedName()
+    {
+        var metadataService = new DeferredWebsiteMetadataService();
+        var viewModel = new BlockingPageViewModel(
+            [], [], "Added websites {0}", "Added applications {0}", new EmptyFaviconService(),
+            websiteMetadataService: metadataService);
+        viewModel.WebsiteModal.Open();
+        viewModel.WebsiteModal.WebsiteName = "视频网站";
+        viewModel.WebsiteModal.WebsiteAddress = "bilibili.com";
+
+        viewModel.WebsiteModal.SaveCommand.Execute(null);
+        var website = Assert.Single(viewModel.Websites);
+        metadataService.Complete(new WebsiteMetadata("哔哩哔哩", null));
+        await metadataService.Completed.Task.WaitAsync(TimeSpan.FromSeconds(1));
+
+        Assert.Equal("视频网站", website.Name);
     }
 
     [Fact]
@@ -357,7 +412,8 @@ public sealed class BlockingPageViewModelTests
     private static BlockingPageViewModel CreateViewModel()
     {
         return new BlockingPageViewModel(
-            [], [], "Added websites {0}", "Added applications {0}", new EmptyFaviconService());
+            [], [], "Added websites {0}", "Added applications {0}", new EmptyFaviconService(),
+            websiteMetadataService: new EmptyWebsiteMetadataService());
     }
 
     private sealed class EmptyFaviconService : IFaviconService
@@ -366,18 +422,27 @@ public sealed class BlockingPageViewModelTests
             => Task.FromResult<ImageSource?>(null);
     }
 
-    private sealed class DeferredFaviconService : IFaviconService
+    private sealed class EmptyWebsiteMetadataService : IWebsiteMetadataService
     {
-        private readonly TaskCompletionSource<ImageSource?> _completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public Task<WebsiteMetadata> GetMetadataAsync(string address, CancellationToken cancellationToken = default)
+            => Task.FromResult(new WebsiteMetadata(null, null));
+    }
+
+    private sealed class DeferredWebsiteMetadataService : IWebsiteMetadataService
+    {
+        private readonly TaskCompletionSource<WebsiteMetadata> _completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         public string? RequestedAddress { get; private set; }
+        public TaskCompletionSource Completed { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        public Task<ImageSource?> GetFaviconAsync(string address, CancellationToken cancellationToken = default)
+        public async Task<WebsiteMetadata> GetMetadataAsync(string address, CancellationToken cancellationToken = default)
         {
             RequestedAddress = address;
-            return _completion.Task;
+            var result = await _completion.Task.WaitAsync(cancellationToken);
+            Completed.TrySetResult();
+            return result;
         }
 
-        public void Complete(ImageSource favicon) => _completion.TrySetResult(favicon);
+        public void Complete(WebsiteMetadata metadata) => _completion.TrySetResult(metadata);
     }
 }
