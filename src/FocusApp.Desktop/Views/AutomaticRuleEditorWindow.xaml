@@ -9,6 +9,10 @@
  TextElement.Foreground="{DynamicResource TextPrimary}"
  PreviewKeyDown="OnKeyDown">
  <Window.Resources>
+  <ResourceDictionary>
+   <ResourceDictionary.MergedDictionaries>
+    <ResourceDictionary Source="/FocusApp.Desktop;component/Resources/Styles.xaml"/>
+   </ResourceDictionary.MergedDictionaries>
   <BooleanToVisibilityConverter x:Key="BoolVisibility"/>
   <Style x:Key="TimeField" TargetType="TextBox">
    <Setter Property="Background" Value="White"/><Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
@@ -66,13 +70,23 @@
    </ControlTemplate></Setter.Value></Setter>
    <Style.Triggers><Trigger Property="IsChecked" Value="True"><Setter Property="Background" Value="#FF8000"/><Setter Property="Foreground" Value="#FFFFFF"/><Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}"/></Trigger></Style.Triggers>
   </Style>
+  </ResourceDictionary>
  </Window.Resources>
  <Border Margin="10" Padding="14,10" Background="White" BorderBrush="#E4E4E9" BorderThickness="1" CornerRadius="14">
   <Border.Effect><DropShadowEffect BlurRadius="18" ShadowDepth="3" Opacity="0.16"/></Border.Effect>
   <Grid>
-   <Grid.RowDefinitions><RowDefinition Height="22"/><RowDefinition Height="38"/><RowDefinition Height="34"/><RowDefinition Height="Auto"/><RowDefinition Height="38"/><RowDefinition Height="Auto"/><RowDefinition Height="40"/></Grid.RowDefinitions>
+   <Grid.RowDefinitions><RowDefinition Height="22"/><RowDefinition Height="Auto"/><RowDefinition Height="38"/><RowDefinition Height="34"/><RowDefinition Height="Auto"/><RowDefinition Height="38"/><RowDefinition Height="Auto"/><RowDefinition Height="40"/></Grid.RowDefinitions>
    <Button Content="×" Style="{StaticResource CloseButton}" Margin="0,-5,-5,0" HorizontalAlignment="Right" Click="Close_Click" AutomationProperties.Name="取消编辑"/>
-   <Grid Grid.Row="1"><Grid.ColumnDefinitions><ColumnDefinition Width="72"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+   <Grid x:Name="RuleStatusRow" Grid.Row="1" Height="38" Visibility="{Binding IsEditing, Converter={StaticResource BoolVisibility}}">
+    <Grid.ColumnDefinitions><ColumnDefinition Width="72"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+    <TextBlock Text="规则状态" FontSize="12" FontWeight="Medium" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}"/>
+    <StackPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
+     <ToggleButton x:Name="RuleStatusSwitch" AutomationProperties.Name="规则状态" IsChecked="{Binding EditorIsEnabled, Mode=TwoWay}" Style="{StaticResource AutomaticRuleSwitchStyle}"/>
+     <TextBlock Margin="8,0,0,0" MinWidth="26" VerticalAlignment="Center" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource TextSecondary}" Text="{Binding EditorStatusDisplay}"/>
+    </StackPanel>
+    <Border Grid.ColumnSpan="2" Height="1" VerticalAlignment="Bottom" Background="#EEEEF2"/>
+   </Grid>
+   <Grid Grid.Row="2"><Grid.ColumnDefinitions><ColumnDefinition Width="72"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
     <TextBlock Text="绑定目标" FontSize="12" FontWeight="Medium" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}"/>
     <ComboBox Grid.Column="1" Style="{StaticResource TargetField}" ItemsSource="{Binding Targets}" SelectedValuePath="Id" SelectedValue="{Binding TargetChoice}" VerticalAlignment="Center" MinHeight="30">
      <ComboBox.ItemTemplate><DataTemplate><StackPanel Margin="6,3" VerticalAlignment="Center" Orientation="Horizontal">
@@ -81,24 +95,24 @@
      </StackPanel></DataTemplate></ComboBox.ItemTemplate>
     </ComboBox>
    </Grid>
-   <Grid Grid.Row="2"><TextBlock Text="重复" FontSize="12" FontWeight="Medium" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}"/>
+   <Grid Grid.Row="3"><TextBlock Text="重复" FontSize="12" FontWeight="Medium" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}"/>
     <StackPanel Orientation="Horizontal" Margin="72,1,0,1">
      <ToggleButton Content="每天" Style="{StaticResource RepeatButton}" IsChecked="{Binding IsDaily, Mode=OneWay}" Command="{Binding SelectDailyCommand}"/>
      <ToggleButton Content="自定义" Style="{StaticResource RepeatButton}" IsChecked="{Binding IsCustom, Mode=OneWay}" Command="{Binding SelectCustomCommand}"/>
     </StackPanel>
    </Grid>
-   <ItemsControl Grid.Row="3" Margin="0,3,0,5" ItemsSource="{Binding Weekdays}" Visibility="{Binding IsCustom, Converter={StaticResource BoolVisibility}}">
+   <ItemsControl Grid.Row="4" Margin="0,3,0,5" ItemsSource="{Binding Weekdays}" Visibility="{Binding IsCustom, Converter={StaticResource BoolVisibility}}">
     <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="7"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
     <ItemsControl.ItemTemplate><DataTemplate><ToggleButton Style="{StaticResource RepeatButton}" Content="{Binding ChineseName}" IsChecked="{Binding IsSelected}" Padding="0,6" Width="30" Margin="0" HorizontalAlignment="Center"/></DataTemplate></ItemsControl.ItemTemplate>
    </ItemsControl>
-   <Grid Grid.Row="4"><Grid.ColumnDefinitions><ColumnDefinition Width="72"/><ColumnDefinition Width="*"/><ColumnDefinition Width="20"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+   <Grid Grid.Row="5"><Grid.ColumnDefinitions><ColumnDefinition Width="72"/><ColumnDefinition Width="*"/><ColumnDefinition Width="20"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
     <TextBlock Text="开始 / 结束" FontSize="12" FontWeight="Medium" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}"/>
     <TextBox Grid.Column="1" Style="{StaticResource TimeField}" Text="{Binding EditorStartText, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" Height="32" VerticalContentAlignment="Center" AutomationProperties.Name="开始时间"/>
     <TextBlock Grid.Column="2" Text="–" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource TextWeak}"/>
     <TextBox Grid.Column="3" Style="{StaticResource TimeField}" Text="{Binding EditorEndText, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" Height="32" VerticalContentAlignment="Center" AutomationProperties.Name="结束时间"/>
    </Grid>
-   <TextBlock Grid.Row="5" Text="{Binding ValidationMessage}" Foreground="{DynamicResource AutomaticRuleValidationText}" TextWrapping="Wrap" FontSize="12" LineHeight="18" Margin="0,3"/>
-   <Border Grid.Row="6" BorderBrush="#EEEEF2" BorderThickness="0,1,0,0" Padding="0,6,0,0">
+   <TextBlock Grid.Row="6" Text="{Binding ValidationMessage}" Foreground="{DynamicResource AutomaticRuleValidationText}" TextWrapping="Wrap" FontSize="12" LineHeight="18" Margin="0,3"/>
+   <Border Grid.Row="7" BorderBrush="#EEEEF2" BorderThickness="0,1,0,0" Padding="0,6,0,0">
     <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
      <Button Content="删除" Style="{StaticResource TextButton}" Margin="0,0,10,0" Click="Delete_Click"/>
      <Button Content="保存" Style="{StaticResource TextButton}" Background="#FF8000" Foreground="White" Width="80" Click="Save_Click"/>

@@ -64,18 +64,20 @@ public class RuleTimelineLayoutTests
                     .Where(block => block.Tag is Guid)
                     .ToDictionary(block => (Guid)block.Tag);
 
-                Assert.Equal(ColorOf("#F0F0F2"), ColorOf(blocks[ordinary.Id].Background));
+                Assert.Equal(ColorOf("#F5F5F7"), ColorOf(blocks[ordinary.Id].Background));
                 Assert.Equal(new Thickness(0), blocks[ordinary.Id].BorderThickness);
-                Assert.Equal(ColorOf("#D1D1D6"), StripeColor(blocks[ordinary.Id]));
+                Assert.Equal(ColorOf("#C4C7CE"), StripeColor(blocks[ordinary.Id]));
+                Assert.Equal(0.78, blocks[ordinary.Id].Opacity);
 
                 Assert.Equal(ColorOf("#FFF1E6"), ColorOf(blocks[enabled.Id].Background));
                 Assert.Equal(new Thickness(0), blocks[enabled.Id].BorderThickness);
                 Assert.Equal(ColorOf("#FF7A00"), StripeColor(blocks[enabled.Id]));
 
-                Assert.Equal(ColorOf("#FFF1E6"), ColorOf(blocks[selected.Id].Background));
+                Assert.Equal(ColorOf("#F5F5F7"), ColorOf(blocks[selected.Id].Background));
                 Assert.Equal(new Thickness(1), blocks[selected.Id].BorderThickness);
-                Assert.Equal(ColorOf("#FF7A00"), ColorOf(blocks[selected.Id].BorderBrush));
-                Assert.Equal(ColorOf("#FF7A00"), StripeColor(blocks[selected.Id]));
+                Assert.Equal(ColorOf("#B8BCC4"), ColorOf(blocks[selected.Id].BorderBrush));
+                Assert.Equal(ColorOf("#C4C7CE"), StripeColor(blocks[selected.Id]));
+                Assert.Equal(0.78, blocks[selected.Id].Opacity);
 
                 settings.RuleModal.SelectedRuleId = enabled.Id;
                 view.UpdateLayout();
@@ -84,9 +86,9 @@ public class RuleTimelineLayoutTests
                     .ToDictionary(block => (Guid)block.Tag);
                 Assert.Equal(new Thickness(1), blocks[enabled.Id].BorderThickness);
                 Assert.Equal(ColorOf("#FF7A00"), ColorOf(blocks[enabled.Id].BorderBrush));
-                Assert.Equal(ColorOf("#F0F0F2"), ColorOf(blocks[selected.Id].Background));
+                Assert.Equal(ColorOf("#F5F5F7"), ColorOf(blocks[selected.Id].Background));
                 Assert.Equal(new Thickness(0), blocks[selected.Id].BorderThickness);
-                Assert.Equal(ColorOf("#D1D1D6"), StripeColor(blocks[selected.Id]));
+                Assert.Equal(ColorOf("#C4C7CE"), StripeColor(blocks[selected.Id]));
             }
             catch (Exception e) { failure = e; }
         });
@@ -296,6 +298,75 @@ public class RuleTimelineLayoutTests
                 Assert.True(settings.RuleModal.IsOpen);
                 Assert.False(settings.RuleModal.IsEditorOpen);
                 Assert.Single(settings.AutomaticRules);
+            }
+            catch (Exception e) { failure = e; }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start(); thread.Join();
+        Assert.Null(failure);
+    }
+
+    [Fact]
+    public void DisabledRuleEditorShowsOffStateWithoutDisablingOtherFields()
+    {
+        Exception? failure = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                var settings = new SettingsPageViewModel([], []);
+                var rule = new AutomaticRuleItemViewModel(
+                    Guid.NewGuid(), "每天", "04:30–06:00", ["Monday"], 270, 360)
+                {
+                    IsEnabled = false
+                };
+                settings.AutomaticRules.Add(rule);
+                settings.EditRuleCommand.Execute(rule);
+
+                var editor = new AutomaticRuleEditorWindow(settings.RuleModal);
+                editor.Resources.MergedDictionaries.Insert(0, new ResourceDictionary
+                {
+                    Source = new Uri(
+                        "/FocusApp.Desktop;component/Resources/Colors.xaml",
+                        UriKind.RelativeOrAbsolute)
+                });
+                var content = Assert.IsAssignableFrom<FrameworkElement>(editor.Content);
+                content.Measure(new Size(300, double.PositiveInfinity));
+                content.Arrange(new Rect(0, 0, 300, content.DesiredSize.Height));
+                content.UpdateLayout();
+
+                var statusRow = Assert.IsType<Grid>(editor.FindName("RuleStatusRow"));
+                var statusSwitch = Assert.IsType<ToggleButton>(editor.FindName("RuleStatusSwitch"));
+                Assert.Equal(Visibility.Visible, statusRow.Visibility);
+                Assert.False(statusSwitch.IsChecked);
+                Assert.Contains(Descendants(statusRow).OfType<TextBlock>(), text => text.Text == "关闭");
+
+                var target = Assert.Single(Descendants(content).OfType<ComboBox>());
+                var repeatButtons = Descendants(content).OfType<ToggleButton>()
+                    .Where(button => button.Content is "每天" or "自定义")
+                    .ToArray();
+                var timeFields = Descendants(content).OfType<TextBox>().ToArray();
+                Assert.True(target.IsEnabled);
+                Assert.Equal(2, repeatButtons.Length);
+                Assert.All(repeatButtons, button => Assert.True(button.IsEnabled));
+                Assert.Equal(2, timeFields.Length);
+                Assert.All(timeFields, field => Assert.True(field.IsEnabled));
+
+                var visualQaPath = Environment.GetEnvironmentVariable("FOCUSAPP_RULE_EDITOR_STATUS_QA_PATH");
+                if (!string.IsNullOrWhiteSpace(visualQaPath))
+                {
+                    var bitmap = new RenderTargetBitmap(
+                        300,
+                        (int)Math.Ceiling(content.ActualHeight),
+                        96,
+                        96,
+                        PixelFormats.Pbgra32);
+                    bitmap.Render(content);
+                    var encoder = new PngBitmapEncoder();
+                    encoder.Frames.Add(BitmapFrame.Create(bitmap));
+                    using var stream = File.Create(visualQaPath);
+                    encoder.Save(stream);
+                }
             }
             catch (Exception e) { failure = e; }
         });

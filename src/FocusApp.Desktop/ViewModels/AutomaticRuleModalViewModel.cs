@@ -135,4 +135,5 @@ public sealed record AutomaticRuleDraft(
     string EndTime,
     double StartMinutes,
     double EndMinutes,
-    string? TargetId = null);
+    string? TargetId = null,
+    bool IsEnabled = false);

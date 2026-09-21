@@ -236,14 +236,17 @@ public partial class AutomaticRuleModal : UserControl
         var accent = ResourceBrush("AccentPrimary", "#FF7A00");
         var accentTint = ResourceBrush("AccentTint", "#FFF1E6");
         var textPrimary = ResourceBrush("TextPrimary", "#1D1D1F");
-        var isHighlighted = draft || selected || enabled;
+        var textSecondary = ResourceBrush("TextSecondary", "#6E6E73");
+        var useAccent = draft || enabled;
+        var disabledStripe = Brush("#C4C7CE");
+        var disabledOutline = Brush("#B8BCC4");
         var content = new Grid();
         content.Children.Add(new Border
         {
             Width = 3,
             HorizontalAlignment = HorizontalAlignment.Left,
             VerticalAlignment = VerticalAlignment.Stretch,
-            Background = isHighlighted ? accent : Brush("#D1D1D6"),
+            Background = useAccent ? accent : disabledStripe,
             CornerRadius = new CornerRadius(4, 0, 0, 4),
             IsHitTestVisible = false
         });
@@ -253,7 +256,9 @@ public partial class AutomaticRuleModal : UserControl
             draft && _pressedRule is null,
             targetName,
             customPeriod,
-            draft && _pressedRule is null ? ResourceBrush("AccentPressed", "#E96800") : textPrimary));
+            draft && _pressedRule is null
+                ? ResourceBrush("AccentPressed", "#E96800")
+                : !draft && !enabled ? textSecondary : textPrimary));
         if (!draft)
         {
             content.Children.Add(MakeResizeHandle(RuleDragMode.ResizeStart, VerticalAlignment.Top));
@@ -263,12 +268,13 @@ public partial class AutomaticRuleModal : UserControl
         var block = new Border
         {
             Width = Math.Max(0, Timeline.ActualWidth - LabelWidth - 8), Height = Math.Max(1, end - start),
-            Background = isHighlighted ? accentTint : Brush("#F0F0F2"),
-            BorderBrush = selected ? accent : Brushes.Transparent,
+            Background = useAccent ? accentTint : Brush("#F5F5F7"),
+            BorderBrush = selected ? (enabled ? accent : disabledOutline) : Brushes.Transparent,
             BorderThickness = selected ? new Thickness(1) : new Thickness(0),
             CornerRadius = new CornerRadius(5),
             Cursor = Cursors.Hand, ClipToBounds = true,
-            Child = content
+            Child = content,
+            Opacity = !draft && !enabled ? 0.78 : 1
         };
         if (draft && _moving && _pressedRule is not null)
         {

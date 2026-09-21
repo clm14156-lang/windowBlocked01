@@ -9,6 +9,7 @@ public sealed partial class AutomaticRuleModalViewModel
     private bool _isEditorOpen;
     private string _editorStartText = "09:00", _editorEndText = "12:00";
     private string? _selectedTargetId;
+    private bool _editorIsEnabled;
     private AutomaticRuleItemViewModel? _editorRule;
     private Guid? _selectedRuleId;
     public Guid? SelectedRuleId { get => _selectedRuleId; set => SetField(ref _selectedRuleId, value); }
@@ -34,6 +35,16 @@ public sealed partial class AutomaticRuleModalViewModel
     public bool IsEditorOpen { get => _isEditorOpen; private set => SetField(ref _isEditorOpen, value); }
     public string EditorStartText { get => _editorStartText; set => SetField(ref _editorStartText, value); }
     public string EditorEndText { get => _editorEndText; set => SetField(ref _editorEndText, value); }
+    public bool EditorIsEnabled
+    {
+        get => _editorIsEnabled;
+        set
+        {
+            if (SetField(ref _editorIsEnabled, value))
+                OnPropertyChanged(nameof(EditorStatusDisplay));
+        }
+    }
+    public string EditorStatusDisplay => EditorIsEnabled ? "开启" : "关闭";
     public string? SelectedTargetId
     {
         get => _selectedTargetId;
@@ -68,6 +79,7 @@ public sealed partial class AutomaticRuleModalViewModel
         SelectedRuleId = rule?.Id;
         _editorRule = rule;
         IsEditing = rule is not null;
+        EditorIsEnabled = rule?.IsEnabled ?? false;
         if (rule is null)
         {
             NewRequested?.Invoke();
@@ -109,7 +121,7 @@ public sealed partial class AutomaticRuleModalViewModel
         SelectedTargetId = targetId;
         var draft = new AutomaticRuleDraft(IsCustom,
             (IsCustom ? Weekdays.Where(d => d.IsSelected) : Weekdays).ToArray(),
-            FormatTime(start), FormatTime(end), start, end, targetId);
+            FormatTime(start), FormatTime(end), start, end, targetId, EditorIsEnabled);
         ValidationMessage = ValidateRule?.Invoke(draft) ?? string.Empty;
         if (ValidationMessage.Length > 0) return false;
         if (CanSubmitRule?.Invoke(draft) == false)

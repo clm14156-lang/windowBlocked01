@@ -79,6 +79,60 @@ public class RuleTimelineTests
     }
 
     [Fact]
+    public void EditorStatusUsesRuleStateAndOnlyCommitsTogetherWithOtherFieldsOnSave()
+    {
+        var settings = new SettingsPageViewModel([], [], dailyLabel: "每天");
+        var id = Guid.NewGuid();
+        settings.ApplyAutomaticRules([
+            new LocalAutomaticRuleDto(id, [DayOfWeek.Monday], 60, 120, true, 0)
+        ]);
+        var rule = Assert.Single(settings.AutomaticRules);
+        var changes = 0;
+        settings.RulesChanged += (_, _) => changes++;
+
+        settings.EditRuleCommand.Execute(rule);
+
+        Assert.True(settings.RuleModal.EditorIsEnabled);
+        Assert.Equal("开启", settings.RuleModal.EditorStatusDisplay);
+        settings.RuleModal.EditorIsEnabled = false;
+        settings.RuleModal.IsCustom = true;
+        foreach (var day in settings.RuleModal.Weekdays) day.IsSelected = day.Key is "Monday" or "Wednesday";
+        settings.RuleModal.EditorStartText = "01:15";
+        settings.RuleModal.EditorEndText = "02:30";
+        settings.RuleModal.CancelEditor();
+
+        Assert.True(rule.IsEnabled);
+        Assert.Equal(60, rule.StartMinutes);
+        Assert.False(rule.IsCustom);
+        Assert.Equal(0, changes);
+
+        settings.EditRuleCommand.Execute(rule);
+        Assert.True(settings.RuleModal.EditorIsEnabled);
+        settings.RuleModal.EditorIsEnabled = false;
+        settings.RuleModal.IsCustom = true;
+        foreach (var day in settings.RuleModal.Weekdays) day.IsSelected = day.Key is "Monday" or "Wednesday";
+        settings.RuleModal.EditorStartText = "01:15";
+        settings.RuleModal.EditorEndText = "02:30";
+
+        Assert.True(settings.RuleModal.SaveEditor());
+
+        Assert.Same(rule, Assert.Single(settings.AutomaticRules));
+        Assert.False(rule.IsEnabled);
+        Assert.Equal(75, rule.StartMinutes);
+        Assert.Equal(150, rule.EndMinutes);
+        Assert.True(rule.IsCustom);
+        Assert.Equal(new[] { "Monday", "Wednesday" }, rule.DayKeys.OrderBy(key => key));
+        Assert.Equal(0, settings.RuleModal.EnabledRuleCount);
+        Assert.Equal(1, changes);
+
+        rule.IsEnabled = true;
+        settings.EditRuleCommand.Execute(rule);
+        Assert.True(settings.RuleModal.EditorIsEnabled);
+        Assert.Equal("开启", settings.RuleModal.EditorStatusDisplay);
+        settings.RuleModal.CancelEditor();
+    }
+
+    [Fact]
     public void TargetOptionsUseDashAndExcludeArchivedTargets()
     {
         var now = DateTimeOffset.UtcNow;

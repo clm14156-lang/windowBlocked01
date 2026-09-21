@@ -17,6 +17,7 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
     private bool _isApplyingLaunchAtStartup;
     private bool _isApplyingWindowsNotifications;
     private bool _isApplyingFocusSound;
+    private bool _isApplyingRuleEditorSave;
     private DispatcherTimer? _ruleMergeToastTimer;
     private bool _isRuleMergeToastVisible;
     private string _ruleMergeToastRange = string.Empty;
@@ -290,7 +291,7 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
         {
             var draft = new AutomaticRuleDraft(current.IsCustom,
                 RuleModal.Weekdays.Where(day => !current.IsCustom || current.DayKeys.Contains(day.Key)).ToArray(),
-                FormatRuleTime(start), FormatRuleTime(end), start, end, current.TargetId);
+                FormatRuleTime(start), FormatRuleTime(end), start, end, current.TargetId, current.IsEnabled);
             var error = ValidateRule(draft);
             if (error is not null) return error;
             if (!CanSubmitRule(draft))
@@ -311,14 +312,23 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
         {
             _editingRule = AutomaticRules.FirstOrDefault(item => item.Id == _editingRule.Id);
             if (_editingRule is null) return;
-            _editingRule.Update(
-                repeatText,
-                $"{rule.StartTime} – {rule.EndTime}",
-                rule.SelectedDays.Select(day => day.Key),
-                rule.StartMinutes,
-                rule.EndMinutes,
-                rule.IsCustom);
-            _editingRule.SetTarget(rule.TargetId, ResolveTargetName(rule.TargetId));
+            _isApplyingRuleEditorSave = true;
+            try
+            {
+                _editingRule.Update(
+                    repeatText,
+                    $"{rule.StartTime} – {rule.EndTime}",
+                    rule.SelectedDays.Select(day => day.Key),
+                    rule.StartMinutes,
+                    rule.EndMinutes,
+                    rule.IsCustom);
+                _editingRule.SetTarget(rule.TargetId, ResolveTargetName(rule.TargetId));
+                _editingRule.IsEnabled = rule.IsEnabled;
+            }
+            finally
+            {
+                _isApplyingRuleEditorSave = false;
+            }
             _editingRule = null;
             RuleModal.RefreshTimeline();
             RulesChanged?.Invoke(this, EventArgs.Empty);
@@ -463,6 +473,7 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
     {
         if (e.PropertyName == nameof(AutomaticRuleItemViewModel.IsEnabled))
         {
+            if (_isApplyingRuleEditorSave) return;
             RuleModal.RefreshTimeline();
             RulesChanged?.Invoke(this, EventArgs.Empty);
         }

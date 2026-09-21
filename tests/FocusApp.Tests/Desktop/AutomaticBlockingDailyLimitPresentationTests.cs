@@ -93,6 +93,44 @@ public sealed class AutomaticBlockingDailyLimitPresentationTests
     }
 
     [Fact]
+    public void RuleEditorShowsDraftStatusAboveFieldsAndReusesSettingsSwitchStyle()
+    {
+        var root = FindRepositoryRoot();
+        var editor = XDocument.Load(Path.Combine(root, "src", "FocusApp.Desktop", "Views", "AutomaticRuleEditorWindow.xaml"));
+        var settings = XDocument.Load(Path.Combine(root, "src", "FocusApp.Desktop", "Views", "SettingsPage.xaml"));
+        var styles = XDocument.Load(Path.Combine(root, "src", "FocusApp.Desktop", "Resources", "Styles.xaml"));
+
+        Assert.Equal("300", (string?)editor.Root?.Attribute("Width"));
+        Assert.Equal("Height", (string?)editor.Root?.Attribute("SizeToContent"));
+
+        var statusRow = Assert.Single(editor.Descendants(Presentation + "Grid")
+            .Where(element => (string?)element.Attribute(Xaml + "Name") == "RuleStatusRow"));
+        Assert.Equal("1", (string?)statusRow.Attribute("Grid.Row"));
+        Assert.Equal("{Binding IsEditing, Converter={StaticResource BoolVisibility}}",
+            (string?)statusRow.Attribute("Visibility"));
+        Assert.Contains(statusRow.Descendants(Presentation + "TextBlock"), element =>
+            (string?)element.Attribute("Text") == "规则状态");
+
+        var statusSwitch = Assert.Single(statusRow.Descendants(Presentation + "ToggleButton"));
+        Assert.Equal("{Binding EditorIsEnabled, Mode=TwoWay}", (string?)statusSwitch.Attribute("IsChecked"));
+        Assert.Equal("{StaticResource AutomaticRuleSwitchStyle}", (string?)statusSwitch.Attribute("Style"));
+        Assert.Contains(statusRow.Descendants(Presentation + "TextBlock"), element =>
+            (string?)element.Attribute("Text") == "{Binding EditorStatusDisplay}");
+
+        var targetRow = Assert.Single(editor.Descendants(Presentation + "Grid")
+            .Where(element => element.Elements(Presentation + "ComboBox").Any(combo =>
+                (string?)combo.Attribute("ItemsSource") == "{Binding Targets}")));
+        Assert.Equal("2", (string?)targetRow.Attribute("Grid.Row"));
+
+        var sharedStyle = Assert.Single(styles.Descendants(Presentation + "Style")
+            .Where(element => (string?)element.Attribute(Xaml + "Key") == "AutomaticRuleSwitchStyle"));
+        Assert.Equal("{x:Type ToggleButton}", (string?)sharedStyle.Attribute("TargetType"));
+        var settingsStyle = Assert.Single(settings.Descendants(Presentation + "Style")
+            .Where(element => (string?)element.Attribute(Xaml + "Key") == "SettingsRuleSwitchStyle"));
+        Assert.Equal("{StaticResource AutomaticRuleSwitchStyle}", (string?)settingsStyle.Attribute("BasedOn"));
+    }
+
+    [Fact]
     public void RuleTimeline_UsesTypographyStandard()
     {
         var modal = XDocument.Load(Path.Combine(FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "AutomaticRuleModal.xaml"));
