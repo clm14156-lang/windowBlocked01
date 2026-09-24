@@ -35,8 +35,8 @@ public sealed class GoalTasksViewModelTests
         Assert.Equal(2, model.PendingCount);
         Assert.Equal(5, model.CompletedCount);
         Assert.Equal(2, model.TodayCompletedCount);
-        Assert.Equal("今日已完成 2 项", model.TodayCompletedSummary);
-        Assert.Equal(new[] { "今天", "昨天", "9月15日", "完成日期未知" }, model.CompletedGroups.Select(group => group.Title));
+        Assert.Equal("今日完成 2 项", model.TodayCompletedSummary);
+        Assert.Equal(new[] { "9月18日", "9月17日", "9月15日", "完成日期未知" }, model.CompletedGroups.Select(group => group.Title));
         Assert.Equal("2项", model.CompletedGroups[0].Subtitle);
         Assert.Equal("1项", model.CompletedGroups[1].Subtitle);
         Assert.Equal("1项", model.CompletedGroups[2].Subtitle);
@@ -223,8 +223,8 @@ public sealed class GoalTasksViewModelTests
         Assert.Equal(0, model.PendingCount);
         Assert.Equal(1, model.CompletedCount);
         Assert.Equal(1, model.TodayCompletedCount);
-        Assert.Equal("今日已完成 1 项", model.TodayCompletedSummary);
-        Assert.Equal("今天", Assert.Single(model.CompletedGroups).Title);
+        Assert.Equal("今日完成 1 项", model.TodayCompletedSummary);
+        Assert.Equal("9月18日", Assert.Single(model.CompletedGroups).Title);
         var completed = Assert.Single(model.CompletedGroups[0].Tasks);
         Assert.Equal(Now.ToUniversalTime(), completed.CompletedAtUtc);
         Assert.Equal(Local(1).ToUniversalTime(), completed.CreatedAtUtc);
@@ -240,7 +240,7 @@ public sealed class GoalTasksViewModelTests
         Assert.Null(model.PendingTasks[0].CompletedAtUtc);
         Assert.Equal(0, model.CompletedCount);
         Assert.Equal(0, model.TodayCompletedCount);
-        Assert.Equal("今日已完成 0 项", model.TodayCompletedSummary);
+        Assert.Equal("今日完成 0 项", model.TodayCompletedSummary);
 
         var foreign = new FocusTargetViewModel("其他目标", targetId: "other").AddTask("other");
         Assert.False(await model.CompleteTaskAsync(foreign));
@@ -477,7 +477,7 @@ public sealed class GoalTasksViewModelTests
         now = Now.AddDays(1);
         model.RefreshDateSensitiveViews();
         Assert.Equal(0, model.TodayCompletedCount);
-        Assert.Equal("今日已完成 0 项", model.TodayCompletedSummary);
+        Assert.Equal("今日完成 0 项", model.TodayCompletedSummary);
     }
 
     [Fact]

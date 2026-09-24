@@ -187,6 +187,7 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
     private bool _isUncompleting;
     private bool _isUncompletionRestored;
     private bool _isUncompletionExiting;
+    private bool _isBatchSelected;
     private int _listPriorityRank;
 
     internal FocusTaskViewModel(
@@ -485,6 +486,17 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
             }
 
             _isUncompletionRestored = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool IsBatchSelected
+    {
+        get => _isBatchSelected;
+        internal set
+        {
+            if (_isBatchSelected == value) return;
+            _isBatchSelected = value;
             OnPropertyChanged();
         }
     }

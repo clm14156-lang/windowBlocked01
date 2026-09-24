@@ -27,6 +27,10 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
     private readonly HashSet<string> _completingTasks = [];
     private bool _isReorderingTasks;
     private readonly HashSet<string> _deletingTasks = [];
+    private readonly HashSet<string> _selectedCompletedTaskIds = [];
+    private string _completedSearchQuery = string.Empty;
+    private bool _completedSortOldest;
+    private bool _isSelectionMode;
 
     public GoalTasksViewModel(
         Func<DateTimeOffset>? nowProvider = null,
@@ -40,6 +44,11 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
         CloseCommand = new RelayCommand<object>(async _ => await CloseAsync());
         NewTaskCommand = new RelayCommand<object>(_ => BeginCreation(), _ => _target is not null);
         CompleteTaskCommand = new RelayCommand<FocusTaskViewModel>(async task => { if (task is not null) await CompleteTaskAsync(task); });
+        ToggleCompletedSortCommand = new RelayCommand<object>(_ => ToggleCompletedSort());
+        EnterCompletedSelectionCommand = new RelayCommand<object>(_ => EnterCompletedSelectionMode(), _ => HasCompletedTasks);
+        ExitCompletedSelectionCommand = new RelayCommand<object>(_ => ExitCompletedSelectionMode(), _ => IsSelectionMode);
+        RestoreSelectedCompletedCommand = new RelayCommand<object>(async _ => await RestoreSelectedCompletedAsync(), _ => SelectedCompletedCount > 0);
+        DeleteSelectedCompletedCommand = new RelayCommand<object>(async _ => await DeleteSelectedCompletedAsync(), _ => SelectedCompletedCount > 0);
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -52,6 +61,11 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
     public ICommand CloseCommand { get; }
     public ICommand NewTaskCommand { get; }
     public ICommand CompleteTaskCommand { get; }
+    public ICommand ToggleCompletedSortCommand { get; }
+    public ICommand EnterCompletedSelectionCommand { get; }
+    public ICommand ExitCompletedSelectionCommand { get; }
+    public ICommand RestoreSelectedCompletedCommand { get; }
+    public ICommand DeleteSelectedCompletedCommand { get; }
     public string? GoalId => _target?.TargetId;
     public bool IsOpen { get => _isOpen; private set => SetField(ref _isOpen, value); }
     public bool CanCreateTask => _target is not null;
@@ -70,11 +84,40 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
             return CompletedTasks.Count(task => task.CompletedAtUtc?.ToLocalTime().Date == today);
         }
     }
-    public string TodayCompletedSummary => $"今日已完成 {TodayCompletedCount} 项";
+    public string TodayCompletedSummary => $"今日完成 {TodayCompletedCount} 项";
     public bool HasPendingTasks => PendingCount > 0;
     public bool HasCompletedTasks => CompletedCount > 0;
     public bool ShowPendingEmptyState => !HasPendingTasks && !IsCreating;
     public IReadOnlyList<GoalTaskDateGroupViewModel> CompletedGroups => _readOnlyCompletedGroups;
+    public string CompletedSearchQuery
+    {
+        get => _completedSearchQuery;
+        set
+        {
+            if (!SetField(ref _completedSearchQuery, value ?? string.Empty)) return;
+            SynchronizeCompletedGroups();
+            Notify(nameof(HasCompletedSearchQuery));
+            Notify(nameof(HasVisibleCompletedTasks));
+        }
+    }
+
+    public bool IsCompletedSortOldest => _completedSortOldest;
+    public string CompletedSortLabel => _completedSortOldest ? "最早完成" : "最近完成";
+    public bool HasCompletedSearchQuery => !string.IsNullOrWhiteSpace(CompletedSearchQuery);
+    public bool IsSelectionMode
+    {
+        get => _isSelectionMode;
+        private set
+        {
+            if (!SetField(ref _isSelectionMode, value)) return;
+            ((RelayCommand<object>)ExitCompletedSelectionCommand).NotifyCanExecuteChanged();
+            ((RelayCommand<object>)RestoreSelectedCompletedCommand).NotifyCanExecuteChanged();
+            ((RelayCommand<object>)DeleteSelectedCompletedCommand).NotifyCanExecuteChanged();
+        }
+    }
+
+    public int SelectedCompletedCount => _selectedCompletedTaskIds.Count(id => CompletedTasks.Any(task => task.TaskId == id));
+    public bool HasVisibleCompletedTasks => _completedGroups.Any(group => group.Tasks.Count > 0);
 
     public void ApplyState(GoalOverviewItemViewModel? goal, IReadOnlyList<LocalTaskDto> tasks)
     {
@@ -84,6 +127,9 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
             _creationRequestedDuringCommit = false;
             CancelCreation();
             IsOpen = false;
+            ExitCompletedSelectionMode();
+            _completedSearchQuery = string.Empty;
+            _completedSortOldest = false;
             _target = goal is null ? null : new FocusTargetViewModel(goal.Name, targetId: goal.GoalId);
             Notify(nameof(GoalId));
         }
@@ -133,9 +179,88 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
     {
         if (_target is null) return;
         ErrorMessage = null;
+        ExitCompletedSelectionMode();
+        CompletedSearchQuery = string.Empty;
+        if (_completedSortOldest)
+        {
+            _completedSortOldest = false;
+            Notify(nameof(IsCompletedSortOldest));
+            Notify(nameof(CompletedSortLabel));
+        }
         IsOpen = true;
         if (RefreshTasksAsync is not null) await RefreshTasksAsync();
         NotifyViews(); // Recompute relative dates even when no tasks changed overnight.
+    }
+
+    public void ToggleCompletedSort()
+    {
+        _completedSortOldest = !_completedSortOldest;
+        SynchronizeCompletedGroups();
+        Notify(nameof(IsCompletedSortOldest));
+        Notify(nameof(CompletedSortLabel));
+    }
+
+    public void EnterCompletedSelectionMode()
+    {
+        if (!HasCompletedTasks) return;
+        IsSelectionMode = true;
+        ErrorMessage = null;
+    }
+
+    public void ExitCompletedSelectionMode()
+    {
+        foreach (var task in CompletedTasks.Where(task => task.IsBatchSelected)) task.IsBatchSelected = false;
+        _selectedCompletedTaskIds.Clear();
+        IsSelectionMode = false;
+        Notify(nameof(SelectedCompletedCount));
+    }
+
+    public void ToggleCompletedTaskSelection(FocusTaskViewModel task)
+    {
+        if (!IsSelectionMode || task.TargetId != GoalId || !task.IsCompleted) return;
+        if (_selectedCompletedTaskIds.Remove(task.TaskId)) task.IsBatchSelected = false;
+        else
+        {
+            _selectedCompletedTaskIds.Add(task.TaskId);
+            task.IsBatchSelected = true;
+        }
+        Notify(nameof(SelectedCompletedCount));
+        ((RelayCommand<object>)RestoreSelectedCompletedCommand).NotifyCanExecuteChanged();
+        ((RelayCommand<object>)DeleteSelectedCompletedCommand).NotifyCanExecuteChanged();
+    }
+
+    public async Task RestoreSelectedCompletedAsync()
+    {
+        var selected = CompletedTasks.Where(task => _selectedCompletedTaskIds.Contains(task.TaskId)).ToArray();
+        foreach (var task in selected)
+        {
+            if (await UncompleteTaskAsync(task))
+            {
+                _selectedCompletedTaskIds.Remove(task.TaskId);
+                task.IsBatchSelected = false;
+            }
+        }
+        Notify(nameof(SelectedCompletedCount));
+        ((RelayCommand<object>)RestoreSelectedCompletedCommand).NotifyCanExecuteChanged();
+        ((RelayCommand<object>)DeleteSelectedCompletedCommand).NotifyCanExecuteChanged();
+        if (SelectedCompletedCount == 0 && !HasCompletedTasks) ExitCompletedSelectionMode();
+    }
+
+    public async Task DeleteSelectedCompletedAsync()
+    {
+        var selected = CompletedTasks.Where(task => _selectedCompletedTaskIds.Contains(task.TaskId)).ToArray();
+        foreach (var task in selected)
+        {
+            if (await DeleteCompletedTaskAsync(task))
+            {
+                _selectedCompletedTaskIds.Remove(task.TaskId);
+                task.IsBatchSelected = false;
+            }
+        }
+        Notify(nameof(SelectedCompletedCount));
+        ((RelayCommand<object>)RestoreSelectedCompletedCommand).NotifyCanExecuteChanged();
+        ((RelayCommand<object>)DeleteSelectedCompletedCommand).NotifyCanExecuteChanged();
+        if (!HasCompletedTasks) ExitCompletedSelectionMode();
     }
 
     public async Task<bool> CloseAsync()
@@ -514,15 +639,23 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
     private void SynchronizeCompletedGroups()
     {
         var today = _now().ToLocalTime().Date;
-        var desiredGroups = CompletedTasks
-            .GroupBy(task => task.CompletedAtUtc?.ToLocalTime().Date)
-            .OrderByDescending(group => group.Key)
-            .Select(group => new
-            {
-                Date = group.Key,
-                Tasks = group.OrderByDescending(task => task.CompletedAtUtc).ToArray()
-            })
+        var visibleTasks = CompletedTasks
+            .Where(task => string.IsNullOrWhiteSpace(CompletedSearchQuery) ||
+                           task.Name.Contains(CompletedSearchQuery.Trim(), StringComparison.CurrentCultureIgnoreCase))
             .ToArray();
+        var groupedTasks = visibleTasks
+            .GroupBy(task => task.CompletedAtUtc?.ToLocalTime().Date)
+            .ToArray();
+        var orderedGroups = _completedSortOldest
+            ? groupedTasks.OrderBy(group => group.Key is null).ThenBy(group => group.Key)
+            : groupedTasks.OrderBy(group => group.Key is null).ThenByDescending(group => group.Key);
+        var desiredGroups = orderedGroups.Select(group => new
+        {
+            Date = group.Key,
+            Tasks = (_completedSortOldest
+                ? group.OrderBy(task => task.CompletedAtUtc ?? DateTimeOffset.MaxValue)
+                : group.OrderByDescending(task => task.CompletedAtUtc ?? DateTimeOffset.MinValue)).ToArray()
+        }).ToArray();
 
         for (var index = _completedGroups.Count - 1; index >= 0; index--)
         {
@@ -619,11 +752,15 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
                  {
                      nameof(PendingCount), nameof(CompletedCount),
                      nameof(TodayCompletedCount), nameof(TodayCompletedSummary), nameof(HasPendingTasks),
-                     nameof(HasCompletedTasks), nameof(ShowPendingEmptyState)
+                     nameof(HasCompletedTasks), nameof(HasVisibleCompletedTasks),
+                     nameof(SelectedCompletedCount), nameof(ShowPendingEmptyState)
                  })
         {
             Notify(name);
         }
+        ((RelayCommand<object>)EnterCompletedSelectionCommand).NotifyCanExecuteChanged();
+        ((RelayCommand<object>)RestoreSelectedCompletedCommand).NotifyCanExecuteChanged();
+        ((RelayCommand<object>)DeleteSelectedCompletedCommand).NotifyCanExecuteChanged();
     }
 
     private IReadOnlyList<FocusTaskViewModel> CompletedTasks =>
@@ -664,7 +801,7 @@ public sealed class GoalTaskDateGroupViewModel : INotifyPropertyChanged
     public IReadOnlyList<FocusTaskViewModel> Tasks => _readOnlyTasks;
     public DateTime? Date { get; }
     public bool IsLast => _isLast;
-    public string Title => Date is null ? "完成日期未知" : Date == _today ? "今天" : Date == _today.AddDays(-1) ? "昨天" : FormatDate(Date.Value);
+    public string Title => Date is null ? "完成日期未知" : FormatDate(Date.Value);
     public string Subtitle => $"{_tasks.Count}项";
 
     internal void Apply(IReadOnlyList<FocusTaskViewModel> tasks, DateTime today, bool isLast)

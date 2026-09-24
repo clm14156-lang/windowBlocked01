@@ -26,7 +26,7 @@ public sealed class GoalTasksDeletionTests
         Assert.Equal("1项", model.CompletedGroups[0].Subtitle);
         Assert.Equal(2, model.CompletedCount);
         Assert.True(await model.DeleteCompletedTaskAsync(model.CompletedGroups[0].Tasks[0]));
-        Assert.Equal("昨天", Assert.Single(model.CompletedGroups).Title);
+        Assert.Equal($"{now.AddDays(-1):M月d日}", Assert.Single(model.CompletedGroups).Title);
         Assert.True(await model.DeleteCompletedTaskAsync(model.CompletedGroups[0].Tasks[0]));
         Assert.Empty(model.CompletedGroups);
         Assert.False(model.HasCompletedTasks);

@@ -2,263 +2,71 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:views="clr-namespace:FocusApp.Desktop.Views"
-             UseLayoutRounding="True"
-             SnapsToDevicePixels="True"
-             Focusable="True"
-             KeyboardNavigation.TabNavigation="Cycle"
-             PreviewKeyDown="Modal_PreviewKeyDown"
-             Unloaded="Modal_Unloaded"
-             IsVisibleChanged="Modal_IsVisibleChanged">
+             UseLayoutRounding="True" SnapsToDevicePixels="True" Focusable="True"
+             KeyboardNavigation.TabNavigation="Cycle" PreviewKeyDown="Modal_PreviewKeyDown"
+             Unloaded="Modal_Unloaded" IsVisibleChanged="Modal_IsVisibleChanged">
     <UserControl.Style>
         <Style TargetType="{x:Type UserControl}">
             <Setter Property="Visibility" Value="Collapsed" />
-            <Style.Triggers>
-                <DataTrigger Binding="{Binding IsOpen}" Value="True">
-                    <Setter Property="Visibility" Value="Visible" />
-                </DataTrigger>
-            </Style.Triggers>
+            <Style.Triggers><DataTrigger Binding="{Binding IsOpen}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers>
         </Style>
     </UserControl.Style>
     <UserControl.Resources>
         <views:GoalInverseVisibilityConverter x:Key="InverseVisibilityConverter" />
-        <Style x:Key="TaskQuietButton" TargetType="{x:Type Button}">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="{x:Type Button}">
-                        <Border x:Name="ButtonSurface" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" CornerRadius="6">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ButtonSurface" Property="Background" Value="#F7F7F9" /></Trigger>
-                            <Trigger Property="IsPressed" Value="True"><Setter TargetName="ButtonSurface" Property="Background" Value="#F0F0F3" /></Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <Style x:Key="QuietButton" TargetType="{x:Type Button}">
+            <Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" /><Setter Property="Cursor" Value="Hand" /><Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="{x:Type Button}">
+                <Border x:Name="Surface" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" /></Border>
+                <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Surface" Property="Background" Value="#F7F7F8" /></Trigger><Trigger Property="IsPressed" Value="True"><Setter TargetName="Surface" Property="Background" Value="#EFEFF1" /></Trigger><Trigger Property="IsEnabled" Value="False"><Setter TargetName="Surface" Property="Opacity" Value="0.45" /></Trigger></ControlTemplate.Triggers>
+            </ControlTemplate></Setter.Value></Setter>
         </Style>
+        <Style x:Key="OutlinedActionButton" TargetType="{x:Type Button}" BasedOn="{StaticResource QuietButton}"><Setter Property="BorderBrush" Value="#E4E6EB" /><Setter Property="BorderThickness" Value="1" /><Setter Property="Background" Value="White" /><Setter Property="Padding" Value="12,0" /></Style>
         <Style x:Key="GoalTasksThinScrollBarStyle" TargetType="{x:Type ScrollBar}">
-            <Setter Property="Width" Value="5" />
-            <Setter Property="MinWidth" Value="5" />
-            <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
-            <Setter Property="Opacity" Value="0.36" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="{x:Type ScrollBar}">
-                        <Grid Width="5" Background="{TemplateBinding Background}">
-                            <Track x:Name="PART_Track" Margin="0,3" IsDirectionReversed="True" Orientation="{TemplateBinding Orientation}">
-                                <Track.DecreaseRepeatButton>
-                                    <RepeatButton Background="{DynamicResource TransparentBrush}" BorderThickness="0" Command="{x:Static ScrollBar.PageUpCommand}" CommandTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}" Focusable="False" />
-                                </Track.DecreaseRepeatButton>
-                                <Track.Thumb>
-                                    <Thumb MinHeight="28">
-                                        <Thumb.Template>
-                                            <ControlTemplate TargetType="{x:Type Thumb}">
-                                                <Border Width="3" Margin="1,0" HorizontalAlignment="Center" Background="{DynamicResource TextSecondary}" CornerRadius="1.5" Opacity="0.58" />
-                                            </ControlTemplate>
-                                        </Thumb.Template>
-                                    </Thumb>
-                                </Track.Thumb>
-                                <Track.IncreaseRepeatButton>
-                                    <RepeatButton Background="{DynamicResource TransparentBrush}" BorderThickness="0" Command="{x:Static ScrollBar.PageDownCommand}" CommandTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}" Focusable="False" />
-                                </Track.IncreaseRepeatButton>
-                            </Track>
-                        </Grid>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True"><Setter Property="Opacity" Value="0.9" /></Trigger>
-                            <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.2" /></Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
+            <Setter Property="Width" Value="5" /><Setter Property="MinWidth" Value="5" /><Setter Property="Background" Value="Transparent" /><Setter Property="Opacity" Value="0.45" />
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="{x:Type ScrollBar}"><Grid Width="5"><Track x:Name="PART_Track" Margin="0,3" IsDirectionReversed="True" Orientation="{TemplateBinding Orientation}"><Track.DecreaseRepeatButton><RepeatButton Background="Transparent" BorderThickness="0" Command="{x:Static ScrollBar.PageUpCommand}" CommandTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}" Focusable="False" /></Track.DecreaseRepeatButton><Track.Thumb><Thumb MinHeight="26"><Thumb.Template><ControlTemplate TargetType="{x:Type Thumb}"><Border Width="3" Margin="1,0" HorizontalAlignment="Center" Background="#9EA3AD" CornerRadius="1.5" /></ControlTemplate></Thumb.Template></Thumb></Track.Thumb><Track.IncreaseRepeatButton><RepeatButton Background="Transparent" BorderThickness="0" Command="{x:Static ScrollBar.PageDownCommand}" CommandTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}" Focusable="False" /></Track.IncreaseRepeatButton></Track></Grid></ControlTemplate></Setter.Value></Setter>
         </Style>
     </UserControl.Resources>
     <Grid Background="{DynamicResource ModalScrim}" MouseDown="Overlay_MouseDown">
-        <Border x:Name="GoalTasksCard"
-                Width="330"
-                Height="400"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center"
-                Background="White"
-                BorderBrush="#EEEEF0"
-                BorderThickness="1"
-                CornerRadius="18"
-                Padding="26,22,26,20">
-            <Border.Effect><DropShadowEffect BlurRadius="24" ShadowDepth="4" Direction="270" Opacity="0.10" /></Border.Effect>
+        <Border x:Name="GoalTasksCard" Width="450" Height="500" HorizontalAlignment="Center" VerticalAlignment="Center" Background="{DynamicResource SurfacePrimary}" BorderBrush="#ECEEF1" BorderThickness="1" CornerRadius="18" Padding="26,22,26,18">
+            <Border.Effect><DropShadowEffect BlurRadius="26" ShadowDepth="4" Direction="270" Opacity="0.12" /></Border.Effect>
             <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="56" />
-                    <RowDefinition Height="*" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
-                <TextBlock Text="已完成任务" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Top" />
-                <Button HorizontalAlignment="Right"
-                        VerticalAlignment="Top"
-                        Width="28"
-                        Height="28"
-                        Margin="0,-2,-2,0"
-                        Style="{StaticResource TaskQuietButton}"
-                        Command="{Binding CloseCommand}"
-                        AutomationProperties.Name="关闭已完成任务">
-                    <TextBlock Text="×" FontSize="24" FontWeight="Light" Foreground="{DynamicResource TextWeak}" />
-                </Button>
-                <Grid Grid.Row="1">
-                    <ScrollViewer x:Name="CompletedTasksScrollViewer"
-                                  ScrollChanged="CompletedTasks_ScrollChanged"
-                                  Margin="0,2,-4,0"
-                                  VerticalScrollBarVisibility="Auto"
-                                  HorizontalScrollBarVisibility="Disabled">
-                        <ScrollViewer.Resources><Style TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource GoalTasksThinScrollBarStyle}" /></ScrollViewer.Resources>
-                        <ItemsControl x:Name="CompletedTasksControl" ItemsSource="{Binding CompletedGroups}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Border>
-                                        <Border.Style>
-                                            <Style TargetType="{x:Type Border}">
-                                                <Setter Property="Margin" Value="0,0,0,14" />
-                                                <Style.Triggers><DataTrigger Binding="{Binding IsLast}" Value="True"><Setter Property="Margin" Value="0" /></DataTrigger></Style.Triggers>
-                                            </Style>
-                                        </Border.Style>
-                                        <StackPanel>
-                                            <Grid x:Name="CompletedTaskGroupHeader" Height="36">
-                                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                                <TextBlock Text="{Binding Title}" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center" />
-                                                <TextBlock Grid.Column="1" Text="{Binding Subtitle}" FontSize="12" Foreground="{DynamicResource TextSecondary}" Margin="12,0,0,0" VerticalAlignment="Center" />
-                                            </Grid>
-                                            <ItemsControl ItemsSource="{Binding Tasks}">
-                                                <ItemsControl.ItemTemplate>
-                                                    <DataTemplate>
-                                                        <Border x:Name="CompletedTaskRow"
-                                                                Height="38"
-                                                                BorderBrush="#EFEFF2"
-                                                                BorderThickness="0,0,0,1">
-                                                            <Border.Style>
-                                                                <Style TargetType="Border">
-                                                                    <Setter Property="Background" Value="Transparent" />
-                                                                    <Setter Property="ClipToBounds" Value="True" />
-                                                                    <Setter Property="Opacity" Value="1" />
-                                                                    <Setter Property="RenderTransform"><Setter.Value><TranslateTransform /></Setter.Value></Setter>
-                                                                    <Style.Triggers>
-                                                                        <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#F6F5F4" /></Trigger>
-                                                                        <DataTrigger Binding="{Binding IsUncompleting}" Value="True"><Setter Property="IsHitTestVisible" Value="False" /></DataTrigger>
-                                                                        <DataTrigger Binding="{Binding IsUncompletionExiting}" Value="True">
-                                                                            <DataTrigger.EnterActions>
-                                                                                <BeginStoryboard>
-                                                                                    <Storyboard>
-                                                                                        <DoubleAnimation Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.2" />
-                                                                                        <DoubleAnimation Storyboard.TargetProperty="Height" To="0" Duration="0:0:0.2">
-                                                                                            <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseInOut" /></DoubleAnimation.EasingFunction>
-                                                                                        </DoubleAnimation>
-                                                                                        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.X)" To="7" Duration="0:0:0.2">
-                                                                                            <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction>
-                                                                                        </DoubleAnimation>
-                                                                                    </Storyboard>
-                                                                                </BeginStoryboard>
-                                                                            </DataTrigger.EnterActions>
-                                                                            <DataTrigger.ExitActions>
-                                                                                <BeginStoryboard>
-                                                                                    <Storyboard>
-                                                                                        <DoubleAnimation Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.16" />
-                                                                                        <DoubleAnimation Storyboard.TargetProperty="Height" To="38" Duration="0:0:0.16" />
-                                                                                        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.X)" To="0" Duration="0:0:0.16" />
-                                                                                    </Storyboard>
-                                                                                </BeginStoryboard>
-                                                                            </DataTrigger.ExitActions>
-                                                                        </DataTrigger>
-                                                                    </Style.Triggers>
-                                                                </Style>
-                                                            </Border.Style>
-                                                            <Grid>
-                                                                <Grid.ColumnDefinitions><ColumnDefinition Width="30" /><ColumnDefinition Width="*" /><ColumnDefinition Width="48" /></Grid.ColumnDefinitions>
-                                                                <Grid x:Name="CompletedTaskCheck" Width="18" Height="18" HorizontalAlignment="Left" VerticalAlignment="Center" Background="Transparent" MouseLeftButtonDown="CompletedTaskCheck_MouseLeftButtonDown">
-                                                                    <Border BorderBrush="#C8CCD5" BorderThickness="1.3" CornerRadius="5" />
-                                                                    <Border x:Name="CompletedTaskCheckFill" Background="{DynamicResource AccentPrimary}" CornerRadius="5" />
-                                                                    <Path x:Name="CompletedTaskCheckMark" Width="10" Height="7" Data="M 0,3.5 L 3.5,7 L 10,0" Stretch="Fill" Stroke="White" StrokeThickness="1.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                                                </Grid>
-                                                                <TextBlock x:Name="CompletedTaskName" Grid.Column="1" Margin="0,0,12,0" Text="{Binding Name}" FontSize="13" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding Name}">
-                                                                    <TextBlock.Style>
-                                                                        <Style TargetType="TextBlock">
-                                                                            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-                                                                            <Style.Triggers><DataTrigger Binding="{Binding IsUncompletionRestored}" Value="True"><Setter Property="Foreground" Value="{DynamicResource TextPrimary}" /></DataTrigger></Style.Triggers>
-                                                                        </Style>
-                                                                    </TextBlock.Style>
-                                                                </TextBlock>
-                                                                <Grid Grid.Column="2">
-                                                                    <TextBlock x:Name="CompletedTaskTime" FontSize="11.5" Foreground="{DynamicResource TextWeak}" VerticalAlignment="Center" HorizontalAlignment="Right">
-                                                                        <TextBlock.Style>
-                                                                            <Style TargetType="TextBlock">
-                                                                                <Setter Property="Text" Value="{Binding CompletedTimeDisplay}" />
-                                                                                <Style.Triggers><DataTrigger Binding="{Binding IsUncompletionRestored}" Value="True"><Setter Property="Text" Value="已恢复" /></DataTrigger></Style.Triggers>
-                                                                            </Style>
-                                                                        </TextBlock.Style>
-                                                                    </TextBlock>
-                                                                    <Button x:Name="CompletedTaskMore" Width="28" Height="28" HorizontalAlignment="Right" VerticalAlignment="Center"
-                                                                            Visibility="Hidden" Focusable="False" IsTabStop="False"
-                                                                            Style="{StaticResource TaskQuietButton}" Click="CompletedTaskMore_Click"
-                                                                            AutomationProperties.Name="更多操作">
-                                                                        <TextBlock Text="&#x2026;" FontSize="18" Foreground="#8B8B93" Margin="0,-5,0,0" />
-                                                                    </Button>
-                                                                </Grid>
-                                                            </Grid>
-                                                        </Border>
-                                                        <DataTemplate.Triggers>
-                                                            <Trigger SourceName="CompletedTaskRow" Property="IsMouseOver" Value="True">
-                                                                <Setter TargetName="CompletedTaskTime" Property="Visibility" Value="Hidden" />
-                                                                <Setter TargetName="CompletedTaskMore" Property="Visibility" Value="Visible" />
-                                                            </Trigger>
-                                                            <DataTrigger Binding="{Binding IsUncompleting}" Value="True">
-                                                                <Setter TargetName="CompletedTaskTime" Property="Visibility" Value="Visible" />
-                                                                <Setter TargetName="CompletedTaskMore" Property="Visibility" Value="Hidden" />
-                                                                <DataTrigger.EnterActions>
-                                                                    <BeginStoryboard>
-                                                                        <Storyboard>
-                                                                            <DoubleAnimation Storyboard.TargetName="CompletedTaskCheckFill" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.12" />
-                                                                            <DoubleAnimation Storyboard.TargetName="CompletedTaskCheckMark" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.12" />
-                                                                        </Storyboard>
-                                                                    </BeginStoryboard>
-                                                                </DataTrigger.EnterActions>
-                                                                <DataTrigger.ExitActions>
-                                                                    <BeginStoryboard>
-                                                                        <Storyboard>
-                                                                            <DoubleAnimation Storyboard.TargetName="CompletedTaskCheckFill" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.16" />
-                                                                            <DoubleAnimation Storyboard.TargetName="CompletedTaskCheckMark" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.16" />
-                                                                        </Storyboard>
-                                                                    </BeginStoryboard>
-                                                                </DataTrigger.ExitActions>
-                                                            </DataTrigger>
-                                                        </DataTemplate.Triggers>
-                                                    </DataTemplate>
-                                                </ItemsControl.ItemTemplate>
-                                            </ItemsControl>
-                                        </StackPanel>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </ScrollViewer>
-                    <TextBlock Text="暂无已完成任务"
-                               FontSize="13"
-                               Foreground="{DynamicResource TextWeak}"
-                               HorizontalAlignment="Center"
-                               VerticalAlignment="Center"
-                               Visibility="{Binding HasCompletedTasks, Converter={StaticResource InverseVisibilityConverter}}" />
+                <Grid.RowDefinitions><RowDefinition Height="58" /><RowDefinition Height="50" /><RowDefinition Height="*" /><RowDefinition Height="60" /></Grid.RowDefinitions>
+                <Grid>
+                    <StackPanel><TextBlock Text="已完成任务" FontSize="24" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" /><TextBlock Margin="0,4,0,0" Text="{Binding TodayCompletedSummary}" FontSize="13" Foreground="{DynamicResource TextSecondary}" /></StackPanel>
+                    <Button Width="30" Height="30" HorizontalAlignment="Right" VerticalAlignment="Top" Style="{StaticResource QuietButton}" Command="{Binding CloseCommand}" AutomationProperties.Name="关闭已完成任务"><TextBlock Text="×" FontSize="25" FontWeight="Light" Foreground="{DynamicResource TextWeak}" /></Button>
                 </Grid>
-                <TextBlock Grid.Row="2" Text="{Binding ErrorMessage}" Margin="0,8,0,0" FontSize="11" Foreground="#D95B40" />
+                <Border Grid.Row="1" Background="#F7F8FA" CornerRadius="11" Padding="10,6">
+                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                        <Border Background="#EDF0F4" CornerRadius="16" Padding="12,5" VerticalAlignment="Center"><TextBlock FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}"><Run Text="共 " /><Run Text="{Binding CompletedCount, Mode=OneWay}" /><Run Text=" 项" /></TextBlock></Border>
+                        <Button Grid.Column="1" Margin="14,0,0,0" Height="30" Style="{StaticResource QuietButton}" Command="{Binding ToggleCompletedSortCommand}" AutomationProperties.Name="切换完成时间排序"><StackPanel Orientation="Horizontal"><TextBlock Text="↕" FontSize="17" Foreground="{DynamicResource TextSecondary}" Margin="0,0,8,0" /><TextBlock Text="{Binding CompletedSortLabel}" FontSize="13" Foreground="{DynamicResource TextPrimary}" /><TextBlock Text="⌄" FontSize="16" Foreground="{DynamicResource TextSecondary}" Margin="7,-2,0,0" /></StackPanel></Button>
+                        <Border Grid.Column="2" Width="176" Height="36" HorizontalAlignment="Right" Background="White" BorderBrush="#E1E4E9" BorderThickness="1" CornerRadius="9"><Grid><TextBlock Margin="12,0,0,0" VerticalAlignment="Center" Text="⌕" FontSize="23" Foreground="{DynamicResource TextSecondary}" /><TextBlock Margin="35,0,8,0" VerticalAlignment="Center" Text="搜索任务..." FontSize="13" Foreground="{DynamicResource TextSecondary}" IsHitTestVisible="False" Visibility="{Binding HasCompletedSearchQuery, Converter={StaticResource InverseVisibilityConverter}}" /><TextBox Margin="35,0,8,0" BorderThickness="0" Background="Transparent" VerticalContentAlignment="Center" FontSize="13" Foreground="{DynamicResource TextPrimary}" Text="{Binding CompletedSearchQuery, UpdateSourceTrigger=PropertyChanged}" ToolTip="搜索任务" /></Grid></Border>
+                    </Grid>
+                </Border>
+                <Grid Grid.Row="2" Margin="0,4,0,0">
+                    <ScrollViewer x:Name="CompletedTasksScrollViewer" ScrollChanged="CompletedTasks_ScrollChanged" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><ScrollViewer.Resources><Style TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource GoalTasksThinScrollBarStyle}" /></ScrollViewer.Resources>
+                        <ItemsControl x:Name="CompletedTasksControl" ItemsSource="{Binding CompletedGroups}"><ItemsControl.ItemTemplate><DataTemplate><StackPanel Margin="0,0,0,13">
+                            <Grid x:Name="CompletedTaskGroupHeader" Height="30"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><TextBlock Text="{Binding Title}" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center" /><TextBlock Grid.Column="1" Text="{Binding Subtitle}" Margin="10,0,0,0" FontSize="12" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" /></Grid>
+                            <ItemsControl ItemsSource="{Binding Tasks}"><ItemsControl.ItemTemplate><DataTemplate>
+                                <Border x:Name="CompletedTaskRow" Height="42" BorderBrush="#ECEEF1" BorderThickness="0,0,0,1" Background="Transparent" MouseLeftButtonDown="CompletedTaskRow_MouseLeftButtonDown"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="38" /><ColumnDefinition Width="*" /><ColumnDefinition Width="58" /></Grid.ColumnDefinitions>
+                                    <Grid Width="22" Height="22" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                        <Border x:Name="CompletedIndicator" Width="20" Height="20" Background="{DynamicResource AccentPrimary}" CornerRadius="10" Visibility="{Binding DataContext.IsSelectionMode, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}, Converter={StaticResource InverseVisibilityConverter}}"><Path Width="11" Height="8" Data="M 0,4 L 3.8,8 L 11,0" Stretch="Fill" Stroke="White" StrokeThickness="1.6" StrokeStartLineCap="Round" StrokeEndLineCap="Round" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border>
+                                        <Border x:Name="TaskCheckbox" Width="20" Height="20" BorderThickness="1.6" CornerRadius="5" Visibility="{Binding DataContext.IsSelectionMode, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}, Converter={StaticResource BooleanToVisibilityConverter}}"><Border.Style><Style TargetType="{x:Type Border}"><Setter Property="Background" Value="Transparent" /><Setter Property="BorderBrush" Value="#D2D7DF" /><Style.Triggers><DataTrigger Binding="{Binding IsBatchSelected}" Value="True"><Setter Property="Background" Value="{DynamicResource AccentPrimary}" /><Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}" /></DataTrigger></Style.Triggers></Style></Border.Style><Path x:Name="TaskCheckboxMark" Width="10" Height="7" Data="M 0,3.5 L 3.5,7 L 10,0" Stretch="Fill" Stroke="White" StrokeThickness="1.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Hidden" /></Border>
+                                    </Grid>
+                                    <TextBlock Grid.Column="1" Margin="0,0,10,0" Text="{Binding Name}" FontSize="14" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding Name}" /><TextBlock Grid.Column="2" Text="{Binding CompletedTimeDisplay}" FontSize="12" Foreground="{DynamicResource TextSecondary}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                </Grid></Border>
+                                <DataTemplate.Triggers><DataTrigger Binding="{Binding IsBatchSelected}" Value="True"><Setter TargetName="TaskCheckboxMark" Property="Visibility" Value="Visible" /></DataTrigger></DataTemplate.Triggers>
+                            </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                        </StackPanel></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                    </ScrollViewer>
+                    <TextBlock Text="暂无已完成任务" FontSize="13" Foreground="{DynamicResource TextWeak}" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{Binding HasCompletedTasks, Converter={StaticResource InverseVisibilityConverter}}" />
+                    <TextBlock Text="没有找到相关任务" FontSize="13" Foreground="{DynamicResource TextWeak}" HorizontalAlignment="Center" VerticalAlignment="Center"><TextBlock.Style><Style TargetType="{x:Type TextBlock}"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><MultiDataTrigger><MultiDataTrigger.Conditions><Condition Binding="{Binding HasCompletedTasks}" Value="True" /><Condition Binding="{Binding HasVisibleCompletedTasks}" Value="False" /></MultiDataTrigger.Conditions><Setter Property="Visibility" Value="Visible" /></MultiDataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
+                </Grid>
+                <Grid Grid.Row="3" Margin="0,8,0,0"><Grid.Style><Style TargetType="{x:Type Grid}"><Setter Property="Visibility" Value="Visible" /><Style.Triggers><DataTrigger Binding="{Binding IsSelectionMode}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers></Style></Grid.Style><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBlock Text="仅显示已完成的任务" FontSize="12" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" /><Button Grid.Column="1" Width="112" Height="42" Background="#FFF5EC" BorderBrush="#FFE2C9" BorderThickness="1" Style="{StaticResource QuietButton}" Command="{Binding EnterCompletedSelectionCommand}" AutomationProperties.Name="选择已完成任务"><StackPanel Orientation="Horizontal"><Border Width="17" Height="17" BorderBrush="{DynamicResource AccentPrimary}" BorderThickness="2" CornerRadius="4" Margin="0,0,9,0" /><TextBlock Text="选择" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource AccentPrimary}" /></StackPanel></Button></Grid>
+                <Grid Grid.Row="3" Margin="0,8,0,0"><Grid.Style><Style TargetType="{x:Type Grid}"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding IsSelectionMode}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></Grid.Style><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><StackPanel Orientation="Horizontal" VerticalAlignment="Center"><TextBlock Text="已选择 " FontSize="13" Foreground="{DynamicResource TextPrimary}" /><TextBlock Text="{Binding SelectedCompletedCount}" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource AccentPrimary}" /><TextBlock Text=" 项" FontSize="13" Foreground="{DynamicResource TextPrimary}" Margin="3,0,0,0" /></StackPanel><Button Grid.Column="1" Width="72" Height="38" Margin="8,0,8,0" Style="{StaticResource QuietButton}" Command="{Binding ExitCompletedSelectionCommand}"><TextBlock Text="取消选择" FontSize="13" Foreground="{DynamicResource TextSecondary}" /></Button><StackPanel Grid.Column="2" Orientation="Horizontal"><Button Width="106" Height="40" Style="{StaticResource OutlinedActionButton}" Command="{Binding RestoreSelectedCompletedCommand}" AutomationProperties.Name="恢复选中"><StackPanel Orientation="Horizontal"><TextBlock Text="↶" FontSize="20" Foreground="{DynamicResource TextPrimary}" Margin="0,0,7,0" /><TextBlock Text="恢复选中" FontSize="13" Foreground="{DynamicResource TextPrimary}" /></StackPanel></Button><Button Width="106" Height="40" Margin="8,0,0,0" Background="#FFF1F0" BorderBrush="#FFD9D6" BorderThickness="1" Style="{StaticResource QuietButton}" Command="{Binding DeleteSelectedCompletedCommand}" AutomationProperties.Name="删除选中"><StackPanel Orientation="Horizontal"><TextBlock Text="⌫" FontSize="18" Foreground="#D94C43" Margin="0,0,7,0" /><TextBlock Text="删除选中" FontSize="13" Foreground="#D94C43" /></StackPanel></Button></StackPanel></Grid>
+                <TextBlock Grid.Row="3" Text="{Binding ErrorMessage}" FontSize="11" Foreground="#D95B40" HorizontalAlignment="Left" VerticalAlignment="Bottom" />
             </Grid>
         </Border>
-        <Popup x:Name="CompletedTaskMenu" Placement="Bottom" StaysOpen="False" AllowsTransparency="True"
-               VerticalOffset="2" Closed="CompletedTaskMenu_Closed">
-            <Border Background="Transparent" Padding="8">
-                <Border Background="White" CornerRadius="9" Padding="4" BorderBrush="#EEEEF0" BorderThickness="1">
-                    <Border.Effect><DropShadowEffect BlurRadius="14" ShadowDepth="3" Opacity="0.14" /></Border.Effect>
-                    <Button Width="100" Height="30" Style="{StaticResource TaskQuietButton}" Click="DeleteCompletedTask_Click" AutomationProperties.Name="删除">
-                        <TextBlock Width="76" Text="删除" TextAlignment="Left" FontSize="13" Foreground="#303038" />
-                    </Button>
-                </Border>
-            </Border>
-        </Popup>
     </Grid>
 </UserControl>
