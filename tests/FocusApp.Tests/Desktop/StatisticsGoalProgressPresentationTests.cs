@@ -109,9 +109,18 @@ public sealed class StatisticsGoalProgressPresentationTests
         Assert.Equal("{Binding GoalTasks.DraftName, UpdateSourceTrigger=PropertyChanged}", (string?)editor.Attribute("Text"));
         var trend = current.Descendants(Presentation + "Button").Single(button =>
             (string?)button.Attribute(Xaml + "Name") == "GoalInvestmentTrendButton");
-        Assert.Equal("投入趋势  ›", (string?)trend.Attribute("Content"));
+        Assert.Equal("查看趋势  ›", (string?)trend.Attribute("Content"));
         Assert.Equal("{Binding GoalInvestmentTrend.OpenCommand}", (string?)trend.Attribute("Command"));
         Assert.Null(trend.Attribute("Click"));
+        Assert.Contains(current.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "投入概括");
+        var focusSummary = Assert.Single(current.Descendants(Presentation + "TextBlock").Where(text =>
+            (string?)text.Attribute(Xaml + "Name") == "GoalTotalFocusSessionSummary"));
+        Assert.Contains(focusSummary.Elements(Presentation + "Run"), run =>
+            (string?)run.Attribute("Text") == "{Binding SelectedGoalFocusSessionCount, Mode=OneWay}");
+        var completedRow = Assert.Single(current.Descendants(Presentation + "Grid").Where(grid =>
+            (string?)grid.Attribute(Xaml + "Name") == "GoalCompletedTaskSummary"));
+        Assert.Null(completedRow.Attribute("Background"));
     }
 
     [Fact]

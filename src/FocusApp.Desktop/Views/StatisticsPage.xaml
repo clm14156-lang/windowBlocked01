@@ -1551,7 +1551,7 @@
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="1"/>
-                                    <RowDefinition Height="108"/>
+                                    <RowDefinition Height="168"/>
                                     <RowDefinition Height="1"/>
                                     <RowDefinition Height="*"/>
                                     <RowDefinition Height="50"/>
@@ -1563,7 +1563,18 @@
                                     </StackPanel>
                                 </Grid>
                                 <Border Grid.Row="1" Background="#F0F0F3"/>
-                                <Grid x:Name="GoalInvestmentMetrics" Grid.Row="2" Margin="2,12,2,10">
+                                <Grid x:Name="GoalInvestmentMetrics" Grid.Row="2" Margin="2,10,2,8">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="34"/>
+                                        <RowDefinition Height="1"/>
+                                        <RowDefinition Height="*"/>
+                                    </Grid.RowDefinitions>
+                                    <Grid Grid.Row="0">
+                                        <TextBlock Text="投入概括" FontSize="15" FontWeight="Medium" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimary}"/>
+                                        <Button x:Name="GoalInvestmentTrendButton" HorizontalAlignment="Right" VerticalAlignment="Center" Content="查看趋势  ›" Style="{StaticResource GoalInlineActionStyle}" Command="{Binding GoalInvestmentTrend.OpenCommand}" AutomationProperties.Name="查看投入趋势"/>
+                                    </Grid>
+                                    <Border Grid.Row="1" Background="#F0F0F3"/>
+                                    <Grid Grid.Row="2" Margin="0,11,0,0">
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="0.85*"/><ColumnDefinition Width="1"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                     <StackPanel Margin="0,0,18,0">
                                         <TextBlock Text="本周投入" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}"/>
@@ -1586,17 +1597,18 @@
                                     </StackPanel>
                                     <Border Grid.Column="1" Background="#F0F0F3"/>
                                     <StackPanel Grid.Column="2" Margin="26,0,0,0">
-                                        <Grid>
-                                            <TextBlock VerticalAlignment="Center" Text="累计投入" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}"/>
-                                            <Button x:Name="GoalInvestmentTrendButton" HorizontalAlignment="Right" VerticalAlignment="Center" Content="投入趋势  ›" Style="{StaticResource GoalInlineActionStyle}" Command="{Binding GoalInvestmentTrend.OpenCommand}" AutomationProperties.Name="查看投入趋势"/>
-                                        </Grid>
+                                        <TextBlock Text="累计投入" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}"/>
                                         <TextBlock x:Name="GoalTotalInvestmentText" Margin="0,4,0,0" Style="{StaticResource GoalMetricValueStyle}"><Run Text="{Binding SelectedGoalTotalInvestment.HoursValue, Mode=OneWay}"/><Run Text="{Binding SelectedGoalTotalInvestment.HoursUnitWithLeadingSpace, Mode=OneWay}" FontSize="16" FontWeight="SemiBold"/><Run Text="{Binding SelectedGoalTotalInvestment.MinutesValueWithLeadingSpace, Mode=OneWay}"/><Run Text="{Binding SelectedGoalTotalInvestment.MinutesUnitWithLeadingSpace, Mode=OneWay}" FontSize="16" FontWeight="SemiBold"/><Run Text="{Binding SelectedGoalTargetDurationSeparator, Mode=OneWay}" FontSize="16" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}"/><Run Text="{Binding SelectedGoalTargetDuration.HoursValue, Mode=OneWay}" FontSize="16" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}"/><Run Text="{Binding SelectedGoalTargetDuration.HoursUnit, Mode=OneWay}" FontSize="16" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}"/><Run Text="{Binding SelectedGoalTargetDuration.MinutesValueWithLeadingSpace, Mode=OneWay}" FontSize="16" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}"/><Run Text="{Binding SelectedGoalTargetDuration.MinutesUnit, Mode=OneWay}" FontSize="16" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}"/></TextBlock>
+                                        <TextBlock x:Name="GoalTotalFocusSessionSummary" Margin="0,5,0,0" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextWeak}">
+                                            <Run Text="共 "/><Run Text="{Binding SelectedGoalFocusSessionCount, Mode=OneWay}"/><Run Text=" 次专注"/>
+                                        </TextBlock>
                                         <Grid x:Name="GoalInvestmentProgress" Margin="0,6,0,0" Visibility="{Binding HasSelectedGoalTargetDuration, Converter={StaticResource BooleanToVisibilityConverter}}">
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                             <ProgressBar x:Name="GoalInvestmentProgressBar" VerticalAlignment="Center" Minimum="0" Maximum="1" Value="{Binding SelectedGoalInvestmentProgressRatio, Mode=OneWay}" Style="{StaticResource GoalInvestmentProgressBarStyle}"/>
                                             <TextBlock x:Name="GoalInvestmentProgressPercentage" Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding SelectedGoalInvestmentProgressDisplay}"/>
                                         </Grid>
                                     </StackPanel>
+                                    </Grid>
                                 </Grid>
                                 <Border Grid.Row="3" Background="#F0F0F3"/>
                                 <Grid Grid.Row="4" Margin="0,22,0,22">
@@ -1810,16 +1822,16 @@
                                         </StackPanel>
                                     </ScrollViewer>
                                 </Grid>
-                                <Border Grid.Row="5" Background="#F6F7F9" CornerRadius="10" Padding="16,0">
+                                <Grid x:Name="GoalCompletedTaskSummary" Grid.Row="5" Margin="8,0,8,0">
                                     <Grid>
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                        <Border Width="21" Height="21" VerticalAlignment="Center" Background="#7B8595" CornerRadius="11">
-                                            <Path Width="10" Height="7" Data="M 0,3.5 L 3.5,7 L 10,0" Stretch="Fill" VerticalAlignment="Center" HorizontalAlignment="Center" Stroke="White" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                                        <Border Width="21" Height="21" VerticalAlignment="Center" Background="#EEF1F5" CornerRadius="11">
+                                            <Path Width="10" Height="7" Data="M 0,3.5 L 3.5,7 L 10,0" Stretch="Fill" VerticalAlignment="Center" HorizontalAlignment="Center" Stroke="#718093" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
                                         </Border>
                                         <TextBlock Grid.Column="1" Margin="10,0,8,0" Text="{Binding GoalTasks.TodayCompletedSummary}" FontSize="12" FontWeight="Medium" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}"/>
-                                        <Button Grid.Column="2" Padding="4,5" VerticalAlignment="Center" Background="Transparent" Style="{StaticResource GoalQuietActionStyle}" Command="{Binding GoalTasks.OpenCompletedCommand}" AutomationProperties.Name="查看已完成任务"><TextBlock Text="查看已完成任务  ›"/></Button>
+                                        <Button Grid.Column="2" Padding="4,5" VerticalAlignment="Center" Background="Transparent" Style="{StaticResource GoalQuietActionStyle}" Command="{Binding GoalTasks.OpenCompletedCommand}" AutomationProperties.Name="查看已完成任务"><TextBlock Text="查看已完成任务  ›" FontSize="12" Foreground="{DynamicResource TextSecondary}"/></Button>
                                     </Grid>
-                                </Border>
+                                </Grid>
                                 </Grid>
                                 <Grid x:Name="ArchivedGoalDetails" Visibility="{Binding IsArchivedGoalView, Converter={StaticResource BooleanToVisibilityConverter}}">
                                     <Grid.RowDefinitions>
