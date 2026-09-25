@@ -47,7 +47,7 @@ public sealed class FocusAgainConfirmationPresentationTests
             (string?)button.Attribute("Command") == "{Binding FocusAgainCommand}"));
         Assert.Equal("{DynamicResource AccentPrimary}", (string?)confirm.Attribute("Background"));
 
-        Assert.Equal(2, view.Descendants(Presentation + "Button").Count(button =>
+        Assert.Single(view.Descendants(Presentation + "Button").Where(button =>
             (string?)button.Attribute("Command") == "{Binding RequestFocusAgainCommand}"));
     }
 

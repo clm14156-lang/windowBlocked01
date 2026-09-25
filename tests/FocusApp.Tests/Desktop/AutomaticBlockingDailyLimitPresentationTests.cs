@@ -67,29 +67,39 @@ public sealed class AutomaticBlockingDailyLimitPresentationTests
     }
 
     [Fact]
-    public void RuleEditorIsIndependentThreeHundredDipWindowWithoutTitleText()
+    public void RuleEditorUsesFixedModeHeightsAndTheNewFooter()
     {
         var modal = XDocument.Load(Path.Combine(FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "AutomaticRuleModal.xaml"));
         var editor = XDocument.Load(Path.Combine(FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "AutomaticRuleEditorWindow.xaml"));
 
-        Assert.Equal("300", (string?)editor.Root?.Attribute("Width"));
+        Assert.Equal("330", (string?)editor.Root?.Attribute("Width"));
+        var sizeStyle = Assert.Single(editor.Root!.Elements(Presentation + "Window.Style")
+            .Elements(Presentation + "Style"));
+        Assert.Contains(sizeStyle.Elements(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("Property") == "Height" &&
+            (string?)setter.Attribute("Value") == "340");
+        Assert.Contains(sizeStyle.Descendants(Presentation + "DataTrigger"), trigger =>
+            (string?)trigger.Attribute("Binding") == "{Binding IsCustom}" &&
+            trigger.Elements(Presentation + "Setter").Any(setter =>
+                (string?)setter.Attribute("Property") == "Height" &&
+                (string?)setter.Attribute("Value") == "400"));
         Assert.Equal("None", (string?)editor.Root?.Attribute("WindowStyle"));
         Assert.Equal("False", (string?)editor.Root?.Attribute("ShowInTaskbar"));
         Assert.Equal("Manual", (string?)editor.Root?.Attribute("WindowStartupLocation"));
         Assert.DoesNotContain(modal.Descendants(), element =>
             (string?)element.Attribute("Visibility") == "{Binding IsEditorOpen, Converter={StaticResource BoolVisibility}}");
-        Assert.DoesNotContain(editor.Descendants(Presentation + "TextBlock"), text =>
+        Assert.Contains(editor.Descendants(Presentation + "TextBlock"), text =>
             (string?)text.Attribute("Text") == "编辑规则");
         Assert.Contains(editor.Descendants(Presentation + "Button"), button => (string?)button.Attribute("Content") == "×");
         Assert.Contains(editor.Descendants(Presentation + "Button"), button => (string?)button.Attribute("Content") == "删除");
+        Assert.Contains(editor.Descendants(Presentation + "Button"), button => (string?)button.Attribute("Content") == "取消");
         Assert.Contains(editor.Descendants(Presentation + "Button"), button => (string?)button.Attribute("Content") == "保存");
 
         var footerButtons = Assert.Single(editor.Descendants(Presentation + "StackPanel").Where(panel =>
-            (string?)panel.Attribute("HorizontalAlignment") == "Right" &&
             panel.Elements(Presentation + "Button").Select(button => (string?)button.Attribute("Content"))
-                .SequenceEqual(["删除", "保存"])));
+                .SequenceEqual(["取消", "保存"])));
         Assert.Equal("Horizontal", (string?)footerButtons.Attribute("Orientation"));
-        Assert.Equal("0,0,10,0", (string?)footerButtons.Elements(Presentation + "Button").First().Attribute("Margin"));
+        Assert.Equal("8,0,0,0", (string?)footerButtons.Elements(Presentation + "Button").Last().Attribute("Margin"));
     }
 
     [Fact]
@@ -100,27 +110,26 @@ public sealed class AutomaticBlockingDailyLimitPresentationTests
         var settings = XDocument.Load(Path.Combine(root, "src", "FocusApp.Desktop", "Views", "SettingsPage.xaml"));
         var styles = XDocument.Load(Path.Combine(root, "src", "FocusApp.Desktop", "Resources", "Styles.xaml"));
 
-        Assert.Equal("300", (string?)editor.Root?.Attribute("Width"));
-        Assert.Equal("Height", (string?)editor.Root?.Attribute("SizeToContent"));
+        Assert.Equal("330", (string?)editor.Root?.Attribute("Width"));
+        Assert.Equal("Manual", (string?)editor.Root?.Attribute("SizeToContent"));
 
         var statusRow = Assert.Single(editor.Descendants(Presentation + "Grid")
             .Where(element => (string?)element.Attribute(Xaml + "Name") == "RuleStatusRow"));
-        Assert.Equal("1", (string?)statusRow.Attribute("Grid.Row"));
+        Assert.Equal("2", (string?)statusRow.Attribute("Grid.Row"));
         Assert.Equal("{Binding IsEditing, Converter={StaticResource BoolVisibility}}",
             (string?)statusRow.Attribute("Visibility"));
         Assert.Contains(statusRow.Descendants(Presentation + "TextBlock"), element =>
-            (string?)element.Attribute("Text") == "规则状态");
+            (string?)element.Attribute("Text") == "启用规则");
 
         var statusSwitch = Assert.Single(statusRow.Descendants(Presentation + "ToggleButton"));
         Assert.Equal("{Binding EditorIsEnabled, Mode=TwoWay}", (string?)statusSwitch.Attribute("IsChecked"));
         Assert.Equal("{StaticResource AutomaticRuleSwitchStyle}", (string?)statusSwitch.Attribute("Style"));
-        Assert.Contains(statusRow.Descendants(Presentation + "TextBlock"), element =>
-            (string?)element.Attribute("Text") == "{Binding EditorStatusDisplay}");
+        Assert.Equal("{Binding EditorStatusDisplay}",
+            (string?)statusSwitch.Attribute("AutomationProperties.HelpText"));
 
-        var targetRow = Assert.Single(editor.Descendants(Presentation + "Grid")
-            .Where(element => element.Elements(Presentation + "ComboBox").Any(combo =>
-                (string?)combo.Attribute("ItemsSource") == "{Binding Targets}")));
-        Assert.Equal("2", (string?)targetRow.Attribute("Grid.Row"));
+        var target = Assert.Single(editor.Descendants(Presentation + "ComboBox")
+            .Where(element => (string?)element.Attribute("ItemsSource") == "{Binding Targets}"));
+        Assert.Equal("14", (string?)target.Attribute("Grid.Row"));
 
         var sharedStyle = Assert.Single(styles.Descendants(Presentation + "Style")
             .Where(element => (string?)element.Attribute(Xaml + "Key") == "AutomaticRuleSwitchStyle"));
@@ -141,7 +150,7 @@ public sealed class AutomaticBlockingDailyLimitPresentationTests
         Assert.Equal("Segoe UI Variable, Microsoft YaHei UI, Segoe UI", (string?)root.Attribute("TextElement.FontFamily"));
         Assert.Equal("13", (string?)root.Attribute("TextElement.FontSize"));
         Assert.Equal("Segoe UI Variable, Microsoft YaHei UI, Segoe UI", (string?)editorRoot.Attribute("TextElement.FontFamily"));
-        Assert.Equal("13", (string?)editorRoot.Attribute("TextElement.FontSize"));
+        Assert.Equal("12", (string?)editorRoot.Attribute("TextElement.FontSize"));
 
         var title = Assert.Single(modal.Descendants(Presentation + "TextBlock")
             .Where(text => (string?)text.Attribute("Text") == "选择时间段"));
@@ -149,8 +158,14 @@ public sealed class AutomaticBlockingDailyLimitPresentationTests
         Assert.Equal("SemiBold", (string?)title.Attribute("FontWeight"));
         Assert.Equal("{DynamicResource TextPrimary}", (string?)title.Attribute("Foreground"));
 
-        Assert.DoesNotContain(modal.Descendants().Concat(editor.Descendants()), element =>
-            (string?)element.Attribute("FontSize") is "11" or "14" or "16" or "18" or "19");
+        var editorTitle = Assert.Single(editor.Descendants(Presentation + "TextBlock")
+            .Where(text => (string?)text.Attribute("Text") == "编辑规则"));
+        Assert.Equal("18", (string?)editorTitle.Attribute("FontSize"));
+        Assert.Equal("SemiBold", (string?)editorTitle.Attribute("FontWeight"));
+        Assert.Equal("#1D1D1F", (string?)editorTitle.Attribute("Foreground"));
+        Assert.All(editor.Descendants(Presentation + "TextBlock")
+            .Where(text => (string?)text.Attribute("Text") is "重复" or "时间"),
+            text => Assert.Equal("16", (string?)text.Attribute("FontSize")));
     }
 
     [Fact]
@@ -193,15 +208,15 @@ public sealed class AutomaticBlockingDailyLimitPresentationTests
         var outline = Assert.Single(style.Descendants(Presentation + "Border")
             .Where(border => (string?)border.Attribute("BorderBrush") == "{TemplateBinding BorderBrush}"));
         Assert.Equal("1", (string?)outline.Attribute("BorderThickness"));
-        Assert.Equal("10", (string?)outline.Attribute("CornerRadius"));
-        Assert.Equal("False", (string?)outline.Attribute("IsHitTestVisible"));
+        Assert.Equal("8", (string?)outline.Attribute("CornerRadius"));
 
         var selected = Assert.Single(style.Descendants(Presentation + "Trigger")
             .Where(trigger => (string?)trigger.Attribute("Property") == "IsChecked" &&
                 (string?)trigger.Attribute("Value") == "True"));
         Assert.Contains(selected.Elements(Presentation + "Setter"), setter =>
             (string?)setter.Attribute("Property") == "BorderBrush" &&
-            (string?)setter.Attribute("Value") == "{DynamicResource AccentPrimary}");
+            (string?)setter.Attribute("TargetName") == "SegmentSurface" &&
+            (string?)setter.Attribute("Value") == "#FF8000");
     }
 
     private static string FindRepositoryRoot()

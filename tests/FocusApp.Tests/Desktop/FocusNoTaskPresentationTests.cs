@@ -38,51 +38,53 @@ public sealed class FocusNoTaskPresentationTests
 
         var ring = Assert.Single(noTaskView.Descendants().Where(element =>
             element.Name.LocalName == "CircularProgressRing"));
-        Assert.Equal("2", (string?)ring.Attribute("RingThickness"));
-        Assert.Equal("#EEE8DE", (string?)ring.Attribute("TrackBrush"));
-        Assert.Equal("5", (string?)ring.Attribute("ProgressEndPointDiameter"));
+        Assert.Equal("8", (string?)ring.Attribute("RingThickness"));
+        Assert.Equal("#E8E8ED", (string?)ring.Attribute("TrackBrush"));
+        Assert.Equal("8", (string?)ring.Attribute("ProgressEndPointDiameter"));
         Assert.Equal(
             "{Binding RemainingProgress, Mode=OneWay}",
             (string?)ring.Attribute("Progress"));
 
+        var countdown = Assert.Single(noTaskView.Descendants(Presentation + "TextBlock").Where(element =>
+            (string?)element.Attribute("Text") == "{Binding RemainingTimeDisplay}"));
+        Assert.Null(countdown.Attribute("FontFamily"));
+        Assert.Equal("Medium", (string?)countdown.Attribute("FontWeight"));
+
         var atmosphere = Assert.Single(noTaskView.Descendants(Presentation + "TextBlock").Where(element =>
             (string?)element.Attribute("Text") == "{DynamicResource FocusNoTaskAtmosphere}"));
-        Assert.Equal("24", (string?)atmosphere.Attribute("FontSize"));
-        Assert.Equal("24", (string?)atmosphere.Attribute("LineHeight"));
-        Assert.Equal(
-            "/FocusApp.Desktop;component/Assets/font/#Source Han Serif CN",
-            (string?)atmosphere.Attribute("FontFamily"));
-        Assert.Equal("Light", (string?)atmosphere.Attribute("FontWeight"));
+        Assert.Equal("12", (string?)atmosphere.Attribute("FontSize"));
+        Assert.Null(atmosphere.Attribute("FontFamily"));
+        Assert.Equal("Normal", (string?)atmosphere.Attribute("FontWeight"));
         Assert.Equal("{DynamicResource TextSecondary}", (string?)atmosphere.Attribute("Foreground"));
         Assert.DoesNotContain(noTaskView.Descendants(Presentation + "TextBlock"), element =>
             (string?)element.Attribute("Text") == "{DynamicResource FocusInProgress}");
 
-        var accentLine = Assert.Single(noTaskView.Descendants(Presentation + "Image"));
-        Assert.Equal(
-            "/FocusApp.Desktop;component/Assets/Themes/Solid/Orange/focusPage_OrangeLine.png",
-            (string?)accentLine.Attribute("Source"));
-        Assert.Equal("44", (string?)accentLine.Attribute("Width"));
-        Assert.Equal("8.4", (string?)accentLine.Attribute("Height"));
-        Assert.Equal("Uniform", (string?)accentLine.Attribute("Stretch"));
+        Assert.Empty(noTaskView.Descendants(Presentation + "Image"));
 
         var endButton = Assert.Single(noTaskView.Descendants(Presentation + "Button").Where(element =>
             (string?)element.Attribute("Command") == "{Binding RequestEndCommand}"));
         Assert.Equal("{DynamicResource TransparentBrush}", (string?)endButton.Attribute("Background"));
-        Assert.Equal("1", (string?)endButton.Attribute("BorderThickness"));
-        Assert.Equal("13", (string?)endButton.Attribute("FontSize"));
+        Assert.Equal("0", (string?)endButton.Attribute("BorderThickness"));
+        Assert.Null(endButton.Attribute("BorderBrush"));
+        Assert.Equal("14", (string?)endButton.Attribute("FontSize"));
         Assert.Equal("Medium", (string?)endButton.Attribute("FontWeight"));
-        Assert.Equal(
-            "{DynamicResource FocusNoTaskEndButtonText}",
-            (string?)endButton.Attribute("Foreground"));
+        Assert.Equal("#1E2228", (string?)endButton.Attribute("Foreground"));
         Assert.Equal("{StaticResource FocusNoTaskEndButton}", (string?)endButton.Attribute("Style"));
-        var endButtonText = Assert.Single(endButton.Elements(Presentation + "TextBlock"));
-        Assert.Equal(
-            "{DynamicResource FocusNoTaskEndButtonText}",
-            (string?)endButtonText.Attribute("Foreground"));
+        var buttonContent = Assert.Single(endButton.Elements(Presentation + "StackPanel"));
+        var square = Assert.Single(buttonContent.Elements(Presentation + "Border"));
+        Assert.Equal("13", (string?)square.Attribute("Width"));
+        Assert.Equal("#1E2228", (string?)square.Attribute("Background"));
+        var endButtonText = Assert.Single(buttonContent.Elements(Presentation + "TextBlock"));
+        Assert.Equal("#1E2228", (string?)endButtonText.Attribute("Foreground"));
+        Assert.Equal("0,552,0,0", (string?)endButton.Parent?.Attribute("Margin"));
+        Assert.Equal("0,628,0,0", (string?)atmosphere.Parent?.Attribute("Margin"));
         var endButtonStyle = Assert.Single(view.Descendants(Presentation + "Style").Where(element =>
             (string?)element.Attribute(Xaml + "Key") == "FocusNoTaskEndButton"));
         Assert.Contains(endButtonStyle.Descendants(Presentation + "Border"), element =>
             (string?)element.Attribute("CornerRadius") == "21");
+        Assert.Contains(endButtonStyle.Descendants(Presentation + "Trigger"), trigger =>
+            (string?)trigger.Attribute("Property") == "IsMouseOver" &&
+            (string?)trigger.Attribute("Value") == "True");
 
     }
 
@@ -128,45 +130,8 @@ public sealed class FocusNoTaskPresentationTests
             "/FocusApp.Desktop;component/Assets/Themes/Solid/Orange/foucus_background.png",
             (string?)background.Attribute("Source"));
 
-        var title = Assert.Single(completion.Descendants(Presentation + "TextBlock").Where(element =>
-            (string?)element.Attribute(Xaml + "Name") == "NoTargetCompletionTitle"));
-        Assert.Equal("32", (string?)title.Attribute("FontSize"));
-        Assert.Equal("SemiBold", (string?)title.Attribute("FontWeight"));
-
-        var minuteValue = Assert.Single(completion.Descendants(Presentation + "Run").Where(element =>
-            (string?)element.Attribute("Text") == "{Binding CompletedDurationMinutes, Mode=OneWay}"));
-        Assert.Equal("68", (string?)minuteValue.Attribute("FontSize"));
-        Assert.DoesNotContain(completion.Descendants(Presentation + "Run"), element =>
-            (string?)element.Attribute("Text") is
-                "{Binding CompletedDurationSecondaryValue, Mode=OneWay}" or
-                "{Binding CompletedDurationSecondaryUnit, Mode=OneWay}");
-        Assert.DoesNotContain(completion.Descendants(Presentation + "TextBlock"), element =>
-            (string?)element.Attribute("Text") == "{DynamicResource FocusCompletionEncouragement}");
-
-        var summary = Assert.Single(completion.Descendants(Presentation + "Border").Where(element =>
-            (string?)element.Attribute(Xaml + "Name") == "NoTargetCompletionSummary"));
-        Assert.Equal("280", (string?)summary.Attribute("Width"));
-        Assert.Equal("38", (string?)summary.Attribute("Height"));
-        Assert.Equal("{DynamicResource TransparentBrush}", (string?)summary.Attribute("Background"));
-        Assert.Null(summary.Attribute("BorderBrush"));
-        Assert.Null(summary.Attribute("BorderThickness"));
-        Assert.Empty(summary.Descendants(Presentation + "DropShadowEffect"));
-        Assert.Contains(summary.Descendants(Presentation + "Run"), element =>
-            (string?)element.Attribute("Text") == "{Binding TodayTotalMinutes, Mode=OneWay}");
-        Assert.Contains(summary.Descendants(Presentation + "Run"), element =>
-            (string?)element.Attribute("Text") == "{Binding TodayFocusCount, Mode=OneWay}");
-
-        var focusAgain = Assert.Single(completion.Descendants(Presentation + "Button").Where(element =>
-            (string?)element.Attribute("Command") == "{Binding RequestFocusAgainCommand}"));
-        var buttonRow = Assert.IsType<XElement>(focusAgain.Parent);
-        Assert.Equal("Center", (string?)buttonRow.Attribute("HorizontalAlignment"));
-        Assert.Equal("Horizontal", (string?)buttonRow.Attribute("Orientation"));
-        Assert.Equal("{DynamicResource TransparentBrush}", (string?)focusAgain.Attribute("Background"));
-        Assert.Contains(focusAgain.Elements(Presentation + "TextBlock"), element =>
-            (string?)element.Attribute("Text") == "{DynamicResource FocusAgainShort}");
-        var returnHome = Assert.Single(completion.Descendants(Presentation + "Button").Where(element =>
-            (string?)element.Attribute("Command") == "{Binding ReturnHomeCommand}"));
-        Assert.Equal("{StaticResource FocusNoTargetReturnHomeButton}", (string?)returnHome.Attribute("Style"));
+        Assert.Contains(completion.Descendants(Presentation + "ContentControl"), element =>
+            (string?)element.Attribute("ContentTemplate") == "{StaticResource FocusCompletionDetails}");
         var returnHomeStyle = Assert.Single(view.Descendants(Presentation + "Style").Where(element =>
             (string?)element.Attribute(Xaml + "Key") == "FocusNoTargetReturnHomeButton"));
         Assert.Contains(returnHomeStyle.Elements(Presentation + "Setter"), setter =>

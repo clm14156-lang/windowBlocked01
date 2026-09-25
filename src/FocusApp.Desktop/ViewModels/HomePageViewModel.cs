@@ -14,6 +14,7 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
     private HomeDurationOptionViewModel _currentDurationOption;
     private AutomaticRuleItemViewModel? _nextAutomaticRule;
     private DateTime _nextAutomaticStart;
+    private string _nextAutomaticCountdownDisplay = string.Empty;
     private readonly AutomaticBlockingScheduler _automaticBlockingScheduler;
     private int _enabledBlockingCount;
     private bool _isLoggedIn;
@@ -222,6 +223,7 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(AdditionalBlockingCount));
             OnPropertyChanged(nameof(HasAdditionalBlockingItems));
             OnPropertyChanged(nameof(BlockingCountText));
+            OnPropertyChanged(nameof(NextAutomaticBlockedContentDisplay));
         }
     }
 
@@ -242,6 +244,40 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
     public string NextAutomaticStartDisplay => _nextAutomaticRule is null
         ? ""
         : _nextAutomaticStart.ToString("HH:mm");
+
+    public string NextAutomaticTimeRangeDisplay => _nextAutomaticRule?.TimeRangeText ?? string.Empty;
+
+    public bool NextAutomaticHasCustomDays => _nextAutomaticRule?.IsCustom == true;
+
+    public string NextAutomaticWeekdaysDisplay => _nextAutomaticRule is null || !_nextAutomaticRule.IsCustom
+        ? string.Empty
+        : string.Join(" · ", new[]
+        {
+            ("Monday", "周一"), ("Tuesday", "周二"), ("Wednesday", "周三"),
+            ("Thursday", "周四"), ("Friday", "周五"), ("Saturday", "周六"), ("Sunday", "周日")
+        }.Where(day => _nextAutomaticRule.DayKeys.Contains(day.Item1)).Select(day => day.Item2));
+
+    public string NextAutomaticCountdownDisplay => _nextAutomaticCountdownDisplay;
+
+    public string NextAutomaticBlockedContentDisplay => $"将屏蔽 {EnabledBlockingCount} 个网站和应用";
+
+    public void RefreshNextAutomaticRuleCountdown(DateTime? now = null)
+    {
+        var minutes = _nextAutomaticRule is null
+            ? 0
+            : Math.Max(0, (int)Math.Ceiling((_nextAutomaticStart - (now ?? DateTime.Now)).TotalMinutes));
+        var display = _nextAutomaticRule is null ? string.Empty : minutes switch
+        {
+            0 => "即将开始",
+            < 60 => $"{minutes}分钟后",
+            < 1440 when minutes % 60 == 0 => $"{minutes / 60}小时后",
+            < 1440 => $"{minutes / 60}小时{minutes % 60}分钟后",
+            _ => $"{(int)Math.Ceiling(minutes / 1440d)}天后"
+        };
+        if (_nextAutomaticCountdownDisplay == display) return;
+        _nextAutomaticCountdownDisplay = display;
+        OnPropertyChanged(nameof(NextAutomaticCountdownDisplay));
+    }
 
     public string NextAutomaticBlockingToolTip => _nextAutomaticRule is null
         ? ""
@@ -273,6 +309,7 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(NextAutomaticBlockingDisplay));
             OnPropertyChanged(nameof(NextAutomaticStartDisplay));
             OnPropertyChanged(nameof(NextAutomaticBlockingToolTip));
+            NotifyNextAutomaticRuleDetailsChanged(current);
             return;
         }
 
@@ -297,6 +334,15 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(NextAutomaticBlockingDisplay));
         OnPropertyChanged(nameof(NextAutomaticStartDisplay));
         OnPropertyChanged(nameof(NextAutomaticBlockingToolTip));
+        NotifyNextAutomaticRuleDetailsChanged(current);
+    }
+
+    private void NotifyNextAutomaticRuleDetailsChanged(DateTime current)
+    {
+        OnPropertyChanged(nameof(NextAutomaticTimeRangeDisplay));
+        OnPropertyChanged(nameof(NextAutomaticHasCustomDays));
+        OnPropertyChanged(nameof(NextAutomaticWeekdaysDisplay));
+        RefreshNextAutomaticRuleCountdown(current);
     }
 
     public void UpdateBlockingContent(

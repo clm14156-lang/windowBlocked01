@@ -1,4 +1,8 @@
 using System.Xml.Linq;
+using System.Windows;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using FocusApp.Desktop.Views;
 using Xunit;
 
 namespace FocusApp.Tests.Desktop;
@@ -7,144 +11,127 @@ public sealed class FocusCompletionTypographyPresentationTests
 {
     private static readonly XNamespace Presentation = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
     private static readonly XNamespace Xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
+    private static readonly XNamespace Views = "clr-namespace:FocusApp.Desktop.Views";
 
     [Fact]
-    public void CompletionStates_UseTheSharedTypographyHierarchy()
+    public void CompletionViews_ShareTheRequestedHierarchyWithoutTaskExpansion()
     {
-        var view = XDocument.Load(Path.Combine(
-            FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "FocusFlowView.xaml"));
+        var view = XDocument.Load(Path.Combine(FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "FocusFlowView.xaml"));
+        var template = Assert.Single(view.Descendants(Presentation + "DataTemplate").Where(element =>
+            (string?)element.Attribute(Xaml + "Key") == "FocusCompletionDetails"));
+        var content = Assert.Single(template.Elements(Presentation + "StackPanel"));
+        var children = content.Elements().ToArray();
 
-        var targetCompletion = Assert.Single(view.Descendants(Presentation + "Grid").Where(grid =>
-            (string?)grid.Attribute(Xaml + "Name") == "TargetCompletionView"));
-        var titles = view.Descendants(Presentation + "TextBlock").Where(text =>
-            (string?)text.Attribute("Text") == "{DynamicResource FocusCompletedTitle}").ToArray();
-        Assert.Equal(2, titles.Length);
-        var targetCompletionTitle = Assert.Single(titles.Where(title =>
-            (string?)title.Attribute(Xaml + "Name") != "NoTargetCompletionTitle"));
-        Assert.Equal("32", (string?)targetCompletionTitle.Attribute("FontSize"));
-        Assert.Equal("SemiBold", (string?)targetCompletionTitle.Attribute("FontWeight"));
-        Assert.Equal("{DynamicResource TextPrimary}", (string?)targetCompletionTitle.Attribute("Foreground"));
-        var noTargetCompletionTitle = Assert.Single(titles.Where(title =>
-            (string?)title.Attribute(Xaml + "Name") == "NoTargetCompletionTitle"));
-        Assert.Equal("32", (string?)noTargetCompletionTitle.Attribute("FontSize"));
-        Assert.Equal("SemiBold", (string?)noTargetCompletionTitle.Attribute("FontWeight"));
-        Assert.Equal("{DynamicResource TextPrimary}", (string?)noTargetCompletionTitle.Attribute("Foreground"));
+        Assert.Equal("{DynamicResource FocusCompletionPraise}", (string?)children[0].Attribute("Text"));
+        Assert.Equal("{DynamicResource FocusCompletedTitle}", (string?)children[1].Attribute("Text"));
+        Assert.Equal("32", (string?)children[1].Attribute("FontSize"));
+        Assert.Equal("{DynamicResource AccentPrimary}", (string?)children[2].Attribute("Foreground"));
+        var duration = Assert.Single(children[2].Elements(Presentation + "Run").Where(run =>
+            (string?)run.Attribute("Text") == "{Binding CompletedDurationMinutes, Mode=OneWay}"));
+        Assert.Equal("68", (string?)duration.Attribute("FontSize"));
+        Assert.Equal(Presentation + "Grid", children[3].Name);
+        Assert.Equal(Presentation + "StackPanel", children[4].Name);
 
-        var durationBlocks = targetCompletion.Descendants(Presentation + "TextBlock").Where(text =>
-            text.Elements(Presentation + "Run").Any(run =>
-                (string?)run.Attribute("Text") == "{Binding CompletedDurationMinutes, Mode=OneWay}")).ToArray();
-        Assert.Single(durationBlocks);
-        Assert.All(durationBlocks, duration =>
-        {
-            Assert.Equal("{DynamicResource FontFamilyNumeric}", (string?)duration.Attribute("FontFamily"));
-            Assert.Equal("{DynamicResource AccentPrimary}", (string?)duration.Attribute("Foreground"));
-            var runs = duration.Elements(Presentation + "Run").ToArray();
-            Assert.Equal(2, runs.Length);
-            Assert.Equal("SemiBold", (string?)runs[0].Attribute("FontWeight"));
-            Assert.Equal("68", (string?)runs[0].Attribute("FontSize"));
-            Assert.Equal("20", (string?)runs[1].Attribute("FontSize"));
-            Assert.Equal("Medium", (string?)runs[1].Attribute("FontWeight"));
-        });
-
-        Assert.DoesNotContain(targetCompletion.Descendants(Presentation + "TextBlock"), text =>
-            (string?)text.Attribute("Text") == "{DynamicResource FocusCompletionEncouragement}");
-
-        var todaySummary = Assert.Single(targetCompletion.Descendants(Presentation + "Border").Where(border =>
-            (string?)border.Attribute("Width") == "280" &&
-            (string?)border.Attribute("Height") == "38"));
-        Assert.Equal("{DynamicResource TransparentBrush}", (string?)todaySummary.Attribute("Background"));
-        Assert.Null(todaySummary.Attribute("BorderBrush"));
-        Assert.Null(todaySummary.Attribute("BorderThickness"));
-
-        var completedTasks = Assert.Single(targetCompletion.Descendants(Presentation + "ItemsControl").Where(items =>
-            (string?)items.Attribute("ItemsSource") == "{Binding SessionCompletedTasks}"));
-        var completedTasksScrollViewer = Assert.Single(targetCompletion.Descendants(Presentation + "ScrollViewer").Where(scrollViewer =>
-            (string?)scrollViewer.Attribute(Xaml + "Name") == "SessionCompletedTasksScrollViewer"));
-        Assert.Equal("136", (string?)completedTasksScrollViewer.Attribute("MaxHeight"));
-        Assert.Equal("Auto", (string?)completedTasksScrollViewer.Attribute("VerticalScrollBarVisibility"));
-        Assert.Equal("Disabled", (string?)completedTasksScrollViewer.Attribute("HorizontalScrollBarVisibility"));
-        Assert.Contains(completedTasksScrollViewer.Descendants(Presentation + "Style"), style =>
-            (string?)style.Attribute("BasedOn") == "{StaticResource FocusTaskThinScrollBarStyle}");
-        Assert.Contains(completedTasksScrollViewer.Descendants(Presentation + "ItemsControl"), items =>
-            ReferenceEquals(items, completedTasks));
-        AssertPrimaryData(completedTasks, "{Binding Name}", 1, "Normal");
-        Assert.Contains(targetCompletion.Descendants(Presentation + "Run"), run =>
+        var statistics = children[3];
+        Assert.Equal("420", (string?)statistics.Attribute("Width"));
+        Assert.Equal(3, statistics.Element(Presentation + "Grid.ColumnDefinitions")?.Elements().Count());
+        Assert.Equal(new[] { "statistics.svg", "time.svg", "checkbox.svg" },
+            statistics.Descendants(Views + "SvgIcon")
+                .Select(icon => Path.GetFileName((string?)icon.Attribute("Source"))).ToArray());
+        Assert.Contains(statistics.Descendants(Presentation + "Run"), run =>
             (string?)run.Attribute("Text") == "{Binding TodayTotalMinutes, Mode=OneWay}");
-        Assert.Contains(targetCompletion.Descendants(Presentation + "Run"), run =>
+        Assert.Contains(statistics.Descendants(Presentation + "Run"), run =>
             (string?)run.Attribute("Text") == "{Binding TodayFocusCount, Mode=OneWay}");
-        var completedTaskCount = Assert.Single(targetCompletion.Descendants(Presentation + "Run").Where(run =>
-            (string?)run.Attribute("Text") == "{Binding SessionCompletedTaskCount, Mode=OneWay}"));
-        Assert.Equal("13", (string?)completedTaskCount.Parent?.Attribute("FontSize"));
-        Assert.Equal("Medium", (string?)completedTaskCount.Parent?.Attribute("FontWeight"));
+        Assert.Contains(statistics.Descendants(Presentation + "Run"), run =>
+            (string?)run.Attribute("Text") == "{Binding SessionCompletedTaskCount, Mode=OneWay}");
 
-        var taskSummaryButton = Assert.Single(targetCompletion.Descendants(Presentation + "Button").Where(button =>
-            (string?)button.Attribute("Command") == "{Binding ToggleCompletedTasksCommand}"));
-        Assert.Contains(taskSummaryButton.Descendants(Presentation + "Run"), run =>
-            (string?)run.Attribute("Text") == "{DynamicResource FocusCompletedTaskSummaryPrefix}");
-        var taskSummaryChevron = Assert.Single(taskSummaryButton.Descendants(Presentation + "Image").Where(image =>
-            (string?)image.Attribute("Source") ==
-                "/FocusApp.Desktop;component/Assets/Themes/Solid/Orange/zhankai.png"));
-        Assert.Null(taskSummaryChevron.Attribute("Visibility"));
-        Assert.Equal("0", (string?)Assert.Single(taskSummaryChevron.Descendants(Presentation + "RotateTransform")).Attribute("Angle"));
-        Assert.Contains(taskSummaryChevron.Descendants(Presentation + "DataTrigger"), trigger =>
-            (string?)trigger.Attribute("Binding") == "{Binding CanExpandCompletedTasks}" &&
-            (string?)trigger.Attribute("Value") == "False" &&
-            trigger.Descendants(Presentation + "Setter").Any(setter =>
-                (string?)setter.Attribute("Property") == "Opacity" &&
-                (string?)setter.Attribute("Value") == "0.35"));
-        Assert.Contains(taskSummaryChevron.Descendants(Presentation + "DataTrigger"), trigger =>
-            (string?)trigger.Attribute("Binding") == "{Binding IsCompletedTasksExpanded}" &&
-            (string?)trigger.Attribute("Value") == "True");
-        Assert.Equal(2, taskSummaryChevron.Descendants(Presentation + "DoubleAnimation").Count());
-        var taskPopup = Assert.Single(targetCompletion.Descendants(Presentation + "Border").Where(border =>
-            (string?)border.Attribute(Xaml + "Name") == "SessionCompletedTasksPopup"));
-        Assert.Equal("{Binding IsCompletedTasksExpanded, Converter={StaticResource BooleanToVisibilityConverter}}",
-            (string?)taskPopup.Attribute("Visibility"));
+        var buttons = children[4].Elements(Presentation + "Button").ToArray();
+        Assert.Equal(2, buttons.Length);
+        Assert.Equal("{Binding RequestFocusAgainCommand}", (string?)buttons[0].Attribute("Command"));
+        Assert.Equal("{Binding ReturnHomeCommand}", (string?)buttons[1].Attribute("Command"));
+        Assert.All(buttons, button => Assert.Equal("48", (string?)button.Attribute("Height")));
+        Assert.Equal(new[] { "reset.svg", "home.svg" },
+            buttons.SelectMany(button => button.Descendants(Views + "SvgIcon"))
+                .Select(icon => Path.GetFileName((string?)icon.Attribute("Source"))).ToArray());
+        foreach (var styleKey in new[] { "FocusFlowOutlineButton", "FocusNoTargetReturnHomeButton" })
+        {
+            var style = Assert.Single(view.Descendants(Presentation + "Style").Where(element =>
+                (string?)element.Attribute(Xaml + "Key") == styleKey));
+            Assert.Contains(style.Descendants(Presentation + "Border"), border =>
+                (string?)border.Attribute("CornerRadius") == "20");
+        }
 
-        var buttons = view.Descendants(Presentation + "Button").Where(button =>
-            (string?)button.Attribute("AutomationProperties.Name") is
-                "{DynamicResource FocusAgain}" or "{DynamicResource FocusReturnHome}").ToArray();
-        Assert.Equal(4, buttons.Length);
-        var outlineButtons = buttons.Where(button =>
-            (string?)button.Attribute("AutomationProperties.Name") == "{DynamicResource FocusAgain}");
-        Assert.All(outlineButtons, button =>
+        foreach (var name in new[] { "TargetCompletionView", "NoTargetCompletionView" })
         {
-            Assert.Equal("13", (string?)button.Attribute("FontSize"));
-            Assert.Equal("Medium", (string?)button.Attribute("FontWeight"));
-        });
-        var accentLabels = buttons.SelectMany(button => button.Elements(Presentation + "TextBlock")).ToArray();
-        Assert.Equal(4, accentLabels.Length);
-        Assert.All(accentLabels, label =>
-        {
-            Assert.Equal("13", (string?)label.Attribute("FontSize"));
-            Assert.Equal("Medium", (string?)label.Attribute("FontWeight"));
-        });
+            var completion = Assert.Single(view.Descendants(Presentation + "Grid").Where(element =>
+                (string?)element.Attribute(Xaml + "Name") == name));
+            Assert.Contains(completion.Descendants(Presentation + "ContentControl"), element =>
+                (string?)element.Attribute("ContentTemplate") == "{StaticResource FocusCompletionDetails}");
+            Assert.DoesNotContain(completion.Descendants(Presentation + "Button"), button =>
+                (string?)button.Attribute("Command") == "{Binding ToggleCompletedTasksCommand}");
+            Assert.DoesNotContain(completion.Descendants(Presentation + "ItemsControl"), items =>
+                (string?)items.Attribute("ItemsSource") == "{Binding SessionCompletedTasks}");
+        }
     }
 
-    private static void AssertSecondaryLabels(XDocument view, string textBinding, int expectedCount)
+    [Fact]
+    public void CompletionSvgResources_ContainRenderablePaths()
     {
-        var labels = view.Descendants(Presentation + "TextBlock").Where(text =>
-            (string?)text.Attribute("Text") == textBinding).ToArray();
-        Assert.Equal(expectedCount, labels.Length);
-        Assert.All(labels, label =>
+        var root = FindRepositoryRoot();
+        var project = XDocument.Load(Path.Combine(root, "src", "FocusApp.Desktop", "FocusApp.Desktop.csproj"));
+        var resources = project.Descendants("Resource")
+            .Select(element => (string?)element.Attribute("Include"))
+            .ToArray();
+
+        foreach (var name in new[] { "statistics", "time", "checkbox", "reset", "home" })
         {
-            Assert.Equal("12", (string?)label.Attribute("FontSize"));
-            Assert.Equal("Normal", (string?)label.Attribute("FontWeight"));
-            Assert.Equal("{DynamicResource TextSecondary}", (string?)label.Attribute("Foreground"));
-        });
+            var relativePath = $"Assets\\Icons\\Common\\{name}.svg";
+            Assert.Contains(relativePath, resources);
+            var svg = XDocument.Load(Path.Combine(root, "src", "FocusApp.Desktop", "Assets", "Icons", "Common", $"{name}.svg"));
+            foreach (var path in svg.Descendants().Where(element => element.Name.LocalName == "path"))
+            {
+                Assert.False(Geometry.Parse((string?)path.Attribute("d") ?? "").IsEmpty());
+            }
+        }
     }
 
-    private static void AssertPrimaryData(XContainer view, string textBinding, int expectedCount, string fontWeight)
+    [Fact]
+    public void CompletionSvgIcons_RenderFromBundledResources()
     {
-        var values = view.Descendants(Presentation + "TextBlock").Where(text =>
-            (string?)text.Attribute("Text") == textBinding).ToArray();
-        Assert.Equal(expectedCount, values.Length);
-        Assert.All(values, value =>
+        Exception? failure = null;
+        var thread = new Thread(() =>
         {
-            Assert.Equal("13", (string?)value.Attribute("FontSize"));
-            Assert.Equal(fontWeight, (string?)value.Attribute("FontWeight"));
-            Assert.Equal("{DynamicResource TextPrimary}", (string?)value.Attribute("Foreground"));
+            try
+            {
+                foreach (var name in new[] { "statistics", "time", "checkbox", "reset", "home" })
+                {
+                    var icon = new SvgIcon
+                    {
+                        Width = 24,
+                        Height = 24,
+                        Source = $"/FocusApp.Desktop;component/Assets/Icons/Common/{name}.svg"
+                    };
+                    icon.Measure(new Size(24, 24));
+                    icon.Arrange(new Rect(0, 0, 24, 24));
+                    var bitmap = new RenderTargetBitmap(24, 24, 96, 96, PixelFormats.Pbgra32);
+                    bitmap.Render(icon);
+                    var pixels = new byte[24 * 24 * 4];
+                    bitmap.CopyPixels(pixels, 24 * 4, 0);
+                    Assert.Contains(pixels.Where((_, index) => index % 4 == 3), alpha => alpha > 0);
+                }
+            }
+            catch (Exception exception)
+            {
+                failure = exception;
+            }
         });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join();
+        if (failure is not null)
+        {
+            throw failure;
+        }
     }
 
     private static string FindRepositoryRoot()

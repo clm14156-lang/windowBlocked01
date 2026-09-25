@@ -14,7 +14,7 @@ public sealed partial class AutomaticRuleModalViewModel : INotifyPropertyChanged
     private string _validationMessage = string.Empty;
     public AutomaticRuleModalViewModel(IEnumerable<WeekdayOptionViewModel> weekdays)
     {
-        Targets.Add(new(string.Empty, "-"));
+        Targets.Add(new(string.Empty, "- 未绑定"));
         Weekdays = new(weekdays.ToList());
         foreach (var day in Weekdays) day.PropertyChanged += (_, _) => OnPropertyChanged(nameof(SelectedDaysText));
         SelectDailyCommand = new RelayCommand<object>(_ => IsCustom = false);

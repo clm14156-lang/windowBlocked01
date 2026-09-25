@@ -14,6 +14,8 @@ public partial class AutomaticRuleEditorWindow : Window
         InitializeComponent();
         _model = model;
         DataContext = model;
+        Loaded += (_, _) => KeepWithinWorkArea();
+        SizeChanged += (_, _) => KeepWithinWorkArea();
         Deactivated += (_, _) => Cancel();
         Closed += (_, _) =>
         {
@@ -37,5 +39,18 @@ public partial class AutomaticRuleEditorWindow : Window
     private void Cancel()
     {
         if (_model.IsEditorOpen) _model.CancelEditor();
+    }
+
+    private void KeepWithinWorkArea()
+    {
+        if (!IsLoaded) return;
+
+        var workArea = SystemParameters.WorkArea;
+        if (Left < workArea.Left || Left >= workArea.Right ||
+            Top < workArea.Top || Top >= workArea.Bottom) return;
+
+        const double edgeMargin = 6;
+        if (Top + Height > workArea.Bottom - edgeMargin)
+            Top = Math.Max(workArea.Top + edgeMargin, workArea.Bottom - Height - edgeMargin);
     }
 }

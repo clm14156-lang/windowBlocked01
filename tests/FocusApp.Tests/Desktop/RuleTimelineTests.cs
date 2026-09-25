@@ -133,7 +133,7 @@ public class RuleTimelineTests
     }
 
     [Fact]
-    public void TargetOptionsUseDashAndExcludeArchivedTargets()
+    public void TargetOptionsUseUnboundPlaceholderAndExcludeArchivedTargets()
     {
         var now = DateTimeOffset.UtcNow;
         var modal = AutomaticRuleModalViewModel.CreateDefault();
@@ -143,7 +143,7 @@ public class RuleTimelineTests
             new LocalTargetDto("goal-b", "当前目标 B", false, 2, now, now)
         ]);
 
-        Assert.Equal(["-", "当前目标 A", "当前目标 B"], modal.Targets.Select(target => target.Name));
+        Assert.Equal(["- 未绑定", "当前目标 A", "当前目标 B"], modal.Targets.Select(target => target.Name));
         Assert.DoesNotContain(modal.Targets, target => target.Id == "goal-archived");
         Assert.False(modal.Targets[0].HasIcon);
         Assert.True(modal.Targets[1].HasIcon);
@@ -184,7 +184,7 @@ public class RuleTimelineTests
         modal.ApplyTargets([new LocalTargetDto("goal-a", "当前目标", true, 0, now, now)]);
 
         Assert.Null(modal.SelectedTargetId);
-        Assert.Equal(["-"], modal.Targets.Select(target => target.Name));
+        Assert.Equal(["- 未绑定"], modal.Targets.Select(target => target.Name));
     }
 
     [Fact]

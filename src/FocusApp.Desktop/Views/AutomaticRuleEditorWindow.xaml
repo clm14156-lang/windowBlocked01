@@ -1,123 +1,570 @@
 <Window x:Class="FocusApp.Desktop.Views.AutomaticRuleEditorWindow"
- xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
- xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
- Width="300" SizeToContent="Height" WindowStyle="None" ResizeMode="NoResize"
- AllowsTransparency="True" Background="Transparent" ShowInTaskbar="False"
- WindowStartupLocation="Manual" UseLayoutRounding="True" SnapsToDevicePixels="True"
- TextElement.FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI"
- TextElement.FontSize="13" TextElement.FontWeight="Normal"
- TextElement.Foreground="{DynamicResource TextPrimary}"
- PreviewKeyDown="OnKeyDown">
- <Window.Resources>
-  <ResourceDictionary>
-   <ResourceDictionary.MergedDictionaries>
-    <ResourceDictionary Source="/FocusApp.Desktop;component/Resources/Styles.xaml"/>
-   </ResourceDictionary.MergedDictionaries>
-  <BooleanToVisibilityConverter x:Key="BoolVisibility"/>
-  <Style x:Key="TimeField" TargetType="TextBox">
-   <Setter Property="Background" Value="White"/><Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
-   <Setter Property="FontSize" Value="13"/><Setter Property="FontWeight" Value="Normal"/>
-   <Setter Property="Padding" Value="9,3"/><Setter Property="BorderBrush" Value="#E7E7EC"/><Setter Property="BorderThickness" Value="1"/>
-   <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TextBox">
-    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="7">
-     <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"/>
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Width="330"
+        MinWidth="330"
+        MaxWidth="330"
+        SizeToContent="Manual"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ShowInTaskbar="False"
+        WindowStartupLocation="Manual"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextElement.FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI"
+        TextElement.FontSize="12"
+        TextElement.FontWeight="Normal"
+        TextElement.Foreground="#1D1D1F"
+        PreviewKeyDown="OnKeyDown">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/FocusApp.Desktop;component/Resources/Styles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <BooleanToVisibilityConverter x:Key="BoolVisibility" />
+
+            <Style x:Key="TimeField" TargetType="TextBox">
+                <Setter Property="Background" Value="White" />
+                <Setter Property="Foreground" Value="#1D1D1F" />
+                <Setter Property="FontSize" Value="14" />
+                <Setter Property="FontWeight" Value="Medium" />
+                <Setter Property="BorderBrush" Value="#D9DEE7" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="TextBox">
+                            <Border x:Name="FieldBorder"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="8">
+                                <Grid Margin="10,0,10,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="18" />
+                                        <ColumnDefinition Width="8" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="12" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock VerticalAlignment="Center"
+                                               FontFamily="Segoe MDL2 Assets"
+                                               FontSize="16"
+                                               Foreground="#6E6E73"
+                                               IsHitTestVisible="False"
+                                               Text="&#xE823;" />
+                                    <ScrollViewer x:Name="PART_ContentHost"
+                                                  Grid.Column="2"
+                                                  VerticalAlignment="Center" />
+                                    <Path Grid.Column="3"
+                                          Width="9"
+                                          Height="5"
+                                          HorizontalAlignment="Right"
+                                          VerticalAlignment="Center"
+                                          Data="M 0,0 L 4.5,4 L 9,0"
+                                          Stroke="#6E6E73"
+                                          StrokeThickness="1.5"
+                                          StrokeStartLineCap="Round"
+                                          StrokeEndLineCap="Round"
+                                          StrokeLineJoin="Round"
+                                          IsHitTestVisible="False" />
+                                </Grid>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="FieldBorder" Property="BorderBrush" Value="#C5CBD5" />
+                                </Trigger>
+                                <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                    <Setter TargetName="FieldBorder" Property="BorderBrush" Value="#FF8000" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style x:Key="TargetField" TargetType="ComboBox">
+                <Setter Property="Foreground" Value="#1D1D1F" />
+                <Setter Property="FontSize" Value="12" />
+                <Setter Property="FontWeight" Value="Normal" />
+                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ComboBox">
+                            <Grid>
+                                <ToggleButton x:Name="DropDownButton"
+                                              Focusable="False"
+                                              IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}">
+                                    <ToggleButton.Template>
+                                        <ControlTemplate TargetType="ToggleButton">
+                                            <Border x:Name="FieldBorder"
+                                                    Background="White"
+                                                    BorderBrush="#D9DEE7"
+                                                    BorderThickness="1"
+                                                    CornerRadius="8" />
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="FieldBorder" Property="BorderBrush" Value="#C5CBD5" />
+                                                </Trigger>
+                                                <Trigger Property="IsChecked" Value="True">
+                                                    <Setter TargetName="FieldBorder" Property="BorderBrush" Value="#FF8000" />
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </ToggleButton.Template>
+                                </ToggleButton>
+                                <TextBlock Margin="12,0,32,0"
+                                           VerticalAlignment="Center"
+                                           IsHitTestVisible="False"
+                                           Text="{Binding SelectedItem.Name, RelativeSource={RelativeSource TemplatedParent}}"
+                                           TextTrimming="CharacterEllipsis">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="#1D1D1F" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding SelectedValue, RelativeSource={RelativeSource TemplatedParent}}" Value="">
+                                                    <Setter Property="Foreground" Value="#A1A1A6" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <Path Width="10"
+                                      Height="6"
+                                      Margin="0,0,12,0"
+                                      HorizontalAlignment="Right"
+                                      VerticalAlignment="Center"
+                                      Data="M 0,0 L 5,5 L 10,0"
+                                      Stroke="#596170"
+                                      StrokeThickness="1.5"
+                                      StrokeStartLineCap="Round"
+                                      StrokeEndLineCap="Round"
+                                      StrokeLineJoin="Round"
+                                      IsHitTestVisible="False" />
+                                <Popup x:Name="PART_Popup"
+                                       IsOpen="{TemplateBinding IsDropDownOpen}"
+                                       Placement="Bottom"
+                                       PlacementTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}"
+                                       AllowsTransparency="True"
+                                       Focusable="False">
+                                    <Border Width="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
+                                            Padding="4"
+                                            Background="White"
+                                            BorderBrush="#D9DEE7"
+                                            BorderThickness="1"
+                                            CornerRadius="8">
+                                        <ScrollViewer MaxHeight="180"><ItemsPresenter /></ScrollViewer>
+                                    </Border>
+                                </Popup>
+                            </Grid>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style x:Key="TextButton" TargetType="Button">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="Foreground" Value="#6E6E73" />
+                <Setter Property="FontSize" Value="14" />
+                <Setter Property="FontWeight" Value="Medium" />
+                <Setter Property="Padding" Value="12,8" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="ButtonSurface"
+                                    Background="{TemplateBinding Background}"
+                                    CornerRadius="8"
+                                    Padding="{TemplateBinding Padding}">
+                                <TextBlock Text="{TemplateBinding Content}"
+                                           FontFamily="{TemplateBinding FontFamily}"
+                                           FontSize="{TemplateBinding FontSize}"
+                                           FontWeight="{TemplateBinding FontWeight}"
+                                           Foreground="{TemplateBinding Foreground}"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center" />
+                            </Border>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+            <Style x:Key="CloseButton" TargetType="Button" BasedOn="{StaticResource TextButton}">
+                <Setter Property="Width" Value="28" />
+                <Setter Property="Height" Value="28" />
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="Foreground" Value="#596170" />
+                <Setter Property="FontSize" Value="22" />
+                <Style.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#F4F5F7" /></Trigger>
+                    <Trigger Property="IsPressed" Value="True"><Setter Property="Background" Value="#EAEDF1" /></Trigger>
+                </Style.Triggers>
+            </Style>
+            <Style x:Key="DeleteButton" TargetType="Button" BasedOn="{StaticResource TextButton}">
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="Foreground" Value="#B94343" />
+                <Style.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#FFF3F2" /></Trigger>
+                    <Trigger Property="IsPressed" Value="True"><Setter Property="Background" Value="#FFE9E6" /></Trigger>
+                </Style.Triggers>
+            </Style>
+            <Style x:Key="CancelButton" TargetType="Button" BasedOn="{StaticResource TextButton}">
+                <Setter Property="Width" Value="64" />
+                <Setter Property="Background" Value="#F3F5F9" />
+                <Setter Property="Foreground" Value="#596170" />
+                <Style.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#EBEEF3" /></Trigger>
+                    <Trigger Property="IsPressed" Value="True"><Setter Property="Background" Value="#E1E5EC" /></Trigger>
+                </Style.Triggers>
+            </Style>
+            <Style x:Key="SaveButton" TargetType="Button" BasedOn="{StaticResource TextButton}">
+                <Setter Property="Width" Value="68" />
+                <Setter Property="Background" Value="#FF8000" />
+                <Setter Property="Foreground" Value="White" />
+                <Style.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#F27500" /></Trigger>
+                    <Trigger Property="IsPressed" Value="True"><Setter Property="Background" Value="#E86A00" /></Trigger>
+                </Style.Triggers>
+            </Style>
+
+            <Style x:Key="RepeatButton" TargetType="ToggleButton">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="Foreground" Value="#6E6E73" />
+                <Setter Property="BorderBrush" Value="Transparent" />
+                <Setter Property="FontSize" Value="14" />
+                <Setter Property="FontWeight" Value="Medium" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ToggleButton">
+                            <Border x:Name="SegmentSurface"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="8">
+                                <ContentPresenter HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"
+                                                  TextElement.FontSize="{TemplateBinding FontSize}"
+                                                  TextElement.FontWeight="{TemplateBinding FontWeight}"
+                                                  TextElement.Foreground="{TemplateBinding Foreground}" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="SegmentSurface" Property="Background" Value="#F1F3F7" />
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="SegmentSurface" Property="Background" Value="#EAEFF4" />
+                                </Trigger>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter Property="Foreground" Value="#EB6D00" />
+                                    <Setter TargetName="SegmentSurface" Property="Background" Value="#FFF7F0" />
+                                    <Setter TargetName="SegmentSurface" Property="BorderBrush" Value="#FF8000" />
+                                </Trigger>
+                                <MultiTrigger>
+                                    <MultiTrigger.Conditions>
+                                        <Condition Property="IsChecked" Value="True" />
+                                        <Condition Property="IsMouseOver" Value="True" />
+                                    </MultiTrigger.Conditions>
+                                    <Setter TargetName="SegmentSurface" Property="Background" Value="#FFF1E6" />
+                                </MultiTrigger>
+                                <MultiTrigger>
+                                    <MultiTrigger.Conditions>
+                                        <Condition Property="IsChecked" Value="True" />
+                                        <Condition Property="IsPressed" Value="True" />
+                                    </MultiTrigger.Conditions>
+                                    <Setter TargetName="SegmentSurface" Property="Background" Value="#FFE7D6" />
+                                </MultiTrigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style x:Key="WeekdayButton" TargetType="ToggleButton">
+                <Setter Property="Width" Value="30" />
+                <Setter Property="Height" Value="30" />
+                <Setter Property="Background" Value="#F5F6F9" />
+                <Setter Property="Foreground" Value="#1D1D1F" />
+                <Setter Property="BorderBrush" Value="Transparent" />
+                <Setter Property="FontSize" Value="12" />
+                <Setter Property="FontWeight" Value="Medium" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ToggleButton">
+                            <Border x:Name="DaySurface"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="15">
+                                <ContentPresenter HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"
+                                                  TextElement.FontSize="{TemplateBinding FontSize}"
+                                                  TextElement.FontWeight="{TemplateBinding FontWeight}"
+                                                  TextElement.Foreground="{TemplateBinding Foreground}" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="DaySurface" Property="Background" Value="#EBEDF2" />
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="DaySurface" Property="Background" Value="#E1E5EB" />
+                                </Trigger>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter Property="Foreground" Value="#EA6A00" />
+                                    <Setter TargetName="DaySurface" Property="Background" Value="#FFF1E6" />
+                                    <Setter TargetName="DaySurface" Property="BorderBrush" Value="#FFE0CA" />
+                                </Trigger>
+                                <MultiTrigger>
+                                    <MultiTrigger.Conditions>
+                                        <Condition Property="IsChecked" Value="True" />
+                                        <Condition Property="IsMouseOver" Value="True" />
+                                    </MultiTrigger.Conditions>
+                                    <Setter TargetName="DaySurface" Property="Background" Value="#FFE8D8" />
+                                </MultiTrigger>
+                                <MultiTrigger>
+                                    <MultiTrigger.Conditions>
+                                        <Condition Property="IsChecked" Value="True" />
+                                        <Condition Property="IsPressed" Value="True" />
+                                    </MultiTrigger.Conditions>
+                                    <Setter TargetName="DaySurface" Property="Background" Value="#FFDDC7" />
+                                </MultiTrigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Window.Style>
+        <Style TargetType="Window">
+            <Setter Property="Height" Value="340" />
+            <Setter Property="MinHeight" Value="340" />
+            <Setter Property="MaxHeight" Value="340" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsCustom}" Value="True">
+                    <Setter Property="Height" Value="400" />
+                    <Setter Property="MinHeight" Value="400" />
+                    <Setter Property="MaxHeight" Value="400" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Style>
+
+    <Border x:Name="EditorSurface"
+            Margin="2"
+            Padding="24,16,24,12"
+            Background="White"
+            BorderBrush="#E6E9EF"
+            BorderThickness="1"
+            CornerRadius="14">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="16" ShadowDepth="2" Opacity="0.12" />
+        </Border.Effect>
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="28" />
+                <RowDefinition Height="8" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="8" />
+                <RowDefinition Height="20" />
+                <RowDefinition Height="30" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="8" />
+                <RowDefinition Height="20" />
+                <RowDefinition Height="4" />
+                <RowDefinition Height="32" />
+                <RowDefinition Height="12" />
+                <RowDefinition Height="20" />
+                <RowDefinition Height="4" />
+                <RowDefinition Height="32" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="1" />
+                <RowDefinition Height="4" />
+                <RowDefinition Height="32" />
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0">
+                <TextBlock VerticalAlignment="Center"
+                           Text="编辑规则"
+                           FontSize="18"
+                           FontWeight="SemiBold"
+                           Foreground="#1D1D1F" />
+                <Button Content="×"
+                        Width="28"
+                        Height="28"
+                        HorizontalAlignment="Right"
+                        Style="{StaticResource CloseButton}"
+                        Click="Close_Click"
+                        AutomationProperties.Name="取消编辑" />
+            </Grid>
+
+            <Grid x:Name="RuleStatusRow"
+                  Grid.Row="2"
+                  Height="29"
+                  Visibility="{Binding IsEditing, Converter={StaticResource BoolVisibility}}">
+                <TextBlock Text="启用规则"
+                           FontSize="14"
+                           FontWeight="Medium"
+                           VerticalAlignment="Top"
+                           Foreground="#1D1D1F" />
+                <ToggleButton x:Name="RuleStatusSwitch"
+                              HorizontalAlignment="Right"
+                              VerticalAlignment="Top"
+                              AutomationProperties.Name="规则状态"
+                              AutomationProperties.HelpText="{Binding EditorStatusDisplay}"
+                              IsChecked="{Binding EditorIsEnabled, Mode=TwoWay}"
+                              Style="{StaticResource AutomaticRuleSwitchStyle}" />
+                <Border Height="1"
+                        VerticalAlignment="Bottom"
+                        Background="#DDE1E8" />
+            </Grid>
+
+            <TextBlock Grid.Row="4"
+                       Text="重复"
+                       FontSize="16"
+                       FontWeight="SemiBold"
+                       Foreground="#1D1D1F" />
+            <Border Grid.Row="5"
+                    Background="#F7F8FA"
+                    BorderBrush="#D9DEE7"
+                    BorderThickness="1"
+                    CornerRadius="8">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <ToggleButton Grid.Column="0"
+                                  Content="每天"
+                                  Style="{StaticResource RepeatButton}"
+                                  IsChecked="{Binding IsDaily, Mode=OneWay}"
+                                  Command="{Binding SelectDailyCommand}" />
+                    <ToggleButton Grid.Column="1"
+                                  Content="自定义"
+                                  Style="{StaticResource RepeatButton}"
+                                  IsChecked="{Binding IsCustom, Mode=OneWay}"
+                                  Command="{Binding SelectCustomCommand}" />
+                </Grid>
+            </Border>
+
+            <ItemsControl x:Name="WeekdaySelector"
+                          Grid.Row="6"
+                          Margin="0,12,0,16"
+                          ItemsSource="{Binding Weekdays}"
+                          Visibility="{Binding IsCustom, Converter={StaticResource BoolVisibility}}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate><UniformGrid Columns="7" /></ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <ToggleButton Content="{Binding ChineseName}"
+                                      IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                      Style="{StaticResource WeekdayButton}"
+                                      HorizontalAlignment="Center" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <TextBlock Grid.Row="8"
+                       Text="时间"
+                       FontSize="16"
+                       FontWeight="SemiBold"
+                       Foreground="#1D1D1F" />
+            <Grid Grid.Row="10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="28" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBox Grid.Column="0"
+                         Height="32"
+                         Style="{StaticResource TimeField}"
+                         Text="{Binding EditorStartText, UpdateSourceTrigger=PropertyChanged}"
+                         VerticalContentAlignment="Center"
+                         AutomationProperties.Name="开始时间" />
+                <TextBlock Grid.Column="1"
+                           Text="—"
+                           FontSize="14"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           Foreground="#86868B" />
+                <TextBox Grid.Column="2"
+                         Height="32"
+                         Style="{StaticResource TimeField}"
+                         Text="{Binding EditorEndText, UpdateSourceTrigger=PropertyChanged}"
+                         VerticalContentAlignment="Center"
+                         AutomationProperties.Name="结束时间" />
+            </Grid>
+
+            <TextBlock Grid.Row="12" FontSize="16" FontWeight="SemiBold" Foreground="#1D1D1F">
+                <Run Text="绑定目标" /><Run Text="（可选）" FontSize="12" FontWeight="Normal" Foreground="#86868B" />
+            </TextBlock>
+            <ComboBox Grid.Row="14"
+                      Height="32"
+                      Style="{StaticResource TargetField}"
+                      ItemsSource="{Binding Targets}"
+                      SelectedValuePath="Id"
+                      SelectedValue="{Binding TargetChoice}">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Margin="6,3" VerticalAlignment="Center" Orientation="Horizontal">
+                            <Image Width="16"
+                                   Height="16"
+                                   Margin="0,0,8,0"
+                                   VerticalAlignment="Center"
+                                   RenderOptions.BitmapScalingMode="HighQuality"
+                                   SnapsToDevicePixels="True"
+                                   Source="{Binding IconSource}"
+                                   Stretch="Uniform"
+                                   Visibility="{Binding HasIcon, Converter={StaticResource BoolVisibility}}" />
+                            <TextBlock VerticalAlignment="Center"
+                                       FontSize="12"
+                                       FontWeight="Normal"
+                                       Foreground="#1D1D1F"
+                                       Text="{Binding Name}"
+                                       TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+
+            <TextBlock Grid.Row="15"
+                       Text="{Binding ValidationMessage}"
+                       FontSize="11"
+                       Foreground="{DynamicResource AutomaticRuleValidationText}"
+                       TextTrimming="CharacterEllipsis"
+                       TextWrapping="NoWrap"
+                       ToolTip="{Binding ValidationMessage}"
+                       VerticalAlignment="Center" />
+
+            <Border Grid.Row="16" Background="#DDE1E8" />
+            <Grid Grid.Row="18">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Button Grid.Column="0"
+                        Content="删除"
+                        Style="{StaticResource DeleteButton}"
+                        Click="Delete_Click" />
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <Button Content="取消"
+                            Style="{StaticResource CancelButton}"
+                            Click="Close_Click" />
+                    <Button x:Name="SaveRuleButton"
+                            Content="保存"
+                            Margin="8,0,0,0"
+                            Style="{StaticResource SaveButton}"
+                            Click="Save_Click" />
+                </StackPanel>
+            </Grid>
+        </Grid>
     </Border>
-   </ControlTemplate></Setter.Value></Setter>
-   <Style.Triggers><Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}"/></Trigger></Style.Triggers>
-  </Style>
-  <Style x:Key="TargetField" TargetType="ComboBox">
-   <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/><Setter Property="FontSize" Value="13"/><Setter Property="FontWeight" Value="Normal"/>
-   <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-   <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ComboBox">
-    <Grid>
-     <ToggleButton Focusable="False" IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}">
-      <ToggleButton.Template><ControlTemplate TargetType="ToggleButton"><Border Background="White" BorderBrush="#E7E7EC" BorderThickness="1" CornerRadius="7"/></ControlTemplate></ToggleButton.Template>
-     </ToggleButton>
-     <TextBlock Text="{Binding SelectedItem.Name, RelativeSource={RelativeSource TemplatedParent}}" Margin="10,0,28,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" IsHitTestVisible="False"/>
-     <TextBlock Text="⌄" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0" IsHitTestVisible="False"/>
-     <Popup x:Name="PART_Popup" IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom" PlacementTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}" AllowsTransparency="True" Focusable="False">
-      <Border Width="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}" Background="White" BorderBrush="#E7E7EC" BorderThickness="1" CornerRadius="7" Padding="4">
-       <ScrollViewer MaxHeight="180"><ItemsPresenter/></ScrollViewer>
-      </Border>
-     </Popup>
-    </Grid>
-   </ControlTemplate></Setter.Value></Setter>
-  </Style>
-  <Style x:Key="TextButton" TargetType="Button">
-   <Setter Property="Background" Value="Transparent"/><Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
-   <Setter Property="FontSize" Value="13"/><Setter Property="FontWeight" Value="Medium"/><Setter Property="Padding" Value="14,7"/><Setter Property="Cursor" Value="Hand"/>
-   <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
-    <Border x:Name="Surface" Background="{TemplateBinding Background}" CornerRadius="10" Padding="{TemplateBinding Padding}">
-     <TextBlock Text="{TemplateBinding Content}" FontFamily="{TemplateBinding FontFamily}" FontSize="{TemplateBinding FontSize}" FontWeight="{TemplateBinding FontWeight}" Foreground="{TemplateBinding Foreground}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-    </Border>
-    <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Surface" Property="Opacity" Value="0.75"/></Trigger></ControlTemplate.Triggers>
-   </ControlTemplate></Setter.Value></Setter>
-  </Style>
-  <Style x:Key="CloseButton" TargetType="Button" BasedOn="{StaticResource TextButton}">
-   <Setter Property="Width" Value="26"/><Setter Property="Height" Value="26"/><Setter Property="Padding" Value="0"/>
-   <Style.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#F1F1F3"/></Trigger></Style.Triggers>
-  </Style>
-  <Style x:Key="RepeatButton" TargetType="ToggleButton">
-   <Setter Property="Background" Value="#F3F3F5"/><Setter Property="Foreground" Value="#6E6E73"/><Setter Property="BorderBrush" Value="Transparent"/>
-   <Setter Property="FontSize" Value="13"/><Setter Property="FontWeight" Value="Medium"/><Setter Property="Padding" Value="12,6"/><Setter Property="Margin" Value="0,0,6,0"/>
-   <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ToggleButton">
-    <Grid>
-     <Border Background="{TemplateBinding Background}" CornerRadius="10" Padding="{TemplateBinding Padding}">
-      <TextBlock Text="{TemplateBinding Content}" FontFamily="{TemplateBinding FontFamily}" FontSize="{TemplateBinding FontSize}" FontWeight="{TemplateBinding FontWeight}" Foreground="{TemplateBinding Foreground}" HorizontalAlignment="Center"/>
-     </Border>
-     <Border BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="10" IsHitTestVisible="False"/>
-    </Grid>
-   </ControlTemplate></Setter.Value></Setter>
-   <Style.Triggers><Trigger Property="IsChecked" Value="True"><Setter Property="Background" Value="#FF8000"/><Setter Property="Foreground" Value="#FFFFFF"/><Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}"/></Trigger></Style.Triggers>
-  </Style>
-  </ResourceDictionary>
- </Window.Resources>
- <Border Margin="10" Padding="14,10" Background="White" BorderBrush="#E4E4E9" BorderThickness="1" CornerRadius="14">
-  <Border.Effect><DropShadowEffect BlurRadius="18" ShadowDepth="3" Opacity="0.16"/></Border.Effect>
-  <Grid>
-   <Grid.RowDefinitions><RowDefinition Height="22"/><RowDefinition Height="Auto"/><RowDefinition Height="38"/><RowDefinition Height="34"/><RowDefinition Height="Auto"/><RowDefinition Height="38"/><RowDefinition Height="Auto"/><RowDefinition Height="40"/></Grid.RowDefinitions>
-   <Button Content="×" Style="{StaticResource CloseButton}" Margin="0,-5,-5,0" HorizontalAlignment="Right" Click="Close_Click" AutomationProperties.Name="取消编辑"/>
-   <Grid x:Name="RuleStatusRow" Grid.Row="1" Height="38" Visibility="{Binding IsEditing, Converter={StaticResource BoolVisibility}}">
-    <Grid.ColumnDefinitions><ColumnDefinition Width="72"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-    <TextBlock Text="规则状态" FontSize="12" FontWeight="Medium" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}"/>
-    <StackPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
-     <ToggleButton x:Name="RuleStatusSwitch" AutomationProperties.Name="规则状态" IsChecked="{Binding EditorIsEnabled, Mode=TwoWay}" Style="{StaticResource AutomaticRuleSwitchStyle}"/>
-     <TextBlock Margin="8,0,0,0" MinWidth="26" VerticalAlignment="Center" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource TextSecondary}" Text="{Binding EditorStatusDisplay}"/>
-    </StackPanel>
-    <Border Grid.ColumnSpan="2" Height="1" VerticalAlignment="Bottom" Background="#EEEEF2"/>
-   </Grid>
-   <Grid Grid.Row="2"><Grid.ColumnDefinitions><ColumnDefinition Width="72"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-    <TextBlock Text="绑定目标" FontSize="12" FontWeight="Medium" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}"/>
-    <ComboBox Grid.Column="1" Style="{StaticResource TargetField}" ItemsSource="{Binding Targets}" SelectedValuePath="Id" SelectedValue="{Binding TargetChoice}" VerticalAlignment="Center" MinHeight="30">
-     <ComboBox.ItemTemplate><DataTemplate><StackPanel Margin="6,3" VerticalAlignment="Center" Orientation="Horizontal">
-      <Image Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality" SnapsToDevicePixels="True" Source="{Binding IconSource}" Stretch="Uniform" Visibility="{Binding HasIcon, Converter={StaticResource BoolVisibility}}"/>
-      <TextBlock VerticalAlignment="Center" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}" Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
-     </StackPanel></DataTemplate></ComboBox.ItemTemplate>
-    </ComboBox>
-   </Grid>
-   <Grid Grid.Row="3"><TextBlock Text="重复" FontSize="12" FontWeight="Medium" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}"/>
-    <StackPanel Orientation="Horizontal" Margin="72,1,0,1">
-     <ToggleButton Content="每天" Style="{StaticResource RepeatButton}" IsChecked="{Binding IsDaily, Mode=OneWay}" Command="{Binding SelectDailyCommand}"/>
-     <ToggleButton Content="自定义" Style="{StaticResource RepeatButton}" IsChecked="{Binding IsCustom, Mode=OneWay}" Command="{Binding SelectCustomCommand}"/>
-    </StackPanel>
-   </Grid>
-   <ItemsControl Grid.Row="4" Margin="0,3,0,5" ItemsSource="{Binding Weekdays}" Visibility="{Binding IsCustom, Converter={StaticResource BoolVisibility}}">
-    <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="7"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-    <ItemsControl.ItemTemplate><DataTemplate><ToggleButton Style="{StaticResource RepeatButton}" Content="{Binding ChineseName}" IsChecked="{Binding IsSelected}" Padding="0,6" Width="30" Margin="0" HorizontalAlignment="Center"/></DataTemplate></ItemsControl.ItemTemplate>
-   </ItemsControl>
-   <Grid Grid.Row="5"><Grid.ColumnDefinitions><ColumnDefinition Width="72"/><ColumnDefinition Width="*"/><ColumnDefinition Width="20"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-    <TextBlock Text="开始 / 结束" FontSize="12" FontWeight="Medium" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}"/>
-    <TextBox Grid.Column="1" Style="{StaticResource TimeField}" Text="{Binding EditorStartText, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" Height="32" VerticalContentAlignment="Center" AutomationProperties.Name="开始时间"/>
-    <TextBlock Grid.Column="2" Text="–" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource TextWeak}"/>
-    <TextBox Grid.Column="3" Style="{StaticResource TimeField}" Text="{Binding EditorEndText, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" Height="32" VerticalContentAlignment="Center" AutomationProperties.Name="结束时间"/>
-   </Grid>
-   <TextBlock Grid.Row="6" Text="{Binding ValidationMessage}" Foreground="{DynamicResource AutomaticRuleValidationText}" TextWrapping="Wrap" FontSize="12" LineHeight="18" Margin="0,3"/>
-   <Border Grid.Row="7" BorderBrush="#EEEEF2" BorderThickness="0,1,0,0" Padding="0,6,0,0">
-    <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
-     <Button Content="删除" Style="{StaticResource TextButton}" Margin="0,0,10,0" Click="Delete_Click"/>
-     <Button Content="保存" Style="{StaticResource TextButton}" Background="#FF8000" Foreground="White" Width="80" Click="Save_Click"/>
-    </StackPanel>
-   </Border>
-  </Grid>
- </Border>
 </Window>

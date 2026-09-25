@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Data;
@@ -339,7 +340,7 @@ public class RuleTimelineLayoutTests
                 var statusSwitch = Assert.IsType<ToggleButton>(editor.FindName("RuleStatusSwitch"));
                 Assert.Equal(Visibility.Visible, statusRow.Visibility);
                 Assert.False(statusSwitch.IsChecked);
-                Assert.Contains(Descendants(statusRow).OfType<TextBlock>(), text => text.Text == "关闭");
+                Assert.Equal("关闭", AutomationProperties.GetHelpText(statusSwitch));
 
                 var target = Assert.Single(Descendants(content).OfType<ComboBox>());
                 var repeatButtons = Descendants(content).OfType<ToggleButton>()

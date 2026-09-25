@@ -56,7 +56,7 @@ public sealed partial class AutomaticRuleModalViewModel
     {
         var selected = SelectedTargetId;
         Targets.Clear();
-        Targets.Add(new(string.Empty, "-"));
+        Targets.Add(new(string.Empty, "- 未绑定"));
         foreach (var target in targets.Where(target => !target.IsArchived))
             Targets.Add(new(
                 target.TargetId,

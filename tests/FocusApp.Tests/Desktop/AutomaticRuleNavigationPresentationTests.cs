@@ -9,20 +9,25 @@ public sealed class AutomaticRuleNavigationPresentationTests
     private static readonly XNamespace Xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
 
     [Fact]
-    public void Home_DoesNotKeepTheAutomaticRuleHoverPopup()
+    public void Home_ShowsAutomaticRuleDetailsOnHelpHover()
     {
         var root = FindRepositoryRoot();
         var home = XDocument.Load(Path.Combine(root, "src", "FocusApp.Desktop", "Views", "HomePage.xaml"));
 
-        Assert.Empty(home.Descendants(Presentation + "Popup"));
-        Assert.DoesNotContain(home.Descendants(), element =>
-            ((string?)element.Attribute("MouseEnter"))?.Contains("AutomaticBlocking", StringComparison.Ordinal) == true ||
-            ((string?)element.Attribute("MouseLeave"))?.Contains("AutomaticBlocking", StringComparison.Ordinal) == true);
+        var popup = Assert.Single(home.Descendants(Presentation + "Popup").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "NextAutomaticBlockingPopup"));
+        Assert.Equal("Right", (string?)popup.Attribute("Placement"));
+        Assert.Equal("{Binding ElementName=NextAutomaticBlockingHelpButton}",
+            (string?)popup.Attribute("PlacementTarget"));
+        Assert.Contains(popup.Descendants(Presentation + "Border"), border =>
+            (string?)border.Attribute("Width") == "260" && (string?)border.Attribute("Height") == "190");
+        Assert.Contains(popup.Descendants(Presentation + "Button"), button =>
+            (string?)button.Attribute("Command") == "{Binding ManageNextAutomaticRuleCommand}");
 
         var codeBehind = File.ReadAllText(Path.Combine(
             root, "src", "FocusApp.Desktop", "Views", "HomePage.xaml.cs"));
-        Assert.DoesNotContain("AutomaticBlockingPopup", codeBehind, StringComparison.Ordinal);
-        Assert.DoesNotContain("DispatcherTimer", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("NextAutomaticBlockingPopup.IsOpen = true", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("NextAutomaticBlockingPopup.IsOpen = false", codeBehind, StringComparison.Ordinal);
     }
 
     [Fact]

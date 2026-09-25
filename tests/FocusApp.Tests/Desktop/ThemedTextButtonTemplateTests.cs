@@ -36,7 +36,11 @@ public sealed class ThemedTextButtonTemplateTests
         Assert.Single(modal.Descendants(Presentation + "Canvas"));
         Assert.DoesNotContain(modal.Descendants(), element => element.Name.LocalName == "TimeRangeSlider");
         var save = Assert.Single(editor.Descendants(Presentation + "Button").Where(e => (string?)e.Attribute("Content") == "保存"));
-        Assert.Equal("White", (string?)save.Attribute("Foreground"));
+        Assert.Equal("{StaticResource SaveButton}", (string?)save.Attribute("Style"));
+        var saveStyle = FindKeyedElement(editor, "Style", "SaveButton");
+        Assert.Contains(saveStyle.Elements(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("Property") == "Foreground" &&
+            (string?)setter.Attribute("Value") == "White");
         var template = FindKeyedElement(editor, "Style", "TextButton");
         Assert.Contains(template.Descendants(Presentation + "TextBlock"), text => (string?)text.Attribute("Foreground") == "{TemplateBinding Foreground}");
     }

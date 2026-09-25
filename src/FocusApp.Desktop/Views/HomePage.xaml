@@ -107,13 +107,9 @@
                             </TransformGroup>
                         </TextBlock.RenderTransform>
                     </TextBlock>
-                    <StackPanel x:Name="NextAutomaticBlockingInlineStatus"
-                                Margin="0,7,0,0"
-                                HorizontalAlignment="Center"
-                                IsHitTestVisible="False"
-                                Orientation="Horizontal">
-                        <StackPanel.Style>
-                            <Style TargetType="{x:Type StackPanel}">
+                    <Border Height="20" Margin="0,7,0,0">
+                        <Border.Style>
+                            <Style TargetType="{x:Type Border}">
                                 <Setter Property="Visibility" Value="Collapsed" />
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding HasNextAutomaticRule}" Value="True">
@@ -121,24 +117,8 @@
                                     </DataTrigger>
                                 </Style.Triggers>
                             </Style>
-                        </StackPanel.Style>
-                        <Image Width="15"
-                               Height="15"
-                               VerticalAlignment="Center"
-                               RenderOptions.BitmapScalingMode="HighQuality"
-                               Source="/FocusApp.Desktop;component/Assets/Themes/Solid/Orange/shizhong_white.png"
-                               Stretch="Uniform" />
-                        <TextBlock Margin="5,0,0,0"
-                                   VerticalAlignment="Center"
-                                   FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI"
-                                   FontSize="13"
-                                   FontWeight="Normal"
-                                   Foreground="{DynamicResource WhiteText}">
-                            <Run Text="{Binding NextAutomaticStartDisplay, Mode=OneWay}" />
-                            <Run Text=" " />
-                            <Run Text="{DynamicResource HomeAutomaticBlockingLabel}" />
-                        </TextBlock>
-                    </StackPanel>
+                        </Border.Style>
+                    </Border>
                 </StackPanel>
             </Button>
 
@@ -195,6 +175,143 @@
                     </StackPanel>
                 </Button>
             </Grid>
+
+            <StackPanel x:Name="NextAutomaticBlockingInlineStatus"
+                        Margin="0,166,0,0"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Top"
+                        Orientation="Horizontal"
+                        Panel.ZIndex="3">
+                <StackPanel.Style>
+                    <Style TargetType="{x:Type StackPanel}">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding HasNextAutomaticRule}" Value="True" />
+                                    <Condition Binding="{Binding FocusSession.IsPreparing}" Value="False" />
+                                </MultiDataTrigger.Conditions>
+                                <Setter Property="Visibility" Value="Visible" />
+                            </MultiDataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </StackPanel.Style>
+                <TextBlock VerticalAlignment="Center"
+                           IsHitTestVisible="False"
+                           FontSize="14"
+                           FontWeight="Normal"
+                           Foreground="{DynamicResource WhiteText}">
+                    <Run Text="{Binding NextAutomaticStartDisplay, Mode=OneWay}" />
+                    <Run Text=" " />
+                    <Run Text="{DynamicResource HomeAutomaticBlockingStartLabel}" />
+                </TextBlock>
+                <Button x:Name="NextAutomaticBlockingHelpButton"
+                        Width="20"
+                        Height="20"
+                        Margin="8,0,0,0"
+                        Padding="0"
+                        BorderThickness="0"
+                        Cursor="Hand"
+                        AutomationProperties.Name="自动屏蔽规则详情"
+                        MouseEnter="NextAutomaticBlockingHelp_MouseEnter"
+                        MouseLeave="NextAutomaticBlockingHelp_MouseLeave">
+                    <Button.Template>
+                        <ControlTemplate TargetType="{x:Type Button}">
+                            <Grid Background="Transparent">
+                                <Ellipse Width="18" Height="18" Stroke="White" StrokeThickness="1.3" />
+                                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           Margin="0,-1,0,0" FontSize="12" FontWeight="SemiBold"
+                                           Foreground="White" Text="?" />
+                            </Grid>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+            </StackPanel>
+
+            <Popup x:Name="NextAutomaticBlockingPopup"
+                   AllowsTransparency="True"
+                   HorizontalOffset="0"
+                   VerticalOffset="-154"
+                   Placement="Right"
+                   PlacementTarget="{Binding ElementName=NextAutomaticBlockingHelpButton}"
+                   PopupAnimation="Fade"
+                   StaysOpen="True"
+                   MouseEnter="NextAutomaticBlockingPopup_MouseEnter"
+                   MouseLeave="NextAutomaticBlockingPopup_MouseLeave">
+                <Grid Width="272" Height="190">
+                    <Border Width="260" Height="190" Margin="12,0,0,0"
+                            HorizontalAlignment="Left" Background="White"
+                            BorderBrush="#E1E4E9" BorderThickness="1" CornerRadius="10">
+                        <Border.Effect>
+                            <DropShadowEffect BlurRadius="12" ShadowDepth="2" Opacity="0.12" Color="#545B68" />
+                        </Border.Effect>
+                        <Grid Margin="16,12,16,8">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="30" />
+                                <RowDefinition Height="1" />
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="1" />
+                                <RowDefinition Height="36" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0" VerticalAlignment="Top"
+                                       FontSize="14" FontWeight="SemiBold" Foreground="#1D1D1F"
+                                       Text="{DynamicResource HomeAutomaticRulePoptipTitle}" />
+                            <Border Grid.Row="1" Background="#E8E9ED" />
+                            <StackPanel Grid.Row="2" Margin="0,12,0,0">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" FontSize="14" FontWeight="SemiBold"
+                                               Foreground="#1D1D1F" Text="{Binding NextAutomaticTimeRangeDisplay}" />
+                                    <TextBlock Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center"
+                                               FontSize="12" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource AccentPrimary}"
+                                               Text="{Binding NextAutomaticCountdownDisplay}" />
+                                </Grid>
+                                <TextBlock Margin="0,8,0,0" FontSize="11" Foreground="#86868B"
+                                           Text="{Binding NextAutomaticWeekdaysDisplay}" TextWrapping="Wrap">
+                                    <TextBlock.Style>
+                                        <Style TargetType="{x:Type TextBlock}">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding NextAutomaticHasCustomDays}" Value="True">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <TextBlock Margin="0,8,0,0" FontSize="11" Foreground="#86868B"
+                                           Text="{Binding NextAutomaticBlockedContentDisplay}" />
+                            </StackPanel>
+                            <Border Grid.Row="3" Background="#E8E9ED" />
+                            <Button Grid.Row="4" Padding="0" HorizontalContentAlignment="Stretch"
+                                    Background="Transparent" BorderThickness="0" Cursor="Hand"
+                                    Command="{Binding ManageNextAutomaticRuleCommand}">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="{x:Type Button}">
+                                        <Grid Background="Transparent">
+                                            <TextBlock VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource AccentPrimary}"
+                                                       Text="{DynamicResource HomeManageAutomaticRule}" />
+                                            <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                       FontFamily="Segoe MDL2 Assets" FontSize="11"
+                                                       Foreground="#86868B" Text="&#xE76C;" />
+                                        </Grid>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+                        </Grid>
+                    </Border>
+                    <Canvas Width="12" Height="18" HorizontalAlignment="Left" VerticalAlignment="Bottom"
+                            Margin="0,0,0,20" Panel.ZIndex="1">
+                        <Path Data="M 12,0 L 0,9 L 12,18 Z" Fill="White"
+                              Stroke="#E1E4E9" StrokeThickness="1" />
+                    </Canvas>
+                </Grid>
+            </Popup>
         </Grid>
 
         <Button Padding="12,0"

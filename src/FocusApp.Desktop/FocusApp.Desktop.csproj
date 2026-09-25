@@ -32,6 +32,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Resource Include="Assets\Icons\Common\statistics.svg" />
+    <Resource Include="Assets\Icons\Common\time.svg" />
+    <Resource Include="Assets\Icons\Common\checkbox.svg" />
+    <Resource Include="Assets\Icons\Common\reset.svg" />
+    <Resource Include="Assets\Icons\Common\home.svg" />
     <Resource Include="Assets\Icons\Common\Home_Shield.png" />
     <Resource Include="Assets\Icons\Common\Log_Out.png" />
     <Resource Include="Assets\Icons\Common\Menber_skin.png" />

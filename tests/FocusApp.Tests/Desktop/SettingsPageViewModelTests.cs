@@ -438,6 +438,30 @@ public sealed class SettingsPageViewModelTests
     }
 
     [Fact]
+    public void HomeRulePoptip_UsesSelectedRuleScheduleAndCurrentBlockedContent()
+    {
+        var home = new HomePageViewModel([new HomeDurationOptionViewModel("25 分钟", "", true, 25)]);
+        var now = new DateTime(2026, 8, 17, 18, 33, 0);
+        var custom = new AutomaticRuleItemViewModel(Guid.NewGuid(), "周一 / 周三 / 周五", "19:00–21:00",
+            ["Monday", "Wednesday", "Friday"], 1140, 1260, isCustom: true);
+        home.UpdateAutomaticRules([custom], now);
+        home.UpdateBlockingContent(
+            [new BlockingWebsiteItemViewModel(Guid.NewGuid(), "示例", "example.com", true)], []);
+
+        Assert.Equal("19:00–21:00", home.NextAutomaticTimeRangeDisplay);
+        Assert.Equal("27分钟后", home.NextAutomaticCountdownDisplay);
+        Assert.True(home.NextAutomaticHasCustomDays);
+        Assert.Equal("周一 · 周三 · 周五", home.NextAutomaticWeekdaysDisplay);
+        Assert.Equal("将屏蔽 1 个网站和应用", home.NextAutomaticBlockedContentDisplay);
+
+        var daily = new AutomaticRuleItemViewModel(Guid.NewGuid(), "每天", "19:00–21:00",
+            ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"], 1140, 1260);
+        home.UpdateAutomaticRules([daily], now);
+        Assert.False(home.NextAutomaticHasCustomDays);
+        Assert.Empty(home.NextAutomaticWeekdaysDisplay);
+    }
+
+    [Fact]
     public void HomeRulePreview_HidesWhenGlobalAutomaticBlockingIsDisabled()
     {
         var home = new HomePageViewModel([new HomeDurationOptionViewModel("25 分钟", "", true, 25)]);
