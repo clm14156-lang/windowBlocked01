@@ -23,6 +23,7 @@ internal static class LocalDataContractMapper
         {
             ArchivedAtUtc = source.ArchivedAtUtc,
             IconFileName = source.IconFileName,
+            IconColorHex = source.IconColorHex,
             Remark = source.Remark,
             TargetDurationMinutes = source.TargetDurationMinutes
         };
@@ -122,6 +123,7 @@ internal static class LocalDataContractMapper
         {
             ArchivedAtUtc = source.ArchivedAtUtc,
             IconFileName = source.IconFileName,
+            IconColorHex = source.IconColorHex,
             Remark = source.Remark,
             TargetDurationMinutes = source.TargetDurationMinutes
         };

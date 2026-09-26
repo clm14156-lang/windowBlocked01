@@ -111,7 +111,7 @@
                     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Top">
                         <Border Width="48" Height="48" Background="#FFF2E8" CornerRadius="24">
-                            <Image Width="30" Height="30" Source="{Binding GoalIconSource}" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"/>
+                            <Image Width="30" Height="30" Source="{Binding GoalIconSource, Converter={x:Static views:TargetIconSourceConverter.Instance}}" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"/>
                         </Border>
                         <StackPanel Margin="12,2,0,0">
                             <TextBlock FontSize="17" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="{Binding GoalName}" TextTrimming="CharacterEllipsis" MaxWidth="280"/>

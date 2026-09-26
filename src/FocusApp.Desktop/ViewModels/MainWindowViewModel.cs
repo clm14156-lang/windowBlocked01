@@ -660,6 +660,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         {
             ArchivedAtUtc = target.IsArchived ? existingTarget?.ArchivedAtUtc ?? now : null,
             IconFileName = target.IconFileName,
+            IconColorHex = target.IconColorHex,
             Remark = existingTarget?.Remark,
             TargetDurationMinutes = existingTarget?.TargetDurationMinutes
         };
@@ -912,6 +913,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         {
             ArchivedAtUtc = goal.IsArchived ? goal.ArchivedAtUtc ?? existing?.ArchivedAtUtc ?? now : null,
             IconFileName = goal.IconFileName,
+            IconColorHex = goal.IconColorHex,
             Remark = goal.Remark,
             TargetDurationMinutes = goal.TargetDurationMinutes
         };

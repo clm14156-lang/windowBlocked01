@@ -6,19 +6,64 @@ namespace FocusApp.Tests.Desktop;
 public sealed class FocusGoalSettingsModalViewModelTests
 {
     [Fact]
-    public void NewModal_UsesDailyEveryDayDefaultsAnd420DipHeight()
+    public void MonthlyDailyRequirementUsesTheDraftTargetCompletedTimeAndRemainingDays()
+    {
+        var completed = TimeSpan.FromHours(5);
+        var now = new DateTime(2026, 9, 13);
+        var viewModel = new FocusGoalSettingsModalViewModel(() => now, () => completed);
+        viewModel.SelectMonthlyModeCommand.Execute(null);
+        Assert.Equal(18, viewModel.RemainingDays);
+        Assert.Equal("按当前进度，每天约需 3.1 小时", viewModel.MonthlyDailyRequirementDisplay);
+
+        viewModel.MonthlyTargetHoursInput = "80";
+        Assert.Equal("按当前进度，每天约需 4.2 小时", viewModel.MonthlyDailyRequirementDisplay);
+        viewModel.IncreaseMonthlyTargetCommand.Execute(null);
+        Assert.Equal("按当前进度，每天约需 4.2 小时", viewModel.MonthlyDailyRequirementDisplay);
+        completed = TimeSpan.FromHours(27);
+        var changedProperties = new List<string?>();
+        viewModel.PropertyChanged += (_, args) => changedProperties.Add(args.PropertyName);
+        viewModel.RefreshMonthlyProgress();
+        Assert.Equal("按当前进度，每天约需 3.0 小时", viewModel.MonthlyDailyRequirementDisplay);
+        Assert.Contains(nameof(viewModel.MonthlyDailyRequirementDisplay), changedProperties);
+
+        now = new DateTime(2026, 9, 30);
+        viewModel.RefreshMonthlyProgress();
+        Assert.Equal(1, viewModel.RemainingDays);
+        Assert.Equal("按当前进度，每天约需 54.0 小时", viewModel.MonthlyDailyRequirementDisplay);
+    }
+
+    [Theory]
+    [InlineData(60, 60)]
+    [InlineData(60, 80)]
+    [InlineData(0, 0)]
+    public void CompletedOrExceededMonthlyTargetsNeverSuggestNegativeHours(int targetHours, int completedHours)
+    {
+        var viewModel = new FocusGoalSettingsModalViewModel(() => new DateTime(2026, 9, 30), () => TimeSpan.FromHours(completedHours))
+        { MonthlyTargetHoursInput = targetHours.ToString() };
+        Assert.Equal(0, viewModel.DailyRequiredFocusHours);
+        Assert.Equal("按当前进度，每天约需 0.0 小时", viewModel.MonthlyDailyRequirementDisplay);
+    }
+
+    [Theory]
+    [InlineData(2024, 2, 28, 2)]
+    [InlineData(2025, 2, 28, 1)]
+    [InlineData(2026, 9, 1, 30)]
+    public void RemainingDaysIncludesTodayAndHandlesLeapYears(int year, int month, int day, int expectedDays)
+    {
+        var viewModel = new FocusGoalSettingsModalViewModel(() => new DateTime(year, month, day));
+        Assert.Equal(expectedDays, viewModel.RemainingDays);
+    }
+
+    [Fact]
+    public void NewModal_UsesDailyDefaultsAnd350DipHeight()
     {
         var viewModel = new FocusGoalSettingsModalViewModel();
 
         Assert.False(viewModel.IsOpen);
         Assert.Equal(FocusGoalMode.DailyFixed, viewModel.Mode);
-        Assert.Equal(FocusGoalRepeatMode.EveryDay, viewModel.RepeatMode);
         Assert.Equal(4, viewModel.DailyTargetHours);
         Assert.Equal(60, viewModel.MonthlyTargetHours);
-        Assert.Equal(420, viewModel.DialogHeight);
-        Assert.Equal(7, viewModel.Weekdays.Count);
-        Assert.All(viewModel.Weekdays.Take(5), weekday => Assert.True(weekday.IsSelected));
-        Assert.All(viewModel.Weekdays.Skip(5), weekday => Assert.False(weekday.IsSelected));
+        Assert.Equal(350, viewModel.DialogHeight);
     }
 
     [Fact]
@@ -56,7 +101,6 @@ public sealed class FocusGoalSettingsModalViewModelTests
         Assert.False(viewModel.IsMoreMenuOpen);
         Assert.False(viewModel.IsOpen);
         Assert.Equal(FocusGoalMode.DailyFixed, viewModel.Mode);
-        Assert.Equal(FocusGoalRepeatMode.EveryDay, viewModel.RepeatMode);
     }
 
     [Fact]
@@ -71,40 +115,9 @@ public sealed class FocusGoalSettingsModalViewModelTests
     }
 
     [Fact]
-    public void SelectingCustomRepeatShowsWeekdaysAndAllowsMultiSelect()
+    public void SelectingMonthlyModeUsesIndependentMonthlyTargetAnd410DipHeight()
     {
-        var viewModel = new FocusGoalSettingsModalViewModel();
-
-        viewModel.SelectCustomRepeatCommand.Execute(null);
-
-        Assert.Equal(FocusGoalRepeatMode.Custom, viewModel.RepeatMode);
-        Assert.Equal(460, viewModel.DialogHeight);
-        Assert.Equal(5, viewModel.Weekdays.Count(weekday => weekday.IsSelected));
-
-        var saturday = viewModel.Weekdays[5];
-        viewModel.ToggleWeekdayCommand.Execute(saturday);
-
-        Assert.True(saturday.IsSelected);
-        Assert.Equal(6, viewModel.Weekdays.Count(weekday => weekday.IsSelected));
-    }
-
-    [Fact]
-    public void SelectingEveryDayHidesWeekdaysAndRestores420DipHeight()
-    {
-        var viewModel = new FocusGoalSettingsModalViewModel();
-        viewModel.SelectCustomRepeatCommand.Execute(null);
-
-        viewModel.SelectEveryDayCommand.Execute(null);
-
-        Assert.Equal(FocusGoalRepeatMode.EveryDay, viewModel.RepeatMode);
-        Assert.Equal(420, viewModel.DialogHeight);
-    }
-
-    [Fact]
-    public void SelectingMonthlyModeUsesIndependentMonthlyTargetAndHidesRepeatState()
-    {
-        var viewModel = new FocusGoalSettingsModalViewModel();
-        viewModel.SelectCustomRepeatCommand.Execute(null);
+        var viewModel = new FocusGoalSettingsModalViewModel(() => new DateTime(2026, 9, 13), () => TimeSpan.FromHours(5));
 
         viewModel.SelectMonthlyModeCommand.Execute(null);
 
@@ -114,7 +127,7 @@ public sealed class FocusGoalSettingsModalViewModelTests
         Assert.Equal(60, viewModel.MonthlyTargetHours);
         Assert.Equal(18, viewModel.RemainingDays);
         Assert.Equal(55, viewModel.RemainingHours);
-        Assert.Equal(420, viewModel.DialogHeight);
+        Assert.Equal(410, viewModel.DialogHeight);
     }
 
     [Fact]

@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using FocusApp.Contracts;
+using FocusApp.Desktop.Services;
 
 namespace FocusApp.Desktop.ViewModels;
 
@@ -101,9 +102,9 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
                 : new FocusTargetViewModel(
                     target.Name,
                     targetId: target.TargetId,
-                    iconFileName: target.IconFileName);
+                    iconFileName: target.IconFileName, iconColorHex: target.IconColorHex);
             viewModel.ApplyName(target.Name);
-            viewModel.ApplyIcon(target.IconFileName);
+            viewModel.ApplyIcon(target.IconFileName, target.IconColorHex ?? TargetIconCatalog.DefaultColorHex);
             viewModel.ApplyArchived(false);
 
             ApplyTasks(viewModel, persistedTasks);

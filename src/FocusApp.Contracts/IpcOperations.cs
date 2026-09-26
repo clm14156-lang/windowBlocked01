@@ -274,6 +274,7 @@ public sealed record LocalTargetDto(
     public DateTimeOffset? ArchivedAtUtc { get; init; }
 
     public string? IconFileName { get; init; }
+    public string? IconColorHex { get; init; }
 
     public string? Remark { get; init; }
 

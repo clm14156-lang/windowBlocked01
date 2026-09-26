@@ -15,11 +15,13 @@ public sealed class FocusTargetViewModel : INotifyPropertyChanged
         IEnumerable<string>? taskNames = null,
         string? targetId = null,
         bool isArchived = false,
-        string? iconFileName = null)
+        string? iconFileName = null,
+        string? iconColorHex = null)
     {
         TargetId = string.IsNullOrWhiteSpace(targetId) ? Guid.NewGuid().ToString("N") : targetId;
         Name = name;
         IconFileName = TargetIconCatalog.ResolveIconFileName(iconFileName);
+        IconColorHex = iconColorHex ?? TargetIconCatalog.DefaultColorHex;
         IsArchived = isArchived;
         Tasks = new TargetTaskCollection(TargetId);
         foreach (var taskName in taskNames ?? [])
@@ -36,7 +38,8 @@ public sealed class FocusTargetViewModel : INotifyPropertyChanged
 
     public string IconFileName { get; private set; }
 
-    public string IconSource => TargetIconCatalog.GetIconSource(IconFileName);
+    public string IconColorHex { get; private set; }
+    public string IconSource => TargetIconCatalog.GetIconSource(IconFileName, IconColorHex);
 
     public bool IsArchived { get; private set; }
 
@@ -125,12 +128,15 @@ public sealed class FocusTargetViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(Name));
     }
 
-    public void ApplyIcon(string? iconFileName)
+    public void ApplyIcon(string? iconFileName, string? iconColorHex = null)
     {
         var resolved = TargetIconCatalog.ResolveIconFileName(iconFileName);
-        if (string.Equals(IconFileName, resolved, StringComparison.OrdinalIgnoreCase)) return;
+        var color = iconColorHex ?? IconColorHex;
+        if (string.Equals(IconFileName, resolved, StringComparison.OrdinalIgnoreCase) && IconColorHex == color) return;
         IconFileName = resolved;
+        IconColorHex = color;
         OnPropertyChanged(nameof(IconFileName));
+        OnPropertyChanged(nameof(IconColorHex));
         OnPropertyChanged(nameof(IconSource));
     }
 

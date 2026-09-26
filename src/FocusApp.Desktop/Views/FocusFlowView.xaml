@@ -469,7 +469,7 @@
                                        IsHitTestVisible="False"
                                        RenderOptions.BitmapScalingMode="HighQuality"
                                        SnapsToDevicePixels="True"
-                                       Source="{Binding ActiveTarget.IconSource, Mode=OneWay}"
+                                       Source="{Binding ActiveTarget.IconSource, Mode=OneWay, Converter={x:Static views:TargetIconSourceConverter.Instance}}"
                                        Stretch="Uniform" />
                                 <TextBlock VerticalAlignment="Center"
                                            FontSize="17"

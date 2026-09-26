@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
@@ -12,42 +11,6 @@ public enum FocusGoalMode
     MonthlyTotal
 }
 
-public enum FocusGoalRepeatMode
-{
-    EveryDay,
-    Custom
-}
-
-public sealed class FocusGoalWeekdayOptionViewModel : INotifyPropertyChanged
-{
-    private bool _isSelected;
-
-    public FocusGoalWeekdayOptionViewModel(string label, bool isSelected)
-    {
-        Label = label;
-        _isSelected = isSelected;
-    }
-
-    public event PropertyChangedEventHandler? PropertyChanged;
-
-    public string Label { get; }
-
-    public bool IsSelected
-    {
-        get => _isSelected;
-        set
-        {
-            if (_isSelected == value)
-            {
-                return;
-            }
-
-            _isSelected = value;
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsSelected)));
-        }
-    }
-}
-
 public sealed class FocusGoalSettingsModalViewModel : INotifyPropertyChanged
 {
     private const int DailyTargetMaximumHours = 24;
@@ -55,7 +18,6 @@ public sealed class FocusGoalSettingsModalViewModel : INotifyPropertyChanged
 
     private bool _isOpen;
     private FocusGoalMode _mode = FocusGoalMode.DailyFixed;
-    private FocusGoalRepeatMode _repeatMode = FocusGoalRepeatMode.EveryDay;
     private int _dailyTargetHours = 4;
     private string _dailyTargetHoursInput = "4";
     private int _monthlyTargetHours = 60;
@@ -63,20 +25,15 @@ public sealed class FocusGoalSettingsModalViewModel : INotifyPropertyChanged
     private bool _isMoreMenuOpen;
     private bool _hasSavedTarget;
     private bool _hasSavedDailyFixedTarget;
+    private readonly Func<DateTime> _localNowProvider;
+    private readonly Func<TimeSpan> _monthlyCompletedFocusProvider;
 
-    public FocusGoalSettingsModalViewModel()
+    public FocusGoalSettingsModalViewModel(
+        Func<DateTime>? localNowProvider = null,
+        Func<TimeSpan>? monthlyCompletedFocusProvider = null)
     {
-        Weekdays = new ObservableCollection<FocusGoalWeekdayOptionViewModel>
-        {
-            new("一", true),
-            new("二", true),
-            new("三", true),
-            new("四", true),
-            new("五", true),
-            new("六", false),
-            new("日", false)
-        };
-
+        _localNowProvider = localNowProvider ?? (() => DateTime.Now);
+        _monthlyCompletedFocusProvider = monthlyCompletedFocusProvider ?? (() => TimeSpan.Zero);
         OpenCommand = new RelayCommand<object>(_ => Open());
         CancelCommand = new RelayCommand<object>(_ => Close());
         SaveCommand = new RelayCommand<object>(_ =>
@@ -94,9 +51,6 @@ public sealed class FocusGoalSettingsModalViewModel : INotifyPropertyChanged
         DeleteTargetCommand = new RelayCommand<object>(_ => DeleteTarget());
         SelectDailyModeCommand = new RelayCommand<object>(_ => Mode = FocusGoalMode.DailyFixed);
         SelectMonthlyModeCommand = new RelayCommand<object>(_ => Mode = FocusGoalMode.MonthlyTotal);
-        SelectEveryDayCommand = new RelayCommand<object>(_ => RepeatMode = FocusGoalRepeatMode.EveryDay);
-        SelectCustomRepeatCommand = new RelayCommand<object>(_ => RepeatMode = FocusGoalRepeatMode.Custom);
-        ToggleWeekdayCommand = new RelayCommand<FocusGoalWeekdayOptionViewModel>(ToggleWeekday);
         IncreaseDailyTargetCommand = new RelayCommand<object>(_ => AdjustTargetHours(false, 1));
         DecreaseDailyTargetCommand = new RelayCommand<object>(_ => AdjustTargetHours(false, -1));
         IncreaseMonthlyTargetCommand = new RelayCommand<object>(_ => AdjustTargetHours(true, 1));
@@ -108,8 +62,6 @@ public sealed class FocusGoalSettingsModalViewModel : INotifyPropertyChanged
     public event EventHandler? DailyFixedTargetChanged;
 
     public event EventHandler? GoalSettingsChanged;
-
-    public ObservableCollection<FocusGoalWeekdayOptionViewModel> Weekdays { get; }
 
     public ICommand OpenCommand { get; }
 
@@ -124,12 +76,6 @@ public sealed class FocusGoalSettingsModalViewModel : INotifyPropertyChanged
     public ICommand SelectDailyModeCommand { get; }
 
     public ICommand SelectMonthlyModeCommand { get; }
-
-    public ICommand SelectEveryDayCommand { get; }
-
-    public ICommand SelectCustomRepeatCommand { get; }
-
-    public ICommand ToggleWeekdayCommand { get; }
 
     public ICommand IncreaseDailyTargetCommand { get; }
 
@@ -164,32 +110,13 @@ public sealed class FocusGoalSettingsModalViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(IsDailyFixedMode));
             OnPropertyChanged(nameof(IsMonthlyTotalMode));
             OnPropertyChanged(nameof(DialogHeight));
+            RefreshMonthlyProgress();
         }
     }
 
     public bool IsDailyFixedMode => Mode == FocusGoalMode.DailyFixed;
 
     public bool IsMonthlyTotalMode => Mode == FocusGoalMode.MonthlyTotal;
-
-    public FocusGoalRepeatMode RepeatMode
-    {
-        get => _repeatMode;
-        private set
-        {
-            if (!SetField(ref _repeatMode, value))
-            {
-                return;
-            }
-
-            OnPropertyChanged(nameof(IsEveryDay));
-            OnPropertyChanged(nameof(IsCustomRepeat));
-            OnPropertyChanged(nameof(DialogHeight));
-        }
-    }
-
-    public bool IsEveryDay => RepeatMode == FocusGoalRepeatMode.EveryDay;
-
-    public bool IsCustomRepeat => RepeatMode == FocusGoalRepeatMode.Custom;
 
     public bool HasSavedDailyFixedTarget => _hasSavedDailyFixedTarget;
 
@@ -238,6 +165,7 @@ public sealed class FocusGoalSettingsModalViewModel : INotifyPropertyChanged
             }
 
             MonthlyTargetHoursInput = FormatTargetHours(value);
+            RefreshMonthlyProgress();
         }
     }
 
@@ -254,16 +182,36 @@ public sealed class FocusGoalSettingsModalViewModel : INotifyPropertyChanged
 
             if (TryParseTargetHours(normalizedValue, MonthlyTargetMaximumHours, out var parsedValue))
             {
-                SetField(ref _monthlyTargetHours, parsedValue);
+                if (SetField(ref _monthlyTargetHours, parsedValue)) RefreshMonthlyProgress();
             }
         }
     }
 
-    public int RemainingDays => 18;
+    public int RemainingDays
+    {
+        get
+        {
+            var today = _localNowProvider().Date;
+            return DateTime.DaysInMonth(today.Year, today.Month) - today.Day + 1;
+        }
+    }
 
-    public int RemainingHours => 55;
+    public double RemainingHours => Math.Max(0, MonthlyTargetHours - Math.Max(0, _monthlyCompletedFocusProvider().TotalHours));
 
-    public double DialogHeight => IsDailyFixedMode && IsCustomRepeat ? 460 : 420;
+    public double DailyRequiredFocusHours => RemainingHours / RemainingDays;
+
+    public string MonthlyDailyRequirementDisplay => FormattableString.Invariant(
+        $"按当前进度，每天约需 {DailyRequiredFocusHours:0.0} 小时");
+
+    public double DialogHeight => IsMonthlyTotalMode ? 410 : 350;
+
+    public void RefreshMonthlyProgress()
+    {
+        OnPropertyChanged(nameof(RemainingDays));
+        OnPropertyChanged(nameof(RemainingHours));
+        OnPropertyChanged(nameof(DailyRequiredFocusHours));
+        OnPropertyChanged(nameof(MonthlyDailyRequirementDisplay));
+    }
 
     public void CommitDailyTargetHoursInput()
     {
@@ -329,6 +277,7 @@ public sealed class FocusGoalSettingsModalViewModel : INotifyPropertyChanged
     private void Open()
     {
         IsMoreMenuOpen = false;
+        RefreshMonthlyProgress();
         IsOpen = true;
     }
 
@@ -362,14 +311,8 @@ public sealed class FocusGoalSettingsModalViewModel : INotifyPropertyChanged
         _hasSavedDailyFixedTarget = false;
         OnPropertyChanged(nameof(HasSavedDailyFixedTarget));
         Mode = FocusGoalMode.DailyFixed;
-        RepeatMode = FocusGoalRepeatMode.EveryDay;
         DailyTargetHours = 4;
         MonthlyTargetHours = 60;
-        for (var index = 0; index < Weekdays.Count; index++)
-        {
-            Weekdays[index].IsSelected = index < 5;
-        }
-
         DailyFixedTargetChanged?.Invoke(this, EventArgs.Empty);
         GoalSettingsChanged?.Invoke(this, EventArgs.Empty);
         Close();
@@ -412,14 +355,6 @@ public sealed class FocusGoalSettingsModalViewModel : INotifyPropertyChanged
 
     private static string FormatTargetHours(int value) =>
         value.ToString(CultureInfo.InvariantCulture);
-
-    private static void ToggleWeekday(FocusGoalWeekdayOptionViewModel? weekday)
-    {
-        if (weekday is not null)
-        {
-            weekday.IsSelected = !weekday.IsSelected;
-        }
-    }
 
     private bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
     {

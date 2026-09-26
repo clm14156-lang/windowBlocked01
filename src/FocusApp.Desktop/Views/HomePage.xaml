@@ -371,7 +371,7 @@
                        IsHitTestVisible="False"
                        RenderOptions.BitmapScalingMode="HighQuality"
                        SnapsToDevicePixels="True"
-                       Source="{Binding FocusTargetModal.SelectedTarget.IconSource, Mode=OneWay}"
+                       Source="{Binding FocusTargetModal.SelectedTarget.IconSource, Mode=OneWay, Converter={x:Static views:TargetIconSourceConverter.Instance}}"
                        Stretch="Uniform">
                     <Image.Style>
                         <Style TargetType="{x:Type Image}">

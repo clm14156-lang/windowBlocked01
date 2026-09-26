@@ -147,7 +147,7 @@ public class RuleTimelineTests
         Assert.DoesNotContain(modal.Targets, target => target.Id == "goal-archived");
         Assert.False(modal.Targets[0].HasIcon);
         Assert.True(modal.Targets[1].HasIcon);
-        Assert.EndsWith("/code.png", modal.Targets[1].IconSource, StringComparison.OrdinalIgnoreCase);
+        Assert.EndsWith("/code.svg#FF7F3F", modal.Targets[1].IconSource, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

@@ -8,6 +8,35 @@ namespace FocusApp.Tests.Desktop;
 public sealed class StatisticsOverviewViewModelTests
 {
     [Fact]
+    public void MonthlyGoalHintUsesCurrentMonthSlicesAndRefreshesWhenRecordsChange()
+    {
+        var viewModel = new StatisticsOverviewViewModel(false, localNowProvider: () => new DateTime(2026, 9, 13));
+        var monthly = viewModel.FocusGoalSettingsModal;
+        monthly.SelectMonthlyModeCommand.Execute(null);
+        viewModel.FocusSessionRecords.Add(new FocusSessionRecordViewModel(
+            new DateTime(2026, 9, 1, 10, 0, 0), new DateTime(2026, 9, 1, 14, 0, 0), "goal", "目标", "", 0));
+        viewModel.FocusSessionRecords.Add(new FocusSessionRecordViewModel(
+            new DateTime(2026, 8, 31, 23, 0, 0), new DateTime(2026, 9, 1, 1, 0, 0), "goal", "目标", "", 0));
+        viewModel.FocusSessionRecords.Add(new FocusSessionRecordViewModel(
+            new DateTime(2026, 8, 2, 10, 0, 0), new DateTime(2026, 8, 2, 14, 0, 0), "goal", "目标", "", 0));
+
+        Assert.Equal(55, monthly.RemainingHours);
+        Assert.Equal("按当前进度，每天约需 3.1 小时", monthly.MonthlyDailyRequirementDisplay);
+        var notifications = 0;
+        monthly.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(monthly.MonthlyDailyRequirementDisplay)) notifications++; };
+        var added = new FocusSessionRecordViewModel(
+            new DateTime(2026, 9, 2, 10, 0, 0), new DateTime(2026, 9, 2, 11, 0, 0), "goal", "目标", "", 0);
+        viewModel.FocusSessionRecords.Add(added);
+        Assert.Equal("按当前进度，每天约需 3.0 小时", monthly.MonthlyDailyRequirementDisplay);
+        added.EndTime = added.StartTime.AddHours(3);
+        Assert.Equal(52, monthly.RemainingHours);
+        Assert.Equal("按当前进度，每天约需 2.9 小时", monthly.MonthlyDailyRequirementDisplay);
+        viewModel.FocusSessionRecords.Remove(added);
+        Assert.Equal("按当前进度，每天约需 3.1 小时", monthly.MonthlyDailyRequirementDisplay);
+        Assert.True(notifications >= 3);
+    }
+
+    [Fact]
     public void FocusGoalSettingsCommandOpensUiOnlyModal()
     {
         var viewModel = new StatisticsOverviewViewModel(false);
@@ -538,7 +567,7 @@ public sealed class StatisticsOverviewViewModelTests
         viewModel.NewGoalName = "学习 UE5";
         Assert.True(viewModel.ConfirmCreateGoalCommand.CanExecute(null));
         var shortcutsBeforeSelection = viewModel.QuickTargetIcons.Select(icon => icon.FileName).ToArray();
-        var codeIcon = viewModel.AllTargetIcons.Single(icon => icon.FileName == "code.png");
+        var codeIcon = viewModel.AllTargetIcons.Single(icon => icon.FileName == "code.svg");
         viewModel.SelectTargetIconCommand.Execute(codeIcon);
         Assert.Equal(shortcutsBeforeSelection, viewModel.QuickTargetIcons.Select(icon => icon.FileName));
         viewModel.ConfirmCreateGoalCommand.Execute(null);
@@ -549,9 +578,9 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.True(added.IsSelected);
         Assert.False(added.IsRenaming);
         Assert.Equal("学习 UE5", added.Name);
-        Assert.Equal("code.png", added.IconFileName);
-        Assert.Equal("code.png", viewModel.RecentTargetIconFileNames[0]);
-        Assert.Equal("code.png", viewModel.QuickTargetIcons[0].FileName);
+        Assert.Equal("code.svg", added.IconFileName);
+        Assert.Equal("code.svg", viewModel.RecentTargetIconFileNames[0]);
+        Assert.Equal("code.svg", viewModel.QuickTargetIcons[0].FileName);
         Assert.Equal(6, viewModel.QuickTargetIcons.Count);
         Assert.Null(added.TargetDurationMinutes);
         Assert.False(viewModel.IsCreateGoalDialogOpen);
@@ -778,7 +807,7 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.Equal(icon.FileName, viewModel.QuickTargetIcons[0].FileName);
         Assert.False(viewModel.IsCreateGoalDialogOpen);
         viewModel.AddGoalCommand.Execute(null);
-        Assert.Equal("创建目标", viewModel.GoalDialogTitle);
+        Assert.Equal("创建新目标", viewModel.GoalDialogTitle);
         Assert.Equal("创建", viewModel.GoalDialogConfirmText);
         Assert.Empty(viewModel.NewGoalName);
     }

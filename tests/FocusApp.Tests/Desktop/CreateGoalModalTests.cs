@@ -89,25 +89,83 @@ public sealed class CreateGoalModalTests
     }
 
     [Fact]
-    public void DialogUsesTheExpanded430By520DesignSize()
+    public void DialogTogglesBetweenRequestedSizesAndPreservesOptionalFields()
     {
         Exception? failure = null;
         var thread = new Thread(() =>
         {
             try
             {
-                var modal = new CreateGoalModal();
+                var viewModel = new StatisticsOverviewViewModel();
+                var modal = new CreateGoalModal { DataContext = viewModel };
+                foreach (var resource in new[] { "Colors", "Typography", "Strings", "Styles" })
+                    modal.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri($"/FocusApp.Desktop;component/Resources/{resource}.xaml", UriKind.Relative) });
+                viewModel.AddGoalCommand.Execute(null);
+                modal.Measure(new Size(800, 710));
+                modal.Arrange(new Rect(0, 0, 800, 710));
+                modal.UpdateLayout();
                 var dialog = (Border)modal.FindName("DialogCard");
-                Assert.Equal(430, dialog.Width);
-                Assert.Equal(520, dialog.Height);
-                var remark = (Border)modal.FindName("GoalRemarkContainer");
-                Assert.Equal(80, remark.Height);
-                Assert.Equal(new CornerRadius(12), remark.CornerRadius);
-                var content = (Grid)modal.FindName("DialogContentGrid");
-                Assert.Equal(
-                    new[] { 50d, 84d, 116d, 80d, 80d },
-                    content.RowDefinitions.Take(5).Select(row => row.Height.Value));
-                Assert.True(content.RowDefinitions[5].Height.IsStar);
+                var fields = (StackPanel)modal.FindName("GoalMoreFields");
+                Assert.Equal(310, dialog.ActualWidth);
+                Assert.Equal(390, dialog.ActualHeight);
+                Assert.Equal(Visibility.Collapsed, fields.Visibility);
+                Assert.Equal("创建新目标", viewModel.GoalDialogTitle);
+                Assert.Equal("0/50", viewModel.NameCharacterCountDisplay);
+                RenderState("collapsed");
+
+                viewModel.ToggleGoalMoreCommand.Execute(null);
+                modal.UpdateLayout();
+                Assert.Equal(540, dialog.ActualHeight);
+                Assert.Equal(Visibility.Visible, fields.Visibility);
+                Assert.Equal("收起更多", viewModel.GoalMoreToggleText);
+                viewModel.NewGoalRemark = "保留备注";
+                viewModel.SelectGoalDurationCommand.Execute(viewModel.GoalDurationOptions[1]);
+                viewModel.SelectGoalColorCommand.Execute(viewModel.GoalColors[5]);
+                Assert.Equal(7, viewModel.GoalColors.Count);
+                Assert.Single(viewModel.GoalColors.Where(color => color.IsSelected));
+                Assert.EndsWith("#299BFA", viewModel.SelectedTargetIcon!.DisplayIconSource);
+                Assert.Equal("study.svg", FocusApp.Desktop.Services.TargetIconCatalog.ResolveIconFileName("study.png"));
+                Assert.NotEmpty(viewModel.AllTargetIcons);
+                Assert.Null(TargetIconSourceConverter.Instance.Convert(
+                    "/FocusApp.Desktop;component/Assets/Icons/targetSelected_Svg/missing.svg#299BFA",
+                    typeof(ImageSource), null!, System.Globalization.CultureInfo.InvariantCulture));
+                foreach (var icon in viewModel.AllTargetIcons)
+                    Assert.IsType<DrawingImage>(new TargetIconSourceConverter().Convert(icon.DisplayIconSource,
+                        typeof(ImageSource), null!, System.Globalization.CultureInfo.InvariantCulture));
+                var image = (DrawingImage)new TargetIconSourceConverter().Convert(
+                    viewModel.SelectedTargetIcon.DisplayIconSource, typeof(ImageSource), null!, System.Globalization.CultureInfo.InvariantCulture)!;
+                Assert.NotEmpty(((DrawingGroup)image.Drawing).Children);
+                viewModel.NewGoalName = "阅读";
+                RenderState("expanded");
+
+                viewModel.ToggleGoalMoreCommand.Execute(null);
+                modal.UpdateLayout();
+                Assert.Equal(390, dialog.ActualHeight);
+                Assert.Equal("保留备注", viewModel.NewGoalRemark);
+                Assert.Equal(50 * 60, viewModel.SelectedGoalDurationMinutes);
+                viewModel.NewGoalName = new string('字', 51);
+                Assert.Equal("50/50", viewModel.NameCharacterCountDisplay);
+                viewModel.ConfirmCreateGoalCommand.Execute(null);
+                var goal = viewModel.SelectedGoal!;
+                Assert.Equal("#299BFA", goal.IconColorHex);
+                Assert.EndsWith(".svg", goal.IconFileName);
+                viewModel.EditGoalCommand.Execute(goal);
+                Assert.Equal("#299BFA", viewModel.SelectedGoalColorHex);
+                Assert.False(viewModel.IsGoalMoreExpanded);
+
+                void RenderState(string state)
+                {
+                    modal.UpdateLayout();
+                    var output = Environment.GetEnvironmentVariable("FOCUSAPP_CREATE_GOAL_QA_DIR");
+                    if (string.IsNullOrEmpty(output)) return;
+                    Directory.CreateDirectory(output);
+                    var bitmap = new System.Windows.Media.Imaging.RenderTargetBitmap(800, 710, 96, 96, PixelFormats.Pbgra32);
+                    bitmap.Render(modal);
+                    var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
+                    encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap));
+                    using var stream = File.Create(Path.Combine(output, $"create-goal-{state}.png"));
+                    encoder.Save(stream);
+                }
             }
             catch (Exception exception) { failure = exception; }
         });
@@ -133,7 +191,7 @@ public sealed class CreateGoalModalTests
         Assert.Equal("4", (string?)panel.Attribute("Columns"));
         var optionRoot = Assert.Single(options.Descendants(p + "Grid").Where(element =>
             (string?)element.Attribute(XName("Name")) == "DurationOptionRoot"));
-        Assert.Equal("4,0", (string?)optionRoot.Attribute("Margin"));
+        Assert.Equal("3,0", (string?)optionRoot.Attribute("Margin"));
         var button = Assert.Single(options.Descendants(p + "Button").Where(element =>
             (string?)element.Attribute(XName("Name")) == "DurationOptionButton"));
         Assert.Null(button.Attribute("Width"));
@@ -188,10 +246,10 @@ public sealed class CreateGoalModalTests
                 var modal = new CreateGoalModal();
                 var popup = (Popup)modal.FindName("CustomDurationPopup");
                 var placements = popup.CustomPopupPlacementCallback!(
-                    new Size(248, 170), new Size(430, 520), default);
+                    new Size(248, 170), new Size(310, 540), default);
 
                 var placement = Assert.Single(placements);
-                Assert.Equal(new Point(164, 224), placement.Point);
+                Assert.Equal(new Point(44, 272), placement.Point);
                 Assert.Equal(PopupPrimaryAxis.Vertical, placement.PrimaryAxis);
             }
             catch (Exception exception) { failure = exception; }

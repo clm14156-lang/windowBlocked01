@@ -7,7 +7,7 @@ internal sealed class SqliteDatabaseInitializer(
     string databasePath,
     SqliteLocalDataStoreOptions options)
 {
-    public const int CurrentSchemaVersion = 7;
+    public const int CurrentSchemaVersion = 8;
 
     private const string MigrationV1 = """
         CREATE TABLE focus_sessions (
@@ -301,6 +301,7 @@ internal sealed class SqliteDatabaseInitializer(
             5 => MigrationV5,
             6 => "ALTER TABLE automatic_rules ADD COLUMN target_id TEXT NULL;",
             7 => MigrationV7,
+            8 => "ALTER TABLE targets ADD COLUMN icon_color_hex TEXT NULL;",
             _ => throw new InvalidOperationException($"缺少数据库版本 {targetVersion} 的迁移。")
         };
 

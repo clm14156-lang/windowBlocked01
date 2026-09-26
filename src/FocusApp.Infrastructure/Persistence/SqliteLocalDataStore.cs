@@ -111,8 +111,8 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
             await using (var command = CreateCommand(connection, transaction, """
                 INSERT INTO targets (
                     target_id, name, is_archived, sort_order, created_utc, updated_utc, archived_utc,
-                    icon_file_name, remark, target_duration_minutes)
-                VALUES ($id, $name, $archived, $sort, $created, $updated, $archivedAt, $icon, $remark, $durationMinutes)
+                    icon_file_name, remark, target_duration_minutes, icon_color_hex)
+                VALUES ($id, $name, $archived, $sort, $created, $updated, $archivedAt, $icon, $remark, $durationMinutes, $iconColor)
                 ON CONFLICT(target_id) DO UPDATE SET
                     name = excluded.name,
                     is_archived = excluded.is_archived,
@@ -121,7 +121,8 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
                     archived_utc = excluded.archived_utc,
                     icon_file_name = excluded.icon_file_name,
                     remark = excluded.remark,
-                    target_duration_minutes = excluded.target_duration_minutes;
+                    target_duration_minutes = excluded.target_duration_minutes,
+                    icon_color_hex = excluded.icon_color_hex;
                 """))
             {
                 command.Parameters.AddWithValue("$id", target.TargetId);
@@ -132,6 +133,7 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
                 command.Parameters.AddWithValue("$updated", FormatDateTime(target.UpdatedAtUtc));
                 command.Parameters.AddWithValue("$archivedAt", FormatNullableDateTime(target.ArchivedAtUtc));
                 command.Parameters.AddWithValue("$icon", (object?)target.IconFileName ?? DBNull.Value);
+                command.Parameters.AddWithValue("$iconColor", (object?)target.IconColorHex ?? DBNull.Value);
                 command.Parameters.AddWithValue("$remark", (object?)target.Remark ?? DBNull.Value);
                 command.Parameters.AddWithValue("$durationMinutes", (object?)target.TargetDurationMinutes ?? DBNull.Value);
                 await command.ExecuteNonQueryAsync(cancellationToken);
@@ -793,7 +795,7 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
         await using var command = connection.CreateCommand();
         command.CommandText = """
             SELECT target_id, name, is_archived, sort_order, created_utc, updated_utc, archived_utc,
-                   icon_file_name, remark, target_duration_minutes
+                   icon_file_name, remark, target_duration_minutes, icon_color_hex
             FROM targets ORDER BY is_archived, sort_order, target_id;
             """;
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
@@ -810,7 +812,8 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
                 ArchivedAtUtc = ReadNullableDateTime(reader, 6),
                 IconFileName = reader.IsDBNull(7) ? null : reader.GetString(7),
                 Remark = reader.IsDBNull(8) ? null : reader.GetString(8),
-                TargetDurationMinutes = reader.IsDBNull(9) ? null : reader.GetInt32(9)
+                TargetDurationMinutes = reader.IsDBNull(9) ? null : reader.GetInt32(9),
+                IconColorHex = reader.IsDBNull(10) ? null : reader.GetString(10)
             });
         }
 
@@ -1026,6 +1029,9 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
             string.IsNullOrWhiteSpace(target.Name) ||
             target.SortOrder < 0 ||
             target.IconFileName is not null && !IsSafeIconFileName(target.IconFileName) ||
+            target.IconColorHex is not null &&
+                (target.IconColorHex.Length != 7 || target.IconColorHex[0] != '#' ||
+                 !target.IconColorHex.Skip(1).All(Uri.IsHexDigit)) ||
             target.Remark is not null && target.Remark.Length > 150 ||
             target.TargetDurationMinutes is <= 0 or > 9999 * 60)
         {
@@ -1193,7 +1199,8 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
     private static bool IsSafeIconFileName(string value) =>
         !string.IsNullOrWhiteSpace(value) &&
         string.Equals(Path.GetFileName(value), value, StringComparison.Ordinal) &&
-        string.Equals(Path.GetExtension(value), ".png", StringComparison.OrdinalIgnoreCase);
+        (string.Equals(Path.GetExtension(value), ".png", StringComparison.OrdinalIgnoreCase) ||
+         string.Equals(Path.GetExtension(value), ".svg", StringComparison.OrdinalIgnoreCase));
 
     private static bool IsBusy(SqliteException exception)
         => exception.SqliteErrorCode is 5 or 6;

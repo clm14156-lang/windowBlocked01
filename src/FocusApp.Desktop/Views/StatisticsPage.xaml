@@ -1229,7 +1229,7 @@
                                                                             <Border Margin="10" Padding="10,8" Background="{DynamicResource SurfacePrimary}" BorderBrush="#EEEEF0" BorderThickness="1" CornerRadius="8">
                                                                                 <Border.Effect><DropShadowEffect BlurRadius="14" ShadowDepth="2" Opacity="0.1"/></Border.Effect>
                                                                                 <StackPanel Orientation="Horizontal">
-                                                                                    <Image Width="20" Height="20" Source="{Binding GoalIconSource}" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                                                                    <Image Width="20" Height="20" Source="{Binding GoalIconSource, Converter={x:Static views:TargetIconSourceConverter.Instance}}" RenderOptions.BitmapScalingMode="HighQuality"/>
                                                                                     <TextBlock MaxWidth="160" Margin="7,0,0,0" VerticalAlignment="Center" Text="{Binding GoalName}" TextTrimming="CharacterEllipsis" FontSize="12" Foreground="{DynamicResource TextPrimary}"/>
                                                                                 </StackPanel>
                                                                             </Border>
@@ -1488,7 +1488,7 @@
                                                                         <ColumnDefinition Width="*" />
                                                                     </Grid.ColumnDefinitions>
                                                                     <Border x:Name="GoalIconBackground" Grid.Column="0" Width="38" Height="38" HorizontalAlignment="Center" VerticalAlignment="Center" Background="{DynamicResource TransparentBrush}">
-                                                                        <Image Width="28" Height="28" RenderOptions.BitmapScalingMode="HighQuality" Source="{Binding IconSource}" Stretch="Uniform" />
+                                                                        <Image Width="28" Height="28" RenderOptions.BitmapScalingMode="HighQuality" Source="{Binding IconSource, Converter={x:Static views:TargetIconSourceConverter.Instance}}" Stretch="Uniform" />
                                                                     </Border>
                                                                     <StackPanel Grid.Column="2" Margin="0,0,22,0" VerticalAlignment="Center">
                                                                         <TextBox Text="{Binding DraftName, UpdateSourceTrigger=PropertyChanged}" Visibility="{Binding IsRenaming, Converter={StaticResource BooleanToVisibilityConverter}}" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}" BorderThickness="0" Background="{DynamicResource TransparentBrush}" IsVisibleChanged="GoalNameTextBox_IsVisibleChanged" LostKeyboardFocus="GoalNameTextBox_LostKeyboardFocus" PreviewKeyDown="GoalNameTextBox_PreviewKeyDown" />

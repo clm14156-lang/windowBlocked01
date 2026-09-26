@@ -61,7 +61,7 @@ public sealed partial class AutomaticRuleModalViewModel
             Targets.Add(new(
                 target.TargetId,
                 target.Name,
-                TargetIconCatalog.GetIconSource(target.IconFileName)));
+                TargetIconCatalog.GetIconSource(target.IconFileName, target.IconColorHex)));
         SelectedTargetId = IsAvailableTarget(selected) ? selected : null;
         OnPropertyChanged(nameof(TargetChoice));
     }

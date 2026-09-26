@@ -93,7 +93,9 @@ public sealed class DesktopServiceConnection : INotifyPropertyChanged, IAsyncDis
     public Task StartAsync()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        _runTask ??= RunAsync(_lifetimeCancellation.Token);
+        // The connection loop must finish without the dispatcher: OnExit waits
+        // for its disposal while the UI thread is shutting down.
+        _runTask ??= Task.Run(() => RunAsync(_lifetimeCancellation.Token));
         return Task.CompletedTask;
     }
 
@@ -344,7 +346,7 @@ public sealed class DesktopServiceConnection : INotifyPropertyChanged, IAsyncDis
         {
             try
             {
-                await _runTask;
+                await _runTask.ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {

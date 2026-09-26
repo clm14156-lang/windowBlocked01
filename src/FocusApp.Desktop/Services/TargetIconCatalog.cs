@@ -1,25 +1,26 @@
 using System.IO;
+using System.Collections;
+using System.Resources;
 using System.Text.Json;
 
 namespace FocusApp.Desktop.Services;
 
 public static class TargetIconCatalog
 {
-    public const string DefaultIconFileName = "study.png";
+    public const string DefaultIconFileName = "tools.svg";
     public const int MaximumRecentIconCount = 6;
 
     private static readonly string[] PreferredQuickIcons =
     [
-        "study.png",
-        "code.png",
-        "writing.png",
-        "reading.png",
-        "fitness.png",
-        "music.png",
-        "design.png"
+        "tools.svg",
+        "reading.svg",
+        "fitness.svg",
+        "painting.svg",
+        "code.svg",
+        "gardening.svg",
+        "design.svg"
     ];
 
-    private static readonly Lazy<string> IconDirectory = new(FindIconDirectory);
     private static readonly Lazy<IReadOnlyList<string>> AvailableIconFileNames = new(LoadIconFileNames);
 
     public static IReadOnlyList<string> GetAvailableIconFileNames() => AvailableIconFileNames.Value;
@@ -29,6 +30,8 @@ public static class TargetIconCatalog
     public static string ResolveIconFileName(string? iconFileName)
     {
         var icons = AvailableIconFileNames.Value;
+        if (string.Equals(Path.GetExtension(iconFileName), ".png", StringComparison.OrdinalIgnoreCase))
+            iconFileName = Path.ChangeExtension(iconFileName, ".svg");
         var match = icons.FirstOrDefault(value =>
             string.Equals(value, iconFileName, StringComparison.OrdinalIgnoreCase));
         if (match is not null)
@@ -42,13 +45,10 @@ public static class TargetIconCatalog
                ?? DefaultIconFileName;
     }
 
-    public static string GetIconSource(string? iconFileName)
-    {
-        var resolved = ResolveIconFileName(iconFileName);
-        var path = Path.Combine(IconDirectory.Value, resolved);
-        return File.Exists(path) ? new Uri(path, UriKind.Absolute).AbsoluteUri : string.Empty;
-    }
+    public const string DefaultColorHex = "#FF7F3F";
 
+    public static string GetIconSource(string? iconFileName, string? colorHex = null) =>
+        $"/FocusApp.Desktop;component/Assets/Icons/targetSelected_Svg/{ResolveIconFileName(iconFileName)}#{(colorHex ?? DefaultColorHex).TrimStart('#')}";
     public static IReadOnlyList<string> ParseRecentIconFileNames(string? json)
     {
         try
@@ -74,7 +74,7 @@ public static class TargetIconCatalog
     {
         var available = AvailableIconFileNames.Value.ToHashSet(StringComparer.OrdinalIgnoreCase);
         return values
-            .Where(value => !string.IsNullOrWhiteSpace(value) && available.Contains(value))
+            .Where(value => !string.IsNullOrWhiteSpace(value) && available.Contains(Path.ChangeExtension(value, ".svg")))
             .Select(ResolveIconFileName)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .Take(MaximumRecentIconCount)
@@ -83,45 +83,18 @@ public static class TargetIconCatalog
 
     private static IReadOnlyList<string> LoadIconFileNames()
     {
-        var directory = IconDirectory.Value;
-        if (!Directory.Exists(directory))
-        {
-            return [];
-        }
-
-        return Directory.EnumerateFiles(directory, "*.png", SearchOption.TopDirectoryOnly)
-            .Select(Path.GetFileName)
-            .Where(value => !string.IsNullOrWhiteSpace(value))
-            .Cast<string>()
+        // Enumerate the same embedded WPF resources used by the renderer.
+        // This also works when the installed app has no loose asset directory.
+        using var stream = typeof(TargetIconCatalog).Assembly.GetManifestResourceStream("FocusApp.Desktop.g.resources");
+        if (stream is null) return [];
+        using var resources = new ResourceReader(stream);
+        const string prefix = "assets/icons/targetselected_svg/";
+        return resources.Cast<DictionaryEntry>()
+            .Select(entry => (string)entry.Key)
+            .Where(key => key.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) &&
+                          key.EndsWith(".svg", StringComparison.OrdinalIgnoreCase))
+            .Select(key => key[prefix.Length..])
             .OrderBy(value => value, StringComparer.OrdinalIgnoreCase)
             .ToArray();
-    }
-
-    private static string FindIconDirectory()
-    {
-        var packaged = Path.Combine(AppContext.BaseDirectory, "Assets", "Icons", "Targets");
-        if (Directory.Exists(packaged))
-        {
-            return packaged;
-        }
-
-        for (var directory = new DirectoryInfo(AppContext.BaseDirectory);
-             directory is not null;
-             directory = directory.Parent)
-        {
-            var source = Path.Combine(
-                directory.FullName,
-                "src",
-                "FocusApp.Desktop",
-                "Assets",
-                "Icons",
-                "Targets");
-            if (Directory.Exists(source))
-            {
-                return source;
-            }
-        }
-
-        return packaged;
     }
 }

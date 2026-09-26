@@ -32,7 +32,7 @@ public sealed class SqliteLocalDataStoreTests
         await store.InitializeAsync();
         var snapshot = await store.LoadAsync();
 
-        Assert.Equal(7, await ReadUserVersionAsync(database.Path));
+        Assert.Equal(8, await ReadUserVersionAsync(database.Path));
         Assert.Empty(snapshot.FocusSessions);
         Assert.Empty(snapshot.Targets);
         Assert.Empty(snapshot.Tasks);
@@ -71,7 +71,7 @@ public sealed class SqliteLocalDataStoreTests
 
         await database.CreateStore().InitializeAsync();
 
-        Assert.Equal(7, await ReadUserVersionAsync(database.Path));
+        Assert.Equal(8, await ReadUserVersionAsync(database.Path));
         Assert.True(await TableExistsAsync(database.Path, "focus_session_website_rules"));
         Assert.True(await TableExistsAsync(database.Path, "focus_session_application_rules"));
         Assert.True(await ColumnExistsAsync(database.Path, "targets", "icon_file_name"));
@@ -317,7 +317,8 @@ public sealed class SqliteLocalDataStoreTests
         await store.SaveTargetAsync(target with
         {
             Name = "修改后的名称",
-            IconFileName = "code.png",
+            IconFileName = "code.svg",
+            IconColorHex = "#299BFA",
             UpdatedAtUtc = now.AddMinutes(2)
         }, before.Tasks.Where(item => item.TargetId == target.TargetId).ToArray());
 
@@ -325,7 +326,8 @@ public sealed class SqliteLocalDataStoreTests
         var saved = Assert.Single(after.Targets);
         Assert.Equal(target.TargetId, saved.TargetId);
         Assert.Equal("修改后的名称", saved.Name);
-        Assert.Equal("code.png", saved.IconFileName);
+        Assert.Equal("code.svg", saved.IconFileName);
+        Assert.Equal("#299BFA", saved.IconColorHex);
         Assert.Equal(target.CreatedAtUtc, saved.CreatedAtUtc);
         Assert.Equal(target.SortOrder, saved.SortOrder);
         Assert.Equal(Assert.Single(before.Tasks), Assert.Single(after.Tasks));
@@ -333,6 +335,27 @@ public sealed class SqliteLocalDataStoreTests
         Assert.Equal(session.SessionId, savedSession.SessionId);
         Assert.Equal(target.TargetId, savedSession.TargetId);
         Assert.Equal(Assert.Single(before.FocusSessions).CompletedTasks, savedSession.CompletedTasks);
+    }
+
+    [Fact]
+    public async Task VersionSevenTargetsMigrateWithoutLosingLegacyIcons()
+    {
+        using var database = new TemporaryDatabase();
+        var now = DateTimeOffset.UtcNow;
+        await database.CreateStore().SaveTargetAsync(
+            new LocalTarget("legacy-goal", "旧目标", false, 0, now, now) { IconFileName = "study.png" }, []);
+        await using (var connection = new SqliteConnection($"Data Source={database.Path}"))
+        {
+            await connection.OpenAsync();
+            await using var command = connection.CreateCommand();
+            command.CommandText = "ALTER TABLE targets DROP COLUMN icon_color_hex; PRAGMA user_version = 7;";
+            await command.ExecuteNonQueryAsync();
+        }
+        var migrated = Assert.Single((await database.CreateStore().LoadAsync()).Targets);
+        Assert.Equal("旧目标", migrated.Name);
+        Assert.Equal("study.png", migrated.IconFileName);
+        Assert.Null(migrated.IconColorHex);
+        Assert.Equal(8, await ReadUserVersionAsync(database.Path));
     }
 
     [Fact]

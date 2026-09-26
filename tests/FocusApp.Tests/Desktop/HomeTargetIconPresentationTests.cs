@@ -29,7 +29,7 @@ public sealed class HomeTargetIconPresentationTests
             (string?)image.Attribute(Xaml + "Name") == "SelectedTargetIcon"));
         Assert.Equal("18", (string?)targetIcon.Attribute("Width"));
         Assert.Equal("18", (string?)targetIcon.Attribute("Height"));
-        Assert.Equal("{Binding FocusTargetModal.SelectedTarget.IconSource, Mode=OneWay}",
+        Assert.Equal("{Binding FocusTargetModal.SelectedTarget.IconSource, Mode=OneWay, Converter={x:Static views:TargetIconSourceConverter.Instance}}",
             (string?)targetIcon.Attribute("Source"));
         Assert.Contains(targetIcon.Descendants(Presentation + "DataTrigger"), trigger =>
             (string?)trigger.Attribute("Binding") == "{Binding FocusTargetModal.HasSelectedTarget}" &&

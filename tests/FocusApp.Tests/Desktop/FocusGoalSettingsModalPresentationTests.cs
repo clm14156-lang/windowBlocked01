@@ -16,10 +16,10 @@ public sealed class FocusGoalSettingsModalPresentationTests
         var card = root.Descendants(Presentation + "Border")
             .Single(element => (string?)element.Attribute(Xaml + "Name") == "FocusGoalSettingsCard");
 
-        Assert.Equal("390", (string?)card.Attribute("Width"));
+        Assert.Equal("330", (string?)card.Attribute("Width"));
         Assert.Equal("{Binding DialogHeight, Mode=OneWay}", (string?)card.Attribute("Height"));
         Assert.Contains(root.Descendants(Presentation + "RowDefinition"), row =>
-            (string?)row.Attribute("Height") == "62");
+            (string?)row.Attribute("Height") == "58");
         Assert.Contains(root.Descendants(Presentation + "Button"), button =>
             (string?)button.Attribute(Xaml + "Name") == "DailyFixedModeButton" &&
             (string?)button.Attribute("Command") == "{Binding SelectDailyModeCommand}");
@@ -29,19 +29,14 @@ public sealed class FocusGoalSettingsModalPresentationTests
     }
 
     [Fact]
-    public void ModalContainsDailyRepeatControlsAndSevenWeekdayButtons()
+    public void ModalUsesTheReferenceSubtitleWithoutRepeatControls()
     {
         var root = LoadModal();
 
-        Assert.DoesNotContain(root.Descendants(Presentation + "TextBlock"), text => (string?)text.Attribute("Text") == "每天完成固定专注时长");
-        Assert.Contains(root.Descendants(Presentation + "Button"), button =>
-            (string?)button.Attribute(Xaml + "Name") == "EveryDayRepeatButton" &&
-            (string?)button.Attribute("Command") == "{Binding SelectEveryDayCommand}");
-        Assert.Contains(root.Descendants(Presentation + "Button"), button =>
-            (string?)button.Attribute(Xaml + "Name") == "CustomRepeatButton" &&
-            (string?)button.Attribute("Command") == "{Binding SelectCustomRepeatCommand}");
-        Assert.Contains(root.Descendants(Presentation + "ItemsControl"), control =>
-            (string?)control.Attribute("ItemsSource") == "{Binding Weekdays}");
+        Assert.Contains(root.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "设置你的专注节奏");
+        Assert.DoesNotContain(root.Descendants(Presentation + "Button"), button =>
+            ((string?)button.Attribute("Command"))?.Contains("Repeat") == true);
     }
 
     [Fact]
@@ -50,8 +45,8 @@ public sealed class FocusGoalSettingsModalPresentationTests
         var root = LoadModal();
 
         Assert.DoesNotContain(root.Descendants(Presentation + "TextBlock"), text => (string?)text.Attribute("Text") == "本月累计完成设定时长");
-        Assert.Contains(root.Descendants(Presentation + "TextBlock"), text => (string?)text.Attribute("Text") == "剩余");
-        Assert.Contains(root.Descendants(Presentation + "TextBlock"), text => (string?)text.Attribute("Text") == "还差");
+        Assert.Contains(root.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "坚持下去，你可以达成目标！");
         Assert.Contains(root.Descendants(Presentation + "Button"), button =>
             (string?)button.Attribute(Xaml + "Name") == "TargetSettingsCancelButton" &&
             (string?)button.Attribute("Command") == "{Binding CancelCommand}");
@@ -65,10 +60,8 @@ public sealed class FocusGoalSettingsModalPresentationTests
     {
         var root = LoadModal();
 
-        Assert.Contains(root.Descendants(Presentation + "Run"), run =>
-            (string?)run.Attribute("Text") == "{Binding RemainingDays, Mode=OneWay}");
-        Assert.Contains(root.Descendants(Presentation + "Run"), run =>
-            (string?)run.Attribute("Text") == "{Binding RemainingHours, Mode=OneWay}");
+        Assert.Contains(root.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "{Binding MonthlyDailyRequirementDisplay, Mode=OneWay}");
     }
 
     [Fact]

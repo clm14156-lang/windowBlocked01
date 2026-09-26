@@ -134,7 +134,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         ArchiveGoalCommand = new RelayCommand<GoalOverviewItemViewModel>(ArchiveGoal);
         RestoreGoalCommand = new RelayCommand<GoalOverviewItemViewModel>(RestoreGoal);
         DeleteGoalCommand = new RelayCommand<GoalOverviewItemViewModel>(DeleteGoal);
-        _focusGoalSettingsModal = new FocusGoalSettingsModalViewModel();
+        _focusGoalSettingsModal = new FocusGoalSettingsModalViewModel(_localNowProvider, GetCurrentMonthFocusDuration);
         _focusGoalSettingsModal.GoalSettingsChanged += FocusGoalSettingsModal_GoalSettingsChanged;
         OpenFocusGoalSettingsCommand = new RelayCommand<object>(_ => _focusGoalSettingsModal.OpenCommand.Execute(null));
         OpenMonthlyFocusTargetCommand = new RelayCommand<object>(parameter =>
@@ -160,6 +160,8 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         _confirmCreateGoalCommand = new RelayCommand<object>(_ => CreateGoal(), _ => CanCreateGoal);
         ConfirmCreateGoalCommand = _confirmCreateGoalCommand;
         SelectTargetIconCommand = new RelayCommand<TargetIconOptionViewModel>(SelectTargetIcon);
+        ToggleGoalMoreCommand = new RelayCommand<object>(_ => IsGoalMoreExpanded = !IsGoalMoreExpanded);
+        SelectGoalColorCommand = new RelayCommand<GoalColorOptionViewModel>(SelectGoalColor);
         SelectGoalDurationCommand = new RelayCommand<GoalDurationOptionViewModel>(SelectGoalDuration);
         EditCustomDurationCommand = new RelayCommand<object>(_ => OpenCustomDurationEditor(false));
         ConfirmCustomDurationCommand = new RelayCommand<object>(_ => ConfirmCustomDuration());
@@ -277,7 +279,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
                         target.CreatedAtUtc,
                         target.Remark,
                         target.TargetDurationMinutes,
-                        target.ArchivedAtUtc));
+                        target.ArchivedAtUtc, target.IconColorHex));
                 }
             }
 
@@ -373,6 +375,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
                 goal.CreatedAtUtc != target.CreatedAtUtc ||
                 goal.ArchivedAtUtc != target.ArchivedAtUtc ||
                 goal.Remark != target.Remark ||
+                goal.IconColorHex != (target.IconColorHex ?? TargetIconCatalog.DefaultColorHex) ||
                 goal.TargetDurationMinutes != target.TargetDurationMinutes)
             {
                 return true;
@@ -512,7 +515,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     public ICommand CancelCreateGoalCommand { get; }
     public ICommand EditGoalCommand { get; }
-    public string GoalDialogTitle => _editingGoal is null ? "创建目标" : "编辑目标";
+    public string GoalDialogTitle => _editingGoal is null ? "创建新目标" : "编辑目标";
     public string GoalDialogConfirmText => _editingGoal is null ? "创建" : "保存";
 
     public ICommand ConfirmCreateGoalCommand { get; }
@@ -566,6 +569,41 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     public ObservableCollection<GoalDurationOptionViewModel> GoalDurationOptions { get; }
 
+    public IReadOnlyList<GoalColorOptionViewModel> GoalColors { get; } =
+    [
+        new("深灰色", "#424547"), new("红色", "#FF6265"), new("橙色", "#FF7F3F", true),
+        new("黄色", "#FFD332"), new("绿色", "#2BC46D"), new("蓝色", "#299BFA"), new("紫色", "#A66AF3")
+    ];
+
+    private bool _isGoalMoreExpanded;
+    public bool IsGoalMoreExpanded
+    {
+        get => _isGoalMoreExpanded;
+        private set
+        {
+            if (_isGoalMoreExpanded == value) return;
+            _isGoalMoreExpanded = value;
+            if (!value) IsCustomDurationPopupOpen = false;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(GoalDialogHeight));
+            OnPropertyChanged(nameof(GoalMoreToggleText));
+        }
+    }
+
+    public double GoalDialogHeight => IsGoalMoreExpanded ? 540 : 390;
+    public string GoalMoreToggleText => IsGoalMoreExpanded ? "收起更多" : "添加更多";
+    public ICommand ToggleGoalMoreCommand { get; }
+    public ICommand SelectGoalColorCommand { get; }
+    public string SelectedGoalColorHex => GoalColors.First(color => color.IsSelected).ColorHex;
+
+    private void SelectGoalColor(GoalColorOptionViewModel? color)
+    {
+        if (color is null || !GoalColors.Contains(color)) return;
+        foreach (var option in GoalColors) option.IsSelected = ReferenceEquals(option, color);
+        foreach (var icon in AllTargetIcons) icon.SetColor(color.ColorHex);
+        OnPropertyChanged(nameof(SelectedGoalColorHex));
+    }
+
     public IReadOnlyList<string> RecentTargetIconFileNames => _recentTargetIconFileNames;
 
     public bool IsCreateGoalDialogOpen
@@ -595,13 +633,18 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         get => _newGoalName;
         set
         {
-            if (_newGoalName == value) return;
-            _newGoalName = value;
+            var normalized = value ?? string.Empty;
+            if (normalized.Length > 50) normalized = normalized[..50];
+            if (_newGoalName == normalized) return;
+            _newGoalName = normalized;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(NameCharacterCountDisplay));
             OnPropertyChanged(nameof(CanCreateGoal));
             _confirmCreateGoalCommand.NotifyCanExecuteChanged();
         }
     }
+
+    public string NameCharacterCountDisplay => $"{_newGoalName.Length}/50";
 
     public string NewGoalRemark
     {
@@ -1266,6 +1309,8 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
         NewGoalName = string.Empty;
         NewGoalRemark = string.Empty;
+        IsGoalMoreExpanded = false;
+        SelectGoalColor(GoalColors[2]);
         ResetGoalDuration();
         IsGoalIconLibraryOpen = false;
         SelectTargetIcon(QuickTargetIcons.FirstOrDefault() ?? AllTargetIcons.FirstOrDefault());
@@ -1277,6 +1322,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         IsGoalIconLibraryOpen = false;
         IsCustomDurationPopupOpen = false;
         IsCreateGoalDialogOpen = false;
+        IsGoalMoreExpanded = false;
         SetEditingGoal(null);
         NewGoalName = string.Empty;
         NewGoalRemark = string.Empty;
@@ -1310,7 +1356,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             goal.Name = name;
             goal.DraftName = name;
             goal.UpdateDetails(string.IsNullOrWhiteSpace(NewGoalRemark) ? null : NewGoalRemark.Trim(), _selectedGoalDurationMinutes);
-            goal.UpdateIcon(iconFileName);
+            goal.UpdateIcon(iconFileName, SelectedGoalColorHex);
             foreach (var record in FocusSessionRecords.Where(record => record.GoalId == goal.GoalId))
                 record.GoalName = name;
             if (ReferenceEquals(SelectedGoal, goal)) OnPropertyChanged(nameof(SelectedGoalName));
@@ -1330,7 +1376,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             iconFileName,
             DateTimeOffset.UtcNow,
             string.IsNullOrWhiteSpace(NewGoalRemark) ? null : NewGoalRemark.Trim(),
-            _selectedGoalDurationMinutes);
+            _selectedGoalDurationMinutes, iconColorHex: SelectedGoalColorHex);
 
         Goals.Add(newGoal);
         OnPropertyChanged(nameof(VisibleGoals));
@@ -1355,6 +1401,8 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         if (goal is null || goal.IsArchived || IsCreateGoalDialogOpen || !Goals.Contains(goal)) return;
         IsGoalListMenuOpen = false;
         SetEditingGoal(goal);
+        IsGoalMoreExpanded = false;
+        SelectGoalColor(GoalColors.FirstOrDefault(color => color.ColorHex == goal.IconColorHex) ?? GoalColors[2]);
         NewGoalName = goal.Name;
         NewGoalRemark = goal.Remark ?? string.Empty;
         SetGoalDuration(goal.TargetDurationMinutes);
@@ -1823,6 +1871,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     private void NotifyMonthlyFocusTargetChanged()
     {
+        _focusGoalSettingsModal.RefreshMonthlyProgress();
         OnPropertyChanged(nameof(HasMonthlyFocusTarget));
         OnPropertyChanged(nameof(MonthlyFocusTargetHours));
         OnPropertyChanged(nameof(MonthlyFocusTargetPopupTitle));
@@ -2034,6 +2083,15 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     private IEnumerable<FocusSessionRecordViewModel> GetRecordsForMonth(DateTime month) =>
         FocusSessionRecords.Where(record => record.StartTime.Year == month.Year && record.StartTime.Month == month.Month);
+
+    private TimeSpan GetCurrentMonthFocusDuration()
+    {
+        var today = _localNowProvider().Date;
+        var ticks = FocusStatisticsCalculator.GetSlices(GetCoreFocusSessionRecords())
+            .Where(slice => slice.StartsAt.Year == today.Year && slice.StartsAt.Month == today.Month)
+            .Sum(slice => slice.Duration.Ticks);
+        return TimeSpan.FromTicks(ticks);
+    }
 
     private FocusDailySummary GetDailySummary(DateTime date) =>
         FocusStatisticsCalculator.GetDailySummaries(GetCoreFocusSessionRecords(), date, 1)[0];
@@ -2789,7 +2847,8 @@ public sealed class GoalOverviewItemViewModel : INotifyPropertyChanged
         DateTimeOffset? createdAtUtc = null,
         string? remark = null,
         int? targetDurationMinutes = null,
-        DateTimeOffset? archivedAtUtc = null)
+        DateTimeOffset? archivedAtUtc = null,
+        string? iconColorHex = null)
     {
         GoalId = goalId;
         CreatedAtUtc = createdAtUtc;
@@ -2798,7 +2857,8 @@ public sealed class GoalOverviewItemViewModel : INotifyPropertyChanged
         Status = status;
         RecentLabel = recentLabel;
         IconFileName = TargetIconCatalog.ResolveIconFileName(iconFileName);
-        IconSource = TargetIconCatalog.GetIconSource(IconFileName);
+        IconColorHex = iconColorHex ?? TargetIconCatalog.DefaultColorHex;
+        IconSource = TargetIconCatalog.GetIconSource(IconFileName, IconColorHex);
         IsSelected = isSelected;
         IsArchived = isArchived;
         _archivedAtUtc = archivedAtUtc;
@@ -2831,6 +2891,7 @@ public sealed class GoalOverviewItemViewModel : INotifyPropertyChanged
         ? CreatedDateDisplay
         : $"{Remark}  ·  {CreatedDateDisplay}";
     public string IconFileName { get; private set; }
+    public string IconColorHex { get; private set; }
     public string IconSource { get; private set; }
 
     public string? Remark { get; private set; }
@@ -2852,13 +2913,16 @@ public sealed class GoalOverviewItemViewModel : INotifyPropertyChanged
         }
     }
 
-    public void UpdateIcon(string fileName)
+    public void UpdateIcon(string fileName, string? colorHex = null)
     {
         var resolved = TargetIconCatalog.ResolveIconFileName(fileName);
-        if (IconFileName == resolved) return;
+        colorHex ??= IconColorHex;
+        if (IconFileName == resolved && IconColorHex == colorHex) return;
         IconFileName = resolved;
-        IconSource = TargetIconCatalog.GetIconSource(resolved);
+        IconColorHex = colorHex;
+        IconSource = TargetIconCatalog.GetIconSource(resolved, colorHex);
         OnPropertyChanged(nameof(IconFileName));
+        OnPropertyChanged(nameof(IconColorHex));
         OnPropertyChanged(nameof(IconSource));
     }
     public string Status { get; }
@@ -2951,6 +3015,7 @@ public sealed class GoalOverviewItemViewModel : INotifyPropertyChanged
 public sealed class TargetIconOptionViewModel : INotifyPropertyChanged
 {
     private bool _isSelected;
+    private string _colorHex = TargetIconCatalog.DefaultColorHex;
 
     public TargetIconOptionViewModel(string fileName, string iconSource)
     {
@@ -2963,7 +3028,34 @@ public sealed class TargetIconOptionViewModel : INotifyPropertyChanged
     public string FileName { get; }
 
     public string IconSource { get; }
+    public string DisplayIconSource => TargetIconCatalog.GetIconSource(FileName, IsSelected ? _colorHex : "#65758B");
 
+    public void SetColor(string colorHex)
+    {
+        _colorHex = colorHex;
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DisplayIconSource)));
+    }
+
+    public bool IsSelected
+    {
+        get => _isSelected;
+        set
+        {
+            if (_isSelected == value) return;
+            _isSelected = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsSelected)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DisplayIconSource)));
+        }
+    }
+}
+
+public sealed class GoalColorOptionViewModel(string name, string colorHex, bool isSelected = false) : INotifyPropertyChanged
+{
+    private bool _isSelected = isSelected;
+    public string Name { get; } = name;
+    public string ColorHex { get; } = colorHex;
+    public Brush ColorBrush { get; } = (Brush)new BrushConverter().ConvertFromInvariantString(colorHex)!;
+    public event PropertyChangedEventHandler? PropertyChanged;
     public bool IsSelected
     {
         get => _isSelected;

@@ -3,16 +3,39 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
 
 namespace FocusApp.Desktop.Views;
 
 public partial class FocusGoalSettingsModal : UserControl
 {
     private bool _isMoreButtonClickPending;
+    private readonly DispatcherTimer _monthlyProgressTimer = new() { Interval = TimeSpan.FromMinutes(1) };
 
     public FocusGoalSettingsModal()
     {
         InitializeComponent();
+        _monthlyProgressTimer.Tick += (_, _) => RefreshMonthlyProgress();
+    }
+
+    private void FocusGoalSettingsModal_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        if (IsVisible)
+        {
+            RefreshMonthlyProgress();
+            _monthlyProgressTimer.Start();
+        }
+        else
+        {
+            _monthlyProgressTimer.Stop();
+        }
+    }
+
+    private void FocusGoalSettingsModal_Unloaded(object sender, RoutedEventArgs e) => _monthlyProgressTimer.Stop();
+
+    private void RefreshMonthlyProgress()
+    {
+        if (DataContext is FocusGoalSettingsModalViewModel viewModel) viewModel.RefreshMonthlyProgress();
     }
 
     private void FocusGoalMoreButton_Click(object sender, RoutedEventArgs e)

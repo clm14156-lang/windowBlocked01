@@ -122,7 +122,8 @@ public partial class CreateGoalModal : UserControl
         Point offset)
     {
         const double rightInset = 18;
-        const double bottomClearance = 126;
+        // Keep the tip just above the custom option in the 540-DIP expanded card.
+        const double bottomClearance = 98;
         var x = targetSize.Width - popupSize.Width - rightInset;
         var y = targetSize.Height - popupSize.Height - bottomClearance;
         return [new CustomPopupPlacement(new Point(Math.Max(0, x), Math.Max(0, y)), PopupPrimaryAxis.Vertical)];
