@@ -24,15 +24,6 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     private const int PreferredMaximumTrendTickCount = 6;
     private const int MaximumSupportedTrendMinutes = 24 * 60;
     private const double TrendCurveTension = 0.12;
-    private static readonly string[] TodayFocusDistributionColors =
-    [
-        "#FF8000",
-        "#3B82F6",
-        "#8B5CF6",
-        "#34C759",
-        "#FF2D55",
-        "#5856D6"
-    ];
     private StatisticsRangeOptionViewModel _selectedRange;
     private TrendDataPointViewModel? _hoveredPoint;
     private StatisticsTab _selectedTab = StatisticsTab.Overview;
@@ -550,10 +541,10 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     public ObservableCollection<FocusSessionRecordViewModel> FocusSessionRecords { get; } = [];
 
-    public ObservableCollection<TodayFocusDistributionViewModel> TodayFocusDistributions { get; } = [];
-    public int TodayFocusDistributionTotalMinutes { get; private set; }
-    public string TodayFocusDistributionTotalDisplay => FormatDuration(TodayFocusDistributionTotalMinutes);
-    public bool HasTodayFocusDistribution => TodayFocusDistributions.Count > 0;
+    public ObservableCollection<PeriodFocusDistributionViewModel> PeriodFocusDistributions { get; } = [];
+    public int PeriodFocusDistributionTotalMinutes { get; private set; }
+    public bool HasPeriodFocusDistribution => PeriodFocusDistributions.Count > 0;
+    public string PeriodFocusDistributionEmptyTitle => SelectedRange.Days == 7 ? "近七天没有专注记录" : $"{SelectedRange.Label}没有专注记录";
 
     public ObservableCollection<FocusSessionRecordViewModel> SelectedDayRecords { get; } = [];
     public ObservableCollection<CalendarTimeDistributionViewModel> SelectedDayDistributions { get; } = [];
@@ -990,6 +981,15 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     public string MonthlyFocusDaysValueDisplay => MonthlyFocusDays.ToString();
 
     public string MonthlyFocusDaysUnitDisplay => "天";
+
+    public bool HasMonthlyFocusData => MonthlyFocusDays > 0;
+    public int MonthlyAverageMinutes => MonthlyFocusDays == 0 ? 0
+        : (int)Math.Round(MonthlyTotalMinutes / (double)MonthlyFocusDays, MidpointRounding.AwayFromZero);
+    public string MonthlyAverageHoursValueDisplay => MonthlyAverageMinutes >= 60 ? (MonthlyAverageMinutes / 60).ToString() : string.Empty;
+    public string MonthlyAverageHoursUnitDisplay => MonthlyAverageMinutes >= 60 ? "小时" : string.Empty;
+    public string MonthlyAverageMinutesValueDisplay => !HasMonthlyFocusData ? "—"
+        : MonthlyAverageMinutes < 60 || MonthlyAverageMinutes % 60 > 0 ? (MonthlyAverageMinutes % 60).ToString() : string.Empty;
+    public string MonthlyAverageMinutesUnitDisplay => HasMonthlyFocusData && (MonthlyAverageMinutes < 60 || MonthlyAverageMinutes % 60 > 0) ? "分钟" : string.Empty;
 
     private static string FormatShortDuration(int minutes) => minutes >= 60
         ? minutes % 60 == 0 ? $"{minutes / 60}h" : $"{minutes / 60}h {minutes % 60}m"
@@ -1735,63 +1735,46 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         {
             RefreshTrend();
         }
+        else
+        {
+            RefreshPeriodFocusDistribution();
+        }
     }
 
-    private void RefreshTodayFocusDistribution()
+    private void RefreshPeriodFocusDistribution()
     {
-        TodayFocusDistributions.Clear();
+        PeriodFocusDistributions.Clear();
+        // Reuse the plotted dates so range changes and historical reference dates stay in sync.
+        var endDate = (TrendPoints.LastOrDefault()?.Date.Date ?? _trendReferenceDate.Date).AddDays(1);
+        var startDate = endDate.AddDays(-SelectedRange.Days);
         var slices = FocusStatisticsCalculator.GetSlices(GetCoreFocusSessionRecords())
-            .Where(slice => slice.StartsAt.Date == DateTime.Today)
+            .Where(slice => slice.StartsAt >= startDate && slice.StartsAt < endDate)
             .ToArray();
         var totalTicks = slices.Sum(slice => slice.Duration.Ticks);
-        TodayFocusDistributionTotalMinutes = (int)TimeSpan.FromTicks(totalTicks).TotalMinutes;
-
-        var startAngle = 0d;
-        var colorIndex = 0;
+        PeriodFocusDistributionTotalMinutes = (int)TimeSpan.FromTicks(totalTicks).TotalMinutes;
         foreach (var group in slices
                      .GroupBy(slice => string.IsNullOrWhiteSpace(slice.Record.TargetId) ? "goal-unassigned" : slice.Record.TargetId)
-                     .Select(group => new
-                     {
-                         Key = group.Key,
-                         Slices = group.ToArray(),
-                         Ticks = group.Sum(slice => slice.Duration.Ticks)
-                     })
-                     .OrderByDescending(group => group.Ticks)
+                     .OrderByDescending(group => group.Sum(slice => slice.Duration.Ticks))
                      .ThenBy(group => group.Key, StringComparer.Ordinal))
         {
-            var minutes = (int)TimeSpan.FromTicks(group.Ticks).TotalMinutes;
-            if (minutes <= 0 || totalTicks <= 0)
-            {
-                continue;
-            }
-
+            var ticks = group.Sum(slice => slice.Duration.Ticks);
             var goal = Goals.FirstOrDefault(item => item.GoalId == group.Key);
-            var name = goal?.Name ?? group.Slices.First().Record.TargetName;
-            var targetName = group.Key == "goal-unassigned" || string.IsNullOrWhiteSpace(name)
-                ? "自由专注"
-                : name;
-            var ratio = group.Ticks / (double)totalTicks;
-            var sweepAngle = ratio * 360d;
-            TodayFocusDistributions.Add(new TodayFocusDistributionViewModel(
-                targetName,
-                minutes,
-                ratio,
-                TodayFocusDistributionColors[colorIndex % TodayFocusDistributionColors.Length],
-                startAngle,
-                sweepAngle));
-            startAngle += sweepAngle;
-            colorIndex++;
+            var name = goal?.Name ?? group.First().Record.TargetName;
+            PeriodFocusDistributions.Add(new PeriodFocusDistributionViewModel(
+                group.Key == "goal-unassigned" || string.IsNullOrWhiteSpace(name) ? "自由专注" : name,
+                (int)TimeSpan.FromTicks(ticks).TotalMinutes,
+                totalTicks == 0 ? 0 : ticks / (double)totalTicks,
+                goal?.IconSource ?? TargetIconCatalog.GetIconSource(null)));
         }
+        OnPropertyChanged(nameof(PeriodFocusDistributionTotalMinutes));
+        OnPropertyChanged(nameof(HasPeriodFocusDistribution));
+        OnPropertyChanged(nameof(PeriodFocusDistributionEmptyTitle));
     }
 
     private void NotifyTodayFocusDisplayChanged()
     {
-        RefreshTodayFocusDistribution();
         OnPropertyChanged(nameof(TodayFocusDuration));
         OnPropertyChanged(nameof(TodayFocusCount));
-        OnPropertyChanged(nameof(TodayFocusDistributionTotalMinutes));
-        OnPropertyChanged(nameof(TodayFocusDistributionTotalDisplay));
-        OnPropertyChanged(nameof(HasTodayFocusDistribution));
         NotifyTodayFocusTargetChanged();
     }
 
@@ -1979,7 +1962,8 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             SelectedDayDistributions.Add(new CalendarTimeDistributionViewModel(
                 group.Key == "goal-unassigned" || string.IsNullOrWhiteSpace(name) ? "自由专注" : name,
                 (int)TimeSpan.FromTicks(ticks).TotalMinutes,
-                totalTicks == 0 ? 0 : ticks / (double)totalTicks));
+                totalTicks == 0 ? 0 : ticks / (double)totalTicks,
+                goal?.IconSource ?? TargetIconCatalog.GetIconSource(null)));
         }
     }
 
@@ -2031,6 +2015,12 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(MonthlyTotalMinutesUnitDisplay));
         OnPropertyChanged(nameof(MonthlyFocusDaysValueDisplay));
         OnPropertyChanged(nameof(MonthlyFocusDaysUnitDisplay));
+        OnPropertyChanged(nameof(HasMonthlyFocusData));
+        OnPropertyChanged(nameof(MonthlyAverageMinutes));
+        OnPropertyChanged(nameof(MonthlyAverageHoursValueDisplay));
+        OnPropertyChanged(nameof(MonthlyAverageHoursUnitDisplay));
+        OnPropertyChanged(nameof(MonthlyAverageMinutesValueDisplay));
+        OnPropertyChanged(nameof(MonthlyAverageMinutesUnitDisplay));
         SelectCalendarDayInternal(selectedDate);
     }
 
@@ -2340,6 +2330,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         }
 
         UpdateTrendGeometry();
+        RefreshPeriodFocusDistribution();
 
         var totalMinutes = data.Sum(point => point.Minutes);
         var averageMinutes = (int)Math.Round(totalMinutes / (double)data.Length);
@@ -2592,6 +2583,11 @@ public sealed class CalendarDayViewModel : INotifyPropertyChanged
     public string DurationLabel => HeatLevel == 0 ? string.Empty
         : Math.Max(0.1, Math.Round(Minutes / 60d, 1, MidpointRounding.AwayFromZero))
             .ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + "h";
+    public string HeatTextColor => HeatLevel switch
+    {
+        1 => "#F2B58C", 2 => "#EFA06D", 3 => "#EB874B",
+        4 => "#E36B2C", 5 => "#D65318", 6 => "#BA4010", _ => "#272A31"
+    };
     public bool IsSelected
     {
         get => _isSelected;
@@ -2618,6 +2614,8 @@ public sealed class FocusSessionRecordViewModel : INotifyPropertyChanged
     public IReadOnlyList<string> CompletedTaskIds { get; init; } = [];
     public string IconSource { get; init; } = TargetIconCatalog.GetIconSource(null);
     public string CalendarTitle => HasGoal ? GoalName : "自由专注";
+    public string CalendarDurationDisplay => DurationMinutes < 1 ? "<1 分钟" : DurationMinutes < 60 ? $"{DurationMinutes} 分钟"
+        : DurationMinutes % 60 == 0 ? $"{DurationMinutes / 60} 小时" : $"{DurationMinutes / 60} 小时 {DurationMinutes % 60} 分钟";
     private DateTime _startTime;
     private DateTime _endTime;
     private string _goalId;
@@ -2719,108 +2717,35 @@ public sealed class FocusSessionRecordViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(TimeRangeDisplay));
         OnPropertyChanged(nameof(DurationMinutes));
         OnPropertyChanged(nameof(CompactDurationDisplay));
+        OnPropertyChanged(nameof(CalendarDurationDisplay));
     }
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 }
 
-public sealed class TodayFocusDistributionViewModel
+public sealed record PeriodFocusDistributionViewModel(string TargetName, int Minutes, double Ratio, string IconSource)
 {
-    private const double ChartCenter = 70;
-    private const double OuterRadius = 60;
-    private const double InnerRadius = 42;
-    private const double SegmentGapDegrees = 1.4;
-
-    public TodayFocusDistributionViewModel(
-        string targetName,
-        int minutes,
-        double ratio,
-        string colorHex,
-        double startAngle,
-        double sweepAngle)
-    {
-        TargetName = targetName;
-        Minutes = minutes;
-        Ratio = ratio;
-        ColorHex = colorHex;
-        ColorBrush = CreateBrush(colorHex);
-        Percent = (int)Math.Round(ratio * 100, MidpointRounding.AwayFromZero);
-        Geometry = CreateGeometry(startAngle, sweepAngle);
-    }
-
-    public string TargetName { get; }
-    public int Minutes { get; }
-    public double Ratio { get; }
-    public int Percent { get; }
-    public string ColorHex { get; }
-    public Brush ColorBrush { get; }
-    public PathGeometry Geometry { get; }
-    public string DurationDisplay => Minutes >= 60
-        ? $"{Minutes / 60}小时{Minutes % 60}分钟"
-        : $"{Minutes}分钟";
-    public string PercentDisplay => $"{Percent}%";
-
-    private static Brush CreateBrush(string colorHex)
-    {
-        var brush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(colorHex));
-        brush.Freeze();
-        return brush;
-    }
-
-    private static PathGeometry CreateGeometry(double startAngle, double sweepAngle)
-    {
-        var effectiveSweep = Math.Min(359.8, Math.Max(0.1, sweepAngle - SegmentGapDegrees));
-        var outerStart = PointOnCircle(OuterRadius, startAngle);
-        var outerEnd = PointOnCircle(OuterRadius, startAngle + effectiveSweep);
-        var innerEnd = PointOnCircle(InnerRadius, startAngle + effectiveSweep);
-        var innerStart = PointOnCircle(InnerRadius, startAngle);
-        var isLargeArc = effectiveSweep > 180;
-        var figure = new PathFigure
-        {
-            StartPoint = outerStart,
-            IsClosed = true,
-            IsFilled = true
-        };
-        figure.Segments.Add(new ArcSegment(
-            outerEnd,
-            new Size(OuterRadius, OuterRadius),
-            0,
-            isLargeArc,
-            SweepDirection.Clockwise,
-            true));
-        figure.Segments.Add(new LineSegment(innerEnd, true));
-        figure.Segments.Add(new ArcSegment(
-            innerStart,
-            new Size(InnerRadius, InnerRadius),
-            0,
-            isLargeArc,
-            SweepDirection.Counterclockwise,
-            true));
-        return new PathGeometry([figure]);
-    }
-
-    private static Point PointOnCircle(double radius, double angle)
-    {
-        var radians = (angle - 90) * Math.PI / 180;
-        return new Point(
-            ChartCenter + radius * Math.Cos(radians),
-            ChartCenter + radius * Math.Sin(radians));
-    }
+    public string DurationDisplay => Minutes < 1 ? "<1 分钟" : Minutes < 60 ? $"{Minutes} 分钟"
+        : Minutes % 60 == 0 ? $"{Minutes / 60} 小时" : $"{Minutes / 60} 小时 {Minutes % 60} 分钟";
 }
 
 public sealed class CalendarTimeDistributionViewModel
 {
-    public CalendarTimeDistributionViewModel(string targetName, int minutes, double ratio)
+    public CalendarTimeDistributionViewModel(string targetName, int minutes, double ratio, string? iconSource = null)
     {
         TargetName = targetName;
         Minutes = minutes;
         Ratio = ratio;
+        IconSource = iconSource ?? TargetIconCatalog.GetIconSource(null);
     }
 
     public string TargetName { get; }
     public int Minutes { get; }
     public double Ratio { get; }
+    public string IconSource { get; }
+    public string CalendarDurationDisplay => Minutes < 1 ? "<1 分钟" : Minutes < 60 ? $"{Minutes} 分钟"
+        : Minutes % 60 == 0 ? $"{Minutes / 60} 小时" : $"{Minutes / 60} 小时 {Minutes % 60} 分钟";
     public string CompactDurationDisplay => Minutes < 1 ? "<1m" : Minutes < 60 ? $"{Minutes}m"
         : Minutes % 60 == 0 ? $"{Minutes / 60}h" : $"{Minutes / 60}h {Minutes % 60}m";
 }

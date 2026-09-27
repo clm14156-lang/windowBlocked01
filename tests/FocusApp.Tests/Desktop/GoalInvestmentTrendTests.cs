@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Xml.Linq;
@@ -8,6 +8,7 @@ using Xunit;
 
 namespace FocusApp.Tests.Desktop;
 
+[Collection("Calendar UI")]
 public sealed class GoalInvestmentTrendTests
 {
     private static readonly XNamespace Presentation = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
@@ -34,7 +35,7 @@ public sealed class GoalInvestmentTrendTests
         Assert.Equal("最近七天趋势图", model.TrendTitle);
         Assert.Equal("1小时", model.PeriodInvestment.Display);
         Assert.Equal("1小时30分钟", model.TotalInvestment.Display);
-        Assert.Equal(new[] { "2026年7月", "2026年9月" }, model.AvailableMonths.Select(month => month.Display));
+        Assert.Equal(new[] { "2026年9月", "2026年7月" }, model.AvailableMonths.Select(month => month.Display));
         Assert.Equal(3, model.YAxisTicks.Count);
         Assert.Equal(16, model.YAxisTicks.Min(tick => tick.ChartY));
         Assert.DoesNotContain(model.AvailableMonths, month => month.Month.Month == 8);
@@ -59,7 +60,7 @@ public sealed class GoalInvestmentTrendTests
         model.SetHoveredPointNearestTo(emptyDay.ChartX);
         model.SelectHoveredDate();
         Assert.Equal(0, emptyDay.Minutes);
-        Assert.Equal(108, emptyDay.ChartY);
+        Assert.Equal(124, emptyDay.ChartY);
         Assert.True(emptyDay.IsSelected);
         Assert.True(emptyDay.IsMarkerVisible);
         Assert.False(point.IsSelected);
@@ -107,7 +108,7 @@ public sealed class GoalInvestmentTrendTests
         model.PreviousMonthYearCommand.Execute(null);
         Assert.Equal(2025, model.MonthPickerYear);
         Assert.True(model.HasAvailableMonths);
-        Assert.Equal(new[] { "1月", "3月" }, model.AvailableMonths.Select(month => month.PickerDisplay));
+        Assert.Equal(new[] { "3月", "1月" }, model.AvailableMonths.Select(month => month.PickerDisplay));
         Assert.DoesNotContain(model.AvailableMonths, month => month.IsSelected);
 
         var march = model.AvailableMonths.Single(month => month.Month.Month == 3);
@@ -150,38 +151,43 @@ public sealed class GoalInvestmentTrendTests
     }
 
     [Fact]
-    public void ModalUsesFixedSizeRealBindingsAndUnclippedTaskPoptips()
+    public void ModalUsesThreeMetricsAndInlineTimelineTasks()
     {
         var root = FindRepositoryRoot();
         var modal = XDocument.Load(Path.Combine(root, "src", "FocusApp.Desktop", "Views", "GoalInvestmentTrendModal.xaml"));
         var card = modal.Descendants(Presentation + "Border").Single(element => (string?)element.Attribute(Xaml + "Name") == "TrendModalCard");
         Assert.Equal("700", (string?)card.Attribute("Width"));
         Assert.Equal("540", (string?)card.Attribute("Height"));
-        var trendSectionTitle = modal.Descendants(Presentation + "TextBlock").Single(element => (string?)element.Attribute(Xaml + "Name") == "TrendSectionTitle");
-        Assert.Equal("{Binding TrendTitle}", (string?)trendSectionTitle.Attribute("Text"));
-        Assert.Equal("Medium", (string?)trendSectionTitle.Attribute("FontWeight"));
+        Assert.DoesNotContain(modal.Descendants(Presentation + "TextBlock"), element =>
+            (string?)element.Attribute("Text") == "累计投入");
+        Assert.Contains(modal.Descendants(Presentation + "TextBlock"), element => (string?)element.Attribute("Text") == "活跃天数");
+        Assert.Contains(modal.Descendants(Presentation + "TextBlock"), element => (string?)element.Attribute("Text") == "平均时长");
         var trendChartCard = modal.Descendants(Presentation + "Border").Single(element => (string?)element.Attribute(Xaml + "Name") == "TrendChartCard");
         Assert.Empty(trendChartCard.Descendants(Presentation + "TextBlock"));
         Assert.Single(trendChartCard.Descendants().Where(element => element.Name.LocalName == "GoalInvestmentTrendChart"));
         Assert.Contains(modal.Descendants(Presentation + "ItemsControl"), item => (string?)item.Attribute("ItemsSource") == "{Binding AvailableMonths}");
         Assert.Contains(modal.Descendants(Presentation + "ItemsControl"), item => (string?)item.Attribute("ItemsSource") == "{Binding SelectedDateRecords}");
         var rangeSelector = modal.Descendants(Presentation + "Border").Single(element => (string?)element.Attribute(Xaml + "Name") == "RangeSelectorSurface");
-        Assert.Equal("#F7F8FA", (string?)rangeSelector.Attribute("Background"));
-        Assert.Equal("13", (string?)rangeSelector.Attribute("CornerRadius"));
+        Assert.Equal("#FAFBFC", (string?)rangeSelector.Attribute("Background"));
+        Assert.Equal("7", (string?)rangeSelector.Attribute("CornerRadius"));
         var rangeButtonStyle = modal.Descendants(Presentation + "Style").Single(element => (string?)element.Attribute(Xaml + "Key") == "TrendRangeButton");
         Assert.DoesNotContain(rangeButtonStyle.Descendants(Presentation + "Setter"), setter =>
             (string?)setter.Attribute("Property") == "Background" &&
             (string?)setter.Attribute("Value") == "{DynamicResource AccentPrimary}");
         var monthPicker = modal.Descendants(Presentation + "Border").Single(element => (string?)element.Attribute(Xaml + "Name") == "MonthPickerSurface");
-        Assert.Equal("220", (string?)monthPicker.Attribute("Height"));
-        Assert.Equal("14", (string?)monthPicker.Attribute("CornerRadius"));
-        var monthGrid = modal.Descendants(Presentation + "ItemsControl").Single(element => (string?)element.Attribute(Xaml + "Name") == "AvailableMonthGrid");
+        Assert.Null(monthPicker.Attribute("Height"));
+        Assert.Equal("180", (string?)monthPicker.Attribute("Width"));
+        Assert.Equal("9", (string?)monthPicker.Attribute("CornerRadius"));
+        var monthGrid = modal.Descendants(Presentation + "ItemsControl").Single(element => (string?)element.Attribute(Xaml + "Name") == "AvailableMonthList");
         Assert.Equal("{Binding AvailableMonths}", (string?)monthGrid.Attribute("ItemsSource"));
         var emptyState = modal.Descendants(Presentation + "TextBlock").Single(element => (string?)element.Attribute(Xaml + "Name") == "MonthPickerEmptyState");
         Assert.Equal("暂无数据", (string?)emptyState.Attribute("Text"));
-        Assert.Contains(modal.Descendants(Presentation + "Popup"), popup =>
-            (string?)popup.Attribute("AllowsTransparency") == "True" &&
-            (string?)popup.Attribute("PlacementTarget") == "{Binding ElementName=CompletedTaskButton}");
+        Assert.Single(modal.Descendants(Presentation + "Popup"));
+        Assert.Contains(modal.Descendants(Presentation + "ItemsControl"), items =>
+            (string?)items.Attribute(Xaml + "Name") == "TimelineCompletedTasks" &&
+            (string?)items.Attribute("Visibility") == "{Binding IsExpanded, Converter={StaticResource BooleanToVisibilityConverter}}");
+        Assert.Contains(modal.Descendants(Presentation + "Button"), button =>
+            (string?)button.Attribute("Command") == "{Binding ToggleDetailsCommand}");
 
         var page = XDocument.Load(Path.Combine(root, "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
         var entry = page.Descendants(Presentation + "Button").Single(element => (string?)element.Attribute(Xaml + "Name") == "GoalInvestmentTrendButton");

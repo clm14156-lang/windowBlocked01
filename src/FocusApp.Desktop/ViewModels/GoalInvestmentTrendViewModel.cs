@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows;
@@ -13,7 +13,7 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
     internal const double PlotLeft = 44;
     internal const double PlotRight = 610;
     internal const double PlotTop = 16;
-    internal const double PlotBottom = 108;
+    internal const double PlotBottom = 124;
     private const double PlotWidth = PlotRight - PlotLeft;
     private const double PlotHeight = PlotBottom - PlotTop;
     private readonly Func<DateTime> _now;
@@ -93,6 +93,7 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
     public int MonthPickerYear => _monthPickerYear;
     public string MonthPickerYearDisplay => _monthPickerYear.ToString();
     public bool HasAvailableMonths => AvailableMonths.Count > 0;
+    public bool HasMultipleMonthYears => GetMonthPickerYears().Length > 1;
     public bool CanNavigateToPreviousMonthYear => GetMonthPickerYears().Any(year => year < _monthPickerYear);
     public bool CanNavigateToNextMonthYear => GetMonthPickerYears().Any(year => year > _monthPickerYear);
     public string PeriodInvestmentTitle => _range switch
@@ -108,6 +109,8 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
         _ => $"{SelectedMonthDisplay}趋势图"
     };
     public GoalInvestmentDurationViewModel PeriodInvestment { get; private set; } = new(0);
+    public int ActiveDays { get; private set; }
+    public GoalInvestmentDurationViewModel AverageInvestment { get; private set; } = new(0);
     public GoalInvestmentDurationViewModel TotalInvestment { get; private set; } = new(0);
     public bool HasTargetDuration => _goal?.TargetDurationMinutes is > 0;
     public string TargetDurationDisplay => HasTargetDuration
@@ -136,9 +139,9 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
         }
     }
     public bool IsTooltipOpen => HoveredPoint is not null;
-    public double TooltipLeft => HoveredPoint is null ? 0 : HoveredPoint.ChartX > 500 ? HoveredPoint.ChartX - 130 : HoveredPoint.ChartX + 10;
-    public double TooltipTop => HoveredPoint is null ? 0 : Math.Clamp(HoveredPoint.ChartY - 54, 4, 66);
-    public string SelectedDateTitle => $"{_selectedDate:M月d日}的专注记录";
+    public double TooltipLeft => HoveredPoint is null ? 0 : Math.Clamp(HoveredPoint.ChartX - 50, PlotLeft, PlotRight - 100);
+    public double TooltipTop => HoveredPoint is null ? 0 : Math.Clamp(HoveredPoint.ChartY - 64, -10, PlotBottom - 54);
+    public string SelectedDateTitle => $"{_selectedDate:M月d日}";
     public string SelectedDateSummary
     {
         get
@@ -268,11 +271,12 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
     private void RefreshAvailableMonthsForPicker()
     {
         AvailableMonths.Clear();
-        foreach (var month in _availableDataMonths.Where(month => month.Year == _monthPickerYear).OrderBy(month => month))
+        foreach (var month in _availableDataMonths.Where(month => month.Year == _monthPickerYear).OrderByDescending(month => month))
             AvailableMonths.Add(new GoalInvestmentMonthOptionViewModel(month, IsMonthRange && month == _selectedMonth));
         OnPropertyChanged(nameof(MonthPickerYear));
         OnPropertyChanged(nameof(MonthPickerYearDisplay));
         OnPropertyChanged(nameof(HasAvailableMonths));
+        OnPropertyChanged(nameof(HasMultipleMonthYears));
         OnPropertyChanged(nameof(CanNavigateToPreviousMonthYear));
         OnPropertyChanged(nameof(CanNavigateToNextMonthYear));
         _previousMonthYearCommand.NotifyCanExecuteChanged();
@@ -288,6 +292,8 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
         {
             PeriodInvestment = new GoalInvestmentDurationViewModel(0);
             TotalInvestment = new GoalInvestmentDurationViewModel(0);
+            ActiveDays = 0;
+            AverageInvestment = new GoalInvestmentDurationViewModel(0);
             TrendPoints.Clear();
             YAxisTicks.Clear();
             SelectedDateRecords.Clear();
@@ -300,6 +306,12 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
         var (start, end) = GetRange();
         PeriodInvestment = new GoalInvestmentDurationViewModel(GetInvestmentMinutes(start, end));
         TotalInvestment = new GoalInvestmentDurationViewModel(GetInvestmentMinutes(null, _now()));
+        var periodRecords = _records.Where(record => record.StartTime < end && record.EndTime > start).ToArray();
+        ActiveDays = Enumerable.Range(0, (end.Date - start.Date).Days)
+            .Count(offset => periodRecords.Any(record => record.StartTime < start.Date.AddDays(offset + 1)
+                                                     && record.EndTime > start.Date.AddDays(offset)));
+        AverageInvestment = new GoalInvestmentDurationViewModel(periodRecords.Length == 0 ? 0
+            : (int)Math.Round(PeriodInvestment.TotalMinutes / (double)periodRecords.Length, MidpointRounding.AwayFromZero));
         BuildTrend(start.Date, end.Date.AddDays(-1));
 
         var selectedPoint = TrendPoints.FirstOrDefault(point => point.Date == _selectedDate);
@@ -370,12 +382,16 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
         _selectedDate = date.Date;
         foreach (var point in TrendPoints) point.IsSelected = point.Date == _selectedDate;
         SelectedDateRecords.Clear();
-        foreach (var record in _records.Where(record => record.StartTime < _selectedDate.AddDays(1) && record.EndTime > _selectedDate))
+        var records = _records.Where(record => record.StartTime < _selectedDate.AddDays(1) && record.EndTime > _selectedDate)
+            .OrderByDescending(record => record.StartTime).ToArray();
+        for (var index = 0; index < records.Length; index++)
         {
+            var record = records[index];
             var start = record.StartTime < _selectedDate ? _selectedDate : record.StartTime;
             var end = record.EndTime > _selectedDate.AddDays(1) ? _selectedDate.AddDays(1) : record.EndTime;
             var completedTasks = GetCompletedTasks(record, _selectedDate);
-            SelectedDateRecords.Add(new GoalInvestmentFocusRecordViewModel(start, end, record.GoalName, completedTasks));
+            SelectedDateRecords.Add(new GoalInvestmentFocusRecordViewModel(start, end, record.GoalName, completedTasks)
+            { IsFirst = index == 0, IsLast = index == records.Length - 1 });
         }
         OnPropertyChanged(nameof(SelectedDateTitle));
         OnPropertyChanged(nameof(SelectedDateSummary));
@@ -439,7 +455,7 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
     {
         foreach (var property in new[]
                  {
-                     nameof(PeriodInvestment), nameof(TotalInvestment), nameof(HasTargetDuration), nameof(TargetDurationDisplay),
+                     nameof(PeriodInvestment), nameof(ActiveDays), nameof(AverageInvestment), nameof(TotalInvestment), nameof(HasTargetDuration), nameof(TargetDurationDisplay),
                      nameof(TotalInvestmentProgress), nameof(TotalInvestmentProgressDisplay), nameof(PeriodInvestmentTitle),
                      nameof(TrendTitle), nameof(MonthButtonText), nameof(SelectedMonthDisplay), nameof(SelectedDateTitle),
                      nameof(SelectedDateSummary), nameof(HasSelectedDateRecords)
@@ -503,7 +519,7 @@ public sealed class GoalInvestmentTrendPointViewModel : INotifyPropertyChanged
     public double AxisLabelY => GoalInvestmentTrendViewModel.PlotBottom + 10;
     public bool ShowAxisLabel { get; }
     public string AxisLabel => $"{Date:M/d}";
-    public string TooltipDateDisplay => $"{Date:M月d日} 周{new[] { "日", "一", "二", "三", "四", "五", "六" }[(int)Date.DayOfWeek]}";
+    public string TooltipDateDisplay => $"{Date:M月d日}";
     public string DurationDisplay => new GoalInvestmentDurationViewModel(Minutes).Display;
     public bool IsHovered { get => _isHovered; set { if (_isHovered == value) return; _isHovered = value; PropertyChanged?.Invoke(this, new(nameof(IsHovered))); PropertyChanged?.Invoke(this, new(nameof(IsMarkerVisible))); } }
     public bool IsSelected { get => _isSelected; set { if (_isSelected == value) return; _isSelected = value; PropertyChanged?.Invoke(this, new(nameof(IsSelected))); PropertyChanged?.Invoke(this, new(nameof(IsMarkerVisible))); } }
@@ -512,19 +528,44 @@ public sealed class GoalInvestmentTrendPointViewModel : INotifyPropertyChanged
 
 public sealed record GoalInvestmentTrendAxisTickViewModel(int Minutes, double ChartY)
 {
-    public string Label => Minutes == 0 ? "0h" : Minutes % 60 == 0 ? $"{Minutes / 60}h" : $"{Minutes / 60d:0.#}h";
+    public string Label => new GoalInvestmentDurationViewModel(Minutes).Display;
     public bool ShowGuideLine => Minutes > 0;
 }
 
-public sealed record GoalInvestmentFocusRecordViewModel(
-    DateTime StartTime,
-    DateTime EndTime,
-    string GoalName,
-    IReadOnlyList<string> CompletedTasks)
+public sealed class GoalInvestmentFocusRecordViewModel : INotifyPropertyChanged
 {
+    private bool _isExpanded;
+    public GoalInvestmentFocusRecordViewModel(DateTime startTime, DateTime endTime, string goalName, IReadOnlyList<string> completedTasks)
+    {
+        StartTime = startTime;
+        EndTime = endTime;
+        GoalName = goalName;
+        CompletedTasks = completedTasks;
+        ToggleDetailsCommand = new RelayCommand<object>(_ => IsExpanded = !IsExpanded, _ => HasCompletedTasks);
+    }
+    public event PropertyChangedEventHandler? PropertyChanged;
+    public DateTime StartTime { get; }
+    public DateTime EndTime { get; }
+    public string GoalName { get; }
+    public IReadOnlyList<string> CompletedTasks { get; }
+    public ICommand ToggleDetailsCommand { get; }
+    public bool IsFirst { get; init; }
+    public bool IsLast { get; init; }
+    public bool IsExpanded
+    {
+        get => _isExpanded;
+        set
+        {
+            var expanded = value && HasCompletedTasks;
+            if (_isExpanded == expanded) return;
+            _isExpanded = expanded;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsExpanded)));
+        }
+    }
     public int DurationMinutes => Math.Max(0, (int)(EndTime - StartTime).TotalMinutes);
+    public string StartTimeDisplay => $"{StartTime:HH:mm}";
     public string TimeRangeDisplay => $"{StartTime:HH:mm} - {EndTime:HH:mm}";
     public string DurationDisplay => new GoalInvestmentDurationViewModel(DurationMinutes).Display;
     public bool HasCompletedTasks => CompletedTasks.Count > 0;
-    public string CompletedTaskSummary => HasCompletedTasks ? $"完成{CompletedTasks.Count}项任务  ›" : string.Empty;
+    public string CompletedTaskSummary => HasCompletedTasks ? $"完成{CompletedTasks.Count}项任务" : string.Empty;
 }
