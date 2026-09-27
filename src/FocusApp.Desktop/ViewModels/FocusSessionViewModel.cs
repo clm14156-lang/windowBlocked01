@@ -58,6 +58,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         };
         _timer.Tick += (_, _) => OnTimerTick();
         RunTimer = runTimer;
+        TaskDrawer = new FocusTaskDrawerViewModel(this);
 
         CancelPreparationCommand = new RelayCommand<object>(_ => CancelPreparation());
         RequestEndCommand = new RelayCommand<object>(_ => OpenEndConfirmation());
@@ -136,6 +137,37 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     public ICommand ToggleCompletedTasksCommand { get; }
     public ICommand ToggleTaskPanelCompletedTasksCommand { get; }
     public ICommand DismissTaskMenusCommand { get; }
+    public FocusTaskDrawerViewModel TaskDrawer { get; }
+    public double FocusWindowWidth => TaskDrawer.IsOpen ? 1070 : 800;
+    internal void NotifyTaskDrawerChanged() => OnPropertyChanged(nameof(FocusWindowWidth));
+    internal void ApplyTaskSnapshot(Action apply)
+    {
+        var wasApplying = _applyingAuthoritativeSession;
+        _applyingAuthoritativeSession = true;
+        try { apply(); }
+        finally { _applyingAuthoritativeSession = wasApplying; }
+        RefreshTaskGroups();
+    }
+
+    internal bool SaveDrawerTask(LocalTaskDto source)
+    {
+        if (!IsFocusing || ActiveTarget is not { } target || source.TargetId != target.TargetId ||
+            string.IsNullOrWhiteSpace(source.Name) || source.SubTasks.Count > 20) return false;
+        var wasApplying = _applyingAuthoritativeSession;
+        _applyingAuthoritativeSession = true;
+        try
+        {
+            var task = target.Tasks.FirstOrDefault(item => item.TaskId == source.TaskId);
+            if (task is null)
+                task = target.AddTask(source.TaskId, source.Name, source.IsCompleted, createdAtUtc: source.CreatedAtUtc, completedAtUtc: source.CompletedAtUtc);
+            else task.ApplyName(source.Name);
+            task.ApplyDetails(source);
+        }
+        finally { _applyingAuthoritativeSession = wasApplying; }
+        RefreshTaskGroups();
+        TargetTasksChanged?.Invoke(this, target);
+        return true;
+    }
 
     public ObservableCollection<FocusTaskViewModel> PendingTasks { get; } = [];
     public ObservableCollection<FocusTaskViewModel> CompletedTasks { get; } = [];
@@ -213,6 +245,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             }
 
             _stage = value;
+            if (value != FocusFlowStage.Focusing) TaskDrawer.Close();
             OnPropertyChanged();
             OnPropertyChanged(nameof(IsActive));
             OnPropertyChanged(nameof(IsFullScreenVisible));
@@ -920,6 +953,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         foreach (var task in target.Tasks)
         {
             task.PropertyChanged += Task_PropertyChanged;
+            task.DetailsChanged += Task_DetailsChanged;
         }
     }
 
@@ -934,6 +968,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         foreach (var task in target.Tasks)
         {
             task.PropertyChanged -= Task_PropertyChanged;
+            task.DetailsChanged -= Task_DetailsChanged;
         }
     }
 
@@ -944,6 +979,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             foreach (FocusTaskViewModel task in e.OldItems)
             {
                 task.PropertyChanged -= Task_PropertyChanged;
+                task.DetailsChanged -= Task_DetailsChanged;
             }
         }
 
@@ -952,6 +988,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             foreach (FocusTaskViewModel task in e.NewItems)
             {
                 task.PropertyChanged += Task_PropertyChanged;
+                task.DetailsChanged += Task_DetailsChanged;
             }
         }
 
@@ -960,6 +997,12 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         {
             TargetTasksChanged?.Invoke(this, ActiveTarget);
         }
+    }
+
+    private void Task_DetailsChanged(object? sender, EventArgs e)
+    {
+        if (!_applyingAuthoritativeSession && ActiveTarget is not null)
+            TargetTasksChanged?.Invoke(this, ActiveTarget);
     }
 
     private void Task_PropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -1011,6 +1054,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
 
     private void RefreshTaskGroups()
     {
+        TaskDrawer.RefreshTasks();
         SetCompletedTasksLocalDate();
         PendingTasks.Clear();
         CompletedTasks.Clear();

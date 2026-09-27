@@ -52,15 +52,12 @@ public partial class FocusFlowView : UserControl
 
     private void ViewTasksButton_Click(object sender, RoutedEventArgs e)
     {
-        if (DataContext is not FocusSessionViewModel viewModel || !viewModel.IsFocusing || !viewModel.HasTarget ||
-            TaskPopupView is null)
+        if (DataContext is not FocusSessionViewModel viewModel || !viewModel.IsFocusing || !viewModel.HasTarget)
         {
             return;
         }
 
-        TaskPopupView.Visibility = TaskPopupView.Visibility == Visibility.Visible
-            ? Visibility.Collapsed
-            : Visibility.Visible;
+        viewModel.TaskDrawer.ToggleCommand.Execute(null);
     }
 
     private void TargetMode_MouseDown(object sender, MouseButtonEventArgs e)

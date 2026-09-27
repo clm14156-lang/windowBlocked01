@@ -30,7 +30,12 @@ internal static class LocalDataContractMapper
 
     public static LocalTask ToCore(LocalTaskDto source)
         => new LocalTask(source.TaskId, source.TargetId, source.Name, source.IsCompleted, source.SortOrder, source.CreatedAtUtc, source.UpdatedAtUtc)
-        { CompletedAtUtc = source.CompletedAtUtc };
+        {
+            CompletedAtUtc = source.CompletedAtUtc,
+            Description = source.Description,
+            SubTasks = source.SubTasks.Select(item => new LocalSubTask(item.Id, item.TaskId, item.Title,
+                item.IsCompleted, item.SortOrder, item.CreatedAtUtc, item.UpdatedAtUtc)).ToArray()
+        };
 
     public static LocalWebsiteRule ToCore(LocalWebsiteRuleDto source)
         => new(source.Id, source.Name, source.Address, source.IsEnabled, source.SortOrder);
@@ -130,7 +135,12 @@ internal static class LocalDataContractMapper
 
     private static LocalTaskDto ToDto(LocalTask source)
         => new LocalTaskDto(source.TaskId, source.TargetId, source.Name, source.IsCompleted, source.SortOrder, source.CreatedAtUtc, source.UpdatedAtUtc)
-        { CompletedAtUtc = source.CompletedAtUtc };
+        {
+            CompletedAtUtc = source.CompletedAtUtc,
+            Description = source.Description,
+            SubTasks = source.SubTasks.Select(item => new LocalSubTaskDto(item.Id, item.TaskId, item.Title,
+                item.IsCompleted, item.SortOrder, item.CreatedAtUtc, item.UpdatedAtUtc)).ToArray()
+        };
 
     private static LocalWebsiteRuleDto ToDto(LocalWebsiteRule source)
         => new(source.Id, source.Name, source.Address, source.IsEnabled, source.SortOrder);

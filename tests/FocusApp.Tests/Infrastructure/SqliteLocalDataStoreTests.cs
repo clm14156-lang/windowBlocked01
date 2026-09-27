@@ -8,6 +8,91 @@ namespace FocusApp.Tests.Infrastructure;
 public sealed class SqliteLocalDataStoreTests
 {
     [Fact]
+    public async Task TaskDetailsAndSubTasksSurviveReopenUpdatesAndCascadingDeletion()
+    {
+        using var database = new TemporaryDatabase();
+        var now = DateTimeOffset.UtcNow;
+        var target = new LocalTarget("goal", "学习", false, 0, now, now);
+        var task = new LocalTask("task", target.TargetId, "梳理方案", false, 0, now, now)
+        {
+            Description = "描述包含中文、换行\n与 SQLite 持久化。",
+            SubTasks = [new LocalSubTask("sub-1", "task", "检查布局", false, 0, now, now),
+                        new LocalSubTask("sub-2", "task", "检查交互", true, 1, now, now)]
+        };
+        await database.CreateStore().SaveTargetAsync(target, [task]);
+        var loaded = Assert.Single((await database.CreateStore().LoadAsync()).Tasks);
+        Assert.Equal(task.Description, loaded.Description);
+        Assert.Equal(task.SubTasks, loaded.SubTasks);
+        Assert.Equal(task.CreatedAtUtc, loaded.CreatedAtUtc);
+
+        var editedAt = now.AddMinutes(1);
+        var edited = loaded with
+        {
+            Name = "更新任务标题", Description = "更新备注", UpdatedAtUtc = editedAt,
+            SubTasks = [loaded.SubTasks[0] with { Title = "更新子任务", IsCompleted = true, UpdatedAtUtc = editedAt }]
+        };
+        await database.CreateStore().SaveTargetAsync(target, [edited]);
+        loaded = Assert.Single((await database.CreateStore().LoadAsync()).Tasks);
+        Assert.Equal("更新任务标题", loaded.Name);
+        Assert.Equal("更新备注", loaded.Description);
+        var subTask = Assert.Single(loaded.SubTasks);
+        Assert.True(subTask.IsCompleted);
+        Assert.Equal("更新子任务", subTask.Title);
+        Assert.Equal(editedAt, subTask.UpdatedAtUtc);
+        Assert.Equal(now, subTask.CreatedAtUtc);
+        Assert.Equal("1", await ReadSingleValueAsync(database.Path, "SELECT count(*) FROM subtasks;"));
+
+        await database.CreateStore().SaveTargetAsync(target, []);
+        Assert.Empty((await database.CreateStore().LoadAsync()).Tasks);
+        Assert.Equal("0", await ReadSingleValueAsync(database.Path, "SELECT count(*) FROM subtasks;"));
+        await database.CreateStore().SaveTargetAsync(target, [task]);
+        await database.CreateStore().DeleteTargetAsync(target.TargetId);
+        Assert.Equal("0", await ReadSingleValueAsync(database.Path, "SELECT count(*) FROM subtasks;"));
+    }
+
+    [Fact]
+    public async Task InvalidSubTasksCannotReplacePreviouslySavedTaskData()
+    {
+        using var database = new TemporaryDatabase();
+        var now = DateTimeOffset.UtcNow;
+        var target = new LocalTarget("goal", "学习", false, 0, now, now);
+        var task = new LocalTask("task", target.TargetId, "保留原任务", false, 0, now, now);
+        var store = database.CreateStore();
+        await store.SaveTargetAsync(target, [task]);
+        foreach (var invalid in new[]
+        {
+            task with { SubTasks = Enumerable.Range(0, 21).Select(index => new LocalSubTask($"sub-{index}", task.TaskId, "标题", false, index, now, now)).ToArray() },
+            task with { SubTasks = [new LocalSubTask("sub", "wrong-parent", "标题", false, 0, now, now)] },
+            task with { SubTasks = [new LocalSubTask("sub", task.TaskId, "  ", false, 0, now, now)] }
+        }) await Assert.ThrowsAsync<ArgumentException>(() => store.SaveTargetAsync(target, [invalid]));
+        Assert.Equal("保留原任务", Assert.Single((await store.LoadAsync()).Tasks).Name);
+    }
+
+    [Fact]
+    public async Task VersionEightTasksMigrateWithTheirTitlesAndCompletionIntact()
+    {
+        using var database = new TemporaryDatabase();
+        var now = DateTimeOffset.UtcNow;
+        var target = new LocalTarget("goal", "旧目标", false, 0, now, now);
+        await database.CreateStore().SaveTargetAsync(target,
+            [new LocalTask("task", target.TargetId, "旧任务", true, 0, now, now) { CompletedAtUtc = now }]);
+        await using (var connection = new SqliteConnection($"Data Source={database.Path}"))
+        {
+            await connection.OpenAsync();
+            await using var command = connection.CreateCommand();
+            command.CommandText = "DROP TABLE subtasks; ALTER TABLE tasks DROP COLUMN description; PRAGMA user_version = 8;";
+            await command.ExecuteNonQueryAsync();
+        }
+        var migrated = Assert.Single((await database.CreateStore().LoadAsync()).Tasks);
+        Assert.Equal("旧任务", migrated.Name);
+        Assert.True(migrated.IsCompleted);
+        Assert.Equal(now, migrated.CompletedAtUtc);
+        Assert.Equal(string.Empty, migrated.Description);
+        Assert.Empty(migrated.SubTasks);
+        Assert.Equal(9, await ReadUserVersionAsync(database.Path));
+    }
+
+    [Fact]
     public async Task OverlappingRulesAreRejectedWithoutReplacingSavedRules()
     {
         using var database = new TemporaryDatabase();
@@ -32,7 +117,7 @@ public sealed class SqliteLocalDataStoreTests
         await store.InitializeAsync();
         var snapshot = await store.LoadAsync();
 
-        Assert.Equal(8, await ReadUserVersionAsync(database.Path));
+        Assert.Equal(9, await ReadUserVersionAsync(database.Path));
         Assert.Empty(snapshot.FocusSessions);
         Assert.Empty(snapshot.Targets);
         Assert.Empty(snapshot.Tasks);
@@ -71,7 +156,7 @@ public sealed class SqliteLocalDataStoreTests
 
         await database.CreateStore().InitializeAsync();
 
-        Assert.Equal(8, await ReadUserVersionAsync(database.Path));
+        Assert.Equal(9, await ReadUserVersionAsync(database.Path));
         Assert.True(await TableExistsAsync(database.Path, "focus_session_website_rules"));
         Assert.True(await TableExistsAsync(database.Path, "focus_session_application_rules"));
         Assert.True(await ColumnExistsAsync(database.Path, "targets", "icon_file_name"));
@@ -348,14 +433,14 @@ public sealed class SqliteLocalDataStoreTests
         {
             await connection.OpenAsync();
             await using var command = connection.CreateCommand();
-            command.CommandText = "ALTER TABLE targets DROP COLUMN icon_color_hex; PRAGMA user_version = 7;";
+            command.CommandText = "DROP TABLE subtasks; ALTER TABLE tasks DROP COLUMN description; ALTER TABLE targets DROP COLUMN icon_color_hex; PRAGMA user_version = 7;";
             await command.ExecuteNonQueryAsync();
         }
         var migrated = Assert.Single((await database.CreateStore().LoadAsync()).Targets);
         Assert.Equal("旧目标", migrated.Name);
         Assert.Equal("study.png", migrated.IconFileName);
         Assert.Null(migrated.IconColorHex);
-        Assert.Equal(8, await ReadUserVersionAsync(database.Path));
+        Assert.Equal(9, await ReadUserVersionAsync(database.Path));
     }
 
     [Fact]

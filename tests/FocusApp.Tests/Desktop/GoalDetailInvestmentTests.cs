@@ -189,7 +189,7 @@ public sealed class GoalDetailInvestmentTests
         Assert.Equal(target.Remark, model.SelectedGoal!.Remark);
         Assert.Equal("创建于 9月2日", model.SelectedGoal.CreatedDateDisplay);
         Assert.Equal("专注于提升游戏开发能力  ·  创建于 9月2日", model.SelectedGoal.DetailMetadataDisplay);
-        Assert.Equal(target.IconFileName, model.SelectedGoal.IconFileName);
+        Assert.Equal(FocusApp.Desktop.Services.TargetIconCatalog.ResolveIconFileName(target.IconFileName), model.SelectedGoal.IconFileName);
         Assert.Equal(2, model.FocusSessionRecords.Count);
 
         model.ApplyState(state with { Revision = 3, Targets = [target with { Remark = null, TargetDurationMinutes = null }] });

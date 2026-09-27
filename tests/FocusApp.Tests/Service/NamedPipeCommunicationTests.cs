@@ -387,7 +387,9 @@ public sealed class NamedPipeCommunicationTests
 
         Assert.Equal(5, state.Revision);
         Assert.Equal(target, Assert.Single(state.Targets));
-        Assert.Equal(task, Assert.Single(state.Tasks));
+        var loadedTask = Assert.Single(state.Tasks);
+        Assert.Equal(task with { SubTasks = loadedTask.SubTasks }, loadedTask);
+        Assert.Equal(task.SubTasks, loadedTask.SubTasks);
         Assert.Equal(websiteRule, Assert.Single(state.WebsiteRules));
         Assert.Equal(applicationRule, Assert.Single(state.ApplicationRules));
         var loadedAutomaticRule = Assert.Single(state.AutomaticRules);
@@ -396,6 +398,41 @@ public sealed class NamedPipeCommunicationTests
         Assert.Equal(settings, state.Settings);
         Assert.Equal(preset, Assert.Single(state.DurationPresets));
         Assert.Equal(monthlyTarget, Assert.Single(state.MonthlyFocusTargets));
+    }
+
+    [Fact]
+    public async Task TaskDescriptionAndSubTasksRoundTripThroughServiceMutations()
+    {
+        await using var fixture = await ServiceFixture.StartAsync();
+        await using var client = await fixture.ConnectAsync(IpcClientRole.Desktop);
+        var now = DateTimeOffset.UtcNow;
+        var target = new LocalTargetDto("drawer-goal", "侧栏目标", false, 0, now, now);
+        var task = new LocalTaskDto("drawer-task", target.TargetId, "父任务", false, 0, now, now)
+        {
+            Description = "任务备注\n第二行",
+            SubTasks = [new LocalSubTaskDto("drawer-sub", "drawer-task", "子任务", false, 0, now, now)]
+        };
+        var created = await client.SendAsync<SaveTargetCommand, MutationResult>(IpcOperations.SaveTarget,
+            new SaveTargetCommand(target, [task]), RequestTimeout);
+        var saved = Assert.Single(created.State.Tasks);
+        Assert.Equal(task.Description, saved.Description);
+        Assert.Equal(task.SubTasks, saved.SubTasks);
+        var editedAt = now.AddMinutes(1);
+        var updated = task with
+        {
+            Name = "更新标题", Description = "更新备注", UpdatedAtUtc = editedAt,
+            SubTasks = [task.SubTasks[0] with { IsCompleted = true, Title = "更新子任务", UpdatedAtUtc = editedAt }]
+        };
+        await client.SendAsync<SaveTargetCommand, MutationResult>(IpcOperations.SaveTarget,
+            new SaveTargetCommand(target, [updated]), RequestTimeout);
+        var state = await client.SendAsync<EmptyPayload, LocalDataSnapshotDto>(IpcOperations.GetState, new EmptyPayload(), RequestTimeout);
+        saved = Assert.Single(state.Tasks);
+        Assert.Equal("更新标题", saved.Name);
+        Assert.Equal("更新备注", saved.Description);
+        Assert.Equal(updated.SubTasks, saved.SubTasks);
+        var deleted = await client.SendAsync<SaveTargetCommand, MutationResult>(IpcOperations.SaveTarget,
+            new SaveTargetCommand(target, []), RequestTimeout);
+        Assert.Empty(deleted.State.Tasks);
     }
 
     [Fact]

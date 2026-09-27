@@ -30,8 +30,8 @@ public sealed class PersistedDataProjectionTests
         Assert.Equal(task.CreatedAtUtc, target.Tasks[0].CreatedAtUtc);
         Assert.Equal(task.CompletedAtUtc, target.Tasks[0].CompletedAtUtc);
         Assert.Equal(active.TargetId, viewModel.SelectedTarget.TargetId);
-        Assert.Equal("code.png", target.IconFileName);
-        Assert.EndsWith("code.png", target.IconSource, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal("code.svg", target.IconFileName);
+        Assert.Contains("code.svg#", target.IconSource, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -95,10 +95,10 @@ public sealed class PersistedDataProjectionTests
 
         viewModel.ApplyState(state);
 
-        Assert.Equal("code.png", Assert.Single(viewModel.Goals).IconFileName);
-        Assert.Equal(new[] { "music.png", "code.png" }, viewModel.RecentTargetIconFileNames);
-        Assert.Equal("music.png", viewModel.QuickTargetIcons[0].FileName);
-        Assert.Equal("code.png", viewModel.QuickTargetIcons[1].FileName);
+        Assert.Equal("code.svg", Assert.Single(viewModel.Goals).IconFileName);
+        Assert.Equal(new[] { "music.svg", "code.svg" }, viewModel.RecentTargetIconFileNames);
+        Assert.Equal("music.svg", viewModel.QuickTargetIcons[0].FileName);
+        Assert.Equal("code.svg", viewModel.QuickTargetIcons[1].FileName);
     }
 
     [Fact]
@@ -117,7 +117,7 @@ public sealed class PersistedDataProjectionTests
 
         viewModel.ApplyState(state);
 
-        Assert.Equal("study.png", Assert.Single(viewModel.Goals).IconFileName);
+        Assert.Equal(FocusApp.Desktop.Services.TargetIconCatalog.DefaultIconFileName, Assert.Single(viewModel.Goals).IconFileName);
     }
 
     [Fact]

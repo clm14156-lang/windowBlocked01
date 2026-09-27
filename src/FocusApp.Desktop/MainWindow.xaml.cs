@@ -47,6 +47,15 @@ public partial class MainWindow : Window
         _guestLoginHintCloseTimer.Tick += GuestLoginHintCloseTimer_Tick;
         DataContextChanged += MainWindow_DataContextChanged;
         Closed += MainWindow_Closed;
+        SizeChanged += MainWindow_SizeChanged;
+    }
+
+    private void MainWindow_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (!IsLoaded || !e.WidthChanged || DataContext is not MainWindowViewModel viewModel ||
+            !viewModel.HomePage.FocusSession.TaskDrawer.IsOpen) return;
+        var area = MonitorWorkAreaProvider.GetForWindow(this).WorkArea;
+        Left = Math.Clamp(Left, area.Left, Math.Max(area.Left, area.Right - ActualWidth));
     }
 
     protected override void OnSourceInitialized(EventArgs e)

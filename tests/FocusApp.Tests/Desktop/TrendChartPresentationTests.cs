@@ -98,33 +98,14 @@ public sealed class TrendChartPresentationTests
     }
 
     [Fact]
-    public void AverageInvestmentLineSpansThePlotAndUsesAQuietRightEdgeLabel()
+    public void ChartDoesNotReintroduceTheRemovedAverageInvestmentLineAndLabel()
     {
         var chart = XDocument.Load(Path.Combine(
             FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "TrendChart.xaml"));
-        var averageLine = Assert.Single(chart.Descendants(Presentation + "Line").Where(line =>
-            (string?)line.Attribute("Y1") == "{Binding TrendAverageY}"));
-
-        Assert.Equal("31", (string?)averageLine.Attribute("X1"));
-        Assert.Equal("537", (string?)averageLine.Attribute("X2"));
-        Assert.Equal("{Binding TrendAverageY}", (string?)averageLine.Attribute("Y2"));
-        Assert.Equal("1", (string?)averageLine.Attribute("StrokeThickness"));
-        Assert.Equal("5,4", (string?)averageLine.Attribute("StrokeDashArray"));
-        Assert.Equal("{DynamicResource TextWeak}", (string?)averageLine.Attribute("Stroke"));
-
-        var label = Assert.Single(chart.Descendants(Presentation + "StackPanel").Where(stack =>
-            (string?)stack.Attribute("Canvas.Top") == "{Binding TrendAverageLabelTop}"));
-        Assert.Equal("541", (string?)label.Attribute("Canvas.Left"));
-        var texts = label.Elements(Presentation + "TextBlock").ToArray();
-        Assert.Equal(2, texts.Length);
-        Assert.All(texts, text =>
-        {
-            Assert.Equal("12", (string?)text.Attribute("FontSize"));
-            Assert.Equal("Normal", (string?)text.Attribute("FontWeight"));
-            Assert.Equal("{DynamicResource TextSecondary}", (string?)text.Attribute("Foreground"));
-        });
-        Assert.Equal("{DynamicResource StatisticsDailyAverageInvestment}", (string?)texts[0].Attribute("Text"));
-        Assert.Equal("{Binding TrendAverageDurationDisplay}", (string?)texts[1].Attribute("Text"));
+        Assert.DoesNotContain(chart.Descendants(Presentation + "Line"), line =>
+            ((string?)line.Attribute("Y1"))?.Contains("TrendAverageY", StringComparison.Ordinal) == true);
+        Assert.DoesNotContain(chart.Descendants(Presentation + "StackPanel"), stack =>
+            ((string?)stack.Attribute("Canvas.Top"))?.Contains("TrendAverageLabelTop", StringComparison.Ordinal) == true);
     }
 
     private static string FindRepositoryRoot()

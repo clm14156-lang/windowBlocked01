@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using FocusApp.Desktop.Services;
+using FocusApp.Contracts;
 
 namespace FocusApp.Desktop.ViewModels;
 
@@ -174,6 +175,10 @@ public sealed class FocusTargetViewModel : INotifyPropertyChanged
 
 public sealed class FocusTaskViewModel : INotifyPropertyChanged
 {
+    private string _description = string.Empty;
+    private bool _isExpanded;
+    private int _drawerNumber;
+    private bool _applyingDetails;
     private string _name;
     private string _editName;
     private bool _isMenuOpen;
@@ -214,9 +219,93 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
         _editName = name;
         _isNew = isNew;
         _createdAtUtc = (createdAtUtc ?? DateTimeOffset.UtcNow).ToUniversalTime();
+        SubTasks.CollectionChanged += (_, e) =>
+        {
+            if (e.OldItems is not null)
+                foreach (FocusSubTaskViewModel item in e.OldItems) item.PropertyChanged -= SubTaskChanged;
+            if (e.NewItems is not null)
+                foreach (FocusSubTaskViewModel item in e.NewItems) item.PropertyChanged += SubTaskChanged;
+            NotifyDetailsChanged();
+        };
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
+    public event EventHandler? DetailsChanged;
+
+    public ObservableCollection<FocusSubTaskViewModel> SubTasks { get; } = [];
+    // Keep the stored order intact so unchecking an item restores its original position.
+    public IEnumerable<FocusSubTaskViewModel> SortedSubTasks => SubTasks.OrderBy(item => item.IsCompleted);
+    public string Description
+    {
+        get => _description;
+        set
+        {
+            if (_description == value) return;
+            _description = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(HasDescription));
+            if (!_applyingDetails) DetailsChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+    public bool HasDescription => !string.IsNullOrWhiteSpace(Description);
+    public bool HasSubTasks => SubTasks.Count > 0;
+    public string SubTaskProgress => $"子任务 · {SubTasks.Count(item => item.IsCompleted)}/{SubTasks.Count}";
+    public bool IsExpanded
+    {
+        get => _isExpanded;
+        set { if (_isExpanded == value) return; _isExpanded = value; OnPropertyChanged(); }
+    }
+    public int DrawerNumber
+    {
+        get => _drawerNumber;
+        internal set { if (_drawerNumber == value) return; _drawerNumber = value; OnPropertyChanged(); }
+    }
+
+    private void SubTaskChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(FocusSubTaskViewModel.Title) or nameof(FocusSubTaskViewModel.IsCompleted))
+            NotifyDetailsChanged();
+    }
+
+    private void NotifyDetailsChanged()
+    {
+        OnPropertyChanged(nameof(SortedSubTasks));
+        OnPropertyChanged(nameof(SubTaskProgress));
+        OnPropertyChanged(nameof(HasSubTasks));
+        if (!_applyingDetails) DetailsChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    internal void ApplyDetails(LocalTaskDto source)
+    {
+        _applyingDetails = true;
+        try
+        {
+            Description = source.Description;
+            var desired = source.SubTasks.OrderBy(item => item.SortOrder).ToArray();
+            foreach (var removed in SubTasks.Where(item => desired.All(value => value.Id != item.Id)).ToArray())
+                SubTasks.Remove(removed);
+            for (var index = 0; index < desired.Length; index++)
+            {
+                var subSource = desired[index];
+                var item = SubTasks.FirstOrDefault(value => value.Id == subSource.Id);
+                if (item is null)
+                {
+                    item = new FocusSubTaskViewModel(subSource);
+                    SubTasks.Insert(index, item);
+                }
+                else
+                {
+                    item.Apply(subSource);
+                    var oldIndex = SubTasks.IndexOf(item);
+                    if (oldIndex != index) SubTasks.Move(oldIndex, index);
+                }
+            }
+        }
+        finally { _applyingDetails = false; }
+    }
+
+    public IReadOnlyList<LocalSubTaskDto> ExportSubTasks() => SubTasks.Select((item, index) =>
+        new LocalSubTaskDto(item.Id, TaskId, item.Title, item.IsCompleted, index, item.CreatedAtUtc, item.UpdatedAtUtc)).ToArray();
 
     public string TargetId { get; }
 

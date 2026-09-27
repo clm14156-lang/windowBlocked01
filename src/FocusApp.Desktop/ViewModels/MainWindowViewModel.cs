@@ -38,6 +38,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private bool _serviceStateApplyScheduled;
     private bool _isGoalTaskStateOperation;
     private long _latestGoalTaskOnlyRevision = -1;
+    private int _pendingFocusTaskWrites;
 
     public MainWindowViewModel(
         IEnumerable<NavigationItemViewModel> primaryNavigationItems,
@@ -601,8 +602,17 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         SettingsPage.ApplyWindowsNotificationsState(state.Settings.WindowsNotificationsEnabled);
         SettingsPage.ApplyFocusSoundState(state.Settings.FocusSoundEnabled);
         HomePage.ApplyDurationPresets(state.DurationPresets);
-        HomePage.FocusTargetModal.ApplyState(state.Targets, state.Tasks, state.Settings.SelectedTargetId);
+        ApplyFocusTaskState(state);
         StatisticsPage.ApplyState(state);
+    }
+
+    private void ApplyFocusTaskState(LocalDataSnapshotDto state)
+    {
+        // A save response may precede a newer local edit. Apply the final response
+        // after queued writes finish so an older snapshot cannot replace that edit.
+        if (_pendingFocusTaskWrites > 0) return;
+        HomePage.FocusSession.ApplyTaskSnapshot(() =>
+            HomePage.FocusTargetModal.ApplyState(state.Targets, state.Tasks, state.Settings.SelectedTargetId));
     }
 
     private async void SettingsPage_RulesChanged(object? sender, EventArgs e)
@@ -649,30 +659,41 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private async void FocusSession_TargetChanged(object? sender, FocusTargetViewModel target)
     {
         if (ServiceConnection is null || !ServiceConnection.IsConnected) return;
-        var now = DateTimeOffset.UtcNow;
-        var existingTarget = ServiceConnection.State?.Targets.FirstOrDefault(item => item.TargetId == target.TargetId);
-        var existingTasks = ServiceConnection.State?.Tasks.ToDictionary(item => item.TaskId, StringComparer.Ordinal)
-            ?? new Dictionary<string, LocalTaskDto>(StringComparer.Ordinal);
-        var targetDto = new LocalTargetDto(
-            target.TargetId, target.Name, target.IsArchived,
-            existingTarget?.SortOrder ?? ServiceConnection.State?.Targets.Count ?? 0,
-            existingTarget?.CreatedAtUtc ?? now, now)
+        _pendingFocusTaskWrites++;
+        try
         {
-            ArchivedAtUtc = target.IsArchived ? existingTarget?.ArchivedAtUtc ?? now : null,
-            IconFileName = target.IconFileName,
-            IconColorHex = target.IconColorHex,
-            Remark = existingTarget?.Remark,
-            TargetDurationMinutes = existingTarget?.TargetDurationMinutes
-        };
-        var tasks = target.Tasks.Select((task, index) =>
-        {
-            existingTasks.TryGetValue(task.TaskId, out var existing);
-            return new LocalTaskDto(task.TaskId, target.TargetId, task.Name, task.IsCompleted, index, task.CreatedAtUtc, now)
+            var now = DateTimeOffset.UtcNow;
+            var existingTarget = ServiceConnection.State?.Targets.FirstOrDefault(item => item.TargetId == target.TargetId);
+            var existingTasks = ServiceConnection.State?.Tasks.ToDictionary(item => item.TaskId, StringComparer.Ordinal)
+                ?? new Dictionary<string, LocalTaskDto>(StringComparer.Ordinal);
+            var targetDto = new LocalTargetDto(
+                target.TargetId, target.Name, target.IsArchived,
+                existingTarget?.SortOrder ?? ServiceConnection.State?.Targets.Count ?? 0,
+                existingTarget?.CreatedAtUtc ?? now, now)
             {
-                CompletedAtUtc = task.IsCompleted ? task.CompletedAtUtc ?? existing?.CompletedAtUtc ?? now : null
+                ArchivedAtUtc = target.IsArchived ? existingTarget?.ArchivedAtUtc ?? now : null,
+                IconFileName = target.IconFileName,
+                IconColorHex = target.IconColorHex,
+                Remark = existingTarget?.Remark,
+                TargetDurationMinutes = existingTarget?.TargetDurationMinutes
             };
-        }).ToArray();
-        await PersistTargetAsync(new SaveTargetCommand(targetDto, tasks));
+            var tasks = target.Tasks.Select((task, index) =>
+            {
+                existingTasks.TryGetValue(task.TaskId, out var existing);
+                return new LocalTaskDto(task.TaskId, target.TargetId, task.Name, task.IsCompleted, index, task.CreatedAtUtc, now)
+                {
+                    CompletedAtUtc = task.IsCompleted ? task.CompletedAtUtc ?? existing?.CompletedAtUtc ?? now : null,
+                    Description = task.Description,
+                    SubTasks = task.ExportSubTasks()
+                };
+            }).ToArray();
+            await PersistTargetAsync(new SaveTargetCommand(targetDto, tasks));
+        }
+        finally
+        {
+            _pendingFocusTaskWrites--;
+            if (_pendingFocusTaskWrites == 0 && ServiceConnection.State is { } state) ApplyFocusTaskState(state);
+        }
     }
 
     private async void FocusSession_CompletionRecorded(object? sender, FocusSessionCompletedEventArgs e)
@@ -1067,7 +1088,8 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private void ApplyGoalTaskState(LocalDataSnapshotDto state)
     {
         _latestGoalTaskOnlyRevision = Math.Max(_latestGoalTaskOnlyRevision, state.Revision);
-        HomePage.FocusTargetModal.ApplyTasks(state.Tasks);
+        if (_pendingFocusTaskWrites == 0)
+            HomePage.FocusSession.ApplyTaskSnapshot(() => HomePage.FocusTargetModal.ApplyTasks(state.Tasks));
         StatisticsPage.ApplyTaskState(state);
     }
 

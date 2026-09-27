@@ -165,6 +165,7 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
                     completedAtUtc: source.CompletedAtUtc);
             }
 
+            task.ApplyDetails(source);
             var oldIndex = target.Tasks.IndexOf(task);
             if (oldIndex != index)
             {

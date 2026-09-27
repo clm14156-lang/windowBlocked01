@@ -28,7 +28,7 @@ public sealed class FocusTargetTaskPresentationTests
         Assert.Contains(targetView.Descendants(Presentation + "TextBlock"), text =>
             (string?)text.Attribute("Text") == "{Binding TargetName, Mode=OneWay}");
         var targetIcon = Assert.Single(targetView.Descendants(Presentation + "Image").Where(image =>
-            (string?)image.Attribute("Source") == "{Binding ActiveTarget.IconSource, Mode=OneWay}"));
+            ((string?)image.Attribute("Source"))?.StartsWith("{Binding ActiveTarget.IconSource, Mode=OneWay", StringComparison.Ordinal) == true));
         Assert.Equal("24", (string?)targetIcon.Attribute("Width"));
         Assert.Equal("24", (string?)targetIcon.Attribute("Height"));
         Assert.Equal("HighQuality", (string?)targetIcon.Attribute("RenderOptions.BitmapScalingMode"));
@@ -63,44 +63,6 @@ public sealed class FocusTargetTaskPresentationTests
         Assert.DoesNotContain(targetView.Descendants(Presentation + "ProgressBar"), progress =>
             !progress.Ancestors(Presentation + "Grid").Any(grid =>
                 (string?)grid.Attribute("Visibility") == "Collapsed"));
-    }
-
-    [Fact]
-    public void TaskWindow_IsFixedSizeAndKeepsTaskCommandsOnTheSharedViewModel()
-    {
-        var document = XDocument.Load(Path.Combine(
-            FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "FocusTaskWindow.xaml"));
-        var window = document.Root ?? throw new Xunit.Sdk.XunitException("Task window XAML has no root element.");
-
-        Assert.Equal("290", (string?)window.Attribute("Width"));
-        Assert.Equal("420", (string?)window.Attribute("Height"));
-        Assert.Equal("FocusApp.Desktop.Views.FocusTaskWindow", (string?)window.Attribute(Xaml + "Class"));
-        Assert.Equal("UserControl", window.Name.LocalName);
-        Assert.Contains(window.Descendants(Presentation + "ItemsControl"), items =>
-            (string?)items.Attribute("ItemsSource") == "{Binding PendingTasks}");
-        Assert.Contains(window.Descendants(Presentation + "ItemsControl"), items =>
-            (string?)items.Attribute("ItemsSource") == "{Binding SessionCompletedTasks}");
-        Assert.DoesNotContain(window.Descendants(Presentation + "ItemsControl"), items =>
-            (string?)items.Attribute("ItemsSource") == "{Binding CompletedTasks}");
-        Assert.Contains(window.Descendants(Presentation + "Run"), run =>
-            (string?)run.Attribute("Text") == "{Binding SessionCompletedTaskCount, Mode=OneWay}");
-        Assert.Contains(window.Descendants(Presentation + "Button"), button =>
-            (string?)button.Attribute("Command") == "{Binding AddTaskCommand}");
-        Assert.Contains(window.Descendants(Presentation + "Button"), button =>
-            ((string?)button.Attribute("Command"))?.Contains("ToggleTaskCompletedCommand", StringComparison.Ordinal) == true);
-
-        var focusView = XDocument.Load(Path.Combine(
-            FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "FocusFlowView.xaml"));
-        var targetView = Assert.Single(focusView.Descendants(Presentation + "Grid").Where(element =>
-            (string?)element.Attribute(Xaml + "Name") == "TargetFocusingView"));
-        var popup = Assert.Single(targetView.Descendants().Where(element =>
-            element.Name.LocalName == "FocusTaskWindow"));
-        Assert.Equal("290", (string?)popup.Attribute("Width"));
-        Assert.Equal("420", (string?)popup.Attribute("Height"));
-        Assert.Equal("Right", (string?)popup.Attribute("HorizontalAlignment"));
-        Assert.Equal("Top", (string?)popup.Attribute("VerticalAlignment"));
-        Assert.Equal("0,105,20,0", (string?)popup.Attribute("Margin"));
-        Assert.Equal("20", (string?)popup.Attribute("Panel.ZIndex"));
     }
 
     private static string FindRepositoryRoot()

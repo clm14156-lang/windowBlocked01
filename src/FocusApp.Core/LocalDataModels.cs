@@ -66,7 +66,18 @@ public sealed record LocalTask(
     DateTimeOffset UpdatedAtUtc)
 {
     public DateTimeOffset? CompletedAtUtc { get; init; }
+    public string Description { get; init; } = string.Empty;
+    public IReadOnlyList<LocalSubTask> SubTasks { get; init; } = [];
 }
+
+public sealed record LocalSubTask(
+    string Id,
+    string TaskId,
+    string Title,
+    bool IsCompleted,
+    int SortOrder,
+    DateTimeOffset CreatedAtUtc,
+    DateTimeOffset UpdatedAtUtc);
 
 public sealed record LocalWebsiteRule(
     Guid Id,

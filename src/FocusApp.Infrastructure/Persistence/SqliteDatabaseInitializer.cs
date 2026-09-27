@@ -7,7 +7,7 @@ internal sealed class SqliteDatabaseInitializer(
     string databasePath,
     SqliteLocalDataStoreOptions options)
 {
-    public const int CurrentSchemaVersion = 8;
+    public const int CurrentSchemaVersion = 9;
 
     private const string MigrationV1 = """
         CREATE TABLE focus_sessions (
@@ -178,6 +178,21 @@ internal sealed class SqliteDatabaseInitializer(
         ALTER TABLE targets ADD COLUMN target_duration_minutes INTEGER NULL;
         """;
 
+    private const string MigrationV9 = """
+        ALTER TABLE tasks ADD COLUMN description TEXT NOT NULL DEFAULT '';
+        CREATE TABLE subtasks (
+            id TEXT NOT NULL PRIMARY KEY,
+            task_id TEXT NOT NULL,
+            title TEXT NOT NULL,
+            is_completed INTEGER NOT NULL CHECK (is_completed IN (0, 1)),
+            sort_order INTEGER NOT NULL CHECK (sort_order >= 0),
+            created_utc TEXT NOT NULL,
+            updated_utc TEXT NOT NULL,
+            FOREIGN KEY (task_id) REFERENCES tasks(task_id) ON DELETE CASCADE
+        );
+        CREATE INDEX ix_subtasks_task_sort ON subtasks (task_id, sort_order);
+        """;
+
     public async Task InitializeAsync(CancellationToken cancellationToken)
     {
         var directory = Path.GetDirectoryName(databasePath)
@@ -302,6 +317,7 @@ internal sealed class SqliteDatabaseInitializer(
             6 => "ALTER TABLE automatic_rules ADD COLUMN target_id TEXT NULL;",
             7 => MigrationV7,
             8 => "ALTER TABLE targets ADD COLUMN icon_color_hex TEXT NULL;",
+            9 => MigrationV9,
             _ => throw new InvalidOperationException($"缺少数据库版本 {targetVersion} 的迁移。")
         };
 

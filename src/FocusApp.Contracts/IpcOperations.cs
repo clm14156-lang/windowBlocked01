@@ -291,7 +291,18 @@ public sealed record LocalTaskDto(
     DateTimeOffset UpdatedAtUtc)
 {
     public DateTimeOffset? CompletedAtUtc { get; init; }
+    public string Description { get; init; } = string.Empty;
+    public IReadOnlyList<LocalSubTaskDto> SubTasks { get; init; } = [];
 }
+
+public sealed record LocalSubTaskDto(
+    string Id,
+    string TaskId,
+    string Title,
+    bool IsCompleted,
+    int SortOrder,
+    DateTimeOffset CreatedAtUtc,
+    DateTimeOffset UpdatedAtUtc);
 
 public sealed record LocalWebsiteRuleDto(Guid Id, string Name, string Address, bool IsEnabled, int SortOrder);
 

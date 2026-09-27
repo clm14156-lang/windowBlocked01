@@ -4,17 +4,18 @@
         xmlns:vm="clr-namespace:FocusApp.Desktop.ViewModels"
         xmlns:views="clr-namespace:FocusApp.Desktop.Views"
         Title="{DynamicResource ApplicationName}"
-        Width="800"
+        Width="800" SizeToContent="Width"
         Height="710"
         MinWidth="800"
         MinHeight="710"
-        MaxWidth="800"
+        MaxWidth="1070"
         MaxHeight="710"
         ResizeMode="NoResize"
         PreviewMouseDown="Window_PreviewMouseDown"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None">
-    <Border BorderBrush="{DynamicResource BorderPrimary}"
+    <Grid Width="{Binding HomePage.FocusSession.FocusWindowWidth, FallbackValue=800}">
+    <Border Width="800" HorizontalAlignment="Left" BorderBrush="{DynamicResource BorderPrimary}"
             BorderThickness="1"
             Background="{DynamicResource BackgroundPrimary}">
         <Grid>
@@ -978,4 +979,14 @@
                                             DataContext="{Binding StatisticsPage.GoalInvestmentTrend}" />
         </Grid>
     </Border>
+        <views:FocusTaskDrawer x:Name="FocusTaskDrawerPanel" HorizontalAlignment="Right" VerticalAlignment="Top" Panel.ZIndex="20"
+                               DataContext="{Binding HomePage.FocusSession.TaskDrawer}">
+            <views:FocusTaskDrawer.Style>
+                <Style TargetType="{x:Type views:FocusTaskDrawer}">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers><DataTrigger Binding="{Binding IsOpen}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers>
+                </Style>
+            </views:FocusTaskDrawer.Style>
+        </views:FocusTaskDrawer>
+    </Grid>
 </Window>

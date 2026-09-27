@@ -622,8 +622,8 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
     {
         await using var command = CreateCommand(connection, transaction, """
             INSERT INTO tasks (
-                task_id, target_id, name, is_completed, sort_order, created_utc, updated_utc, completed_utc)
-            VALUES ($id, $targetId, $name, $completed, $sort, $created, $updated, $completedAt);
+                task_id, target_id, name, is_completed, sort_order, created_utc, updated_utc, completed_utc, description)
+            VALUES ($id, $targetId, $name, $completed, $sort, $created, $updated, $completedAt, $description);
             """);
         command.Parameters.AddWithValue("$id", task.TaskId);
         command.Parameters.AddWithValue("$targetId", task.TargetId);
@@ -633,7 +633,23 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
         command.Parameters.AddWithValue("$created", FormatDateTime(task.CreatedAtUtc));
         command.Parameters.AddWithValue("$updated", FormatDateTime(task.UpdatedAtUtc));
         command.Parameters.AddWithValue("$completedAt", FormatNullableDateTime(task.CompletedAtUtc));
+        command.Parameters.AddWithValue("$description", task.Description);
         await command.ExecuteNonQueryAsync(cancellationToken);
+        foreach (var subTask in task.SubTasks.OrderBy(item => item.SortOrder))
+        {
+            await using var subCommand = CreateCommand(connection, transaction, """
+                INSERT INTO subtasks (id, task_id, title, is_completed, sort_order, created_utc, updated_utc)
+                VALUES ($id, $taskId, $title, $completed, $sort, $created, $updated);
+                """);
+            subCommand.Parameters.AddWithValue("$id", subTask.Id);
+            subCommand.Parameters.AddWithValue("$taskId", task.TaskId);
+            subCommand.Parameters.AddWithValue("$title", subTask.Title);
+            subCommand.Parameters.AddWithValue("$completed", ToInteger(subTask.IsCompleted));
+            subCommand.Parameters.AddWithValue("$sort", subTask.SortOrder);
+            subCommand.Parameters.AddWithValue("$created", FormatDateTime(subTask.CreatedAtUtc));
+            subCommand.Parameters.AddWithValue("$updated", FormatDateTime(subTask.UpdatedAtUtc));
+            await subCommand.ExecuteNonQueryAsync(cancellationToken);
+        }
     }
 
     private static async Task<Dictionary<Guid, IReadOnlyList<LocalFocusSessionTaskSnapshot>>> LoadSessionTasksAsync(
@@ -824,10 +840,24 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
         SqliteConnection connection,
         CancellationToken cancellationToken)
     {
+        var subTasks = new Dictionary<string, List<LocalSubTask>>(StringComparer.Ordinal);
+        await using (var subCommand = connection.CreateCommand())
+        {
+            subCommand.CommandText = "SELECT id, task_id, title, is_completed, sort_order, created_utc, updated_utc FROM subtasks ORDER BY task_id, sort_order, id;";
+            await using var subReader = await subCommand.ExecuteReaderAsync(cancellationToken);
+            while (await subReader.ReadAsync(cancellationToken))
+            {
+                var taskId = subReader.GetString(1);
+                if (!subTasks.TryGetValue(taskId, out var items)) subTasks[taskId] = items = [];
+                items.Add(new LocalSubTask(subReader.GetString(0), taskId, subReader.GetString(2),
+                    subReader.GetBoolean(3), subReader.GetInt32(4), ParseDateTime(subReader.GetString(5)),
+                    ParseDateTime(subReader.GetString(6))));
+            }
+        }
         var values = new List<LocalTask>();
         await using var command = connection.CreateCommand();
         command.CommandText = """
-            SELECT task_id, target_id, name, is_completed, sort_order, created_utc, updated_utc, completed_utc
+            SELECT task_id, target_id, name, is_completed, sort_order, created_utc, updated_utc, completed_utc, description
             FROM tasks ORDER BY target_id, sort_order, task_id;
             """;
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
@@ -840,7 +870,12 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
                 reader.GetBoolean(3),
                 reader.GetInt32(4),
                 ParseDateTime(reader.GetString(5)),
-                ParseDateTime(reader.GetString(6))) { CompletedAtUtc = ReadNullableDateTime(reader, 7) });
+                ParseDateTime(reader.GetString(6)))
+            {
+                CompletedAtUtc = ReadNullableDateTime(reader, 7),
+                Description = reader.GetString(8),
+                SubTasks = subTasks.TryGetValue(reader.GetString(0), out var items) ? items.ToArray() : Array.Empty<LocalSubTask>()
+            });
         }
 
         return values;
@@ -1039,6 +1074,7 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
         }
 
         EnsureUnique(tasks.Select(task => task.TaskId), nameof(tasks));
+        EnsureUnique(tasks.SelectMany(task => task.SubTasks).Select(item => item.Id), nameof(tasks));
         foreach (var task in tasks)
         {
             if (string.IsNullOrWhiteSpace(task.TaskId) ||
@@ -1048,6 +1084,10 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
             {
                 throw new ArgumentException("任务必须具有稳定 ID 并属于当前目标。", nameof(tasks));
             }
+            if (task.SubTasks.Count > 20 || task.SubTasks.Any(item =>
+                    string.IsNullOrWhiteSpace(item.Id) || string.IsNullOrWhiteSpace(item.Title) ||
+                    item.TaskId != task.TaskId || item.SortOrder < 0))
+                throw new ArgumentException("子任务必须属于父任务，标题不能为空，且最多 20 项。", nameof(tasks));
         }
     }
 

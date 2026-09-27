@@ -270,7 +270,7 @@ public sealed class CreateGoalModalTests
         var window = XDocument.Load(Path.Combine(directory.FullName, "src", "FocusApp.Desktop", "MainWindow.xaml"));
         XNamespace p = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
         XNamespace v = "clr-namespace:FocusApp.Desktop.Views";
-        var rootGrid = window.Root!.Element(p + "Border")!.Element(p + "Grid")!;
+        var rootGrid = window.Root!.Element(p + "Grid")!.Element(p + "Border")!.Element(p + "Grid")!;
         var modal = Assert.Single(rootGrid.Elements(v + "CreateGoalModal"));
         Assert.Equal("2", (string?)modal.Attribute("Grid.ColumnSpan"));
         Assert.Equal("{Binding StatisticsPage}", (string?)modal.Attribute("DataContext"));

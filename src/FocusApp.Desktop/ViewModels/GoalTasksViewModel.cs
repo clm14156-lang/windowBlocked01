@@ -166,6 +166,7 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
                     }
                 }
                 else task = _target.AddTask(source.TaskId, source.Name, source.IsCompleted, createdAtUtc: source.CreatedAtUtc, completedAtUtc: source.CompletedAtUtc);
+                task.ApplyDetails(source);
                 var oldIndex = _target.Tasks.IndexOf(task);
                 if (oldIndex != index) _target.Tasks.Move(oldIndex, index);
             }
