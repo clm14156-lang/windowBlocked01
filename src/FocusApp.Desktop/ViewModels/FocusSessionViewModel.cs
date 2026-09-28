@@ -37,6 +37,8 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     private bool _isCompletedTasksExpanded;
     private bool _isForcedModeActive;
     private readonly HashSet<FocusTaskViewModel> _sessionCompletedTaskSet = [];
+    private readonly HashSet<string> _previousRoundTaskIds = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _currentRoundTaskIds = new(StringComparer.Ordinal);
     private readonly List<FocusSessionRecord> _completionHistory = [];
     private FocusSessionRecord? _lastRecordedCompletion;
     private FocusTargetViewModel? _sessionTarget;
@@ -138,6 +140,8 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     public ICommand ToggleTaskPanelCompletedTasksCommand { get; }
     public ICommand DismissTaskMenusCommand { get; }
     public FocusTaskDrawerViewModel TaskDrawer { get; }
+    internal IEnumerable<FocusTaskViewModel> CurrentRoundTasks =>
+        ActiveTarget?.Tasks.Where(task => _currentRoundTaskIds.Contains(task.TaskId)) ?? [];
     public double FocusWindowWidth => TaskDrawer.IsOpen ? 1070 : 800;
     internal void NotifyTaskDrawerChanged() => OnPropertyChanged(nameof(FocusWindowWidth));
     internal void ApplyTaskSnapshot(Action apply)
@@ -473,7 +477,13 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             target is null ? null : new FocusSessionTargetContext(target.TargetId, target.Name));
         _lastRecordedCompletion = null;
         SyncFromEngine();
+        _previousRoundTaskIds.UnionWith(_currentRoundTaskIds);
+        _currentRoundTaskIds.Clear();
+        if (target is not null)
+            foreach (var task in target.Tasks.Where(task => !task.IsCompleted && !_previousRoundTaskIds.Contains(task.TaskId)))
+                _currentRoundTaskIds.Add(task.TaskId);
         ActiveTarget = target;
+        RefreshTaskGroups();
         _sessionCompletedTaskSet.Clear();
         SessionCompletedTasks.Clear();
         OnPropertyChanged(nameof(SessionCompletedTaskCount));
@@ -510,6 +520,8 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             _timer.Stop();
             _preparationStopwatch.Reset();
             _focusStopwatch.Reset();
+            _previousRoundTaskIds.UnionWith(_currentRoundTaskIds);
+            _currentRoundTaskIds.Clear();
         }
         if (session.Status != LocalFocusSessionStatusDto.Preparing)
         {
@@ -541,6 +553,12 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
                     completedAtUtc: task.CompletedAtUtc);
             }
         }
+
+        if (!isSameSession && projectedTarget is not null)
+            foreach (var task in projectedTarget.Tasks.Where(task =>
+                         !_previousRoundTaskIds.Contains(task.TaskId) && (!task.IsCompleted ||
+                             session.CompletedTasks.Any(completed => completed.TaskId == task.TaskId))))
+                _currentRoundTaskIds.Add(task.TaskId);
 
         _applyingAuthoritativeSession = true;
         try
@@ -989,6 +1007,9 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             {
                 task.PropertyChanged += Task_PropertyChanged;
                 task.DetailsChanged += Task_DetailsChanged;
+                if (Stage is FocusFlowStage.Preparing or FocusFlowStage.Focusing &&
+                    !task.IsCompleted && !_previousRoundTaskIds.Contains(task.TaskId))
+                    _currentRoundTaskIds.Add(task.TaskId);
             }
         }
 
@@ -1064,7 +1085,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             {
                 if (!task.IsCompleted)
                 {
-                    PendingTasks.Add(task);
+                    if (_currentRoundTaskIds.Contains(task.TaskId)) PendingTasks.Add(task);
                 }
                 else if (WasCompletedOnLocalDate(task, _completedTasksLocalDate))
                 {

@@ -8,48 +8,36 @@
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries><ResourceDictionary Source="FocusTaskResources.xaml" /></ResourceDictionary.MergedDictionaries>
         <DataTemplate x:Key="TaskRow">
-            <Border BorderBrush="#F0F1F4" BorderThickness="0,0,0,1" Padding="0,0,0,4">
-                <Border.ContextMenu><ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
-                    <MenuItem Header="编辑任务名称" Click="EditTaskMenu_Click" /><MenuItem Header="编辑备注" Click="EditRemarkMenu_Click" /><Separator />
-                    <MenuItem Header="删除任务" Foreground="#E46666" Click="DeleteTaskMenu_Click" />
-                </ContextMenu></Border.ContextMenu>
+            <Border x:Name="TaskCard" Margin="10,7,10,0" Padding="12,11,10,11" Background="White" BorderBrush="#EBEDF0" BorderThickness="1" CornerRadius="11">
                 <StackPanel>
-                    <Border x:Name="RowHover" Padding="14,14,12,12" Background="Transparent" Cursor="Hand" MouseLeftButtonUp="TaskHeader_MouseLeftButtonUp">
-                        <Grid Focusable="True" KeyDown="TaskHeader_KeyDown">
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="29" /><ColumnDefinition /><ColumnDefinition Width="24" /></Grid.ColumnDefinitions>
-                            <CheckBox Content="{Binding DrawerNumber}" IsChecked="{Binding IsCompleted, Mode=TwoWay}" VerticalAlignment="Top"
+                    <Border x:Name="RowHover" Background="Transparent">
+                        <Grid Focusable="True">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="28" /><ColumnDefinition /><ColumnDefinition Width="24" /></Grid.ColumnDefinitions>
+                            <CheckBox Content="{Binding DrawerNumber}" IsChecked="{Binding IsCompleted, Mode=TwoWay}" VerticalAlignment="Center"
                                       Style="{StaticResource NumberCheck}" AutomationProperties.Name="切换任务完成状态" />
-                            <StackPanel Grid.Column="1">
-                                <TextBlock x:Name="TaskTitle" Text="{Binding Name}" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap" LineHeight="20" Style="{StaticResource CompletedTitle}" />
-                                <TextBlock x:Name="CollapsedSubTaskProgress" Margin="0,5,0,0" FontSize="11" Foreground="#969CA7" Text="{Binding SubTaskProgress}">
-                                    <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers>
-                                        <MultiDataTrigger><MultiDataTrigger.Conditions><Condition Binding="{Binding HasSubTasks}" Value="True" /><Condition Binding="{Binding IsExpanded}" Value="False" /></MultiDataTrigger.Conditions><Setter Property="Visibility" Value="Visible" /></MultiDataTrigger>
-                                    </Style.Triggers></Style></TextBlock.Style>
-                                </TextBlock>
-                            </StackPanel>
-                            <Button Grid.Column="2" Width="24" Height="24" VerticalAlignment="Top" AutomationProperties.Name="展开或收起任务"
-                                    Style="{StaticResource PlainButton}" Command="{Binding DataContext.ToggleExpandedCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
-                                <Path Width="7" Height="11" Stretch="Uniform" Data="M 0,0 L 5,5 L 0,10" Stroke="#969CA7" StrokeThickness="1.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
-                                      RenderTransformOrigin="0.5,0.5">
-                                    <Path.Style><Style TargetType="Path"><Style.Triggers><DataTrigger Binding="{Binding IsExpanded}" Value="True"><Setter Property="RenderTransform"><Setter.Value><RotateTransform Angle="90" /></Setter.Value></Setter></DataTrigger></Style.Triggers></Style></Path.Style>
-                                </Path>
+                            <TextBlock x:Name="TaskTitle" Grid.Column="1" VerticalAlignment="Center" Text="{Binding Name}" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap" MaxHeight="40" LineHeight="20" TextTrimming="CharacterEllipsis" Style="{StaticResource CompletedTitle}" />
+                            <Button x:Name="TaskMoreButton" Grid.Column="2" Width="24" Height="24" VerticalAlignment="Center" Content="···" FontSize="16" FontWeight="SemiBold" AutomationProperties.Name="更多任务操作" Click="TaskMoreButton_Click">
+                                <Button.Style><Style TargetType="Button" BasedOn="{StaticResource PlainButton}"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding ContextMenu.IsOpen, RelativeSource={RelativeSource Self}}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Button.Style>
+                                <Button.ContextMenu><ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                                    <MenuItem Header="编辑任务名称" Click="EditTaskMenu_Click" /><MenuItem Header="编辑备注" Click="EditRemarkMenu_Click" /><Separator />
+                                    <MenuItem Header="删除任务" Foreground="#D96A6A" Click="DeleteTaskMenu_Click" />
+                                </ContextMenu></Button.ContextMenu>
                             </Button>
                         </Grid>
                     </Border>
-                    <StackPanel x:Name="InlineTaskDetails" Margin="43,0,14,0" Visibility="{Binding IsExpanded, Converter={StaticResource BoolVisibility}}">
-                        <StackPanel Margin="0,0,0,14" Visibility="{Binding HasDescription, Converter={StaticResource BoolVisibility}}">
-                            <TextBlock Text="备注" FontSize="11" Foreground="#969CA7" Margin="0,0,0,5" />
-                            <TextBlock x:Name="InlineDescription" Text="{Binding Description}" FontSize="12" Foreground="#8B919C" TextWrapping="Wrap" LineHeight="20" />
-                        </StackPanel>
-                        <StackPanel Margin="0,0,0,12" Visibility="{Binding HasSubTasks, Converter={StaticResource BoolVisibility}}">
-                            <TextBlock Text="{Binding SubTaskProgress}" FontSize="11" Foreground="#969CA7" Margin="0,0,0,9" />
+                    <TextBlock x:Name="InlineDescription" Margin="28,7,1,0" Text="{Binding Description}" FontSize="11" Foreground="#9299A6" TextWrapping="Wrap" LineHeight="18" MaxHeight="36" TextTrimming="CharacterEllipsis" Visibility="{Binding HasDescription, Converter={StaticResource BoolVisibility}}" />
+                    <Button x:Name="SubTaskToggle" Margin="28,9,0,0" Padding="9,0" Height="24" HorizontalAlignment="Left" Background="#F3F4F6" Style="{StaticResource PlainButton}" Command="{Binding DataContext.ToggleExpandedCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Visibility="{Binding HasSubTasks, Converter={StaticResource BoolVisibility}}" AutomationProperties.Name="展开或收起子任务">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center"><Path Width="9" Height="6" Margin="0,0,7,0" VerticalAlignment="Center" Stretch="Uniform" Data="M 0,0 L 4.5,5 L 9,0" Stroke="#9299A6" StrokeThickness="1.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" RenderTransformOrigin="0.5,0.5"><Path.Style><Style TargetType="Path"><Style.Triggers><DataTrigger Binding="{Binding IsExpanded}" Value="True"><Setter Property="RenderTransform"><Setter.Value><RotateTransform Angle="180" /></Setter.Value></Setter></DataTrigger></Style.Triggers></Style></Path.Style></Path><TextBlock x:Name="CollapsedSubTaskProgress" Text="{Binding DrawerSubTaskToggleLabel}" FontSize="11" Foreground="#818996"/></StackPanel>
+                    </Button>
+                    <StackPanel x:Name="InlineTaskDetails" Margin="28,8,2,0" Visibility="{Binding IsExpanded, Converter={StaticResource BoolVisibility}}">
+                        <StackPanel Margin="0,0,0,4" Visibility="{Binding HasSubTasks, Converter={StaticResource BoolVisibility}}">
                             <ItemsControl x:Name="InlineSubTaskList" ItemsSource="{Binding SortedSubTasks}">
                                 <ItemsControl.ItemTemplate><DataTemplate>
-                                    <Border Padding="0,6" Background="Transparent">
+                                    <Border Padding="0,5" Background="Transparent">
                                         <Border.ContextMenu><ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
                                             <MenuItem Header="编辑子任务名称" Click="EditSubTaskMenu_Click" /><Separator /><MenuItem Header="删除子任务" Foreground="#E46666" Click="DeleteSubTaskMenu_Click" />
                                         </ContextMenu></Border.ContextMenu>
-                                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="26" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="25" /><ColumnDefinition /></Grid.ColumnDefinitions>
                                             <CheckBox IsChecked="{Binding IsCompleted, Mode=TwoWay}" Style="{StaticResource CircleCheck}" VerticalAlignment="Top" Margin="0,1,0,0" AutomationProperties.Name="切换子任务完成状态" />
                                             <TextBlock Grid.Column="1" Text="{Binding Title}" TextWrapping="Wrap" FontSize="12" LineHeight="20" Style="{StaticResource CompletedTitle}" />
                                         </Grid>
@@ -74,8 +62,9 @@
                 </StackPanel>
             </Border>
             <DataTemplate.Triggers>
-                <Trigger SourceName="RowHover" Property="IsMouseOver" Value="True"><Setter TargetName="RowHover" Property="Background" Value="#F8F8FA" /></Trigger>
-                <DataTrigger Binding="{Binding IsCompleted}" Value="True"><Setter TargetName="RowHover" Property="Opacity" Value="0.65" /></DataTrigger>
+                <Trigger SourceName="TaskCard" Property="IsMouseOver" Value="True"><Setter TargetName="TaskMoreButton" Property="Visibility" Value="Visible"/></Trigger>
+                <Trigger SourceName="RowHover" Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="TaskMoreButton" Property="Visibility" Value="Visible"/></Trigger>
+                <DataTrigger Binding="{Binding IsCompleted}" Value="True"><Setter TargetName="TaskCard" Property="Opacity" Value="0.7" /></DataTrigger>
             </DataTemplate.Triggers>
         </DataTemplate>
         </ResourceDictionary>
@@ -91,7 +80,13 @@
                 </Grid>
             </Border>
             <ScrollViewer x:Name="TaskDrawerScrollViewer" Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-                <ItemsControl x:Name="DrawerTaskList" ItemsSource="{Binding Tasks}" ItemTemplate="{StaticResource TaskRow}" />
+                <StackPanel>
+                    <ItemsControl x:Name="DrawerTaskList" ItemsSource="{Binding Tasks}" ItemTemplate="{StaticResource TaskRow}" />
+                    <Button x:Name="CompletedTasksToggle" Margin="14,14,14,2" Padding="4,8" HorizontalContentAlignment="Left" Style="{StaticResource PlainButton}" Command="{Binding ToggleCompletedCommand}" Visibility="{Binding HasCompletedTasks, Converter={StaticResource BoolVisibility}}" AutomationProperties.Name="查看已完成任务">
+                        <TextBlock Text="{Binding CompletedTasksLabel}" FontSize="11" Foreground="#9299A6"/>
+                    </Button>
+                    <ItemsControl x:Name="DrawerCompletedTaskList" ItemsSource="{Binding CompletedTasks}" ItemTemplate="{StaticResource TaskRow}" Visibility="{Binding IsCompletedExpanded, Converter={StaticResource BoolVisibility}}" />
+                </StackPanel>
             </ScrollViewer>
             <Grid Grid.Row="2">
                 <Button x:Name="DrawerAddTaskButton" Height="54" Padding="18,0" HorizontalContentAlignment="Left" Command="{Binding AddTaskCommand}" Foreground="#F47728">

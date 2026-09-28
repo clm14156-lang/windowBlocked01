@@ -909,11 +909,13 @@
                                                                     Background="{TemplateBinding Background}"
                                                                     CornerRadius="10"
                                                                     IsHitTestVisible="False" />
-                                                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                                <TextBlock x:Name="DayNumberText" HorizontalAlignment="Center" FontSize="14" FontWeight="Normal" Foreground="{Binding HeatTextColor}" Text="{Binding DayNumber}" />
+                                                            <Grid Width="40" Height="38" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                                <Grid.RowDefinitions><RowDefinition Height="20"/><RowDefinition Height="18"/></Grid.RowDefinitions>
+                                                                <TextBlock x:Name="DayNumberText" Grid.Row="0" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}" Text="{Binding DayNumber}" />
                                                                 <TextBlock x:Name="DayDurationText"
-                                                                           Margin="0,1,0,0"
+                                                                           Grid.Row="1"
                                                                            HorizontalAlignment="Center"
+                                                                           VerticalAlignment="Center"
                                                                            FontSize="12"
                                                                            FontWeight="Normal"
                                                                            Foreground="{Binding HeatTextColor}"
@@ -933,7 +935,7 @@
                                                                         </Style>
                                                                     </TextBlock.Style>
                                                                 </TextBlock>
-                                                            </StackPanel>
+                                                            </Grid>
                                                         </Grid>
                                                         </Grid>
                                                         <ControlTemplate.Triggers>
@@ -962,15 +964,13 @@
                                                             <DataTrigger Binding="{Binding IsSelected}" Value="True">
                                                                 <DataTrigger.EnterActions><BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetName="DaySelectionBackground" Storyboard.TargetProperty="Opacity" From="0.35" To="1" Duration="0:0:0.17" FillBehavior="Stop" /></Storyboard></BeginStoryboard></DataTrigger.EnterActions>
                                                                 <DataTrigger.ExitActions><BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetName="DaySelectionBackground" Storyboard.TargetProperty="Opacity" From="0.45" To="1" Duration="0:0:0.17" FillBehavior="Stop" /></Storyboard></BeginStoryboard></DataTrigger.ExitActions>
-                                                                <Setter TargetName="DaySelectionBackground" Property="Background" Value="{DynamicResource AccentPrimary}" />
+                                                                <Setter TargetName="DaySelectionBackground" Property="Background" Value="#FFF2E8" />
                                                                 <Setter TargetName="DaySelectionBackground" Property="Opacity" Value="1" />
-                                                                <Setter TargetName="DayNumberText" Property="Foreground" Value="{DynamicResource WhiteText}" />
                                                                 <Setter TargetName="DayNumberText" Property="FontWeight" Value="Medium" />
-                                                                <Setter TargetName="DayDurationText" Property="Foreground" Value="{DynamicResource WhiteText}" />
                                                                 <Setter TargetName="DayDurationText" Property="Opacity" Value="1" />
                                                             </DataTrigger>
                                                             <MultiDataTrigger><MultiDataTrigger.Conditions><Condition Binding="{Binding IsSelected}" Value="True"/><Condition Binding="{Binding HasFocus}" Value="False"/></MultiDataTrigger.Conditions>
-                                                                <Setter TargetName="DaySelectionBackground" Property="Background" Value="#FFF2E8"/><Setter TargetName="DayNumberText" Property="Foreground" Value="{DynamicResource AccentPrimary}"/>
+                                                                <Setter TargetName="DaySelectionBackground" Property="Background" Value="#FFF2E8"/>
                                                             </MultiDataTrigger>
                                                         </ControlTemplate.Triggers>
                                                     </ControlTemplate>
@@ -987,14 +987,17 @@
                                 <Grid Grid.Row="1" Margin="0,18,0,0"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="1"/><ColumnDefinition/><ColumnDefinition Width="1"/><ColumnDefinition/></Grid.ColumnDefinitions>
                                     <StackPanel Grid.Column="0" Margin="0,0,8,0"><TextBlock Text="总专注时长" FontSize="11" Foreground="{DynamicResource TextSecondary}"/>
                                         <Viewbox Margin="0,7,0,0" Height="31" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left"><TextBlock x:Name="MonthlyTotalDuration" FontFamily="{DynamicResource FontFamilyNumeric}" Foreground="{DynamicResource TextPrimary}"><Run Text="{Binding MonthlyTotalHoursValueDisplay, Mode=OneWay}" FontSize="26" FontWeight="SemiBold"/><Run Text="{Binding MonthlyTotalHoursUnitDisplay, Mode=OneWay}" FontSize="10.5" FontWeight="Normal"/><Run Text="{Binding MonthlyTotalMinutesValueDisplay, Mode=OneWay}" FontSize="26" FontWeight="SemiBold"/><Run Text="{Binding MonthlyTotalMinutesUnitDisplay, Mode=OneWay}" FontSize="10.5" FontWeight="Normal"/></TextBlock></Viewbox>
+                                        <Border Margin="0,8,0,0" Padding="7,3" HorizontalAlignment="Left" Background="#F7F8FA" CornerRadius="10"><TextBlock FontSize="10"><Run Text="较上月 " Foreground="{DynamicResource TextSecondary}"/><Run Text="{Binding MonthlyTotalChangeDisplay, Mode=OneWay}" Foreground="{DynamicResource AccentPrimary}" FontWeight="SemiBold"/></TextBlock></Border>
                                     </StackPanel>
                                     <Border Grid.Column="1" Background="#ECEEF2" Height="65" VerticalAlignment="Top"/>
                                     <StackPanel Grid.Column="2" Margin="12,0,0,0"><TextBlock Text="专注天数" FontSize="11" Foreground="{DynamicResource TextSecondary}"/>
                                         <Viewbox Margin="0,7,0,0" Height="31" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left"><TextBlock x:Name="MonthlyFocusDays" FontFamily="{DynamicResource FontFamilyNumeric}" Foreground="{DynamicResource TextPrimary}"><Run Text="{Binding MonthlyFocusDaysValueDisplay, Mode=OneWay}" FontSize="26" FontWeight="SemiBold"/><Run Text="{Binding MonthlyFocusDaysUnitDisplay, Mode=OneWay}" FontSize="10.5" FontWeight="Normal"/></TextBlock></Viewbox>
+                                        <Border Margin="0,8,0,0" Padding="7,3" HorizontalAlignment="Left" Background="#F7F8FA" CornerRadius="10"><TextBlock FontSize="10"><Run Text="较上月 " Foreground="{DynamicResource TextSecondary}"/><Run Text="{Binding MonthlyFocusDaysChangeDisplay, Mode=OneWay}" Foreground="{DynamicResource AccentPrimary}" FontWeight="SemiBold"/></TextBlock></Border>
                                     </StackPanel>
                                     <Border Grid.Column="3" Background="#ECEEF2" Height="65" VerticalAlignment="Top"/>
                                     <StackPanel Grid.Column="4" Margin="12,0,0,0"><TextBlock Text="日均专注" FontSize="11" Foreground="{DynamicResource TextSecondary}"/>
                                         <Viewbox Margin="0,7,0,0" Height="31" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left"><TextBlock x:Name="MonthlyAverageDuration" FontFamily="{DynamicResource FontFamilyNumeric}" Foreground="{DynamicResource TextPrimary}"><Run Text="{Binding MonthlyAverageHoursValueDisplay, Mode=OneWay}" FontSize="26" FontWeight="SemiBold"/><Run Text="{Binding MonthlyAverageHoursUnitDisplay, Mode=OneWay}" FontSize="10.5" FontWeight="Normal"/><Run Text="{Binding MonthlyAverageMinutesValueDisplay, Mode=OneWay}" FontSize="26" FontWeight="SemiBold"/><Run Text="{Binding MonthlyAverageMinutesUnitDisplay, Mode=OneWay}" FontSize="10.5" FontWeight="Normal"/></TextBlock></Viewbox>
+                                        <Border Margin="0,8,0,0" Padding="7,3" HorizontalAlignment="Left" Background="#F7F8FA" CornerRadius="10"><TextBlock FontSize="10"><Run Text="较上月 " Foreground="{DynamicResource TextSecondary}"/><Run Text="{Binding MonthlyAverageChangeDisplay, Mode=OneWay}" Foreground="{DynamicResource AccentPrimary}" FontWeight="SemiBold"/></TextBlock></Border>
                                     </StackPanel>
                                 </Grid>
                             </Grid>
@@ -1005,14 +1008,8 @@
                             <Grid x:Name="DailyFocusRecordContent">
                                 <Grid.Style><Style TargetType="Grid"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding CanViewDailyFocusRecord}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Grid.Style>
                                 <Grid.RowDefinitions><RowDefinition Height="30"/><RowDefinition/></Grid.RowDefinitions>
-                                <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="64"/></Grid.ColumnDefinitions>
-                                    <TextBlock Text="{Binding SelectedDateDisplay}" FontSize="20" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center"/>
-                                    <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
-                                        <Button Width="28" Height="28" Margin="0,0,8,0" Command="{Binding PreviousCalendarDayCommand}" Style="{StaticResource CalendarNavigationButtonStyle}" AutomationProperties.Name="上一天"><TextBlock Text="&#xE76B;" FontFamily="Segoe MDL2 Assets" FontSize="13" Foreground="{DynamicResource TextSecondary}"/></Button>
-                                        <Button Width="28" Height="28" Command="{Binding NextCalendarDayCommand}" Style="{StaticResource CalendarNavigationButtonStyle}" AutomationProperties.Name="下一天"><TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="13" Foreground="{DynamicResource TextSecondary}"/></Button>
-                                    </StackPanel>
-                                </Grid>
-                                <Grid x:Name="CalendarPopulatedContent" Grid.Row="1" Visibility="{Binding HasMonthlyFocusData, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <TextBlock Text="{Binding SelectedDateDisplay}" FontSize="20" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center"/>
+                                <Grid x:Name="CalendarPopulatedContent" Grid.Row="1">
                                     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="156"/><RowDefinition/></Grid.RowDefinitions>
                                     <Border x:Name="CalendarDayMetrics" Height="124" Margin="0,18,0,16" Padding="0,0,0,14" Background="Transparent" BorderBrush="#F0F1F4" BorderThickness="0,0,0,1">
                                         <Grid><Grid.RowDefinitions><RowDefinition Height="20"/><RowDefinition/><RowDefinition Height="24"/></Grid.RowDefinitions>
@@ -1021,54 +1018,16 @@
                                             <Grid x:Name="CalendarDayFocusSummary" Grid.Row="2" HorizontalAlignment="Left"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                                 <TextBlock x:Name="CalendarDayFocusCount" VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource TextSecondary}"><Run Text="{Binding SelectedDaySessionCount, Mode=OneWay}"/><Run Text="次专注"/></TextBlock>
                                                 <TextBlock Grid.Column="1" Margin="10,0" Text="·" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}"/>
-                                                <ToggleButton x:Name="CompletedTasksButton" Grid.Column="2" Cursor="Hand" Padding="0" Background="Transparent" BorderThickness="0" FocusVisualStyle="{x:Null}" PreviewKeyDown="CompletedTasksPopup_KeyDown">
+                                                <ToggleButton x:Name="CompletedTasksButton" Grid.Column="2" Cursor="Hand" Padding="0" Background="Transparent" BorderThickness="0" FocusVisualStyle="{x:Null}">
                                                     <ToggleButton.Template><ControlTemplate TargetType="ToggleButton"><ContentPresenter x:Name="TaskLink"/><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="TaskLink" Property="Opacity" Value="0.7"/></Trigger></ControlTemplate.Triggers></ControlTemplate></ToggleButton.Template>
                                                     <StackPanel Orientation="Horizontal"><TextBlock FontSize="12" Foreground="{DynamicResource AccentPrimary}" VerticalAlignment="Center"><Run Text="完成 "/><Run Text="{Binding SelectedDayCompletedTasks, Mode=OneWay}"/><Run Text=" 项任务"/></TextBlock><TextBlock x:Name="CalendarDayCompletedTaskChevron" Text="›" FontSize="17" Foreground="{DynamicResource AccentPrimary}" Margin="5,-1,0,0" VerticalAlignment="Center"/></StackPanel>
                                                 </ToggleButton>
                                             </Grid>
-                                        <Popup x:Name="CompletedTasksPopup" PlacementTarget="{Binding ElementName=CompletedTasksButton}" IsOpen="{Binding IsChecked, ElementName=CompletedTasksButton, Mode=TwoWay}" Placement="Bottom" VerticalOffset="4" HorizontalOffset="-72" AllowsTransparency="True" StaysOpen="False" PopupAnimation="Fade" Closed="CompletedTasksPopup_Closed">
-                                            <Border Margin="12" Width="300" Padding="16,14" TextElement.FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI" Background="{DynamicResource SurfacePrimary}" BorderBrush="#EEEEF0" BorderThickness="1" CornerRadius="12" Focusable="True" KeyDown="CompletedTasksPopup_KeyDown">
-                                                <Border.Effect><DropShadowEffect BlurRadius="18" ShadowDepth="4" Opacity="0.12"/></Border.Effect>
-                                                <StackPanel>
-                                                    <Grid Margin="0,0,0,8">
-                                                        <TextBlock Text="今日完成" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}"/>
-                                                        <TextBlock HorizontalAlignment="Right" FontSize="12" Foreground="{DynamicResource TextSecondary}"><Run Text="{Binding SelectedDayCompletedTasks, Mode=OneWay}"/><Run Text="项"/></TextBlock>
-                                                    </Grid>
-                                                    <TextBlock x:Name="CompletedTasksEmpty" Margin="0,12" FontSize="12" Text="当天还没有完成任务" Foreground="{DynamicResource TextSecondary}" HorizontalAlignment="Center" Visibility="{Binding HasSelectedDayCompletedTasks, Converter={StaticResource GoalInverseVisibilityConverter}}"/>
-                                                    <ScrollViewer x:Name="CompletedTasksListScroll" MaxHeight="320" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Visibility="{Binding HasSelectedDayCompletedTasks, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                                        <ScrollViewer.Resources><Style TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource StatisticsThinScrollBarStyle}"/></ScrollViewer.Resources>
-                                                        <ItemsControl x:Name="CompletedTasksList" ItemsSource="{Binding SelectedDayCompletedTaskItems}">
-                                                            <ItemsControl.ItemTemplate>
-                                                                <DataTemplate DataType="{x:Type vm:CalendarCompletedTaskViewModel}">
-                                                                    <Grid x:Name="CompletedTaskRow" Height="32" Background="Transparent" MouseEnter="CompletedTaskRow_MouseEnter" MouseLeave="CompletedTaskRow_MouseLeave">
-                                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="18"/><ColumnDefinition/><ColumnDefinition Width="40"/></Grid.ColumnDefinitions>
-                                                                        <Border Width="18" Height="18" Background="{DynamicResource AccentPrimary}" CornerRadius="9">
-                                                                            <Path Data="M 0,4 L 3,7 L 9,0" Stroke="{DynamicResource WhiteText}" StrokeThickness="1.7" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                                        </Border>
-                                                                        <TextBlock Grid.Column="1" Margin="10,0,8,0" VerticalAlignment="Center" Text="{Binding Name}" TextTrimming="CharacterEllipsis" FontSize="13" Foreground="{DynamicResource TextPrimary}"/>
-                                                                        <TextBlock Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right" Text="{Binding TimeDisplay}" Foreground="{DynamicResource TextWeak}" FontSize="12"/>
-                                                                        <Popup x:Name="CompletedTaskGoalPopup" PlacementTarget="{Binding ElementName=CompletedTaskRow}" Placement="Right" HorizontalOffset="4" AllowsTransparency="True" StaysOpen="True" IsHitTestVisible="False">
-                                                                            <Border Margin="10" Padding="10,8" Background="{DynamicResource SurfacePrimary}" BorderBrush="#EEEEF0" BorderThickness="1" CornerRadius="8">
-                                                                                <Border.Effect><DropShadowEffect BlurRadius="14" ShadowDepth="2" Opacity="0.1"/></Border.Effect>
-                                                                                <StackPanel Orientation="Horizontal">
-                                                                                    <Image Width="20" Height="20" Source="{Binding GoalIconSource, Converter={x:Static views:TargetIconSourceConverter.Instance}}" RenderOptions.BitmapScalingMode="HighQuality"/>
-                                                                                    <TextBlock MaxWidth="160" Margin="7,0,0,0" VerticalAlignment="Center" Text="{Binding GoalName}" TextTrimming="CharacterEllipsis" FontSize="12" Foreground="{DynamicResource TextPrimary}"/>
-                                                                                </StackPanel>
-                                                                            </Border>
-                                                                        </Popup>
-                                                                    </Grid>
-                                                                </DataTemplate>
-                                                            </ItemsControl.ItemTemplate>
-                                                        </ItemsControl>
-                                                    </ScrollViewer>
-                                                </StackPanel>
-                                            </Border>
-                                        </Popup>
                                         </Grid>
                                     </Border>
                                     <Grid Grid.Row="1"><Grid.RowDefinitions><RowDefinition Height="24"/><RowDefinition/></Grid.RowDefinitions>
                                         <TextBlock Text="时间分布" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}"/>
-                                        <ScrollViewer x:Name="DailyDistributionScrollViewer" Grid.Row="1" Margin="0,6,0,14" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                        <ScrollViewer x:Name="DailyDistributionScrollViewer" Grid.Row="1" Margin="0,6,0,14" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Visibility="{Binding HasSelectedDayDistributions, Converter={StaticResource BooleanToVisibilityConverter}}">
                                             <ScrollViewer.Resources><Style TargetType="ScrollBar" BasedOn="{StaticResource StatisticsRecordScrollBarStyle}"/></ScrollViewer.Resources>
                                             <ItemsControl ItemsSource="{Binding SelectedDayDistributions}"><ItemsControl.ItemTemplate><DataTemplate>
                                                 <Border Height="54" BorderBrush="#F0F1F4" BorderThickness="0,0,0,1" Margin="0,0,4,0"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="25"/><ColumnDefinition/><ColumnDefinition Width="86"/></Grid.ColumnDefinitions>
@@ -1078,10 +1037,19 @@
                                                 </Grid></Border>
                                             </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
                                         </ScrollViewer>
+                                        <StackPanel x:Name="DailyDistributionEmptyState" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,8" Visibility="{Binding HasSelectedDayDistributions, Converter={StaticResource GoalInverseVisibilityConverter}}">
+                                            <StackPanel Orientation="Horizontal" Height="42" HorizontalAlignment="Center" VerticalAlignment="Bottom">
+                                                <Border Width="14" Height="25" Margin="0,17,5,0" CornerRadius="3" Background="#E6E8ED"/>
+                                                <Border Width="14" Height="42" Margin="0,0,5,0" CornerRadius="3" Background="#E6E8ED"/>
+                                                <Border Width="14" Height="20" Margin="0,22,0,0" CornerRadius="3" Background="#E6E8ED"/>
+                                            </StackPanel>
+                                            <TextBlock Text="暂无时间分布" HorizontalAlignment="Center" Margin="0,9,0,0" FontSize="12" Foreground="#8A94A6"/>
+                                            <TextBlock Text="完成一次专注后，这里将显示时间分布" HorizontalAlignment="Center" Margin="0,5,0,0" FontSize="10" Foreground="#A5ADBA"/>
+                                        </StackPanel>
                                     </Grid>
                                     <Grid Grid.Row="2"><Grid.RowDefinitions><RowDefinition Height="36"/><RowDefinition/></Grid.RowDefinitions>
                                         <Border BorderBrush="#F0F1F4" BorderThickness="0,1,0,0" Padding="0,12,0,0"><TextBlock Text="时间记录" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}"/></Border>
-                                        <ScrollViewer x:Name="CalendarRecordsScrollViewer" Grid.Row="1" Margin="0,5,0,0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                        <ScrollViewer x:Name="CalendarRecordsScrollViewer" Grid.Row="1" Margin="0,5,0,0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Visibility="{Binding HasSelectedDayRecords, Converter={StaticResource BooleanToVisibilityConverter}}">
                                             <ScrollViewer.Resources><Style TargetType="ScrollBar" BasedOn="{StaticResource StatisticsRecordScrollBarStyle}"/></ScrollViewer.Resources>
                                             <ItemsControl ItemsSource="{Binding SelectedDayRecords}"><ItemsControl.ItemTemplate><DataTemplate DataType="{x:Type vm:FocusSessionRecordViewModel}">
                                                 <Border Height="57" BorderBrush="#F0F1F4" BorderThickness="0,0,0,1" Margin="0,0,4,0"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="25"/><ColumnDefinition/><ColumnDefinition Width="86"/></Grid.ColumnDefinitions>
@@ -1091,13 +1059,24 @@
                                                 </Grid></Border>
                                             </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
                                         </ScrollViewer>
+                                        <StackPanel x:Name="CalendarRecordsEmptyState" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,10" Visibility="{Binding HasSelectedDayRecords, Converter={StaticResource GoalInverseVisibilityConverter}}">
+                                            <Grid Width="46" Height="42" HorizontalAlignment="Center">
+                                                <StackPanel VerticalAlignment="Center" Margin="5,0,0,0">
+                                                    <Border Width="28" Height="3" Margin="0,0,0,7" CornerRadius="2" Background="#D9DDE5"/>
+                                                    <Border Width="28" Height="3" Margin="0,0,0,7" CornerRadius="2" Background="#D9DDE5"/>
+                                                    <Border Width="28" Height="3" CornerRadius="2" Background="#D9DDE5"/>
+                                                </StackPanel>
+                                                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Left">
+                                                    <Ellipse Width="4" Height="4" Margin="0,0,0,6" Fill="#C9CED8"/>
+                                                    <Ellipse Width="4" Height="4" Margin="0,0,0,6" Fill="#C9CED8"/>
+                                                    <Ellipse Width="4" Height="4" Fill="#C9CED8"/>
+                                                </StackPanel>
+                                            </Grid>
+                                            <TextBlock Text="暂无专注记录" HorizontalAlignment="Center" Margin="0,12,0,0" FontSize="12" Foreground="#8A94A6"/>
+                                            <TextBlock Text="完成一次专注后，这里会显示本日专注记录" HorizontalAlignment="Center" Margin="0,6,0,0" FontSize="10" Foreground="#A5ADBA"/>
+                                        </StackPanel>
                                     </Grid>
                                 </Grid>
-                                <StackPanel x:Name="CalendarMonthEmptyState" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,28" Visibility="{Binding HasMonthlyFocusData, Converter={StaticResource GoalInverseVisibilityConverter}}">
-                                    <Grid Width="50" Height="50" HorizontalAlignment="Center"><Ellipse Margin="2" Stroke="#BEC2CB" StrokeThickness="3"/><Path Data="M 25,13 L 25,26 L 35,26" Stroke="#BEC2CB" StrokeThickness="3" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/></Grid>
-                                    <TextBlock Text="暂无专注记录" HorizontalAlignment="Center" Margin="0,22,0,0" FontSize="17" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}"/>
-                                    <TextBlock Text="完成一次专注后，这里会显示当天的记录" TextWrapping="Wrap" TextAlignment="Center" HorizontalAlignment="Center" Margin="0,13,0,0" FontSize="11" Foreground="{DynamicResource TextSecondary}"/>
-                                </StackPanel>
                             </Grid>
 
                             <Grid x:Name="DailyFocusRecordLockedPlaceholder"
@@ -1196,48 +1175,55 @@
                                 <ItemsControl ItemsSource="{Binding VisibleGoals}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate DataType="{x:Type vm:GoalOverviewItemViewModel}">
-                                            <Grid x:Name="GoalRowRoot" Height="70" Margin="0,0,0,6">
-                                                <Button x:Name="GoalSelectionButton" Padding="12,8,22,8" HorizontalContentAlignment="Stretch" Command="{Binding DataContext.SelectGoalCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}" Background="{DynamicResource SurfacePrimary}" BorderThickness="0" FocusVisualStyle="{x:Null}">
+                                            <Grid x:Name="GoalRowRoot" Height="54" Margin="0,0,0,4">
+                                                <Button x:Name="GoalSelectionButton" Padding="12,0,10,0" HorizontalContentAlignment="Stretch" Command="{Binding DataContext.SelectGoalCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}" Background="{DynamicResource SurfacePrimary}" BorderThickness="0" FocusVisualStyle="{x:Null}">
                                                     <Button.Template>
                                                         <ControlTemplate TargetType="Button">
                                                             <Grid>
-                                                            <Border x:Name="GoalBorder" Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}" BorderThickness="0" CornerRadius="8">
-                                                                <Grid>
-                                                                    <Grid.ColumnDefinitions>
-                                                                        <ColumnDefinition Width="38" />
-                                                                        <ColumnDefinition Width="10" />
-                                                                        <ColumnDefinition Width="*" />
-                                                                    </Grid.ColumnDefinitions>
-                                                                    <Border x:Name="GoalIconBackground" Grid.Column="0" Width="38" Height="38" HorizontalAlignment="Center" VerticalAlignment="Center" Background="{DynamicResource TransparentBrush}">
-                                                                        <Image Width="28" Height="28" RenderOptions.BitmapScalingMode="HighQuality" Source="{Binding IconSource, Converter={x:Static views:TargetIconSourceConverter.Instance}}" Stretch="Uniform" />
-                                                                    </Border>
-                                                                    <StackPanel Grid.Column="2" Margin="0,0,22,0" VerticalAlignment="Center">
-                                                                        <TextBox Text="{Binding DraftName, UpdateSourceTrigger=PropertyChanged}" Visibility="{Binding IsRenaming, Converter={StaticResource BooleanToVisibilityConverter}}" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}" BorderThickness="0" Background="{DynamicResource TransparentBrush}" IsVisibleChanged="GoalNameTextBox_IsVisibleChanged" LostKeyboardFocus="GoalNameTextBox_LostKeyboardFocus" PreviewKeyDown="GoalNameTextBox_PreviewKeyDown" />
-                                                                        <TextBlock x:Name="GoalListName" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{Binding Name}" TextTrimming="CharacterEllipsis">
+                                                                <Border x:Name="GoalBorder" Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}" CornerRadius="8">
+                                                                    <Grid>
+                                                                        <Grid.ColumnDefinitions>
+                                                                            <ColumnDefinition Width="30" />
+                                                                            <ColumnDefinition Width="*" />
+                                                                            <ColumnDefinition Width="52" />
+                                                                        </Grid.ColumnDefinitions>
+                                                                        <Image Grid.Column="0" Width="20" Height="20" HorizontalAlignment="Left" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality" Source="{Binding IconSource, Converter={x:Static views:TargetIconSourceConverter.Instance}}" Stretch="Uniform" />
+                                                                        <TextBox Grid.Column="1" Margin="3,0,4,0" VerticalAlignment="Center" Text="{Binding DraftName, UpdateSourceTrigger=PropertyChanged}" Visibility="{Binding IsRenaming, Converter={StaticResource BooleanToVisibilityConverter}}" FontSize="12" Foreground="{DynamicResource TextPrimary}" BorderThickness="0" Background="Transparent" IsVisibleChanged="GoalNameTextBox_IsVisibleChanged" LostKeyboardFocus="GoalNameTextBox_LostKeyboardFocus" PreviewKeyDown="GoalNameTextBox_PreviewKeyDown" />
+                                                                        <TextBlock x:Name="GoalListName" Grid.Column="1" Margin="3,0,4,0" VerticalAlignment="Center" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{Binding Name}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap">
                                                                             <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Visible" /><Style.Triggers><DataTrigger Binding="{Binding IsRenaming}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers></Style></TextBlock.Style>
                                                                         </TextBlock>
-                                                                        <TextBlock x:Name="GoalTodayDurationText" Margin="0,3,0,0" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding TodayDurationDisplay}" Visibility="{Binding IsArchived, Converter={StaticResource GoalInverseVisibilityConverter}}" />
-                                                                        <TextBlock x:Name="GoalTotalDurationText" Margin="0,3,0,0" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding TotalDurationDisplay}" Visibility="{Binding IsArchived, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                                                                    </StackPanel>
-                                                                    <Button Grid.Column="2" Width="30" Height="26" Margin="0,0,-6,0" HorizontalAlignment="Right" VerticalAlignment="Center" Padding="0" Background="{DynamicResource TransparentBrush}" BorderThickness="0" Click="SaveGoalRenameButton_Click" Content="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{DynamicResource AccentPrimary}" Visibility="{Binding IsRenaming, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                                                                </Grid>
-                                                            </Border>
-                                                            <Border x:Name="GoalSelectionStripe" Width="3" HorizontalAlignment="Left" Background="{DynamicResource AccentPrimary}" CornerRadius="2" Visibility="Collapsed" IsHitTestVisible="False"/>
-                                                            <Border x:Name="GoalRowSeparator" Height="1" Margin="10,0" VerticalAlignment="Bottom" Background="#F2F2F5" IsHitTestVisible="False"/>
+                                                                        <TextBlock x:Name="GoalTodayDurationText" Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right" FontSize="11" Foreground="#939BA9" Text="{Binding TodayDurationCompactDisplay}" TextTrimming="CharacterEllipsis" Visibility="{Binding IsArchived, Converter={StaticResource GoalInverseVisibilityConverter}}" />
+                                                                        <TextBlock x:Name="GoalTotalDurationText" Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right" FontSize="11" Foreground="#939BA9" Text="{Binding TotalDurationCompactDisplay}" TextTrimming="CharacterEllipsis" Visibility="{Binding IsArchived, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                                                        <Button Grid.Column="2" Width="28" Height="26" HorizontalAlignment="Right" VerticalAlignment="Center" Padding="0" Background="Transparent" BorderThickness="0" Click="SaveGoalRenameButton_Click" Content="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{DynamicResource AccentPrimary}" Visibility="{Binding IsRenaming, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                                                    </Grid>
+                                                                </Border>
+                                                                <Border x:Name="GoalSelectionStripe" Width="3" HorizontalAlignment="Left" Background="{DynamicResource AccentPrimary}" CornerRadius="2" Visibility="Collapsed" IsHitTestVisible="False"/>
+                                                                <Border x:Name="GoalRowSeparator" Height="1" Margin="10,0" VerticalAlignment="Bottom" Background="#F2F2F5" IsHitTestVisible="False"/>
                                                             </Grid>
                                                             <ControlTemplate.Triggers>
-                                                                <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="GoalBorder" Property="Background" Value="{DynamicResource ControlHoverBackground}" /></Trigger>
+                                                                <DataTrigger Binding="{Binding IsMouseOver, ElementName=GoalRowRoot}" Value="True"><Setter TargetName="GoalBorder" Property="Background" Value="#F5F6F8" /></DataTrigger>
                                                                 <Trigger Property="IsPressed" Value="True"><Setter TargetName="GoalBorder" Property="Background" Value="{DynamicResource ControlPressedBackground}" /></Trigger>
-                                                                <DataTrigger Binding="{Binding IsSelected}" Value="True"><Setter TargetName="GoalBorder" Property="Background" Value="#FFF6ED"/><Setter TargetName="GoalSelectionStripe" Property="Visibility" Value="Visible"/><Setter TargetName="GoalRowSeparator" Property="Visibility" Value="Collapsed"/><Setter TargetName="GoalListName" Property="FontWeight" Value="Medium"/></DataTrigger>
+                                                                <DataTrigger Binding="{Binding IsSelected}" Value="True"><Setter TargetName="GoalBorder" Property="Background" Value="#FFF6ED"/><Setter TargetName="GoalSelectionStripe" Property="Visibility" Value="Visible"/><Setter TargetName="GoalRowSeparator" Property="Visibility" Value="Collapsed"/></DataTrigger>
+                                                                <DataTrigger Binding="{Binding IsMouseOver, ElementName=GoalRowRoot}" Value="True"><Setter TargetName="GoalTodayDurationText" Property="Visibility" Value="Collapsed"/><Setter TargetName="GoalTotalDurationText" Property="Visibility" Value="Collapsed"/></DataTrigger>
+                                                                <DataTrigger Binding="{Binding IsChecked, ElementName=GoalListMoreButton}" Value="True"><Setter TargetName="GoalTodayDurationText" Property="Visibility" Value="Collapsed"/><Setter TargetName="GoalTotalDurationText" Property="Visibility" Value="Collapsed"/></DataTrigger>
+                                                                <DataTrigger Binding="{Binding IsRenaming}" Value="True"><Setter TargetName="GoalTodayDurationText" Property="Visibility" Value="Collapsed"/><Setter TargetName="GoalTotalDurationText" Property="Visibility" Value="Collapsed"/></DataTrigger>
                                                             </ControlTemplate.Triggers>
                                                         </ControlTemplate>
                                                     </Button.Template>
                                                 </Button>
-                                                <ToggleButton x:Name="GoalListMoreButton" Width="28" Height="28" Margin="0,0,7,0" HorizontalAlignment="Right" VerticalAlignment="Center" Panel.ZIndex="2" Content="···" Click="GoalListMoreButton_Click" AutomationProperties.Name="目标更多操作">
+                                                <ToggleButton x:Name="GoalListMoreButton" Width="28" Height="26" Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Panel.ZIndex="2" Content="···" Click="GoalListMoreButton_Click" AutomationProperties.Name="目标更多操作">
                                                     <ToggleButton.Style>
-                                                        <Style TargetType="ToggleButton" BasedOn="{StaticResource GoalDetailMoreButtonStyle}">
+                                                        <Style TargetType="ToggleButton">
+                                                            <Setter Property="Foreground" Value="#8892A3"/>
+                                                            <Setter Property="FontSize" Value="13"/>
+                                                            <Setter Property="FontWeight" Value="SemiBold"/>
+                                                            <Setter Property="Background" Value="Transparent"/>
+                                                            <Setter Property="BorderThickness" Value="0"/>
+                                                            <Setter Property="Cursor" Value="Hand"/>
+                                                            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
                                                             <Setter Property="Opacity" Value="0"/>
                                                             <Setter Property="IsHitTestVisible" Value="False"/>
+                                                            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ToggleButton"><Grid Background="Transparent"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Grid><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter Property="Foreground" Value="#6F7888"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
                                                             <Style.Triggers>
                                                                 <DataTrigger Binding="{Binding IsMouseOver, ElementName=GoalRowRoot}" Value="True"><Setter Property="Opacity" Value="1"/><Setter Property="IsHitTestVisible" Value="True"/></DataTrigger>
                                                                 <Trigger Property="IsChecked" Value="True"><Setter Property="Opacity" Value="1"/><Setter Property="IsHitTestVisible" Value="True"/></Trigger>
@@ -1751,6 +1737,102 @@
             </StackPanel>
         </StackPanel>
     </ScrollViewer>
+    <Grid x:Name="CompletedTasksModalOverlay" Panel.ZIndex="20" Background="#5C121827"
+          Visibility="{Binding IsChecked, ElementName=CompletedTasksButton, Converter={StaticResource BooleanToVisibilityConverter}}"
+          IsVisibleChanged="CompletedTasksModalOverlay_IsVisibleChanged" PreviewKeyDown="CompletedTasksModal_KeyDown">
+        <Border x:Name="CompletedTasksModal" Width="430" Height="450" CornerRadius="15"
+                Background="{DynamicResource SurfacePrimary}" BorderBrush="#E9EBF0" BorderThickness="1"
+                TextElement.FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI" Focusable="True">
+            <Border.Effect><DropShadowEffect BlurRadius="26" ShadowDepth="5" Opacity="0.16"/></Border.Effect>
+            <Grid>
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                <Grid Margin="24,22,24,16">
+                    <Grid.RowDefinitions><RowDefinition Height="30"/><RowDefinition Height="25"/></Grid.RowDefinitions>
+                    <TextBlock Text="已完成任务" FontSize="20" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center"/>
+                    <Button x:Name="CompletedTasksCloseButton" Width="28" Height="28" HorizontalAlignment="Right" VerticalAlignment="Center"
+                            Click="CompletedTasksCloseButton_Click" Cursor="Hand" Background="Transparent" BorderThickness="0"
+                            Foreground="#7E8799" FontSize="23" Content="×" AutomationProperties.Name="关闭已完成任务">
+                        <Button.Template><ControlTemplate TargetType="Button"><Border x:Name="CloseSurface" Background="Transparent" CornerRadius="6"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="CloseSurface" Property="Background" Value="#F4F5F7"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Button.Template>
+                    </Button>
+                    <TextBlock Grid.Row="1" Text="{Binding SelectedDayCompletedTaskSummary}" FontSize="12" Foreground="#8993A7" VerticalAlignment="Bottom"/>
+                </Grid>
+                <ScrollViewer x:Name="CompletedTasksListScroll" Grid.Row="1" Margin="24,0,18,16"
+                              VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <ScrollViewer.Resources><Style TargetType="ScrollBar" BasedOn="{StaticResource StatisticsThinScrollBarStyle}"/></ScrollViewer.Resources>
+                    <StackPanel>
+                        <TextBlock x:Name="CompletedTasksEmpty" Text="当天还没有完成任务" Margin="0,110,0,0"
+                                   HorizontalAlignment="Center" FontSize="13" Foreground="#8993A7"
+                                   Visibility="{Binding HasSelectedDayCompletedTasks, Converter={StaticResource GoalInverseVisibilityConverter}}"/>
+                        <ItemsControl x:Name="CompletedTasksList" ItemsSource="{Binding SelectedDayCompletedTaskGroups}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type vm:CalendarCompletedTaskGroupViewModel}">
+                                    <Border BorderBrush="#EDF0F4" BorderThickness="0,0,0,1" Margin="0,0,3,18" Padding="0,0,0,15">
+                                        <StackPanel>
+                                            <Grid Height="36" Margin="0,0,0,12">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="42"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <Border Width="32" Height="32" CornerRadius="8" Background="{Binding IconBackground}" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                                    <Image Width="19" Height="19" Source="{Binding GoalIconSource, Converter={x:Static views:TargetIconSourceConverter.Instance}}" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                                </Border>
+                                                <TextBlock Grid.Column="1" Text="{Binding GoalName}" TextTrimming="CharacterEllipsis" Margin="0,0,8,0"
+                                                           FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center"/>
+                                                <TextBlock Grid.Column="2" Text="{Binding DurationDisplay}" FontSize="13" FontWeight="Medium"
+                                                           Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center" HorizontalAlignment="Right"/>
+                                            </Grid>
+                                            <ItemsControl ItemsSource="{Binding Tasks}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate DataType="{x:Type vm:CalendarCompletedTaskEntryViewModel}">
+                                                        <StackPanel Margin="8,0,0,9">
+                                                            <Grid MinHeight="31">
+                                                                <Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="*"/><ColumnDefinition Width="48"/></Grid.ColumnDefinitions>
+                                                                <Border Width="18" Height="18" Background="{DynamicResource AccentPrimary}" CornerRadius="5" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                                                    <Path Data="M 0,4 L 3,7 L 9,0" Stroke="White" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                                </Border>
+                                                                <TextBlock Grid.Column="1" Text="{Binding Name}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                                                                           FontSize="13" Foreground="{DynamicResource TextPrimary}" Margin="0,0,8,0"/>
+                                                                <TextBlock Grid.Column="2" Text="{Binding TimeDisplay}" FontSize="12" Foreground="#8C95A6"
+                                                                           VerticalAlignment="Center" HorizontalAlignment="Right"/>
+                                                            </Grid>
+                                                            <Grid Margin="20,1,0,0" Visibility="{Binding HasSubTasks, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                                <Border Width="1" Margin="0,0,0,2" HorizontalAlignment="Left" Background="#E7EBF1"/>
+                                                                <StackPanel Margin="12,0,0,0">
+                                                                    <ItemsControl ItemsSource="{Binding VisibleSubTasks}">
+                                                                        <ItemsControl.ItemTemplate>
+                                                                            <DataTemplate DataType="{x:Type vm:CalendarCompletedSubTaskViewModel}">
+                                                                                <Grid Height="30">
+                                                                                    <Grid.ColumnDefinitions><ColumnDefinition Width="27"/><ColumnDefinition Width="*"/><ColumnDefinition Width="48"/></Grid.ColumnDefinitions>
+                                                                                    <Border Width="16" Height="16" CornerRadius="8" Background="White" BorderBrush="{DynamicResource AccentPrimary}" BorderThickness="1.4" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                                                                        <Path Data="M 0,3 L 2.5,5.5 L 7,0" Stroke="{DynamicResource AccentPrimary}" StrokeThickness="1.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                                                    </Border>
+                                                                                    <TextBlock Grid.Column="1" Text="{Binding Name}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                                                                                               FontSize="12" Foreground="#596579" Margin="0,0,8,0"/>
+                                                                                    <TextBlock Grid.Column="2" Text="{Binding TimeDisplay}" FontSize="12" Foreground="#929BAD"
+                                                                                               VerticalAlignment="Center" HorizontalAlignment="Right"/>
+                                                                                </Grid>
+                                                                            </DataTemplate>
+                                                                        </ItemsControl.ItemTemplate>
+                                                                    </ItemsControl>
+                                                                    <Button Content="{Binding FoldLabel}" Command="{Binding ToggleSubTasksCommand}"
+                                                                            Visibility="{Binding HasOverflow, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                                                            Height="29" HorizontalAlignment="Left" Padding="0" Background="Transparent" BorderThickness="0"
+                                                                            Foreground="#8B95A8" FontSize="12" Cursor="Hand" FocusVisualStyle="{x:Null}">
+                                                                        <Button.Template><ControlTemplate TargetType="Button"><ContentPresenter/><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter Property="Foreground" Value="{DynamicResource AccentPrimary}"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Button.Template>
+                                                                    </Button>
+                                                                </StackPanel>
+                                                            </Grid>
+                                                        </StackPanel>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+    </Grid>
     <Popup x:Name="TrendTooltipPopup"
            DataContext="{Binding}"
            AllowsTransparency="True"

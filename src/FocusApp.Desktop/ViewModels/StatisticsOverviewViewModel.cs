@@ -550,7 +550,12 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     public ObservableCollection<FocusSessionRecordViewModel> SelectedDayRecords { get; } = [];
     public ObservableCollection<CalendarTimeDistributionViewModel> SelectedDayDistributions { get; } = [];
     public bool HasSelectedDayFocusData => SelectedDayMinutes > 0 || SelectedDayRecords.Count > 0;
+    public bool HasSelectedDayDistributions => SelectedDayDistributions.Count > 0;
+    public bool HasSelectedDayRecords => SelectedDayRecords.Count > 0;
     public IReadOnlyList<CalendarCompletedTaskViewModel> SelectedDayCompletedTaskItems { get; private set; } = [];
+    public IReadOnlyList<CalendarCompletedTaskGroupViewModel> SelectedDayCompletedTaskGroups { get; private set; } = [];
+    public string SelectedDayCompletedTaskSummary => _selectedCalendarDay is null ? string.Empty
+        : $"{_selectedCalendarDay.Date:M月d日} · 共{SelectedDayCompletedTasks}项任务 · {SelectedDayCompletedTaskGroups.Count}个目标";
     public bool HasSelectedDayCompletedTasks => SelectedDayCompletedTaskItems.Count > 0;
 
     public ObservableCollection<GoalOverviewItemViewModel> Goals { get; } = [];
@@ -993,6 +998,20 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     public string MonthlyAverageMinutesValueDisplay => !HasMonthlyFocusData ? "—"
         : MonthlyAverageMinutes < 60 || MonthlyAverageMinutes % 60 > 0 ? (MonthlyAverageMinutes % 60).ToString() : string.Empty;
     public string MonthlyAverageMinutesUnitDisplay => HasMonthlyFocusData && (MonthlyAverageMinutes < 60 || MonthlyAverageMinutes % 60 > 0) ? "分钟" : string.Empty;
+    public string MonthlyTotalChangeDisplay => FormatMonthlyPercentChange(MonthlyTotalMinutes, _previousMonthlyTotalMinutes);
+    public string MonthlyFocusDaysChangeDisplay => $"{MonthlyFocusDays - _previousMonthlyFocusDays:+0;-0;0}天";
+    public string MonthlyAverageChangeDisplay => FormatMonthlyPercentChange(MonthlyAverageMinutes, _previousMonthlyAverageMinutes);
+    public string MonthlyTotalComparisonDisplay => $"较上月 {MonthlyTotalChangeDisplay}";
+    public string MonthlyFocusDaysComparisonDisplay => $"较上月 {MonthlyFocusDaysChangeDisplay}";
+    public string MonthlyAverageComparisonDisplay => $"较上月 {MonthlyAverageChangeDisplay}";
+
+    private int _previousMonthlyTotalMinutes;
+    private int _previousMonthlyFocusDays;
+    private int _previousMonthlyAverageMinutes;
+
+    private static string FormatMonthlyPercentChange(int current, int previous) => previous == 0
+        ? current == 0 ? "0%" : "—"
+        : $"{(int)Math.Round((current - previous) * 100d / previous, MidpointRounding.AwayFromZero):+0;-0;0}%";
 
     private static string FormatShortDuration(int minutes) => minutes >= 60
         ? minutes % 60 == 0 ? $"{minutes / 60}h" : $"{minutes / 60}h {minutes % 60}m"
@@ -1942,6 +1961,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         {
             SelectedDayRecords.Add(record);
         }
+        OnPropertyChanged(nameof(HasSelectedDayRecords));
 
         RefreshSelectedDayCompletedTasks(date);
         OnPropertyChanged(nameof(SelectedDateDisplay));
@@ -1969,6 +1989,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
                 totalTicks == 0 ? 0 : ticks / (double)totalTicks,
                 goal?.IconSource ?? TargetIconCatalog.GetIconSource(null)));
         }
+        OnPropertyChanged(nameof(HasSelectedDayDistributions));
     }
 
     private void RefreshCalendar(DateTime? preferredDate = null)
@@ -2006,6 +2027,13 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             summary.Date.Year == _calendarMonth.Year && summary.Date.Month == _calendarMonth.Month).ToArray();
         MonthlyTotalMinutes = (int)TimeSpan.FromTicks(monthSummaries.Sum(summary => summary.FocusDuration.Ticks)).TotalMinutes;
         MonthlyFocusDays = monthSummaries.Count(summary => summary.SessionCount > 0);
+        var previousMonth = firstDay.AddMonths(-1);
+        var previousSummaries = FocusStatisticsCalculator.GetDailySummaries(
+            GetCoreFocusSessionRecords(), previousMonth, DateTime.DaysInMonth(previousMonth.Year, previousMonth.Month));
+        _previousMonthlyTotalMinutes = (int)TimeSpan.FromTicks(previousSummaries.Sum(summary => summary.FocusDuration.Ticks)).TotalMinutes;
+        _previousMonthlyFocusDays = previousSummaries.Count(summary => summary.SessionCount > 0);
+        _previousMonthlyAverageMinutes = _previousMonthlyFocusDays == 0 ? 0
+            : (int)Math.Round(_previousMonthlyTotalMinutes / (double)_previousMonthlyFocusDays, MidpointRounding.AwayFromZero);
 
         OnPropertyChanged(nameof(CalendarMonth));
         OnPropertyChanged(nameof(CalendarMonthDisplay));
@@ -2025,6 +2053,12 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(MonthlyAverageHoursUnitDisplay));
         OnPropertyChanged(nameof(MonthlyAverageMinutesValueDisplay));
         OnPropertyChanged(nameof(MonthlyAverageMinutesUnitDisplay));
+        OnPropertyChanged(nameof(MonthlyTotalComparisonDisplay));
+        OnPropertyChanged(nameof(MonthlyFocusDaysComparisonDisplay));
+        OnPropertyChanged(nameof(MonthlyAverageComparisonDisplay));
+        OnPropertyChanged(nameof(MonthlyTotalChangeDisplay));
+        OnPropertyChanged(nameof(MonthlyFocusDaysChangeDisplay));
+        OnPropertyChanged(nameof(MonthlyAverageChangeDisplay));
         SelectCalendarDayInternal(selectedDate);
     }
 
@@ -2043,7 +2077,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         {
             var goal = Goals.FirstOrDefault(goal => goal.GoalId == task.TargetId);
             items.Add(new(task.Name, task.CompletedAtUtc?.LocalDateTime, task.TargetId,
-                goal?.Name ?? string.Empty, goal?.IconSource ?? TargetIconCatalog.GetIconSource(null)));
+                goal?.Name ?? string.Empty, goal?.IconSource ?? TargetIconCatalog.GetIconSource(null), task.TaskId));
         }
 
         var seenSnapshotIds = new HashSet<string>(StringComparer.Ordinal);
@@ -2059,7 +2093,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
                 var goal = Goals.FirstOrDefault(goal => goal.GoalId == record.GoalId);
                 items.Add(new(record.CompletedTaskNames[index], completedAt, record.GoalId,
                     record.HasGoal ? goal?.Name ?? record.GoalName : string.Empty,
-                    goal?.IconSource ?? record.IconSource));
+                    goal?.IconSource ?? record.IconSource, id));
             }
         }
         return items.OrderBy(item => item.CompletedAt is null).ThenBy(item => item.CompletedAt).ToArray();
@@ -2132,9 +2166,45 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         }
 
         SelectedDayCompletedTaskItems = GetCalendarCompletedTasks(selectedDate.Value);
+        var durations = FocusStatisticsCalculator.GetSlices(GetCoreFocusSessionRecords())
+            .Where(slice => slice.StartsAt.Date == selectedDate.Value.Date)
+            .GroupBy(slice => string.IsNullOrWhiteSpace(slice.Record.TargetId) ? "goal-unassigned" : slice.Record.TargetId)
+            .ToDictionary(group => group.Key, group => TimeSpan.FromTicks(group.Sum(slice => slice.Duration.Ticks)), StringComparer.Ordinal);
+        var tasksById = _goalTaskSnapshot.ToDictionary(task => task.TaskId, StringComparer.Ordinal);
+        SelectedDayCompletedTaskGroups = SelectedDayCompletedTaskItems
+            .GroupBy(task => task.GoalId)
+            .Select(group =>
+            {
+                var goal = Goals.FirstOrDefault(item => item.GoalId == group.Key);
+                var entries = group.OrderByDescending(item => item.CompletedAt).Select(item =>
+                {
+                    var subTasks = item.TaskId is not null && tasksById.TryGetValue(item.TaskId, out var source)
+                        ? source.SubTasks.Where(subTask => subTask.IsCompleted).OrderBy(subTask => subTask.SortOrder)
+                            .Select(subTask => new CalendarCompletedSubTaskViewModel(subTask.Title, subTask.UpdatedAtUtc.LocalDateTime.ToString("HH:mm"))).ToArray()
+                        : [];
+                    return new CalendarCompletedTaskEntryViewModel(item.Name, item.TimeDisplay, subTasks);
+                }).ToArray();
+                durations.TryGetValue(group.Key, out var duration);
+                var minutes = (int)duration.TotalMinutes;
+                var durationDisplay = duration > TimeSpan.Zero && minutes == 0 ? "<1 分钟"
+                    : minutes >= 60 ? minutes % 60 == 0 ? $"{minutes / 60} 小时" : $"{minutes / 60} 小时 {minutes % 60} 分钟"
+                    : $"{minutes} 分钟";
+                var color = (Color)ColorConverter.ConvertFromString(goal?.IconColorHex ?? TargetIconCatalog.DefaultColorHex)!;
+                var goalName = group.Key == "goal-unassigned" ? "自由专注"
+                    : goal?.Name ?? group.First().GoalName;
+                return new CalendarCompletedTaskGroupViewModel(
+                    string.IsNullOrWhiteSpace(goalName) ? "未关联目标" : goalName,
+                    goal?.IconSource ?? group.First().GoalIconSource,
+                    new SolidColorBrush(Color.FromArgb(18, color.R, color.G, color.B)), durationDisplay, entries,
+                    group.Max(item => item.CompletedAt));
+            })
+            .OrderByDescending(group => group.LatestCompletion)
+            .ToArray();
         OnPropertyChanged(nameof(HasSelectedDayCompletedTasks));
         OnPropertyChanged(nameof(SelectedDayCompletedTasks));
         OnPropertyChanged(nameof(SelectedDayCompletedTaskItems));
+        OnPropertyChanged(nameof(SelectedDayCompletedTaskGroups));
+        OnPropertyChanged(nameof(SelectedDayCompletedTaskSummary));
     }
 
     public string TrendRangeTitle => $"{SelectedRange.Label}趋势";
@@ -2605,11 +2675,51 @@ public sealed class CalendarDayViewModel : INotifyPropertyChanged
 }
 
 public sealed record CalendarCompletedTaskViewModel(
-    string Name, DateTime? CompletedAt, string GoalId, string GoalName, string GoalIconSource)
+    string Name, DateTime? CompletedAt, string GoalId, string GoalName, string GoalIconSource, string? TaskId = null)
 {
     public string TimeDisplay => CompletedAt?.ToString("HH:mm") ?? "—";
     public bool HasGoal => !string.IsNullOrWhiteSpace(GoalName) && GoalId != "goal-unassigned";
 }
+
+public sealed record CalendarCompletedSubTaskViewModel(string Name, string TimeDisplay);
+
+public sealed class CalendarCompletedTaskEntryViewModel : INotifyPropertyChanged
+{
+    private bool _isExpanded;
+    public CalendarCompletedTaskEntryViewModel(string name, string timeDisplay, IReadOnlyList<CalendarCompletedSubTaskViewModel> subTasks)
+    {
+        Name = name;
+        TimeDisplay = timeDisplay;
+        SubTasks = subTasks;
+        ToggleSubTasksCommand = new RelayCommand<object>(_ => IsExpanded = !IsExpanded);
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+    public string Name { get; }
+    public string TimeDisplay { get; }
+    public IReadOnlyList<CalendarCompletedSubTaskViewModel> SubTasks { get; }
+    public IEnumerable<CalendarCompletedSubTaskViewModel> VisibleSubTasks => _isExpanded ? SubTasks : SubTasks.Take(3);
+    public bool HasSubTasks => SubTasks.Count > 0;
+    public bool HasOverflow => SubTasks.Count > 3;
+    public string FoldLabel => _isExpanded ? "收起子任务" : $"···   还有 {SubTasks.Count - 3} 个子任务";
+    public ICommand ToggleSubTasksCommand { get; }
+    public bool IsExpanded
+    {
+        get => _isExpanded;
+        set
+        {
+            if (_isExpanded == value) return;
+            _isExpanded = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsExpanded)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(VisibleSubTasks)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(FoldLabel)));
+        }
+    }
+}
+
+public sealed record CalendarCompletedTaskGroupViewModel(
+    string GoalName, string GoalIconSource, Brush IconBackground, string DurationDisplay,
+    IReadOnlyList<CalendarCompletedTaskEntryViewModel> Tasks, DateTime? LatestCompletion);
 
 public sealed class FocusSessionRecordViewModel : INotifyPropertyChanged
 {
@@ -2903,8 +3013,10 @@ public sealed class GoalOverviewItemViewModel : INotifyPropertyChanged
     }
 
     public string TodayDurationDisplay => $"今日 {TodayMinutes / 60d:0.#} 小时";
+    public string TodayDurationCompactDisplay => $"今日 {TodayMinutes / 60d:0.#}h";
 
     public string TotalDurationDisplay => $"累计投入 {TotalMinutes / 60d:0.#} 小时";
+    public string TotalDurationCompactDisplay => $"累计 {TotalMinutes / 60d:0.#}h";
 
     public void SetArchivedState(bool isArchived, DateTimeOffset? archivedAtUtc)
     {
@@ -2935,7 +3047,9 @@ public sealed class GoalOverviewItemViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(TotalMinutes));
         OnPropertyChanged(nameof(TodayMinutes));
         OnPropertyChanged(nameof(TodayDurationDisplay));
+        OnPropertyChanged(nameof(TodayDurationCompactDisplay));
         OnPropertyChanged(nameof(TotalDurationDisplay));
+        OnPropertyChanged(nameof(TotalDurationCompactDisplay));
     }
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));

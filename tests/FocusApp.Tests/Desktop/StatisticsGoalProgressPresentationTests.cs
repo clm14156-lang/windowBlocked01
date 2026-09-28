@@ -7,6 +7,7 @@ using System.Windows.Documents;
 using System.Globalization;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using FocusApp.Contracts;
 using FocusApp.Desktop.ViewModels;
 using FocusApp.Desktop.Views;
 using Xunit;
@@ -130,13 +131,13 @@ public sealed class StatisticsGoalProgressPresentationTests
         var page = XDocument.Load(Path.Combine(root, "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
         var archivedListSubtitle = Assert.Single(page.Descendants(Presentation + "TextBlock").Where(element =>
             (string?)element.Attribute(Xaml + "Name") == "GoalTotalDurationText"));
-        Assert.Equal("{Binding TotalDurationDisplay}", (string?)archivedListSubtitle.Attribute("Text"));
+        Assert.Equal("{Binding TotalDurationCompactDisplay}", (string?)archivedListSubtitle.Attribute("Text"));
         Assert.Equal(
             "{Binding IsArchived, Converter={StaticResource BooleanToVisibilityConverter}}",
             (string?)archivedListSubtitle.Attribute("Visibility"));
         var currentListSubtitle = Assert.Single(page.Descendants(Presentation + "TextBlock").Where(element =>
             (string?)element.Attribute(Xaml + "Name") == "GoalTodayDurationText"));
-        Assert.Equal("{Binding TodayDurationDisplay}", (string?)currentListSubtitle.Attribute("Text"));
+        Assert.Equal("{Binding TodayDurationCompactDisplay}", (string?)currentListSubtitle.Attribute("Text"));
         Assert.Equal(
             "{Binding IsArchived, Converter={StaticResource GoalInverseVisibilityConverter}}",
             (string?)currentListSubtitle.Attribute("Visibility"));
@@ -336,15 +337,16 @@ public sealed class StatisticsGoalProgressPresentationTests
         Assert.Contains(hoverVisibilityTrigger.Elements(Presentation + "Setter"), setter =>
             (string?)setter.Attribute("Property") == "IsHitTestVisible" && (string?)setter.Attribute("Value") == "True");
 
-        var hoverTriggers = template.Descendants(Presentation + "Trigger")
-            .Where(trigger =>
-                (string?)trigger.Attribute("Property") == "IsMouseOver" &&
-                (string?)trigger.Attribute("Value") == "True")
-            .ToArray();
-        var hoverSetters = hoverTriggers.SelectMany(trigger => trigger.Elements(Presentation + "Setter")).ToArray();
-        Assert.Contains(hoverSetters, setter =>
-            (string?)setter.Attribute("TargetName") == "GoalBorder" &&
-            (string?)setter.Attribute("Property") == "Background");
+        Assert.Contains(template.Descendants(Presentation + "DataTrigger"), trigger =>
+            (string?)trigger.Attribute("Binding") == "{Binding IsMouseOver, ElementName=GoalRowRoot}" &&
+            trigger.Elements(Presentation + "Setter").Any(setter =>
+                (string?)setter.Attribute("TargetName") == "GoalBorder" &&
+                (string?)setter.Attribute("Property") == "Background"));
+        Assert.Contains(template.Descendants(Presentation + "DataTrigger"), trigger =>
+            (string?)trigger.Attribute("Binding") == "{Binding IsMouseOver, ElementName=GoalRowRoot}" &&
+            trigger.Elements(Presentation + "Setter").Any(setter =>
+                (string?)setter.Attribute("TargetName") == "GoalTodayDurationText" &&
+                (string?)setter.Attribute("Value") == "Collapsed"));
     }
 
     [Fact]
@@ -371,11 +373,11 @@ public sealed class StatisticsGoalProgressPresentationTests
         Assert.Equal("-20,10,-10,0", (string?)scrollViewer.Attribute("Margin"));
         var goalRow = goalList.Descendants(Presentation + "Grid").Single(grid =>
             (string?)grid.Attribute(Xaml + "Name") == "GoalRowRoot");
-        Assert.Equal("0,0,0,6", (string?)goalRow.Attribute("Margin"));
-        Assert.Equal("70", (string?)goalRow.Attribute("Height"));
+        Assert.Equal("0,0,0,4", (string?)goalRow.Attribute("Margin"));
+        Assert.Equal("54", (string?)goalRow.Attribute("Height"));
         var selectionButton = goalRow.Elements(Presentation + "Button").Single(button =>
             (string?)button.Attribute(Xaml + "Name") == "GoalSelectionButton");
-        Assert.Equal("12,8,22,8", (string?)selectionButton.Attribute("Padding"));
+        Assert.Equal("12,0,10,0", (string?)selectionButton.Attribute("Padding"));
     }
 
     [Fact]
@@ -407,7 +409,7 @@ public sealed class StatisticsGoalProgressPresentationTests
         var row = template.Descendants(Presentation + "Grid")
             .Single(grid => grid.Elements(Presentation + "Grid.ColumnDefinitions").Any());
 
-        Assert.Equal(new[] { "38", "10", "*" }, row.Elements(Presentation + "Grid.ColumnDefinitions")
+        Assert.Equal(new[] { "30", "*", "52" }, row.Elements(Presentation + "Grid.ColumnDefinitions")
             .Elements(Presentation + "ColumnDefinition")
             .Select(column => (string?)column.Attribute("Width")));
         Assert.DoesNotContain(template.Descendants(), element =>
@@ -417,7 +419,85 @@ public sealed class StatisticsGoalProgressPresentationTests
             (string?)button.Attribute("Grid.Column") == "2");
         var goalRow = template.Descendants(Presentation + "Button").Single(button =>
             (string?)button.Attribute(Xaml + "Name") == "GoalSelectionButton");
-        Assert.Equal("12,8,22,8", (string?)goalRow.Attribute("Padding"));
+        Assert.Equal("12,0,10,0", (string?)goalRow.Attribute("Padding"));
+    }
+
+    [Fact]
+    public void GoalListRendersOneLineAndHidesDurationForTheMoreAction()
+    {
+        Exception? failure = null;
+        var thread = new Thread(() =>
+        {
+            Window? window = null;
+            try
+            {
+                var now = DateTimeOffset.Now;
+                var state = GoalNextTaskDetailsTests.State() with
+                {
+                    Targets =
+                    [
+                        new LocalTargetDto("goal-1", "这是一个非常非常长的目标名称用于测试截断效果", false, 0, now, now),
+                        new LocalTargetDto("goal-2", "asd", false, 1, now, now),
+                        new LocalTargetDto("goal-3", "saddas", false, 2, now, now)
+                    ]
+                };
+                var model = new StatisticsOverviewViewModel(false);
+                model.ApplyState(state);
+                model.SelectGoalsCommand.Execute(null);
+                model.SelectGoalCommand.Execute(model.Goals[2]);
+                var page = new StatisticsPage { DataContext = model };
+                foreach (var resource in new[] { "Colors", "Typography", "Strings", "Styles" })
+                    page.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri($"/FocusApp.Desktop;component/Resources/{resource}.xaml", UriKind.Relative) });
+                window = new Window { Width = 760, Height = 710, Content = page, WindowStyle = WindowStyle.None,
+                    ShowInTaskbar = false, ShowActivated = false, Left = -32000, Top = -32000 };
+                window.Show();
+                page.UpdateLayout();
+                var rows = Descendants<Grid>(page).Where(grid => grid.Name == "GoalRowRoot").ToArray();
+                Assert.Equal(3, rows.Length);
+                var longName = Descendants<TextBlock>(rows[0]).Single(text => text.Name == "GoalListName");
+                var duration = Descendants<TextBlock>(rows[0]).Single(text => text.Name == "GoalTodayDurationText");
+                Assert.Equal("今日 0h", duration.Text);
+                Assert.True(longName.ActualWidth < 90);
+                Assert.Equal(54, rows[0].ActualHeight);
+                SaveGoalListPreview(page, "goal-list-default");
+                var more = Descendants<ToggleButton>(rows[0]).Single(button => button.Name == "GoalListMoreButton");
+                more.IsChecked = true;
+                page.UpdateLayout();
+                Assert.False(duration.IsVisible);
+                Assert.True(more.IsVisible);
+                SaveGoalListPreview(page, "goal-list-more");
+                more.IsChecked = false;
+            }
+            catch (Exception exception) { failure = exception; }
+            finally { window?.Close(); }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        Assert.True(thread.Join(TimeSpan.FromSeconds(15)), "Goal list layout verification timed out.");
+        if (failure is not null) throw new InvalidOperationException("Goal list layout verification failed.", failure);
+    }
+
+    private static IEnumerable<T> Descendants<T>(DependencyObject parent) where T : DependencyObject
+    {
+        for (var index = 0; index < VisualTreeHelper.GetChildrenCount(parent); index++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, index);
+            if (child is T match) yield return match;
+            foreach (var descendant in Descendants<T>(child)) yield return descendant;
+        }
+    }
+
+    private static void SaveGoalListPreview(FrameworkElement page, string name)
+    {
+        var directory = Environment.GetEnvironmentVariable("FOCUSAPP_GOAL_LIST_QA_PATH");
+        if (string.IsNullOrWhiteSpace(directory)) return;
+        Directory.CreateDirectory(directory);
+        var bitmap = new RenderTargetBitmap((int)page.ActualWidth, (int)page.ActualHeight, 96, 96, PixelFormats.Pbgra32);
+        bitmap.Render(page);
+        var encoder = new PngBitmapEncoder();
+        encoder.Frames.Add(BitmapFrame.Create(bitmap));
+        using var stream = File.Create(Path.Combine(directory, $"{name}.png"));
+        encoder.Save(stream);
     }
 
     [Fact]

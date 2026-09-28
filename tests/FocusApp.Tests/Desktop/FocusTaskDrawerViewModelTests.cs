@@ -165,7 +165,7 @@ public sealed class FocusTaskDrawerViewModelTests
     }
 
     [Fact]
-    public void CompletedItemsMoveToTheBottomAndUncheckingRestoresTheirOriginalOrder()
+    public void CompletedItemsMoveToCompletedSectionAndUncheckingRestoresTheirOriginalOrder()
     {
         var session = CreateSession();
         var drawer = session.TaskDrawer;
@@ -180,16 +180,52 @@ public sealed class FocusTaskDrawerViewModelTests
         var original = session.ActiveTarget!.Tasks.ToArray();
         original[0].IsCompleted = true;
         original[2].IsCompleted = true;
-        Assert.Equal(new[] { original[1], original[0], original[2] }, drawer.Tasks);
+        Assert.Equal(new[] { original[1] }, drawer.Tasks);
+        Assert.Equal(new[] { original[0], original[2] }, drawer.CompletedTasks);
+        Assert.Equal("2/3", drawer.TaskProgress);
         Assert.Equal(original, session.ActiveTarget.Tasks);
         original[0].IsCompleted = false;
-        Assert.Equal(original, drawer.Tasks);
+        Assert.Equal(new[] { original[0], original[1] }, drawer.Tasks);
+        Assert.Equal(new[] { original[2] }, drawer.CompletedTasks);
+        Assert.Equal("1/3", drawer.TaskProgress);
         var children = original[0].SubTasks.ToArray();
         children[0].IsCompleted = true;
         Assert.Equal(new[] { children[1], children[2], children[0] }, original[0].SortedSubTasks);
         Assert.Equal(children.Select(item => item.Id), original[0].ExportSubTasks().Select(item => item.Id));
         children[0].IsCompleted = false;
         Assert.Equal(children, original[0].SortedSubTasks);
+    }
+
+    [Fact]
+    public void ANewFocusRoundDoesNotCarryOverThePreviousRoundsPendingTasks()
+    {
+        var target = new FocusTargetViewModel("目标");
+        var first = target.AddTask("上一轮任务", false);
+        var second = target.AddTask("本轮完成任务", false);
+        var session = new FocusSessionViewModel(runTimer: false);
+        Assert.True(session.Start(30, target));
+        session.AdvancePreparationBy(TimeSpan.FromSeconds(5));
+        Assert.Equal(2, session.TaskDrawer.Tasks.Count);
+        second.IsCompleted = true;
+        Assert.Equal(new[] { first }, session.TaskDrawer.Tasks);
+        Assert.Equal(new[] { second }, session.TaskDrawer.CompletedTasks);
+        Assert.Equal("1/2", session.TaskDrawer.TaskProgress);
+
+        session.RequestEndCommand.Execute(null);
+        session.ConfirmEndCommand.Execute(null);
+        Assert.True(session.Start(30, target));
+        session.AdvancePreparationBy(TimeSpan.FromSeconds(5));
+        Assert.Empty(session.TaskDrawer.Tasks);
+        Assert.Empty(session.TaskDrawer.CompletedTasks);
+        Assert.Empty(session.PendingTasks);
+        Assert.Equal("0/0", session.TaskDrawer.TaskProgress);
+        Assert.Equal(2, target.Tasks.Count);
+
+        session.TaskDrawer.AddTaskCommand.Execute(null);
+        session.TaskDrawer.DraftTitle = "新一轮任务";
+        session.TaskDrawer.CreateTaskCommand.Execute(null);
+        Assert.Equal("新一轮任务", Assert.Single(session.TaskDrawer.Tasks).Name);
+        Assert.Equal("0/1", session.TaskDrawer.TaskProgress);
     }
 
     [Fact]

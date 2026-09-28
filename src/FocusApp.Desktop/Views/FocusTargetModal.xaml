@@ -10,8 +10,8 @@
             <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
-            <Setter Property="FontSize" Value="13" />
-            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="Normal" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Template">
@@ -32,12 +32,10 @@
         </Style>
 
         <Style x:Key="TargetCardButton" TargetType="{x:Type Button}">
-            <Setter Property="Height" Value="56" />
-            <Setter Property="Margin" Value="0,0,0,8" />
+            <Setter Property="Height" Value="61" />
             <Setter Property="Padding" Value="12,0" />
             <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderPrimary}" />
-            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Template">
@@ -45,10 +43,8 @@
                     <ControlTemplate TargetType="{x:Type Button}">
                         <Border x:Name="CardSurface"
                                 Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
                                 Padding="{TemplateBinding Padding}"
-                                CornerRadius="12">
+                                CornerRadius="10">
                             <ContentPresenter HorizontalAlignment="Stretch" VerticalAlignment="Center" />
                         </Border>
                         <ControlTemplate.Triggers>
@@ -71,8 +67,7 @@
             </Setter>
             <Style.Triggers>
                 <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                    <Setter Property="Background" Value="{DynamicResource AccentTint}" />
-                    <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
+                    <Setter Property="Background" Value="#FFF5EF" />
                 </DataTrigger>
             </Style.Triggers>
         </Style>
@@ -154,18 +149,21 @@
         <Border.Effect>
             <DropShadowEffect BlurRadius="22" Direction="270" Opacity="0.1" ShadowDepth="4" />
         </Border.Effect>
-        <Grid Margin="22,18,22,18">
+        <Grid Margin="18,18,18,18">
             <Grid.RowDefinitions>
-                <RowDefinition Height="30" />
+                <RowDefinition Height="56" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
             <Grid Grid.Row="0">
+                <Grid.RowDefinitions><RowDefinition Height="28"/><RowDefinition Height="22"/></Grid.RowDefinitions>
                 <TextBlock VerticalAlignment="Center"
                            FontSize="20"
                            FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimary}"
                            Text="{DynamicResource FocusTargetTitle}" />
+                <TextBlock Grid.Row="1" VerticalAlignment="Bottom" FontSize="12"
+                           Foreground="#969EAA" Text="选择一个目标开始本次专注" />
                 <Button HorizontalAlignment="Right"
                         VerticalAlignment="Center"
                         AutomationProperties.Name="{DynamicResource FocusTargetManage}"
@@ -177,7 +175,7 @@
 
             <Grid x:Name="ExistingTargetState"
                   Grid.Row="1"
-                  Margin="0,14,0,0"
+                  Margin="0,12,0,0"
                   Background="{DynamicResource SurfacePrimary}">
                 <Grid.Style>
                     <Style TargetType="{x:Type Grid}">
@@ -194,11 +192,32 @@
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
                 <ScrollViewer Grid.Row="0"
-                              MaxHeight="320"
+                              x:Name="TargetListScrollViewer"
                               Padding="0,0,2,0"
                               FocusVisualStyle="{x:Null}"
                               HorizontalScrollBarVisibility="Disabled"
                               VerticalScrollBarVisibility="Auto">
+                    <ScrollViewer.Resources>
+                        <Style TargetType="ScrollBar">
+                            <Setter Property="Width" Value="5" />
+                            <Setter Property="MinWidth" Value="5" />
+                            <Setter Property="Opacity" Value="0.34" />
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ScrollBar">
+                                        <Grid Width="5" Background="Transparent">
+                                            <Track x:Name="PART_Track" Margin="0,3" Orientation="{TemplateBinding Orientation}" IsDirectionReversed="True">
+                                                <Track.DecreaseRepeatButton><RepeatButton Background="Transparent" BorderThickness="0" Command="{x:Static ScrollBar.PageUpCommand}" CommandTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}" Focusable="False" /></Track.DecreaseRepeatButton>
+                                                <Track.Thumb><Thumb MinHeight="28"><Thumb.Template><ControlTemplate TargetType="Thumb"><Border Width="3" HorizontalAlignment="Center" Background="#A7AFBC" CornerRadius="1.5" /></ControlTemplate></Thumb.Template></Thumb></Track.Thumb>
+                                                <Track.IncreaseRepeatButton><RepeatButton Background="Transparent" BorderThickness="0" Command="{x:Static ScrollBar.PageDownCommand}" CommandTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}" Focusable="False" /></Track.IncreaseRepeatButton>
+                                            </Track>
+                                        </Grid>
+                                        <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter Property="Opacity" Value="0.85" /></Trigger></ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </ScrollViewer.Resources>
                     <ItemsControl ItemsSource="{Binding Targets}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
@@ -207,7 +226,8 @@
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Button AutomationProperties.Name="{Binding Name}"
+                                <Grid Height="62">
+                                    <Button AutomationProperties.Name="{Binding Name}"
                                         Command="{Binding DataContext.SelectTargetCommand, RelativeSource={RelativeSource AncestorType={x:Type ItemsControl}}}"
                                         CommandParameter="{Binding}"
                                         Style="{StaticResource TargetCardButton}">
@@ -215,51 +235,45 @@
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="32" />
                                             <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="26" />
+                                            <ColumnDefinition Width="24" />
                                         </Grid.ColumnDefinitions>
                                         <Image Grid.Column="0"
-                                               Width="24"
-                                               Height="24"
+                                               Width="21"
+                                               Height="21"
                                                HorizontalAlignment="Left"
                                                RenderOptions.BitmapScalingMode="HighQuality"
                                                Source="{Binding IconSource, Converter={x:Static views:TargetIconSourceConverter.Instance}}"
                                                Stretch="Uniform" />
                                         <TextBlock Grid.Column="1"
-                                                   Margin="8,0,8,0"
+                                                   Margin="3,0,8,0"
                                                    VerticalAlignment="Center"
-                                                   FontSize="15"
-                                                   FontWeight="Medium"
+                                                   FontSize="14"
+                                                   FontWeight="Normal"
                                                    Foreground="{DynamicResource TextPrimary}"
                                                    Text="{Binding Name}"
                                                    TextTrimming="CharacterEllipsis" />
                                         <Border x:Name="TargetSelectionIndicator"
                                                 Grid.Column="2"
-                                                Width="22"
-                                                Height="22"
+                                                Width="20"
+                                                Height="20"
                                                 HorizontalAlignment="Right"
                                                 VerticalAlignment="Center"
                                                 BorderThickness="2"
-                                                CornerRadius="11">
+                                                CornerRadius="10">
                                             <Border.Style>
                                                 <Style TargetType="{x:Type Border}">
                                                     <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
-                                                    <Setter Property="BorderBrush" Value="{DynamicResource TextTertiary}" />
+                                                    <Setter Property="BorderBrush" Value="#B8BDC6" />
                                                     <Style.Triggers>
                                                         <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                                            <Setter Property="Background" Value="{DynamicResource AccentPrimary}" />
                                                             <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
                                                         </DataTrigger>
                                                     </Style.Triggers>
                                                 </Style>
                                             </Border.Style>
-                                            <TextBlock HorizontalAlignment="Center"
-                                                       VerticalAlignment="Center"
-                                                       FontSize="12"
-                                                       FontWeight="SemiBold"
-                                                       Foreground="{DynamicResource WhiteText}"
-                                                       Text="✓">
-                                                <TextBlock.Style>
-                                                    <Style TargetType="{x:Type TextBlock}">
+                                            <Ellipse Width="10" Height="10" Fill="{DynamicResource AccentPrimary}" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                <Ellipse.Style>
+                                                    <Style TargetType="{x:Type Ellipse}">
                                                         <Setter Property="Visibility" Value="Collapsed" />
                                                         <Style.Triggers>
                                                             <DataTrigger Binding="{Binding IsSelected}" Value="True">
@@ -267,17 +281,22 @@
                                                             </DataTrigger>
                                                         </Style.Triggers>
                                                     </Style>
-                                                </TextBlock.Style>
-                                            </TextBlock>
+                                                </Ellipse.Style>
+                                            </Ellipse>
                                         </Border>
                                     </Grid>
-                                </Button>
+                                    </Button>
+                                    <Border x:Name="TargetRowDivider" Height="1" Margin="12,0,12,0" VerticalAlignment="Bottom" Background="#EEF0F3" IsHitTestVisible="False"/>
+                                </Grid>
+                                <DataTemplate.Triggers>
+                                    <DataTrigger Binding="{Binding IsSelected}" Value="True"><Setter TargetName="TargetRowDivider" Property="Visibility" Value="Collapsed"/></DataTrigger>
+                                </DataTemplate.Triggers>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                 </ScrollViewer>
                 <Button Grid.Row="1"
-                        Margin="0,4,0,0"
+                        Margin="0,8,0,0"
                         AutomationProperties.Name="{DynamicResource FocusTargetStartFocus}"
                         Command="{Binding StartFocusCommand}"
                         IsEnabled="{Binding CanStartFocus}"

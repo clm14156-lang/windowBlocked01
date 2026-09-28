@@ -251,10 +251,11 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
     public bool HasDescription => !string.IsNullOrWhiteSpace(Description);
     public bool HasSubTasks => SubTasks.Count > 0;
     public string SubTaskProgress => $"子任务 · {SubTasks.Count(item => item.IsCompleted)}/{SubTasks.Count}";
+    public string DrawerSubTaskToggleLabel => IsExpanded ? "收起" : $"{SubTasks.Count(item => item.IsCompleted)}/{SubTasks.Count}";
     public bool IsExpanded
     {
         get => _isExpanded;
-        set { if (_isExpanded == value) return; _isExpanded = value; OnPropertyChanged(); }
+        set { if (_isExpanded == value) return; _isExpanded = value; OnPropertyChanged(); OnPropertyChanged(nameof(DrawerSubTaskToggleLabel)); }
     }
     public int DrawerNumber
     {
@@ -272,6 +273,7 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
     {
         OnPropertyChanged(nameof(SortedSubTasks));
         OnPropertyChanged(nameof(SubTaskProgress));
+        OnPropertyChanged(nameof(DrawerSubTaskToggleLabel));
         OnPropertyChanged(nameof(HasSubTasks));
         if (!_applyingDetails) DetailsChanged?.Invoke(this, EventArgs.Empty);
     }

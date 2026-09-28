@@ -15,6 +15,7 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
     private bool _isOpen;
     private bool _isCreating;
     private bool _isDetailsExpanded;
+    private bool _isCompletedExpanded;
     private string _draftTitle = string.Empty;
     private string _subTaskInput = string.Empty;
     private FocusTaskViewModel? _draft;
@@ -32,6 +33,7 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
         CancelCreationCommand = new RelayCommand<object>(_ => CancelCreation());
         ToggleDetailsCommand = new RelayCommand<object>(_ => IsDetailsExpanded = !IsDetailsExpanded);
         ToggleExpandedCommand = new RelayCommand<FocusTaskViewModel>(task => SelectTask(task == SelectedTask ? null : task));
+        ToggleCompletedCommand = new RelayCommand<object>(_ => IsCompletedExpanded = !IsCompletedExpanded);
         EditTaskCommand = new RelayCommand<FocusTaskViewModel>(task => BeginEdit(task, "任务名称"));
         EditRemarkCommand = new RelayCommand<FocusTaskViewModel>(task => BeginEdit(task, "备注"));
         EditSubTaskCommand = new RelayCommand<FocusSubTaskViewModel>(item => BeginEdit(SelectedTask, "子任务名称", item));
@@ -54,12 +56,14 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
 
     public event PropertyChangedEventHandler? PropertyChanged;
     public ObservableCollection<FocusTaskViewModel> Tasks { get; } = [];
+    public ObservableCollection<FocusTaskViewModel> CompletedTasks { get; } = [];
     public ICommand ToggleCommand { get; }
     public ICommand CloseCommand { get; }
     public ICommand AddTaskCommand { get; }
     public ICommand CancelCreationCommand { get; }
     public ICommand ToggleDetailsCommand { get; }
     public ICommand ToggleExpandedCommand { get; }
+    public ICommand ToggleCompletedCommand { get; }
     public ICommand EditTaskCommand { get; }
     public ICommand DeleteTaskCommand { get; }
     public ICommand CreateTaskCommand { get; }
@@ -90,6 +94,9 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
         }
     }
     public bool IsCreating { get => _isCreating; private set => Set(ref _isCreating, value); }
+    public bool IsCompletedExpanded { get => _isCompletedExpanded; private set => Set(ref _isCompletedExpanded, value); }
+    public bool HasCompletedTasks => CompletedTasks.Count > 0;
+    public string CompletedTasksLabel => $"已完成任务 {CompletedTasks.Count}";
     public bool IsDetailsExpanded
     {
         get => _isDetailsExpanded;
@@ -110,22 +117,33 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
     }
     public string SubTaskCountDisplay => $"{_draft?.SubTasks.Count ?? 0}/20";
     public bool CanEnterSubTask => _draft?.SubTasks.Count < 20;
-    public string TaskProgress => $"{Tasks.Count(item => item.IsCompleted)}/{Tasks.Count}";
+    public string TaskProgress => $"{CompletedTasks.Count}/{Tasks.Count + CompletedTasks.Count}";
 
     internal void RefreshTasks()
     {
-        var desired = _session.ActiveTarget?.Tasks.OrderBy(item => item.IsCompleted).ToArray() ?? [];
-        if (SelectedTask is not null && !desired.Contains(SelectedTask)) SelectTask(null);
-        foreach (var removed in Tasks.Where(item => !desired.Contains(item)).ToArray()) Tasks.Remove(removed);
+        var current = _session.CurrentRoundTasks.ToArray();
+        var pending = current.Where(item => !item.IsCompleted).ToArray();
+        var completed = current.Where(item => item.IsCompleted).ToArray();
+        if (SelectedTask is not null && !current.Contains(SelectedTask)) SelectTask(null);
+        SyncTasks(Tasks, pending);
+        SyncTasks(CompletedTasks, completed);
+        for (var index = 0; index < pending.Length; index++) pending[index].DrawerNumber = index + 1;
+        if (completed.Length == 0) IsCompletedExpanded = false;
+        OnPropertyChanged(nameof(HasCompletedTasks));
+        OnPropertyChanged(nameof(CompletedTasksLabel));
+        OnPropertyChanged(nameof(TaskProgress));
+    }
+
+    private static void SyncTasks(ObservableCollection<FocusTaskViewModel> destination, FocusTaskViewModel[] desired)
+    {
+        foreach (var removed in destination.Where(item => !desired.Contains(item)).ToArray()) destination.Remove(removed);
         for (var index = 0; index < desired.Length; index++)
         {
             var item = desired[index];
-            item.DrawerNumber = index + 1;
-            var oldIndex = Tasks.IndexOf(item);
-            if (oldIndex < 0) Tasks.Insert(index, item);
-            else if (oldIndex != index) Tasks.Move(oldIndex, index);
+            var oldIndex = destination.IndexOf(item);
+            if (oldIndex < 0) destination.Insert(index, item);
+            else if (oldIndex != index) destination.Move(oldIndex, index);
         }
-        OnPropertyChanged(nameof(TaskProgress));
     }
 
     internal void Close()

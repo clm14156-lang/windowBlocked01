@@ -14,25 +14,13 @@ public partial class FocusTaskDrawer : UserControl
     public FocusTaskDrawer() => InitializeComponent();
     private FocusTaskDrawerViewModel? ViewModel => DataContext as FocusTaskDrawerViewModel;
 
-    private static bool WithinControl(DependencyObject? source)
+    private void TaskMoreButton_Click(object sender, RoutedEventArgs e)
     {
-        while (source is not null)
-        {
-            if (source is ButtonBase or TextBox) return true;
-            source = source is Visual ? VisualTreeHelper.GetParent(source) : LogicalTreeHelper.GetParent(source);
-        }
-        return false;
-    }
-    private void TaskHeader_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
-    {
-        if (WithinControl(e.OriginalSource as DependencyObject)) return;
-        if (sender is FrameworkElement { DataContext: FocusTaskViewModel task }) ViewModel?.ToggleExpandedCommand.Execute(task);
-        e.Handled = true;
-    }
-    private void TaskHeader_KeyDown(object sender, KeyEventArgs e)
-    {
-        if (e.Key is not (Key.Enter or Key.Space) || WithinControl(e.OriginalSource as DependencyObject)) return;
-        if (sender is FrameworkElement { DataContext: FocusTaskViewModel task }) ViewModel?.ToggleExpandedCommand.Execute(task);
+        if (sender is not Button { ContextMenu: { } menu } button) return;
+        menu.PlacementTarget = button;
+        menu.Placement = PlacementMode.Left;
+        menu.VerticalOffset = -4;
+        menu.IsOpen = true;
         e.Handled = true;
     }
     private void DraftSubTaskInput_KeyDown(object sender, KeyEventArgs e)

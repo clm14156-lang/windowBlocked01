@@ -12,36 +12,36 @@ namespace FocusApp.Desktop.Views;
 
 public partial class StatisticsPage : UserControl
 {
-    private Popup? _completedTaskGoalPopup;
     private ToggleButton? _openGoalListMoreButton;
     private ContextMenu? _openNextTaskMenu;
 
-    private void CompletedTaskRow_MouseEnter(object sender, MouseEventArgs e)
+    private void CompletedTasksModalOverlay_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
-        _completedTaskGoalPopup?.SetCurrentValue(Popup.IsOpenProperty, false);
-        _completedTaskGoalPopup = sender is Grid { DataContext: CalendarCompletedTaskViewModel { HasGoal: true } } row
-            ? row.Children.OfType<Popup>().SingleOrDefault() : null;
-        _completedTaskGoalPopup?.SetCurrentValue(Popup.IsOpenProperty, true);
+        if (CompletedTasksModalOverlay.IsVisible)
+        {
+            CompletedTasksListScroll.ScrollToTop();
+            Dispatcher.BeginInvoke(() => CompletedTasksCloseButton.Focus());
+        }
     }
 
-    private void CompletedTaskRow_MouseLeave(object sender, MouseEventArgs e) => CloseCompletedTaskGoalPopup();
-
-    private void CompletedTasksPopup_Closed(object? sender, EventArgs e) => CloseCompletedTaskGoalPopup();
-
-    private void CloseCompletedTaskGoalPopup()
+    private void CompletedTasksCloseButton_Click(object sender, RoutedEventArgs e)
     {
-        _completedTaskGoalPopup?.SetCurrentValue(Popup.IsOpenProperty, false);
-        _completedTaskGoalPopup = null;
+        CloseCompletedTasksModal();
     }
 
-    private void CompletedTasksPopup_KeyDown(object sender, KeyEventArgs e)
+    private void CompletedTasksModal_KeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key == Key.Escape)
         {
-            CompletedTasksPopup.IsOpen = false;
-            CompletedTasksButton.Focus();
+            CloseCompletedTasksModal();
             e.Handled = true;
         }
+    }
+
+    private void CloseCompletedTasksModal()
+    {
+        CompletedTasksButton.IsChecked = false;
+        CompletedTasksButton.Focus();
     }
 
     private const int WmNcHitTest = 0x0084;
@@ -63,7 +63,7 @@ public partial class StatisticsPage : UserControl
         Unloaded += (_, _) =>
         {
             if (_openNextTaskMenu is not null) _openNextTaskMenu.IsOpen = false;
-            CompletedTasksPopup.IsOpen = false;
+            CompletedTasksButton.IsChecked = false;
             DetachTrendTooltipWindowHook();
             ResetGoalTaskDropIndicator();
             ResetGoalTaskDragCandidate();
@@ -112,7 +112,7 @@ public partial class StatisticsPage : UserControl
     private void StatisticsPage_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
         if (_openNextTaskMenu is not null) _openNextTaskMenu.IsOpen = false;
-        CompletedTasksPopup.IsOpen = false;
+        CompletedTasksButton.IsChecked = false;
         ResetGoalTaskDropIndicator();
         ResetGoalTaskDragCandidate();
         if (e.OldValue is StatisticsOverviewViewModel oldViewModel)
@@ -166,7 +166,7 @@ public partial class StatisticsPage : UserControl
         if (e.PropertyName is nameof(StatisticsOverviewViewModel.SelectedGoal) or nameof(StatisticsOverviewViewModel.SelectedTab))
             if (_openNextTaskMenu is not null) _openNextTaskMenu.IsOpen = false;
         if (e.PropertyName is nameof(StatisticsOverviewViewModel.SelectedTab) or nameof(StatisticsOverviewViewModel.SelectedDateDisplay))
-            CompletedTasksPopup.IsOpen = false;
+            CompletedTasksButton.IsChecked = false;
         if (e.PropertyName is nameof(StatisticsOverviewViewModel.HoveredPoint) or nameof(StatisticsOverviewViewModel.IsTooltipOpen))
         {
             Dispatcher.BeginInvoke(UpdateTooltipPlacement);

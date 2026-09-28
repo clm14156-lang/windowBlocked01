@@ -55,15 +55,20 @@ public sealed class StatisticsOverviewPresentationTests
             (string?)element.Attribute(Xaml + "Name") == "CalendarDayCompletedTaskChevron" &&
             (string?)element.Attribute("Text") == "›"));
 
-        var popup = Assert.Single(card.Descendants(Presentation + "Popup").Where(element =>
-            (string?)element.Attribute(Xaml + "Name") == "CompletedTasksPopup"));
-        Assert.Equal("{Binding ElementName=CompletedTasksButton}", (string?)popup.Attribute("PlacementTarget"));
-        Assert.Equal("{Binding IsChecked, ElementName=CompletedTasksButton, Mode=TwoWay}",
-            (string?)popup.Attribute("IsOpen"));
+        Assert.DoesNotContain(page.Descendants(Presentation + "Popup"), element =>
+            (string?)element.Attribute(Xaml + "Name") == "CompletedTasksPopup");
+        var overlay = Assert.Single(page.Descendants(Presentation + "Grid").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "CompletedTasksModalOverlay"));
+        Assert.Equal("{Binding IsChecked, ElementName=CompletedTasksButton, Converter={StaticResource BooleanToVisibilityConverter}}",
+            (string?)overlay.Attribute("Visibility"));
+        var modal = Assert.Single(overlay.Descendants(Presentation + "Border").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "CompletedTasksModal"));
+        Assert.Equal("430", (string?)modal.Attribute("Width"));
+        Assert.Equal("450", (string?)modal.Attribute("Height"));
     }
 
     [Fact]
-    public void SelectedCalendarDayUsesRoundedRectangleAndWhiteTwoLineContent()
+    public void SelectedCalendarDayKeepsDarkDateAndOrangeDurationOnRoundedHighlight()
     {
         var page = XDocument.Load(Path.Combine(
             FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
@@ -88,13 +93,11 @@ public sealed class StatisticsOverviewPresentationTests
             (string?)trigger.Attribute("Binding") == "{Binding IsSelected}" &&
             (string?)trigger.Attribute("Value") == "True"));
         Assert.Contains(selectedTrigger.Elements(Presentation + "Setter"), setter =>
-            (string?)setter.Attribute("TargetName") == "DayNumberText" &&
-            (string?)setter.Attribute("Property") == "Foreground" &&
-            (string?)setter.Attribute("Value") == "{DynamicResource WhiteText}");
-        Assert.Contains(selectedTrigger.Elements(Presentation + "Setter"), setter =>
-            (string?)setter.Attribute("TargetName") == "DayDurationText" &&
-            (string?)setter.Attribute("Property") == "Foreground" &&
-            (string?)setter.Attribute("Value") == "{DynamicResource WhiteText}");
+            (string?)setter.Attribute("TargetName") == "DaySelectionBackground" &&
+            (string?)setter.Attribute("Property") == "Background" &&
+            (string?)setter.Attribute("Value") == "#FFF2E8");
+        Assert.DoesNotContain(selectedTrigger.Elements(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("Property") == "Foreground");
 
         Assert.DoesNotContain(button.Descendants(Presentation + "DataTrigger"), trigger =>
             (string?)trigger.Attribute("Binding") == "{Binding HeatLevel}");

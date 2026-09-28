@@ -842,6 +842,7 @@ public sealed class StatisticsOverviewViewModelTests
         viewModel.ConfirmCreateGoalCommand.Execute(null);
         var goal = Assert.IsType<GoalOverviewItemViewModel>(viewModel.SelectedGoal);
         Assert.Equal("今日 0 小时", goal.TodayDurationDisplay);
+        Assert.Equal("今日 0h", goal.TodayDurationCompactDisplay);
 
         var todayStart = DateTime.Today.AddHours(8);
         viewModel.FocusSessionRecords.Add(new FocusSessionRecordViewModel(
@@ -863,7 +864,9 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.Equal(162, goal.TotalMinutes);
         Assert.Equal(72, goal.TodayMinutes);
         Assert.Equal("今日 1.2 小时", goal.TodayDurationDisplay);
+        Assert.Equal("今日 1.2h", goal.TodayDurationCompactDisplay);
         Assert.Equal("累计投入 2.7 小时", goal.TotalDurationDisplay);
+        Assert.Equal("累计 2.7h", goal.TotalDurationCompactDisplay);
     }
 
     [Fact]
