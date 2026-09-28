@@ -16,6 +16,8 @@ public sealed class FocusFloatingWindowViewModelTests
         Assert.Equal(session.RemainingTimeDisplay, viewModel.RemainingTimeDisplay);
         Assert.Equal(session.RemainingProgress, viewModel.RemainingProgress);
         Assert.True(viewModel.IsFocusing);
+        Assert.False(viewModel.HasTarget);
+        Assert.Equal(string.Empty, viewModel.TargetName);
     }
 
     [Fact]
@@ -47,6 +49,27 @@ public sealed class FocusFloatingWindowViewModelTests
 
         Assert.False(viewModel.HasCurrentTask);
         Assert.Equal(string.Empty, viewModel.CurrentTaskName);
+        Assert.True(viewModel.HasTarget);
+        Assert.Equal("学习", viewModel.TargetName);
+    }
+
+    [Fact]
+    public void Adapter_TracksTargetRenamesAndUnsubscribesOnDispose()
+    {
+        var target = new FocusTargetViewModel("学习", []);
+        var session = CreateFocusingSession(25, target);
+        var viewModel = new FocusFloatingWindowViewModel(session);
+        var changes = new List<string?>();
+        viewModel.PropertyChanged += (_, e) => changes.Add(e.PropertyName);
+
+        target.ApplyName("学习 UE5");
+
+        Assert.Equal("学习 UE5", viewModel.TargetName);
+        Assert.Contains(nameof(FocusFloatingWindowViewModel.TargetName), changes);
+        changes.Clear();
+        viewModel.Dispose();
+        target.ApplyName("学习新目标");
+        Assert.Empty(changes);
     }
 
     [Fact]

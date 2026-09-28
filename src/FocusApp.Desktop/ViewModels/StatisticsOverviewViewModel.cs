@@ -160,6 +160,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         ToggleGoalIconLibraryCommand = new RelayCommand<object>(_ => IsGoalIconLibraryOpen = !IsGoalIconLibraryOpen);
         ClearNewGoalNameCommand = new RelayCommand<object>(_ => NewGoalName = string.Empty);
         SubscribeToFocusSessionRecords();
+        Goals.CollectionChanged += (_, _) => OnPropertyChanged(nameof(IsGoalCreationGuideVisible));
         if (!deferInitialization)
         {
             EnsureInitialized();
@@ -553,6 +554,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     public bool HasSelectedDayCompletedTasks => SelectedDayCompletedTaskItems.Count > 0;
 
     public ObservableCollection<GoalOverviewItemViewModel> Goals { get; } = [];
+    public bool IsGoalCreationGuideVisible => IsCurrentGoalList && !Goals.Any(goal => !goal.IsArchived);
 
     public ObservableCollection<TargetIconOptionViewModel> AllTargetIcons { get; }
 
@@ -729,6 +731,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             _showArchivedGoals = value;
             OnPropertyChanged();
             OnPropertyChanged(nameof(VisibleGoals));
+            OnPropertyChanged(nameof(IsGoalCreationGuideVisible));
             OnPropertyChanged(nameof(GoalListTitle));
             OnPropertyChanged(nameof(IsCurrentGoalList));
             OnPropertyChanged(nameof(IsArchivedGoalList));
@@ -1616,6 +1619,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         goal.SetArchivedState(archived, archivedAtUtc);
         if (ReferenceEquals(SelectedGoal, goal)) SelectFirstVisibleGoal();
         OnPropertyChanged(nameof(VisibleGoals));
+        OnPropertyChanged(nameof(IsGoalCreationGuideVisible));
         GoalChanged?.Invoke(this, goal);
     }
 

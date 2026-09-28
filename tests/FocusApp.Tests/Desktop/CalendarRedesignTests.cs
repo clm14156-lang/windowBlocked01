@@ -142,8 +142,8 @@ public sealed class CalendarRedesignTests
 
                 model.SetUserAccess(false, false);
                 Pump();
-                Assert.True(((StackPanel)page.FindName("CalendarMonthEmptyState")).IsVisible);
-                Assert.False(((Grid)page.FindName("DailyFocusRecordLockedPlaceholder")).IsVisible);
+                Assert.False(((StackPanel)page.FindName("CalendarMonthEmptyState")).IsVisible);
+                Assert.True(((Grid)page.FindName("DailyFocusRecordLockedPlaceholder")).IsVisible);
                 model.PreviousCalendarMonthCommand.Execute(null);
                 Pump();
                 Assert.True(((Grid)page.FindName("DailyFocusRecordLockedPlaceholder")).IsVisible);

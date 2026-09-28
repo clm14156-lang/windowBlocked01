@@ -13,6 +13,7 @@ public sealed class FocusFloatingWindowViewModel : INotifyPropertyChanged, IDisp
 {
     private readonly FocusSessionViewModel _session;
     private readonly HashSet<FocusTaskViewModel> _subscribedTasks = [];
+    private FocusTargetViewModel? _subscribedTarget;
     private bool _isDisposed;
 
     public FocusFloatingWindowViewModel(FocusSessionViewModel session)
@@ -21,15 +22,16 @@ public sealed class FocusFloatingWindowViewModel : INotifyPropertyChanged, IDisp
         _session.PropertyChanged += Session_PropertyChanged;
         _session.PendingTasks.CollectionChanged += PendingTasks_CollectionChanged;
         SubscribeTasks();
+        SubscribeTarget();
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public string RemainingTimeDisplay => _session.RemainingTimeDisplay;
 
-    public string VerticalRemainingDisplay => _session.RemainingFocusSeconds >= 60
-        ? (_session.RemainingFocusSeconds / 60).ToString()
-        : _session.RemainingFocusSeconds.ToString();
+    public bool HasTarget => _session.HasTarget;
+
+    public string TargetName => _session.TargetName;
 
     public double RemainingProgress => _session.RemainingProgress;
 
@@ -54,20 +56,35 @@ public sealed class FocusFloatingWindowViewModel : INotifyPropertyChanged, IDisp
         _session.PropertyChanged -= Session_PropertyChanged;
         _session.PendingTasks.CollectionChanged -= PendingTasks_CollectionChanged;
         UnsubscribeTasks();
+        if (_subscribedTarget is not null) _subscribedTarget.PropertyChanged -= Target_PropertyChanged;
     }
 
     private void Session_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (e.PropertyName == nameof(FocusSessionViewModel.ActiveTarget))
+        {
+            SubscribeTarget();
+            OnPropertyChanged(nameof(HasTarget));
+            OnPropertyChanged(nameof(TargetName));
+        }
         if (e.PropertyName is nameof(FocusSessionViewModel.RemainingTimeDisplay)
             or nameof(FocusSessionViewModel.RemainingProgress)
             or nameof(FocusSessionViewModel.IsFocusing))
         {
             OnPropertyChanged(e.PropertyName);
-            if (e.PropertyName == nameof(FocusSessionViewModel.RemainingTimeDisplay))
-            {
-                OnPropertyChanged(nameof(VerticalRemainingDisplay));
-            }
         }
+    }
+
+    private void SubscribeTarget()
+    {
+        if (_subscribedTarget is not null) _subscribedTarget.PropertyChanged -= Target_PropertyChanged;
+        _subscribedTarget = _session.ActiveTarget;
+        if (_subscribedTarget is not null) _subscribedTarget.PropertyChanged += Target_PropertyChanged;
+    }
+
+    private void Target_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(FocusTargetViewModel.Name)) OnPropertyChanged(nameof(TargetName));
     }
 
     private void PendingTasks_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)

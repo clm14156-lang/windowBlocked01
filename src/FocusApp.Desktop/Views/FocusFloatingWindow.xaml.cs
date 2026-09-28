@@ -1,6 +1,8 @@
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
+using System.ComponentModel;
+using FocusApp.Desktop.ViewModels;
 
 namespace FocusApp.Desktop.Views;
 
@@ -21,11 +23,34 @@ public partial class FocusFloatingWindow : Window
             Interval = TimeSpan.FromMilliseconds(140)
         };
         _collapseTimer.Tick += CollapseTimer_Tick;
+        DataContextChanged += Window_DataContextChanged;
     }
 
     public event EventHandler? ExpandRequested;
 
     public FocusFloatingWindowState State => _stateMachine.State;
+
+    private void Window_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        if (e.OldValue is FocusFloatingWindowViewModel oldModel) oldModel.PropertyChanged -= Model_PropertyChanged;
+        if (e.NewValue is FocusFloatingWindowViewModel newModel) newModel.PropertyChanged += Model_PropertyChanged;
+        RefreshFoldedBounds();
+    }
+
+    private void Model_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(FocusFloatingWindowViewModel.HasTarget) or nameof(FocusFloatingWindowViewModel.TargetName))
+            RefreshFoldedBounds();
+    }
+
+    private void RefreshFoldedBounds()
+    {
+        if (!_stateMachine.IsFolded && !_stateMachine.IsExpandedFromFold) return;
+        var monitor = MonitorWorkAreaProvider.GetForWindow(this);
+        _foldedBounds = FocusFloatingSnapCalculator.GetSnappedBounds(_stateMachine.FoldedState, _foldedBounds,
+            monitor.WorkArea, FoldedHorizontalView.GetPreferredWidth(DataContext as FocusFloatingWindowViewModel));
+        if (_stateMachine.IsFolded) ApplyBounds(_foldedBounds);
+    }
 
     private void FloatingContentView_ExpandRequested(object? sender, EventArgs e)
     {
@@ -111,7 +136,8 @@ public partial class FocusFloatingWindow : Window
         _foldedBounds = FocusFloatingSnapCalculator.GetSnappedBounds(
             foldedState.Value,
             currentBounds,
-            monitor.WorkArea);
+            monitor.WorkArea,
+            FoldedHorizontalView.GetPreferredWidth(DataContext as FocusFloatingWindowViewModel));
         ApplyFoldedState(foldedState.Value, armHover: false);
     }
 
@@ -135,13 +161,13 @@ public partial class FocusFloatingWindow : Window
 
     private void CollapseToFold()
     {
+        RefreshFoldedBounds();
         if (!_stateMachine.BeginCollapse())
         {
             return;
         }
 
-        var foldedState = _stateMachine.FoldedState;
-        ShowFoldedContent(foldedState);
+        ShowFoldedContent();
         ApplyBounds(_foldedBounds);
         _stateMachine.CompleteCollapse();
         _foldHoverArmed = true;
@@ -168,7 +194,7 @@ public partial class FocusFloatingWindow : Window
     private void ApplyFoldedState(FocusFloatingWindowState foldedState, bool armHover)
     {
         _stateMachine.Fold(foldedState);
-        ShowFoldedContent(foldedState);
+        ShowFoldedContent();
         ApplyBounds(_foldedBounds);
         _foldHoverArmed = armHover;
     }
@@ -186,17 +212,13 @@ public partial class FocusFloatingWindow : Window
     {
         FloatingContentView.Visibility = Visibility.Visible;
         FoldedHorizontalView.Visibility = Visibility.Collapsed;
-        FoldedVerticalView.Visibility = Visibility.Collapsed;
         ResetContentTransform();
     }
 
-    private void ShowFoldedContent(FocusFloatingWindowState foldedState)
+    private void ShowFoldedContent()
     {
-        var isHorizontal = foldedState is FocusFloatingWindowState.FoldedTop
-            or FocusFloatingWindowState.FoldedBottom;
         FloatingContentView.Visibility = Visibility.Collapsed;
-        FoldedHorizontalView.Visibility = isHorizontal ? Visibility.Visible : Visibility.Collapsed;
-        FoldedVerticalView.Visibility = isHorizontal ? Visibility.Collapsed : Visibility.Visible;
+        FoldedHorizontalView.Visibility = Visibility.Visible;
         ResetContentTransform();
     }
 
@@ -244,6 +266,7 @@ public partial class FocusFloatingWindow : Window
         _collapseTimer.Stop();
         _collapseTimer.Tick -= CollapseTimer_Tick;
         FloatingContentView.ExpandRequested -= FloatingContentView_ExpandRequested;
+        if (DataContext is FocusFloatingWindowViewModel model) model.PropertyChanged -= Model_PropertyChanged;
         base.OnClosed(e);
     }
 }

@@ -7,8 +7,6 @@ public enum FocusFloatingWindowState
     Floating,
     FoldedTop,
     FoldedBottom,
-    FoldedLeft,
-    FoldedRight,
     Expanding,
     ExpandedFromFold,
     Collapsing
@@ -91,10 +89,9 @@ public readonly record struct FocusMonitorArea(Rect Bounds, Rect WorkArea)
 
 public static class FocusFloatingSnapCalculator
 {
-    public const double HorizontalWidth = 235;
-    public const double HorizontalHeight = 40;
-    public const double VerticalWidth = 50;
-    public const double VerticalHeight = 235;
+    public const double HorizontalWidth = 160;
+    public const double MaximumHorizontalWidth = 320;
+    public const double HorizontalHeight = 50;
     public const double FloatingWidth = 300;
     public const double FloatingHeight = 220;
     public const double DefaultSnapThreshold = 24;
@@ -111,13 +108,7 @@ public static class FocusFloatingSnapCalculator
                     monitor.Bounds.Top, monitor.WorkArea.Top)),
             (FocusFloatingWindowState.FoldedBottom,
                 DistanceToClosestEdge(windowBounds.Top, windowBounds.Bottom,
-                    monitor.Bounds.Bottom, monitor.WorkArea.Bottom)),
-            (FocusFloatingWindowState.FoldedLeft,
-                DistanceToClosestEdge(windowBounds.Left, windowBounds.Right,
-                    monitor.Bounds.Left, monitor.WorkArea.Left)),
-            (FocusFloatingWindowState.FoldedRight,
-                DistanceToClosestEdge(windowBounds.Left, windowBounds.Right,
-                    monitor.Bounds.Right, monitor.WorkArea.Right))
+                    monitor.Bounds.Bottom, monitor.WorkArea.Bottom))
         };
 
         return candidates
@@ -130,33 +121,24 @@ public static class FocusFloatingSnapCalculator
     public static Rect GetSnappedBounds(
         FocusFloatingWindowState state,
         Rect floatingBounds,
-        Rect workArea)
+        Rect workArea,
+        double foldedWidth = HorizontalWidth)
     {
+        foldedWidth = Math.Clamp(foldedWidth, HorizontalWidth, MaximumHorizontalWidth);
         var centerX = floatingBounds.Left + floatingBounds.Width / 2;
-        var centerY = floatingBounds.Top + floatingBounds.Height / 2;
 
         return state switch
         {
             FocusFloatingWindowState.FoldedTop => new Rect(
-                Clamp(centerX - HorizontalWidth / 2, workArea.Left, workArea.Right - HorizontalWidth),
+                Clamp(centerX - foldedWidth / 2, workArea.Left, workArea.Right - foldedWidth),
                 workArea.Top,
-                HorizontalWidth,
+                foldedWidth,
                 HorizontalHeight),
             FocusFloatingWindowState.FoldedBottom => new Rect(
-                Clamp(centerX - HorizontalWidth / 2, workArea.Left, workArea.Right - HorizontalWidth),
+                Clamp(centerX - foldedWidth / 2, workArea.Left, workArea.Right - foldedWidth),
                 workArea.Bottom - HorizontalHeight,
-                HorizontalWidth,
+                foldedWidth,
                 HorizontalHeight),
-            FocusFloatingWindowState.FoldedLeft => new Rect(
-                workArea.Left,
-                Clamp(centerY - VerticalHeight / 2, workArea.Top, workArea.Bottom - VerticalHeight),
-                VerticalWidth,
-                VerticalHeight),
-            FocusFloatingWindowState.FoldedRight => new Rect(
-                workArea.Right - VerticalWidth,
-                Clamp(centerY - VerticalHeight / 2, workArea.Top, workArea.Bottom - VerticalHeight),
-                VerticalWidth,
-                VerticalHeight),
             _ => floatingBounds
         };
     }
@@ -175,17 +157,13 @@ public static class FocusFloatingSnapCalculator
         {
             FocusFloatingWindowState.FoldedTop => new Rect(left, workArea.Top, FloatingWidth, FloatingHeight),
             FocusFloatingWindowState.FoldedBottom => new Rect(left, workArea.Bottom - FloatingHeight, FloatingWidth, FloatingHeight),
-            FocusFloatingWindowState.FoldedLeft => new Rect(workArea.Left, top, FloatingWidth, FloatingHeight),
-            FocusFloatingWindowState.FoldedRight => new Rect(workArea.Right - FloatingWidth, top, FloatingWidth, FloatingHeight),
             _ => new Rect(left, top, FloatingWidth, FloatingHeight)
         };
     }
 
     public static bool IsFolded(FocusFloatingWindowState state)
         => state is FocusFloatingWindowState.FoldedTop
-            or FocusFloatingWindowState.FoldedBottom
-            or FocusFloatingWindowState.FoldedLeft
-            or FocusFloatingWindowState.FoldedRight;
+            or FocusFloatingWindowState.FoldedBottom;
 
     private static double Clamp(double value, double minimum, double maximum)
         => maximum <= minimum ? minimum : Math.Clamp(value, minimum, maximum);

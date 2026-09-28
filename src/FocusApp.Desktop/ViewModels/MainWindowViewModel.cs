@@ -94,6 +94,8 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         StatisticsPage.GoalDeleted += StatisticsPage_GoalDeleted;
         StatisticsPage.GoalTasks.RefreshTasksAsync = RefreshGoalTasksAsync;
         StatisticsPage.GoalTasks.PersistTaskAsync = PersistGoalTaskAsync;
+        StatisticsPage.GoalTasks.PersistTaskDetailsAsync = task => PersistGoalTaskAsync(task, false, detailsOnly: true);
+        StatisticsPage.GoalTasks.PersistPendingTaskDeletionAsync = (targetId, taskId) => DeleteGoalTaskAsync(targetId, taskId, false);
         StatisticsPage.GoalTasks.PersistCompletedTaskDeletionAsync = DeleteCompletedGoalTaskAsync;
         StatisticsPage.GoalTasks.PersistPendingTaskOrderAsync = PersistGoalTaskOrderAsync;
         StatisticsPage.MonthlyFocusTargetChanged += StatisticsPage_MonthlyFocusTargetChanged;
@@ -1002,14 +1004,17 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         }
     }
 
-    private async Task<LocalTaskDto?> PersistGoalTaskAsync(LocalTaskDto task, bool insertAtTop)
+    private Task<LocalTaskDto?> PersistGoalTaskAsync(LocalTaskDto task, bool insertAtTop) => PersistGoalTaskAsync(task, insertAtTop, false);
+
+    private async Task<LocalTaskDto?> PersistGoalTaskAsync(LocalTaskDto task, bool insertAtTop, bool detailsOnly)
     {
         if (ServiceConnection is null || !ServiceConnection.IsConnected) return null;
         await _targetPersistenceGate.WaitAsync();
         try
         {
             if (ServiceConnection.State is not { } state) return null;
-            var command = GoalTaskPersistence.CreateSaveCommand(state, task, insertAtTop);
+            var command = detailsOnly ? GoalTaskPersistence.CreateDetailsCommand(state, task)
+                : GoalTaskPersistence.CreateSaveCommand(state, task, insertAtTop);
             if (command is null) return null;
             try
             {
@@ -1027,14 +1032,17 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         finally { _targetPersistenceGate.Release(); }
     }
 
-    private async Task<bool> DeleteCompletedGoalTaskAsync(string targetId, string taskId)
+    private Task<bool> DeleteCompletedGoalTaskAsync(string targetId, string taskId) => DeleteGoalTaskAsync(targetId, taskId, true);
+
+    private async Task<bool> DeleteGoalTaskAsync(string targetId, string taskId, bool isCompleted)
     {
         if (ServiceConnection is null || !ServiceConnection.IsConnected) return false;
         await _targetPersistenceGate.WaitAsync();
         try
         {
             if (ServiceConnection.State is not { } state) return false;
-            var command = GoalTaskPersistence.CreateDeleteCommand(state, targetId, taskId);
+            var command = isCompleted ? GoalTaskPersistence.CreateDeleteCommand(state, targetId, taskId)
+                : GoalTaskPersistence.CreatePendingDeleteCommand(state, targetId, taskId);
             if (command is null) return false;
             try
             {

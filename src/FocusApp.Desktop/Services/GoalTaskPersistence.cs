@@ -6,12 +6,29 @@ namespace FocusApp.Desktop.Services;
 public static class GoalTaskPersistence
 {
     public static SaveTargetCommand? CreateDeleteCommand(LocalDataSnapshotDto state, string targetId, string taskId)
+        => CreateDeleteCommand(state, targetId, taskId, true);
+
+    public static SaveTargetCommand? CreatePendingDeleteCommand(LocalDataSnapshotDto state, string targetId, string taskId)
+        => CreateDeleteCommand(state, targetId, taskId, false);
+
+    private static SaveTargetCommand? CreateDeleteCommand(LocalDataSnapshotDto state, string targetId, string taskId, bool isCompleted)
     {
         var target = state.Targets.FirstOrDefault(item => item.TargetId == targetId);
-        if (target is null || !state.Tasks.Any(item => item.TargetId == targetId && item.TaskId == taskId && item.IsCompleted)) return null;
+        if (target is null || !state.Tasks.Any(item => item.TargetId == targetId && item.TaskId == taskId && item.IsCompleted == isCompleted)) return null;
         return new SaveTargetCommand(target, state.Tasks
             .Where(item => item.TargetId == targetId && item.TaskId != taskId)
             .OrderBy(item => item.SortOrder).ToArray());
+    }
+
+    public static SaveTargetCommand? CreateDetailsCommand(LocalDataSnapshotDto state, LocalTaskDto change)
+    {
+        var target = state.Targets.FirstOrDefault(item => item.TargetId == change.TargetId);
+        var existing = state.Tasks.FirstOrDefault(item => item.TargetId == change.TargetId && item.TaskId == change.TaskId);
+        if (target is null || existing is null || existing.IsCompleted || string.IsNullOrWhiteSpace(change.Name)) return null;
+        var updated = existing with { Name = change.Name, Description = change.Description,
+            SubTasks = change.SubTasks, UpdatedAtUtc = change.UpdatedAtUtc };
+        return new SaveTargetCommand(target, state.Tasks.Where(item => item.TargetId == change.TargetId)
+            .OrderBy(item => item.SortOrder).Select(item => item.TaskId == change.TaskId ? updated : item).ToArray());
     }
 
     public static SaveTargetCommand? CreateSaveCommand(LocalDataSnapshotDto state, LocalTaskDto change, bool insertAtTop)

@@ -233,6 +233,7 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
     public event EventHandler? DetailsChanged;
 
     public ObservableCollection<FocusSubTaskViewModel> SubTasks { get; } = [];
+    public GoalTaskInlineEditorViewModel NextTaskEditor { get; } = new();
     // Keep the stored order intact so unchecking an item restores its original position.
     public IEnumerable<FocusSubTaskViewModel> SortedSubTasks => SubTasks.OrderBy(item => item.IsCompleted);
     public string Description

@@ -45,21 +45,25 @@ public sealed class FocusFloatingSnapCalculatorTests
             new Rect(1924, 5, 300, 220),
             monitor);
 
-        Assert.Equal(FocusFloatingWindowState.FoldedLeft, state);
+        Assert.Equal(FocusFloatingWindowState.FoldedTop, state);
     }
 
-    [Fact]
-    public void FindSnapState_SnapsWhenWindowHasCrossedTheRightEdge()
+    [Theory]
+    [InlineData(-150)]
+    [InlineData(0)]
+    [InlineData(1620)]
+    [InlineData(1800)]
+    public void FindSnapState_DoesNotDockAtEitherSide(double left)
     {
         var monitor = new FocusMonitorArea(
             new Rect(0, 0, 1920, 1080),
             new Rect(0, 0, 1920, 1040));
 
         var state = FocusFloatingSnapCalculator.FindSnapState(
-            new Rect(1800, 400, 300, 220),
+            new Rect(left, 400, 300, 220),
             monitor);
 
-        Assert.Equal(FocusFloatingWindowState.FoldedRight, state);
+        Assert.Null(state);
     }
 
     [Fact]
@@ -77,7 +81,7 @@ public sealed class FocusFloatingSnapCalculatorTests
     }
 
     [Fact]
-    public void GetSnappedBounds_UsesRequestedOrientationAndKeepsWindowOnWorkArea()
+    public void GetSnappedBounds_UsesHorizontalBarsAtBothEdgesAndKeepsWindowOnWorkArea()
     {
         var workArea = new Rect(0, 0, 1920, 1040);
 
@@ -85,40 +89,58 @@ public sealed class FocusFloatingSnapCalculatorTests
             FocusFloatingWindowState.FoldedTop,
             new Rect(900, 10, 300, 220),
             workArea);
-        var vertical = FocusFloatingSnapCalculator.GetSnappedBounds(
-            FocusFloatingWindowState.FoldedRight,
-            new Rect(1700, 600, 300, 220),
-            workArea);
+        var bottom = FocusFloatingSnapCalculator.GetSnappedBounds(
+            FocusFloatingWindowState.FoldedBottom,
+            new Rect(1900, 900, 300, 220),
+            workArea,
+            320);
 
-        Assert.Equal(new Size(235, 40), horizontal.Size);
+        Assert.Equal(new Size(160, 50), horizontal.Size);
         Assert.Equal(0, horizontal.Top);
-        Assert.Equal(new Size(50, 235), vertical.Size);
-        Assert.Equal(workArea.Right, vertical.Right);
-        Assert.InRange(vertical.Top, workArea.Top, workArea.Bottom - vertical.Height);
+        Assert.Equal(new Size(320, 50), bottom.Size);
+        Assert.Equal(workArea.Bottom, bottom.Bottom);
+        Assert.Equal(workArea.Right, bottom.Right);
+    }
+
+    [Theory]
+    [InlineData(80, 160)]
+    [InlineData(240, 240)]
+    [InlineData(800, 320)]
+    public void GetSnappedBounds_ClampsContentWidthOnASecondaryMonitor(double requested, double expected)
+    {
+        var workArea = new Rect(-1920, -1080, 1920, 1040);
+        foreach (var state in new[] { FocusFloatingWindowState.FoldedTop, FocusFloatingWindowState.FoldedBottom })
+        {
+            var bounds = FocusFloatingSnapCalculator.GetSnappedBounds(state, new Rect(-1800, -900, 300, 220), workArea, requested);
+            Assert.Equal(expected, bounds.Width);
+            Assert.Equal(50, bounds.Height);
+            Assert.True(workArea.Contains(bounds));
+            Assert.Equal(-1650, bounds.Left + bounds.Width / 2);
+        }
     }
 
     [Fact]
     public void GetExpandedBounds_ExpandsTowardTheScreenInterior()
     {
         var workArea = new Rect(0, 0, 1920, 1040);
-        var top = new Rect(850, 0, 235, 40);
-        var left = new Rect(0, 400, 50, 235);
+        var top = new Rect(850, 0, 160, 50);
+        var bottom = new Rect(850, 990, 320, 50);
 
         var expandedTop = FocusFloatingSnapCalculator.GetExpandedBounds(
             FocusFloatingWindowState.FoldedTop,
             top,
             workArea);
-        var expandedLeft = FocusFloatingSnapCalculator.GetExpandedBounds(
-            FocusFloatingWindowState.FoldedLeft,
-            left,
+        var expandedBottom = FocusFloatingSnapCalculator.GetExpandedBounds(
+            FocusFloatingWindowState.FoldedBottom,
+            bottom,
             workArea);
 
         Assert.Equal(0, expandedTop.Top);
-        Assert.Equal(0, expandedLeft.Left);
+        Assert.Equal(workArea.Bottom, expandedBottom.Bottom);
         Assert.Equal(300, expandedTop.Width);
-        Assert.Equal(220, expandedLeft.Height);
+        Assert.Equal(220, expandedBottom.Height);
         Assert.True(expandedTop.Bottom <= workArea.Bottom);
-        Assert.True(expandedLeft.Right <= workArea.Right);
+        Assert.True(workArea.Contains(expandedBottom));
     }
 
     [Fact]
@@ -126,18 +148,18 @@ public sealed class FocusFloatingSnapCalculatorTests
     {
         var stateMachine = new FocusFloatingWindowStateMachine();
 
-        stateMachine.Fold(FocusFloatingWindowState.FoldedRight);
+        stateMachine.Fold(FocusFloatingWindowState.FoldedBottom);
         Assert.True(stateMachine.BeginExpand());
         Assert.Equal(FocusFloatingWindowState.Expanding, stateMachine.State);
 
         stateMachine.CompleteExpand();
         Assert.Equal(FocusFloatingWindowState.ExpandedFromFold, stateMachine.State);
-        Assert.Equal(FocusFloatingWindowState.FoldedRight, stateMachine.FoldedState);
+        Assert.Equal(FocusFloatingWindowState.FoldedBottom, stateMachine.FoldedState);
 
         Assert.True(stateMachine.BeginCollapse());
         Assert.Equal(FocusFloatingWindowState.Collapsing, stateMachine.State);
 
         stateMachine.CompleteCollapse();
-        Assert.Equal(FocusFloatingWindowState.FoldedRight, stateMachine.State);
+        Assert.Equal(FocusFloatingWindowState.FoldedBottom, stateMachine.State);
     }
 }

@@ -27,7 +27,5 @@
                                Visibility="Visible" />
         <views:FoldedHorizontal x:Name="FoldedHorizontalView"
                                 Visibility="Collapsed" />
-        <views:FoldedVertical x:Name="FoldedVerticalView"
-                              Visibility="Collapsed" />
     </Grid>
 </Window>

@@ -44,6 +44,12 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
         CloseCommand = new RelayCommand<object>(async _ => await CloseAsync());
         NewTaskCommand = new RelayCommand<object>(_ => BeginCreation(), _ => _target is not null);
         CompleteTaskCommand = new RelayCommand<FocusTaskViewModel>(async task => { if (task is not null) await CompleteTaskAsync(task); });
+        EditTaskCommand = new RelayCommand<FocusTaskViewModel>(task => BeginInlineEdit(task, "name"));
+        AddRemarkCommand = new RelayCommand<FocusTaskViewModel>(task => BeginInlineEdit(task, "remark"));
+        AddSubTaskCommand = new RelayCommand<FocusTaskViewModel>(task => BeginInlineEdit(task, "subtask"));
+        DeletePendingTaskCommand = new RelayCommand<FocusTaskViewModel>(async task => { if (task is not null) await DeletePendingTaskAsync(task); });
+        ToggleSubTaskCommand = new RelayCommand<FocusSubTaskViewModel>(async item => { if (item is not null) await ToggleSubTaskAsync(item); });
+        ToggleSubTasksCommand = new RelayCommand<FocusTaskViewModel>(task => { if (task is not null) task.IsExpanded = !task.IsExpanded; });
         ToggleCompletedSortCommand = new RelayCommand<object>(_ => ToggleCompletedSort());
         EnterCompletedSelectionCommand = new RelayCommand<object>(_ => EnterCompletedSelectionMode(), _ => HasCompletedTasks);
         ExitCompletedSelectionCommand = new RelayCommand<object>(_ => ExitCompletedSelectionMode(), _ => IsSelectionMode);
@@ -55,12 +61,20 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
     public event EventHandler? DraftFocusRequested;
     public Func<Task>? RefreshTasksAsync { get; set; }
     public Func<LocalTaskDto, bool, Task<LocalTaskDto?>>? PersistTaskAsync { get; set; }
+    public Func<LocalTaskDto, Task<LocalTaskDto?>>? PersistTaskDetailsAsync { get; set; }
+    public Func<string, string, Task<bool>>? PersistPendingTaskDeletionAsync { get; set; }
     public Func<string, string, Task<bool>>? PersistCompletedTaskDeletionAsync { get; set; }
     public Func<string, IReadOnlyList<string>, Task<bool>>? PersistPendingTaskOrderAsync { get; set; }
     public ICommand OpenCompletedCommand { get; }
     public ICommand CloseCommand { get; }
     public ICommand NewTaskCommand { get; }
     public ICommand CompleteTaskCommand { get; }
+    public ICommand EditTaskCommand { get; }
+    public ICommand AddRemarkCommand { get; }
+    public ICommand AddSubTaskCommand { get; }
+    public ICommand DeletePendingTaskCommand { get; }
+    public ICommand ToggleSubTaskCommand { get; }
+    public ICommand ToggleSubTasksCommand { get; }
     public ICommand ToggleCompletedSortCommand { get; }
     public ICommand EnterCompletedSelectionCommand { get; }
     public ICommand ExitCompletedSelectionCommand { get; }
@@ -124,6 +138,7 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
         _snapshot = tasks;
         if (GoalId != goal?.GoalId)
         {
+            foreach (var item in _pendingTasks) { item.IsMenuOpen = false; item.NextTaskEditor.Cancel(); }
             _creationRequestedDuringCommit = false;
             CancelCreation();
             IsOpen = false;
@@ -165,7 +180,12 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
                         task.ApplyCompletion(source.IsCompleted, source.CompletedAtUtc);
                     }
                 }
-                else task = _target.AddTask(source.TaskId, source.Name, source.IsCompleted, createdAtUtc: source.CreatedAtUtc, completedAtUtc: source.CompletedAtUtc);
+                else
+                {
+                    task = _target.AddTask(source.TaskId, source.Name, source.IsCompleted, createdAtUtc: source.CreatedAtUtc, completedAtUtc: source.CompletedAtUtc);
+                    task.IsExpanded = true;
+                }
+                task.NextTaskEditor.IsPendingCreation = false;
                 task.ApplyDetails(source);
                 var oldIndex = _target.Tasks.IndexOf(task);
                 if (oldIndex != index) _target.Tasks.Move(oldIndex, index);
@@ -356,6 +376,7 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
             false,
             insertAtTop: true,
             createdAtUtc: task.CreatedAtUtc);
+        pendingTask.NextTaskEditor.IsPendingCreation = true;
         SynchronizePendingTasks();
         UpdatePendingTaskPriorities();
         NotifyViews();
@@ -386,6 +407,9 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
 
     public async Task<bool> CompleteTaskAsync(FocusTaskViewModel task)
     {
+        if (task.NextTaskEditor.IsSaving || task.NextTaskEditor.IsPendingCreation) return false;
+        if ((task.NextTaskEditor.IsEditingName || task.NextTaskEditor.IsEditingRemark) && !await CommitInlineEditAsync(task)) return false;
+        CancelInlineEdit(task);
         if (task.TargetId != GoalId || task.IsCompleted || !_completingTasks.Add(task.TaskId)) return false;
         task.IsCompleting = true;
         try
@@ -569,11 +593,97 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
         }
     }
 
-    private async Task<LocalTaskDto?> SaveAsync(LocalTaskDto task, bool insertAtTop)
+    public void BeginInlineEdit(FocusTaskViewModel? task, string field)
+    {
+        if (task is null || task.TargetId != GoalId || !_pendingTasks.Contains(task) ||
+            task.IsCompleting || task.NextTaskEditor.IsSaving || task.NextTaskEditor.IsPendingCreation) return;
+        task.IsMenuOpen = false;
+        if (field == "subtask" && task.SubTasks.Count >= 20)
+        { ErrorMessage = "最多支持20个子任务。"; return; }
+        foreach (var other in _pendingTasks.Where(item => item != task && !item.NextTaskEditor.IsSaving))
+        { other.IsMenuOpen = false; other.NextTaskEditor.Cancel(); }
+        ErrorMessage = null;
+        task.NextTaskEditor.Begin(field, field == "name" ? task.Name : field == "remark" ? task.Description : string.Empty);
+        if (field == "subtask") task.IsExpanded = true;
+    }
+
+    public void CancelInlineEdit(FocusTaskViewModel task)
+    {
+        if (!task.NextTaskEditor.IsSaving) task.NextTaskEditor.Cancel();
+    }
+
+    public async Task<bool> CommitInlineEditAsync(FocusTaskViewModel task)
+    {
+        var editor = task.NextTaskEditor;
+        if (!editor.IsActive) return true;
+        if (editor.IsSaving || task.TargetId != GoalId) return false;
+        var existing = _snapshot.FirstOrDefault(item => item.TaskId == task.TaskId && item.TargetId == task.TargetId && !item.IsCompleted);
+        if (existing is null) return false;
+        var value = editor.Value.Trim();
+        var isSubTask = editor.IsAddingSubTask;
+        var isRemark = editor.IsEditingRemark;
+        if (!isRemark && value.Length == 0) return false;
+        if (isSubTask && existing.SubTasks.Count >= 20)
+        { ErrorMessage = "最多支持20个子任务。"; return false; }
+        var now = _now().ToUniversalTime();
+        var updated = existing with { UpdatedAtUtc = now };
+        if (isRemark) updated = updated with { Description = value };
+        else if (isSubTask) updated = updated with { SubTasks = existing.SubTasks.Append(new LocalSubTaskDto(
+            Guid.NewGuid().ToString("N"), task.TaskId, value, false, existing.SubTasks.Select(item => item.SortOrder).DefaultIfEmpty(-1).Max() + 1, now, now)).ToArray() };
+        else updated = updated with { Name = value };
+        editor.IsSaving = true;
+        try
+        {
+            var saved = await SaveAsync(updated, false, detailsOnly: true);
+            if (saved is null) return false;
+            if (isSubTask) editor.Value = string.Empty;
+            else editor.Cancel();
+            return true;
+        }
+        finally { editor.IsSaving = false; }
+    }
+
+    public async Task<bool> ToggleSubTaskAsync(FocusSubTaskViewModel item)
+    {
+        var task = _pendingTasks.FirstOrDefault(parent => parent.TaskId == item.TaskId && parent.SubTasks.Contains(item));
+        if (task is null || task.NextTaskEditor.IsSaving || task.IsCompleting) return false;
+        var existing = _snapshot.FirstOrDefault(parent => parent.TaskId == task.TaskId && parent.TargetId == GoalId && !parent.IsCompleted);
+        if (existing is null) return false;
+        task.NextTaskEditor.IsSaving = true;
+        try
+        {
+            var now = _now().ToUniversalTime();
+            return await SaveAsync(existing with { UpdatedAtUtc = now, SubTasks = existing.SubTasks.Select(sub => sub.Id == item.Id
+                ? sub with { IsCompleted = !sub.IsCompleted, UpdatedAtUtc = now } : sub).ToArray() }, false, detailsOnly: true) is not null;
+        }
+        finally { task.NextTaskEditor.IsSaving = false; }
+    }
+
+    public async Task<bool> DeletePendingTaskAsync(FocusTaskViewModel task)
+    {
+        if (task.TargetId != GoalId || task.IsCompleted || task.IsCompleting || task.NextTaskEditor.IsSaving ||
+            task.NextTaskEditor.IsPendingCreation || !_deletingTasks.Add(task.TaskId)) return false;
+        task.IsMenuOpen = false;
+        ErrorMessage = null;
+        try
+        {
+            bool deleted;
+            try { deleted = PersistPendingTaskDeletionAsync is not null && await PersistPendingTaskDeletionAsync(task.TargetId, task.TaskId); }
+            catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException or IOException) { deleted = false; }
+            if (!deleted) { if (GoalId == task.TargetId) ErrorMessage = "任务删除失败，请重试。"; return false; }
+            _snapshot = _snapshot.Where(item => item.TaskId != task.TaskId || item.TargetId != task.TargetId).ToArray();
+            ProjectTasks();
+            return true;
+        }
+        finally { _deletingTasks.Remove(task.TaskId); }
+    }
+
+    private async Task<LocalTaskDto?> SaveAsync(LocalTaskDto task, bool insertAtTop, bool detailsOnly = false)
     {
         ErrorMessage = null;
         LocalTaskDto? saved;
-        try { saved = PersistTaskAsync is null ? null : await PersistTaskAsync(task, insertAtTop); }
+        try { saved = detailsOnly ? (PersistTaskDetailsAsync is null ? null : await PersistTaskDetailsAsync(task))
+            : (PersistTaskAsync is null ? null : await PersistTaskAsync(task, insertAtTop)); }
         catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException or IOException)
         {
             saved = null;

@@ -1,39 +1,32 @@
 <UserControl x:Class="FocusApp.Desktop.Views.FoldedHorizontal"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             Width="235"
-             Height="40"
-             Background="Transparent"
-             UseLayoutRounding="True"
-             SnapsToDevicePixels="True">
-    <Border Margin="2"
-            Background="{DynamicResource SurfacePrimary}"
-            BorderBrush="{DynamicResource BorderPrimary}"
-            BorderThickness="1"
-            CornerRadius="12">
-        <Grid Margin="10,2">
+             xmlns:views="clr-namespace:FocusApp.Desktop.Views"
+             MinWidth="160" MaxWidth="320" Height="50"
+             Background="Transparent" UseLayoutRounding="True" SnapsToDevicePixels="True">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="TargetVisibilityConverter"/>
+        <views:RemainingToElapsedProgressConverter x:Key="ElapsedProgressConverter"/>
+    </UserControl.Resources>
+    <Border x:Name="CapsuleSurface" Background="#FCFCFD" BorderBrush="#E1E4E9" BorderThickness="1" CornerRadius="25" Padding="14,0">
+        <Grid>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="30"/>
+                <ColumnDefinition Width="12"/>
+                <ColumnDefinition Width="88"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
-            <TextBlock Grid.Column="0"
-                       Margin="4,0,20,0"
-                       HorizontalAlignment="Center"
-                       VerticalAlignment="Center"
-                       FontFamily="{DynamicResource FontFamilyNumeric}"
-                       FontSize="22"
-                       FontWeight="SemiBold"
-                       Foreground="{DynamicResource TextPrimary}"
-                       Text="{Binding RemainingTimeDisplay}" />
-            <ProgressBar Grid.Column="1"
-                         Height="6"
-                         Margin="0,0,4,0"
-                         VerticalAlignment="Center"
-                         Maximum="1"
-                         Minimum="0"
-                         Value="{Binding RemainingProgress, Mode=OneWay}"
-                         Foreground="{DynamicResource AccentPrimary}"
-                         Background="{DynamicResource BackgroundSecondary}" />
+            <views:CircularProgressRing x:Name="FoldedProgressRing" Width="30" Height="30" VerticalAlignment="Center" RingThickness="3.5"
+                                        TrackBrush="#DCE0E5" ProgressBrush="{DynamicResource AccentPrimary}"
+                                        Progress="{Binding RemainingProgress, Converter={StaticResource ElapsedProgressConverter}}"/>
+            <TextBlock x:Name="FoldedCountdown" Grid.Column="2" Text="{Binding RemainingTimeDisplay}" FontFamily="{DynamicResource FontFamilyNumeric}"
+                       FontSize="26" FontWeight="SemiBold" Foreground="#15171A" VerticalAlignment="Center" TextAlignment="Center" TextWrapping="NoWrap"/>
+            <Border x:Name="TargetDivider" Grid.Column="3" Width="1" Height="22" Margin="12,0" VerticalAlignment="Center" Background="#DFE2E7"
+                    Visibility="{Binding HasTarget, Converter={StaticResource TargetVisibilityConverter}}"/>
+            <TextBlock x:Name="FoldedTargetName" Grid.Column="4" Text="{Binding TargetName}" FontFamily="{DynamicResource FontFamilyPrimary}"
+                       FontSize="14" Foreground="#9B9FA8" VerticalAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
+                       Visibility="{Binding HasTarget, Converter={StaticResource TargetVisibilityConverter}}"/>
         </Grid>
     </Border>
 </UserControl>
