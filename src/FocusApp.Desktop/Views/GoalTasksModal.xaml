@@ -6,66 +6,294 @@
              KeyboardNavigation.TabNavigation="Cycle" PreviewKeyDown="Modal_PreviewKeyDown"
              Unloaded="Modal_Unloaded" IsVisibleChanged="Modal_IsVisibleChanged">
     <UserControl.Style>
-        <Style TargetType="{x:Type UserControl}">
-            <Setter Property="Visibility" Value="Collapsed" />
-            <Style.Triggers><DataTrigger Binding="{Binding IsOpen}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers>
+        <Style TargetType="UserControl">
+            <Setter Property="Visibility" Value="Collapsed"/>
+            <Style.Triggers><DataTrigger Binding="{Binding IsOpen}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers>
         </Style>
     </UserControl.Style>
     <UserControl.Resources>
-        <views:GoalInverseVisibilityConverter x:Key="InverseVisibilityConverter" />
-        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
-        <Style x:Key="QuietButton" TargetType="{x:Type Button}">
-            <Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Padding" Value="0" /><Setter Property="Cursor" Value="Hand" /><Setter Property="FocusVisualStyle" Value="{x:Null}" />
-            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="{x:Type Button}">
-                <Border x:Name="Surface" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" /></Border>
-                <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Surface" Property="Background" Value="#F7F7F8" /></Trigger><Trigger Property="IsPressed" Value="True"><Setter TargetName="Surface" Property="Background" Value="#EFEFF1" /></Trigger><Trigger Property="IsEnabled" Value="False"><Setter TargetName="Surface" Property="Opacity" Value="0.45" /></Trigger></ControlTemplate.Triggers>
+        <views:GoalInverseVisibilityConverter x:Key="InverseVisibilityConverter"/>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        <Style x:Key="QuietButton" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+                <Border x:Name="Surface" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                    <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                </Border>
+                <ControlTemplate.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Surface" Property="Background" Value="#F4F5F7"/></Trigger>
+                    <MultiTrigger><MultiTrigger.Conditions><Condition Property="Tag" Value="primary"/><Condition Property="IsMouseOver" Value="True"/></MultiTrigger.Conditions><Setter TargetName="Surface" Property="Background" Value="#E8700A"/></MultiTrigger>
+                    <Trigger Property="IsPressed" Value="True"><Setter TargetName="Surface" Property="Background" Value="#EAEDF1"/></Trigger>
+                    <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Surface" Property="Opacity" Value="0.45"/></Trigger>
+                </ControlTemplate.Triggers>
             </ControlTemplate></Setter.Value></Setter>
         </Style>
-        <Style x:Key="OutlinedActionButton" TargetType="{x:Type Button}" BasedOn="{StaticResource QuietButton}"><Setter Property="BorderBrush" Value="#E4E6EB" /><Setter Property="BorderThickness" Value="1" /><Setter Property="Background" Value="White" /><Setter Property="Padding" Value="12,0" /></Style>
-        <Style x:Key="GoalTasksThinScrollBarStyle" TargetType="{x:Type ScrollBar}">
-            <Setter Property="Width" Value="5" /><Setter Property="MinWidth" Value="5" /><Setter Property="Background" Value="Transparent" /><Setter Property="Opacity" Value="0.45" />
-            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="{x:Type ScrollBar}"><Grid Width="5"><Track x:Name="PART_Track" Margin="0,3" IsDirectionReversed="True" Orientation="{TemplateBinding Orientation}"><Track.DecreaseRepeatButton><RepeatButton Background="Transparent" BorderThickness="0" Command="{x:Static ScrollBar.PageUpCommand}" CommandTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}" Focusable="False" /></Track.DecreaseRepeatButton><Track.Thumb><Thumb MinHeight="26"><Thumb.Template><ControlTemplate TargetType="{x:Type Thumb}"><Border Width="3" Margin="1,0" HorizontalAlignment="Center" Background="#9EA3AD" CornerRadius="1.5" /></ControlTemplate></Thumb.Template></Thumb></Track.Thumb><Track.IncreaseRepeatButton><RepeatButton Background="Transparent" BorderThickness="0" Command="{x:Static ScrollBar.PageDownCommand}" CommandTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}" Focusable="False" /></Track.IncreaseRepeatButton></Track></Grid></ControlTemplate></Setter.Value></Setter>
+        <Style x:Key="CompletedActionMenu" TargetType="ContextMenu">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="5"/>
+            <Setter Property="HasDropShadow" Value="False"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ContextMenu">
+                <Border Background="White" BorderBrush="#E7EAF0" BorderThickness="1" CornerRadius="9" Padding="5">
+                    <Border.Effect><DropShadowEffect BlurRadius="16" ShadowDepth="3" Direction="270" Opacity="0.14"/></Border.Effect>
+                    <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle"/>
+                </Border>
+            </ControlTemplate></Setter.Value></Setter>
         </Style>
-    </UserControl.Resources>
-    <Grid Background="{DynamicResource ModalScrim}" MouseDown="Overlay_MouseDown">
-        <Border x:Name="GoalTasksCard" Width="450" Height="500" HorizontalAlignment="Center" VerticalAlignment="Center" Background="{DynamicResource SurfacePrimary}" BorderBrush="#ECEEF1" BorderThickness="1" CornerRadius="18" Padding="26,22,26,18">
-            <Border.Effect><DropShadowEffect BlurRadius="26" ShadowDepth="4" Direction="270" Opacity="0.12" /></Border.Effect>
-            <Grid>
-                <Grid.RowDefinitions><RowDefinition Height="58" /><RowDefinition Height="50" /><RowDefinition Height="*" /><RowDefinition Height="60" /></Grid.RowDefinitions>
-                <Grid>
-                    <StackPanel><TextBlock Text="已完成任务" FontSize="24" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" /><TextBlock Margin="0,4,0,0" Text="{Binding TodayCompletedSummary}" FontSize="13" Foreground="{DynamicResource TextSecondary}" /></StackPanel>
-                    <Button Width="30" Height="30" HorizontalAlignment="Right" VerticalAlignment="Top" Style="{StaticResource QuietButton}" Command="{Binding CloseCommand}" AutomationProperties.Name="关闭已完成任务"><TextBlock Text="×" FontSize="25" FontWeight="Light" Foreground="{DynamicResource TextWeak}" /></Button>
-                </Grid>
-                <Border Grid.Row="1" Background="#F7F8FA" CornerRadius="11" Padding="10,6">
-                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                        <Border Background="#EDF0F4" CornerRadius="16" Padding="12,5" VerticalAlignment="Center"><TextBlock FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}"><Run Text="共 " /><Run Text="{Binding CompletedCount, Mode=OneWay}" /><Run Text=" 项" /></TextBlock></Border>
-                        <Button Grid.Column="1" Margin="14,0,0,0" Height="30" Style="{StaticResource QuietButton}" Command="{Binding ToggleCompletedSortCommand}" AutomationProperties.Name="切换完成时间排序"><StackPanel Orientation="Horizontal"><TextBlock Text="↕" FontSize="17" Foreground="{DynamicResource TextSecondary}" Margin="0,0,8,0" /><TextBlock Text="{Binding CompletedSortLabel}" FontSize="13" Foreground="{DynamicResource TextPrimary}" /><TextBlock Text="⌄" FontSize="16" Foreground="{DynamicResource TextSecondary}" Margin="7,-2,0,0" /></StackPanel></Button>
-                        <Border Grid.Column="2" Width="176" Height="36" HorizontalAlignment="Right" Background="White" BorderBrush="#E1E4E9" BorderThickness="1" CornerRadius="9"><Grid><TextBlock Margin="12,0,0,0" VerticalAlignment="Center" Text="⌕" FontSize="23" Foreground="{DynamicResource TextSecondary}" /><TextBlock Margin="35,0,8,0" VerticalAlignment="Center" Text="搜索任务..." FontSize="13" Foreground="{DynamicResource TextSecondary}" IsHitTestVisible="False" Visibility="{Binding HasCompletedSearchQuery, Converter={StaticResource InverseVisibilityConverter}}" /><TextBox Margin="35,0,8,0" BorderThickness="0" Background="Transparent" VerticalContentAlignment="Center" FontSize="13" Foreground="{DynamicResource TextPrimary}" Text="{Binding CompletedSearchQuery, UpdateSourceTrigger=PropertyChanged}" ToolTip="搜索任务" /></Grid></Border>
+        <Style x:Key="CompletedActionMenuItem" TargetType="MenuItem">
+            <Setter Property="Width" Value="134"/>
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="#374151"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="MenuItem">
+                <Border x:Name="ItemSurface" Background="Transparent" CornerRadius="6" Padding="10,0">
+                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="25"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <ContentPresenter ContentSource="Icon" VerticalAlignment="Center"/>
+                        <ContentPresenter Grid.Column="1" ContentSource="Header" VerticalAlignment="Center"/>
                     </Grid>
                 </Border>
-                <Grid Grid.Row="2" Margin="0,4,0,0">
-                    <ScrollViewer x:Name="CompletedTasksScrollViewer" ScrollChanged="CompletedTasks_ScrollChanged" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><ScrollViewer.Resources><Style TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource GoalTasksThinScrollBarStyle}" /></ScrollViewer.Resources>
-                        <ItemsControl x:Name="CompletedTasksControl" ItemsSource="{Binding CompletedGroups}"><ItemsControl.ItemTemplate><DataTemplate><StackPanel Margin="0,0,0,13">
-                            <Grid x:Name="CompletedTaskGroupHeader" Height="30"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><TextBlock Text="{Binding Title}" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center" /><TextBlock Grid.Column="1" Text="{Binding Subtitle}" Margin="10,0,0,0" FontSize="12" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" /></Grid>
-                            <ItemsControl ItemsSource="{Binding Tasks}"><ItemsControl.ItemTemplate><DataTemplate>
-                                <Border x:Name="CompletedTaskRow" Height="42" BorderBrush="#ECEEF1" BorderThickness="0,0,0,1" Background="Transparent" MouseLeftButtonDown="CompletedTaskRow_MouseLeftButtonDown"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="38" /><ColumnDefinition Width="*" /><ColumnDefinition Width="58" /></Grid.ColumnDefinitions>
-                                    <Grid Width="22" Height="22" HorizontalAlignment="Left" VerticalAlignment="Center">
-                                        <Border x:Name="CompletedIndicator" Width="20" Height="20" Background="{DynamicResource AccentPrimary}" CornerRadius="10" Visibility="{Binding DataContext.IsSelectionMode, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}, Converter={StaticResource InverseVisibilityConverter}}"><Path Width="11" Height="8" Data="M 0,4 L 3.8,8 L 11,0" Stretch="Fill" Stroke="White" StrokeThickness="1.6" StrokeStartLineCap="Round" StrokeEndLineCap="Round" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border>
-                                        <Border x:Name="TaskCheckbox" Width="20" Height="20" BorderThickness="1.6" CornerRadius="5" Visibility="{Binding DataContext.IsSelectionMode, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}, Converter={StaticResource BooleanToVisibilityConverter}}"><Border.Style><Style TargetType="{x:Type Border}"><Setter Property="Background" Value="Transparent" /><Setter Property="BorderBrush" Value="#D2D7DF" /><Style.Triggers><DataTrigger Binding="{Binding IsBatchSelected}" Value="True"><Setter Property="Background" Value="{DynamicResource AccentPrimary}" /><Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}" /></DataTrigger></Style.Triggers></Style></Border.Style><Path x:Name="TaskCheckboxMark" Width="10" Height="7" Data="M 0,3.5 L 3.5,7 L 10,0" Stretch="Fill" Stroke="White" StrokeThickness="1.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Hidden" /></Border>
-                                    </Grid>
-                                    <TextBlock Grid.Column="1" Margin="0,0,10,0" Text="{Binding Name}" FontSize="14" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding Name}" /><TextBlock Grid.Column="2" Text="{Binding CompletedTimeDisplay}" FontSize="12" Foreground="{DynamicResource TextSecondary}" HorizontalAlignment="Right" VerticalAlignment="Center" />
-                                </Grid></Border>
-                                <DataTemplate.Triggers><DataTrigger Binding="{Binding IsBatchSelected}" Value="True"><Setter TargetName="TaskCheckboxMark" Property="Visibility" Value="Visible" /></DataTrigger></DataTemplate.Triggers>
-                            </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
-                        </StackPanel></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
-                    </ScrollViewer>
-                    <TextBlock Text="暂无已完成任务" FontSize="13" Foreground="{DynamicResource TextWeak}" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{Binding HasCompletedTasks, Converter={StaticResource InverseVisibilityConverter}}" />
-                    <TextBlock Text="没有找到相关任务" FontSize="13" Foreground="{DynamicResource TextWeak}" HorizontalAlignment="Center" VerticalAlignment="Center"><TextBlock.Style><Style TargetType="{x:Type TextBlock}"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><MultiDataTrigger><MultiDataTrigger.Conditions><Condition Binding="{Binding HasCompletedTasks}" Value="True" /><Condition Binding="{Binding HasVisibleCompletedTasks}" Value="False" /></MultiDataTrigger.Conditions><Setter Property="Visibility" Value="Visible" /></MultiDataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
+                <ControlTemplate.Triggers><Trigger Property="IsHighlighted" Value="True"><Setter TargetName="ItemSurface" Property="Background" Value="#F5F6F8"/></Trigger></ControlTemplate.Triggers>
+            </ControlTemplate></Setter.Value></Setter>
+        </Style>
+        <Style x:Key="CompletedSortMenuItem" TargetType="MenuItem">
+            <Setter Property="Height" Value="31"/>
+            <Setter Property="Width" Value="116"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="#374151"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="MenuItem">
+                <Border x:Name="SortItemSurface" Background="Transparent" CornerRadius="6" Padding="11,0">
+                    <ContentPresenter ContentSource="Header" VerticalAlignment="Center"/>
+                </Border>
+                <ControlTemplate.Triggers><Trigger Property="IsHighlighted" Value="True"><Setter TargetName="SortItemSurface" Property="Background" Value="#F5F6F8"/></Trigger></ControlTemplate.Triggers>
+            </ControlTemplate></Setter.Value></Setter>
+        </Style>
+        <Style x:Key="GoalTasksThinScrollBarStyle" TargetType="ScrollBar">
+            <Setter Property="Width" Value="4"/>
+            <Setter Property="MinWidth" Value="4"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Opacity" Value="0.38"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ScrollBar">
+                <Grid Width="4"><Track x:Name="PART_Track" Margin="0,3" IsDirectionReversed="True" Orientation="{TemplateBinding Orientation}">
+                    <Track.DecreaseRepeatButton><RepeatButton Background="Transparent" BorderThickness="0" Command="{x:Static ScrollBar.PageUpCommand}" CommandTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}" Focusable="False"/></Track.DecreaseRepeatButton>
+                    <Track.Thumb><Thumb MinHeight="28"><Thumb.Template><ControlTemplate TargetType="Thumb"><Border Width="3" HorizontalAlignment="Center" Background="#ADB5C2" CornerRadius="1.5"/></ControlTemplate></Thumb.Template></Thumb></Track.Thumb>
+                    <Track.IncreaseRepeatButton><RepeatButton Background="Transparent" BorderThickness="0" Command="{x:Static ScrollBar.PageDownCommand}" CommandTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}" Focusable="False"/></Track.IncreaseRepeatButton>
+                </Track></Grid>
+            </ControlTemplate></Setter.Value></Setter>
+            <Style.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter Property="Opacity" Value="0.7"/></Trigger></Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Background="{DynamicResource ModalScrim}" MouseDown="Overlay_MouseDown">
+        <Border x:Name="GoalTasksCard" Width="450" Height="500" HorizontalAlignment="Center" VerticalAlignment="Center"
+                Background="{DynamicResource SurfacePrimary}" BorderBrush="#ECEEF2" BorderThickness="1" CornerRadius="18" Padding="30,26,30,22">
+            <Border.Effect><DropShadowEffect BlurRadius="28" ShadowDepth="5" Direction="270" Opacity="0.14"/></Border.Effect>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <Grid x:Name="CompletedTasksHeader">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="已完成任务" FontSize="25" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center"/>
+                            <TextBlock Margin="14,2,0,0" FontSize="13" Foreground="#8792A5" Text="{Binding SelectedCompletedCount, StringFormat=已选择 {0} 项}" VerticalAlignment="Center"
+                                       Visibility="{Binding IsSelectionMode, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                        </StackPanel>
+                        <TextBlock Margin="0,4,0,0" Text="{Binding CompletedCountSummary}" FontSize="13" Foreground="#8993A5"
+                                   Visibility="{Binding IsSelectionMode, Converter={StaticResource InverseVisibilityConverter}}"/>
+                    </StackPanel>
+                    <Button x:Name="CompletedSelectButton" Grid.Column="1" Height="30" Margin="0,0,17,0" Padding="8,0" VerticalAlignment="Top"
+                            Style="{StaticResource QuietButton}" Command="{Binding EnterCompletedSelectionCommand}" AutomationProperties.Name="选择已完成任务"
+                            Visibility="{Binding IsSelectionMode, Converter={StaticResource InverseVisibilityConverter}}">
+                        <TextBlock Text="选择" FontSize="13" Foreground="#3F4755"/>
+                    </Button>
+                    <Button Grid.Column="1" Height="30" Margin="0,0,17,0" Padding="8,0" VerticalAlignment="Top"
+                            Style="{StaticResource QuietButton}" Command="{Binding ExitCompletedSelectionCommand}" AutomationProperties.Name="取消选择"
+                            Visibility="{Binding IsSelectionMode, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <TextBlock Text="取消" FontSize="13" Foreground="#3F4755"/>
+                    </Button>
+                    <Button Grid.Column="2" Width="30" Height="30" VerticalAlignment="Top" Style="{StaticResource QuietButton}"
+                            Command="{Binding CloseCommand}" AutomationProperties.Name="关闭已完成任务">
+                        <TextBlock Text="×" FontSize="24" FontWeight="Light" Foreground="#7A8494"/>
+                    </Button>
                 </Grid>
-                <Grid Grid.Row="3" Margin="0,8,0,0"><Grid.Style><Style TargetType="{x:Type Grid}"><Setter Property="Visibility" Value="Visible" /><Style.Triggers><DataTrigger Binding="{Binding IsSelectionMode}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers></Style></Grid.Style><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBlock Text="仅显示已完成的任务" FontSize="12" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" /><Button Grid.Column="1" Width="112" Height="42" Background="#FFF5EC" BorderBrush="#FFE2C9" BorderThickness="1" Style="{StaticResource QuietButton}" Command="{Binding EnterCompletedSelectionCommand}" AutomationProperties.Name="选择已完成任务"><StackPanel Orientation="Horizontal"><Border Width="17" Height="17" BorderBrush="{DynamicResource AccentPrimary}" BorderThickness="2" CornerRadius="4" Margin="0,0,9,0" /><TextBlock Text="选择" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource AccentPrimary}" /></StackPanel></Button></Grid>
-                <Grid Grid.Row="3" Margin="0,8,0,0"><Grid.Style><Style TargetType="{x:Type Grid}"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding IsSelectionMode}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></Grid.Style><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><StackPanel Orientation="Horizontal" VerticalAlignment="Center"><TextBlock Text="已选择 " FontSize="13" Foreground="{DynamicResource TextPrimary}" /><TextBlock Text="{Binding SelectedCompletedCount}" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource AccentPrimary}" /><TextBlock Text=" 项" FontSize="13" Foreground="{DynamicResource TextPrimary}" Margin="3,0,0,0" /></StackPanel><Button Grid.Column="1" Width="72" Height="38" Margin="8,0,8,0" Style="{StaticResource QuietButton}" Command="{Binding ExitCompletedSelectionCommand}"><TextBlock Text="取消选择" FontSize="13" Foreground="{DynamicResource TextSecondary}" /></Button><StackPanel Grid.Column="2" Orientation="Horizontal"><Button Width="106" Height="40" Style="{StaticResource OutlinedActionButton}" Command="{Binding RestoreSelectedCompletedCommand}" AutomationProperties.Name="恢复选中"><StackPanel Orientation="Horizontal"><TextBlock Text="↶" FontSize="20" Foreground="{DynamicResource TextPrimary}" Margin="0,0,7,0" /><TextBlock Text="恢复选中" FontSize="13" Foreground="{DynamicResource TextPrimary}" /></StackPanel></Button><Button Width="106" Height="40" Margin="8,0,0,0" Background="#FFF1F0" BorderBrush="#FFD9D6" BorderThickness="1" Style="{StaticResource QuietButton}" Command="{Binding DeleteSelectedCompletedCommand}" AutomationProperties.Name="删除选中"><StackPanel Orientation="Horizontal"><TextBlock Text="⌫" FontSize="18" Foreground="#D94C43" Margin="0,0,7,0" /><TextBlock Text="删除选中" FontSize="13" Foreground="#D94C43" /></StackPanel></Button></StackPanel></Grid>
-                <TextBlock Grid.Row="3" Text="{Binding ErrorMessage}" FontSize="11" Foreground="#D95B40" HorizontalAlignment="Left" VerticalAlignment="Bottom" />
+
+                <Grid x:Name="CompletedTasksToolbar" Grid.Row="1" Margin="0,18,0,0">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <Border Height="42" Background="#F6F7F9" BorderBrush="#EDF0F4" BorderThickness="1" CornerRadius="8">
+                        <Grid>
+                            <Path Width="16" Height="16" Margin="15,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center"
+                                  Data="M 11,11 L 16,16 M 12.5,6.5 A 6,6 0 1 1 0.5,6.5 A 6,6 0 1 1 12.5,6.5" Stroke="#8190A3" StrokeThickness="1.7" StrokeStartLineCap="Round"/>
+                            <TextBlock Margin="43,0,10,0" VerticalAlignment="Center" Text="搜索已完成的任务..." FontSize="13" Foreground="#9AA5B4" IsHitTestVisible="False"
+                                       Visibility="{Binding HasCompletedSearchQuery, Converter={StaticResource InverseVisibilityConverter}}"/>
+                            <TextBox Margin="43,0,12,0" BorderThickness="0" Background="Transparent" VerticalContentAlignment="Center" FontSize="13"
+                                     Foreground="{DynamicResource TextPrimary}" CaretBrush="{DynamicResource TextPrimary}" FocusVisualStyle="{x:Null}"
+                                     Text="{Binding CompletedSearchQuery, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="搜索已完成的任务"/>
+                        </Grid>
+                    </Border>
+                    <Button x:Name="CompletedSortButton" Grid.Column="1" Width="132" Height="42" Margin="12,0,0,0" Padding="12,0"
+                            Background="White" BorderBrush="#E3E7ED" BorderThickness="1" Style="{StaticResource QuietButton}"
+                            Tag="{Binding}" Click="CompletedSortButton_Click" AutomationProperties.Name="排序已完成任务">
+                        <Button.Content><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <TextBlock Text="{Binding CompletedSortLabel}" FontSize="13" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" Text="⌄" FontSize="17" Foreground="#7D8798" Margin="6,-3,0,0" VerticalAlignment="Center"/>
+                        </Grid></Button.Content>
+                        <Button.ContextMenu>
+                            <ContextMenu Style="{StaticResource CompletedActionMenu}" DataContext="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource Self}}" Placement="Bottom">
+                                <MenuItem Header="最近完成" Style="{StaticResource CompletedSortMenuItem}" Command="{Binding SetCompletedSortCommand}" CommandParameter="Recent"/>
+                                <MenuItem Header="最早完成" Style="{StaticResource CompletedSortMenuItem}" Command="{Binding SetCompletedSortCommand}" CommandParameter="Oldest"/>
+                                <MenuItem Header="任务名称" Style="{StaticResource CompletedSortMenuItem}" Command="{Binding SetCompletedSortCommand}" CommandParameter="Name"/>
+                                <MenuItem Header="完成时间" Style="{StaticResource CompletedSortMenuItem}" Command="{Binding SetCompletedSortCommand}" CommandParameter="Time"/>
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
+                </Grid>
+
+                <Grid Grid.Row="2" Margin="0,15,0,0">
+                    <ScrollViewer x:Name="CompletedTasksScrollViewer" ScrollChanged="CompletedTasks_ScrollChanged"
+                                  VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <ScrollViewer.Resources><Style TargetType="ScrollBar" BasedOn="{StaticResource GoalTasksThinScrollBarStyle}"/></ScrollViewer.Resources>
+                        <ItemsControl x:Name="CompletedTasksControl" ItemsSource="{Binding CompletedGroups}">
+                            <ItemsControl.ItemTemplate><DataTemplate>
+                                <StackPanel Margin="0,0,5,22">
+                                    <Grid x:Name="CompletedTaskGroupHeader" Height="33" Margin="0,0,0,4">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding Title}" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding Subtitle}" Margin="12,0,0,0" FontSize="12" Foreground="#8993A5" VerticalAlignment="Center"/>
+                                    </Grid>
+                                    <ItemsControl ItemsSource="{Binding Tasks}">
+                                        <ItemsControl.ItemTemplate><DataTemplate>
+                                            <Border x:Name="CompletedTaskRow" MinHeight="51" BorderBrush="#EDF0F3" BorderThickness="0,0,0,1"
+                                                    Background="Transparent" MouseLeftButtonDown="CompletedTaskRow_MouseLeftButtonDown">
+                                                <Grid>
+                                                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                                    <Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="34"/></Grid.ColumnDefinitions>
+                                                    <Grid Grid.Row="0" Grid.Column="0" Width="20" Height="20" Margin="0,14,0,12" HorizontalAlignment="Left">
+                                                        <Border x:Name="CompletedIndicator" Width="20" Height="20" Background="{DynamicResource AccentPrimary}" CornerRadius="4"
+                                                                Visibility="{Binding DataContext.IsSelectionMode, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource InverseVisibilityConverter}}">
+                                                            <Path Width="11" Height="8" Data="M 0,4 L 3.8,8 L 11,0" Stretch="Fill" Stroke="White" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        </Border>
+                                                        <Border x:Name="TaskCheckbox" Width="20" Height="20" BorderThickness="1.5" CornerRadius="4"
+                                                                Visibility="{Binding DataContext.IsSelectionMode, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                            <Border.Style><Style TargetType="Border">
+                                                                <Setter Property="Background" Value="White"/><Setter Property="BorderBrush" Value="#C8CFD9"/>
+                                                                <Style.Triggers><DataTrigger Binding="{Binding IsBatchSelected}" Value="True">
+                                                                    <Setter Property="Background" Value="{DynamicResource AccentPrimary}"/><Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}"/>
+                                                                </DataTrigger></Style.Triggers>
+                                                            </Style></Border.Style>
+                                                            <Path x:Name="TaskCheckboxMark" Width="11" Height="8" Data="M 0,4 L 3.8,8 L 11,0" Stretch="Fill" Stroke="White" StrokeThickness="1.7" StrokeStartLineCap="Round" StrokeEndLineCap="Round" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
+                                                        </Border>
+                                                    </Grid>
+                                                    <TextBlock Grid.Row="0" Grid.Column="1" Margin="11,0,8,0" Text="{Binding Name}" FontSize="14" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding Name}"/>
+                                                    <TextBlock Grid.Row="0" Grid.Column="2" Text="{Binding CompletedTimeDisplay}" FontSize="12" Foreground="#8893A5" VerticalAlignment="Center" HorizontalAlignment="Right"/>
+                                                    <Button x:Name="CompletedTaskMoreButton" Grid.Row="0" Grid.Column="3" Width="28" Height="28" Margin="6,0,0,0" Padding="0"
+                                                            VerticalAlignment="Center" Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            Click="CompletedTaskMoreButton_Click" AutomationProperties.Name="更多已完成任务操作">
+                                                        <Button.Style><Style TargetType="Button" BasedOn="{StaticResource QuietButton}">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                            <Style.Triggers>
+                                                                <MultiDataTrigger><MultiDataTrigger.Conditions>
+                                                                    <Condition Binding="{Binding IsMouseOver, ElementName=CompletedTaskRow}" Value="True"/>
+                                                                    <Condition Binding="{Binding IsMouseOver, ElementName=CompletedTaskRemark}" Value="False"/>
+                                                                    <Condition Binding="{Binding IsMouseOver, ElementName=CompletedTaskSubTasks}" Value="False"/>
+                                                                    <Condition Binding="{Binding DataContext.IsSelectionMode, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="False"/>
+                                                                </MultiDataTrigger.Conditions><Setter Property="Visibility" Value="Visible"/></MultiDataTrigger>
+                                                                <DataTrigger Binding="{Binding IsMenuOpen}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style></Button.Style>
+                                                        <TextBlock Text="···" FontSize="19" Foreground="#7F8B9D" Margin="0,-7,0,0"/>
+                                                        <Button.ContextMenu>
+                                                            <ContextMenu Style="{StaticResource CompletedActionMenu}" DataContext="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource Self}}"
+                                                                         Placement="Bottom" Opened="CompletedTaskMenu_Opened" Closed="CompletedTaskMenu_Closed">
+                                                                <MenuItem Header="恢复任务" Style="{StaticResource CompletedActionMenuItem}" Command="{Binding RestoreCompletedTaskCommand}" CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}">
+                                                                    <MenuItem.Icon><Path Width="15" Height="15" Data="M 6,2 L 2,6 L 6,10 M 2,6 L 10,6 A 5,5 0 0 1 10,16" Stroke="#414B5A" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeLineJoin="Round"/></MenuItem.Icon>
+                                                                </MenuItem>
+                                                                <MenuItem Header="删除任务" Foreground="#D35250" Style="{StaticResource CompletedActionMenuItem}" Command="{Binding DeleteCompletedTaskCommand}" CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}">
+                                                                    <MenuItem.Icon><Path Width="14" Height="15" Data="M 1,3 L 13,3 M 4,3 L 4,1 L 10,1 L 10,3 M 3,3 L 3,14 L 11,14 L 11,3 M 6,6 L 6,11 M 8,6 L 8,11" Stroke="#D35250" StrokeThickness="1.4" StrokeStartLineCap="Round" StrokeLineJoin="Round"/></MenuItem.Icon>
+                                                                </MenuItem>
+                                                            </ContextMenu>
+                                                        </Button.ContextMenu>
+                                                    </Button>
+                                                    <TextBlock x:Name="CompletedTaskRemark" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3" Margin="11,-2,42,8"
+                                                               Text="{Binding Description}" FontSize="12" Foreground="#8490A2" TextWrapping="Wrap" MaxHeight="38" LineHeight="18">
+                                                        <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/>
+                                                            <Style.Triggers><MultiDataTrigger><MultiDataTrigger.Conditions>
+                                                                <Condition Binding="{Binding HasDescription}" Value="True"/>
+                                                                <Condition Binding="{Binding DataContext.IsSelectionMode, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="False"/>
+                                                            </MultiDataTrigger.Conditions><Setter Property="Visibility" Value="Visible"/></MultiDataTrigger></Style.Triggers>
+                                                        </Style></TextBlock.Style>
+                                                    </TextBlock>
+                                                    <ItemsControl x:Name="CompletedTaskSubTasks" Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3" Margin="25,0,0,7" ItemsSource="{Binding SortedSubTasks}">
+                                                        <ItemsControl.Style><Style TargetType="ItemsControl"><Setter Property="Visibility" Value="Collapsed"/>
+                                                            <Style.Triggers><MultiDataTrigger><MultiDataTrigger.Conditions>
+                                                                <Condition Binding="{Binding HasSubTasks}" Value="True"/>
+                                                                <Condition Binding="{Binding DataContext.IsSelectionMode, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="False"/>
+                                                            </MultiDataTrigger.Conditions><Setter Property="Visibility" Value="Visible"/></MultiDataTrigger></Style.Triggers>
+                                                        </Style></ItemsControl.Style>
+                                                        <ItemsControl.ItemTemplate><DataTemplate>
+                                                            <Grid MinHeight="30">
+                                                                <Grid.ColumnDefinitions><ColumnDefinition Width="14"/><ColumnDefinition Width="22"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="34"/></Grid.ColumnDefinitions>
+                                                                <Border Width="1" HorizontalAlignment="Left" Background="#DEE3EB"/>
+                                                                <Border Width="8" Height="1" HorizontalAlignment="Left" VerticalAlignment="Center" Background="#DEE3EB"/>
+                                                                <Border Grid.Column="1" Width="16" Height="16" HorizontalAlignment="Left" VerticalAlignment="Center" Background="White" BorderThickness="1.4" CornerRadius="8">
+                                                                    <Border.Style><Style TargetType="Border"><Setter Property="BorderBrush" Value="#D2D8E2"/>
+                                                                        <Style.Triggers><DataTrigger Binding="{Binding IsCompleted}" Value="True"><Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}"/></DataTrigger></Style.Triggers>
+                                                                    </Style></Border.Style>
+                                                                    <Path Width="9" Height="7" Data="M 0,3 L 3.2,7 L 9,0" Stroke="{DynamicResource AccentPrimary}" StrokeThickness="1.4" Stretch="Fill" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                          Visibility="{Binding IsCompleted, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                                </Border>
+                                                                <TextBlock Grid.Column="2" Margin="4,0,8,0" Text="{Binding Title}" FontSize="12" Foreground="#526073" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                                                <TextBlock Grid.Column="3" Text="{Binding CompletedTimeDisplay}" FontSize="11" Foreground="#97A1AF" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                                            </Grid>
+                                                        </DataTemplate></ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                </Grid>
+                                            </Border>
+                                            <DataTemplate.Triggers><DataTrigger Binding="{Binding IsBatchSelected}" Value="True"><Setter TargetName="TaskCheckboxMark" Property="Visibility" Value="Visible"/></DataTrigger></DataTemplate.Triggers>
+                                        </DataTemplate></ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </DataTemplate></ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                    <TextBlock Text="暂无已完成任务" FontSize="13" Foreground="{DynamicResource TextWeak}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                               Visibility="{Binding HasCompletedTasks, Converter={StaticResource InverseVisibilityConverter}}"/>
+                    <TextBlock Text="没有找到相关任务" FontSize="13" Foreground="{DynamicResource TextWeak}" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers><MultiDataTrigger><MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding HasCompletedTasks}" Value="True"/><Condition Binding="{Binding HasVisibleCompletedTasks}" Value="False"/>
+                            </MultiDataTrigger.Conditions><Setter Property="Visibility" Value="Visible"/></MultiDataTrigger></Style.Triggers>
+                        </Style></TextBlock.Style>
+                    </TextBlock>
+                </Grid>
+
+                <Grid x:Name="CompletedBatchActions" Grid.Row="3" Margin="0,14,0,0" Visibility="{Binding HasSelectedCompletedTasks, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <Button Grid.Column="0" Width="148" Height="40" Background="#FFF3F2" BorderBrush="#F7D8D6" BorderThickness="1" Padding="14,0"
+                            Style="{StaticResource QuietButton}" Command="{Binding DeleteSelectedCompletedCommand}" AutomationProperties.Name="删除选中">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <TextBlock Text="⌫" FontSize="18" Foreground="#D35250" Margin="0,-2,7,0"/>
+                            <TextBlock FontSize="13" Foreground="#D35250"><Run Text="删除（"/><Run Text="{Binding SelectedCompletedCount, Mode=OneWay}"/><Run Text="）"/></TextBlock>
+                        </StackPanel>
+                    </Button>
+                    <Button Grid.Column="2" Width="174" Height="40" Background="{DynamicResource AccentPrimary}" Padding="14,0" Tag="primary"
+                            Style="{StaticResource QuietButton}" Command="{Binding RestoreSelectedCompletedCommand}" AutomationProperties.Name="恢复选中">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <TextBlock Text="↶" FontSize="19" Foreground="White" Margin="0,-2,7,0"/>
+                            <TextBlock FontSize="13" Foreground="White"><Run Text="恢复任务（"/><Run Text="{Binding SelectedCompletedCount, Mode=OneWay}"/><Run Text="）"/></TextBlock>
+                        </StackPanel>
+                    </Button>
+                </Grid>
+                <TextBlock Grid.Row="4" Margin="0,8,0,0" Text="{Binding ErrorMessage}" FontSize="11" Foreground="#D35250"
+                           Visibility="{Binding HasError, Converter={StaticResource BooleanToVisibilityConverter}}"/>
             </Grid>
         </Border>
     </Grid>

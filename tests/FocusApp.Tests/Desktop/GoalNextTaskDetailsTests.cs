@@ -58,8 +58,8 @@ public sealed class GoalNextTaskDetailsTests
             model.AddSubTaskCommand.Execute(task);
             task.NextTaskEditor.Value = "调整任务列表位置";
             Assert.True(await model.CommitInlineEditAsync(task));
-            Assert.True(task.NextTaskEditor.IsAddingSubTask);
-            Assert.Equal("", task.NextTaskEditor.Value);
+            Assert.False(task.NextTaskEditor.IsActive);
+            model.AddSubTaskCommand.Execute(task);
             task.NextTaskEditor.Value = "检查按钮间距";
             Assert.True(await model.CommitInlineEditAsync(task));
             Assert.True(await model.ToggleSubTaskAsync(task.SubTasks[0]));
@@ -123,7 +123,8 @@ public sealed class GoalNextTaskDetailsTests
         completion.SetResult(captured);
         Assert.True(await first);
         Assert.Single(task.SubTasks);
-        Assert.Equal("", task.NextTaskEditor.Value);
+        Assert.False(task.NextTaskEditor.IsActive);
+        model.AddSubTaskCommand.Execute(task);
         task.NextTaskEditor.Value = "   ";
         Assert.False(await model.CommitInlineEditAsync(task));
         Assert.Single(task.SubTasks);

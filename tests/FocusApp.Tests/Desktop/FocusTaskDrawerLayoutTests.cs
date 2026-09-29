@@ -84,14 +84,14 @@ public sealed class FocusTaskDrawerLayoutTests
                 Assert.Equal(270, drawer.ActualWidth);
                 Assert.Equal(710, drawer.ActualHeight);
                 Assert.Equal(1070, layout.ActualWidth);
-                var card = Descendants(drawer).OfType<Border>().Single(item => item.Name == "TaskCard" && item.DataContext == task);
+                var card = Descendants(drawer).OfType<Grid>().Single(item => item.Name == "TaskRowSurface" && item.DataContext == task);
                 var note = Descendants(card).OfType<TextBlock>().Single(item => item.Name == "InlineDescription");
                 Assert.True(note.IsVisible);
                 Assert.Equal(task.Description, note.Text);
                 Assert.Equal(36, note.MaxHeight);
                 var toggle = Descendants(card).OfType<Button>().Single(item => item.Name == "SubTaskToggle");
                 Assert.True(toggle.IsVisible);
-                Assert.Equal("0/2", Descendants(toggle).OfType<TextBlock>().Single().Text);
+                Assert.Equal("子任务 0/2", Descendants(toggle).OfType<TextBlock>().Single().Text);
                 var childList = Descendants(card).OfType<ItemsControl>().Single(item => item.Name == "InlineSubTaskList");
                 Assert.False(childList.IsVisible);
                 Render("collapsed");
@@ -111,14 +111,19 @@ public sealed class FocusTaskDrawerLayoutTests
                 Assert.True(menu.IsOpen);
                 Assert.True(more.IsVisible);
                 Assert.Same(more, menu.PlacementTarget);
-                Assert.Equal(new[] { "编辑任务名称", "编辑备注", "删除任务" },
+                Assert.Equal(new[] { "编辑任务", "删除任务" },
                     menu.Items.OfType<MenuItem>().Select(item => (string)item.Header));
-                menu.Items.OfType<MenuItem>().ElementAt(1).RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+                menu.Items.OfType<MenuItem>().First().RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
                 menu.IsOpen = false;
-                Assert.True(vm.IsMultilineEdit);
-                vm.EditValue = "更新备注";
-                vm.SaveEditCommand.Execute(null);
+                Assert.True(vm.IsEditingTask);
+                vm.Draft!.Description = "更新备注";
+                Render("editing");
+                vm.CreateTaskCommand.Execute(null);
                 Assert.Equal("更新备注", note.Text);
+
+                vm.AddTaskCommand.Execute(null);
+                Render("creating");
+                vm.CancelCreationCommand.Execute(null);
 
                 task.IsCompleted = true;
                 host.UpdateLayout();
@@ -142,17 +147,23 @@ public sealed class FocusTaskDrawerLayoutTests
     }
 
     [Fact]
-    public void MoreActionIsHiddenUntilTheTaskCardIsHovered()
+    public void FlatTaskRowsAndSharedEditorKeepTheDrawerAtItsOriginalSize()
     {
         var document = XDocument.Load(Path.Combine(FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "FocusTaskDrawer.xaml"));
         var xaml = XNamespace.Get("http://schemas.microsoft.com/winfx/2006/xaml");
         var presentation = XNamespace.Get("http://schemas.microsoft.com/winfx/2006/xaml/presentation");
+        Assert.Equal("270", (string?)document.Root!.Attribute("Width"));
+        Assert.Equal("710", (string?)document.Root.Attribute("Height"));
+        Assert.DoesNotContain(document.Descendants(), item => (string?)item.Attribute(xaml + "Name") is "TaskCard" or "InlineEditor" or "CreationSheet");
+        Assert.Single(document.Descendants(presentation + "Border").Where(item => (string?)item.Attribute(xaml + "Name") == "TaskEditorPanel"));
+        Assert.DoesNotContain(document.Descendants(presentation + "MenuItem"), item => (string?)item.Attribute("Header") is "编辑任务名称" or "编辑备注");
+        Assert.Equal(new[] { "编辑任务", "删除任务" }, document.Descendants(presentation + "MenuItem").Select(item => (string?)item.Attribute("Header")));
         var more = Assert.Single(document.Descendants(presentation + "Button").Where(item =>
             (string?)item.Attribute(xaml + "Name") == "TaskMoreButton"));
         Assert.Contains(more.Descendants(presentation + "Setter"), setter =>
             (string?)setter.Attribute("Property") == "Visibility" && (string?)setter.Attribute("Value") == "Collapsed");
         Assert.Contains(document.Descendants(presentation + "Trigger"), trigger =>
-            (string?)trigger.Attribute("SourceName") == "TaskCard" &&
+            (string?)trigger.Attribute("SourceName") == "TaskRowSurface" &&
             (string?)trigger.Attribute("Property") == "IsMouseOver" &&
             trigger.Elements(presentation + "Setter").Any(setter =>
                 (string?)setter.Attribute("TargetName") == "TaskMoreButton" &&

@@ -23,6 +23,7 @@ public sealed class FocusSubTaskViewModel : INotifyPropertyChanged
     public string TaskId { get; }
     public DateTimeOffset CreatedAtUtc { get; }
     public DateTimeOffset UpdatedAtUtc { get; private set; }
+    public string CompletedTimeDisplay => IsCompleted ? UpdatedAtUtc.ToLocalTime().ToString("HH:mm") : "—";
     public string Title
     {
         get => _title;
@@ -32,6 +33,7 @@ public sealed class FocusSubTaskViewModel : INotifyPropertyChanged
             _title = value;
             UpdatedAtUtc = DateTimeOffset.UtcNow;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(CompletedTimeDisplay));
         }
     }
     public bool IsCompleted
@@ -43,6 +45,7 @@ public sealed class FocusSubTaskViewModel : INotifyPropertyChanged
             _isCompleted = value;
             UpdatedAtUtc = DateTimeOffset.UtcNow;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(CompletedTimeDisplay));
         }
     }
     internal void Apply(LocalSubTaskDto source)
@@ -54,6 +57,7 @@ public sealed class FocusSubTaskViewModel : INotifyPropertyChanged
         UpdatedAtUtc = source.UpdatedAtUtc;
         if (titleChanged) OnPropertyChanged(nameof(Title));
         if (completionChanged) OnPropertyChanged(nameof(IsCompleted));
+        OnPropertyChanged(nameof(CompletedTimeDisplay));
     }
     private void OnPropertyChanged([CallerMemberName] string? name = null) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));

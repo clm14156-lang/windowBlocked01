@@ -36,18 +36,17 @@ public partial class FocusTaskDrawer : UserControl
         if (vm.CreateTaskCommand.CanExecute(null)) vm.CreateTaskCommand.Execute(null);
         e.Handled = true;
     }
-    private void CreationSheet_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+    private void TaskEditorPanel_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
         if (!(bool)e.NewValue) return;
-        ((TranslateTransform)CreationSheet.RenderTransform).BeginAnimation(TranslateTransform.YProperty,
+        ((TranslateTransform)TaskEditorPanel.RenderTransform).BeginAnimation(TranslateTransform.YProperty,
             new DoubleAnimation(16, 0, TimeSpan.FromMilliseconds(170)) { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut } });
         Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() => { DraftTaskTitleInput.Focus(); Keyboard.Focus(DraftTaskTitleInput); }));
     }
     private void Drawer_PreviewKeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key != Key.Escape || ViewModel is not { } vm) return;
-        if (vm.IsEditingDetails) vm.CancelEditCommand.Execute(null);
-        else if (vm.IsCreating) vm.CancelCreationCommand.Execute(null);
+        if (vm.IsCreating) vm.CancelCreationCommand.Execute(null);
         else if (vm.SelectedTask is { } task) vm.ToggleExpandedCommand.Execute(task);
         else vm.CloseCommand.Execute(null);
         e.Handled = true;
@@ -59,34 +58,5 @@ public partial class FocusTaskDrawer : UserControl
     private void DeleteTaskMenu_Click(object sender, RoutedEventArgs e)
     {
         if (sender is MenuItem { DataContext: FocusTaskViewModel task }) ViewModel?.DeleteTaskCommand.Execute(task);
-    }
-    private void EditRemarkMenu_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is MenuItem { DataContext: FocusTaskViewModel task }) ViewModel?.EditRemarkCommand.Execute(task);
-    }
-    private void EditSubTaskMenu_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is MenuItem { DataContext: FocusSubTaskViewModel task }) ViewModel?.EditSubTaskCommand.Execute(task);
-    }
-    private void DeleteSubTaskMenu_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is MenuItem { DataContext: FocusSubTaskViewModel task }) ViewModel?.DeleteDetailSubTaskCommand.Execute(task);
-    }
-    private void InlineEditor_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
-    {
-        if (!(bool)e.NewValue || sender is not Border { Child: Panel content }) return;
-        if (content.Children.OfType<TextBox>().FirstOrDefault() is not { } input) return;
-        Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() =>
-        {
-            if (!input.IsVisible) return;
-            input.Focus(); input.SelectAll(); input.BringIntoView();
-        }));
-    }
-    private void InlineEditInput_KeyDown(object sender, KeyEventArgs e)
-    {
-        if (e.Key != Key.Enter || ViewModel is not { } vm ||
-            (vm.IsMultilineEdit && !Keyboard.Modifiers.HasFlag(ModifierKeys.Control))) return;
-        if (vm.SaveEditCommand.CanExecute(null)) vm.SaveEditCommand.Execute(null);
-        e.Handled = true;
     }
 }

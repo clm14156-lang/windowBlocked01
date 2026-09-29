@@ -8,63 +8,53 @@
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries><ResourceDictionary Source="FocusTaskResources.xaml" /></ResourceDictionary.MergedDictionaries>
         <DataTemplate x:Key="TaskRow">
-            <Border x:Name="TaskCard" Margin="10,7,10,0" Padding="12,11,10,11" Background="White" BorderBrush="#EBEDF0" BorderThickness="1" CornerRadius="11">
-                <StackPanel>
-                    <Border x:Name="RowHover" Background="Transparent">
-                        <Grid Focusable="True">
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="28" /><ColumnDefinition /><ColumnDefinition Width="24" /></Grid.ColumnDefinitions>
-                            <CheckBox Content="{Binding DrawerNumber}" IsChecked="{Binding IsCompleted, Mode=TwoWay}" VerticalAlignment="Center"
-                                      Style="{StaticResource NumberCheck}" AutomationProperties.Name="切换任务完成状态" />
-                            <TextBlock x:Name="TaskTitle" Grid.Column="1" VerticalAlignment="Center" Text="{Binding Name}" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap" MaxHeight="40" LineHeight="20" TextTrimming="CharacterEllipsis" Style="{StaticResource CompletedTitle}" />
-                            <Button x:Name="TaskMoreButton" Grid.Column="2" Width="24" Height="24" VerticalAlignment="Center" Content="···" FontSize="16" FontWeight="SemiBold" AutomationProperties.Name="更多任务操作" Click="TaskMoreButton_Click">
-                                <Button.Style><Style TargetType="Button" BasedOn="{StaticResource PlainButton}"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding ContextMenu.IsOpen, RelativeSource={RelativeSource Self}}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Button.Style>
-                                <Button.ContextMenu><ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
-                                    <MenuItem Header="编辑任务名称" Click="EditTaskMenu_Click" /><MenuItem Header="编辑备注" Click="EditRemarkMenu_Click" /><Separator />
-                                    <MenuItem Header="删除任务" Foreground="#D96A6A" Click="DeleteTaskMenu_Click" />
-                                </ContextMenu></Button.ContextMenu>
-                            </Button>
-                        </Grid>
-                    </Border>
-                    <TextBlock x:Name="InlineDescription" Margin="28,7,1,0" Text="{Binding Description}" FontSize="11" Foreground="#9299A6" TextWrapping="Wrap" LineHeight="18" MaxHeight="36" TextTrimming="CharacterEllipsis" Visibility="{Binding HasDescription, Converter={StaticResource BoolVisibility}}" />
-                    <Button x:Name="SubTaskToggle" Margin="28,9,0,0" Padding="9,0" Height="24" HorizontalAlignment="Left" Background="#F3F4F6" Style="{StaticResource PlainButton}" Command="{Binding DataContext.ToggleExpandedCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Visibility="{Binding HasSubTasks, Converter={StaticResource BoolVisibility}}" AutomationProperties.Name="展开或收起子任务">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center"><Path Width="9" Height="6" Margin="0,0,7,0" VerticalAlignment="Center" Stretch="Uniform" Data="M 0,0 L 4.5,5 L 9,0" Stroke="#9299A6" StrokeThickness="1.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" RenderTransformOrigin="0.5,0.5"><Path.Style><Style TargetType="Path"><Style.Triggers><DataTrigger Binding="{Binding IsExpanded}" Value="True"><Setter Property="RenderTransform"><Setter.Value><RotateTransform Angle="180" /></Setter.Value></Setter></DataTrigger></Style.Triggers></Style></Path.Style></Path><TextBlock x:Name="CollapsedSubTaskProgress" Text="{Binding DrawerSubTaskToggleLabel}" FontSize="11" Foreground="#818996"/></StackPanel>
-                    </Button>
-                    <StackPanel x:Name="InlineTaskDetails" Margin="28,8,2,0" Visibility="{Binding IsExpanded, Converter={StaticResource BoolVisibility}}">
-                        <StackPanel Margin="0,0,0,4" Visibility="{Binding HasSubTasks, Converter={StaticResource BoolVisibility}}">
-                            <ItemsControl x:Name="InlineSubTaskList" ItemsSource="{Binding SortedSubTasks}">
-                                <ItemsControl.ItemTemplate><DataTemplate>
-                                    <Border Padding="0,5" Background="Transparent">
-                                        <Border.ContextMenu><ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
-                                            <MenuItem Header="编辑子任务名称" Click="EditSubTaskMenu_Click" /><Separator /><MenuItem Header="删除子任务" Foreground="#E46666" Click="DeleteSubTaskMenu_Click" />
-                                        </ContextMenu></Border.ContextMenu>
-                                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="25" /><ColumnDefinition /></Grid.ColumnDefinitions>
-                                            <CheckBox IsChecked="{Binding IsCompleted, Mode=TwoWay}" Style="{StaticResource CircleCheck}" VerticalAlignment="Top" Margin="0,1,0,0" AutomationProperties.Name="切换子任务完成状态" />
-                                            <TextBlock Grid.Column="1" Text="{Binding Title}" TextWrapping="Wrap" FontSize="12" LineHeight="20" Style="{StaticResource CompletedTitle}" />
-                                        </Grid>
-                                    </Border>
-                                </DataTemplate></ItemsControl.ItemTemplate>
-                            </ItemsControl>
+            <Grid x:Name="TaskRowSurface" Background="Transparent">
+                <Border x:Name="SelectionTint" Background="Transparent" />
+                <Border x:Name="SelectionAccent" Width="2" HorizontalAlignment="Left" Background="#FF7A19" Visibility="Collapsed" />
+                <StackPanel Margin="18,14,14,15">
+                    <Grid MinHeight="24">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="35" /><ColumnDefinition Width="*" /><ColumnDefinition Width="24" /></Grid.ColumnDefinitions>
+                        <CheckBox IsChecked="{Binding IsCompleted, Mode=TwoWay}" VerticalAlignment="Center" Style="{StaticResource ParentCheck}" AutomationProperties.Name="切换任务完成状态" />
+                        <TextBlock x:Name="TaskTitle" Grid.Column="1" VerticalAlignment="Center" Text="{Binding Name}" FontSize="13" FontWeight="Medium" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" Style="{StaticResource CompletedTitle}" />
+                        <Button x:Name="TaskMoreButton" Grid.Column="2" Width="24" Height="24" VerticalAlignment="Center" Content="···" FontSize="17" AutomationProperties.Name="更多任务操作" Click="TaskMoreButton_Click">
+                            <Button.Style><Style TargetType="Button" BasedOn="{StaticResource PlainButton}"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding ContextMenu.IsOpen, RelativeSource={RelativeSource Self}}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Button.Style>
+                            <Button.ContextMenu><ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                                <MenuItem Header="编辑任务" Click="EditTaskMenu_Click" Foreground="#424955">
+                                    <MenuItem.Icon><Path Width="14" Height="14" Data="M 2,11 L 2,14 L 5,14 L 13,6 L 10,3 Z M 10,3 L 12,1 L 15,4 L 13,6" Stroke="#424955" StrokeThickness="1.4" Fill="Transparent" StrokeLineJoin="Round" /></MenuItem.Icon>
+                                </MenuItem>
+                                <Separator />
+                                <MenuItem Header="删除任务" Foreground="#E35B58" Click="DeleteTaskMenu_Click">
+                                    <MenuItem.Icon><Path Width="14" Height="14" Data="M 2,4 L 14,4 M 5,4 L 5,14 L 11,14 L 11,4 M 6,2 L 10,2 M 7,7 L 7,11 M 9,7 L 9,11" Stroke="#E35B58" StrokeThickness="1.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Fill="Transparent" /></MenuItem.Icon>
+                                </MenuItem>
+                            </ContextMenu></Button.ContextMenu>
+                        </Button>
+                    </Grid>
+                    <TextBlock x:Name="InlineDescription" Margin="35,5,2,0" Text="{Binding Description}" FontSize="11" Foreground="#9299A6" TextWrapping="Wrap" LineHeight="18" MaxHeight="36" TextTrimming="CharacterEllipsis" Visibility="{Binding HasDescription, Converter={StaticResource BoolVisibility}}" />
+                    <Button x:Name="SubTaskToggle" Margin="35,9,0,0" Padding="10,0" Height="25" HorizontalAlignment="Left" Background="#F2F3F5" Style="{StaticResource PlainButton}" Command="{Binding DataContext.ToggleExpandedCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Visibility="{Binding HasSubTasks, Converter={StaticResource BoolVisibility}}" AutomationProperties.Name="展开或收起子任务">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center"><TextBlock Text="{Binding DrawerSubTaskToggleLabel}" FontSize="11" Foreground="#838B98" />
+                            <Path Width="6" Height="9" Margin="7,0,0,0" VerticalAlignment="Center" Data="M 0,0 L 5,4.5 L 0,9" Stroke="#9299A6" StrokeThickness="1.3" StrokeStartLineCap="Round" StrokeEndLineCap="Round">
+                                <Path.Style><Style TargetType="Path"><Style.Triggers><DataTrigger Binding="{Binding IsExpanded}" Value="True"><Setter Property="RenderTransform"><Setter.Value><RotateTransform Angle="90" CenterX="3" CenterY="4.5" /></Setter.Value></Setter></DataTrigger></Style.Triggers></Style></Path.Style>
+                            </Path>
                         </StackPanel>
-                        <Border x:Name="InlineEditor" Margin="0,0,0,14" Background="Transparent"
-                                Visibility="{Binding DataContext.IsEditingDetails, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolVisibility}}" IsVisibleChanged="InlineEditor_IsVisibleChanged">
-                            <StackPanel>
-                                <TextBlock Text="{Binding DataContext.EditLabel, RelativeSource={RelativeSource AncestorType=UserControl}}" FontSize="11" Foreground="#969CA7" Margin="0,0,0,7" />
-                                <TextBox x:Name="InlineEditInput" MinHeight="34" MaxHeight="160" Style="{StaticResource Input}" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" KeyDown="InlineEditInput_KeyDown"
-                                         AcceptsReturn="{Binding DataContext.IsMultilineEdit, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                         Text="{Binding DataContext.EditValue, RelativeSource={RelativeSource AncestorType=UserControl}, UpdateSourceTrigger=PropertyChanged}" />
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
-                                    <Button Content="取消" Width="58" Command="{Binding DataContext.CancelEditCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" Style="{StaticResource SheetButton}" />
-                                    <Button Content="保存" Width="64" Margin="8,0,0,0" Command="{Binding DataContext.SaveEditCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" Style="{StaticResource SheetButton}" Background="#FF7B28" Foreground="White" />
-                                </StackPanel>
-                            </StackPanel>
-                        </Border>
-                    </StackPanel>
+                    </Button>
+                    <Border Margin="45,10,0,0" BorderBrush="#E8EBF0" BorderThickness="1,0,0,0" Visibility="{Binding IsExpanded, Converter={StaticResource BoolVisibility}}">
+                        <ItemsControl x:Name="InlineSubTaskList" Margin="14,0,0,0" ItemsSource="{Binding SortedSubTasks}">
+                            <ItemsControl.ItemTemplate><DataTemplate>
+                                <Grid MinHeight="33"><Grid.ColumnDefinitions><ColumnDefinition Width="26" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                    <CheckBox IsChecked="{Binding IsCompleted, Mode=TwoWay}" Style="{StaticResource CircleCheck}" VerticalAlignment="Center" AutomationProperties.Name="切换子任务完成状态" />
+                                    <TextBlock Grid.Column="1" VerticalAlignment="Center" Text="{Binding Title}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" FontSize="11.5" Style="{StaticResource CompletedTitle}" />
+                                </Grid>
+                            </DataTemplate></ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Border>
                 </StackPanel>
-            </Border>
+                <Border VerticalAlignment="Bottom" Height="1" Margin="18,0,14,0" Background="#EEF0F2" />
+            </Grid>
             <DataTemplate.Triggers>
-                <Trigger SourceName="TaskCard" Property="IsMouseOver" Value="True"><Setter TargetName="TaskMoreButton" Property="Visibility" Value="Visible"/></Trigger>
-                <Trigger SourceName="RowHover" Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="TaskMoreButton" Property="Visibility" Value="Visible"/></Trigger>
-                <DataTrigger Binding="{Binding IsCompleted}" Value="True"><Setter TargetName="TaskCard" Property="Opacity" Value="0.7" /></DataTrigger>
+                <Trigger SourceName="TaskRowSurface" Property="IsMouseOver" Value="True"><Setter TargetName="TaskMoreButton" Property="Visibility" Value="Visible"/></Trigger>
+                <Trigger SourceName="TaskRowSurface" Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="TaskMoreButton" Property="Visibility" Value="Visible"/></Trigger>
+                <DataTrigger Binding="{Binding IsDrawerSelected}" Value="True"><Setter TargetName="SelectionTint" Property="Background" Value="#FFF9F4" /><Setter TargetName="SelectionAccent" Property="Visibility" Value="Visible" /></DataTrigger>
+                <DataTrigger Binding="{Binding IsCompleted}" Value="True"><Setter TargetName="TaskRowSurface" Property="Opacity" Value="0.62" /></DataTrigger>
             </DataTemplate.Triggers>
         </DataTemplate>
         </ResourceDictionary>
@@ -93,50 +83,57 @@
                     <Button.Style><Style TargetType="Button" BasedOn="{StaticResource PlainButton}"><Style.Triggers><DataTrigger Binding="{Binding IsCreating}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers></Style></Button.Style>
                     <StackPanel Orientation="Horizontal"><TextBlock FontFamily="Segoe UI" FontSize="23" Foreground="#F47728" Margin="0,0,9,0" Text="+" /><TextBlock VerticalAlignment="Center" FontSize="13" Foreground="#F47728" Text="添加任务" /></StackPanel>
                 </Button>
-                <Border x:Name="CreationSheet" Background="#FAFAFB" BorderBrush="#E9EBEF" BorderThickness="0,1,0,0" CornerRadius="14,14,0,0"
-                        Visibility="{Binding IsCreating, Converter={StaticResource BoolVisibility}}" IsVisibleChanged="CreationSheet_IsVisibleChanged" Padding="14,12,14,14">
+                <Border x:Name="TaskEditorPanel" Background="White" BorderBrush="#E9EBEF" BorderThickness="0,1,0,0" CornerRadius="14,14,0,0"
+                        Visibility="{Binding IsCreating, Converter={StaticResource BoolVisibility}}" IsVisibleChanged="TaskEditorPanel_IsVisibleChanged" Padding="16,18,16,13">
                     <Border.RenderTransform><TranslateTransform /></Border.RenderTransform>
-                    <Grid>
-                        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                    <StackPanel>
                         <Grid>
-                            <TextBox x:Name="DraftTaskTitleInput" MinHeight="38" FontSize="13" FontWeight="Medium" Style="{StaticResource Input}" Text="{Binding DraftTitle, UpdateSourceTrigger=PropertyChanged}" KeyDown="DraftTaskTitleInput_KeyDown" AutomationProperties.Name="任务名称" />
-                            <TextBlock Margin="11,0" VerticalAlignment="Center" Foreground="#A6ABB5" FontSize="12" Text="输入任务名称" IsHitTestVisible="False">
-                                <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding DraftTitle}" Value=""><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="3" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                            <Border Background="#FF791D" CornerRadius="1.5" Margin="0,3,0,5" />
+                            <Grid Grid.Column="1" Margin="9,0,0,0">
+                                <TextBox x:Name="DraftTaskTitleInput" Height="34" FontSize="17" FontWeight="Medium" Style="{StaticResource BorderlessInput}"
+                                         Text="{Binding DraftTitle, UpdateSourceTrigger=PropertyChanged}" KeyDown="DraftTaskTitleInput_KeyDown" AutomationProperties.Name="任务名称" />
+                                <TextBlock VerticalAlignment="Center" Text="输入任务名称" FontSize="17" Foreground="#4F5662" IsHitTestVisible="False">
+                                    <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding DraftTitle}" Value=""><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                                </TextBlock>
+                            </Grid>
+                        </Grid>
+                        <Grid Margin="12,8,0,0">
+                            <TextBox x:Name="DraftTaskDescriptionInput" Height="48" VerticalContentAlignment="Top" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                                     FontSize="12" Foreground="#69717E" Style="{StaticResource BorderlessInput}" Text="{Binding Draft.Description, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="任务描述" />
+                            <TextBlock Text="添加任务描述..." FontSize="12" Foreground="#A5ABB5" Margin="0,2,0,0" IsHitTestVisible="False">
+                                <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding Draft.Description}" Value=""><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></TextBlock.Style>
                             </TextBlock>
                         </Grid>
-                        <Button Grid.Row="1" Height="26" Margin="0,8,0,12" Padding="8,0" HorizontalAlignment="Left" Command="{Binding ToggleDetailsCommand}" Background="#F0F1F4" Style="{StaticResource PlainButton}">
-                            <StackPanel Orientation="Horizontal"><TextBlock Text="{Binding DetailsToggleText}" Foreground="#6F7682" FontSize="11" /><Path Margin="7,0,0,0" VerticalAlignment="Center" Width="8" Height="5" Data="M 0,0 L 4,4 L 8,0" Stroke="#8C929D" StrokeThickness="1.3" RenderTransformOrigin="0.5,0.5"><Path.Style><Style TargetType="Path"><Style.Triggers><DataTrigger Binding="{Binding IsDetailsExpanded}" Value="True"><Setter Property="RenderTransform"><Setter.Value><RotateTransform Angle="180" /></Setter.Value></Setter></DataTrigger></Style.Triggers></Style></Path.Style></Path></StackPanel>
-                        </Button>
-                        <StackPanel Grid.Row="2" Visibility="{Binding IsDetailsExpanded, Converter={StaticResource BoolVisibility}}">
-                            <TextBlock Text="任务描述" FontSize="12" FontWeight="Medium" Margin="0,0,0,7" />
-                            <TextBox x:Name="DraftTaskDescriptionInput" Height="65" VerticalContentAlignment="Top" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Style="{StaticResource Input}" Text="{Binding Draft.Description, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="任务描述" />
-                            <Grid Margin="0,15,0,9"><TextBlock Text="子任务" FontSize="12" FontWeight="Medium" /><TextBlock HorizontalAlignment="Right" Text="{Binding SubTaskCountDisplay}" FontFamily="Segoe UI" FontSize="11" Foreground="#969CA7" /></Grid>
-                            <ScrollViewer MaxHeight="124" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-                                <ItemsControl x:Name="DraftSubTaskList" ItemsSource="{Binding Draft.SortedSubTasks}">
-                                    <ItemsControl.ItemTemplate><DataTemplate>
-                                        <Grid MinHeight="29" Margin="0,0,0,2"><Grid.ColumnDefinitions><ColumnDefinition Width="27" /><ColumnDefinition /><ColumnDefinition Width="22" /></Grid.ColumnDefinitions>
-                                            <CheckBox IsChecked="{Binding IsCompleted, Mode=TwoWay}" VerticalAlignment="Center" Style="{StaticResource CircleCheck}" AutomationProperties.Name="子任务完成状态" />
-                                            <TextBlock Grid.Column="1" VerticalAlignment="Center" Text="{Binding Title}" TextWrapping="Wrap" FontSize="11" Style="{StaticResource CompletedTitle}" />
-                                            <Button Grid.Column="2" Width="22" Height="24" Style="{StaticResource PlainButton}" Content="×" FontSize="17" Command="{Binding DataContext.DeleteSubTaskCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" AutomationProperties.Name="删除子任务" />
-                                        </Grid>
-                                    </DataTemplate></ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </ScrollViewer>
-                            <Border Margin="0,5,0,0" Background="#F0F1F4" CornerRadius="8" Height="34">
-                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="28" /><ColumnDefinition /></Grid.ColumnDefinitions>
-                                    <TextBlock VerticalAlignment="Center" HorizontalAlignment="Center" FontFamily="Segoe UI" FontSize="19" Foreground="#9299A5" Text="+" />
-                                    <TextBox x:Name="DraftSubTaskInput" Grid.Column="1" Style="{StaticResource Input}" Background="Transparent" BorderThickness="0" Padding="0,7,5,7" FontSize="10.5" Text="{Binding SubTaskInput, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding CanEnterSubTask}" KeyDown="DraftSubTaskInput_KeyDown" AutomationProperties.Name="输入子任务，按回车创建" />
-                                    <TextBlock Grid.Column="1" IsHitTestVisible="False" VerticalAlignment="Center" FontSize="10.5" Foreground="#A0A6B1" Text="输入子任务，按回车创建">
-                                        <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding SubTaskInput}" Value=""><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></TextBlock.Style>
-                                    </TextBlock>
-                                </Grid>
-                            </Border>
+                        <Border Height="1" Margin="0,9,0,15" Background="#EBEDF0" />
+                        <Grid Margin="1,0,1,10"><TextBlock Text="子任务" FontSize="12" FontWeight="SemiBold" Foreground="#454B55" /><TextBlock HorizontalAlignment="Right" Text="{Binding SubTaskCountDisplay}" FontFamily="Segoe UI" FontSize="11" Foreground="#959CAA" /></Grid>
+                        <ScrollViewer MaxHeight="105" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                            <ItemsControl x:Name="DraftSubTaskList" ItemsSource="{Binding Draft.SubTasks}">
+                                <ItemsControl.ItemTemplate><DataTemplate>
+                                    <Grid MinHeight="29"><Grid.ColumnDefinitions><ColumnDefinition Width="27" /><ColumnDefinition Width="*" /><ColumnDefinition Width="20" /></Grid.ColumnDefinitions>
+                                        <CheckBox IsChecked="{Binding IsCompleted, Mode=TwoWay}" VerticalAlignment="Center" Style="{StaticResource CircleCheck}" AutomationProperties.Name="子任务完成状态" />
+                                        <TextBox Grid.Column="1" VerticalAlignment="Center" Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}" FontSize="11" Style="{StaticResource BorderlessInput}" AutomationProperties.Name="子任务名称" />
+                                        <Button Grid.Column="2" Width="20" Height="22" Style="{StaticResource PlainButton}" Content="×" FontSize="16" Command="{Binding DataContext.DeleteSubTaskCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" AutomationProperties.Name="删除子任务" />
+                                    </Grid>
+                                </DataTemplate></ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                        <Grid Height="33" Margin="0,2,0,8" IsEnabled="{Binding CanEnterSubTask}">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="28" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                            <TextBlock Text="⊕" FontFamily="Segoe UI Symbol" Foreground="#FF7A22" FontSize="20" VerticalAlignment="Center" />
+                            <Grid Grid.Column="1">
+                                <TextBox x:Name="DraftSubTaskInput" Style="{StaticResource BorderlessInput}" FontSize="11" Text="{Binding SubTaskInput, UpdateSourceTrigger=PropertyChanged}" KeyDown="DraftSubTaskInput_KeyDown" AutomationProperties.Name="添加子任务，按回车创建" />
+                                <TextBlock Text="添加子任务" Foreground="#A0A6B0" FontSize="11" VerticalAlignment="Center" IsHitTestVisible="False">
+                                    <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding SubTaskInput}" Value=""><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                                </TextBlock>
+                            </Grid>
+                        </Grid>
+                        <Border Height="1" Background="#EBEDF0" Margin="0,0,0,11" />
+                        <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
+                            <Button Width="56" Height="34" Command="{Binding CancelCreationCommand}" Content="取消" Foreground="#717987" Style="{StaticResource PlainButton}" />
+                            <Button x:Name="DrawerCreateTaskButton" Width="88" Height="34" Margin="9,0,0,0" Command="{Binding CreateTaskCommand}" Content="{Binding CommitButtonText}" Style="{StaticResource TaskPrimaryButton}" />
                         </StackPanel>
-                        <StackPanel Grid.Row="3" Margin="0,14,0,0" HorizontalAlignment="Right" Orientation="Horizontal">
-                            <Button Width="68" Command="{Binding CancelCreationCommand}" Content="取消" Style="{StaticResource SheetButton}" />
-                            <Button x:Name="DrawerCreateTaskButton" Width="96" Margin="8,0,0,0" Command="{Binding CreateTaskCommand}" Content="{Binding CommitButtonText}" Style="{StaticResource SheetButton}" Background="#FF7B28" Foreground="White" />
-                        </StackPanel>
-                    </Grid>
+                    </StackPanel>
                 </Border>
             </Grid>
         </Grid>

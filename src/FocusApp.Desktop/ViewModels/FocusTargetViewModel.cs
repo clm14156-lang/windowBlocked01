@@ -177,6 +177,7 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
 {
     private string _description = string.Empty;
     private bool _isExpanded;
+    private bool _isDrawerSelected;
     private int _drawerNumber;
     private bool _applyingDetails;
     private string _name;
@@ -245,13 +246,22 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
             _description = value;
             OnPropertyChanged();
             OnPropertyChanged(nameof(HasDescription));
+            OnPropertyChanged(nameof(RemarkActionLabel));
             if (!_applyingDetails) DetailsChanged?.Invoke(this, EventArgs.Empty);
         }
     }
     public bool HasDescription => !string.IsNullOrWhiteSpace(Description);
+    public string RemarkActionLabel => HasDescription ? "编辑备注" : "添加备注";
     public bool HasSubTasks => SubTasks.Count > 0;
     public string SubTaskProgress => $"子任务 · {SubTasks.Count(item => item.IsCompleted)}/{SubTasks.Count}";
-    public string DrawerSubTaskToggleLabel => IsExpanded ? "收起" : $"{SubTasks.Count(item => item.IsCompleted)}/{SubTasks.Count}";
+    public string GoalSubTaskProgress => $"子任务 {SubTasks.Count(item => item.IsCompleted)}/{SubTasks.Count}";
+    public bool CanAddSubTask => SubTasks.Count < 20;
+    public string DrawerSubTaskToggleLabel => IsExpanded ? "收起" : $"子任务 {SubTasks.Count(item => item.IsCompleted)}/{SubTasks.Count}";
+    public bool IsDrawerSelected
+    {
+        get => _isDrawerSelected;
+        internal set { if (_isDrawerSelected == value) return; _isDrawerSelected = value; OnPropertyChanged(); }
+    }
     public bool IsExpanded
     {
         get => _isExpanded;
@@ -273,6 +283,8 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
     {
         OnPropertyChanged(nameof(SortedSubTasks));
         OnPropertyChanged(nameof(SubTaskProgress));
+        OnPropertyChanged(nameof(GoalSubTaskProgress));
+        OnPropertyChanged(nameof(CanAddSubTask));
         OnPropertyChanged(nameof(DrawerSubTaskToggleLabel));
         OnPropertyChanged(nameof(HasSubTasks));
         if (!_applyingDetails) DetailsChanged?.Invoke(this, EventArgs.Empty);

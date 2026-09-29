@@ -9,6 +9,7 @@ namespace FocusApp.Desktop.ViewModels;
 
 public sealed class GoalTasksViewModel : INotifyPropertyChanged
 {
+    private enum CompletedTaskSortMode { Recent, Oldest, Name, Time }
     private readonly Func<DateTimeOffset> _now;
     private readonly Func<TimeSpan, Task> _completionAnimationDelay;
     private readonly ObservableCollection<FocusTaskViewModel> _pendingTasks = [];
@@ -29,7 +30,7 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
     private readonly HashSet<string> _deletingTasks = [];
     private readonly HashSet<string> _selectedCompletedTaskIds = [];
     private string _completedSearchQuery = string.Empty;
-    private bool _completedSortOldest;
+    private CompletedTaskSortMode _completedSortMode;
     private bool _isSelectionMode;
 
     public GoalTasksViewModel(
@@ -49,8 +50,17 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
         AddSubTaskCommand = new RelayCommand<FocusTaskViewModel>(task => BeginInlineEdit(task, "subtask"));
         DeletePendingTaskCommand = new RelayCommand<FocusTaskViewModel>(async task => { if (task is not null) await DeletePendingTaskAsync(task); });
         ToggleSubTaskCommand = new RelayCommand<FocusSubTaskViewModel>(async item => { if (item is not null) await ToggleSubTaskAsync(item); });
-        ToggleSubTasksCommand = new RelayCommand<FocusTaskViewModel>(task => { if (task is not null) task.IsExpanded = !task.IsExpanded; });
+        ToggleSubTasksCommand = new RelayCommand<FocusTaskViewModel>(task =>
+        {
+            if (task is null) return;
+            if (task.IsExpanded && task.NextTaskEditor.IsAddingSubTask && !task.NextTaskEditor.IsSaving)
+                task.NextTaskEditor.Cancel();
+            task.IsExpanded = !task.IsExpanded;
+        });
         ToggleCompletedSortCommand = new RelayCommand<object>(_ => ToggleCompletedSort());
+        SetCompletedSortCommand = new RelayCommand<string>(SetCompletedSort);
+        RestoreCompletedTaskCommand = new RelayCommand<FocusTaskViewModel>(async task => { if (task is not null) await UncompleteTaskAsync(task); });
+        DeleteCompletedTaskCommand = new RelayCommand<FocusTaskViewModel>(async task => { if (task is not null) await DeleteCompletedTaskAsync(task); });
         EnterCompletedSelectionCommand = new RelayCommand<object>(_ => EnterCompletedSelectionMode(), _ => HasCompletedTasks);
         ExitCompletedSelectionCommand = new RelayCommand<object>(_ => ExitCompletedSelectionMode(), _ => IsSelectionMode);
         RestoreSelectedCompletedCommand = new RelayCommand<object>(async _ => await RestoreSelectedCompletedAsync(), _ => SelectedCompletedCount > 0);
@@ -76,6 +86,9 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
     public ICommand ToggleSubTaskCommand { get; }
     public ICommand ToggleSubTasksCommand { get; }
     public ICommand ToggleCompletedSortCommand { get; }
+    public ICommand SetCompletedSortCommand { get; }
+    public ICommand RestoreCompletedTaskCommand { get; }
+    public ICommand DeleteCompletedTaskCommand { get; }
     public ICommand EnterCompletedSelectionCommand { get; }
     public ICommand ExitCompletedSelectionCommand { get; }
     public ICommand RestoreSelectedCompletedCommand { get; }
@@ -90,6 +103,7 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
     public IReadOnlyList<FocusTaskViewModel> PendingTasks => _readOnlyPendingTasks;
     public int PendingCount => _pendingTasks.Count;
     public int CompletedCount => CompletedTasks.Count;
+    public string CompletedCountSummary => $"共 {CompletedCount} 项";
     public int TodayCompletedCount
     {
         get
@@ -115,8 +129,14 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
         }
     }
 
-    public bool IsCompletedSortOldest => _completedSortOldest;
-    public string CompletedSortLabel => _completedSortOldest ? "最早完成" : "最近完成";
+    public bool IsCompletedSortOldest => _completedSortMode == CompletedTaskSortMode.Oldest;
+    public string CompletedSortLabel => _completedSortMode switch
+    {
+        CompletedTaskSortMode.Oldest => "最早完成",
+        CompletedTaskSortMode.Name => "任务名称",
+        CompletedTaskSortMode.Time => "完成时间",
+        _ => "最近完成"
+    };
     public bool HasCompletedSearchQuery => !string.IsNullOrWhiteSpace(CompletedSearchQuery);
     public bool IsSelectionMode
     {
@@ -131,6 +151,7 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
     }
 
     public int SelectedCompletedCount => _selectedCompletedTaskIds.Count(id => CompletedTasks.Any(task => task.TaskId == id));
+    public bool HasSelectedCompletedTasks => SelectedCompletedCount > 0;
     public bool HasVisibleCompletedTasks => _completedGroups.Any(group => group.Tasks.Count > 0);
 
     public void ApplyState(GoalOverviewItemViewModel? goal, IReadOnlyList<LocalTaskDto> tasks)
@@ -144,7 +165,7 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
             IsOpen = false;
             ExitCompletedSelectionMode();
             _completedSearchQuery = string.Empty;
-            _completedSortOldest = false;
+            _completedSortMode = CompletedTaskSortMode.Recent;
             _target = goal is null ? null : new FocusTargetViewModel(goal.Name, targetId: goal.GoalId);
             Notify(nameof(GoalId));
         }
@@ -202,9 +223,9 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
         ErrorMessage = null;
         ExitCompletedSelectionMode();
         CompletedSearchQuery = string.Empty;
-        if (_completedSortOldest)
+        if (_completedSortMode != CompletedTaskSortMode.Recent)
         {
-            _completedSortOldest = false;
+            _completedSortMode = CompletedTaskSortMode.Recent;
             Notify(nameof(IsCompletedSortOldest));
             Notify(nameof(CompletedSortLabel));
         }
@@ -215,7 +236,18 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
 
     public void ToggleCompletedSort()
     {
-        _completedSortOldest = !_completedSortOldest;
+        _completedSortMode = _completedSortMode == CompletedTaskSortMode.Oldest
+            ? CompletedTaskSortMode.Recent : CompletedTaskSortMode.Oldest;
+        SynchronizeCompletedGroups();
+        Notify(nameof(IsCompletedSortOldest));
+        Notify(nameof(CompletedSortLabel));
+    }
+
+    public void SetCompletedSort(string? mode)
+    {
+        if (!Enum.TryParse(mode, true, out CompletedTaskSortMode selected) ||
+            !Enum.IsDefined(selected) || selected == _completedSortMode) return;
+        _completedSortMode = selected;
         SynchronizeCompletedGroups();
         Notify(nameof(IsCompletedSortOldest));
         Notify(nameof(CompletedSortLabel));
@@ -234,6 +266,7 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
         _selectedCompletedTaskIds.Clear();
         IsSelectionMode = false;
         Notify(nameof(SelectedCompletedCount));
+        Notify(nameof(HasSelectedCompletedTasks));
     }
 
     public void ToggleCompletedTaskSelection(FocusTaskViewModel task)
@@ -246,6 +279,7 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
             task.IsBatchSelected = true;
         }
         Notify(nameof(SelectedCompletedCount));
+        Notify(nameof(HasSelectedCompletedTasks));
         ((RelayCommand<object>)RestoreSelectedCompletedCommand).NotifyCanExecuteChanged();
         ((RelayCommand<object>)DeleteSelectedCompletedCommand).NotifyCanExecuteChanged();
     }
@@ -262,6 +296,7 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
             }
         }
         Notify(nameof(SelectedCompletedCount));
+        Notify(nameof(HasSelectedCompletedTasks));
         ((RelayCommand<object>)RestoreSelectedCompletedCommand).NotifyCanExecuteChanged();
         ((RelayCommand<object>)DeleteSelectedCompletedCommand).NotifyCanExecuteChanged();
         if (SelectedCompletedCount == 0 && !HasCompletedTasks) ExitCompletedSelectionMode();
@@ -279,6 +314,7 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
             }
         }
         Notify(nameof(SelectedCompletedCount));
+        Notify(nameof(HasSelectedCompletedTasks));
         ((RelayCommand<object>)RestoreSelectedCompletedCommand).NotifyCanExecuteChanged();
         ((RelayCommand<object>)DeleteSelectedCompletedCommand).NotifyCanExecuteChanged();
         if (!HasCompletedTasks) ExitCompletedSelectionMode();
@@ -609,7 +645,10 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
 
     public void CancelInlineEdit(FocusTaskViewModel task)
     {
-        if (!task.NextTaskEditor.IsSaving) task.NextTaskEditor.Cancel();
+        if (task.NextTaskEditor.IsSaving) return;
+        var wasAddingFirstSubTask = task.NextTaskEditor.IsAddingSubTask && !task.HasSubTasks;
+        task.NextTaskEditor.Cancel();
+        if (wasAddingFirstSubTask) task.IsExpanded = false;
     }
 
     public async Task<bool> CommitInlineEditAsync(FocusTaskViewModel task)
@@ -636,8 +675,7 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
         {
             var saved = await SaveAsync(updated, false, detailsOnly: true);
             if (saved is null) return false;
-            if (isSubTask) editor.Value = string.Empty;
-            else editor.Cancel();
+            editor.Cancel();
             return true;
         }
         finally { editor.IsSaving = false; }
@@ -757,15 +795,19 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
         var groupedTasks = visibleTasks
             .GroupBy(task => task.CompletedAtUtc?.ToLocalTime().Date)
             .ToArray();
-        var orderedGroups = _completedSortOldest
+        var orderedGroups = _completedSortMode == CompletedTaskSortMode.Oldest
             ? groupedTasks.OrderBy(group => group.Key is null).ThenBy(group => group.Key)
             : groupedTasks.OrderBy(group => group.Key is null).ThenByDescending(group => group.Key);
         var desiredGroups = orderedGroups.Select(group => new
         {
             Date = group.Key,
-            Tasks = (_completedSortOldest
-                ? group.OrderBy(task => task.CompletedAtUtc ?? DateTimeOffset.MaxValue)
-                : group.OrderByDescending(task => task.CompletedAtUtc ?? DateTimeOffset.MinValue)).ToArray()
+            Tasks = (_completedSortMode switch
+            {
+                CompletedTaskSortMode.Oldest => group.OrderBy(task => task.CompletedAtUtc ?? DateTimeOffset.MaxValue),
+                CompletedTaskSortMode.Name => group.OrderBy(task => task.Name, StringComparer.CurrentCultureIgnoreCase),
+                CompletedTaskSortMode.Time => group.OrderBy(task => task.CompletedAtUtc?.ToLocalTime().TimeOfDay ?? TimeSpan.MaxValue),
+                _ => group.OrderByDescending(task => task.CompletedAtUtc ?? DateTimeOffset.MinValue)
+            }).ToArray()
         }).ToArray();
 
         for (var index = _completedGroups.Count - 1; index >= 0; index--)
@@ -869,6 +911,8 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
         {
             Notify(name);
         }
+        Notify(nameof(CompletedCountSummary));
+        Notify(nameof(HasSelectedCompletedTasks));
         ((RelayCommand<object>)EnterCompletedSelectionCommand).NotifyCanExecuteChanged();
         ((RelayCommand<object>)RestoreSelectedCompletedCommand).NotifyCanExecuteChanged();
         ((RelayCommand<object>)DeleteSelectedCompletedCommand).NotifyCanExecuteChanged();

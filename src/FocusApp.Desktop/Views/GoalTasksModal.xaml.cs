@@ -9,6 +9,34 @@ public partial class GoalTasksModal : UserControl
 {
     public GoalTasksModal() => InitializeComponent();
 
+    private void CompletedSortButton_Click(object sender, RoutedEventArgs args)
+    {
+        if (sender is not Button { ContextMenu: { } menu } button) return;
+        menu.PlacementTarget = button;
+        menu.IsOpen = true;
+        args.Handled = true;
+    }
+
+    private void CompletedTaskMoreButton_Click(object sender, RoutedEventArgs args)
+    {
+        if (sender is not Button { ContextMenu: { } menu } button) return;
+        menu.PlacementTarget = button;
+        menu.IsOpen = true;
+        args.Handled = true;
+    }
+
+    private void CompletedTaskMenu_Opened(object sender, RoutedEventArgs args)
+    {
+        if (sender is ContextMenu { PlacementTarget: FrameworkElement { DataContext: FocusTaskViewModel task } })
+            task.IsMenuOpen = true;
+    }
+
+    private void CompletedTaskMenu_Closed(object sender, RoutedEventArgs args)
+    {
+        if (sender is ContextMenu { PlacementTarget: FrameworkElement { DataContext: FocusTaskViewModel task } })
+            task.IsMenuOpen = false;
+    }
+
     private void CompletedTaskRow_MouseLeftButtonDown(object sender, MouseButtonEventArgs args)
     {
         if (sender is FrameworkElement { DataContext: FocusTaskViewModel task } &&

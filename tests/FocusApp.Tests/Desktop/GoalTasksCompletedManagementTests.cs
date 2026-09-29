@@ -56,6 +56,37 @@ public sealed class GoalTasksCompletedManagementTests
         Assert.Equal(0, model.SelectedCompletedCount);
     }
 
+    [Fact]
+    public async Task BatchDeleteRemovesSelectedParentsWithTheirDetails()
+    {
+        var goal = new GoalOverviewItemViewModel("goal", "目标", "", "", false, false);
+        var first = Item("one", "一", Now) with
+        {
+            Description = "任务备注",
+            SubTasks = [new LocalSubTaskDto("child", "one", "子任务", true, 0, Now.AddDays(-1), Now)]
+        };
+        var model = new GoalTasksViewModel(() => Now);
+        model.ApplyState(goal, [first, Item("two", "二", Now), Item("keep", "保留", Now)]);
+        var deleted = new List<string>();
+        model.PersistCompletedTaskDeletionAsync = (_, id) =>
+        {
+            deleted.Add(id);
+            return Task.FromResult(true);
+        };
+        model.EnterCompletedSelectionMode();
+        foreach (var task in model.CompletedGroups[0].Tasks.Where(task => task.TaskId is "one" or "two").ToArray())
+            model.ToggleCompletedTaskSelection(task);
+        Assert.Equal(2, model.SelectedCompletedCount);
+        Assert.True(model.HasSelectedCompletedTasks);
+
+        await model.DeleteSelectedCompletedAsync();
+
+        Assert.Equal(new[] { "one", "two" }, deleted);
+        Assert.Equal("keep", Assert.Single(model.CompletedGroups[0].Tasks).TaskId);
+        Assert.Equal(0, model.SelectedCompletedCount);
+        Assert.False(model.HasSelectedCompletedTasks);
+    }
+
     private static LocalTaskDto Item(string id, string name, DateTimeOffset completedAt) =>
         new(id, "goal", name, true, 0, Now.AddDays(-10), Now)
         {

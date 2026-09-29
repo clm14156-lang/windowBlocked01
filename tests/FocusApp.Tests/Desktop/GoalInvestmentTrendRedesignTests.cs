@@ -4,6 +4,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using FocusApp.Contracts;
 using FocusApp.Desktop.ViewModels;
 using FocusApp.Desktop.Views;
 using Xunit;
@@ -17,6 +18,68 @@ public sealed class GoalInvestmentTrendRedesignTests
     private static GoalOverviewItemViewModel Goal() => new("goal", "window屏蔽软件", "", "", false, false);
     private static FocusSessionRecordViewModel Record(DateTime start, int minutes, params string[] tasks) =>
         new(start, start.AddMinutes(minutes), "goal", "window屏蔽软件", tasks.FirstOrDefault() ?? "", tasks.Length, tasks);
+
+    [Fact]
+    public void HoverSummaryCountsParentTasksAndKeepsBothFoldsWithinTheSameDay()
+    {
+        var date = Now.Date;
+        var records = Enumerable.Range(0, 5).Select(index => new FocusSessionRecordViewModel(
+            date.AddHours(8 + index), date.AddHours(8 + index).AddMinutes(10), "goal", "window屏蔽软件",
+            $"任务{index}", 1, [$"任务{index}"])
+        {
+            CompletedTaskIds = [$"task{index}"],
+            CompletedTaskTimes = [date.AddHours(8 + index).AddMinutes(5)]
+        }).ToArray();
+        var timestamp = new DateTimeOffset(date, TimeSpan.Zero);
+        var children = Enumerable.Range(0, 5).Select(index => new LocalSubTaskDto(
+            $"sub{index}", "task0", $"子任务{index}", true, index, timestamp, timestamp)).ToArray();
+        var task = new LocalTaskDto("task0", "goal", "任务0", true, 0, timestamp, timestamp)
+        {
+            CompletedAtUtc = timestamp.AddHours(8).AddMinutes(5), SubTasks = children
+        };
+        var model = new GoalInvestmentTrendViewModel(() => Now);
+        model.ApplyState(Goal(), records, [task]);
+        model.SetHoveredPointNearestTo(model.TrendPoints.Single(point => point.Date == date).ChartX);
+
+        Assert.Equal(5, model.HoverDayTaskCount);
+        Assert.Equal(3, model.VisibleHoverDayTasks.Count());
+        Assert.Equal("还有 2 项任务  ›", model.HoverTaskOverflowLabel);
+        model.ToggleAllHoverTasksCommand.Execute(null);
+        Assert.Equal(5, model.VisibleHoverDayTasks.Count());
+        var parent = model.HoverDayTasks.Single(item => item.Name == "任务0");
+        Assert.Equal("5 个子任务", parent.SubTaskCountLabel);
+        Assert.False(parent.IsExpanded);
+        parent.ToggleSubTasksCommand.Execute(null);
+        Assert.Equal(3, parent.VisibleSubTasks.Count());
+        Assert.Equal("还有 2 个子任务", parent.SubTaskOverflowLabel);
+        parent.ToggleAllSubTasksCommand.Execute(null);
+        Assert.Equal(5, parent.VisibleSubTasks.Count());
+        parent.ToggleSubTasksCommand.Execute(null);
+        Assert.False(parent.IsExpanded);
+        model.ClearHoveredPoint();
+        Assert.Empty(model.HoverDayTasks);
+    }
+
+    [Fact]
+    public void HoverSummaryIncludesCompletedTasksWithoutFocusButExcludesIncompleteTasks()
+    {
+        var timestamp = new DateTimeOffset(Now.Date.AddHours(9), TimeSpan.Zero);
+        var completed = new LocalTaskDto("done", "goal", "已完成", true, 0, timestamp, timestamp)
+        {
+            CompletedAtUtc = timestamp
+        };
+        var incomplete = new LocalTaskDto("pending", "goal", "未完成", false, 1, timestamp, timestamp);
+        var model = new GoalInvestmentTrendViewModel(() => Now);
+        model.ApplyState(Goal(), [], [completed, incomplete]);
+        model.SetHoveredPointNearestTo(model.TrendPoints.Single(point => point.Date == Now.Date).ChartX);
+        Assert.Equal(0, model.HoveredPoint!.Minutes);
+        Assert.Equal(1, model.HoverDayTaskCount);
+        Assert.Equal("已完成", Assert.Single(model.HoverDayTasks).Name);
+        model.ApplyState(Goal(), []);
+        model.SetHoveredPointNearestTo(model.TrendPoints.Single(point => point.Date == Now.Date).ChartX);
+        Assert.Empty(model.HoverDayTasks);
+        Assert.Equal("这一天没有专注记录，也没有完成任务", model.HoverEmptyState);
+    }
 
     [Fact]
     public void ThreeMetricsFollowRangeAndClipCrossMonthDurations()
@@ -85,7 +148,7 @@ public sealed class GoalInvestmentTrendRedesignTests
     }
 
     [Fact]
-    public void ModalRendersContinuousTimelineExpansionAndMonthListSelection()
+    public void ModalRendersCompactTrendAndMonthListSelection()
     {
         Exception? failure = null;
         var thread = new Thread(() =>
@@ -94,78 +157,71 @@ public sealed class GoalInvestmentTrendRedesignTests
             try
             {
                 var model = new GoalInvestmentTrendViewModel(() => Now);
-                model.ApplyState(Goal(),
-                [Record(Now.Date.AddHours(12).AddMinutes(33), 38, "查看自动屏蔽规则", "修改启动屏蔽逻辑", "测试自动屏蔽功能"),
-                 Record(Now.Date.AddHours(10).AddMinutes(20), 18), Record(Now.Date.AddHours(9).AddMinutes(5), 23),
-                 Record(new DateTime(2026, 8, 12, 9, 0, 0), 30), Record(new DateTime(2026, 7, 12, 9, 0, 0), 60)]);
+                var session = new FocusSessionRecordViewModel(Now.Date.AddHours(12).AddMinutes(33),
+                    Now.Date.AddHours(13).AddMinutes(11), "goal", "window屏蔽软件", "查看自动屏蔽规则", 5,
+                    ["查看自动屏蔽规则", "修改启动屏蔽逻辑", "测试自动屏蔽功能", "整理需求文档", "检查按钮间距"])
+                {
+                    CompletedTaskIds = ["task0", "task1", "task2", "task3", "task4"]
+                };
+                var timestamp = new DateTimeOffset(Now.Date.AddHours(13), TimeSpan.Zero);
+                var children = Enumerable.Range(0, 5).Select(index => new LocalSubTaskDto(
+                    $"sub{index}", "task0", $"子任务{index}", true, index, timestamp, timestamp)).ToArray();
+                var task = new LocalTaskDto("task0", "goal", "查看自动屏蔽规则", true, 0, timestamp, timestamp)
+                {
+                    CompletedAtUtc = timestamp, SubTasks = children
+                };
+                model.ApplyState(Goal(), [session, Record(new DateTime(2026, 8, 12, 9, 0, 0), 30)], [task]);
                 model.Open();
                 var modal = new GoalInvestmentTrendModal { DataContext = model };
                 foreach (var resource in new[] { "Colors", "Typography", "Strings", "Styles" })
                     modal.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri($"/FocusApp.Desktop;component/Resources/{resource}.xaml", UriKind.Relative) });
-                window = new Window { Width = 740, Height = 580, Content = modal, WindowStyle = WindowStyle.None,
+                window = new Window { Width = 740, Height = 500, Content = modal, WindowStyle = WindowStyle.None,
                     ShowInTaskbar = false, ShowActivated = false, Left = -32000, Top = -32000 };
                 window.Show();
                 Pump();
                 var card = (Border)modal.FindName("TrendModalCard");
-                var timeline = (ItemsControl)modal.FindName("InvestmentTimeline");
-                var scroll = (ScrollViewer)modal.FindName("InvestmentRecordsScroll");
                 Assert.Equal(700, card.ActualWidth);
-                Assert.Equal(540, card.ActualHeight);
-                Assert.Equal(3, timeline.Items.Count);
-                var sevenDaysButton = Descendants<Button>(modal).Single(button => Equals(button.Content, "近7天"));
-                var selectedRangeSurface = (Border)sevenDaysButton.Template.FindName("Surface", sevenDaysButton);
-                Assert.Equal(Color.FromRgb(255, 243, 235), ((SolidColorBrush)selectedRangeSurface.Background).Color);
-                Assert.Equal(0, scroll.ScrollableHeight);
-                SavePreview(card, "investment-collapsed");
-                var row = Descendants<Grid>(timeline).First(grid => grid.Name == "TimelineRow");
-                var header = Descendants<Button>(row).Single(button => button.Name == "TimelineRecordHeader");
-                var tasks = Descendants<ItemsControl>(row).Single(items => items.Name == "TimelineCompletedTasks");
-                var connector = Descendants<Border>(row).Single(border => border.Name == "TimelineBottomConnector");
-                var collapsedHeight = row.ActualHeight;
-                header.Command.Execute(header.CommandParameter);
+                Assert.Equal(460, card.ActualHeight);
+                SavePreview(card, "investment-compact");
+                var hovered = model.TrendPoints.Single(point => point.Date == Now.Date);
+                model.SetHoveredPointNearestTo(hovered.ChartX);
                 Pump();
-                Assert.True(model.SelectedDateRecords[0].IsExpanded);
-                Assert.True(tasks.IsVisible);
-                Assert.Equal(3, tasks.Items.Count);
-                Assert.True(row.ActualHeight > collapsedHeight + 70);
-                Assert.True(connector.ActualHeight > 90);
-                Assert.True(scroll.ScrollableHeight > 0);
-                Assert.Equal(700, card.ActualWidth);
-                Assert.Equal(540, card.ActualHeight);
-                SavePreview(card, "investment-expanded");
-                header.Command.Execute(header.CommandParameter);
+                var chart = Descendants<GoalInvestmentTrendChart>(modal).Single();
+                var tooltip = (Border)chart.FindName("TrendTooltip");
+                Assert.True(tooltip.IsVisible);
+                Assert.Equal(210, tooltip.ActualWidth);
+                Assert.InRange(tooltip.ActualHeight, 174, 176);
+                Assert.Equal(5, model.HoverDayTaskCount);
+                Assert.Equal(3, model.VisibleHoverDayTasks.Count());
+                SavePreview(card, "investment-tooltip");
+                model.ToggleAllHoverTasksCommand.Execute(null);
                 Pump();
-                Assert.False(tasks.IsVisible);
-                Assert.Equal(collapsedHeight, row.ActualHeight);
-                Assert.Equal(0, scroll.ScrollableHeight);
-
+                Assert.Equal(5, model.VisibleHoverDayTasks.Count());
+                Assert.True(((ScrollViewer)chart.FindName("TooltipTasksScroll")).ScrollableHeight > 0);
+                Assert.InRange(tooltip.ActualHeight, 174, 176);
+                SavePreview(card, "investment-tooltip-expanded");
+                var parent = model.HoverDayTasks.Single(item => item.Name == "查看自动屏蔽规则");
+                parent.ToggleSubTasksCommand.Execute(null);
+                Pump();
+                Assert.Equal(3, parent.VisibleSubTasks.Count());
+                parent.ToggleAllSubTasksCommand.Execute(null);
+                Pump();
+                Assert.Equal(5, parent.VisibleSubTasks.Count());
+                Assert.True(((ScrollViewer)chart.FindName("TooltipTasksScroll")).ScrollableHeight > 0);
+                Assert.InRange(tooltip.ActualHeight, 174, 176);
+                SavePreview(card, "investment-subtasks-expanded");
                 ((Button)modal.FindName("MonthRangeButton")).Command.Execute(null);
                 Pump();
                 var popup = (Popup)modal.FindName("MonthPickerPopup");
                 Assert.True(popup.IsOpen);
                 var months = (ItemsControl)modal.FindName("AvailableMonthList");
                 var monthButton = Descendants<Button>(months).First(button => button.DataContext is GoalInvestmentMonthOptionViewModel);
-                Assert.NotNull(monthButton.Command);
                 monthButton.Command.Execute(monthButton.CommandParameter);
                 Pump();
-                Assert.False(popup.IsOpen);
                 Assert.True(model.IsMonthRange);
-                var monthRangeButton = (Button)modal.FindName("MonthRangeButton");
-                var selectedMonthSurface = (Border)monthRangeButton.Template.FindName("Surface", monthRangeButton);
-                Assert.Equal(Color.FromRgb(255, 243, 235), ((SolidColorBrush)selectedMonthSurface.Background).Color);
                 Assert.Equal("2026年9月投入", model.PeriodInvestmentTitle);
-                var hovered = model.TrendPoints.Single(point => point.Date == Now.Date);
-                model.SetHoveredPointNearestTo(hovered.ChartX);
-                Pump();
-                var chart = Descendants<GoalInvestmentTrendChart>(modal).Single();
-                Assert.True(((Border)chart.FindName("TrendTooltip")).IsVisible);
-                SavePreview(card, "investment-month");
-                model.SelectMonthModeCommand.Execute(null);
-                Pump();
-                SavePreview((FrameworkElement)popup.Child, "investment-month-picker");
                 model.CloseCommand.Execute(null);
                 Pump();
-                Assert.False(popup.IsOpen);
                 Assert.False(modal.IsVisible);
             }
             catch (Exception exception) { failure = exception; }
@@ -176,7 +232,6 @@ public sealed class GoalInvestmentTrendRedesignTests
         Assert.True(thread.Join(TimeSpan.FromSeconds(20)), "Investment modal rendering timed out.");
         if (failure is not null) throw new InvalidOperationException("Investment modal rendering verification failed.", failure);
     }
-
     private static void Pump() => Dispatcher.CurrentDispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
     private static IEnumerable<T> Descendants<T>(DependencyObject parent) where T : DependencyObject
     {

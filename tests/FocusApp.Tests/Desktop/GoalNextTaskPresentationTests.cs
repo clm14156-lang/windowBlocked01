@@ -61,6 +61,11 @@ public sealed class GoalNextTaskPresentationTests
                 var children = Descendants<ItemsControl>(row).Single(element => element.Name == "GoalTaskSubTasks");
                 Assert.Equal(2, children.Items.Count);
                 Assert.True(children.IsVisible);
+                var titleLine = Descendants<Grid>(row).Single(element => element.MinHeight == 40);
+                Assert.Equal(4, titleLine.ColumnDefinitions.Count);
+                var titleLineHeight = titleLine.ActualHeight;
+                var capsule = Descendants<Button>(row).Single(element => element.Name == "GoalTaskSubTasksToggle");
+                Assert.True(capsule.IsVisible);
                 SavePreview(page, "next-tasks");
                 more.RaiseEvent(new RoutedEventArgs(Button.ClickEvent, more));
                 Pump();
@@ -68,7 +73,7 @@ public sealed class GoalNextTaskPresentationTests
                 Assert.True(menu.IsOpen);
                 Assert.True(task.IsMenuOpen);
                 var actions = menu.Items.Cast<MenuItem>().ToArray();
-                Assert.Equal(new[] { "编辑任务", "添加备注", "添加子任务", "删除任务" }, actions.Select(item => item.Header));
+                Assert.Equal(new[] { "编辑任务", "编辑备注", "添加子任务", "删除任务" }, actions.Select(item => item.Header));
                 Assert.All(actions, action => Assert.Same(task, action.CommandParameter));
                 Assert.All(actions, action =>
                 {
@@ -78,6 +83,18 @@ public sealed class GoalNextTaskPresentationTests
                     Assert.NotNull(icon.Stroke);
                 });
                 SavePreview(page, "next-tasks-menu", menu, more);
+                actions[0].Command.Execute(actions[0].CommandParameter);
+                menu.IsOpen = false;
+                Pump();
+                var nameEditor = Descendants<TextBox>(row).Single(element => element.Name == "GoalTaskNameEditor");
+                Assert.True(nameEditor.IsVisible);
+                Assert.Equal(titleLineHeight, titleLine.ActualHeight);
+                Assert.Equal(0, nameEditor.BorderThickness.Left);
+                SavePreview(page, "next-task-name-editor");
+                model.GoalTasks.CancelInlineEdit(task);
+                Pump();
+                more.RaiseEvent(new RoutedEventArgs(Button.ClickEvent, more));
+                Pump();
                 actions[1].Command.Execute(actions[1].CommandParameter);
                 menu.IsOpen = false;
                 Pump();
@@ -107,12 +124,16 @@ public sealed class GoalNextTaskPresentationTests
                 Pump();
                 Assert.Equal(3, children.Items.Count);
                 Assert.Equal("", subEditor.Text);
-                Assert.True(subEditor.IsVisible);
+                Assert.False(subEditor.IsVisible);
+                var addSubTask = Descendants<Button>(row).Single(element => element.Name == "GoalAddSubTaskButton");
+                Assert.True(addSubTask.IsVisible);
                 Assert.Equal("调整任务列表位置", task.SubTasks.Last().Title);
                 var childCheck = Descendants<Button>(children).Last();
                 childCheck.Command.Execute(childCheck.CommandParameter);
                 Pump();
                 Assert.True(task.SubTasks.Last().IsCompleted);
+                addSubTask.Command.Execute(addSubTask.CommandParameter);
+                Pump();
                 PressEnter(subEditor); // Empty Enter must not create another item.
                 Assert.Equal(3, task.SubTasks.Count);
                 model.GoalTasks.CancelInlineEdit(task);
@@ -120,8 +141,7 @@ public sealed class GoalNextTaskPresentationTests
                 SavePreview(page, "next-tasks-saved");
                 Assert.Equal(width, card.ActualWidth);
                 Assert.Equal(604, card.ActualHeight);
-                var toggle = Descendants<Button>(row).Single(element => element.Name == "GoalTaskSubTasksToggle");
-                toggle.Command.Execute(toggle.CommandParameter);
+                capsule.Command.Execute(capsule.CommandParameter);
                 Pump();
                 Assert.False(children.IsVisible);
                 Assert.True(Descendants<TextBlock>(row).Single(element => element.Name == "GoalTaskRemark").IsVisible);

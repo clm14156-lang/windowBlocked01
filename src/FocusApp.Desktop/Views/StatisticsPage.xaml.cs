@@ -51,6 +51,7 @@ public partial class StatisticsPage : UserControl
     private DateTime _goalTaskDragPressedAtUtc;
     private FocusTaskViewModel? _goalTaskDragCandidate;
     private FrameworkElement? _goalTaskDragSourceRow;
+    private bool _goalTaskNameClickCandidate;
     private FocusTaskViewModel? _goalTaskDropTarget;
     private bool _goalTaskDropAfter;
     private bool _isGoalTaskDragInProgress;
@@ -323,6 +324,7 @@ public partial class StatisticsPage : UserControl
 
         _goalTaskDragCandidate = task;
         _goalTaskDragSourceRow = row;
+        _goalTaskNameClickCandidate = FindVisualAncestor<TextBlock>(e.OriginalSource as DependencyObject)?.Name == "GoalNextTaskName";
         _goalTaskDragStartPoint = e.GetPosition(GoalNextTasks);
         _goalTaskDragPressedAtUtc = DateTime.UtcNow;
         row.CaptureMouse();
@@ -358,8 +360,7 @@ public partial class StatisticsPage : UserControl
         {
             if (!editor.IsVisible) return;
             editor.Focus();
-            if (editor.DataContext is FocusTaskViewModel { NextTaskEditor.IsEditingName: true }) editor.SelectAll();
-            else editor.CaretIndex = editor.Text.Length;
+            editor.CaretIndex = editor.Text.Length;
             editor.BringIntoView(new Rect(0, 0, editor.ActualWidth, editor.ActualHeight));
         });
     }
@@ -376,13 +377,28 @@ public partial class StatisticsPage : UserControl
         }
         if (e.Key != Key.Enter || task.NextTaskEditor.IsEditingRemark && !Keyboard.Modifiers.HasFlag(ModifierKeys.Control)) return;
         e.Handled = true;
-        if (await model.GoalTasks.CommitInlineEditAsync(task) && !task.NextTaskEditor.IsAddingSubTask) CreateNextTaskButton.Focus();
+        var wasAddingSubTask = task.NextTaskEditor.IsAddingSubTask;
+        if (!await model.GoalTasks.CommitInlineEditAsync(task)) return;
+        if (wasAddingSubTask)
+        {
+            _ = Dispatcher.BeginInvoke(DispatcherPriority.Input, () =>
+            {
+                if (GoalNextTasks.ItemContainerGenerator.ContainerFromItem(task) is DependencyObject container)
+                    FindVisualDescendant<Button>(container, "GoalAddSubTaskButton")?.Focus();
+            });
+        }
+        else CreateNextTaskButton.Focus();
     }
 
     private async void GoalTaskInlineEditor_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
     {
         if (sender is not TextBox { DataContext: FocusTaskViewModel task } || DataContext is not StatisticsOverviewViewModel model ||
-            task.NextTaskEditor.IsSaving || !task.NextTaskEditor.IsActive || task.NextTaskEditor.IsAddingSubTask) return;
+            task.NextTaskEditor.IsSaving || !task.NextTaskEditor.IsActive) return;
+        if (task.NextTaskEditor.IsAddingSubTask)
+        {
+            model.GoalTasks.CancelInlineEdit(task);
+            return;
+        }
         if (task.NextTaskEditor.IsEditingName && string.IsNullOrWhiteSpace(task.NextTaskEditor.Value)) model.GoalTasks.CancelInlineEdit(task);
         else await model.GoalTasks.CommitInlineEditAsync(task);
     }
@@ -423,8 +439,13 @@ public partial class StatisticsPage : UserControl
         e.Handled = true;
     }
 
-    private void GoalNextTaskRow_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e) =>
+    private void GoalNextTaskRow_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        var task = _goalTaskNameClickCandidate ? _goalTaskDragCandidate : null;
         ResetGoalTaskDragCandidate();
+        if (task is not null && !_isGoalTaskDragInProgress && DataContext is StatisticsOverviewViewModel model)
+            model.GoalTasks.BeginInlineEdit(task, "name");
+    }
 
     private void GoalNextTasksScroll_DragOver(object sender, DragEventArgs e)
     {
@@ -552,6 +573,7 @@ public partial class StatisticsPage : UserControl
             _goalTaskDragSourceRow.ReleaseMouseCapture();
         _goalTaskDragCandidate = null;
         _goalTaskDragSourceRow = null;
+        _goalTaskNameClickCandidate = false;
     }
 
     private static bool IsWithinGoalTaskControl(DependencyObject? source) =>
@@ -568,6 +590,18 @@ public partial class StatisticsPage : UserControl
             source = source is Visual or System.Windows.Media.Media3D.Visual3D
                 ? VisualTreeHelper.GetParent(source)
                 : LogicalTreeHelper.GetParent(source);
+        }
+        return null;
+    }
+
+    private static T? FindVisualDescendant<T>(DependencyObject source, string name) where T : FrameworkElement
+    {
+        for (var index = 0; index < VisualTreeHelper.GetChildrenCount(source); index++)
+        {
+            var child = VisualTreeHelper.GetChild(source, index);
+            if (child is T element && element.Name == name) return element;
+            var nested = FindVisualDescendant<T>(child, name);
+            if (nested is not null) return nested;
         }
         return null;
     }

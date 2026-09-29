@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
+using FocusApp.Contracts;
 using FocusApp.Desktop.Services;
 
 namespace FocusApp.Desktop.ViewModels;
@@ -12,8 +13,8 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
 {
     internal const double PlotLeft = 44;
     internal const double PlotRight = 610;
-    internal const double PlotTop = 16;
-    internal const double PlotBottom = 124;
+    internal const double PlotTop = 28;
+    internal const double PlotBottom = 174;
     private const double PlotWidth = PlotRight - PlotLeft;
     private const double PlotHeight = PlotBottom - PlotTop;
     private readonly Func<DateTime> _now;
@@ -22,6 +23,7 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
     private readonly RelayCommand<object> _nextMonthYearCommand;
     private GoalOverviewItemViewModel? _goal;
     private IReadOnlyList<FocusSessionRecordViewModel> _records = [];
+    private IReadOnlyList<LocalTaskDto> _tasks = [];
     private IReadOnlyList<DateTime> _availableDataMonths = [];
     private GoalInvestmentRange _range = GoalInvestmentRange.SevenDays;
     private DateTime _selectedMonth;
@@ -30,6 +32,7 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
     private GoalInvestmentTrendPointViewModel? _hoveredPoint;
     private bool _isOpen;
     private bool _isMonthMenuOpen;
+    private bool _showAllHoverTasks;
 
     public GoalInvestmentTrendViewModel(Func<DateTime>? now = null)
     {
@@ -48,6 +51,13 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
         SelectMonthCommand = new RelayCommand<GoalInvestmentMonthOptionViewModel>(SelectMonth);
         PreviousMonthYearCommand = _previousMonthYearCommand;
         NextMonthYearCommand = _nextMonthYearCommand;
+        ToggleAllHoverTasksCommand = new RelayCommand<object>(_ =>
+        {
+            _showAllHoverTasks = !_showAllHoverTasks;
+            OnPropertyChanged(nameof(VisibleHoverDayTasks));
+            OnPropertyChanged(nameof(HoverTaskOverflowLabel));
+            OnPropertyChanged(nameof(HasHoverTaskOverflow));
+        });
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -60,10 +70,25 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
     public ICommand SelectMonthCommand { get; }
     public ICommand PreviousMonthYearCommand { get; }
     public ICommand NextMonthYearCommand { get; }
+    public ICommand ToggleAllHoverTasksCommand { get; }
 
     public ObservableCollection<GoalInvestmentMonthOptionViewModel> AvailableMonths { get; } = [];
     public ObservableCollection<GoalInvestmentTrendPointViewModel> TrendPoints { get; } = [];
     public ObservableCollection<GoalInvestmentTrendAxisTickViewModel> YAxisTicks { get; } = [];
+    public ObservableCollection<TrendCompletedTaskViewModel> HoverDayTasks { get; } = [];
+    public IEnumerable<TrendCompletedTaskViewModel> VisibleHoverDayTasks =>
+        _showAllHoverTasks ? HoverDayTasks : HoverDayTasks.Take(3);
+    public bool HasHoverTaskOverflow => HoverDayTasks.Count > 3;
+    public string HoverTaskOverflowLabel => _showAllHoverTasks ? "收起任务" : $"还有 {HoverDayTasks.Count - 3} 项任务  ›";
+    public bool HasHoverDayTasks => HoverDayTasks.Count > 0;
+    public bool HasHoverDayFocus => HoveredPoint?.Minutes > 0;
+    public string HoverEmptyState => HasHoverDayFocus ? "暂无完成任务" : "这一天没有专注记录，也没有完成任务";
+    public int HoverDayTaskCount => HoverDayTasks.Count;
+    public string HoverDayDurationDisplay => (HoveredPoint?.Minutes ?? 0) switch
+    {
+        >= 60 => $"{HoveredPoint!.Minutes / 60} 小时 {HoveredPoint.Minutes % 60} 分钟",
+        var minutes => $"{minutes} 分钟"
+    };
     public ObservableCollection<GoalInvestmentFocusRecordViewModel> SelectedDateRecords { get; } = [];
 
     public bool IsOpen
@@ -88,7 +113,7 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
     public bool IsSevenDaysRange => _range == GoalInvestmentRange.SevenDays;
     public bool IsThirtyDaysRange => _range == GoalInvestmentRange.ThirtyDays;
     public bool IsMonthRange => _range == GoalInvestmentRange.Month;
-    public string MonthButtonText => IsMonthRange ? SelectedMonthDisplay : "按月";
+    public string MonthButtonText => "按月";
     public string SelectedMonthDisplay => $"{_selectedMonth:yyyy年M月}";
     public int MonthPickerYear => _monthPickerYear;
     public string MonthPickerYearDisplay => _monthPickerYear.ToString();
@@ -107,6 +132,18 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
         GoalInvestmentRange.SevenDays => "最近七天趋势图",
         GoalInvestmentRange.ThirtyDays => "最近三十天趋势图",
         _ => $"{SelectedMonthDisplay}趋势图"
+    };
+    public string OverviewSubtitle => _range switch
+    {
+        GoalInvestmentRange.SevenDays => "近7天的投入数据总览",
+        GoalInvestmentRange.ThirtyDays => "近30天的投入数据总览",
+        _ => $"{SelectedMonthDisplay}的投入数据总览"
+    };
+    public string TrendSubtitle => _range switch
+    {
+        GoalInvestmentRange.SevenDays => "近7天的投入时长趋势",
+        GoalInvestmentRange.ThirtyDays => "近30天的投入时长趋势",
+        _ => $"{SelectedMonthDisplay}的投入时长趋势"
     };
     public GoalInvestmentDurationViewModel PeriodInvestment { get; private set; } = new(0);
     public int ActiveDays { get; private set; }
@@ -136,11 +173,13 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(IsTooltipOpen));
             OnPropertyChanged(nameof(TooltipLeft));
             OnPropertyChanged(nameof(TooltipTop));
+            RefreshHoverDayTasks();
         }
     }
     public bool IsTooltipOpen => HoveredPoint is not null;
-    public double TooltipLeft => HoveredPoint is null ? 0 : Math.Clamp(HoveredPoint.ChartX - 50, PlotLeft, PlotRight - 100);
-    public double TooltipTop => HoveredPoint is null ? 0 : Math.Clamp(HoveredPoint.ChartY - 64, -10, PlotBottom - 54);
+    public double TooltipLeft => HoveredPoint is null ? 0 :
+        HoveredPoint.ChartX + 222 <= 638 ? HoveredPoint.ChartX + 12 : HoveredPoint.ChartX - 222;
+    public double TooltipTop => HoveredPoint is null ? 0 : Math.Clamp(HoveredPoint.ChartY - 100, 0, 39);
     public string SelectedDateTitle => $"{_selectedDate:M月d日}";
     public string SelectedDateSummary
     {
@@ -153,9 +192,11 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
     }
     public bool HasSelectedDateRecords => SelectedDateRecords.Count > 0;
 
-    public void ApplyState(GoalOverviewItemViewModel? goal, IEnumerable<FocusSessionRecordViewModel> records)
+    public void ApplyState(GoalOverviewItemViewModel? goal, IEnumerable<FocusSessionRecordViewModel> records,
+        IEnumerable<LocalTaskDto>? tasks = null)
     {
         _goal = goal;
+        _tasks = tasks?.ToArray() ?? [];
         _records = goal is null
             ? []
             : records.Where(record => record.GoalId == goal.GoalId && record.EndTime > record.StartTime)
@@ -194,6 +235,42 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
     }
 
     public void ClearHoveredPoint() => HoveredPoint = null;
+
+    private void RefreshHoverDayTasks()
+    {
+        HoverDayTasks.Clear();
+        _showAllHoverTasks = false;
+        if (HoveredPoint is { } point && _goal is not null)
+        {
+            var date = point.Date.Date;
+            var canonical = _tasks.Where(task => task.TargetId == _goal.GoalId && task.IsCompleted &&
+                task.CompletedAtUtc?.LocalDateTime.Date == date).ToArray();
+            var seenIds = canonical.Select(task => task.TaskId).ToHashSet(StringComparer.Ordinal);
+            var candidates = new List<(string Name, DateTime? CompletedAt, string? Id)>();
+            candidates.AddRange(canonical.Select(task => (task.Name, (DateTime?)task.CompletedAtUtc!.Value.LocalDateTime, (string?)task.TaskId)));
+            foreach (var record in _records)
+            {
+                for (var index = 0; index < record.CompletedTaskNames.Count; index++)
+                {
+                    var id = record.CompletedTaskIds.ElementAtOrDefault(index);
+                    var completedAt = record.CompletedTaskTimes.ElementAtOrDefault(index);
+                    if ((completedAt ?? record.EndTime).Date != date) continue;
+                    if (id is not null && !seenIds.Add(id)) continue;
+                    candidates.Add((record.CompletedTaskNames[index], completedAt, id));
+                }
+            }
+            foreach (var candidate in candidates.OrderByDescending(item => item.CompletedAt))
+            {
+                var source = _tasks.FirstOrDefault(task => task.TaskId == candidate.Id);
+                var subTasks = source?.SubTasks.Where(task => task.IsCompleted).OrderBy(task => task.SortOrder)
+                    .Select(task => task.Title).ToArray() ?? [];
+                HoverDayTasks.Add(new TrendCompletedTaskViewModel(candidate.Name, subTasks));
+            }
+        }
+        foreach (var property in new[] { nameof(VisibleHoverDayTasks), nameof(HasHoverTaskOverflow),
+                     nameof(HoverTaskOverflowLabel), nameof(HasHoverDayTasks), nameof(HasHoverDayFocus),
+                     nameof(HoverDayTaskCount), nameof(HoverDayDurationDisplay), nameof(HoverEmptyState) }) OnPropertyChanged(property);
+    }
 
     public void SelectHoveredDate()
     {
@@ -446,7 +523,7 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
 
     private void NotifyRangeProperties()
     {
-        foreach (var property in new[] { nameof(IsSevenDaysRange), nameof(IsThirtyDaysRange), nameof(IsMonthRange), nameof(MonthButtonText), nameof(SelectedMonthDisplay), nameof(PeriodInvestmentTitle), nameof(TrendTitle) })
+        foreach (var property in new[] { nameof(IsSevenDaysRange), nameof(IsThirtyDaysRange), nameof(IsMonthRange), nameof(MonthButtonText), nameof(SelectedMonthDisplay), nameof(PeriodInvestmentTitle), nameof(TrendTitle), nameof(OverviewSubtitle), nameof(TrendSubtitle) })
             OnPropertyChanged(property);
         foreach (var option in AvailableMonths) option.IsSelected = IsMonthRange && option.Month == _selectedMonth;
     }
@@ -457,7 +534,7 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
                  {
                      nameof(PeriodInvestment), nameof(ActiveDays), nameof(AverageInvestment), nameof(TotalInvestment), nameof(HasTargetDuration), nameof(TargetDurationDisplay),
                      nameof(TotalInvestmentProgress), nameof(TotalInvestmentProgressDisplay), nameof(PeriodInvestmentTitle),
-                     nameof(TrendTitle), nameof(MonthButtonText), nameof(SelectedMonthDisplay), nameof(SelectedDateTitle),
+                     nameof(TrendTitle), nameof(OverviewSubtitle), nameof(TrendSubtitle), nameof(MonthButtonText), nameof(SelectedMonthDisplay), nameof(SelectedDateTitle),
                      nameof(SelectedDateSummary), nameof(HasSelectedDateRecords)
                  })
             OnPropertyChanged(property);
@@ -530,6 +607,54 @@ public sealed record GoalInvestmentTrendAxisTickViewModel(int Minutes, double Ch
 {
     public string Label => new GoalInvestmentDurationViewModel(Minutes).Display;
     public bool ShowGuideLine => Minutes > 0;
+}
+
+public sealed class TrendCompletedTaskViewModel : INotifyPropertyChanged
+{
+    private bool _isExpanded;
+    private bool _showAllSubTasks;
+    public TrendCompletedTaskViewModel(string name, IReadOnlyList<string> subTasks)
+    {
+        Name = name;
+        SubTasks = subTasks;
+        ToggleSubTasksCommand = new RelayCommand<object>(_ =>
+        {
+            IsExpanded = !IsExpanded;
+            if (!IsExpanded) _showAllSubTasks = false;
+            NotifySubTasksChanged();
+        });
+        ToggleAllSubTasksCommand = new RelayCommand<object>(_ =>
+        {
+            _showAllSubTasks = !_showAllSubTasks;
+            NotifySubTasksChanged();
+        });
+    }
+    public event PropertyChangedEventHandler? PropertyChanged;
+    public string Name { get; }
+    public IReadOnlyList<string> SubTasks { get; }
+    public ICommand ToggleSubTasksCommand { get; }
+    public ICommand ToggleAllSubTasksCommand { get; }
+    public bool HasSubTasks => SubTasks.Count > 0;
+    public string SubTaskCountLabel => $"{SubTasks.Count} 个子任务";
+    public bool IsExpanded
+    {
+        get => _isExpanded;
+        set
+        {
+            if (_isExpanded == value) return;
+            _isExpanded = value;
+            PropertyChanged?.Invoke(this, new(nameof(IsExpanded)));
+        }
+    }
+    public IEnumerable<string> VisibleSubTasks => _showAllSubTasks ? SubTasks : SubTasks.Take(3);
+    public bool HasSubTaskOverflow => IsExpanded && SubTasks.Count > 3;
+    public string SubTaskOverflowLabel => _showAllSubTasks ? "收起子任务" : $"还有 {SubTasks.Count - 3} 个子任务";
+    private void NotifySubTasksChanged()
+    {
+        PropertyChanged?.Invoke(this, new(nameof(VisibleSubTasks)));
+        PropertyChanged?.Invoke(this, new(nameof(HasSubTaskOverflow)));
+        PropertyChanged?.Invoke(this, new(nameof(SubTaskOverflowLabel)));
+    }
 }
 
 public sealed class GoalInvestmentFocusRecordViewModel : INotifyPropertyChanged

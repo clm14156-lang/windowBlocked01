@@ -64,6 +64,55 @@ public sealed class GoalTasksViewModelTests
     }
 
     [Fact]
+    public void CompletedSortOptionsKeepDateGroupsAndOrderTasksWithinEachGroup()
+    {
+        var model = new GoalTasksViewModel(() => Now);
+        model.ApplyState(Goal(),
+        [
+            TaskData("zeta", completedAt: Local(18, 14, 32)),
+            TaskData("alpha", completedAt: Local(18, 12, 10)),
+            TaskData("beta", completedAt: Local(18, 9, 10)),
+            TaskData("older", completedAt: Local(17, 16, 20))
+        ]);
+        Assert.Equal("最近完成", model.CompletedSortLabel);
+        Assert.Equal(new[] { "zeta", "alpha", "beta" }, model.CompletedGroups[0].Tasks.Select(task => task.Name));
+
+        model.SetCompletedSort("Name");
+        Assert.Equal("任务名称", model.CompletedSortLabel);
+        Assert.Equal(new[] { "alpha", "beta", "zeta" }, model.CompletedGroups[0].Tasks.Select(task => task.Name));
+        model.SetCompletedSort("Time");
+        Assert.Equal("完成时间", model.CompletedSortLabel);
+        Assert.Equal(new[] { "beta", "alpha", "zeta" }, model.CompletedGroups[0].Tasks.Select(task => task.Name));
+        model.SetCompletedSort("Oldest");
+        Assert.Equal("最早完成", model.CompletedSortLabel);
+        Assert.Equal("9月17日", model.CompletedGroups[0].Title);
+        model.SetCompletedSort("Recent");
+        Assert.Equal("9月18日", model.CompletedGroups[0].Title);
+    }
+
+    [Fact]
+    public async Task RestoringCompletedParentKeepsItsRemarkAndSubTaskStates()
+    {
+        var child = new LocalSubTaskDto("child", "parent", "已完成子任务", true, 0, Local(17), Local(18, 9, 10));
+        var completed = TaskData("parent", completedAt: Now) with
+        {
+            Description = "保留完成标准",
+            SubTasks = [child]
+        };
+        var model = new GoalTasksViewModel(() => Now, _ => Task.CompletedTask);
+        model.ApplyState(Goal(), [completed]);
+        model.PersistTaskAsync = (task, _) => Task.FromResult<LocalTaskDto?>(task);
+
+        Assert.True(await model.UncompleteTaskAsync(Assert.Single(model.CompletedGroups[0].Tasks)));
+        var restored = Assert.Single(model.PendingTasks);
+        Assert.False(restored.IsCompleted);
+        Assert.Equal("保留完成标准", restored.Description);
+        Assert.Equal("已完成子任务", Assert.Single(restored.SubTasks).Title);
+        Assert.True(restored.SubTasks[0].IsCompleted);
+        Assert.Equal("子任务 1/1", restored.GoalSubTaskProgress);
+    }
+
+    [Fact]
     public async Task CreateIsBoundToGoalAndAppearsAtTopWithImmediateCounts()
     {
         var model = new GoalTasksViewModel(() => Now);

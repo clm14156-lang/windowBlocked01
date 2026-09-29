@@ -122,6 +122,13 @@ public sealed class StatisticsGoalProgressPresentationTests
         var completedRow = Assert.Single(current.Descendants(Presentation + "Grid").Where(grid =>
             (string?)grid.Attribute(Xaml + "Name") == "GoalCompletedTaskSummary"));
         Assert.Null(completedRow.Attribute("Background"));
+        Assert.Contains(completedRow.Parent!.Elements(Presentation + "Button"), button =>
+            (string?)button.Attribute(Xaml + "Name") == "CreateNextTaskButton");
+        Assert.Contains(current.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "待办任务");
+        Assert.DoesNotContain(current.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "下一步任务");
+        Assert.Equal(5, current.Element(Presentation + "Grid.RowDefinitions")!.Elements(Presentation + "RowDefinition").Count());
     }
 
     [Fact]
@@ -291,7 +298,7 @@ public sealed class StatisticsGoalProgressPresentationTests
             (string?)trigger.Attribute("Binding") == "{Binding NextTaskEditor.IsPendingCreation}" &&
             trigger.Descendants(Presentation + "Setter").Any(setter =>
                 (string?)setter.Attribute("Property") == "Visibility" && (string?)setter.Attribute("Value") == "Collapsed"));
-        Assert.Equal(new[] { "编辑任务", "添加备注", "添加子任务", "删除任务" },
+        Assert.Equal(new[] { "编辑任务", "{Binding PlacementTarget.DataContext.RemarkActionLabel, RelativeSource={RelativeSource AncestorType=ContextMenu}}", "添加子任务", "删除任务" },
             more.Descendants(Presentation + "MenuItem").Select(item => (string?)item.Attribute("Header")));
 
         var hoverSurface = Assert.Single(template.Descendants(Presentation + "Border").Where(element =>

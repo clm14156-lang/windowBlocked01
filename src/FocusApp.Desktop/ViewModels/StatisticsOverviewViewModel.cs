@@ -905,7 +905,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         if (e.PropertyName is nameof(GoalOverviewItemViewModel.Remark) or nameof(GoalOverviewItemViewModel.TargetDurationMinutes))
             NotifyGoalDetailStatistics();
         else
-            GoalInvestmentTrend.ApplyState(SelectedGoal, FocusSessionRecords);
+            GoalInvestmentTrend.ApplyState(SelectedGoal, FocusSessionRecords, _goalTaskSnapshot);
     }
 
     private void NotifyGoalDetailStatistics()
@@ -926,7 +926,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(SelectedGoalTargetDurationDisplay));
         OnPropertyChanged(nameof(SelectedGoalInvestmentProgressRatio));
         OnPropertyChanged(nameof(SelectedGoalInvestmentProgressDisplay));
-        GoalInvestmentTrend.ApplyState(SelectedGoal, FocusSessionRecords);
+        GoalInvestmentTrend.ApplyState(SelectedGoal, FocusSessionRecords, _goalTaskSnapshot);
     }
 
     private bool _isGoalAddFeedbackVisible;

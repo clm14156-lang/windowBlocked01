@@ -130,7 +130,7 @@
             <Setter Property="FontSize" Value="13" />
             <Setter Property="FontWeight" Value="Normal" />
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-            <Setter Property="CaretBrush" Value="{DynamicResource AccentPrimary}" />
+            <Setter Property="CaretBrush" Value="{DynamicResource TextPrimary}" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Template">
@@ -141,13 +141,18 @@
                 </Setter.Value>
             </Setter>
         </Style>
-        <Style x:Key="GoalTaskDetailInputStyle" TargetType="TextBox">
-            <Setter Property="Background" Value="White"/><Setter Property="BorderBrush" Value="#E1E4EA"/><Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="9,7"/><Setter Property="FontSize" Value="13"/><Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
-            <Setter Property="CaretBrush" Value="{DynamicResource AccentPrimary}"/><Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Style x:Key="GoalTaskQuietInputStyle" TargetType="TextBox">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="CaretBrush" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TextBox">
-                <Border x:Name="InputSurface" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6" Padding="{TemplateBinding Padding}"><ScrollViewer x:Name="PART_ContentHost"/></Border>
-                <ControlTemplate.Triggers><Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="InputSurface" Property="BorderBrush" Value="{DynamicResource AccentPrimary}"/></Trigger></ControlTemplate.Triggers>
+                <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="3" Padding="{TemplateBinding Padding}">
+                    <ScrollViewer x:Name="PART_ContentHost"/>
+                </Border>
             </ControlTemplate></Setter.Value></Setter>
         </Style>
         <Style x:Key="GoalTaskMenuStyle" TargetType="ContextMenu">
@@ -1277,7 +1282,6 @@
                                     <RowDefinition Height="168"/>
                                     <RowDefinition Height="1"/>
                                     <RowDefinition Height="*"/>
-                                    <RowDefinition Height="50"/>
                                 </Grid.RowDefinitions>
                                 <Grid x:Name="GoalDetailHeader" Margin="8,4,8,20">
                                     <StackPanel>
@@ -1337,8 +1341,18 @@
                                 <Grid Grid.Row="4" Margin="0,22,0,22">
                                     <Grid.RowDefinitions><RowDefinition Height="32"/><RowDefinition Height="*"/></Grid.RowDefinitions>
                                     <Grid>
-                                        <TextBlock Text="下一步任务" FontSize="15" FontWeight="Medium" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimary}"/>
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                        <TextBlock Text="待办任务" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimary}"/>
+                                        <Grid x:Name="GoalCompletedTaskSummary" Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                                            <Button Padding="4,4" Background="Transparent" Style="{StaticResource GoalQuietActionStyle}" Command="{Binding GoalTasks.OpenCompletedCommand}" AutomationProperties.Name="查看已完成任务">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="{Binding GoalTasks.TodayCompletedSummary}" FontSize="12" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="  ›" FontSize="16" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
+                                        </Grid>
                                         <Button x:Name="CreateNextTaskButton"
+                                                Grid.Column="3"
                                                 HorizontalAlignment="Right"
                                                 VerticalAlignment="Center"
                                                 Padding="6,4"
@@ -1468,26 +1482,19 @@
                                                         </Border>
                                                         <StackPanel>
                                                             <Grid MinHeight="40">
-                                                                <Grid.ColumnDefinitions><ColumnDefinition Width="9"/><ColumnDefinition Width="24"/><ColumnDefinition Width="Auto"/><ColumnDefinition/><ColumnDefinition Width="28"/></Grid.ColumnDefinitions>
+                                                                <Grid.ColumnDefinitions><ColumnDefinition Width="9"/><ColumnDefinition Width="24"/><ColumnDefinition/><ColumnDefinition Width="28"/></Grid.ColumnDefinitions>
                                                                 <Button x:Name="GoalNextTaskCheckButton" Grid.Column="1" HorizontalAlignment="Left" VerticalAlignment="Center" AutomationProperties.Name="完成任务"
                                                                         Command="{Binding DataContext.GoalTasks.CompleteTaskCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}" CommandParameter="{Binding}" Style="{StaticResource GoalNextTaskCheckButtonStyle}"/>
-                                                                <Button x:Name="GoalTaskSubTasksToggle" Grid.Column="2" Width="20" Height="24" Padding="0" Background="Transparent" Style="{StaticResource GoalQuietActionStyle}"
-                                                                        Command="{Binding DataContext.GoalTasks.ToggleSubTasksCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" AutomationProperties.Name="展开或收起子任务"
-                                                                        Visibility="{Binding HasSubTasks, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                                                    <TextBlock FontFamily="Segoe MDL2 Assets" FontSize="10" Foreground="#8A91A0">
-                                                                        <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Text" Value="&#xE76C;"/><Style.Triggers><DataTrigger Binding="{Binding IsExpanded}" Value="True"><Setter Property="Text" Value="&#xE70D;"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
-                                                                    </TextBlock>
-                                                                </Button>
-                                                                <TextBlock x:Name="GoalNextTaskName" Grid.Column="3" Margin="8,0,10,0" Text="{Binding Name}" VerticalAlignment="Center" FontSize="13" FontWeight="Medium" TextTrimming="CharacterEllipsis">
+                                                                <TextBlock x:Name="GoalNextTaskName" Grid.Column="2" Margin="8,0,10,0" Text="{Binding Name}" VerticalAlignment="Center" FontSize="13" FontWeight="Medium" TextTrimming="CharacterEllipsis">
                                                                     <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/><Style.Triggers>
                                                                         <DataTrigger Binding="{Binding IsCompletionStyled}" Value="True"><Setter Property="Foreground" Value="{DynamicResource TextWeak}"/><Setter Property="TextDecorations" Value="Strikethrough"/></DataTrigger>
                                                                         <DataTrigger Binding="{Binding NextTaskEditor.IsEditingName}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
                                                                     </Style.Triggers></Style></TextBlock.Style>
                                                                 </TextBlock>
-                                                                <TextBox x:Name="GoalTaskNameEditor" IsReadOnly="{Binding NextTaskEditor.IsSaving}" Grid.Column="3" Margin="8,3,8,3" Style="{StaticResource GoalTaskDetailInputStyle}" MaxLength="100"
+                                                                <TextBox x:Name="GoalTaskNameEditor" IsReadOnly="{Binding NextTaskEditor.IsSaving}" Grid.Column="2" Margin="8,8,10,8" FontSize="13" FontWeight="Medium" Style="{StaticResource GoalTaskQuietInputStyle}" MaxLength="100"
                                                                          Text="{Binding NextTaskEditor.Value, UpdateSourceTrigger=PropertyChanged}" IsVisibleChanged="GoalTaskInlineEditor_IsVisibleChanged" PreviewKeyDown="GoalTaskInlineEditor_PreviewKeyDown" LostKeyboardFocus="GoalTaskInlineEditor_LostKeyboardFocus"
                                                                          Visibility="{Binding NextTaskEditor.IsEditingName, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                                <Button x:Name="GoalNextTaskMoreButton" Grid.Column="4" HorizontalAlignment="Right" VerticalAlignment="Center" AutomationProperties.Name="更多任务操作" ToolTip="更多任务操作"
+                                                                <Button x:Name="GoalNextTaskMoreButton" Grid.Column="3" HorizontalAlignment="Right" VerticalAlignment="Center" AutomationProperties.Name="更多任务操作" ToolTip="更多任务操作"
                                                                         Tag="{Binding DataContext.GoalTasks, RelativeSource={RelativeSource AncestorType=UserControl}}" Click="GoalNextTaskMoreButton_Click">
                                                                     <Button.Style><Style TargetType="Button" BasedOn="{StaticResource GoalNextTaskMoreButtonStyle}"><Style.Triggers>
                                                                         <DataTrigger Binding="{Binding IsMenuOpen}" Value="True"><Setter Property="Background" Value="#ECEDEF"/></DataTrigger>
@@ -1500,7 +1507,7 @@
                                                                             <MenuItem Header="编辑任务" Style="{StaticResource GoalTaskMenuItemStyle}" Command="{Binding EditTaskCommand}" CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}">
                                                                                 <MenuItem.Icon><PathGeometry Figures="M 2,10 L 1,14 L 5,13 L 13,5 L 10,2 Z M 9,3 L 12,6"/></MenuItem.Icon>
                                                                             </MenuItem>
-                                                                            <MenuItem Header="添加备注" Style="{StaticResource GoalTaskMenuItemStyle}" Command="{Binding AddRemarkCommand}" CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}">
+                                                                            <MenuItem Header="{Binding PlacementTarget.DataContext.RemarkActionLabel, RelativeSource={RelativeSource AncestorType=ContextMenu}}" Style="{StaticResource GoalTaskMenuItemStyle}" Command="{Binding AddRemarkCommand}" CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}">
                                                                                 <MenuItem.Icon><PathGeometry Figures="M 3,1 L 12,1 Q 14,1 14,3 L 14,12 Q 14,14 12,14 L 3,14 Q 1,14 1,12 L 1,3 Q 1,1 3,1 M 4,5 L 11,5 M 4,8 L 11,8 M 4,11 L 8,11"/></MenuItem.Icon>
                                                                             </MenuItem>
                                                                             <MenuItem Header="添加子任务" Style="{StaticResource GoalTaskMenuItemStyle}" Command="{Binding AddSubTaskCommand}" CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}">
@@ -1513,20 +1520,31 @@
                                                                     </Button.ContextMenu>
                                                                 </Button>
                                                             </Grid>
+                                                            <Button x:Name="GoalTaskSubTasksToggle" Margin="41,0,0,5" Padding="8,2" Height="24" HorizontalAlignment="Left" Background="#F1F2F4" Style="{StaticResource GoalQuietActionStyle}"
+                                                                    Command="{Binding DataContext.GoalTasks.ToggleSubTasksCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" AutomationProperties.Name="展开或收起子任务"
+                                                                    Visibility="{Binding HasSubTasks, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                                <StackPanel Orientation="Horizontal">
+                                                                    <TextBlock Text="{Binding GoalSubTaskProgress}" FontSize="11" Foreground="#8791A0" VerticalAlignment="Center"/>
+                                                                    <TextBlock Margin="5,0,0,0" FontFamily="Segoe MDL2 Assets" FontSize="9" Foreground="#8791A0" VerticalAlignment="Center">
+                                                                        <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Text" Value="&#xE76C;"/><Style.Triggers><DataTrigger Binding="{Binding IsExpanded}" Value="True"><Setter Property="Text" Value="&#xE70D;"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                                                                    </TextBlock>
+                                                                </StackPanel>
+                                                            </Button>
                                                             <StackPanel>
-                                                                <StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Margin" Value="41,0,28,0"/><Style.Triggers><DataTrigger Binding="{Binding HasSubTasks}" Value="True"><Setter Property="Margin" Value="61,0,28,0"/></DataTrigger></Style.Triggers></Style></StackPanel.Style>
-                                                                <TextBlock x:Name="GoalTaskRemark" Text="{Binding Description}" FontSize="12" Foreground="#939BAA" TextWrapping="Wrap" Margin="0,-3,0,9" LineHeight="18">
+                                                                <StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Margin" Value="41,0,28,0"/></Style></StackPanel.Style>
+                                                                <TextBlock x:Name="GoalTaskRemark" Text="{Binding Description}" FontSize="12" Foreground="#939BAA" TextWrapping="Wrap" Margin="0,2,0,7" LineHeight="18" MaxHeight="54">
                                                                     <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers>
                                                                         <MultiDataTrigger><MultiDataTrigger.Conditions><Condition Binding="{Binding HasDescription}" Value="True"/><Condition Binding="{Binding NextTaskEditor.IsEditingRemark}" Value="False"/></MultiDataTrigger.Conditions><Setter Property="Visibility" Value="Visible"/></MultiDataTrigger>
                                                                     </Style.Triggers></Style></TextBlock.Style>
                                                                 </TextBlock>
-                                                                <Grid Margin="0,0,0,9" Visibility="{Binding NextTaskEditor.IsEditingRemark, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                                                    <TextBox x:Name="GoalTaskRemarkEditor" IsReadOnly="{Binding NextTaskEditor.IsSaving}" MinHeight="74" MaxHeight="140" Style="{StaticResource GoalTaskDetailInputStyle}" MaxLength="150" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Padding="9,8,9,22"
+                                                                <Grid Margin="0,2,0,7" Visibility="{Binding NextTaskEditor.IsEditingRemark, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                                                    <TextBox x:Name="GoalTaskRemarkEditor" IsReadOnly="{Binding NextTaskEditor.IsSaving}" MinLines="1" MaxLines="3" Style="{StaticResource GoalTaskQuietInputStyle}" FontSize="12" Foreground="#707B8C" MaxLength="150" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Padding="2,2"
                                                                              Text="{Binding NextTaskEditor.Value, UpdateSourceTrigger=PropertyChanged}" IsVisibleChanged="GoalTaskInlineEditor_IsVisibleChanged" PreviewKeyDown="GoalTaskInlineEditor_PreviewKeyDown" LostKeyboardFocus="GoalTaskInlineEditor_LostKeyboardFocus"/>
-                                                                    <TextBlock Text="写下任务说明、提醒或完成标准..." FontSize="12" Foreground="#A5ACB7" Margin="10,10,10,0" VerticalAlignment="Top" IsHitTestVisible="False">
+                                                                    <TextBlock Text="写下任务说明、提醒或完成标准..." FontSize="12" Foreground="#A5ACB7" Margin="0,2,0,0" VerticalAlignment="Top" IsHitTestVisible="False">
                                                                         <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding NextTaskEditor.Value}" Value=""><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
                                                                     </TextBlock>
-                                                                    <TextBlock Text="{Binding NextTaskEditor.Value.Length, StringFormat={}{0}/150}" FontSize="10" Foreground="#A5ACB7" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,9,6" IsHitTestVisible="False"/>
+                                                                    <TextBlock Grid.Row="1" Text="{Binding NextTaskEditor.Value.Length, StringFormat={}{0}/150}" FontSize="10" Foreground="#A5ACB7" HorizontalAlignment="Right" Margin="0,1,2,0" IsHitTestVisible="False"/>
                                                                 </Grid>
                                                             </StackPanel>
                                                             <ItemsControl x:Name="GoalTaskSubTasks" Margin="18,0,0,0" ItemsSource="{Binding SortedSubTasks}" Visibility="{Binding IsExpanded, Converter={StaticResource BooleanToVisibilityConverter}}">
@@ -1542,16 +1560,28 @@
                                                                     <Border Grid.Column="2" Height="1" Margin="8,0,0,0" VerticalAlignment="Bottom" Background="#F0F2F5"/>
                                                                 </Grid></DataTemplate></ItemsControl.ItemTemplate>
                                                             </ItemsControl>
-                                                            <Grid Margin="18,0,28,9" Visibility="{Binding NextTaskEditor.IsAddingSubTask, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                            <Grid MinHeight="33" Margin="18,0,28,0" Visibility="{Binding NextTaskEditor.IsAddingSubTask, Converter={StaticResource BooleanToVisibilityConverter}}">
                                                                 <Grid.ColumnDefinitions><ColumnDefinition Width="22"/><ColumnDefinition Width="24"/><ColumnDefinition/></Grid.ColumnDefinitions>
-                                                                <Border Width="1" HorizontalAlignment="Left" Background="#E1E5EC"/><Border Height="1" Width="8" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,17,0,0" Background="#E1E5EC"/>
-                                                                <Border Grid.Column="1" Width="16" Height="16" BorderBrush="#D2D7E0" BorderThickness="1" CornerRadius="4" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,9,0,0"/>
-                                                                <TextBox x:Name="GoalTaskSubTaskEditor" IsReadOnly="{Binding NextTaskEditor.IsSaving}" Grid.Column="2" Margin="8,0,0,0" MinHeight="34" MaxLength="100" Style="{StaticResource GoalTaskDetailInputStyle}"
+                                                                <Border Width="1" HorizontalAlignment="Left" Background="#E1E5EC"/><Border Height="1" Width="8" HorizontalAlignment="Left" VerticalAlignment="Center" Background="#E1E5EC"/>
+                                                                <Border Grid.Column="1" Width="16" Height="16" BorderBrush="#D2D7E0" BorderThickness="1" CornerRadius="4" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                                                                <TextBox x:Name="GoalTaskSubTaskEditor" IsReadOnly="{Binding NextTaskEditor.IsSaving}" Grid.Column="2" Margin="8,5,0,5" MaxLength="100" FontSize="12" Foreground="#667082" Style="{StaticResource GoalTaskQuietInputStyle}"
                                                                          Text="{Binding NextTaskEditor.Value, UpdateSourceTrigger=PropertyChanged}" IsVisibleChanged="GoalTaskInlineEditor_IsVisibleChanged" PreviewKeyDown="GoalTaskInlineEditor_PreviewKeyDown" LostKeyboardFocus="GoalTaskInlineEditor_LostKeyboardFocus"/>
-                                                                <TextBlock Grid.Column="2" Text="输入子任务，按回车创建" FontSize="12" Foreground="#A5ACB7" Margin="18,9,0,0" VerticalAlignment="Top" IsHitTestVisible="False">
+                                                                <TextBlock Grid.Column="2" Text="输入子任务名称" FontSize="12" Foreground="#A5ACB7" Margin="8,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False">
                                                                     <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding NextTaskEditor.Value}" Value=""><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
                                                                 </TextBlock>
                                                             </Grid>
+                                                            <Button x:Name="GoalAddSubTaskButton" Margin="64,0,28,3" Padding="0" MinHeight="30" HorizontalAlignment="Left" Background="Transparent"
+                                                                    Command="{Binding DataContext.GoalTasks.AddSubTaskCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" AutomationProperties.Name="添加子任务">
+                                                                <Button.Style><Style TargetType="Button" BasedOn="{StaticResource GoalQuietActionStyle}">
+                                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                                    <Style.Triggers><MultiDataTrigger><MultiDataTrigger.Conditions>
+                                                                        <Condition Binding="{Binding IsExpanded}" Value="True"/>
+                                                                        <Condition Binding="{Binding NextTaskEditor.IsAddingSubTask}" Value="False"/>
+                                                                        <Condition Binding="{Binding CanAddSubTask}" Value="True"/>
+                                                                    </MultiDataTrigger.Conditions><Setter Property="Visibility" Value="Visible"/></MultiDataTrigger></Style.Triggers>
+                                                                </Style></Button.Style>
+                                                                <TextBlock Text="+ 添加子任务" FontSize="12" Foreground="#9AA3B1"/>
+                                                            </Button>
                                                             <Border Height="1" Margin="41,0,0,0" Background="#F0F2F5"/>
                                                         </StackPanel>
                                                         <Border x:Name="GoalTaskDropBeforeIndicator"
@@ -1578,16 +1608,6 @@
                                             </ItemsControl>
                                         </StackPanel>
                                     </ScrollViewer>
-                                </Grid>
-                                <Grid x:Name="GoalCompletedTaskSummary" Grid.Row="5" Margin="8,0,8,0">
-                                    <Grid>
-                                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                        <Border Width="21" Height="21" VerticalAlignment="Center" Background="#EEF1F5" CornerRadius="11">
-                                            <Path Width="10" Height="7" Data="M 0,3.5 L 3.5,7 L 10,0" Stretch="Fill" VerticalAlignment="Center" HorizontalAlignment="Center" Stroke="#718093" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
-                                        </Border>
-                                        <TextBlock Grid.Column="1" Margin="10,0,8,0" Text="{Binding GoalTasks.TodayCompletedSummary}" FontSize="12" FontWeight="Medium" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}"/>
-                                        <Button Grid.Column="2" Padding="4,5" VerticalAlignment="Center" Background="Transparent" Style="{StaticResource GoalQuietActionStyle}" Command="{Binding GoalTasks.OpenCompletedCommand}" AutomationProperties.Name="查看已完成任务"><TextBlock Text="查看已完成任务  ›" FontSize="12" Foreground="{DynamicResource TextSecondary}"/></Button>
-                                    </Grid>
                                 </Grid>
                                 </Grid>
                                 <Grid x:Name="ArchivedGoalDetails" Visibility="{Binding IsArchivedGoalView, Converter={StaticResource BooleanToVisibilityConverter}}">

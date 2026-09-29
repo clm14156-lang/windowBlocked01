@@ -74,23 +74,33 @@
                 <ControlTemplate.Triggers><Trigger Property="IsChecked" Value="True"><Setter TargetName="Tick" Property="Visibility" Value="Visible" /></Trigger></ControlTemplate.Triggers>
             </ControlTemplate></Setter.Value></Setter>
         </Style>
-        <Style x:Key="NumberCheck" TargetType="CheckBox">
+        <Style x:Key="ParentCheck" TargetType="CheckBox">
             <Setter Property="Width" Value="21" /><Setter Property="Height" Value="21" />
             <Setter Property="Cursor" Value="Hand" /><Setter Property="FocusVisualStyle" Value="{x:Null}" />
-            <Setter Property="Foreground" Value="#8C929D" />
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="CheckBox">
-                <Border x:Name="NumberChrome" Background="White" BorderBrush="#B9BEC8" BorderThickness="1.2" CornerRadius="3">
+                <Border x:Name="CheckChrome" Background="White" BorderBrush="#AEB5C0" BorderThickness="1.3" CornerRadius="4">
                     <Grid>
-                        <TextBlock x:Name="Number" Text="{Binding Content, RelativeSource={RelativeSource TemplatedParent}}" FontFamily="Segoe UI" FontSize="11" Foreground="{TemplateBinding Foreground}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                         <Path x:Name="Tick" Visibility="Collapsed" Width="11" Height="8" Data="M 0,4 L 4,8 L 11,0" Stroke="White" StrokeThickness="1.6" HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Grid>
                 </Border>
                 <ControlTemplate.Triggers><Trigger Property="IsChecked" Value="True">
-                    <Setter TargetName="NumberChrome" Property="Background" Value="#A3A7AE" />
-                    <Setter TargetName="NumberChrome" Property="BorderBrush" Value="#A3A7AE" />
-                    <Setter TargetName="Number" Property="Visibility" Value="Collapsed" /><Setter TargetName="Tick" Property="Visibility" Value="Visible" />
-                </Trigger></ControlTemplate.Triggers>
+                    <Setter TargetName="CheckChrome" Property="Background" Value="#FF7A19" />
+                    <Setter TargetName="CheckChrome" Property="BorderBrush" Value="#FF7A19" />
+                    <Setter TargetName="Tick" Property="Visibility" Value="Visible" />
+                </Trigger>
+                <DataTrigger Binding="{Binding IsDrawerSelected}" Value="True"><Setter TargetName="CheckChrome" Property="BorderBrush" Value="#FF7A19" /></DataTrigger>
+                </ControlTemplate.Triggers>
             </ControlTemplate></Setter.Value></Setter>
+        </Style>
+        <Style x:Key="BorderlessInput" TargetType="TextBox">
+            <Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" /><Setter Property="Foreground" Value="#343B47" />
+            <Setter Property="VerticalContentAlignment" Value="Center" /><Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TextBox"><ScrollViewer x:Name="PART_ContentHost" Background="Transparent" /></ControlTemplate></Setter.Value></Setter>
+        </Style>
+        <Style x:Key="TaskPrimaryButton" TargetType="Button" BasedOn="{StaticResource SheetButton}">
+            <Setter Property="Background" Value="#FF781A" /><Setter Property="Foreground" Value="White" /><Setter Property="FontWeight" Value="Medium" />
+            <Style.Triggers><Trigger Property="IsEnabled" Value="False"><Setter Property="Background" Value="#FFC9AA" /><Setter Property="Foreground" Value="White" /></Trigger></Style.Triggers>
         </Style>
 
     <Style x:Key="CompletedTitle" TargetType="TextBlock">
@@ -100,16 +110,21 @@
     <Style TargetType="ContextMenu">
         <Setter Property="OverridesDefaultStyle" Value="True" /><Setter Property="FontFamily" Value="Microsoft YaHei UI, Segoe UI" /><Setter Property="FontSize" Value="12" /><Setter Property="HasDropShadow" Value="False" />
         <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ContextMenu">
-            <Border Background="White" CornerRadius="9" BorderBrush="#EAECF0" BorderThickness="1" Padding="5" MinWidth="158">
-                <Border.Effect><DropShadowEffect BlurRadius="12" ShadowDepth="2" Opacity="0.12" /></Border.Effect>
+            <Border Background="White" CornerRadius="9" BorderBrush="#E9EBEF" BorderThickness="1" Padding="5" MinWidth="146">
+                <Border.Effect><DropShadowEffect BlurRadius="10" ShadowDepth="1" Opacity="0.09" /></Border.Effect>
                 <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle" />
             </Border>
         </ControlTemplate></Setter.Value></Setter>
     </Style>
     <Style TargetType="MenuItem">
-        <Setter Property="Foreground" Value="#505662" /><Setter Property="Padding" Value="12,9" />
+        <Setter Property="Foreground" Value="#505662" /><Setter Property="Padding" Value="10,9" />
         <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="MenuItem">
-            <Border x:Name="MenuChrome" CornerRadius="5" Background="Transparent" Padding="{TemplateBinding Padding}"><TextBlock Text="{TemplateBinding Header}" FontSize="12" Foreground="{TemplateBinding Foreground}" /></Border>
+            <Border x:Name="MenuChrome" CornerRadius="6" Background="Transparent" Padding="{TemplateBinding Padding}">
+                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="23" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                    <ContentPresenter ContentSource="Icon" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="1" Text="{TemplateBinding Header}" FontSize="12" Foreground="{TemplateBinding Foreground}" VerticalAlignment="Center" />
+                </Grid>
+            </Border>
             <ControlTemplate.Triggers><Trigger Property="IsHighlighted" Value="True"><Setter TargetName="MenuChrome" Property="Background" Value="#F3F4F6" /></Trigger><Trigger Property="IsEnabled" Value="False"><Setter TargetName="MenuChrome" Property="Opacity" Value="0.45" /></Trigger></ControlTemplate.Triggers>
         </ControlTemplate></Setter.Value></Setter>
     </Style>

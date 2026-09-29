@@ -32,9 +32,9 @@ public sealed class FocusTaskDrawerViewModelTests
         var session = CreateSession();
         var drawer = session.TaskDrawer;
         drawer.AddTaskCommand.Execute(null);
-        Assert.False(drawer.IsDetailsExpanded);
-        Assert.Equal("展开详情", drawer.DetailsToggleText);
-        drawer.ToggleDetailsCommand.Execute(null);
+        Assert.True(drawer.IsCreating);
+        Assert.False(drawer.IsEditingTask);
+        Assert.Equal("创建任务", drawer.CommitButtonText);
         Assert.False(drawer.CreateTaskCommand.CanExecute(null));
         drawer.DraftTitle = "  任务标题  ";
         drawer.Draft!.Description = "任务描述";
@@ -43,8 +43,6 @@ public sealed class FocusTaskDrawerViewModelTests
         Assert.Equal(string.Empty, drawer.SubTaskInput);
         Assert.Equal("1/20", drawer.SubTaskCountDisplay);
         Assert.Empty(session.ActiveTarget!.Tasks);
-        drawer.ToggleDetailsCommand.Execute(null);
-        Assert.Equal("展开详情", drawer.DetailsToggleText);
         Assert.Equal("任务描述", drawer.Draft.Description);
         var saves = 0;
         session.TargetTasksChanged += (_, _) => saves++;
@@ -104,36 +102,36 @@ public sealed class FocusTaskDrawerViewModelTests
         Assert.Equal(1070, session.FocusWindowWidth);
         Assert.Same(task, drawer.SelectedTask);
         drawer.EditTaskCommand.Execute(task);
-        drawer.EditValue = "未保存";
+        Assert.True(drawer.IsEditingTask);
+        Assert.Equal("保存修改", drawer.CommitButtonText);
+        Assert.Equal("原描述", drawer.Draft!.Description);
+        Assert.Equal(subId, drawer.Draft.SubTasks[0].Id);
+        drawer.DraftTitle = "未保存";
         Assert.Equal("原任务", task.Name);
         Assert.Equal(0, saves);
-        drawer.CancelEditCommand.Execute(null);
+        drawer.CancelCreationCommand.Execute(null);
         drawer.EditTaskCommand.Execute(task);
-        drawer.EditValue = "修改任务";
-        drawer.SaveEditCommand.Execute(null);
+        drawer.DraftTitle = "修改任务";
+        drawer.Draft!.Description = "修改描述";
+        drawer.Draft.SubTasks[0].Title = "修改子任务";
+        drawer.CreateTaskCommand.Execute(null);
         Assert.Equal("修改任务", task.Name);
         Assert.Equal(1, saves);
-        drawer.EditRemarkCommand.Execute(task);
-        drawer.EditValue = "修改描述";
-        drawer.SaveEditCommand.Execute(null);
         Assert.Equal("修改描述", task.Description);
-        Assert.Equal(2, saves);
-        drawer.EditSubTaskCommand.Execute(task.SubTasks[0]);
-        drawer.EditValue = "修改子任务";
-        drawer.SaveEditCommand.Execute(null);
         Assert.Equal("修改子任务", task.SubTasks[0].Title);
-        Assert.Equal(3, saves);
         Assert.Equal(subId, task.SubTasks[0].Id);
         task.SubTasks[0].IsCompleted = true;
-        Assert.Equal(4, saves);
+        Assert.Equal(2, saves);
         Assert.True(task.IsExpanded);
         task.SubTasks[0].IsCompleted = false;
-        Assert.Equal(5, saves);
+        Assert.Equal(3, saves);
         Assert.Equal("子任务 · 0/1", task.SubTaskProgress);
         task.IsCompleted = true;
         Assert.Equal("1/1", drawer.TaskProgress);
         Assert.Single(session.SessionCompletedTasks);
-        drawer.DeleteDetailSubTaskCommand.Execute(task.SubTasks[0]);
+        drawer.EditTaskCommand.Execute(task);
+        drawer.DeleteSubTaskCommand.Execute(drawer.Draft!.SubTasks[0]);
+        drawer.CreateTaskCommand.Execute(null);
         Assert.False(task.HasSubTasks);
         Assert.Empty(task.ExportSubTasks());
         drawer.DeleteTaskCommand.Execute(task);
@@ -229,7 +227,7 @@ public sealed class FocusTaskDrawerViewModelTests
     }
 
     [Fact]
-    public void DetailsSelectOneTaskAndDiscardEditorsWhenSwitchingClosingOrDeleting()
+    public void EditorUsesTheSamePanelForCreateAndEditAndDiscardsUnsavedChanges()
     {
         var session = CreateSession();
         var drawer = session.TaskDrawer;
@@ -237,30 +235,25 @@ public sealed class FocusTaskDrawerViewModelTests
         { drawer.AddTaskCommand.Execute(null); drawer.DraftTitle = title; drawer.CreateTaskCommand.Execute(null); }
         var first = session.ActiveTarget!.Tasks[0];
         var second = session.ActiveTarget.Tasks[1];
-        Assert.False(first.HasSubTasks);
         drawer.EditTaskCommand.Execute(first);
-        drawer.EditValue = "   ";
-        drawer.SaveEditCommand.Execute(null);
-        Assert.True(drawer.IsEditingDetails);
+        Assert.True(drawer.IsCreating);
+        Assert.True(drawer.IsEditingTask);
+        Assert.Equal("第一项", drawer.DraftTitle);
+        drawer.DraftTitle = "   ";
+        Assert.False(drawer.CreateTaskCommand.CanExecute(null));
+        drawer.CancelCreationCommand.Execute(null);
         Assert.Equal("第一项", first.Name);
-        drawer.ToggleExpandedCommand.Execute(second);
-        Assert.False(first.IsExpanded);
-        Assert.True(second.IsExpanded);
-        Assert.False(drawer.IsEditingDetails);
-        drawer.EditRemarkCommand.Execute(second);
-        drawer.EditValue = "取消的备注";
+        drawer.EditTaskCommand.Execute(second);
+        drawer.Draft!.Description = "未保存的备注";
         drawer.AddTaskCommand.Execute(null);
-        Assert.Null(drawer.SelectedTask);
-        Assert.False(drawer.IsEditingDetails);
-        Assert.False(drawer.IsDetailsExpanded);
+        Assert.False(drawer.IsEditingTask);
+        Assert.Equal("创建任务", drawer.CommitButtonText);
         Assert.Equal(string.Empty, second.Description);
         drawer.CancelCreationCommand.Execute(null);
         drawer.ToggleExpandedCommand.Execute(first);
         drawer.ToggleExpandedCommand.Execute(first);
-        Assert.Null(drawer.SelectedTask);
-        drawer.ToggleExpandedCommand.Execute(second);
+        Assert.False(first.IsExpanded);
         drawer.CloseCommand.Execute(null);
-        Assert.False(second.IsExpanded);
         Assert.Null(drawer.SelectedTask);
     }
 

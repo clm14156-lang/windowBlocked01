@@ -19,7 +19,7 @@ public sealed class GoalTasksModalTests
     private static readonly XNamespace Xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
 
     [Fact]
-    public void ModalIsCompletedOnlyWithFixedSizeAndNoCreationOrTabs()
+    public void ModalShowsCompletedHistoryWithoutCreationOrTabs()
     {
         var document = XDocument.Load(Path.Combine(FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "GoalTasksModal.xaml"));
         var card = document.Descendants(Presentation + "Border").Single(element =>
@@ -28,9 +28,9 @@ public sealed class GoalTasksModalTests
         Assert.Equal("500", (string?)card.Attribute("Height"));
         Assert.Contains(card.Descendants(Presentation + "TextBlock"), element =>
             (string?)element.Attribute("Text") == "已完成任务");
-        Assert.Contains(card.Descendants(Presentation + "TextBlock"), element => (string?)element.Attribute("Text") == "{Binding TodayCompletedSummary}");
+        Assert.Contains(card.Descendants(Presentation + "TextBlock"), element => (string?)element.Attribute("Text") == "{Binding CompletedCountSummary}");
         Assert.Contains(card.Descendants(Presentation + "TextBox"), element => ((string?)element.Attribute("Text"))?.Contains("CompletedSearchQuery", StringComparison.Ordinal) == true);
-        Assert.Contains(card.Descendants(Presentation + "Button"), element => (string?)element.Attribute("Command") == "{Binding ToggleCompletedSortCommand}");
+        Assert.Contains(card.Descendants(Presentation + "MenuItem"), element => (string?)element.Attribute("Command") == "{Binding SetCompletedSortCommand}");
         Assert.Contains(card.Descendants(Presentation + "Button"), element => (string?)element.Attribute("Command") == "{Binding EnterCompletedSelectionCommand}");
         Assert.Contains(card.Descendants(Presentation + "Button"), element => (string?)element.Attribute("Command") == "{Binding RestoreSelectedCompletedCommand}");
         Assert.Contains(card.Descendants(Presentation + "Button"), element => (string?)element.Attribute("Command") == "{Binding DeleteSelectedCompletedCommand}");
@@ -45,18 +45,21 @@ public sealed class GoalTasksModalTests
             (string?)element.Attribute("Text") == "{Binding Subtitle}");
         var taskRow = Assert.Single(completed.Descendants(Presentation + "Border").Where(element =>
             (string?)element.Attribute(Xaml + "Name") == "CompletedTaskRow"));
-        Assert.Equal("42", (string?)taskRow.Attribute("Height"));
+        Assert.Equal("51", (string?)taskRow.Attribute("MinHeight"));
         Assert.Equal("0,0,0,1", (string?)taskRow.Attribute("BorderThickness"));
         Assert.Contains(taskRow.Descendants(Presentation + "TextBlock"), element =>
             (string?)element.Attribute("Text") == "{Binding Name}");
         Assert.Contains(taskRow.Descendants(Presentation + "Border"), element => (string?)element.Attribute(Xaml + "Name") == "CompletedIndicator");
         Assert.Contains(taskRow.Descendants(Presentation + "Border"), element => (string?)element.Attribute(Xaml + "Name") == "TaskCheckbox");
+        Assert.Contains(taskRow.Descendants(Presentation + "TextBlock"), element => (string?)element.Attribute(Xaml + "Name") == "CompletedTaskRemark");
+        Assert.Contains(taskRow.Descendants(Presentation + "ItemsControl"), element => (string?)element.Attribute(Xaml + "Name") == "CompletedTaskSubTasks");
+        Assert.DoesNotContain(card.Descendants(Presentation + "TextBlock"), element => (string?)element.Attribute("Text") == "仅显示已完成的任务");
         Assert.DoesNotContain(card.Descendants(Presentation + "ItemsControl"), element =>
             (string?)element.Attribute("ItemsSource") == "{Binding PendingTasks}");
     }
 
     [Fact]
-    public void CompletedModalRendersGroupsAtFixedSizeAndClosesWithEscape()
+    public void CompletedModalRendersDetailsAndSelectionAtFixedSizeAndClosesWithEscape()
     {
         Exception? failure = null;
         var thread = new Thread(() =>
@@ -70,7 +73,11 @@ public sealed class GoalTasksModalTests
                 var names = new[] { "完成登录页面", "修复自动屏蔽时间轴", "测试跨日数据", "优化移动端适配" };
                 var data = names.Select((name, index) => new LocalTaskDto($"pending-{index}", goal.GoalId, name, false, index, now.AddDays(-8), now)).ToList();
                 data.AddRange(names.Take(2).Select((name, index) => new LocalTaskDto($"completed-{index}", goal.GoalId, name, true, index + 4, now.AddDays(-8), now)
-                    { CompletedAtUtc = now.AddMinutes(-index * 60) }));
+                {
+                    CompletedAtUtc = now.AddMinutes(-index * 60),
+                    Description = index == 0 ? "检查任务备注和子任务的层级展示。" : "",
+                    SubTasks = index == 0 ? [new LocalSubTaskDto("child-0", "completed-0", "完善弹窗样式", true, 0, now.AddDays(-1), now)] : []
+                }));
                 data.AddRange(names.Skip(2).Select((name, index) => new LocalTaskDto($"yesterday-{index}", goal.GoalId, name, true, index + 6, now.AddDays(-8), now)
                     { CompletedAtUtc = now.AddDays(-1).AddMinutes(-index * 60) }));
                 model.ApplyState(goal, data);
@@ -79,7 +86,7 @@ public sealed class GoalTasksModalTests
                 var modal = new GoalTasksModal { DataContext = model };
                 foreach (var resource in new[] { "Colors", "Typography", "Strings", "Styles" })
                     modal.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri($"/FocusApp.Desktop;component/Resources/{resource}.xaml", UriKind.Relative) });
-                window = new Window { Width = 900, Height = 700, Content = modal, ShowInTaskbar = false, ShowActivated = false, WindowStyle = WindowStyle.None, Left = -32000, Top = -32000 };
+                window = new Window { Width = 980, Height = 760, Content = modal, ShowInTaskbar = false, ShowActivated = false, WindowStyle = WindowStyle.None, Left = -32000, Top = -32000 };
                 window.Show();
                 Pump();
 
@@ -92,8 +99,53 @@ public sealed class GoalTasksModalTests
                 Assert.Equal(4, model.CompletedCount);
                 Assert.Null(modal.FindName("NewTaskButton"));
                 Assert.Null(modal.FindName("PendingTasksControl"));
-                SavePreview(card);
+                var row = VisualDescendants<Border>(completed).First(element => element.Name == "CompletedTaskRow");
+                Assert.True(VisualDescendants<TextBlock>(row).Single(element => element.Name == "CompletedTaskRemark").IsVisible);
+                Assert.True(VisualDescendants<ItemsControl>(row).Single(element => element.Name == "CompletedTaskSubTasks").IsVisible);
+                var batchActions = (Grid)modal.FindName("CompletedBatchActions");
+                Assert.False(batchActions.IsVisible);
+                SavePreview(card, "completed-tasks-browse");
 
+                var firstCompleted = model.CompletedGroups[0].Tasks[0];
+                firstCompleted.IsMenuOpen = true;
+                Pump();
+                var more = VisualDescendants<Button>(row).Single(element => element.Name == "CompletedTaskMoreButton");
+                Assert.True(more.IsVisible);
+                more.RaiseEvent(new RoutedEventArgs(Button.ClickEvent, more));
+                Pump();
+                var menu = more.ContextMenu!;
+                Assert.True(menu.IsOpen);
+                var actions = menu.Items.Cast<MenuItem>().ToArray();
+                Assert.Equal(new[] { "恢复任务", "删除任务" }, actions.Select(action => action.Header));
+                Assert.All(actions, action => Assert.Same(firstCompleted, action.CommandParameter));
+                SavePreview(card, "completed-tasks-menu", menu, more);
+                menu.IsOpen = false;
+                Pump();
+                var sortButton = (Button)modal.FindName("CompletedSortButton");
+                sortButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent, sortButton));
+                Pump();
+                var sortMenu = sortButton.ContextMenu!;
+                Assert.True(sortMenu.IsOpen);
+                Assert.Equal(new[] { "最近完成", "最早完成", "任务名称", "完成时间" },
+                    sortMenu.Items.Cast<MenuItem>().Select(item => item.Header));
+                var nameSort = sortMenu.Items.Cast<MenuItem>().ElementAt(2);
+                nameSort.Command.Execute(nameSort.CommandParameter);
+                Assert.Equal("任务名称", model.CompletedSortLabel);
+                model.SetCompletedSort("Recent");
+                sortMenu.IsOpen = false;
+                Pump();
+                model.EnterCompletedSelectionMode();
+                model.ToggleCompletedTaskSelection(firstCompleted);
+                Pump();
+                Assert.True(batchActions.IsVisible);
+                Assert.False(VisualDescendants<TextBlock>(row).Single(element => element.Name == "CompletedTaskRemark").IsVisible);
+                Assert.False(VisualDescendants<ItemsControl>(row).Single(element => element.Name == "CompletedTaskSubTasks").IsVisible);
+                Assert.Equal(1, model.SelectedCompletedCount);
+                SavePreview(card, "completed-tasks-selection");
+
+                PressKey(modal, Key.Escape);
+                Pump();
+                Assert.False(model.IsSelectionMode);
                 PressKey(modal, Key.Escape);
                 Pump();
                 Assert.False(model.IsOpen);
@@ -116,7 +168,8 @@ public sealed class GoalTasksModalTests
         Assert.Contains(card.Descendants(Presentation + "Button"), element => (string?)element.Attribute("AutomationProperties.Name") == "选择已完成任务");
         Assert.Contains(card.Descendants(Presentation + "Button"), element => (string?)element.Attribute("AutomationProperties.Name") == "恢复选中");
         Assert.Contains(card.Descendants(Presentation + "Button"), element => (string?)element.Attribute("AutomationProperties.Name") == "删除选中");
-        Assert.Contains(card.Descendants(Presentation + "TextBlock"), element => (string?)element.Attribute("Text") == "已选择 ");
+        Assert.Contains(card.Descendants(Presentation + "TextBlock"), element =>
+            (string?)element.Attribute("Text") == "{Binding SelectedCompletedCount, StringFormat=已选择 {0} 项}");
     }
 
     private static void Pump() => Dispatcher.CurrentDispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
@@ -135,7 +188,7 @@ public sealed class GoalTasksModalTests
             RoutedEvent = Keyboard.PreviewKeyDownEvent
         });
 
-    private static void SavePreview(FrameworkElement card)
+    private static void SavePreview(FrameworkElement card, string name, ContextMenu? menu = null, FrameworkElement? anchor = null)
     {
         var directory = Environment.GetEnvironmentVariable("FOCUSAPP_GOAL_TASKS_QA_PATH");
         if (string.IsNullOrEmpty(directory)) return;
@@ -148,11 +201,17 @@ public sealed class GoalTasksModalTests
         {
             drawing.DrawRectangle(new SolidColorBrush(Color.FromRgb(249, 249, 250)), null, size);
             drawing.DrawRectangle(new VisualBrush(root), null, size);
+            if (menu is not null && anchor is not null)
+            {
+                var point = anchor.TranslatePoint(new Point(anchor.ActualWidth, anchor.ActualHeight), root);
+                drawing.DrawRectangle(new VisualBrush(menu), null,
+                    new Rect(point.X - menu.ActualWidth + 8, point.Y, menu.ActualWidth, menu.ActualHeight));
+            }
         }
         bitmap.Render(visual);
         var encoder = new PngBitmapEncoder();
         encoder.Frames.Add(BitmapFrame.Create(bitmap));
-        using var stream = File.Create(Path.Combine(directory, "completed-tasks.png"));
+        using var stream = File.Create(Path.Combine(directory, name + ".png"));
         encoder.Save(stream);
     }
 
