@@ -13,7 +13,6 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
     private readonly RelayCommand<object> _addSubTaskCommand;
     private bool _isOpen;
     private bool _isCreating;
-    private bool _isCompletedExpanded;
     private string _draftTitle = string.Empty;
     private string _subTaskInput = string.Empty;
     private FocusTaskViewModel? _draft;
@@ -33,7 +32,6 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
             if (task == SelectedTask) task.IsExpanded = !task.IsExpanded;
             else SelectTask(task);
         });
-        ToggleCompletedCommand = new RelayCommand<object>(_ => IsCompletedExpanded = !IsCompletedExpanded);
         EditTaskCommand = new RelayCommand<FocusTaskViewModel>(BeginTaskEdit);
         DeleteTaskCommand = new RelayCommand<FocusTaskViewModel>(task =>
         {
@@ -49,13 +47,11 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
 
     public event PropertyChangedEventHandler? PropertyChanged;
     public ObservableCollection<FocusTaskViewModel> Tasks { get; } = [];
-    public ObservableCollection<FocusTaskViewModel> CompletedTasks { get; } = [];
     public ICommand ToggleCommand { get; }
     public ICommand CloseCommand { get; }
     public ICommand AddTaskCommand { get; }
     public ICommand CancelCreationCommand { get; }
     public ICommand ToggleExpandedCommand { get; }
-    public ICommand ToggleCompletedCommand { get; }
     public ICommand EditTaskCommand { get; }
     public ICommand DeleteTaskCommand { get; }
     public ICommand CreateTaskCommand { get; }
@@ -73,9 +69,6 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
         }
     }
     public bool IsCreating { get => _isCreating; private set => Set(ref _isCreating, value); }
-    public bool IsCompletedExpanded { get => _isCompletedExpanded; private set => Set(ref _isCompletedExpanded, value); }
-    public bool HasCompletedTasks => CompletedTasks.Count > 0;
-    public string CompletedTasksLabel => $"已完成任务 {CompletedTasks.Count}";
     public bool IsEditingTask => _editingTask is not null;
     public string CommitButtonText => IsEditingTask ? "保存修改" : "创建任务";
     public string DraftTitle
@@ -91,7 +84,7 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
     }
     public string SubTaskCountDisplay => $"{_draft?.SubTasks.Count ?? 0}/20";
     public bool CanEnterSubTask => _draft?.SubTasks.Count < 20;
-    public string TaskProgress => $"{CompletedTasks.Count}/{Tasks.Count + CompletedTasks.Count}";
+    public string TaskProgress => $"{Tasks.Count(task => task.IsCompleted)}/{Tasks.Count}";
 
     internal void RefreshTasks()
     {
@@ -100,14 +93,10 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
         var completed = current.Where(item => item.IsCompleted).ToArray();
         if (SelectedTask is not null && !current.Contains(SelectedTask)) SelectTask(null);
         if (_editingTask is not null && !current.Contains(_editingTask)) CancelCreation();
-        SyncTasks(Tasks, pending);
-        SyncTasks(CompletedTasks, completed);
+        SyncTasks(Tasks, pending.Concat(completed).ToArray());
         for (var index = 0; index < pending.Length; index++) pending[index].DrawerNumber = index + 1;
         var highlighted = _selectedTask is { IsCompleted: false } ? _selectedTask : pending.FirstOrDefault();
         foreach (var currentTask in current) currentTask.IsDrawerSelected = currentTask == highlighted;
-        if (completed.Length == 0) IsCompletedExpanded = false;
-        OnPropertyChanged(nameof(HasCompletedTasks));
-        OnPropertyChanged(nameof(CompletedTasksLabel));
         OnPropertyChanged(nameof(TaskProgress));
     }
 

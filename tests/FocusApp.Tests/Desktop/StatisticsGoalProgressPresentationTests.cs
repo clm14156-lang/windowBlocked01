@@ -117,6 +117,8 @@ public sealed class StatisticsGoalProgressPresentationTests
             (string?)text.Attribute("Text") == "投入概括");
         var focusSummary = Assert.Single(current.Descendants(Presentation + "TextBlock").Where(text =>
             (string?)text.Attribute(Xaml + "Name") == "GoalTotalFocusSessionSummary"));
+        Assert.Equal("{Binding HasSelectedGoalTargetDuration, Converter={StaticResource GoalInverseVisibilityConverter}}",
+            (string?)focusSummary.Attribute("Visibility"));
         Assert.Contains(focusSummary.Elements(Presentation + "Run"), run =>
             (string?)run.Attribute("Text") == "{Binding SelectedGoalFocusSessionCount, Mode=OneWay}");
         var completedRow = Assert.Single(current.Descendants(Presentation + "Grid").Where(grid =>
@@ -128,7 +130,12 @@ public sealed class StatisticsGoalProgressPresentationTests
             (string?)text.Attribute("Text") == "待办任务");
         Assert.DoesNotContain(current.Descendants(Presentation + "TextBlock"), text =>
             (string?)text.Attribute("Text") == "下一步任务");
-        Assert.Equal(5, current.Element(Presentation + "Grid.RowDefinitions")!.Elements(Presentation + "RowDefinition").Count());
+        var sections = current.Element(Presentation + "Grid.RowDefinitions")!.Elements(Presentation + "RowDefinition").ToArray();
+        Assert.Equal(4, sections.Length);
+        Assert.Equal("156", (string?)sections[1].Attribute("Height"));
+        Assert.Equal("{StaticResource GroupVerticalInset}", (string?)current.Elements(Presentation + "Grid")
+            .Single(grid => (string?)grid.Attribute(Xaml + "Name") == "GoalInvestmentMetrics").Attribute("Margin"));
+        Assert.Equal("2", (string?)Assert.Single(current.Elements(Presentation + "Border")).Attribute("Grid.Row"));
     }
 
     [Fact]
@@ -360,9 +367,9 @@ public sealed class StatisticsGoalProgressPresentationTests
     public void GoalListPanelUses190WidthAndSelectedRowsReachItsLeftEdge()
     {
         var page = XDocument.Load(Path.Combine(FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
-        var layout = page.Descendants(Presentation + "StackPanel").Single(element =>
+        var layout = page.Descendants(Presentation + "Grid").Single(element =>
             (string?)element.Attribute(Xaml + "Name") == "GoalsPageLayout");
-        Assert.Equal("4,0,3,0", (string?)layout.Attribute("Margin"));
+        Assert.Null(layout.Attribute("Margin"));
 
         var columns = Assert.Single(layout.Descendants(Presentation + "Grid").Where(grid =>
             grid.Elements(Presentation + "Grid.ColumnDefinitions").Any(definitions =>
@@ -371,13 +378,13 @@ public sealed class StatisticsGoalProgressPresentationTests
             .Elements(Presentation + "Grid.ColumnDefinitions")
             .Elements(Presentation + "ColumnDefinition")
             .Select(column => (string?)column.Attribute("Width"));
-        Assert.Equal(new[] { "190", "8", null }, columns);
+        Assert.Equal(new[] { "190", "{StaticResource CardColumnGap}", null }, columns);
 
         var goalList = layout.Descendants(Presentation + "ItemsControl").Single(control =>
             (string?)control.Attribute("ItemsSource") == "{Binding VisibleGoals}");
         var scrollViewer = Assert.Single(goalList.Ancestors(Presentation + "ScrollViewer")
-            .Where(element => (string?)element.Attribute("Margin") == "-20,10,-10,0"));
-        Assert.Equal("-20,10,-10,0", (string?)scrollViewer.Attribute("Margin"));
+            .Where(element => (string?)element.Attribute("Margin") == "{StaticResource CardListBleed}"));
+        Assert.Equal("{StaticResource CardListBleed}", (string?)scrollViewer.Attribute("Margin"));
         var goalRow = goalList.Descendants(Presentation + "Grid").Single(grid =>
             (string?)grid.Attribute(Xaml + "Name") == "GoalRowRoot");
         Assert.Equal("0,0,0,4", (string?)goalRow.Attribute("Margin"));
@@ -402,8 +409,8 @@ public sealed class StatisticsGoalProgressPresentationTests
         var goalList = outerCard.Descendants(Presentation + "ItemsControl").Single(control =>
             (string?)control.Attribute("ItemsSource") == "{Binding VisibleGoals}");
         var scrollViewer = Assert.Single(goalList.Ancestors(Presentation + "ScrollViewer")
-            .Where(element => (string?)element.Attribute("Margin") == "-20,10,-10,0"));
-        Assert.Equal("-20,10,-10,0", (string?)scrollViewer.Attribute("Margin"));
+            .Where(element => (string?)element.Attribute("Margin") == "{StaticResource CardListBleed}"));
+        Assert.Equal("{StaticResource CardListBleed}", (string?)scrollViewer.Attribute("Margin"));
     }
 
     [Fact]
@@ -590,11 +597,13 @@ public sealed class StatisticsGoalProgressPresentationTests
                 var metrics = (FrameworkElement)page.FindName("GoalInvestmentMetrics");
                 var progressBar = (ProgressBar)page.FindName("GoalInvestmentProgressBar");
                 var totalInvestmentText = (TextBlock)page.FindName("GoalTotalInvestmentText");
+                var focusSessionSummary = (TextBlock)page.FindName("GoalTotalFocusSessionSummary");
                 var weeklyComparison = (FrameworkElement)page.FindName("GoalWeeklyInvestmentComparison");
                 var weeklyComparisonIcon = (Image)page.FindName("GoalWeeklyInvestmentComparisonIcon");
                 var weeklyComparisonPercent = (TextBlock)page.FindName("GoalWeeklyInvestmentComparisonPercent");
                 var metadata = (TextBlock)page.FindName("GoalDetailMetadata");
                 Assert.Equal(Visibility.Visible, progress.Visibility);
+                Assert.Equal(Visibility.Collapsed, focusSessionSummary.Visibility);
                 Assert.Equal(BindingStatus.Active,
                     progress.GetBindingExpression(UIElement.VisibilityProperty)!.Status);
                 Assert.Equal(BindingStatus.Active,
@@ -627,6 +636,7 @@ public sealed class StatisticsGoalProgressPresentationTests
                 viewModel.SelectedGoal.UpdateDetails(null, null);
                 page.UpdateLayout();
                 Assert.Equal(Visibility.Collapsed, progress.Visibility);
+                Assert.Equal(Visibility.Visible, focusSessionSummary.Visibility);
                 Assert.Equal(0, progressBar.Value);
                 Assert.Equal(Visibility.Visible, metadata.Visibility);
                 Assert.Equal("创建日期未知", metadata.Text);

@@ -60,7 +60,7 @@ public sealed class GoalInvestmentTrendTests
         model.SetHoveredPointNearestTo(emptyDay.ChartX);
         model.SelectHoveredDate();
         Assert.Equal(0, emptyDay.Minutes);
-        Assert.Equal(174, emptyDay.ChartY);
+        Assert.Equal(130, emptyDay.ChartY);
         Assert.True(emptyDay.IsSelected);
         Assert.True(emptyDay.IsMarkerVisible);
         Assert.False(point.IsSelected);
@@ -174,6 +174,11 @@ public sealed class GoalInvestmentTrendTests
         Assert.DoesNotContain(rangeButtonStyle.Descendants(Presentation + "Setter"), setter =>
             (string?)setter.Attribute("Property") == "Background" &&
             (string?)setter.Attribute("Value") == "{DynamicResource AccentPrimary}");
+        Assert.Contains(rangeButtonStyle.Descendants(Presentation + "Trigger"), trigger =>
+            (string?)trigger.Attribute("Property") == "Tag" &&
+            trigger.Descendants(Presentation + "Setter").Any(setter =>
+                (string?)setter.Attribute("Property") == "Foreground" &&
+                (string?)setter.Attribute("Value") == "{DynamicResource AccentPrimary}"));
         var monthPicker = modal.Descendants(Presentation + "Border").Single(element => (string?)element.Attribute(Xaml + "Name") == "MonthPickerSurface");
         Assert.Null(monthPicker.Attribute("Height"));
         Assert.Equal("180", (string?)monthPicker.Attribute("Width"));
@@ -211,7 +216,7 @@ public sealed class GoalInvestmentTrendTests
         var tooltip = chart.Descendants(Presentation + "Border")
             .Single(element => (string?)element.Attribute(Xaml + "Name") == "TrendTooltip");
         Assert.Equal("210", (string?)tooltip.Attribute("Width"));
-        Assert.Equal("175", (string?)tooltip.Attribute("Height"));
+        Assert.Equal("154", (string?)tooltip.Attribute("Height"));
         Assert.Contains(chart.Descendants(Presentation + "ItemsControl"), items =>
             (string?)items.Attribute("ItemsSource") == "{Binding VisibleHoverDayTasks}");
     }

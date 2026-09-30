@@ -31,7 +31,7 @@ public sealed class FocusTaskDrawerLayoutTests
     }
 
     [Fact]
-    public void DrawerRendersNotesMenuSubtasksAndCompletedSectionWithinFixedSize()
+    public void DrawerRendersNotesMenuSubtasksAndCompletedItemsWithinFixedSize()
     {
         Exception? failure = null;
         var thread = new Thread(() =>
@@ -123,18 +123,32 @@ public sealed class FocusTaskDrawerLayoutTests
 
                 vm.AddTaskCommand.Execute(null);
                 Render("creating");
-                vm.CancelCreationCommand.Execute(null);
+                var scrim = (Border)drawer.FindName("TaskEditorScrim");
+                var editor = (Border)drawer.FindName("TaskEditorPanel");
+                Assert.True(scrim.IsVisible);
+                Assert.InRange(drawer.ActualWidth - scrim.ActualWidth, 0, 2);
+                Assert.Equal(3, Grid.GetRowSpan(scrim));
+                Assert.Equal(1, Panel.GetZIndex(scrim));
+                Assert.Equal(2, Panel.GetZIndex((UIElement)editor.Parent));
+                editor.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left)
+                {
+                    RoutedEvent = UIElement.MouseLeftButtonDownEvent
+                });
+                Assert.True(vm.IsCreating);
+                scrim.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left)
+                {
+                    RoutedEvent = UIElement.MouseLeftButtonDownEvent
+                });
+                Assert.False(vm.IsCreating);
+                Assert.False(scrim.IsVisible);
 
                 task.IsCompleted = true;
                 host.UpdateLayout();
-                Assert.Equal(new[] { next }, vm.Tasks);
-                Assert.Equal(new[] { task }, vm.CompletedTasks);
+                Assert.Equal(new[] { next, task }, vm.Tasks);
                 Assert.Equal("1/2", vm.TaskProgress);
-                var completedList = (ItemsControl)drawer.FindName("DrawerCompletedTaskList");
-                Assert.False(completedList.IsVisible);
-                vm.ToggleCompletedCommand.Execute(null);
-                host.UpdateLayout();
-                Assert.True(completedList.IsVisible);
+                Assert.True(note.IsVisible);
+                Assert.True(toggle.IsVisible);
+                Assert.Equal(2, ((ItemsControl)drawer.FindName("DrawerTaskList")).Items.Count);
                 Render("completed");
             }
             catch (Exception exception) { failure = exception; }
@@ -154,8 +168,14 @@ public sealed class FocusTaskDrawerLayoutTests
         var presentation = XNamespace.Get("http://schemas.microsoft.com/winfx/2006/xaml/presentation");
         Assert.Equal("270", (string?)document.Root!.Attribute("Width"));
         Assert.Equal("710", (string?)document.Root.Attribute("Height"));
+        Assert.DoesNotContain(document.Descendants(), item =>
+            (string?)item.Attribute(xaml + "Name") is "CompletedTasksToggle" or "DrawerCompletedTaskList");
         Assert.DoesNotContain(document.Descendants(), item => (string?)item.Attribute(xaml + "Name") is "TaskCard" or "InlineEditor" or "CreationSheet");
         Assert.Single(document.Descendants(presentation + "Border").Where(item => (string?)item.Attribute(xaml + "Name") == "TaskEditorPanel"));
+        var scrim = Assert.Single(document.Descendants(presentation + "Border").Where(item => (string?)item.Attribute(xaml + "Name") == "TaskEditorScrim"));
+        Assert.Equal("3", (string?)scrim.Attribute("Grid.RowSpan"));
+        Assert.Equal("TaskEditorScrim_MouseLeftButtonDown", (string?)scrim.Attribute("MouseLeftButtonDown"));
+        Assert.DoesNotContain(document.Descendants(presentation + "Border"), item => (string?)item.Attribute("Background") == "#FF791D");
         Assert.DoesNotContain(document.Descendants(presentation + "MenuItem"), item => (string?)item.Attribute("Header") is "编辑任务名称" or "编辑备注");
         Assert.Equal(new[] { "编辑任务", "删除任务" }, document.Descendants(presentation + "MenuItem").Select(item => (string?)item.Attribute("Header")));
         var more = Assert.Single(document.Descendants(presentation + "Button").Where(item =>

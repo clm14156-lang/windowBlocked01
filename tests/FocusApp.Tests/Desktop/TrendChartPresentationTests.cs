@@ -31,7 +31,7 @@ public sealed class TrendChartPresentationTests
         var interactionArea = Assert.Single(chart.Descendants(Presentation + "Border").Where(border =>
             (string?)border.Attribute(Xaml + "Name") == "TrendInteractionArea"));
         Assert.Equal("562", (string?)interactionArea.Attribute("Width"));
-        Assert.Equal("159", (string?)interactionArea.Attribute("Height"));
+        Assert.Equal("120", (string?)interactionArea.Attribute("Height"));
         Assert.Equal("8,0,0,0", (string?)interactionArea.Attribute("Margin"));
         Assert.Equal("TrendInteractionArea_MouseMove", (string?)interactionArea.Attribute("MouseMove"));
         Assert.Equal("TrendInteractionArea_MouseLeave", (string?)interactionArea.Attribute("MouseLeave"));
@@ -43,7 +43,7 @@ public sealed class TrendChartPresentationTests
         Assert.Equal("{Binding HoveredPoint.ChartX}", (string?)crosshair.Attribute("X1"));
         Assert.Equal("{Binding HoveredPoint.ChartX}", (string?)crosshair.Attribute("X2"));
         Assert.Equal("0", (string?)crosshair.Attribute("Y1"));
-        Assert.Equal("159", (string?)crosshair.Attribute("Y2"));
+        Assert.Equal("120", (string?)crosshair.Attribute("Y2"));
         Assert.Contains(crosshair.Descendants(Presentation + "DataTrigger"), trigger =>
             (string?)trigger.Attribute("Binding") == "{Binding IsTooltipOpen}" &&
             (string?)trigger.Attribute("Value") == "True");

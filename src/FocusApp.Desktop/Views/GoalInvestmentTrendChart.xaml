@@ -2,7 +2,7 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="clr-namespace:FocusApp.Desktop.ViewModels"
-             Width="638" Height="214"
+             Width="638" Height="166"
              TextElement.FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI"
              TextElement.FontSize="13" TextElement.FontWeight="Normal"
              UseLayoutRounding="True" SnapsToDevicePixels="True">
@@ -16,7 +16,7 @@
         </Style>
         <Style x:Key="TrendVerticalGuideLineStyle" TargetType="{x:Type Line}">
             <Setter Property="Y1" Value="28"/>
-            <Setter Property="Y2" Value="174"/>
+            <Setter Property="Y2" Value="130"/>
             <Setter Property="Stroke" Value="#C9CDD4"/>
             <Setter Property="StrokeThickness" Value="1"/>
             <Setter Property="StrokeDashArray" Value="3,3"/>
@@ -109,7 +109,7 @@
             </ItemsControl.ItemTemplate>
         </ItemsControl>
 
-        <Border x:Name="TrendTooltip" Panel.ZIndex="6" Width="210" Height="175" Padding="11,10" UseLayoutRounding="False"
+        <Border x:Name="TrendTooltip" Panel.ZIndex="6" Width="210" Height="154" Padding="11,10" UseLayoutRounding="False"
                 HorizontalAlignment="Left" VerticalAlignment="Top" Background="White" BorderBrush="#E2E5EA"
                 BorderThickness="1" CornerRadius="9" MouseEnter="TrendTooltip_MouseEnter" MouseLeave="TrendTooltip_MouseLeave">
             <Border.RenderTransform><TranslateTransform X="{Binding TooltipLeft}" Y="{Binding TooltipTop}"/></Border.RenderTransform>
@@ -166,7 +166,7 @@
             </Grid>
         </Border>
 
-        <Border Width="566" Height="176" Margin="44,10,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Panel.ZIndex="4" Background="Transparent"
+        <Border Width="566" Height="132" Margin="44,10,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Panel.ZIndex="4" Background="Transparent"
                 MouseMove="InteractionArea_MouseMove" MouseLeave="InteractionArea_MouseLeave"/>
     </Grid>
 </UserControl>

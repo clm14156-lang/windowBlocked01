@@ -274,23 +274,23 @@ public sealed class StatisticsOverviewViewModelTests
         var fourHourTick = Assert.Single(viewModel.YAxisTicks, tick => tick.Minutes == 240);
         var zeroHourTick = Assert.Single(viewModel.YAxisTicks, tick => tick.Minutes == 0);
         Assert.Equal(0, twentyFourHourTick.ChartY);
-        Assert.Equal(132.5, fourHourTick.ChartY, 5);
-        Assert.Equal(159, zeroHourTick.ChartY);
+        Assert.Equal(100, fourHourTick.ChartY, 5);
+        Assert.Equal(120, zeroHourTick.ChartY);
         Assert.All(viewModel.YAxisTicks.SkipLast(1), tick => Assert.True(tick.ShowGuideLine));
         Assert.False(viewModel.YAxisTicks[^1].ShowGuideLine);
         Assert.Equal(0, viewModel.TrendPoints[0].Minutes);
         Assert.Equal(0, viewModel.TrendPoints[0].SessionCount);
         Assert.Equal(zeroHourTick.ChartY, viewModel.TrendPoints[0].ChartY, 5);
-        Assert.Equal(145.0875, viewModel.TrendPoints[1].ChartY, 5);
-        Assert.Equal(6.625, viewModel.TrendPoints[3].ChartY, 5);
-        Assert.Equal(138.4625, viewModel.TrendPoints[5].ChartY, 5);
+        Assert.Equal(109.5, viewModel.TrendPoints[1].ChartY, 5);
+        Assert.Equal(5, viewModel.TrendPoints[3].ChartY, 5);
+        Assert.Equal(104.5, viewModel.TrendPoints[5].ChartY, 5);
         Assert.All(viewModel.TrendPoints, point => Assert.InRange(point.ChartY, twentyFourHourTick.ChartY, zeroHourTick.ChartY));
         Assert.True(viewModel.TrendPoints[3].ChartY < viewModel.YAxisTicks[1].ChartY);
         Assert.All(viewModel.TrendPoints.Select((point, index) => (point, index)), item =>
         {
             Assert.Equal(item.point.ChartX, viewModel.TrendLinePoints[item.index].X);
             Assert.Equal(item.point.ChartY, viewModel.TrendLinePoints[item.index].Y);
-            Assert.Equal(167, item.point.AxisLabelY);
+            Assert.Equal(128, item.point.AxisLabelY);
             Assert.False(item.point.IsMarkerVisible);
             Assert.False(item.point.IsValueLabelVisible);
             Assert.DoesNotContain('\n', item.point.DateLabel);
@@ -310,7 +310,7 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.True(viewModel.IsComparisonIncrease);
         Assert.Equal(293, viewModel.TrendAverageMinutes);
         Assert.Equal("4小时53分钟", viewModel.TrendAverageDurationDisplay);
-        Assert.Equal(126.6479166667, viewModel.TrendAverageY, 5);
+        Assert.Equal(95.5833333333, viewModel.TrendAverageY, 5);
         Assert.Equal(viewModel.TrendAverageY - 18, viewModel.TrendAverageLabelTop, 5);
     }
 
@@ -331,7 +331,7 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.NotEqual("14 小时 20 分钟", viewModel.PeriodTotalDisplay);
         Assert.Equal(94, viewModel.TrendAverageMinutes);
         Assert.Equal("1小时34分钟", viewModel.TrendAverageDurationDisplay);
-        Assert.Equal(96.725, viewModel.TrendAverageY, 5);
+        Assert.Equal(73, viewModel.TrendAverageY, 5);
     }
 
     [Fact]

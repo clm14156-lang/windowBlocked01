@@ -163,7 +163,7 @@ public sealed class FocusTaskDrawerViewModelTests
     }
 
     [Fact]
-    public void CompletedItemsMoveToCompletedSectionAndUncheckingRestoresTheirOriginalOrder()
+    public void CompletedItemsMoveToBottomOfTheSameListAndUncheckingRestoresTheirOriginalOrder()
     {
         var session = CreateSession();
         var drawer = session.TaskDrawer;
@@ -178,13 +178,11 @@ public sealed class FocusTaskDrawerViewModelTests
         var original = session.ActiveTarget!.Tasks.ToArray();
         original[0].IsCompleted = true;
         original[2].IsCompleted = true;
-        Assert.Equal(new[] { original[1] }, drawer.Tasks);
-        Assert.Equal(new[] { original[0], original[2] }, drawer.CompletedTasks);
+        Assert.Equal(new[] { original[1], original[0], original[2] }, drawer.Tasks);
         Assert.Equal("2/3", drawer.TaskProgress);
         Assert.Equal(original, session.ActiveTarget.Tasks);
         original[0].IsCompleted = false;
-        Assert.Equal(new[] { original[0], original[1] }, drawer.Tasks);
-        Assert.Equal(new[] { original[2] }, drawer.CompletedTasks);
+        Assert.Equal(new[] { original[0], original[1], original[2] }, drawer.Tasks);
         Assert.Equal("1/3", drawer.TaskProgress);
         var children = original[0].SubTasks.ToArray();
         children[0].IsCompleted = true;
@@ -205,8 +203,7 @@ public sealed class FocusTaskDrawerViewModelTests
         session.AdvancePreparationBy(TimeSpan.FromSeconds(5));
         Assert.Equal(2, session.TaskDrawer.Tasks.Count);
         second.IsCompleted = true;
-        Assert.Equal(new[] { first }, session.TaskDrawer.Tasks);
-        Assert.Equal(new[] { second }, session.TaskDrawer.CompletedTasks);
+        Assert.Equal(new[] { first, second }, session.TaskDrawer.Tasks);
         Assert.Equal("1/2", session.TaskDrawer.TaskProgress);
 
         session.RequestEndCommand.Execute(null);
@@ -214,7 +211,6 @@ public sealed class FocusTaskDrawerViewModelTests
         Assert.True(session.Start(30, target));
         session.AdvancePreparationBy(TimeSpan.FromSeconds(5));
         Assert.Empty(session.TaskDrawer.Tasks);
-        Assert.Empty(session.TaskDrawer.CompletedTasks);
         Assert.Empty(session.PendingTasks);
         Assert.Equal("0/0", session.TaskDrawer.TaskProgress);
         Assert.Equal(2, target.Tasks.Count);

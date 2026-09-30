@@ -53,8 +53,8 @@ public sealed class GoalVipLockedPresentationTests
                 var button = (Button)page.FindName("GoalVipUnlockButton");
                 var width = right.ActualWidth;
                 Assert.Equal(190, left.ActualWidth);
-                Assert.Equal(604, left.ActualHeight);
-                Assert.Equal(604, right.ActualHeight);
+                Assert.InRange(left.ActualHeight, page.ActualHeight - 64, page.ActualHeight - 62);
+                Assert.InRange(right.ActualHeight, page.ActualHeight - 64, page.ActualHeight - 62);
                 Assert.True(locked.IsVisible);
                 Assert.False(unlocked.IsVisible);
                 Assert.False(guide.IsVisible);

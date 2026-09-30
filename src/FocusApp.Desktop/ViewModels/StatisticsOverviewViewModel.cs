@@ -17,7 +17,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     private const double ChartLeft = 8;
     private const double ChartWidth = 562;
     private const double TrendPlotTop = 0;
-    private const double TrendPlotBottom = 159;
+    private const double TrendPlotBottom = 120;
     private const double TrendPlotHeight = TrendPlotBottom - TrendPlotTop;
     private const int CompactTrendTickIntervalMinutes = 2 * 60;
     private const int ExpandedTrendTickIntervalMinutes = 4 * 60;
@@ -1000,6 +1000,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     public string MonthlyAverageMinutesUnitDisplay => HasMonthlyFocusData && (MonthlyAverageMinutes < 60 || MonthlyAverageMinutes % 60 > 0) ? "分钟" : string.Empty;
     public string MonthlyTotalChangeDisplay => FormatMonthlyPercentChange(MonthlyTotalMinutes, _previousMonthlyTotalMinutes);
     public string MonthlyFocusDaysChangeDisplay => $"{MonthlyFocusDays - _previousMonthlyFocusDays:+0;-0;0}天";
+    public bool IsMonthlyFocusDaysIncrease => MonthlyFocusDays > _previousMonthlyFocusDays;
     public string MonthlyAverageChangeDisplay => FormatMonthlyPercentChange(MonthlyAverageMinutes, _previousMonthlyAverageMinutes);
     public string MonthlyTotalComparisonDisplay => $"较上月 {MonthlyTotalChangeDisplay}";
     public string MonthlyFocusDaysComparisonDisplay => $"较上月 {MonthlyFocusDaysChangeDisplay}";
@@ -2058,6 +2059,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(MonthlyAverageComparisonDisplay));
         OnPropertyChanged(nameof(MonthlyTotalChangeDisplay));
         OnPropertyChanged(nameof(MonthlyFocusDaysChangeDisplay));
+        OnPropertyChanged(nameof(IsMonthlyFocusDaysIncrease));
         OnPropertyChanged(nameof(MonthlyAverageChangeDisplay));
         SelectCalendarDayInternal(selectedDate);
     }
@@ -3240,7 +3242,7 @@ public sealed class TrendDataPointViewModel : INotifyPropertyChanged
 
     public double ChartY { get; }
 
-    public double AxisLabelY => 167;
+    public double AxisLabelY => 128;
 
     public bool IsKeyPoint { get; }
 

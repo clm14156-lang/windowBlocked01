@@ -14,7 +14,7 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
     internal const double PlotLeft = 44;
     internal const double PlotRight = 610;
     internal const double PlotTop = 28;
-    internal const double PlotBottom = 174;
+    internal const double PlotBottom = 130;
     private const double PlotWidth = PlotRight - PlotLeft;
     private const double PlotHeight = PlotBottom - PlotTop;
     private readonly Func<DateTime> _now;
@@ -179,7 +179,7 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
     public bool IsTooltipOpen => HoveredPoint is not null;
     public double TooltipLeft => HoveredPoint is null ? 0 :
         HoveredPoint.ChartX + 222 <= 638 ? HoveredPoint.ChartX + 12 : HoveredPoint.ChartX - 222;
-    public double TooltipTop => HoveredPoint is null ? 0 : Math.Clamp(HoveredPoint.ChartY - 100, 0, 39);
+    public double TooltipTop => HoveredPoint is null ? 0 : Math.Clamp(HoveredPoint.ChartY - 100, 0, 12);
     public string SelectedDateTitle => $"{_selectedDate:M月d日}";
     public string SelectedDateSummary
     {

@@ -31,7 +31,7 @@
         <Style x:Key="TrendRangeButton" TargetType="Button">
             <Setter Property="Height" Value="32"/><Setter Property="Padding" Value="12,0"/>
             <Setter Property="Background" Value="Transparent"/><Setter Property="BorderBrush" Value="Transparent"/><Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/><Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/><Setter Property="FontSize" Value="12"/>
             <Setter Property="Cursor" Value="Hand"/><Setter Property="FocusVisualStyle" Value="{x:Null}"/>
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
                 <Border x:Name="Surface" Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6">
@@ -39,7 +39,7 @@
                 </Border>
                 <ControlTemplate.Triggers>
                     <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Surface" Property="Background" Value="#E9EDF2"/></Trigger>
-                    <Trigger Property="Tag" Value="{StaticResource SelectedRangeValue}"><Setter TargetName="Surface" Property="Background" Value="White"/><Setter TargetName="Surface" Property="BorderBrush" Value="#E7EAF0"/><Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/><Setter TargetName="Surface" Property="Effect"><Setter.Value><DropShadowEffect BlurRadius="7" ShadowDepth="1" Opacity="0.12"/></Setter.Value></Setter></Trigger>
+                    <Trigger Property="Tag" Value="{StaticResource SelectedRangeValue}"><Setter TargetName="Surface" Property="Background" Value="White"/><Setter TargetName="Surface" Property="BorderBrush" Value="#E7EAF0"/><Setter Property="Foreground" Value="{DynamicResource AccentPrimary}"/><Setter TargetName="Surface" Property="Effect"><Setter.Value><DropShadowEffect BlurRadius="7" ShadowDepth="1" Opacity="0.12"/></Setter.Value></Setter></Trigger>
                 </ControlTemplate.Triggers>
             </ControlTemplate></Setter.Value></Setter>
         </Style>
@@ -81,26 +81,26 @@
 
     <Grid Background="{DynamicResource ModalScrim}" MouseDown="Overlay_MouseDown">
         <Border x:Name="TrendModalCard" Width="700" Height="460" HorizontalAlignment="Center" VerticalAlignment="Center"
-                Padding="22,18" Background="White" BorderBrush="#E8E9EC" BorderThickness="1" CornerRadius="18" MouseDown="ModalCard_MouseDown">
+                Padding="22,24" Background="White" BorderBrush="#E8E9EC" BorderThickness="1" CornerRadius="18" MouseDown="ModalCard_MouseDown">
             <Border.Effect><DropShadowEffect BlurRadius="28" ShadowDepth="5" Direction="270" Opacity="0.12"/></Border.Effect>
             <Grid>
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="46"/><RowDefinition Height="42"/><RowDefinition Height="76"/>
-                    <RowDefinition Height="1"/><RowDefinition Height="40"/><RowDefinition/>
+                    <RowDefinition Height="52"/><RowDefinition Height="46"/><RowDefinition Height="91"/>
+                    <RowDefinition Height="1"/><RowDefinition Height="55"/><RowDefinition/>
                 </Grid.RowDefinitions>
                 <Grid Grid.RowSpan="2">
-                    <Grid.RowDefinitions><RowDefinition Height="46"/><RowDefinition Height="42"/></Grid.RowDefinitions>
+                    <Grid.RowDefinitions><RowDefinition Height="52"/><RowDefinition Height="46"/></Grid.RowDefinitions>
                     <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                    <StackPanel VerticalAlignment="Top" Margin="0,-1,12,0">
+                    <StackPanel VerticalAlignment="Top" Margin="0,0,12,0">
                         <TextBlock Text="{Binding GoalName}" FontSize="22" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip="{Binding GoalRemark}"/>
-                        <TextBlock Text="投入趋势" FontSize="12" Foreground="{DynamicResource TextSecondary}" Margin="0,2,0,0"/>
+                        <TextBlock Text="投入趋势" FontSize="12" Foreground="{DynamicResource TextSecondary}" Margin="0,4,0,0"/>
                     </StackPanel>
-                    <Button Grid.Column="1" Width="24" Height="24" Margin="0,-8,-6,0" HorizontalAlignment="Right" VerticalAlignment="Top" Style="{StaticResource TrendQuietButton}" Command="{Binding CloseCommand}" AutomationProperties.Name="关闭投入趋势">
+                    <Button Grid.Column="1" Width="24" Height="24" Margin="0,0,-6,0" HorizontalAlignment="Right" VerticalAlignment="Top" Style="{StaticResource TrendQuietButton}" Command="{Binding CloseCommand}" AutomationProperties.Name="关闭投入趋势">
                         <TextBlock Text="×" FontSize="22" Foreground="{DynamicResource TextWeak}"/>
                     </Button>
                     <StackPanel Grid.Row="1" VerticalAlignment="Center">
                         <TextBlock Text="投入概览" FontSize="17" FontWeight="SemiBold"/>
-                        <TextBlock Text="{Binding OverviewSubtitle}" Margin="0,1,0,0" FontSize="11" Foreground="{DynamicResource TextSecondary}"/>
+                        <TextBlock Text="{Binding OverviewSubtitle}" Margin="0,4,0,0" FontSize="11" Foreground="{DynamicResource TextSecondary}"/>
                     </StackPanel>
                     <Border x:Name="RangeSelectorSurface" Grid.Row="1" Grid.Column="1" Height="34" HorizontalAlignment="Right" VerticalAlignment="Center" Background="#F2F4F7" BorderBrush="#F2F4F7" BorderThickness="1" CornerRadius="9">
                         <Grid>
@@ -142,12 +142,12 @@
                     <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="1"/><ColumnDefinition/><ColumnDefinition Width="1"/><ColumnDefinition/></Grid.ColumnDefinitions>
                     <Grid Grid.Column="0" Margin="0,0,12,0">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="52"/><ColumnDefinition/></Grid.ColumnDefinitions>
-                        <Border Width="40" Height="40" HorizontalAlignment="Left" Background="#FFF3EB" CornerRadius="20">
+                        <Border Width="44" Height="44" HorizontalAlignment="Left" Background="#FFF3EB" CornerRadius="22">
                             <Grid Width="20" Height="20"><Ellipse Stroke="{DynamicResource AccentPrimary}" StrokeThickness="1.8"/><Path Data="M 10,4 L 10,10 L 15,12" Stroke="{DynamicResource AccentPrimary}" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/></Grid>
                         </Border>
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
                             <TextBlock Text="{Binding PeriodInvestmentTitle}" FontSize="12" Foreground="{DynamicResource TextSecondary}"/>
-                            <Viewbox Height="36" Margin="0,3,0,0" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left">
+                            <Viewbox Height="36" Margin="0,8,0,0" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left">
                                 <TextBlock x:Name="PeriodInvestmentValue"><Run Text="{Binding PeriodInvestment.HoursValue, Mode=OneWay}" FontSize="28" FontWeight="SemiBold"/><Run Text="{Binding PeriodInvestment.HoursUnitWithLeadingSpace, Mode=OneWay}" FontSize="12"/><Run Text="{Binding PeriodInvestment.MinutesValueWithLeadingSpace, Mode=OneWay}" FontSize="28" FontWeight="SemiBold"/><Run Text="{Binding PeriodInvestment.MinutesUnitWithLeadingSpace, Mode=OneWay}" FontSize="12"/></TextBlock>
                             </Viewbox>
                         </StackPanel>
@@ -155,26 +155,26 @@
                     <Border Grid.Column="1" Height="52" Background="#ECEEF2"/>
                     <Grid Grid.Column="2" Margin="18,0,12,0">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="52"/><ColumnDefinition/></Grid.ColumnDefinitions>
-                        <Border Width="40" Height="40" HorizontalAlignment="Left" Background="#FFF3EB" CornerRadius="20"><Path Width="18" Height="20" Stretch="Uniform" Data="M 3,4 L 17,4 Q 19,4 19,6 L 19,18 Q 19,20 17,20 L 3,20 Q 1,20 1,18 L 1,6 Q 1,4 3,4 M 1,9 L 19,9 M 5,1 L 5,6 M 15,1 L 15,6" Stroke="{DynamicResource AccentPrimary}" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/></Border>
-                        <StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="活跃天数" FontSize="12" Foreground="{DynamicResource TextSecondary}"/><TextBlock x:Name="ActiveDaysValue" Margin="0,3,0,0"><Run Text="{Binding ActiveDays, Mode=OneWay}" FontSize="28" FontWeight="SemiBold"/><Run Text=" 天" FontSize="12"/></TextBlock></StackPanel>
+                        <Border Width="44" Height="44" HorizontalAlignment="Left" Background="#FFF3EB" CornerRadius="22"><Path Width="18" Height="20" Stretch="Uniform" Data="M 3,4 L 17,4 Q 19,4 19,6 L 19,18 Q 19,20 17,20 L 3,20 Q 1,20 1,18 L 1,6 Q 1,4 3,4 M 1,9 L 19,9 M 5,1 L 5,6 M 15,1 L 15,6" Stroke="{DynamicResource AccentPrimary}" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/></Border>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="活跃天数" FontSize="12" Foreground="{DynamicResource TextSecondary}"/><TextBlock x:Name="ActiveDaysValue" Margin="0,8,0,0"><Run Text="{Binding ActiveDays, Mode=OneWay}" FontSize="28" FontWeight="SemiBold"/><Run Text=" 天" FontSize="12"/></TextBlock></StackPanel>
                     </Grid>
                     <Border Grid.Column="3" Height="52" Background="#ECEEF2"/>
                     <Grid Grid.Column="4" Margin="18,0,0,0">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="52"/><ColumnDefinition/></Grid.ColumnDefinitions>
-                        <Border Width="40" Height="40" HorizontalAlignment="Left" Background="#FFF3EB" CornerRadius="20"><Grid Width="19" Height="21"><Border Width="3" Height="8" HorizontalAlignment="Left" VerticalAlignment="Bottom" Background="{DynamicResource AccentPrimary}" CornerRadius="1.5"/><Border Width="3" Height="14" VerticalAlignment="Bottom" Background="{DynamicResource AccentPrimary}" CornerRadius="1.5"/><Border Width="3" Height="21" HorizontalAlignment="Right" Background="{DynamicResource AccentPrimary}" CornerRadius="1.5"/></Grid></Border>
+                        <Border Width="44" Height="44" HorizontalAlignment="Left" Background="#FFF3EB" CornerRadius="22"><Grid Width="19" Height="21"><Border Width="3" Height="8" HorizontalAlignment="Left" VerticalAlignment="Bottom" Background="{DynamicResource AccentPrimary}" CornerRadius="1.5"/><Border Width="3" Height="14" VerticalAlignment="Bottom" Background="{DynamicResource AccentPrimary}" CornerRadius="1.5"/><Border Width="3" Height="21" HorizontalAlignment="Right" Background="{DynamicResource AccentPrimary}" CornerRadius="1.5"/></Grid></Border>
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
                             <TextBlock Text="平均时长" FontSize="12" Foreground="{DynamicResource TextSecondary}"/>
-                            <Viewbox Height="36" Margin="0,3,0,0" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left"><TextBlock x:Name="AverageInvestmentValue"><Run Text="{Binding AverageInvestment.HoursValue, Mode=OneWay}" FontSize="28" FontWeight="SemiBold"/><Run Text="{Binding AverageInvestment.HoursUnitWithLeadingSpace, Mode=OneWay}" FontSize="12"/><Run Text="{Binding AverageInvestment.MinutesValueWithLeadingSpace, Mode=OneWay}" FontSize="28" FontWeight="SemiBold"/><Run Text="{Binding AverageInvestment.MinutesUnitWithLeadingSpace, Mode=OneWay}" FontSize="12"/></TextBlock></Viewbox>
+                            <Viewbox Height="36" Margin="0,8,0,0" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left"><TextBlock x:Name="AverageInvestmentValue"><Run Text="{Binding AverageInvestment.HoursValue, Mode=OneWay}" FontSize="28" FontWeight="SemiBold"/><Run Text="{Binding AverageInvestment.HoursUnitWithLeadingSpace, Mode=OneWay}" FontSize="12"/><Run Text="{Binding AverageInvestment.MinutesValueWithLeadingSpace, Mode=OneWay}" FontSize="28" FontWeight="SemiBold"/><Run Text="{Binding AverageInvestment.MinutesUnitWithLeadingSpace, Mode=OneWay}" FontSize="12"/></TextBlock></Viewbox>
                         </StackPanel>
                     </Grid>
                 </Grid>
 
                 <Border Grid.Row="3" Background="#E8EBF0"/>
-                <StackPanel Grid.Row="4" VerticalAlignment="Center">
+                <StackPanel x:Name="TrendSectionHeading" Grid.Row="4" VerticalAlignment="Top" Margin="0,16,0,0">
                     <TextBlock Text="投入趋势" FontSize="17" FontWeight="SemiBold"/>
-                    <TextBlock Text="{Binding TrendSubtitle}" Margin="0,1,0,0" FontSize="11" Foreground="{DynamicResource TextSecondary}"/>
+                    <TextBlock Text="{Binding TrendSubtitle}" Margin="0,4,0,0" FontSize="11" Foreground="{DynamicResource TextSecondary}"/>
                 </StackPanel>
-                <Border x:Name="TrendChartCard" Grid.Row="5" Background="Transparent"><views:GoalInvestmentTrendChart HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                <Border x:Name="TrendChartCard" Grid.Row="5" Background="Transparent"><views:GoalInvestmentTrendChart HorizontalAlignment="Center" VerticalAlignment="Top"/></Border>
 
             </Grid>
         </Border>

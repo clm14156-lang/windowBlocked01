@@ -1,0 +1,25 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+    <sys:Double x:Key="SpacingXS">4</sys:Double>
+    <sys:Double x:Key="SpacingS">8</sys:Double>
+    <sys:Double x:Key="SpacingM">12</sys:Double>
+    <sys:Double x:Key="SpacingL">16</sys:Double>
+    <sys:Double x:Key="SpacingXL">20</sys:Double>
+    <sys:Double x:Key="Spacing2XL">24</sys:Double>
+    <sys:Double x:Key="Spacing3XL">32</sys:Double>
+
+    <Thickness x:Key="PageContentInset">16,0,16,16</Thickness>
+    <Thickness x:Key="CardContentPadding">20</Thickness>
+    <Thickness x:Key="TabContentGapBelow">0,0,0,12</Thickness>
+    <Thickness x:Key="MediumGapAbove">0,12,0,0</Thickness>
+    <Thickness x:Key="SectionGapAbove">0,24,0,0</Thickness>
+    <Thickness x:Key="SectionGapBelow">0,0,0,24</Thickness>
+    <Thickness x:Key="GroupGapAbove">0,16,0,0</Thickness>
+    <Thickness x:Key="GroupVerticalInset">0,16,0,8</Thickness>
+    <Thickness x:Key="SectionDividerInset">0,24,0,16</Thickness>
+    <Thickness x:Key="SmallGapAbove">0,8,0,0</Thickness>
+    <Thickness x:Key="CardListBleed">-20,8,-20,0</Thickness>
+    <GridLength x:Key="CardColumnGap">12</GridLength>
+    <GridLength x:Key="CardRowGap">12</GridLength>
+</ResourceDictionary>

@@ -43,6 +43,11 @@ public partial class FocusTaskDrawer : UserControl
             new DoubleAnimation(16, 0, TimeSpan.FromMilliseconds(170)) { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut } });
         Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() => { DraftTaskTitleInput.Focus(); Keyboard.Focus(DraftTaskTitleInput); }));
     }
+    private void TaskEditorScrim_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (ViewModel is { IsCreating: true } vm) vm.CancelCreationCommand.Execute(null);
+        e.Handled = true;
+    }
     private void Drawer_PreviewKeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key != Key.Escape || ViewModel is not { } vm) return;

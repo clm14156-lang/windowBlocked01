@@ -6,6 +6,10 @@
              UseLayoutRounding="True"
              SnapsToDevicePixels="True">
     <UserControl.Resources>
+      <ResourceDictionary>
+        <ResourceDictionary.MergedDictionaries>
+            <ResourceDictionary Source="/FocusApp.Desktop;component/Resources/Spacing.xaml" />
+        </ResourceDictionary.MergedDictionaries>
         <views:GoalInverseVisibilityConverter x:Key="GoalInverseVisibilityConverter"/>
         <Style x:Key="GoalQuietActionStyle" TargetType="Button">
             <Setter Property="Background" Value="#F7F7F8"/><Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
@@ -482,11 +486,13 @@
                 </Setter.Value>
             </Setter>
         </Style>
+      </ResourceDictionary>
     </UserControl.Resources>
     <Grid>
-    <ScrollViewer VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Disabled">
-        <StackPanel Margin="8,0,8,10">
-            <Grid Width="288" Height="35" Margin="12,0,0,12" HorizontalAlignment="Left">
+    <ScrollViewer Margin="{StaticResource PageContentInset}" VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Disabled">
+        <Grid Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=ScrollViewer}}">
+            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+            <Grid x:Name="StatisticsTabs" Width="288" Height="35" Margin="{StaticResource TabContentGapBelow}" HorizontalAlignment="Left">
                 <StackPanel Orientation="Horizontal">
                     <RadioButton AutomationProperties.Name="{DynamicResource StatisticsOverviewTab}" Command="{Binding SelectOverviewCommand}" IsChecked="{Binding IsOverviewSelected, Mode=OneWay}" Style="{StaticResource StatisticsTabStyle}"><StackPanel Orientation="Horizontal"><TextBlock Margin="0,0,9,0" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" Text="&#xE823;" /><TextBlock VerticalAlignment="Center" FontSize="13" FontWeight="Medium" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" Text="{DynamicResource StatisticsOverviewTab}" /></StackPanel></RadioButton>
                     <RadioButton AutomationProperties.Name="{DynamicResource StatisticsCalendarTab}" Command="{Binding SelectCalendarCommand}" IsChecked="{Binding IsCalendarSelected, Mode=OneWay}" Style="{StaticResource StatisticsTabStyle}"><StackPanel Orientation="Horizontal"><TextBlock Margin="0,0,9,0" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" Text="&#xE787;" /><TextBlock VerticalAlignment="Center" FontSize="13" FontWeight="Medium" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" Text="{DynamicResource StatisticsCalendarTab}" /></StackPanel></RadioButton>
@@ -495,9 +501,10 @@
                 <Border VerticalAlignment="Bottom" Height="1" Background="{DynamicResource BorderPrimary}" Panel.ZIndex="-1" />
             </Grid>
 
-            <StackPanel TextElement.FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI" Margin="20,0,13,0" Visibility="{Binding IsOverviewSelected, Converter={StaticResource BooleanToVisibilityConverter}}">
-            <Grid Height="152" Margin="0,0,0,8">
-                <Border x:Name="TodayStatisticsCard" Padding="22,14,22,12" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" CornerRadius="16">
+            <Grid Grid.Row="1" TextElement.FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI" Visibility="{Binding IsOverviewSelected, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <Grid.RowDefinitions><RowDefinition Height="152"/><RowDefinition Height="{StaticResource CardRowGap}"/><RowDefinition Height="247"/><RowDefinition Height="{StaticResource CardRowGap}"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+            <Grid Grid.Row="0">
+                <Border x:Name="TodayStatisticsCard" Padding="{StaticResource CardContentPadding}" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" CornerRadius="16">
                     <Grid>
                         <Grid x:Name="TodayFocusEmptyState">
                             <Grid.Style>
@@ -516,11 +523,11 @@
                             </Grid.ColumnDefinitions>
                             <Grid Grid.Column="0">
                                 <Grid.RowDefinitions>
-                                    <RowDefinition Height="18" />
-                                    <RowDefinition Height="3" />
-                                    <RowDefinition Height="51" />
+                                    <RowDefinition Height="20" />
+                                    <RowDefinition Height="4" />
+                                    <RowDefinition Height="44" />
                                     <RowDefinition Height="*" />
-                                    <RowDefinition Height="14" />
+                                    <RowDefinition Height="16" />
                                 </Grid.RowDefinitions>
                                 <TextBlock Grid.Row="0" Style="{StaticResource TodayFocusCardTitleStyle}" Text="今日专注" />
                                 <StackPanel Grid.Row="2" VerticalAlignment="Center" Orientation="Horizontal">
@@ -564,13 +571,13 @@
                             </Grid.Style>
                             <Grid>
                                 <Grid.RowDefinitions>
-                                    <RowDefinition Height="22"/>
-                                    <RowDefinition Height="3"/>
-                                    <RowDefinition Height="54"/>
-                                    <RowDefinition Height="10"/>
-                                    <RowDefinition Height="9"/>
-                                    <RowDefinition Height="7"/>
-                                    <RowDefinition Height="18"/>
+                                    <RowDefinition Height="20"/>
+                                    <RowDefinition Height="4"/>
+                                    <RowDefinition Height="44"/>
+                                    <RowDefinition Height="8"/>
+                                    <RowDefinition Height="8"/>
+                                    <RowDefinition Height="4"/>
+                                    <RowDefinition Height="16"/>
                                 </Grid.RowDefinitions>
                                 <TextBlock Grid.Row="0" Style="{StaticResource TodayFocusCardTitleStyle}" Text="今日专注"/>
                                 <Grid Grid.Row="2" HorizontalAlignment="Left">
@@ -645,13 +652,13 @@
                             </Grid.Style>
                             <Grid>
                                 <Grid.RowDefinitions>
-                                    <RowDefinition Height="22"/>
-                                    <RowDefinition Height="3"/>
-                                    <RowDefinition Height="54"/>
-                                    <RowDefinition Height="10"/>
-                                    <RowDefinition Height="9"/>
-                                    <RowDefinition Height="7"/>
-                                    <RowDefinition Height="18"/>
+                                    <RowDefinition Height="20"/>
+                                    <RowDefinition Height="4"/>
+                                    <RowDefinition Height="44"/>
+                                    <RowDefinition Height="8"/>
+                                    <RowDefinition Height="8"/>
+                                    <RowDefinition Height="4"/>
+                                    <RowDefinition Height="16"/>
                                 </Grid.RowDefinitions>
                                 <TextBlock Grid.Row="0" Style="{StaticResource TodayFocusCardTitleStyle}" Text="今日专注"/>
                                 <Grid Grid.Row="2" HorizontalAlignment="Left">
@@ -717,7 +724,7 @@
                 </Border>
             </Grid>
 
-            <Border x:Name="TrendCard" Height="270" Padding="24,13,24,14" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" CornerRadius="16">
+            <Border x:Name="TrendCard" Grid.Row="2" Padding="{StaticResource CardContentPadding}" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" CornerRadius="16">
                 <Grid>
                     <Grid x:Name="TrendContent">
                         <Grid.Style>
@@ -793,7 +800,7 @@
                                     </Border>
                                 </Popup>
                             </Grid>
-                            <Grid Height="194" Margin="0,12,0,0">
+                            <Grid Height="155" Margin="{StaticResource GroupGapAbove}">
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="34" /><ColumnDefinition /></Grid.ColumnDefinitions>
                                 <ItemsControl ItemsSource="{Binding YAxisTicks}">
                                     <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
@@ -818,16 +825,16 @@
                 </Grid>
             </Border>
 
-            <Border x:Name="PeriodFocusDistributionCard" Height="178" Margin="0,10,0,0" Padding="24,9" Background="{DynamicResource SurfacePrimary}" BorderBrush="#ECECEF" BorderThickness="1" CornerRadius="16">
+            <Border x:Name="PeriodFocusDistributionCard" Grid.Row="4" Padding="{StaticResource CardContentPadding}" Background="{DynamicResource SurfacePrimary}" BorderBrush="#ECECEF" BorderThickness="1" CornerRadius="16">
                 <Grid>
-                    <Grid.RowDefinitions><RowDefinition Height="24"/><RowDefinition/></Grid.RowDefinitions>
+                    <Grid.RowDefinitions><RowDefinition Height="20"/><RowDefinition/></Grid.RowDefinitions>
                     <TextBlock x:Name="PeriodFocusDistributionTitle" Text="{Binding TrendRangeTitle, Mode=OneWay}" VerticalAlignment="Center" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}"/>
-                    <ScrollViewer x:Name="PeriodFocusDistributionScrollViewer" Grid.Row="1" Margin="0,4,0,0" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" Visibility="{Binding HasPeriodFocusDistribution, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <ScrollViewer x:Name="PeriodFocusDistributionScrollViewer" Grid.Row="1" Margin="{StaticResource GroupGapAbove}" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" Visibility="{Binding HasPeriodFocusDistribution, Converter={StaticResource BooleanToVisibilityConverter}}">
                         <ScrollViewer.Resources><Style TargetType="ScrollBar" BasedOn="{StaticResource StatisticsThinScrollBarStyle}"/></ScrollViewer.Resources>
                         <ItemsControl x:Name="PeriodFocusDistributionList" ItemsSource="{Binding PeriodFocusDistributions}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate DataType="{x:Type vm:PeriodFocusDistributionViewModel}">
-                                    <Border Height="32" Margin="0,0,4,0" BorderBrush="#F0F1F4" BorderThickness="0,0,0,1">
+                                    <Border Height="28" Margin="0,0,4,0" BorderBrush="#F0F1F4" BorderThickness="0,0,0,1">
                                         <Grid>
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="24"/><ColumnDefinition Width="156"/><ColumnDefinition/><ColumnDefinition Width="110"/></Grid.ColumnDefinitions>
                                             <Image Width="17" Height="17" Margin="0,0,7,0" Source="{Binding IconSource, Converter={x:Static views:TargetIconSourceConverter.Instance}}"/>
@@ -851,13 +858,13 @@
                     </StackPanel>
                 </Grid>
             </Border>
-            </StackPanel>
-            <StackPanel TextElement.FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI"
+            </Grid>
+            <Grid Grid.Row="1" TextElement.FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI"
                         Visibility="{Binding IsCalendarSelected, Converter={StaticResource BooleanToVisibilityConverter}}">
-                <Grid x:Name="CalendarPageLayout" Width="712" Height="602" Margin="0,3,0,0" HorizontalAlignment="Left">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="346"/><ColumnDefinition Width="10"/><ColumnDefinition Width="356"/></Grid.ColumnDefinitions>
-                    <Grid Grid.Column="0"><Grid.RowDefinitions><RowDefinition Height="440"/><RowDefinition Height="10"/><RowDefinition Height="152"/></Grid.RowDefinitions>
-                        <Border x:Name="CalendarCard" Height="440" Padding="18,20,18,16" Background="{DynamicResource SurfacePrimary}" BorderBrush="#ECECEF" BorderThickness="1" CornerRadius="10">
+                <Grid x:Name="CalendarPageLayout" HorizontalAlignment="Stretch">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="336"/><ColumnDefinition Width="{StaticResource CardColumnGap}"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <Grid Grid.Column="0"><Grid.RowDefinitions><RowDefinition Height="412"/><RowDefinition Height="{StaticResource CardRowGap}"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                        <Border x:Name="CalendarCard" Padding="{StaticResource CardContentPadding}" Background="{DynamicResource SurfacePrimary}" BorderBrush="#ECECEF" BorderThickness="1" CornerRadius="10">
                             <StackPanel>
                                 <Grid Height="30"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="66"/></Grid.ColumnDefinitions>
                                     <TextBlock Text="{Binding CalendarMonthDisplay}" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center"/>
@@ -866,7 +873,7 @@
                                         <Button Width="28" Height="28" Margin="8,0,0,0" Command="{Binding NextCalendarMonthCommand}" Style="{StaticResource CalendarMonthNavigationButtonStyle}" AutomationProperties.Name="下个月"><TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="13" Foreground="{DynamicResource TextSecondary}"/></Button>
                                     </StackPanel>
                                 </Grid>
-                                <UniformGrid Columns="7" Margin="0,20,0,8">
+                                <UniformGrid Columns="7" Margin="{StaticResource GroupVerticalInset}">
                                     <TextBlock Text="日" FontSize="12" Foreground="{DynamicResource TextSecondary}" HorizontalAlignment="Center"/>
                                     <TextBlock Text="一" FontSize="12" Foreground="{DynamicResource TextSecondary}" HorizontalAlignment="Center"/>
                                     <TextBlock Text="二" FontSize="12" Foreground="{DynamicResource TextSecondary}" HorizontalAlignment="Center"/>
@@ -879,8 +886,8 @@
                                     <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="7" ClipToBounds="False" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate DataType="{x:Type vm:CalendarDayViewModel}">
-                                            <Button Height="50"
-                                                    Margin="1"
+                                            <Button Height="48"
+                                                    Margin="0"
                                                     Padding="0"
                                                     ClipToBounds="False"
                                                     Command="{Binding DataContext.SelectCalendarDateCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
@@ -967,15 +974,15 @@
                                                                 <Setter TargetName="DaySelectionBackground" Property="Background" Value="{DynamicResource ControlHoverBackground}" />
                                                             </MultiDataTrigger>
                                                             <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                                                <DataTrigger.EnterActions><BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetName="DaySelectionBackground" Storyboard.TargetProperty="Opacity" From="0.35" To="1" Duration="0:0:0.17" FillBehavior="Stop" /></Storyboard></BeginStoryboard></DataTrigger.EnterActions>
-                                                                <DataTrigger.ExitActions><BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetName="DaySelectionBackground" Storyboard.TargetProperty="Opacity" From="0.45" To="1" Duration="0:0:0.17" FillBehavior="Stop" /></Storyboard></BeginStoryboard></DataTrigger.ExitActions>
-                                                                <Setter TargetName="DaySelectionBackground" Property="Background" Value="#FFF2E8" />
+                                                                <Setter TargetName="DaySelectionBackground" Property="Background" Value="{DynamicResource AccentPrimary}" />
                                                                 <Setter TargetName="DaySelectionBackground" Property="Opacity" Value="1" />
                                                                 <Setter TargetName="DayNumberText" Property="FontWeight" Value="Medium" />
+                                                                <Setter TargetName="DayNumberText" Property="Foreground" Value="White" />
+                                                                <Setter TargetName="DayDurationText" Property="Foreground" Value="White" />
                                                                 <Setter TargetName="DayDurationText" Property="Opacity" Value="1" />
                                                             </DataTrigger>
                                                             <MultiDataTrigger><MultiDataTrigger.Conditions><Condition Binding="{Binding IsSelected}" Value="True"/><Condition Binding="{Binding HasFocus}" Value="False"/></MultiDataTrigger.Conditions>
-                                                                <Setter TargetName="DaySelectionBackground" Property="Background" Value="#FFF2E8"/>
+                                                                <Setter TargetName="DayNumberText" Property="Grid.RowSpan" Value="2"/>
                                                             </MultiDataTrigger>
                                                         </ControlTemplate.Triggers>
                                                     </ControlTemplate>
@@ -986,29 +993,38 @@
                                 </ItemsControl>
                             </StackPanel>
                         </Border>
-                        <Border x:Name="CalendarMonthlySummary" Grid.Row="2" Padding="16,16" Background="{DynamicResource SurfacePrimary}" BorderBrush="#ECECEF" BorderThickness="1" CornerRadius="10">
+                        <Border x:Name="CalendarMonthlySummary" Grid.Row="2" Padding="{StaticResource CardContentPadding}" Background="{DynamicResource SurfacePrimary}" BorderBrush="#ECECEF" BorderThickness="1" CornerRadius="10">
                             <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/></Grid.RowDefinitions>
                                 <TextBlock Text="本月概括" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}"/>
-                                <Grid Grid.Row="1" Margin="0,18,0,0"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="1"/><ColumnDefinition/><ColumnDefinition Width="1"/><ColumnDefinition/></Grid.ColumnDefinitions>
-                                    <StackPanel Grid.Column="0" Margin="0,0,8,0"><TextBlock Text="总专注时长" FontSize="11" Foreground="{DynamicResource TextSecondary}"/>
-                                        <Viewbox Margin="0,7,0,0" Height="31" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left"><TextBlock x:Name="MonthlyTotalDuration" FontFamily="{DynamicResource FontFamilyNumeric}" Foreground="{DynamicResource TextPrimary}"><Run Text="{Binding MonthlyTotalHoursValueDisplay, Mode=OneWay}" FontSize="26" FontWeight="SemiBold"/><Run Text="{Binding MonthlyTotalHoursUnitDisplay, Mode=OneWay}" FontSize="10.5" FontWeight="Normal"/><Run Text="{Binding MonthlyTotalMinutesValueDisplay, Mode=OneWay}" FontSize="26" FontWeight="SemiBold"/><Run Text="{Binding MonthlyTotalMinutesUnitDisplay, Mode=OneWay}" FontSize="10.5" FontWeight="Normal"/></TextBlock></Viewbox>
-                                        <Border Margin="0,8,0,0" Padding="7,3" HorizontalAlignment="Left" Background="#F7F8FA" CornerRadius="10"><TextBlock FontSize="10"><Run Text="较上月 " Foreground="{DynamicResource TextSecondary}"/><Run Text="{Binding MonthlyTotalChangeDisplay, Mode=OneWay}" Foreground="{DynamicResource AccentPrimary}" FontWeight="SemiBold"/></TextBlock></Border>
+                                <Grid Grid.Row="1" Margin="{StaticResource GroupGapAbove}">
+                                    <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="1"/><ColumnDefinition/><ColumnDefinition Width="1"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0">
+                                        <Viewbox Height="38" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left"><TextBlock x:Name="MonthlyTotalDuration" FontFamily="{DynamicResource FontFamilyNumeric}" Foreground="{DynamicResource TextPrimary}"><Run Text="{Binding MonthlyTotalHoursValueDisplay, Mode=OneWay}" FontSize="30" FontWeight="Bold"/><Run Text="{Binding MonthlyTotalHoursUnitDisplay, Mode=OneWay}" FontSize="11"/><Run Text="{Binding MonthlyTotalMinutesValueDisplay, Mode=OneWay}" FontSize="30" FontWeight="Bold"/><Run Text="{Binding MonthlyTotalMinutesUnitDisplay, Mode=OneWay}" FontSize="11"/></TextBlock></Viewbox>
+                                        <TextBlock Text="总专注时长" Margin="{StaticResource SmallGapAbove}" FontSize="12" Foreground="{DynamicResource TextSecondary}"/>
+                                        <TextBlock Margin="{StaticResource MediumGapAbove}" FontSize="11" Foreground="{DynamicResource TextWeak}"><Run Text="较上月 "/><Run Text="{Binding MonthlyTotalChangeDisplay, Mode=OneWay}"/></TextBlock>
                                     </StackPanel>
-                                    <Border Grid.Column="1" Background="#ECEEF2" Height="65" VerticalAlignment="Top"/>
-                                    <StackPanel Grid.Column="2" Margin="12,0,0,0"><TextBlock Text="专注天数" FontSize="11" Foreground="{DynamicResource TextSecondary}"/>
-                                        <Viewbox Margin="0,7,0,0" Height="31" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left"><TextBlock x:Name="MonthlyFocusDays" FontFamily="{DynamicResource FontFamilyNumeric}" Foreground="{DynamicResource TextPrimary}"><Run Text="{Binding MonthlyFocusDaysValueDisplay, Mode=OneWay}" FontSize="26" FontWeight="SemiBold"/><Run Text="{Binding MonthlyFocusDaysUnitDisplay, Mode=OneWay}" FontSize="10.5" FontWeight="Normal"/></TextBlock></Viewbox>
-                                        <Border Margin="0,8,0,0" Padding="7,3" HorizontalAlignment="Left" Background="#F7F8FA" CornerRadius="10"><TextBlock FontSize="10"><Run Text="较上月 " Foreground="{DynamicResource TextSecondary}"/><Run Text="{Binding MonthlyFocusDaysChangeDisplay, Mode=OneWay}" Foreground="{DynamicResource AccentPrimary}" FontWeight="SemiBold"/></TextBlock></Border>
+                                    <Border Grid.Column="1" Background="#ECEEF2" Height="56" Margin="0,8,0,0" VerticalAlignment="Top"/>
+                                    <StackPanel Grid.Column="2" Margin="12,0,0,0">
+                                        <Viewbox Height="38" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left"><TextBlock x:Name="MonthlyFocusDays" FontFamily="{DynamicResource FontFamilyNumeric}" Foreground="{DynamicResource TextPrimary}"><Run Text="{Binding MonthlyFocusDaysValueDisplay, Mode=OneWay}" FontSize="30" FontWeight="Bold"/><Run Text="{Binding MonthlyFocusDaysUnitDisplay, Mode=OneWay}" FontSize="11"/></TextBlock></Viewbox>
+                                        <TextBlock Text="专注天数" Margin="{StaticResource SmallGapAbove}" FontSize="12" Foreground="{DynamicResource TextSecondary}"/>
+                                        <StackPanel Orientation="Horizontal" Margin="{StaticResource MediumGapAbove}">
+                                            <TextBlock Text="较上月 " FontSize="11" Foreground="{DynamicResource TextWeak}"/>
+                                            <TextBlock Text="{Binding MonthlyFocusDaysChangeDisplay, Mode=OneWay}" FontSize="11" FontWeight="SemiBold">
+                                                <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Foreground" Value="{DynamicResource TextWeak}"/><Style.Triggers><DataTrigger Binding="{Binding IsMonthlyFocusDaysIncrease}" Value="True"><Setter Property="Foreground" Value="{DynamicResource AccentPrimary}"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                                            </TextBlock>
+                                        </StackPanel>
                                     </StackPanel>
-                                    <Border Grid.Column="3" Background="#ECEEF2" Height="65" VerticalAlignment="Top"/>
-                                    <StackPanel Grid.Column="4" Margin="12,0,0,0"><TextBlock Text="日均专注" FontSize="11" Foreground="{DynamicResource TextSecondary}"/>
-                                        <Viewbox Margin="0,7,0,0" Height="31" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left"><TextBlock x:Name="MonthlyAverageDuration" FontFamily="{DynamicResource FontFamilyNumeric}" Foreground="{DynamicResource TextPrimary}"><Run Text="{Binding MonthlyAverageHoursValueDisplay, Mode=OneWay}" FontSize="26" FontWeight="SemiBold"/><Run Text="{Binding MonthlyAverageHoursUnitDisplay, Mode=OneWay}" FontSize="10.5" FontWeight="Normal"/><Run Text="{Binding MonthlyAverageMinutesValueDisplay, Mode=OneWay}" FontSize="26" FontWeight="SemiBold"/><Run Text="{Binding MonthlyAverageMinutesUnitDisplay, Mode=OneWay}" FontSize="10.5" FontWeight="Normal"/></TextBlock></Viewbox>
-                                        <Border Margin="0,8,0,0" Padding="7,3" HorizontalAlignment="Left" Background="#F7F8FA" CornerRadius="10"><TextBlock FontSize="10"><Run Text="较上月 " Foreground="{DynamicResource TextSecondary}"/><Run Text="{Binding MonthlyAverageChangeDisplay, Mode=OneWay}" Foreground="{DynamicResource AccentPrimary}" FontWeight="SemiBold"/></TextBlock></Border>
+                                    <Border Grid.Column="3" Background="#ECEEF2" Height="56" Margin="0,8,0,0" VerticalAlignment="Top"/>
+                                    <StackPanel Grid.Column="4" Margin="12,0,0,0">
+                                        <Viewbox Height="38" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left"><TextBlock x:Name="MonthlyAverageDuration" FontFamily="{DynamicResource FontFamilyNumeric}" Foreground="{DynamicResource TextPrimary}"><Run Text="{Binding MonthlyAverageHoursValueDisplay, Mode=OneWay}" FontSize="30" FontWeight="Bold"/><Run Text="{Binding MonthlyAverageHoursUnitDisplay, Mode=OneWay}" FontSize="11"/><Run Text="{Binding MonthlyAverageMinutesValueDisplay, Mode=OneWay}" FontSize="30" FontWeight="Bold"/><Run Text="{Binding MonthlyAverageMinutesUnitDisplay, Mode=OneWay}" FontSize="11"/></TextBlock></Viewbox>
+                                        <TextBlock Text="日均专注" Margin="{StaticResource SmallGapAbove}" FontSize="12" Foreground="{DynamicResource TextSecondary}"/>
+                                        <TextBlock Margin="{StaticResource MediumGapAbove}" FontSize="11" Foreground="{DynamicResource TextWeak}"><Run Text="较上月 "/><Run Text="{Binding MonthlyAverageChangeDisplay, Mode=OneWay}"/></TextBlock>
                                     </StackPanel>
                                 </Grid>
                             </Grid>
                         </Border>
                     </Grid>
-                    <Border x:Name="DailyFocusRecordCard" Grid.Column="2" Height="602" Padding="20" Background="{DynamicResource SurfacePrimary}" BorderBrush="#ECECEF" BorderThickness="1" CornerRadius="10">
+                    <Border x:Name="DailyFocusRecordCard" Grid.Column="2" Padding="{StaticResource CardContentPadding}" Background="{DynamicResource SurfacePrimary}" BorderBrush="#ECECEF" BorderThickness="1" CornerRadius="10">
                         <Grid>
                             <Grid x:Name="DailyFocusRecordContent">
                                 <Grid.Style><Style TargetType="Grid"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding CanViewDailyFocusRecord}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Grid.Style>
@@ -1089,42 +1105,42 @@
                                 <Grid.RowDefinitions><RowDefinition Height="30"/><RowDefinition/></Grid.RowDefinitions>
                                 <TextBlock x:Name="CalendarVipSelectedDate" Text="{Binding SelectedDateDisplay}" FontSize="20" FontWeight="SemiBold"
                                            Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center"/>
-                                <StackPanel x:Name="CalendarVipLockedBody" Grid.Row="1" VerticalAlignment="Center" Margin="0,0,0,10">
-                                    <Image x:Name="CalendarVipIllustration" Width="286" Height="162" HorizontalAlignment="Center" Stretch="Uniform"
+                                <StackPanel x:Name="CalendarVipLockedBody" Grid.Row="1" VerticalAlignment="Top" Margin="{StaticResource SectionGapAbove}">
+                                    <Image x:Name="CalendarVipIllustration" Width="286" Height="176" HorizontalAlignment="Center" Stretch="Uniform"
                                            RenderOptions.BitmapScalingMode="HighQuality" IsHitTestVisible="False"
                                            Source="/FocusApp.Desktop;component/Assets/Images/Illustrations/rili_vip.png"/>
                                     <TextBlock Text="解锁完整专注详情" FontSize="20" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}"
-                                               HorizontalAlignment="Center" Margin="0,22,0,0"/>
+                                               HorizontalAlignment="Center" Margin="{StaticResource GroupGapAbove}"/>
                                     <TextBlock Text="开通 VIP 后，可查看更完整的专注分析与记录" FontSize="11" Foreground="#8A94A6"
-                                               TextAlignment="Center" HorizontalAlignment="Center" Margin="0,12,0,0"/>
-                                    <Border Height="1" Background="#EEF0F4" Margin="0,26,0,18"/>
-                                    <Grid x:Name="CalendarVipFeatures" Height="120">
+                                               TextAlignment="Center" HorizontalAlignment="Center" Margin="{StaticResource SmallGapAbove}"/>
+                                    <Border Height="1" Background="#EEF0F4" Margin="{StaticResource SectionDividerInset}"/>
+                                    <Grid x:Name="CalendarVipFeatures" Height="144">
                                         <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="1"/><ColumnDefinition/><ColumnDefinition Width="1"/><ColumnDefinition/></Grid.ColumnDefinitions>
                                         <StackPanel Grid.Column="0" HorizontalAlignment="Center">
                                             <Border Width="44" Height="44" Background="#F4F5F8" CornerRadius="22" HorizontalAlignment="Center">
                                                 <Viewbox Width="23" Height="23"><Path Data="M 12,1 A 11,11 0 1 1 11.99,1 M 12,5 L 12,12 L 17,12" Stroke="#465063" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/></Viewbox>
                                             </Border>
-                                            <TextBlock Text="今日专注" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" HorizontalAlignment="Center" Margin="0,10,0,0"/>
-                                            <TextBlock FontSize="11" Foreground="#909AAC" LineHeight="18" TextAlignment="Center" HorizontalAlignment="Center" Margin="0,7,0,0"><Run Text="查看总时长与"/><LineBreak/><Run Text="专注次数"/></TextBlock>
+                                            <TextBlock Text="今日专注" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" HorizontalAlignment="Center" Margin="{StaticResource SmallGapAbove}"/>
+                                            <TextBlock FontSize="11" Foreground="#909AAC" LineHeight="18" TextAlignment="Center" HorizontalAlignment="Center" Margin="{StaticResource SmallGapAbove}"><Run Text="查看总时长与"/><LineBreak/><Run Text="专注次数"/></TextBlock>
                                         </StackPanel>
-                                        <Border Grid.Column="1" Width="1" Background="#EEF0F4" Margin="0,3,0,5"/>
+                                        <Border Grid.Column="1" Width="1" Background="#EEF0F4" Margin="0,4,0,4"/>
                                         <StackPanel Grid.Column="2" HorizontalAlignment="Center">
                                             <Border Width="44" Height="44" Background="#F4F5F8" CornerRadius="22" HorizontalAlignment="Center">
                                                 <Viewbox Width="23" Height="23"><Path Data="M 2,14 L 6,14 L 6,23 L 2,23 Z M 10,7 L 14,7 L 14,23 L 10,23 Z M 18,1 L 22,1 L 22,23 L 18,23 Z" Stroke="#465063" StrokeThickness="1.8" StrokeLineJoin="Round"/></Viewbox>
                                             </Border>
-                                            <TextBlock Text="时间分布" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" HorizontalAlignment="Center" Margin="0,10,0,0"/>
-                                            <TextBlock FontSize="11" Foreground="#909AAC" LineHeight="18" TextAlignment="Center" HorizontalAlignment="Center" Margin="0,7,0,0"><Run Text="查看时间在不同"/><LineBreak/><Run Text="目标上的分布"/></TextBlock>
+                                            <TextBlock Text="时间分布" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" HorizontalAlignment="Center" Margin="{StaticResource SmallGapAbove}"/>
+                                            <TextBlock FontSize="11" Foreground="#909AAC" LineHeight="18" TextAlignment="Center" HorizontalAlignment="Center" Margin="{StaticResource SmallGapAbove}"><Run Text="查看时间在不同"/><LineBreak/><Run Text="目标上的分布"/></TextBlock>
                                         </StackPanel>
-                                        <Border Grid.Column="3" Width="1" Background="#EEF0F4" Margin="0,3,0,5"/>
+                                        <Border Grid.Column="3" Width="1" Background="#EEF0F4" Margin="0,4,0,4"/>
                                         <StackPanel Grid.Column="4" HorizontalAlignment="Center">
                                             <Border Width="44" Height="44" Background="#F4F5F8" CornerRadius="22" HorizontalAlignment="Center">
                                                 <Viewbox Width="23" Height="23"><Path Data="M 2,4 A 1,1 0 1 0 4,4 A 1,1 0 1 0 2,4 M 2,12 A 1,1 0 1 0 4,12 A 1,1 0 1 0 2,12 M 2,20 A 1,1 0 1 0 4,20 A 1,1 0 1 0 2,20 M 9,4 L 22,4 M 9,12 L 22,12 M 9,20 L 22,20" Stroke="#465063" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/></Viewbox>
                                             </Border>
-                                            <TextBlock Text="专注记录" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" HorizontalAlignment="Center" Margin="0,10,0,0"/>
-                                            <TextBlock FontSize="11" Foreground="#909AAC" LineHeight="18" TextAlignment="Center" HorizontalAlignment="Center" Margin="0,7,0,0"><Run Text="查看当天所有"/><LineBreak/><Run Text="记录与任务名"/></TextBlock>
+                                            <TextBlock Text="专注记录" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" HorizontalAlignment="Center" Margin="{StaticResource SmallGapAbove}"/>
+                                            <TextBlock FontSize="11" Foreground="#909AAC" LineHeight="18" TextAlignment="Center" HorizontalAlignment="Center" Margin="{StaticResource SmallGapAbove}"><Run Text="查看当天所有"/><LineBreak/><Run Text="记录与任务名"/></TextBlock>
                                         </StackPanel>
                                     </Grid>
-                                    <Button x:Name="CalendarVipUnlockButton" Width="244" Height="43" HorizontalAlignment="Center" Margin="0,26,0,0"
+                                    <Button x:Name="CalendarVipUnlockButton" Width="244" Height="43" HorizontalAlignment="Center" Margin="{StaticResource SectionGapAbove}"
                                             Background="{DynamicResource AccentPrimary}" BorderThickness="0" Cursor="Hand" Click="CalendarVipUnlockButton_Click"
                                             AutomationProperties.Name="立即开通 VIP">
                                         <Button.Template><ControlTemplate TargetType="Button">
@@ -1143,11 +1159,11 @@
                     </Border>
                 </Grid>
 
-            </StackPanel>
-            <StackPanel x:Name="GoalsPageLayout" Margin="4,0,3,0" TextElement.FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI" Visibility="{Binding IsGoalsSelected, Converter={StaticResource BooleanToVisibilityConverter}}">
-                <Grid Height="604" Margin="0" VerticalAlignment="Top" HorizontalAlignment="Stretch">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="190" /><ColumnDefinition Width="8" /><ColumnDefinition /></Grid.ColumnDefinitions>
-                    <Border x:Name="GoalListPanel" Grid.Column="0" Height="604" VerticalAlignment="Top" Padding="20,16,10,44" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" CornerRadius="16">
+            </Grid>
+            <Grid x:Name="GoalsPageLayout" Grid.Row="1" TextElement.FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI" Visibility="{Binding IsGoalsSelected, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <Grid HorizontalAlignment="Stretch">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="190" /><ColumnDefinition Width="{StaticResource CardColumnGap}" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                    <Border x:Name="GoalListPanel" Grid.Column="0" Padding="{StaticResource CardContentPadding}" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" CornerRadius="16">
                         <Grid x:Name="GoalListContentContainer">
                         <DockPanel>
                             <Grid DockPanel.Dock="Top" Height="38">
@@ -1173,7 +1189,7 @@
                                     </Border>
                                 </Popup>
                             </Grid>
-                            <ScrollViewer Margin="-20,10,-10,0" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                            <ScrollViewer Margin="{StaticResource CardListBleed}" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
                                 <ScrollViewer.Resources>
                                     <Style TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource StatisticsThinScrollBarStyle}" />
                                 </ScrollViewer.Resources>
@@ -1271,26 +1287,24 @@
                         </StackPanel>
                         </Grid>
                     </Border>
-                    <Border x:Name="GoalInvestmentDetailsCard" Grid.Column="2" Height="604" Padding="20,18,20,14" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" CornerRadius="16">
+                    <Border x:Name="GoalInvestmentDetailsCard" Grid.Column="2" Padding="{StaticResource CardContentPadding}" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" CornerRadius="16">
                         <Grid>
                             <Grid x:Name="GoalExistingContent" Visibility="{Binding IsGoalCreationGuideVisible, Converter={StaticResource GoalInverseVisibilityConverter}}">
                             <Grid x:Name="GoalInvestmentDetailsContent" Visibility="{Binding CanViewGoalInvestmentDetails, Converter={StaticResource BooleanToVisibilityConverter}}">
                                 <Grid x:Name="CurrentGoalDetails" Visibility="{Binding IsCurrentGoalView, Converter={StaticResource BooleanToVisibilityConverter}}">
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="1"/>
-                                    <RowDefinition Height="168"/>
+                                    <RowDefinition Height="156"/>
                                     <RowDefinition Height="1"/>
                                     <RowDefinition Height="*"/>
                                 </Grid.RowDefinitions>
-                                <Grid x:Name="GoalDetailHeader" Margin="8,4,8,20">
+                                <Grid x:Name="GoalDetailHeader">
                                     <StackPanel>
                                         <TextBlock FontSize="28" FontWeight="SemiBold" Text="{Binding SelectedGoalName}" Foreground="{DynamicResource TextPrimary}" TextTrimming="CharacterEllipsis"/>
-                                        <TextBlock x:Name="GoalDetailMetadata" Margin="0,7,0,0" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextWeak}" Text="{Binding SelectedGoal.DetailMetadataDisplay}" ToolTip="{Binding SelectedGoal.DetailMetadataDisplay}" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock x:Name="GoalDetailMetadata" Margin="{StaticResource SmallGapAbove}" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextWeak}" Text="{Binding SelectedGoal.DetailMetadataDisplay}" ToolTip="{Binding SelectedGoal.DetailMetadataDisplay}" TextTrimming="CharacterEllipsis"/>
                                     </StackPanel>
                                 </Grid>
-                                <Border Grid.Row="1" Background="#F0F0F3"/>
-                                <Grid x:Name="GoalInvestmentMetrics" Grid.Row="2" Margin="2,10,2,8">
+                                <Grid x:Name="GoalInvestmentMetrics" Grid.Row="1" Margin="{StaticResource GroupVerticalInset}">
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="34"/>
                                         <RowDefinition Height="1"/>
@@ -1301,12 +1315,12 @@
                                         <Button x:Name="GoalInvestmentTrendButton" HorizontalAlignment="Right" VerticalAlignment="Center" Content="查看趋势  ›" Style="{StaticResource GoalInlineActionStyle}" Command="{Binding GoalInvestmentTrend.OpenCommand}" AutomationProperties.Name="查看投入趋势"/>
                                     </Grid>
                                     <Border Grid.Row="1" Background="#F0F0F3"/>
-                                    <Grid Grid.Row="2" Margin="0,11,0,0">
+                                    <Grid Grid.Row="2" Margin="{StaticResource GroupGapAbove}">
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="0.85*"/><ColumnDefinition Width="1"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                    <StackPanel Margin="0,0,18,0">
+                                    <StackPanel Margin="0,0,16,0">
                                         <TextBlock Text="本周投入" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}"/>
                                         <TextBlock x:Name="GoalWeeklyInvestmentText" Margin="0,4,0,0" Style="{StaticResource GoalMetricValueStyle}"><Run Text="{Binding SelectedGoalWeeklyInvestment.HoursValue, Mode=OneWay}"/><Run Text="{Binding SelectedGoalWeeklyInvestment.HoursUnitWithLeadingSpace, Mode=OneWay}" FontSize="16" FontWeight="SemiBold"/><Run Text="{Binding SelectedGoalWeeklyInvestment.MinutesValueWithLeadingSpace, Mode=OneWay}"/><Run Text="{Binding SelectedGoalWeeklyInvestment.MinutesUnitWithLeadingSpace, Mode=OneWay}" FontSize="16" FontWeight="SemiBold"/></TextBlock>
-                                        <StackPanel x:Name="GoalWeeklyInvestmentComparison" Margin="0,7,0,0" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <StackPanel x:Name="GoalWeeklyInvestmentComparison" Margin="{StaticResource SmallGapAbove}" Orientation="Horizontal" VerticalAlignment="Center">
                                             <Image x:Name="GoalWeeklyInvestmentComparisonIcon" Width="16" Height="16" Stretch="Uniform" Source="{Binding SelectedGoalWeeklyInvestmentComparisonIconSource, Mode=OneWay}" RenderOptions.BitmapScalingMode="HighQuality"/>
                                             <TextBlock Margin="5,0,0,0" VerticalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="较上周"/>
                                             <TextBlock x:Name="GoalWeeklyInvestmentComparisonPercent" Margin="4,0,0,0" VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold" Text="{Binding SelectedGoalWeeklyInvestmentComparisonDisplay, Mode=OneWay}">
@@ -1323,22 +1337,22 @@
                                         </StackPanel>
                                     </StackPanel>
                                     <Border Grid.Column="1" Background="#F0F0F3"/>
-                                    <StackPanel Grid.Column="2" Margin="26,0,0,0">
+                                    <StackPanel Grid.Column="2" Margin="24,0,0,0">
                                         <TextBlock Text="累计投入" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}"/>
                                         <TextBlock x:Name="GoalTotalInvestmentText" Margin="0,4,0,0" Style="{StaticResource GoalMetricValueStyle}"><Run Text="{Binding SelectedGoalTotalInvestment.HoursValue, Mode=OneWay}"/><Run Text="{Binding SelectedGoalTotalInvestment.HoursUnitWithLeadingSpace, Mode=OneWay}" FontSize="16" FontWeight="SemiBold"/><Run Text="{Binding SelectedGoalTotalInvestment.MinutesValueWithLeadingSpace, Mode=OneWay}"/><Run Text="{Binding SelectedGoalTotalInvestment.MinutesUnitWithLeadingSpace, Mode=OneWay}" FontSize="16" FontWeight="SemiBold"/><Run Text="{Binding SelectedGoalTargetDurationSeparator, Mode=OneWay}" FontSize="16" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}"/><Run Text="{Binding SelectedGoalTargetDuration.HoursValue, Mode=OneWay}" FontSize="16" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}"/><Run Text="{Binding SelectedGoalTargetDuration.HoursUnit, Mode=OneWay}" FontSize="16" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}"/><Run Text="{Binding SelectedGoalTargetDuration.MinutesValueWithLeadingSpace, Mode=OneWay}" FontSize="16" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}"/><Run Text="{Binding SelectedGoalTargetDuration.MinutesUnit, Mode=OneWay}" FontSize="16" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}"/></TextBlock>
-                                        <TextBlock x:Name="GoalTotalFocusSessionSummary" Margin="0,5,0,0" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextWeak}">
+                                        <TextBlock x:Name="GoalTotalFocusSessionSummary" Margin="0,4,0,0" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextWeak}" Visibility="{Binding HasSelectedGoalTargetDuration, Converter={StaticResource GoalInverseVisibilityConverter}}">
                                             <Run Text="共 "/><Run Text="{Binding SelectedGoalFocusSessionCount, Mode=OneWay}"/><Run Text=" 次专注"/>
                                         </TextBlock>
-                                        <Grid x:Name="GoalInvestmentProgress" Margin="0,6,0,0" Visibility="{Binding HasSelectedGoalTargetDuration, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <Grid x:Name="GoalInvestmentProgress" Margin="{StaticResource SmallGapAbove}" Visibility="{Binding HasSelectedGoalTargetDuration, Converter={StaticResource BooleanToVisibilityConverter}}">
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                             <ProgressBar x:Name="GoalInvestmentProgressBar" VerticalAlignment="Center" Minimum="0" Maximum="1" Value="{Binding SelectedGoalInvestmentProgressRatio, Mode=OneWay}" Style="{StaticResource GoalInvestmentProgressBarStyle}"/>
-                                            <TextBlock x:Name="GoalInvestmentProgressPercentage" Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding SelectedGoalInvestmentProgressDisplay}"/>
+                                            <TextBlock x:Name="GoalInvestmentProgressPercentage" Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding SelectedGoalInvestmentProgressDisplay}"/>
                                         </Grid>
                                     </StackPanel>
                                     </Grid>
                                 </Grid>
-                                <Border Grid.Row="3" Background="#F0F0F3"/>
-                                <Grid Grid.Row="4" Margin="0,22,0,22">
+                                <Border Grid.Row="2" Background="#F0F0F3"/>
+                                <Grid Grid.Row="3" Margin="{StaticResource SectionGapAbove}">
                                     <Grid.RowDefinitions><RowDefinition Height="32"/><RowDefinition Height="*"/></Grid.RowDefinitions>
                                     <Grid>
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
@@ -1393,7 +1407,7 @@
                                     </Grid>
                                     <ScrollViewer x:Name="GoalNextTasksScroll"
                                                   Grid.Row="1"
-                                                  Margin="0,6,0,0"
+                                                  Margin="{StaticResource MediumGapAbove}"
                                                   AllowDrop="True"
                                                   DragOver="GoalNextTasksScroll_DragOver"
                                                   DragLeave="GoalNextTasksScroll_DragLeave"
@@ -1618,7 +1632,7 @@
                                         <RowDefinition Height="1"/>
                                         <RowDefinition Height="*"/>
                                     </Grid.RowDefinitions>
-                                    <Grid x:Name="ArchivedGoalDetailHeader" Margin="8,4,8,20">
+                                    <Grid x:Name="ArchivedGoalDetailHeader" Margin="{StaticResource SectionGapBelow}">
                                         <StackPanel>
                                             <Grid>
                                                 <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
@@ -1627,18 +1641,18 @@
                                                     <TextBlock VerticalAlignment="Center" FontSize="11" FontWeight="Medium" Foreground="#777E8B" Text="已归档"/>
                                                 </Border>
                                             </Grid>
-                                            <TextBlock x:Name="ArchivedGoalDetailMetadata" Margin="0,7,0,0" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextWeak}" Text="{Binding SelectedGoal.ArchivedDetailMetadataDisplay}" ToolTip="{Binding SelectedGoal.ArchivedDetailMetadataDisplay}" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock x:Name="ArchivedGoalDetailMetadata" Margin="{StaticResource SmallGapAbove}" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextWeak}" Text="{Binding SelectedGoal.ArchivedDetailMetadataDisplay}" ToolTip="{Binding SelectedGoal.ArchivedDetailMetadataDisplay}" TextTrimming="CharacterEllipsis"/>
                                         </StackPanel>
                                     </Grid>
                                     <Border Grid.Row="1" Background="#F0F0F3"/>
-                                    <Grid x:Name="ArchivedGoalInvestmentMetrics" Grid.Row="2" Margin="2,12,2,10">
+                                    <Grid x:Name="ArchivedGoalInvestmentMetrics" Grid.Row="2" Margin="{StaticResource GroupVerticalInset}">
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="0.85*"/><ColumnDefinition Width="1"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                        <StackPanel Margin="0,0,18,0">
+                                        <StackPanel Margin="0,0,16,0">
                                             <TextBlock Text="累计投入" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}"/>
                                             <TextBlock x:Name="ArchivedGoalTotalInvestmentText" Margin="0,4,0,0" Style="{StaticResource GoalMetricValueStyle}"><Run Text="{Binding SelectedGoalTotalInvestment.HoursValue, Mode=OneWay}"/><Run Text="{Binding SelectedGoalTotalInvestment.HoursUnitWithLeadingSpace, Mode=OneWay}" FontSize="16" FontWeight="SemiBold"/><Run Text="{Binding SelectedGoalTotalInvestment.MinutesValueWithLeadingSpace, Mode=OneWay}"/><Run Text="{Binding SelectedGoalTotalInvestment.MinutesUnitWithLeadingSpace, Mode=OneWay}" FontSize="16" FontWeight="SemiBold"/></TextBlock>
                                         </StackPanel>
                                         <Border Grid.Column="1" Background="#F0F0F3"/>
-                                        <StackPanel Grid.Column="2" Margin="26,0,0,0">
+                                        <StackPanel Grid.Column="2" Margin="24,0,0,0">
                                             <Grid>
                                                 <TextBlock VerticalAlignment="Center" Text="专注次数" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}"/>
                                                 <Button x:Name="ArchivedGoalInvestmentTrendButton" HorizontalAlignment="Right" VerticalAlignment="Center" Content="投入趋势  ›" Style="{StaticResource GoalInlineActionStyle}" Command="{Binding GoalInvestmentTrend.OpenCommand}" AutomationProperties.Name="查看归档目标投入趋势"/>
@@ -1647,7 +1661,7 @@
                                         </StackPanel>
                                     </Grid>
                                     <Border Grid.Row="3" Background="#F0F0F3"/>
-                                    <Grid Grid.Row="4" Margin="0,22,0,0">
+                                    <Grid Grid.Row="4" Margin="{StaticResource SectionGapAbove}">
                                         <Grid.RowDefinitions><RowDefinition Height="32"/><RowDefinition Height="*"/></Grid.RowDefinitions>
                                         <TextBlock Text="下一步任务" FontSize="15" FontWeight="Medium" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimary}"/>
                                         <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False">
@@ -1664,52 +1678,52 @@
                                     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/></Grid.RowDefinitions>
                                     <StackPanel x:Name="GoalVipHeader">
                                         <TextBlock x:Name="GoalVipSelectedName" Text="{Binding SelectedGoalName}" FontSize="28" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" TextTrimming="CharacterEllipsis"/>
-                                        <TextBlock x:Name="GoalVipCreatedDate" Text="{Binding SelectedGoal.CreatedDateDisplay}" FontSize="12" Foreground="#8A94A6" Margin="0,7,0,0"/>
+                                        <TextBlock x:Name="GoalVipCreatedDate" Text="{Binding SelectedGoal.CreatedDateDisplay}" FontSize="12" Foreground="#8A94A6" Margin="{StaticResource SmallGapAbove}"/>
                                     </StackPanel>
                                     <StackPanel x:Name="GoalVipLockedBody" Grid.Row="1" VerticalAlignment="Center" Margin="0,0,0,40">
                                         <Image x:Name="GoalVipIllustration" Width="300" Height="169" HorizontalAlignment="Center" Stretch="Uniform"
                                                RenderOptions.BitmapScalingMode="HighQuality" IsHitTestVisible="False"
                                                Source="/FocusApp.Desktop;component/Assets/Images/Illustrations/rili_vip.png"/>
                                         <TextBlock Text="解锁完整目标详情" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}"
-                                                   HorizontalAlignment="Center" Margin="0,18,0,0"/>
+                                                   HorizontalAlignment="Center" Margin="{StaticResource GroupGapAbove}"/>
                                         <TextBlock Text="开通 VIP 后，可查看更完整的目标分析与管理功能" FontSize="12" Foreground="#8A94A6"
-                                                   TextAlignment="Center" HorizontalAlignment="Center" Margin="0,10,0,0"/>
-                                        <Border Height="1" Background="#EEF0F4" Margin="0,18,0,16"/>
+                                                   TextAlignment="Center" HorizontalAlignment="Center" Margin="{StaticResource SmallGapAbove}"/>
+                                        <Border Height="1" Background="#EEF0F4" Margin="0,16,0,16"/>
                                         <Grid x:Name="GoalVipFeatures" Height="116">
                                             <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="1"/><ColumnDefinition/><ColumnDefinition Width="1"/><ColumnDefinition/><ColumnDefinition Width="1"/><ColumnDefinition/></Grid.ColumnDefinitions>
                                             <StackPanel Grid.Column="0" HorizontalAlignment="Center">
                                                 <Border Width="44" Height="44" Background="#F4F5F8" CornerRadius="22" HorizontalAlignment="Center">
                                                     <Viewbox Width="23" Height="23"><Path Data="M 3,16 L 3,22 M 11,9 L 11,22 M 19,2 L 19,22" Stroke="#465063" StrokeThickness="3" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/></Viewbox>
                                                 </Border>
-                                                <TextBlock Text="目标趋势" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" HorizontalAlignment="Center" Margin="0,10,0,0"/>
-                                                <TextBlock FontSize="12" Foreground="#909AAC" LineHeight="19" TextAlignment="Center" HorizontalAlignment="Center" Margin="0,7,0,0"><Run Text="查看投入变化"/><LineBreak/><Run Text="与长期趋势"/></TextBlock>
+                                                <TextBlock Text="目标趋势" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" HorizontalAlignment="Center" Margin="{StaticResource SmallGapAbove}"/>
+                                                <TextBlock FontSize="12" Foreground="#909AAC" LineHeight="19" TextAlignment="Center" HorizontalAlignment="Center" Margin="{StaticResource SmallGapAbove}"><Run Text="查看投入变化"/><LineBreak/><Run Text="与长期趋势"/></TextBlock>
                                             </StackPanel>
-                                            <Border Grid.Column="1" Width="1" Background="#EEF0F4" Margin="0,4,0,3"/>
+                                            <Border Grid.Column="1" Width="1" Background="#EEF0F4" Margin="0,4,0,4"/>
                                             <StackPanel Grid.Column="2" HorizontalAlignment="Center">
                                                 <Border Width="44" Height="44" Background="#F4F5F8" CornerRadius="22" HorizontalAlignment="Center">
                                                     <Viewbox Width="23" Height="23"><Path Data="M 2,4 A 1,1 0 1 0 4,4 A 1,1 0 1 0 2,4 M 2,12 A 1,1 0 1 0 4,12 A 1,1 0 1 0 2,12 M 2,20 A 1,1 0 1 0 4,20 A 1,1 0 1 0 2,20 M 9,4 L 22,4 M 9,12 L 22,12 M 9,20 L 22,20" Stroke="#465063" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/></Viewbox>
                                                 </Border>
-                                                <TextBlock Text="下一步任务" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" HorizontalAlignment="Center" Margin="0,10,0,0"/>
-                                                <TextBlock FontSize="12" Foreground="#909AAC" LineHeight="19" TextAlignment="Center" HorizontalAlignment="Center" Margin="0,7,0,0"><Run Text="创建并管理"/><LineBreak/><Run Text="下一步行动"/></TextBlock>
+                                                <TextBlock Text="下一步任务" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" HorizontalAlignment="Center" Margin="{StaticResource SmallGapAbove}"/>
+                                                <TextBlock FontSize="12" Foreground="#909AAC" LineHeight="19" TextAlignment="Center" HorizontalAlignment="Center" Margin="{StaticResource SmallGapAbove}"><Run Text="创建并管理"/><LineBreak/><Run Text="下一步行动"/></TextBlock>
                                             </StackPanel>
-                                            <Border Grid.Column="3" Width="1" Background="#EEF0F4" Margin="0,4,0,3"/>
+                                            <Border Grid.Column="3" Width="1" Background="#EEF0F4" Margin="0,4,0,4"/>
                                             <StackPanel Grid.Column="4" HorizontalAlignment="Center">
                                                 <Border Width="44" Height="44" Background="#F4F5F8" CornerRadius="22" HorizontalAlignment="Center">
                                                     <Viewbox Width="23" Height="23"><Path Data="M 12,2 L 12,22 M 2,12 L 22,12" Stroke="#465063" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/></Viewbox>
                                                 </Border>
-                                                <TextBlock Text="创建任务" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" HorizontalAlignment="Center" Margin="0,10,0,0"/>
-                                                <TextBlock FontSize="12" Foreground="#909AAC" LineHeight="19" TextAlignment="Center" HorizontalAlignment="Center" Margin="0,7,0,0"><Run Text="为目标添加"/><LineBreak/><Run Text="执行任务"/></TextBlock>
+                                                <TextBlock Text="创建任务" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" HorizontalAlignment="Center" Margin="{StaticResource SmallGapAbove}"/>
+                                                <TextBlock FontSize="12" Foreground="#909AAC" LineHeight="19" TextAlignment="Center" HorizontalAlignment="Center" Margin="{StaticResource SmallGapAbove}"><Run Text="为目标添加"/><LineBreak/><Run Text="执行任务"/></TextBlock>
                                             </StackPanel>
-                                            <Border Grid.Column="5" Width="1" Background="#EEF0F4" Margin="0,4,0,3"/>
+                                            <Border Grid.Column="5" Width="1" Background="#EEF0F4" Margin="0,4,0,4"/>
                                             <StackPanel Grid.Column="6" HorizontalAlignment="Center">
                                                 <Border Width="44" Height="44" Background="#F4F5F8" CornerRadius="22" HorizontalAlignment="Center">
                                                     <Viewbox Width="23" Height="23"><Path Data="M 12,1 A 11,11 0 1 1 11.99,1 M 12,5 L 12,12 L 17,12" Stroke="#465063" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/></Viewbox>
                                                 </Border>
-                                                <TextBlock Text="投入时间" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" HorizontalAlignment="Center" Margin="0,10,0,0"/>
-                                                <TextBlock FontSize="12" Foreground="#909AAC" LineHeight="19" TextAlignment="Center" HorizontalAlignment="Center" Margin="0,7,0,0"><Run Text="查看目标"/><LineBreak/><Run Text="累计投入时间"/></TextBlock>
+                                                <TextBlock Text="投入时间" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" HorizontalAlignment="Center" Margin="{StaticResource SmallGapAbove}"/>
+                                                <TextBlock FontSize="12" Foreground="#909AAC" LineHeight="19" TextAlignment="Center" HorizontalAlignment="Center" Margin="{StaticResource SmallGapAbove}"><Run Text="查看目标"/><LineBreak/><Run Text="累计投入时间"/></TextBlock>
                                             </StackPanel>
                                         </Grid>
-                                        <Button x:Name="GoalVipUnlockButton" Width="272" Height="42" HorizontalAlignment="Center" Margin="0,22,0,0"
+                                        <Button x:Name="GoalVipUnlockButton" Width="272" Height="42" HorizontalAlignment="Center" Margin="{StaticResource SectionGapAbove}"
                                                 Background="#FF7F3F" BorderThickness="0" Cursor="Hand" Click="GoalVipUnlockButton_Click"
                                                 AutomationProperties.Name="立即开通 VIP">
                                             <Button.Template><ControlTemplate TargetType="Button">
@@ -1754,8 +1768,8 @@
                 </Grid>
 
 
-            </StackPanel>
-        </StackPanel>
+            </Grid>
+        </Grid>
     </ScrollViewer>
     <Grid x:Name="CompletedTasksModalOverlay" Panel.ZIndex="20" Background="#5C121827"
           Visibility="{Binding IsChecked, ElementName=CompletedTasksButton, Converter={StaticResource BooleanToVisibilityConverter}}"

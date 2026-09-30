@@ -37,7 +37,7 @@ public sealed class GoalEmptyStatePresentationTests
                 var add = (Button)page.FindName("EmptyGoalCreateButton");
                 var headerAdd = (Button)page.FindName("GoalListAddButton");
                 Assert.Equal(190, left.ActualWidth);
-                Assert.Equal(604, right.ActualHeight);
+                Assert.InRange(right.ActualHeight, page.ActualHeight - 64, page.ActualHeight - 62);
                 var rightWidth = right.ActualWidth;
                 Assert.True(model.IsGoalCreationGuideVisible);
                 Assert.True(leftEmpty.IsVisible);
@@ -59,7 +59,7 @@ public sealed class GoalEmptyStatePresentationTests
                 Assert.True(existing.IsVisible);
                 Assert.True(headerAdd.IsVisible);
                 Assert.Equal(rightWidth, right.ActualWidth);
-                Assert.Equal(604, right.ActualHeight);
+                Assert.InRange(right.ActualHeight, page.ActualHeight - 64, page.ActualHeight - 62);
 
                 var state = GoalNextTaskDetailsTests.State();
                 model.ApplyState(state with { Targets = [state.Targets[0] with { IsArchived = true }] });

@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="clr-namespace:FocusApp.Desktop.ViewModels"
              Width="578"
-             Height="206"
+             Height="155"
              UseLayoutRounding="True"
              SnapsToDevicePixels="True">
     <Grid ClipToBounds="False">
@@ -66,7 +66,7 @@
               X1="{Binding HoveredPoint.ChartX}"
               X2="{Binding HoveredPoint.ChartX}"
               Y1="0"
-              Y2="159"
+              Y2="120"
               Stroke="{DynamicResource BorderPrimary}"
               StrokeThickness="1"
               IsHitTestVisible="False">
@@ -142,7 +142,7 @@
 
         <Border x:Name="TrendInteractionArea"
                 Width="562"
-                Height="159"
+                Height="120"
                 Margin="8,0,0,0"
                 HorizontalAlignment="Left"
                 VerticalAlignment="Top"

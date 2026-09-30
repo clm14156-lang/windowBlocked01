@@ -15,7 +15,8 @@ public sealed class StatisticsMonthlyTargetPresentationTests
             FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
         var card = Assert.Single(page.Descendants(Presentation + "Border").Where(border =>
             (string?)border.Attribute(Xaml + "Name") == "PeriodFocusDistributionCard"));
-        Assert.Equal("178", (string?)card.Attribute("Height"));
+        Assert.Equal("4", (string?)card.Attribute("Grid.Row"));
+        Assert.Null(card.Attribute("Height"));
         var content = Assert.Single(card.Elements(Presentation + "Grid"));
         Assert.Contains(content.Descendants(Presentation + "TextBlock"), text =>
             (string?)text.Attribute("Text") == "{Binding TrendRangeTitle, Mode=OneWay}");
@@ -70,7 +71,8 @@ public sealed class StatisticsMonthlyTargetPresentationTests
         var cardHost = Assert.Single(page.Descendants(Presentation + "Grid").Where(grid =>
             grid.Element(Presentation + "Border")?.Attribute(Xaml + "Name")?.Value == "TodayStatisticsCard"));
 
-        Assert.Equal("152", (string?)cardHost.Attribute("Height"));
+        Assert.Equal("0", (string?)cardHost.Attribute("Grid.Row"));
+        Assert.Null(cardHost.Attribute("Height"));
         Assert.Null(cardHost.Element(Presentation + "Grid")?.Element(Presentation + "Style"));
     }
 
@@ -143,7 +145,8 @@ public sealed class StatisticsMonthlyTargetPresentationTests
         var card = Assert.Single(page.Descendants(Presentation + "Border").Where(border =>
             (string?)border.Attribute(Xaml + "Name") == "TrendCard"));
 
-        Assert.Equal("270", (string?)card.Attribute("Height"));
+        Assert.Equal("2", (string?)card.Attribute("Grid.Row"));
+        Assert.Null(card.Attribute("Height"));
         Assert.DoesNotContain(card.Descendants(), element =>
             (string?)element.Attribute(Xaml + "Name") == "LockedTrendSummary");
         Assert.DoesNotContain(card.Descendants(Presentation + "Border"), border =>
@@ -177,8 +180,8 @@ public sealed class StatisticsMonthlyTargetPresentationTests
             (string?)combo.Attribute("ItemsSource") == "{Binding RangeOptions}");
 
         var plot = Assert.Single(card.Descendants(Presentation + "Grid").Where(grid =>
-            (string?)grid.Attribute("Height") == "194"));
-        Assert.Equal("0,12,0,0", (string?)plot.Attribute("Margin"));
+            (string?)grid.Attribute("Height") == "155"));
+        Assert.Equal("{StaticResource GroupGapAbove}", (string?)plot.Attribute("Margin"));
     }
 
     private static string FindRepositoryRoot()

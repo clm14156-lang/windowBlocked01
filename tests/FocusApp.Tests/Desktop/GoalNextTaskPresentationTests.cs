@@ -53,7 +53,7 @@ public sealed class GoalNextTaskPresentationTests
                 Pump();
                 var card = (Border)page.FindName("GoalInvestmentDetailsCard");
                 var width = card.ActualWidth;
-                Assert.Equal(604, card.ActualHeight);
+                Assert.InRange(card.ActualHeight, page.ActualHeight - 64, page.ActualHeight - 62);
                 var task = model.GoalTasks.PendingTasks[0];
                 var row = Descendants<Grid>(page).First(element => element.Name == "GoalNextTaskRow");
                 var more = Descendants<Button>(row).Single(element => element.Name == "GoalNextTaskMoreButton");
@@ -140,7 +140,7 @@ public sealed class GoalNextTaskPresentationTests
                 Pump();
                 SavePreview(page, "next-tasks-saved");
                 Assert.Equal(width, card.ActualWidth);
-                Assert.Equal(604, card.ActualHeight);
+                Assert.InRange(card.ActualHeight, page.ActualHeight - 64, page.ActualHeight - 62);
                 capsule.Command.Execute(capsule.CommandParameter);
                 Pump();
                 Assert.False(children.IsVisible);
