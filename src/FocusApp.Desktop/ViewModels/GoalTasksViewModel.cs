@@ -50,9 +50,12 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
         AddSubTaskCommand = new RelayCommand<FocusTaskViewModel>(task => BeginInlineEdit(task, "subtask"));
         DeletePendingTaskCommand = new RelayCommand<FocusTaskViewModel>(async task => { if (task is not null) await DeletePendingTaskAsync(task); });
         ToggleSubTaskCommand = new RelayCommand<FocusSubTaskViewModel>(async item => { if (item is not null) await ToggleSubTaskAsync(item); });
+        EditSubTaskCommand = new RelayCommand<FocusSubTaskViewModel>(BeginSubTaskEdit);
+        DeleteSubTaskCommand = new RelayCommand<FocusSubTaskViewModel>(async item => { if (item is not null) await DeleteSubTaskAsync(item); });
         ToggleSubTasksCommand = new RelayCommand<FocusTaskViewModel>(task =>
         {
-            if (task is null) return;
+            if (task is null || !task.HasSubTasks || task.NextTaskEditor.IsSaving) return;
+            foreach (var child in task.SubTasks) child.NextTaskEditor.Cancel();
             if (task.IsExpanded && task.NextTaskEditor.IsAddingSubTask && !task.NextTaskEditor.IsSaving)
                 task.NextTaskEditor.Cancel();
             task.IsExpanded = !task.IsExpanded;
@@ -84,6 +87,8 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
     public ICommand AddSubTaskCommand { get; }
     public ICommand DeletePendingTaskCommand { get; }
     public ICommand ToggleSubTaskCommand { get; }
+    public ICommand EditSubTaskCommand { get; }
+    public ICommand DeleteSubTaskCommand { get; }
     public ICommand ToggleSubTasksCommand { get; }
     public ICommand ToggleCompletedSortCommand { get; }
     public ICommand SetCompletedSortCommand { get; }
@@ -204,7 +209,7 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
                 else
                 {
                     task = _target.AddTask(source.TaskId, source.Name, source.IsCompleted, createdAtUtc: source.CreatedAtUtc, completedAtUtc: source.CompletedAtUtc);
-                    task.IsExpanded = true;
+                    task.IsExpanded = source.SubTasks.Count > 0;
                 }
                 task.NextTaskEditor.IsPendingCreation = false;
                 task.ApplyDetails(source);
@@ -638,6 +643,7 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
         { ErrorMessage = "最多支持20个子任务。"; return; }
         foreach (var other in _pendingTasks.Where(item => item != task && !item.NextTaskEditor.IsSaving))
         { other.IsMenuOpen = false; other.NextTaskEditor.Cancel(); }
+        CancelSubTaskEditors();
         ErrorMessage = null;
         task.NextTaskEditor.Begin(field, field == "name" ? task.Name : field == "remark" ? task.Description : string.Empty);
         if (field == "subtask") task.IsExpanded = true;
@@ -695,6 +701,78 @@ public sealed class GoalTasksViewModel : INotifyPropertyChanged
                 ? sub with { IsCompleted = !sub.IsCompleted, UpdatedAtUtc = now } : sub).ToArray() }, false, detailsOnly: true) is not null;
         }
         finally { task.NextTaskEditor.IsSaving = false; }
+    }
+
+    private FocusTaskViewModel? FindSubTaskParent(FocusSubTaskViewModel item) =>
+        _pendingTasks.FirstOrDefault(parent => parent.TargetId == GoalId && parent.TaskId == item.TaskId && parent.SubTasks.Contains(item));
+
+    private void CancelSubTaskEditors()
+    {
+        foreach (var parent in _pendingTasks)
+            foreach (var child in parent.SubTasks.Where(child => !child.NextTaskEditor.IsSaving))
+                child.NextTaskEditor.Cancel();
+    }
+
+    public void BeginSubTaskEdit(FocusSubTaskViewModel? item)
+    {
+        if (item is null || FindSubTaskParent(item) is not { } parent || parent.IsCompleting ||
+            parent.NextTaskEditor.IsSaving || parent.NextTaskEditor.IsPendingCreation || _deletingTasks.Contains(parent.TaskId)) return;
+        CancelSubTaskEditors();
+        foreach (var task in _pendingTasks.Where(task => !task.NextTaskEditor.IsSaving))
+        { task.IsMenuOpen = false; task.NextTaskEditor.Cancel(); }
+        ErrorMessage = null;
+        item.NextTaskEditor.Begin("name", item.Title);
+    }
+
+    public void CancelSubTaskEdit(FocusSubTaskViewModel item)
+    {
+        if (!item.NextTaskEditor.IsSaving) item.NextTaskEditor.Cancel();
+    }
+
+    public async Task<bool> CommitSubTaskEditAsync(FocusSubTaskViewModel item)
+    {
+        var editor = item.NextTaskEditor;
+        if (!editor.IsActive) return true;
+        var title = editor.Value.Trim();
+        if (editor.IsSaving || title.Length is 0 or > 100 || FindSubTaskParent(item) is not { } parent ||
+            parent.NextTaskEditor.IsSaving || parent.IsCompleting || _deletingTasks.Contains(parent.TaskId)) return false;
+        var existing = _snapshot.FirstOrDefault(task => task.TaskId == parent.TaskId && task.TargetId == GoalId && !task.IsCompleted);
+        if (existing is null || !existing.SubTasks.Any(child => child.Id == item.Id)) return false;
+        editor.IsSaving = true;
+        parent.NextTaskEditor.IsSaving = true;
+        try
+        {
+            var now = _now().ToUniversalTime();
+            var saved = await SaveAsync(existing with { UpdatedAtUtc = now, SubTasks = existing.SubTasks.Select(child => child.Id == item.Id
+                ? child with { Title = title, UpdatedAtUtc = now } : child).ToArray() }, false, detailsOnly: true);
+            if (saved is null) return false;
+            editor.Cancel();
+            return true;
+        }
+        finally { editor.IsSaving = false; parent.NextTaskEditor.IsSaving = false; }
+    }
+
+    public async Task<bool> DeleteSubTaskAsync(FocusSubTaskViewModel item)
+    {
+        if (FindSubTaskParent(item) is not { } parent || parent.NextTaskEditor.IsSaving || parent.IsCompleting ||
+            parent.NextTaskEditor.IsPendingCreation || _deletingTasks.Contains(parent.TaskId)) return false;
+        var existing = _snapshot.FirstOrDefault(task => task.TaskId == parent.TaskId && task.TargetId == GoalId && !task.IsCompleted);
+        if (existing is null || !existing.SubTasks.Any(child => child.Id == item.Id)) return false;
+        parent.NextTaskEditor.IsSaving = true;
+        try
+        {
+            var saved = await SaveAsync(existing with { UpdatedAtUtc = _now().ToUniversalTime(),
+                SubTasks = existing.SubTasks.Where(child => child.Id != item.Id).ToArray() }, false, detailsOnly: true);
+            if (saved is null) return false;
+            item.NextTaskEditor.Cancel();
+            if (!parent.HasSubTasks)
+            {
+                parent.NextTaskEditor.Cancel();
+                parent.IsExpanded = false;
+            }
+            return true;
+        }
+        finally { parent.NextTaskEditor.IsSaving = false; }
     }
 
     public async Task<bool> DeletePendingTaskAsync(FocusTaskViewModel task)

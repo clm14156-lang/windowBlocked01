@@ -15,6 +15,10 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
     internal const double PlotRight = 610;
     internal const double PlotTop = 28;
     internal const double PlotBottom = 130;
+    private const double TooltipWidth = 200;
+    private const double ChartWidth = 638;
+    private const double TooltipEdgeInset = 8;
+    private const double TooltipGap = 12;
     private const double PlotWidth = PlotRight - PlotLeft;
     private const double PlotHeight = PlotBottom - PlotTop;
     private readonly Func<DateTime> _now;
@@ -30,6 +34,7 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
     private int _monthPickerYear;
     private DateTime _selectedDate;
     private GoalInvestmentTrendPointViewModel? _hoveredPoint;
+    private double _tooltipAnchorX;
     private bool _isOpen;
     private bool _isMonthMenuOpen;
     private bool _showAllHoverTasks;
@@ -172,14 +177,22 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
             OnPropertyChanged();
             OnPropertyChanged(nameof(IsTooltipOpen));
             OnPropertyChanged(nameof(TooltipLeft));
-            OnPropertyChanged(nameof(TooltipTop));
             RefreshHoverDayTasks();
         }
     }
     public bool IsTooltipOpen => HoveredPoint is not null;
-    public double TooltipLeft => HoveredPoint is null ? 0 :
-        HoveredPoint.ChartX + 222 <= 638 ? HoveredPoint.ChartX + 12 : HoveredPoint.ChartX - 222;
-    public double TooltipTop => HoveredPoint is null ? 0 : Math.Clamp(HoveredPoint.ChartY - 100, 0, 12);
+    public double TooltipLeft
+    {
+        get
+        {
+            if (HoveredPoint is null) return 0;
+            var right = _tooltipAnchorX + TooltipGap;
+            var left = right + TooltipWidth <= ChartWidth - TooltipEdgeInset
+                ? right : _tooltipAnchorX - TooltipGap - TooltipWidth;
+            return Math.Clamp(left, TooltipEdgeInset, ChartWidth - TooltipEdgeInset - TooltipWidth);
+        }
+    }
+    public double TooltipTop => 55;
     public string SelectedDateTitle => $"{_selectedDate:M月d日}";
     public string SelectedDateSummary
     {
@@ -231,7 +244,9 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
             return;
         }
 
+        _tooltipAnchorX = chartX;
         HoveredPoint = TrendPoints.MinBy(point => Math.Abs(point.ChartX - chartX));
+        OnPropertyChanged(nameof(TooltipLeft));
     }
 
     public void ClearHoveredPoint() => HoveredPoint = null;

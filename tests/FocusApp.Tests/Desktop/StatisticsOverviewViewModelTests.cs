@@ -70,7 +70,8 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.True(viewModel.HasDailyFixedFocusTarget);
         Assert.Equal("4小时", viewModel.DailyFixedFocusTargetDisplay);
         Assert.Equal(0, viewModel.TodayFocusTargetProgressPercent);
-        Assert.Equal("还差 4小时", viewModel.TodayFocusTargetRemainingDisplay);
+        Assert.Equal("剩余 4小时", viewModel.TodayFocusTargetRemainingDisplay);
+        Assert.Equal("本日 0分钟 / 4小时", viewModel.TodayFocusTargetCompletedSummaryDisplay);
 
         viewModel.FocusGoalSettingsModal.SelectMonthlyModeCommand.Execute(null);
         viewModel.FocusGoalSettingsModal.SaveCommand.Execute(null);
@@ -434,6 +435,7 @@ public sealed class StatisticsOverviewViewModelTests
     {
         var viewModel = new StatisticsOverviewViewModel();
         var today = DateTime.Today;
+        viewModel.FocusSessionRecords.Add(new FocusSessionRecordViewModel(today.AddHours(9), today.AddHours(9).AddMinutes(5), "goal", "学习", "", 0));
 
         viewModel.ReturnToTodayCommand.Execute(null);
 
@@ -448,17 +450,20 @@ public sealed class StatisticsOverviewViewModelTests
     }
 
     [Fact]
-    public void CurrentMonthEmptyDateCanBeSelectedAndAdjacentMonthDateIsIgnored()
+    public void EmptyAndAdjacentMonthDatesCannotChangeSelection()
     {
         var viewModel = new StatisticsOverviewViewModel();
         var empty = viewModel.CalendarDays.First(item => item.IsCurrentMonth && !item.HasFocus && !item.IsSelected);
+        var selectedDate = viewModel.SelectedDateDisplay;
+        var selectedMinutes = viewModel.SelectedDayMinutes;
+        Assert.False(viewModel.SelectCalendarDateCommand.CanExecute(empty));
         viewModel.SelectCalendarDateCommand.Execute(empty);
-        Assert.True(empty.IsSelected);
-        Assert.Empty(viewModel.SelectedDayRecords);
-        Assert.Equal(0, viewModel.SelectedDayMinutes);
+        Assert.False(empty.IsSelected);
+        Assert.Equal(selectedDate, viewModel.SelectedDateDisplay);
+        Assert.Equal(selectedMinutes, viewModel.SelectedDayMinutes);
         var adjacent = viewModel.CalendarDays.First(item => !item.IsCurrentMonth);
         viewModel.SelectCalendarDateCommand.Execute(adjacent);
-        Assert.True(empty.IsSelected);
+        Assert.Equal(selectedDate, viewModel.SelectedDateDisplay);
         Assert.False(adjacent.IsSelected);
     }
 
@@ -558,7 +563,7 @@ public sealed class StatisticsOverviewViewModelTests
         viewModel.AddGoalCommand.Execute(null);
 
         Assert.True(viewModel.IsCreateGoalDialogOpen);
-        Assert.Equal(new[] { "20小时", "50小时", "100小时", "自定义" }, viewModel.GoalDurationOptions.Select(option => option.Label));
+        Assert.Equal(new[] { "20", "50", "100", "自定义" }, viewModel.GoalDurationOptions.Select(option => option.Label));
         Assert.Null(viewModel.SelectedGoalDurationMinutes);
         Assert.DoesNotContain(viewModel.GoalDurationOptions, option => option.IsSelected);
         Assert.Equal(originalCount, viewModel.Goals.Count);

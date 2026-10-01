@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
@@ -206,22 +207,27 @@ public sealed class GoalInvestmentTrendRedesignTests
                 Assert.NotEqual(orange, ((SolidColorBrush)sevenRange.Foreground).Color);
                 model.SelectSevenDaysCommand.Execute(null);
                 Pump();
+                var chart = Descendants<GoalInvestmentTrendChart>(modal).Single();
+                var hoverGuide = (System.Windows.Shapes.Line)chart.FindName("HoverGuideLine");
+                Assert.Equal(Visibility.Collapsed, hoverGuide.Visibility);
                 var hovered = model.TrendPoints.Single(point => point.Date == Now.Date);
                 model.SetHoveredPointNearestTo(hovered.ChartX);
                 Pump();
-                var chart = Descendants<GoalInvestmentTrendChart>(modal).Single();
-                var tooltip = (Border)chart.FindName("TrendTooltip");
+                var tooltip = (Border)modal.FindName("TrendTooltip");
                 Assert.True(tooltip.IsVisible);
-                Assert.Equal(210, tooltip.ActualWidth);
-                Assert.InRange(tooltip.ActualHeight, 153, 155);
+                Assert.Equal(Visibility.Visible, hoverGuide.Visibility);
+                Assert.Equal(200, tooltip.ActualWidth);
+                Assert.Equal(200, tooltip.ActualHeight);
+                var tooltipBottom = tooltip.TranslatePoint(new Point(0, tooltip.ActualHeight), card).Y;
+                Assert.True(tooltipBottom <= chartTop + 11, $"Tooltip bottom {tooltipBottom}, chart top {chartTop}");
                 Assert.Equal(5, model.HoverDayTaskCount);
                 Assert.Equal(3, model.VisibleHoverDayTasks.Count());
                 SavePreview(card, "investment-tooltip");
                 model.ToggleAllHoverTasksCommand.Execute(null);
                 Pump();
                 Assert.Equal(5, model.VisibleHoverDayTasks.Count());
-                Assert.True(((ScrollViewer)chart.FindName("TooltipTasksScroll")).ScrollableHeight > 0);
-                Assert.InRange(tooltip.ActualHeight, 153, 155);
+                Assert.True(((ScrollViewer)modal.FindName("TooltipTasksScroll")).ScrollableHeight > 0);
+                Assert.Equal(200, tooltip.ActualHeight);
                 SavePreview(card, "investment-tooltip-expanded");
                 var parent = model.HoverDayTasks.Single(item => item.Name == "查看自动屏蔽规则");
                 parent.ToggleSubTasksCommand.Execute(null);
@@ -230,9 +236,39 @@ public sealed class GoalInvestmentTrendRedesignTests
                 parent.ToggleAllSubTasksCommand.Execute(null);
                 Pump();
                 Assert.Equal(5, parent.VisibleSubTasks.Count());
-                Assert.True(((ScrollViewer)chart.FindName("TooltipTasksScroll")).ScrollableHeight > 0);
-                Assert.InRange(tooltip.ActualHeight, 153, 155);
+                Assert.True(((ScrollViewer)modal.FindName("TooltipTasksScroll")).ScrollableHeight > 0);
+                Assert.Equal(200, tooltip.ActualHeight);
                 SavePreview(card, "investment-subtasks-expanded");
+                var interactionArea = (Border)chart.FindName("TrendInteractionArea");
+                var bridge = (Border)modal.FindName("TrendHoverBridge");
+                Assert.True(bridge.IsVisible);
+                Assert.InRange(bridge.TranslatePoint(new Point(), card).Y, tooltipBottom - 6, tooltipBottom - 2);
+                RaiseMouseEvent(interactionArea, UIElement.MouseLeaveEvent);
+                Pump();
+                Assert.True(model.IsTooltipOpen);
+                RaiseMouseEvent(bridge, UIElement.MouseEnterEvent);
+                WaitForHoverDelay();
+                Assert.Equal(hovered.Date, model.HoveredPoint?.Date);
+                RaiseMouseEvent(bridge, UIElement.MouseLeaveEvent);
+                RaiseMouseEvent(tooltip, UIElement.MouseEnterEvent);
+                WaitForHoverDelay();
+                Assert.Equal(hovered.Date, model.HoveredPoint?.Date);
+                Assert.True(((ScrollViewer)modal.FindName("TooltipTasksScroll")).ScrollableHeight > 0);
+                RaiseMouseEvent(tooltip, UIElement.MouseLeaveEvent);
+                WaitForHoverDelay();
+                Assert.False(model.IsTooltipOpen);
+                Assert.Equal(Visibility.Collapsed, hoverGuide.Visibility);
+                model.SetHoveredPointNearestTo(hovered.ChartX);
+                RaiseMouseEvent(interactionArea, UIElement.MouseEnterEvent);
+                RaiseMouseEvent(interactionArea, UIElement.MouseLeaveEvent);
+                RaiseMouseEvent(interactionArea, UIElement.MouseEnterEvent);
+                WaitForHoverDelay();
+                Assert.True(model.IsTooltipOpen);
+                RaiseMouseEvent(interactionArea, UIElement.MouseLeaveEvent);
+                WaitForHoverDelay();
+                Assert.False(model.IsTooltipOpen);
+                Assert.False(tooltip.IsVisible);
+                Assert.Equal(Visibility.Collapsed, hoverGuide.Visibility);
                 ((Button)modal.FindName("MonthRangeButton")).Command.Execute(null);
                 Pump();
                 var popup = (Popup)modal.FindName("MonthPickerPopup");
@@ -258,6 +294,16 @@ public sealed class GoalInvestmentTrendRedesignTests
         if (failure is not null) throw new InvalidOperationException("Investment modal rendering verification failed.", failure);
     }
     private static void Pump() => Dispatcher.CurrentDispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
+    private static void RaiseMouseEvent(UIElement element, RoutedEvent routedEvent) =>
+        element.RaiseEvent(new MouseEventArgs(Mouse.PrimaryDevice, Environment.TickCount) { RoutedEvent = routedEvent });
+    private static void WaitForHoverDelay()
+    {
+        var frame = new DispatcherFrame();
+        var timer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(250) };
+        timer.Tick += (_, _) => { timer.Stop(); frame.Continue = false; };
+        timer.Start();
+        Dispatcher.PushFrame(frame);
+    }
     private static IEnumerable<T> Descendants<T>(DependencyObject parent) where T : DependencyObject
     {
         for (var i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)

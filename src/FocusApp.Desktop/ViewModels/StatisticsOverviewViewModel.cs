@@ -92,9 +92,9 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         QuickTargetIcons = [];
         GoalDurationOptions = new ObservableCollection<GoalDurationOptionViewModel>
         {
-            new("20小时", 20 * 60),
-            new("50小时", 50 * 60),
-            new("100小时", 100 * 60),
+            new("20", 20 * 60),
+            new("50", 50 * 60),
+            new("100", 100 * 60),
             new("自定义", null, true)
         };
         _selectedTargetIcon = AllTargetIcons.FirstOrDefault(icon =>
@@ -115,7 +115,8 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         NextCalendarMonthCommand = new RelayCommand<object>(_ => ChangeCalendarMonth(1));
         PreviousCalendarDayCommand = new RelayCommand<object>(_ => ChangeCalendarDay(-1));
         NextCalendarDayCommand = new RelayCommand<object>(_ => ChangeCalendarDay(1));
-        SelectCalendarDateCommand = new RelayCommand<CalendarDayViewModel>(SelectCalendarDay);
+        SelectCalendarDateCommand = new RelayCommand<CalendarDayViewModel>(SelectCalendarDay,
+            day => day?.CanSelect == true && CalendarDays.Any(item => item.Date == day.Date && item.CanSelect));
         ReturnToTodayCommand = new RelayCommand<object>(_ => ReturnToToday());
         SelectGoalCommand = new RelayCommand<GoalOverviewItemViewModel>(SelectGoal);
         SelectGoalListCommand = new RelayCommand<object>(SelectGoalList);
@@ -940,7 +941,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     public string CalendarMonthDisplay => $"{_calendarMonth:yyyy年M月}";
 
-    public string SelectedDateDisplay => _selectedCalendarDay is null ? string.Empty : $"{_selectedCalendarDay.Date:M月d日} · {GetWeekday(_selectedCalendarDay.Date)}";
+    public string SelectedDateDisplay => _selectedCalendarDay is null ? "本月暂无专注" : $"{_selectedCalendarDay.Date:M月d日} · {GetWeekday(_selectedCalendarDay.Date)}";
 
     public bool IsReturnToTodayVisible => _selectedCalendarDay?.Date.Date != DateTime.Today;
 
@@ -1811,6 +1812,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(DailyFixedFocusTargetDisplay));
         OnPropertyChanged(nameof(TodayFocusTargetProgressPercent));
         OnPropertyChanged(nameof(TodayFocusTargetProgressRatio));
+        OnPropertyChanged(nameof(TodayFocusTargetCompletedSummaryDisplay));
         OnPropertyChanged(nameof(TodayFocusTargetRemainingDisplay));
         OnPropertyChanged(nameof(MonthlyFocusRemainingDays));
         OnPropertyChanged(nameof(MonthlyFocusTodayRecommendationMinutes));
@@ -1927,14 +1929,22 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     private void ChangeCalendarDay(int offset)
     {
-        var date = (_selectedCalendarDay?.Date ?? _localNowProvider().Date).AddDays(offset);
-        _calendarMonth = new DateTime(date.Year, date.Month, 1);
+        var current = _selectedCalendarDay?.Date ?? _localNowProvider().Date;
+        var date = FocusStatisticsCalculator.GetSlices(GetCoreFocusSessionRecords())
+            .GroupBy(slice => slice.StartsAt.Date)
+            .Where(group => group.Sum(slice => slice.Duration.TotalMinutes) >= 1)
+            .Select(group => group.Key)
+            .Where(candidate => offset < 0 ? candidate < current : candidate > current)
+            .OrderBy(candidate => Math.Abs((candidate - current).TotalDays))
+            .Cast<DateTime?>().FirstOrDefault();
+        if (date is null) return;
+        _calendarMonth = new DateTime(date.Value.Year, date.Value.Month, 1);
         RefreshCalendar(date);
     }
 
     private void SelectCalendarDay(CalendarDayViewModel? day)
     {
-        if (day is null || !day.IsCurrentMonth)
+        if (day?.CanSelect != true || !CalendarDays.Any(item => item.Date == day.Date && item.CanSelect))
         {
             return;
         }
@@ -1951,20 +1961,20 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     private void SelectCalendarDayInternal(DateTime date)
     {
+        _selectedCalendarDay = CalendarDays.FirstOrDefault(item => item.Date.Date == date.Date && item.CanSelect);
         foreach (var item in CalendarDays)
         {
-            item.IsSelected = item.Date.Date == date.Date;
+            item.IsSelected = ReferenceEquals(item, _selectedCalendarDay);
         }
 
-        _selectedCalendarDay = CalendarDays.FirstOrDefault(item => item.Date.Date == date.Date);
         SelectedDayRecords.Clear();
-        foreach (var record in GetRecordsForDate(date).Where(IsMeaningfulCalendarRecord))
+        foreach (var record in _selectedCalendarDay is null ? [] : GetRecordsForDate(date).Where(IsMeaningfulCalendarRecord))
         {
             SelectedDayRecords.Add(record);
         }
         OnPropertyChanged(nameof(HasSelectedDayRecords));
 
-        RefreshSelectedDayCompletedTasks(date);
+        RefreshSelectedDayCompletedTasks();
         OnPropertyChanged(nameof(SelectedDateDisplay));
         OnPropertyChanged(nameof(IsReturnToTodayVisible));
         OnPropertyChanged(nameof(SelectedDayDurationDisplay));
@@ -1976,7 +1986,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(HasSelectedDayFocusData));
         SelectedDayDistributions.Clear();
         var slices = FocusStatisticsCalculator.GetSlices(GetCoreFocusSessionRecords())
-            .Where(slice => slice.StartsAt.Date == date.Date).ToArray();
+            .Where(slice => _selectedCalendarDay is not null && slice.StartsAt.Date == date.Date).ToArray();
         var totalTicks = slices.Sum(slice => slice.Duration.Ticks);
         foreach (var group in slices.GroupBy(slice => string.IsNullOrWhiteSpace(slice.Record.TargetId) ? "goal-unassigned" : slice.Record.TargetId)
                      .OrderByDescending(group => group.Sum(slice => slice.Duration.Ticks)))
@@ -2015,14 +2025,10 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
                 summary.FocusMinutes));
         }
 
-        var selectedDate = preferredDate?.Year == _calendarMonth.Year && preferredDate?.Month == _calendarMonth.Month
-            ? preferredDate.Value
-            : GetRecordsForMonth(_calendarMonth).OrderByDescending(record => record.StartTime).FirstOrDefault()?.StartTime.Date
-              ?? new DateTime(_calendarMonth.Year, _calendarMonth.Month, 15);
-        if (selectedDate.Year != _calendarMonth.Year || selectedDate.Month != _calendarMonth.Month)
-        {
-            selectedDate = firstDay;
-        }
+        var selectedDate = CalendarDays.FirstOrDefault(day => day.CanSelect && day.Date.Date == preferredDate?.Date)?.Date
+            ?? CalendarDays.Where(day => day.CanSelect).OrderByDescending(day => day.Date).FirstOrDefault()?.Date
+            ?? firstDay;
+        ((RelayCommand<CalendarDayViewModel>)SelectCalendarDateCommand).NotifyCanExecuteChanged();
 
         var monthSummaries = dailySummaries.Values.Where(summary =>
             summary.Date.Year == _calendarMonth.Year && summary.Date.Month == _calendarMonth.Month).ToArray();
@@ -2164,6 +2170,9 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         var selectedDate = date ?? _selectedCalendarDay?.Date;
         if (selectedDate is null)
         {
+            SelectedDayCompletedTaskItems = [];
+            SelectedDayCompletedTaskGroups = [];
+            NotifySelectedDayCompletedTasksChanged();
             return;
         }
 
@@ -2202,6 +2211,11 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             })
             .OrderByDescending(group => group.LatestCompletion)
             .ToArray();
+        NotifySelectedDayCompletedTasksChanged();
+    }
+
+    private void NotifySelectedDayCompletedTasksChanged()
+    {
         OnPropertyChanged(nameof(HasSelectedDayCompletedTasks));
         OnPropertyChanged(nameof(SelectedDayCompletedTasks));
         OnPropertyChanged(nameof(SelectedDayCompletedTaskItems));
@@ -2313,8 +2327,11 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         }
     }
 
+    public string TodayFocusTargetCompletedSummaryDisplay =>
+        $"本日 {TodayFocusDurationCompact} / {DailyFixedFocusTargetDisplay}";
+
     public string TodayFocusTargetRemainingDisplay =>
-        $"还差 {FormatTargetDuration(Math.Max(0, _dailyFixedFocusTargetHours * 60 - GetDailySummary(DateTime.Today).FocusMinutes))}";
+        $"剩余 {FormatTargetDuration(Math.Max(0, _dailyFixedFocusTargetHours * 60 - GetDailySummary(DateTime.Today).FocusMinutes))}";
 
     public void SetHoveredPointNearestTo(double chartX)
     {
@@ -2646,6 +2663,7 @@ public sealed class CalendarDayViewModel : INotifyPropertyChanged
     public bool IsCurrentMonth { get; }
     public int Minutes { get; }
     public bool HasFocus => Minutes > 0;
+    public bool CanSelect => IsCurrentMonth && HasFocus;
     public string DayNumber => Date.Day.ToString();
     public int HeatLevel => !IsCurrentMonth || Minutes <= 0 ? 0 : Minutes switch
     {

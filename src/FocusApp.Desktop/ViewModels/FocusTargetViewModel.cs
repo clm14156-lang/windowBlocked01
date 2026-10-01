@@ -253,6 +253,8 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
     public bool HasDescription => !string.IsNullOrWhiteSpace(Description);
     public string RemarkActionLabel => HasDescription ? "编辑备注" : "添加备注";
     public bool HasSubTasks => SubTasks.Count > 0;
+    public bool HasExpandedSubTasks => HasSubTasks && IsExpanded;
+    public bool ShowInlineAddSubTask => HasExpandedSubTasks && CanAddSubTask;
     public string SubTaskProgress => $"子任务 · {SubTasks.Count(item => item.IsCompleted)}/{SubTasks.Count}";
     public string GoalSubTaskProgress => $"子任务 {SubTasks.Count(item => item.IsCompleted)}/{SubTasks.Count}";
     public bool CanAddSubTask => SubTasks.Count < 20;
@@ -265,7 +267,15 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
     public bool IsExpanded
     {
         get => _isExpanded;
-        set { if (_isExpanded == value) return; _isExpanded = value; OnPropertyChanged(); OnPropertyChanged(nameof(DrawerSubTaskToggleLabel)); }
+        set
+        {
+            if (_isExpanded == value) return;
+            _isExpanded = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(DrawerSubTaskToggleLabel));
+            OnPropertyChanged(nameof(HasExpandedSubTasks));
+            OnPropertyChanged(nameof(ShowInlineAddSubTask));
+        }
     }
     public int DrawerNumber
     {
@@ -281,12 +291,15 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
 
     private void NotifyDetailsChanged()
     {
+        if (!HasSubTasks && !NextTaskEditor.IsAddingSubTask) IsExpanded = false;
         OnPropertyChanged(nameof(SortedSubTasks));
         OnPropertyChanged(nameof(SubTaskProgress));
         OnPropertyChanged(nameof(GoalSubTaskProgress));
         OnPropertyChanged(nameof(CanAddSubTask));
         OnPropertyChanged(nameof(DrawerSubTaskToggleLabel));
         OnPropertyChanged(nameof(HasSubTasks));
+        OnPropertyChanged(nameof(HasExpandedSubTasks));
+        OnPropertyChanged(nameof(ShowInlineAddSubTask));
         if (!_applyingDetails) DetailsChanged?.Invoke(this, EventArgs.Empty);
     }
 

@@ -22,4 +22,5 @@
     <Thickness x:Key="CardListBleed">-20,8,-20,0</Thickness>
     <GridLength x:Key="CardColumnGap">12</GridLength>
     <GridLength x:Key="CardRowGap">12</GridLength>
+    <GridLength x:Key="SmallRowGap">8</GridLength>
 </ResourceDictionary>

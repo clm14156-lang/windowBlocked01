@@ -16,6 +16,31 @@ public sealed class GoalInvestmentTrendTests
     private static readonly DateTime Now = new(2026, 9, 16, 18, 0, 0);
 
     [Fact]
+    public void TooltipUsesFixedVerticalPositionAndTracksMouseXWithinChartBounds()
+    {
+        var model = new GoalInvestmentTrendViewModel(() => Now);
+        model.ApplyState(Goal("goal", null), []);
+        model.Open();
+
+        model.SetHoveredPointNearestTo(44);
+        var firstPoint = model.HoveredPoint;
+        var firstLeft = model.TooltipLeft;
+        var fixedTop = model.TooltipTop;
+        Assert.Equal(55, fixedTop);
+        model.SetHoveredPointNearestTo(64);
+        Assert.Same(firstPoint, model.HoveredPoint);
+        Assert.Equal(firstLeft + 20, model.TooltipLeft);
+        Assert.Equal(fixedTop, model.TooltipTop);
+
+        model.SetHoveredPointNearestTo(610);
+        Assert.InRange(model.TooltipLeft, 8, 430);
+        Assert.True(model.TooltipLeft + 200 <= 630);
+        Assert.Equal(fixedTop, model.TooltipTop);
+        model.ClearHoveredPoint();
+        Assert.False(model.IsTooltipOpen);
+    }
+
+    [Fact]
     public void FiltersCurrentGoalBuildsOnlyDataMonthsAndProjectsSelectedDayRecords()
     {
         var goal = Goal("goal", 100 * 60);
@@ -198,26 +223,18 @@ public sealed class GoalInvestmentTrendTests
         Assert.Equal("{Binding StatisticsPage.GoalInvestmentTrend}", (string?)trendModal.Attribute("DataContext"));
 
         var chart = XDocument.Load(Path.Combine(root, "src", "FocusApp.Desktop", "Views", "GoalInvestmentTrendChart.xaml"));
-        var selectedGuides = chart.Descendants(Presentation + "ItemsControl")
-            .Single(element => (string?)element.Attribute(Xaml + "Name") == "SelectedGuideLines");
-        Assert.Contains(selectedGuides.Descendants(Presentation + "DataTrigger"), trigger =>
-            (string?)trigger.Attribute("Binding") == "{Binding IsSelected}" &&
-            (string?)trigger.Attribute("Value") == "True");
+        Assert.DoesNotContain(chart.Descendants(Presentation + "ItemsControl"), element =>
+            (string?)element.Attribute(Xaml + "Name") == "SelectedGuideLines");
         var hoverGuide = chart.Descendants(Presentation + "Line")
             .Single(element => (string?)element.Attribute(Xaml + "Name") == "HoverGuideLine");
         Assert.Equal(
             "{StaticResource TrendVerticalGuideLineStyle}",
             (string?)hoverGuide.Element(Presentation + "Line.Style")?.Element(Presentation + "Style")?.Attribute("BasedOn"));
-        var selectedGuide = selectedGuides.Descendants(Presentation + "Line").Single();
-        Assert.Equal(
-            "{StaticResource TrendVerticalGuideLineStyle}",
-            (string?)selectedGuide.Element(Presentation + "Line.Style")?.Element(Presentation + "Style")?.Attribute("BasedOn"));
-
-        var tooltip = chart.Descendants(Presentation + "Border")
+        var tooltip = modal.Descendants(Presentation + "Border")
             .Single(element => (string?)element.Attribute(Xaml + "Name") == "TrendTooltip");
-        Assert.Equal("210", (string?)tooltip.Attribute("Width"));
-        Assert.Equal("154", (string?)tooltip.Attribute("Height"));
-        Assert.Contains(chart.Descendants(Presentation + "ItemsControl"), items =>
+        Assert.Equal("200", (string?)tooltip.Attribute("Width"));
+        Assert.Equal("200", (string?)tooltip.Attribute("Height"));
+        Assert.Contains(tooltip.Descendants(Presentation + "ItemsControl"), items =>
             (string?)items.Attribute("ItemsSource") == "{Binding VisibleHoverDayTasks}");
     }
 

@@ -31,14 +31,18 @@ public sealed class CalendarRefactorTests
     }
 
     [Fact]
-    public void CalendarIncludesTaskCompletionsWithoutFocusAndUsesLocalCompletionDate()
+    public void CalendarIncludesCanonicalTaskCompletionsOnSelectableDatesAndUsesLocalCompletionDate()
     {
         var model = new StatisticsOverviewViewModel(false);
         var state = State(TaskData("当天任务", Local(18, 0, 5).ToUniversalTime()), TaskData("昨天任务", Local(17, 23, 55)),
             TaskData("未记录时间", null), TaskData("尚未完成", Local(18)) with { IsCompleted = false });
         model.ApplyState(state);
         SelectDate(model, Local(18).Date);
-        Assert.Equal(0, model.SelectedDaySessionCount);
+        Assert.Empty(model.SelectedDayCompletedTaskItems);
+        foreach (var day in new[] { 16, 17, 18 })
+            model.FocusSessionRecords.Add(new FocusSessionRecordViewModel(Local(day, 9).DateTime, Local(day, 9, 5).DateTime, "goal", "学习UE5", "", 0));
+        SelectDate(model, Local(18).Date);
+        Assert.Equal(1, model.SelectedDaySessionCount);
         Assert.Equal(1, model.SelectedDayCompletedTasks);
         var task = Assert.Single(model.SelectedDayCompletedTaskItems);
         Assert.Equal("当天任务", task.Name);
@@ -52,6 +56,7 @@ public sealed class CalendarRefactorTests
         Assert.False(model.HasSelectedDayCompletedTasks);
         Assert.Empty(model.SelectedDayCompletedTaskItems);
         model.ApplyState(state with { Tasks = [TaskData("刚完成", Local(16, 17, 8))] });
+        model.FocusSessionRecords.Add(new FocusSessionRecordViewModel(Local(16, 9).DateTime, Local(16, 9, 5).DateTime, "goal", "学习UE5", "", 0));
         Assert.Equal("刚完成", Assert.Single(model.SelectedDayCompletedTaskItems).Name);
         Assert.Equal("17:08", model.SelectedDayCompletedTaskItems.Single().TimeDisplay);
     }
@@ -72,10 +77,11 @@ public sealed class CalendarRefactorTests
         Assert.Equal("—", model.SelectedDayCompletedTaskItems.Last().TimeDisplay);
         Assert.All(model.SelectedDayCompletedTaskItems, task => Assert.Equal("学习UE5", task.GoalName));
         SelectDate(model, Local(17).Date);
-        Assert.Empty(model.SelectedDayCompletedTaskItems);
+        Assert.Equal(2, model.SelectedDayCompletedTaskItems.Count); // No focus on the 17th: selection stays on the 18th.
         model.FocusSessionRecords.Add(new FocusSessionRecordViewModel(Local(17, 9).DateTime, Local(17, 11).DateTime,
             "goal", "学习", "same", 1, ["same"])
         { CompletedTaskIds = ["same"], CompletedTaskTimes = [Local(17, 10, 32).DateTime] });
+        SelectDate(model, Local(17).Date);
         Assert.Equal("10:32", Assert.Single(model.SelectedDayCompletedTaskItems).TimeDisplay);
         // A later completion of the same task does not erase its recorded earlier completion.
         SelectDate(model, Local(18).Date);
@@ -148,6 +154,8 @@ public sealed class CalendarRefactorTests
         var model = new StatisticsOverviewViewModel(false);
         var end = new DateTimeOffset(new DateTime(2026, 8, 31, 17, 8, 0));
         model.ApplyState(State(TaskData("上月任务", end), TaskData("本月任务", Local(1, 9, 10))));
+        model.FocusSessionRecords.Add(new FocusSessionRecordViewModel(end.DateTime.AddMinutes(-5), end.DateTime, "goal", "学习UE5", "", 0));
+        model.FocusSessionRecords.Add(new FocusSessionRecordViewModel(Local(1, 9).DateTime, Local(1, 9, 5).DateTime, "goal", "学习UE5", "", 0));
         SelectDate(model, Local(1).Date);
         Assert.Equal("本月任务", Assert.Single(model.SelectedDayCompletedTaskItems).Name);
         model.PreviousCalendarDayCommand.Execute(null);
@@ -233,6 +241,7 @@ public sealed class CalendarRefactorTests
                 Assert.False(button.IsChecked);
                 button.IsChecked = true;
                 Pump();
+                model.FocusSessionRecords.Add(new FocusSessionRecordViewModel(Local(17, 9).DateTime, Local(17, 9, 5).DateTime, "goal", "学习UE5", "", 0));
                 SelectDate(model, Local(17).Date);
                 Pump();
                 Assert.Equal(Visibility.Collapsed, overlay.Visibility);

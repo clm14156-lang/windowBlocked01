@@ -66,9 +66,13 @@ public sealed class CalendarVipLockedPresentationTests
                 model.SelectCalendarDateCommand.Execute(day);
                 Pump();
                 Assert.Equal(model.SelectedDateDisplay, date.Text);
-                Assert.True(day.IsSelected);
+                Assert.False(day.IsSelected);
                 model.FocusSessionRecords.Add(new FocusSessionRecordViewModel(day.Date.AddHours(9), day.Date.AddHours(10), "goal", "专注目标", "", 0));
                 Pump();
+                var focused = model.CalendarDays.Single(item => item.Date == day.Date);
+                model.SelectCalendarDateCommand.Execute(focused);
+                Pump();
+                Assert.True(focused.IsSelected);
                 Assert.True(model.HasMonthlyFocusData);
                 Assert.True(locked.IsVisible);
                 Assert.False(content.IsVisible);

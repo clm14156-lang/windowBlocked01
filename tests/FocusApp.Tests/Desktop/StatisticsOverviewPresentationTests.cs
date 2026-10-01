@@ -17,14 +17,14 @@ public sealed class StatisticsOverviewPresentationTests
             (string?)element.Attribute(Xaml + "Name") == "CalendarDayMetrics"));
 
         Assert.Equal("124", (string?)card.Attribute("Height"));
-        Assert.Equal("Transparent", (string?)card.Attribute("Background"));
-        Assert.Null(card.Attribute("CornerRadius"));
+        Assert.Equal("#FFF8F2", (string?)card.Attribute("Background"));
+        Assert.Equal("10", (string?)card.Attribute("CornerRadius"));
 
         var title = Assert.Single(card.Descendants(Presentation + "TextBlock").Where(element =>
             (string?)element.Attribute(Xaml + "Name") == "CalendarDayFocusTitle"));
         Assert.Equal("今日专注", (string?)title.Attribute("Text"));
         Assert.Equal("13", (string?)title.Attribute("FontSize"));
-        Assert.Equal("{DynamicResource TextSecondary}", (string?)title.Attribute("Foreground"));
+        Assert.Equal("{DynamicResource TextPrimary}", (string?)title.Attribute("Foreground"));
 
         var duration = Assert.Single(card.Descendants(Presentation + "TextBlock").Where(element =>
             (string?)element.Attribute(Xaml + "Name") == "CalendarDayFocusDuration"));
@@ -104,11 +104,6 @@ public sealed class StatisticsOverviewPresentationTests
             (string?)setter.Attribute("TargetName") == "DayDurationText" &&
             (string?)setter.Attribute("Property") == "Foreground" &&
             (string?)setter.Attribute("Value") == "White");
-        Assert.Contains(button.Descendants(Presentation + "MultiDataTrigger"), trigger =>
-            trigger.Elements(Presentation + "Setter").Any(setter =>
-                (string?)setter.Attribute("TargetName") == "DayNumberText" &&
-                (string?)setter.Attribute("Property") == "Grid.RowSpan" &&
-                (string?)setter.Attribute("Value") == "2"));
 
         Assert.DoesNotContain(button.Descendants(Presentation + "DataTrigger"), trigger =>
             (string?)trigger.Attribute("Binding") == "{Binding HeatLevel}");
@@ -116,7 +111,7 @@ public sealed class StatisticsOverviewPresentationTests
     }
 
     [Fact]
-    public void CalendarCurrentMonthDatesAllowSelectionAndHover()
+    public void OnlyFocusedCurrentMonthDatesAllowSelectionAndHover()
     {
         var page = XDocument.Load(Path.Combine(
             FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
@@ -125,10 +120,10 @@ public sealed class StatisticsOverviewPresentationTests
             element.Descendants(Presentation + "TextBlock").Any(text =>
                 (string?)text.Attribute("Text") == "{Binding DayNumber}")));
 
-        Assert.Equal("{Binding IsCurrentMonth}", (string?)button.Attribute("Focusable"));
-        Assert.Equal("{Binding IsCurrentMonth}", (string?)button.Attribute("IsEnabled"));
-        Assert.Equal("{Binding IsCurrentMonth}", (string?)button.Attribute("IsHitTestVisible"));
-        Assert.Equal("{Binding IsCurrentMonth}", (string?)button.Attribute("IsTabStop"));
+        Assert.Equal("{Binding CanSelect}", (string?)button.Attribute("Focusable"));
+        Assert.Equal("{Binding CanSelect}", (string?)button.Attribute("IsEnabled"));
+        Assert.Equal("{Binding CanSelect}", (string?)button.Attribute("IsHitTestVisible"));
+        Assert.Equal("{Binding CanSelect}", (string?)button.Attribute("IsTabStop"));
 
         var buttonStyle = Assert.Single(button.Elements(Presentation + "Button.Style")
             .Elements(Presentation + "Style"));
@@ -136,7 +131,7 @@ public sealed class StatisticsOverviewPresentationTests
             (string?)setter.Attribute("Property") == "Cursor" &&
             (string?)setter.Attribute("Value") == "Arrow");
         Assert.Contains(buttonStyle.Descendants(Presentation + "DataTrigger"), trigger =>
-            (string?)trigger.Attribute("Binding") == "{Binding IsCurrentMonth}" &&
+            (string?)trigger.Attribute("Binding") == "{Binding CanSelect}" &&
             (string?)trigger.Attribute("Value") == "True" &&
             trigger.Elements(Presentation + "Setter").Any(setter =>
                 (string?)setter.Attribute("Property") == "Cursor" &&
@@ -146,7 +141,7 @@ public sealed class StatisticsOverviewPresentationTests
             (string?)trigger.Attribute("Property") == "IsMouseOver");
         Assert.Contains(button.Descendants(Presentation + "MultiDataTrigger"), trigger =>
             trigger.Descendants(Presentation + "Condition").Any(condition =>
-                (string?)condition.Attribute("Binding") == "{Binding HasFocus}" &&
+                (string?)condition.Attribute("Binding") == "{Binding CanSelect}" &&
                 (string?)condition.Attribute("Value") == "True") &&
             trigger.Descendants(Presentation + "Condition").Any(condition =>
                 (string?)condition.Attribute("Binding") == "{Binding IsMouseOver, RelativeSource={RelativeSource TemplatedParent}}" &&
@@ -186,19 +181,12 @@ public sealed class StatisticsOverviewPresentationTests
             (string?)setter.Attribute("Property") == "Height" && (string?)setter.Attribute("Value") == "32");
         Assert.Contains(iconChoiceStyle.Elements(Presentation + "Setter"), setter =>
             (string?)setter.Attribute("Property") == "Background" &&
-            (string?)setter.Attribute("Value") == "#F5F6F8");
+            (string?)setter.Attribute("Value") == "Transparent");
         var iconChrome = Assert.Single(iconChoiceStyle.Descendants(Presentation + "Border").Where(element =>
             (string?)element.Attribute(Xaml + "Name") == "IconChoiceChrome"));
         Assert.Equal("8", (string?)iconChrome.Attribute("CornerRadius"));
-        var selectedIconTrigger = Assert.Single(iconChoiceStyle.Descendants(Presentation + "DataTrigger").Where(trigger =>
-            (string?)trigger.Attribute("Binding") == "{Binding IsSelected}" &&
-            (string?)trigger.Attribute("Value") == "True"));
-        Assert.Contains(selectedIconTrigger.Elements(Presentation + "Setter"), setter =>
-            (string?)setter.Attribute("Property") == "Background" &&
-            (string?)setter.Attribute("Value") == "#FFF1E7");
-        Assert.Contains(selectedIconTrigger.Elements(Presentation + "Setter"), setter =>
-            (string?)setter.Attribute("Property") == "BorderBrush" &&
-            (string?)setter.Attribute("Value") == "Transparent");
+        Assert.Contains(page.Descendants(Presentation + "Image"), image =>
+            (string?)image.Attribute("Source") == "{Binding DisplayIconSource, Converter={x:Static views:TargetIconSourceConverter.Instance}}");
 
         Assert.DoesNotContain(dialog.Descendants(Presentation + "Button"), button =>
             (string?)button.Attribute("Command") == "{Binding ClearNewGoalNameCommand}");

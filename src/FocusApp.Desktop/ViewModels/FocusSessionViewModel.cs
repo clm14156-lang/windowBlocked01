@@ -64,6 +64,12 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
 
         CancelPreparationCommand = new RelayCommand<object>(_ => CancelPreparation());
         RequestEndCommand = new RelayCommand<object>(_ => OpenEndConfirmation());
+        EndConfirmedFocusCommand = new RelayCommand<object>(_ =>
+        {
+            if (!IsEndConfirmationOpen || Stage != FocusFlowStage.Focusing) return;
+            if (IsShortEndConfirmation) DiscardShortFocus();
+            else CompleteFocusAndReturnHome();
+        });
         ContinueFocusCommand = new RelayCommand<object>(_ => ContinueFocus());
         DiscardEndCommand = new RelayCommand<object>(_ => DiscardShortFocus());
         ConfirmEndCommand = new RelayCommand<object>(_ => CompleteFocus());
@@ -113,6 +119,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     public ICommand CancelPreparationCommand { get; }
 
     public ICommand RequestEndCommand { get; }
+    public ICommand EndConfirmedFocusCommand { get; }
 
     public ICommand ContinueFocusCommand { get; }
 
@@ -356,6 +363,8 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     public int ElapsedFocusSeconds => Math.Max(0, TotalFocusSeconds - RemainingFocusSeconds);
 
     public string ElapsedTimeDisplay => FormatEndConfirmationDuration(ElapsedFocusSeconds);
+    public string EndConfirmationElapsedDisplay => $"{ElapsedFocusSeconds / 60}分{ElapsedFocusSeconds % 60}秒";
+    public double EndConfirmationProgress => Math.Clamp((double)ElapsedFocusSeconds / MinimumSavedFocusSeconds, 0, 1);
 
     public bool IsShortEndConfirmation => ElapsedFocusSeconds < MinimumSavedFocusSeconds;
 
@@ -405,6 +414,8 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(RemainingTimeDisplay));
             OnPropertyChanged(nameof(ElapsedFocusSeconds));
             OnPropertyChanged(nameof(ElapsedTimeDisplay));
+            OnPropertyChanged(nameof(EndConfirmationElapsedDisplay));
+            OnPropertyChanged(nameof(EndConfirmationProgress));
             OnPropertyChanged(nameof(IsShortEndConfirmation));
             OnPropertyChanged(nameof(IsNormalEndConfirmation));
         }
@@ -683,7 +694,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             return;
         }
 
-        if (Stage != FocusFlowStage.Focusing || IsEndConfirmationOpen)
+        if (Stage != FocusFlowStage.Focusing)
         {
             return;
         }
@@ -724,10 +735,11 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         {
             OnPropertyChanged(nameof(ElapsedFocusSeconds));
             OnPropertyChanged(nameof(ElapsedTimeDisplay));
+            OnPropertyChanged(nameof(EndConfirmationElapsedDisplay));
+            OnPropertyChanged(nameof(EndConfirmationProgress));
             OnPropertyChanged(nameof(IsShortEndConfirmation));
             OnPropertyChanged(nameof(IsNormalEndConfirmation));
             IsEndConfirmationOpen = true;
-            _timer.Stop();
         }
     }
 
@@ -739,7 +751,6 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         }
 
         IsEndConfirmationOpen = false;
-        StartTimerIfEnabled();
     }
 
     private void DiscardShortFocus()
@@ -1139,16 +1150,6 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         {
             task.IsMenuOpen = false;
             task.IsFocusMenuOpen = false;
-        }
-    }
-
-    private void StartTimerIfEnabled()
-    {
-        if (RunTimer)
-        {
-            _focusStopwatch.Start();
-            _lastFocusElapsed = _focusStopwatch.Elapsed;
-            _timer.Start();
         }
     }
 

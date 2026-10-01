@@ -230,12 +230,13 @@
         <Style x:Key="FocusEndConfirmationAccentButton"
                TargetType="{x:Type Button}"
                BasedOn="{StaticResource FocusFlowAccentButton}">
+            <Setter Property="Height" Value="40" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type Button}">
                         <Border x:Name="ButtonBorder"
                                 Background="{TemplateBinding Background}"
-                                CornerRadius="20">
+                                CornerRadius="10">
                             <ContentPresenter HorizontalAlignment="Center"
                                               VerticalAlignment="Center"
                                               TextElement.FontWeight="{TemplateBinding FontWeight}"
@@ -255,13 +256,16 @@
         </Style>
 
         <Style x:Key="FocusEndConfirmationSecondaryButton" TargetType="{x:Type Button}">
-            <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
-            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Height" Value="40" />
+            <Setter Property="Background" Value="#F4F4F6" />
+            <Setter Property="BorderBrush" Value="#E4E5E9" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Cursor" Value="Hand" />
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type Button}">
-                        <Border x:Name="ButtonBorder" Background="{TemplateBinding Background}" CornerRadius="12">
+                        <Border x:Name="ButtonBorder" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="10">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
                         <ControlTemplate.Triggers>
@@ -757,84 +761,96 @@
             </Grid.Style>
             <Border Background="{DynamicResource ModalScrim}" />
             <Border x:Name="FocusEndConfirmationDialog"
-                    Width="380"
-                    Height="210"
+                    Width="360"
+                    Height="225"
                     Background="{DynamicResource SurfacePrimary}"
                     BorderBrush="{DynamicResource OverlayBorder}"
                     BorderThickness="1"
                     CornerRadius="20"
                     TextElement.FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI">
-                <Border.Effect><DropShadowEffect BlurRadius="24" Direction="270" Opacity="0.16" ShadowDepth="6" /></Border.Effect>
-                <Grid Margin="28,34,28,22">
+                <Border.Effect><DropShadowEffect BlurRadius="16" Direction="270" Opacity="0.10" ShadowDepth="3" /></Border.Effect>
+                <Grid Margin="23,21,23,22">
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="30" />
+                        <RowDefinition Height="26" />
+                        <RowDefinition Height="10" />
+                        <RowDefinition Height="20" />
+                        <RowDefinition Height="6" />
+                        <RowDefinition Height="6" />
                         <RowDefinition Height="12" />
-                        <RowDefinition Height="36" />
-                        <RowDefinition Height="32" />
                         <RowDefinition Height="44" />
+                        <RowDefinition Height="16" />
+                        <RowDefinition Height="40" />
                     </Grid.RowDefinitions>
 
-                    <TextBlock Grid.Row="0"
-                               HorizontalAlignment="Center"
+                    <TextBlock x:Name="FocusEndTitle" Grid.Row="0"
+                               HorizontalAlignment="Left"
                                VerticalAlignment="Center"
                                FontSize="22"
                                FontWeight="SemiBold"
                                Foreground="{DynamicResource TextPrimary}"
                                Text="{DynamicResource FocusEndNormalTitle}" />
 
-                    <TextBlock Grid.Row="2"
-                               HorizontalAlignment="Center"
-                               VerticalAlignment="Center"
-                               FontSize="14"
-                               FontWeight="Normal"
-                               Foreground="{DynamicResource TextSecondary}"
-                               Visibility="{Binding IsShortEndConfirmation, Converter={StaticResource BooleanToVisibilityConverter}}">
-                        <Run Text="{DynamicResource FocusEndShortDescriptionPrefix}" /><Run Foreground="{DynamicResource AccentPrimary}" Text="{DynamicResource FocusEndShortDescriptionEmphasis}" /><Run Text="{DynamicResource FocusEndShortDescriptionSuffix}" />
-                    </TextBlock>
-                    <TextBlock Grid.Row="2"
-                               HorizontalAlignment="Center"
-                               VerticalAlignment="Center"
-                               FontSize="14"
-                               FontWeight="Normal"
-                               Foreground="{DynamicResource TextSecondary}"
-                               Text="{DynamicResource FocusEndNormalSaveHint}"
-                               Visibility="{Binding IsNormalEndConfirmation, Converter={StaticResource BooleanToVisibilityConverter}}" />
-
-                    <Grid Grid.Row="4">
+                    <Grid x:Name="FocusEndTimeRegion" Grid.Row="2">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}" FontSize="12" Margin="0,0,5,0" Text="{DynamicResource FocusElapsedPrefix}"/>
+                            <TextBlock x:Name="FocusEndElapsedValue" VerticalAlignment="Center" Text="{Binding EndConfirmationElapsedDisplay, Mode=OneWay}" Foreground="{DynamicResource AccentPrimary}" FontSize="16" FontWeight="SemiBold"/>
+                        </StackPanel>
+                        <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource FocusEndMinimumTimeLabel}"/>
+                    </Grid>
+                    <ProgressBar x:Name="FocusEndProgress" Grid.Row="4" Height="6" Minimum="0" Maximum="1" Value="{Binding EndConfirmationProgress, Mode=OneWay}"
+                                 Background="#EDEEF1" Foreground="{DynamicResource AccentPrimary}" BorderThickness="0" AutomationProperties.Name="五分钟专注进度">
+                        <ProgressBar.Template><ControlTemplate TargetType="ProgressBar">
+                            <Grid x:Name="PART_Track">
+                                <Border Background="{TemplateBinding Background}" CornerRadius="3"/>
+                                <Border x:Name="PART_Indicator" HorizontalAlignment="Left" Background="{TemplateBinding Foreground}" CornerRadius="3"/>
+                            </Grid>
+                        </ControlTemplate></ProgressBar.Template>
+                    </ProgressBar>
+                    <Border x:Name="FocusEndStatusRegion" Grid.Row="6" Height="44" Background="#FFF4ED" CornerRadius="8" Padding="12,0">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="20"/><ColumnDefinition Width="10"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                            <Grid x:Name="FocusEndWarningIcon" Width="18" Height="18" VerticalAlignment="Center" Visibility="{Binding IsShortEndConfirmation, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <Ellipse Fill="{DynamicResource AccentPrimary}"/>
+                                <Path Data="M 9,4 L 9,10" Stroke="White" StrokeThickness="1.6" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                                <Ellipse Width="1.8" Height="1.8" Fill="White" Margin="0,11,0,0" VerticalAlignment="Top" HorizontalAlignment="Center"/>
+                            </Grid>
+                            <Path x:Name="FocusEndThumbsUpIcon" Width="20" Height="20" Stretch="Uniform" VerticalAlignment="Center" Fill="{DynamicResource AccentPrimary}"
+                                  Data="M 2,21 L 6,21 L 6,9 L 2,9 Z M 22,10 C 22,8.9 21.1,8 20,8 L 13.7,8 L 14.65,3.43 C 14.67,3.33 14.68,3.22 14.68,3.11 C 14.68,2.7 14.51,2.32 14.24,2.05 L 13.17,1 L 6.59,7.59 C 6.22,7.95 6,8.45 6,9 L 6,19 C 6,20.1 6.9,21 8,21 L 17,21 C 17.83,21 18.54,20.5 18.84,19.78 L 21.86,12.73 C 21.95,12.5 22,12.26 22,12 Z"
+                                  Visibility="{Binding IsNormalEndConfirmation, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                            <TextBlock x:Name="FocusEndWarningText" Grid.Column="2" VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource TextPrimary}"
+                                       Visibility="{Binding IsShortEndConfirmation, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <Run Text="{DynamicResource FocusEndShortDescriptionPrefix}"/><Run Text="{DynamicResource FocusEndShortDescriptionEmphasis}" Foreground="{DynamicResource AccentPrimary}" FontWeight="SemiBold"/><Run Text="{DynamicResource FocusEndShortDescriptionSuffix}"/>
+                            </TextBlock>
+                            <TextBlock x:Name="FocusEndEncouragementText" Grid.Column="2" VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource TextPrimary}"
+                                       Visibility="{Binding IsNormalEndConfirmation, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <Run Text="{DynamicResource FocusEndEncouragementPrefix}"/><Run Text="{DynamicResource FocusEndEncouragementEmphasis}" Foreground="{DynamicResource AccentPrimary}" FontWeight="SemiBold"/><Run Text="{DynamicResource FocusEndEncouragementSuffix}"/>
+                            </TextBlock>
+                        </Grid>
+                    </Border>
+                    <Grid x:Name="FocusEndActionRegion" Grid.Row="8">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="16" />
+                            <ColumnDefinition Width="10" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
-                        <Button x:Name="FocusDiscardConfirmationButton"
-                                Grid.Column="0"
-                                Height="44"
-                                AutomationProperties.Name="{DynamicResource FocusConfirmEndAction}"
-                                Command="{Binding DiscardEndCommand}"
-                                Style="{StaticResource FocusEndConfirmationSecondaryButton}"
-                                Visibility="{Binding IsShortEndConfirmation, Converter={StaticResource BooleanToVisibilityConverter}}">
-                            <TextBlock FontSize="14" FontWeight="Medium" Foreground="{DynamicResource TextSecondary}"
-                                       Text="{DynamicResource FocusConfirmEndAction}" />
-                        </Button>
                         <Button x:Name="FocusEndConfirmationButton"
                                 Grid.Column="0"
-                                Height="44"
+                                Height="40"
                                 AutomationProperties.Name="{DynamicResource FocusConfirmEndAction}"
-                                Command="{Binding ConfirmEndAndReturnHomeCommand}"
-                                Style="{StaticResource FocusEndConfirmationSecondaryButton}"
-                                Visibility="{Binding IsNormalEndConfirmation, Converter={StaticResource BooleanToVisibilityConverter}}">
-                            <TextBlock FontSize="14" FontWeight="Medium" Foreground="{DynamicResource TextSecondary}"
+                                Command="{Binding EndConfirmedFocusCommand}"
+                                Style="{StaticResource FocusEndConfirmationSecondaryButton}">
+                            <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondary}"
                                        Text="{DynamicResource FocusConfirmEndAction}" />
                         </Button>
                         <Button x:Name="FocusContinueConfirmationButton"
                                 Grid.Column="2"
-                                Height="44"
+                                Height="40"
                                 AutomationProperties.Name="{DynamicResource FocusContinueAction}"
                                 Command="{Binding ContinueFocusCommand}"
                                 Background="{DynamicResource AccentPrimary}"
                                 BorderThickness="0"
                                 Style="{StaticResource FocusEndConfirmationAccentButton}">
-                            <TextBlock FontSize="14" FontWeight="Medium" Foreground="{DynamicResource WhiteText}"
+                            <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource WhiteText}"
                                        Text="{DynamicResource FocusContinueAction}" />
                         </Button>
                     </Grid>

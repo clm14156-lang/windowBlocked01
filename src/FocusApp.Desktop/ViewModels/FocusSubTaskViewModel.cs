@@ -21,6 +21,7 @@ public sealed class FocusSubTaskViewModel : INotifyPropertyChanged
     public event PropertyChangedEventHandler? PropertyChanged;
     public string Id { get; }
     public string TaskId { get; }
+    public GoalTaskInlineEditorViewModel NextTaskEditor { get; } = new();
     public DateTimeOffset CreatedAtUtc { get; }
     public DateTimeOffset UpdatedAtUtc { get; private set; }
     public string CompletedTimeDisplay => IsCompleted ? UpdatedAtUtc.ToLocalTime().ToString("HH:mm") : "—";

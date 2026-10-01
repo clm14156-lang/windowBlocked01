@@ -52,15 +52,16 @@ public sealed class StatisticsMonthlyTargetPresentationTests
         Assert.Contains(emptyState.Descendants(Presentation + "TextBlock"), text =>
             (string?)text.Attribute("Text") == "{Binding TodayFocusCount, StringFormat='今日 {0} 次专注'}");
         Assert.Contains(emptyState.Descendants(Presentation + "TextBlock"), text =>
-            (string?)text.Attribute("Text") == "未设置今日目标");
+            (string?)text.Attribute("Text") == "未设置今日目标，让专注更有方向");
 
         var setTargetButton = Assert.Single(emptyState.Descendants(Presentation + "Button").Where(button =>
             (string?)button.Attribute(Xaml + "Name") == "SetTodayFocusTargetButton"));
         Assert.Equal("{Binding OpenMonthlyFocusTargetCommand}", (string?)setTargetButton.Attribute("Command"));
-        Assert.Contains(setTargetButton.Descendants(Presentation + "TextBlock"), text =>
+        var linkStyle = page.Descendants(Presentation + "Style").Single(style =>
+            (string?)style.Attribute(Xaml + "Key") == "TodayFocusTargetLinkStyle");
+        Assert.Contains(linkStyle.Descendants(Presentation + "TextBlock"), text =>
             (string?)text.Attribute("Text") == "设置目标");
-        Assert.Contains(setTargetButton.Descendants(Presentation + "TextBlock"), text =>
-            (string?)text.Attribute("Text") == "›");
+        Assert.Single(linkStyle.Descendants(Presentation + "Path"));
     }
 
     [Fact]

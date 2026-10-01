@@ -264,11 +264,15 @@
     <system:String x:Key="FocusEndSaveHint">本次专注记录将不会保存</system:String>
     <system:String x:Key="FocusEndShortTitle">本次专注不足 5 分钟</system:String>
     <system:String x:Key="FocusEndNormalTitle">结束本次专注？</system:String>
-    <system:String x:Key="FocusEndShortDescriptionPrefix">当前专注未满 5 分钟，本次记录</system:String>
+    <system:String x:Key="FocusEndShortDescriptionPrefix">现在结束，本次专注记录将</system:String>
     <system:String x:Key="FocusEndShortDescriptionEmphasis">不会保存</system:String>
     <system:String x:Key="FocusEndShortDescriptionSuffix">。</system:String>
     <system:String x:Key="FocusEndDiscardHint">现在结束，本次专注记录将不会保存</system:String>
     <system:String x:Key="FocusEndNormalSaveHint">专注记录将正常保存</system:String>
+    <system:String x:Key="FocusEndMinimumTimeLabel">5 分钟</system:String>
+    <system:String x:Key="FocusEndEncouragementPrefix">状态不错，要不要</system:String>
+    <system:String x:Key="FocusEndEncouragementEmphasis">继续坚持一会</system:String>
+    <system:String x:Key="FocusEndEncouragementSuffix">？</system:String>
     <system:String x:Key="FocusEndDiscardAction">结束并放弃记录</system:String>
     <system:String x:Key="FocusContinueAction">继续专注</system:String>
     <system:String x:Key="FocusConfirmEndAction">结束专注</system:String>

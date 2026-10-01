@@ -96,7 +96,9 @@ public sealed class StatisticsGoalProgressPresentationTests
         var createTask = current.Descendants(Presentation + "Button").Single(element =>
             (string?)element.Attribute(Xaml + "Name") == "CreateNextTaskButton");
         Assert.Equal("{Binding GoalTasks.NewTaskCommand}", (string?)createTask.Attribute("Command"));
-        Assert.Contains(createTask.Descendants(Presentation + "TextBlock"), text => (string?)text.Attribute("Text") == "+ 创建任务");
+        Assert.Equal(Presentation + "Canvas", createTask.Parent!.Name);
+        Assert.Equal("1", (string?)createTask.Parent.Attribute("Grid.Row"));
+        Assert.Equal("{StaticResource GoalCreateTaskButtonStyle}", (string?)createTask.Attribute("Style"));
         var completed = current.Descendants(Presentation + "Button").Single(element =>
             (string?)element.Attribute("AutomationProperties.Name") == "查看已完成任务");
         Assert.Equal("{Binding GoalTasks.OpenCompletedCommand}", (string?)completed.Attribute("Command"));
@@ -110,7 +112,7 @@ public sealed class StatisticsGoalProgressPresentationTests
         Assert.Equal("{Binding GoalTasks.DraftName, UpdateSourceTrigger=PropertyChanged}", (string?)editor.Attribute("Text"));
         var trend = current.Descendants(Presentation + "Button").Single(button =>
             (string?)button.Attribute(Xaml + "Name") == "GoalInvestmentTrendButton");
-        Assert.Equal("查看趋势  ›", (string?)trend.Attribute("Content"));
+        Assert.Contains(trend.Descendants(Presentation + "TextBlock"), text => (string?)text.Attribute("Text") == "查看趋势");
         Assert.Equal("{Binding GoalInvestmentTrend.OpenCommand}", (string?)trend.Attribute("Command"));
         Assert.Null(trend.Attribute("Click"));
         Assert.Contains(current.Descendants(Presentation + "TextBlock"), text =>
@@ -124,18 +126,18 @@ public sealed class StatisticsGoalProgressPresentationTests
         var completedRow = Assert.Single(current.Descendants(Presentation + "Grid").Where(grid =>
             (string?)grid.Attribute(Xaml + "Name") == "GoalCompletedTaskSummary"));
         Assert.Null(completedRow.Attribute("Background"));
-        Assert.Contains(completedRow.Parent!.Elements(Presentation + "Button"), button =>
-            (string?)button.Attribute(Xaml + "Name") == "CreateNextTaskButton");
+        Assert.Equal("1", (string?)completedRow.Attribute("Grid.Column"));
+        Assert.Equal("Right", (string?)completedRow.Attribute("HorizontalAlignment"));
         Assert.Contains(current.Descendants(Presentation + "TextBlock"), text =>
             (string?)text.Attribute("Text") == "待办任务");
         Assert.DoesNotContain(current.Descendants(Presentation + "TextBlock"), text =>
             (string?)text.Attribute("Text") == "下一步任务");
         var sections = current.Element(Presentation + "Grid.RowDefinitions")!.Elements(Presentation + "RowDefinition").ToArray();
         Assert.Equal(4, sections.Length);
-        Assert.Equal("156", (string?)sections[1].Attribute("Height"));
+        Assert.Equal("176", (string?)sections[1].Attribute("Height"));
         Assert.Equal("{StaticResource GroupVerticalInset}", (string?)current.Elements(Presentation + "Grid")
             .Single(grid => (string?)grid.Attribute(Xaml + "Name") == "GoalInvestmentMetrics").Attribute("Margin"));
-        Assert.Equal("2", (string?)Assert.Single(current.Elements(Presentation + "Border")).Attribute("Grid.Row"));
+        Assert.Empty(current.Elements(Presentation + "Border"));
     }
 
     [Fact]
@@ -210,7 +212,7 @@ public sealed class StatisticsGoalProgressPresentationTests
         Assert.Contains(emptyState.Descendants(Presentation + "TextBlock"), text =>
             (string?)text.Attribute("Text") == "还没有任务");
         Assert.Contains(emptyState.Descendants(Presentation + "TextBlock"), text =>
-            (string?)text.Attribute("Text") == "点击右上角【创建任务】开始吧。");
+            (string?)text.Attribute("Text") == "点击右下角 + 创建第一条任务。");
 
         var taskScroll = Assert.Single(card.Descendants(Presentation + "ScrollViewer").Where(element =>
             (string?)element.Attribute(Xaml + "Name") == "GoalNextTasksScroll"));

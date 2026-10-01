@@ -447,6 +447,39 @@ public partial class StatisticsPage : UserControl
             model.GoalTasks.BeginInlineEdit(task, "name");
     }
 
+    private void GoalSubTaskMoreButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { DataContext: FocusSubTaskViewModel, ContextMenu: { } menu } button) return;
+        if (_openNextTaskMenu is not null && _openNextTaskMenu != menu) _openNextTaskMenu.IsOpen = false;
+        menu.PlacementTarget = button;
+        menu.IsOpen = !menu.IsOpen;
+        e.Handled = true;
+    }
+
+    private async void GoalSubTaskEditor_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (sender is not TextBox { DataContext: FocusSubTaskViewModel item } || DataContext is not StatisticsOverviewViewModel model) return;
+        if (e.Key == Key.Escape)
+        {
+            e.Handled = true;
+            model.GoalTasks.CancelSubTaskEdit(item);
+            CreateNextTaskButton.Focus();
+        }
+        else if (e.Key == Key.Enter)
+        {
+            e.Handled = true;
+            if (await model.GoalTasks.CommitSubTaskEditAsync(item)) CreateNextTaskButton.Focus();
+        }
+    }
+
+    private async void GoalSubTaskEditor_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        if (sender is not TextBox { DataContext: FocusSubTaskViewModel item } || DataContext is not StatisticsOverviewViewModel model ||
+            item.NextTaskEditor.IsSaving || !item.NextTaskEditor.IsActive) return;
+        if (string.IsNullOrWhiteSpace(item.NextTaskEditor.Value)) model.GoalTasks.CancelSubTaskEdit(item);
+        else await model.GoalTasks.CommitSubTaskEditAsync(item);
+    }
+
     private void GoalNextTasksScroll_DragOver(object sender, DragEventArgs e)
     {
         AutoScrollGoalNextTasks(e.GetPosition(GoalNextTasksScroll));

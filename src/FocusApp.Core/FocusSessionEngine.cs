@@ -132,7 +132,7 @@ public sealed class FocusSessionEngine
 
     public bool AdvanceFocusBy(TimeSpan elapsed)
     {
-        if (State != FocusSessionState.Focusing || IsEndConfirmationOpen || elapsed <= TimeSpan.Zero)
+        if (State != FocusSessionState.Focusing || elapsed <= TimeSpan.Zero)
         {
             return false;
         }

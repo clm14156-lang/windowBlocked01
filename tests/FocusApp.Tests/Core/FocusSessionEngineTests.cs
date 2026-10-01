@@ -43,7 +43,7 @@ public sealed class FocusSessionEngineTests
     }
 
     [Fact]
-    public void EarlyCompletion_CreatesOneRecordAndConfirmationFreezesTime()
+    public void EarlyCompletion_CreatesOneRecordAndConfirmationKeepsRealTime()
     {
         var engine = CreateEngine();
         engine.Start(25);
@@ -53,13 +53,13 @@ public sealed class FocusSessionEngineTests
         Assert.True(engine.RequestEnd());
         Assert.Equal(1490, engine.RemainingFocusSeconds);
         engine.AdvanceFocusBy(TimeSpan.FromSeconds(10));
-        Assert.Equal(1490, engine.RemainingFocusSeconds);
+        Assert.Equal(1480, engine.RemainingFocusSeconds);
 
         Assert.True(engine.ConfirmEnd());
         Assert.Equal(FocusSessionState.Completed, engine.State);
         Assert.NotNull(engine.Completion);
         Assert.Equal(FocusCompletionKind.EarlyEnd, engine.Completion!.CompletionKind);
-        Assert.Equal(TimeSpan.FromSeconds(10), engine.Completion.ActualDuration);
+        Assert.Equal(TimeSpan.FromSeconds(20), engine.Completion.ActualDuration);
         Assert.False(engine.ConfirmEnd());
     }
 

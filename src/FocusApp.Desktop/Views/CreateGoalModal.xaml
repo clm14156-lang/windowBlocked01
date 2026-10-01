@@ -24,7 +24,7 @@
             <Setter Property="Height" Value="32" />
             <Setter Property="Margin" Value="0" />
             <Setter Property="Padding" Value="0" />
-            <Setter Property="Background" Value="#F5F6F8" />
+            <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Cursor" Value="Hand" />
@@ -41,12 +41,8 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="IconChoiceChrome" Property="Background" Value="#F7F7F9" />
+                                <Setter TargetName="IconChoiceChrome" Property="Opacity" Value="0.75" />
                             </Trigger>
-                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                <Setter TargetName="IconChoiceChrome" Property="Background" Value="#FFF1E7" />
-                                <Setter TargetName="IconChoiceChrome" Property="BorderBrush" Value="Transparent" />
-                            </DataTrigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
@@ -76,6 +72,7 @@
                     <ControlTemplate TargetType="{x:Type Button}">
                         <Border x:Name="DurationButtonChrome"
                                 Background="{TemplateBinding Background}"
+                                Padding="{TemplateBinding Padding}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
                                 CornerRadius="17">
@@ -211,8 +208,8 @@
                             <ItemsControl ItemTemplate="{StaticResource TargetIconChoiceTemplate}" ItemsSource="{Binding QuickTargetIcons}">
                                 <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="6" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                             </ItemsControl>
-                            <Button x:Name="GoalIconLibraryButton" Grid.Column="1" Width="32" Height="32" Padding="0" Background="#F5F6F8"
-                                    AutomationProperties.Name="更多图标" Command="{Binding ToggleGoalIconLibraryCommand}" Style="{StaticResource CreateGoalSecondaryButtonStyle}">
+                            <Button x:Name="GoalIconLibraryButton" Grid.Column="1" Width="32" Height="32" Padding="0"
+                                    AutomationProperties.Name="更多图标" Command="{Binding ToggleGoalIconLibraryCommand}" Style="{StaticResource TargetIconChoiceButtonStyle}">
                                 <TextBlock FontSize="17" FontWeight="SemiBold" Foreground="#65758B" Text="⋯" />
                             </Button>
                         </Grid>
@@ -268,7 +265,7 @@
                             <TextBlock Margin="0,4,0,0" HorizontalAlignment="Right" FontSize="11" Foreground="{DynamicResource TextWeak}" Text="{Binding RemarkCharacterCountDisplay}" />
                         </StackPanel>
                         <StackPanel Height="60">
-                            <TextBlock Margin="0,0,0,9" FontSize="13" Text="目标投入（可选）" />
+                            <TextBlock Margin="0,0,0,9" FontSize="13" Text="目标投入（小时）" />
                         <ItemsControl Margin="-3,0" ItemsSource="{Binding GoalDurationOptions}">
                             <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="4" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>
@@ -295,6 +292,9 @@
                                                 Style="{StaticResource GoalDurationEditButtonStyle}" />
                                     </Grid>
                                     <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding IsCustom}" Value="True">
+                                            <Setter TargetName="DurationOptionButton" Property="Padding" Value="5,0" />
+                                        </DataTrigger>
                                         <MultiDataTrigger>
                                             <MultiDataTrigger.Conditions>
                                                 <Condition Binding="{Binding IsCustom}" Value="True" />

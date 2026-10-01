@@ -114,23 +114,73 @@ public sealed class FocusSessionViewModelTests
     }
 
     [Fact]
-    public void EndConfirmation_PausesAndContinueResumesFromSameSecond()
+    public void EndConfirmation_KeepsCountingAndContinueDoesNotResetTime()
     {
         var viewModel = CreateFocusingViewModel();
         Advance(viewModel, 3);
-        var pausedAt = viewModel.RemainingFocusSeconds;
+        var openedAt = viewModel.RemainingFocusSeconds;
 
         viewModel.RequestEndCommand.Execute(null);
         Advance(viewModel, 5);
 
         Assert.True(viewModel.IsEndConfirmationOpen);
-        Assert.Equal(pausedAt, viewModel.RemainingFocusSeconds);
+        Assert.Equal(openedAt - 5, viewModel.RemainingFocusSeconds);
 
         viewModel.ContinueFocusCommand.Execute(null);
         viewModel.AdvanceOneSecond();
 
         Assert.False(viewModel.IsEndConfirmationOpen);
-        Assert.Equal(pausedAt - 1, viewModel.RemainingFocusSeconds);
+        Assert.Equal(openedAt - 6, viewModel.RemainingFocusSeconds);
+    }
+
+    [Theory]
+    [InlineData(138, false)]
+    [InlineData(299, true)]
+    public void EndConfirmation_ProgressAndCurrentThresholdChooseDiscardOrSave(int initialSeconds, bool crossThreshold)
+    {
+        var viewModel = CreateViewModel();
+        viewModel.Start(30);
+        Advance(viewModel, 5);
+        Advance(viewModel, initialSeconds);
+        viewModel.RequestEndCommand.Execute(null);
+        Assert.True(viewModel.IsShortEndConfirmation);
+        Assert.Equal(initialSeconds / 300d, viewModel.EndConfirmationProgress, 10);
+        var changed = new List<string?>();
+        viewModel.PropertyChanged += (_, e) => changed.Add(e.PropertyName);
+        if (crossThreshold)
+        {
+            viewModel.AdvanceOneSecond();
+            Assert.True(viewModel.IsNormalEndConfirmation);
+            Assert.Equal("5分0秒", viewModel.EndConfirmationElapsedDisplay);
+            Assert.Equal(1, viewModel.EndConfirmationProgress);
+            Assert.Contains(nameof(viewModel.EndConfirmationProgress), changed);
+            Assert.Contains(nameof(viewModel.EndConfirmationElapsedDisplay), changed);
+            Assert.Contains(nameof(viewModel.IsNormalEndConfirmation), changed);
+        }
+        viewModel.EndConfirmedFocusCommand.Execute(null);
+        Assert.Equal(FocusFlowStage.Idle, viewModel.Stage);
+        Assert.False(viewModel.IsEndConfirmationOpen);
+        if (crossThreshold) Assert.Equal(300, Assert.Single(viewModel.CompletionHistory).ActualDuration.TotalSeconds);
+        else Assert.Empty(viewModel.CompletionHistory);
+        viewModel.EndConfirmedFocusCommand.Execute(null);
+        Assert.Equal(crossThreshold ? 1 : 0, viewModel.CompletionHistory.Count);
+    }
+
+    [Fact]
+    public void EndConfirmation_NaturalCompletionDismissesDialogAndRecordsOnce()
+    {
+        var viewModel = CreateViewModel();
+        viewModel.Start(6);
+        Advance(viewModel, 5);
+        Advance(viewModel, 359);
+        viewModel.RequestEndCommand.Execute(null);
+        Assert.True(viewModel.IsNormalEndConfirmation);
+        Assert.Equal(1, viewModel.EndConfirmationProgress);
+        viewModel.AdvanceOneSecond();
+        Assert.False(viewModel.IsEndConfirmationOpen);
+        Assert.Equal(FocusFlowStage.Completed, viewModel.Stage);
+        viewModel.EndConfirmedFocusCommand.Execute(null);
+        Assert.Equal(360, Assert.Single(viewModel.CompletionHistory).ActualDuration.TotalSeconds);
     }
 
     [Fact]

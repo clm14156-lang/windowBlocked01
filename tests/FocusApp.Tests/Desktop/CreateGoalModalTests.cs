@@ -165,6 +165,29 @@ public sealed class CreateGoalModalTests
                     encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap));
                     using var stream = File.Create(Path.Combine(output, $"create-goal-{state}.png"));
                     encoder.Save(stream);
+                    if (state == "collapsed")
+                    {
+                        var library = (Border)((Popup)modal.FindName("GoalIconLibraryPopup")).Child;
+                        library.DataContext = viewModel;
+                        library.Measure(new Size(344, 230));
+                        library.Arrange(new Rect(0, 0, 344, 230));
+                        library.UpdateLayout();
+                        var drawing = new DrawingVisual();
+                        using (var context = drawing.RenderOpen())
+                        {
+                            context.DrawRectangle(new SolidColorBrush(Color.FromRgb(150, 150, 150)), null, new Rect(0, 0, 940, 710));
+                            context.DrawRectangle(new VisualBrush(modal), null, new Rect(0, 0, 800, 710));
+                            var cardPosition = dialog.TranslatePoint(new Point(), modal);
+                            context.DrawRectangle(new VisualBrush(library), null, new Rect(cardPosition.X + dialog.ActualWidth + 10,
+                                cardPosition.Y + (dialog.ActualHeight - 230) / 2, 344, 230));
+                        }
+                        var libraryPreview = new System.Windows.Media.Imaging.RenderTargetBitmap(940, 710, 96, 96, PixelFormats.Pbgra32);
+                        libraryPreview.Render(drawing);
+                        var libraryEncoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
+                        libraryEncoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(libraryPreview));
+                        using var libraryStream = File.Create(Path.Combine(output, "create-goal-icon-library.png"));
+                        libraryEncoder.Save(libraryStream);
+                    }
                 }
             }
             catch (Exception exception) { failure = exception; }

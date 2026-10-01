@@ -28,6 +28,44 @@ public sealed class CalendarRedesignTests
             goal, goal == "a" ? "window屏蔽软件" : "减肥到150斤", "", 0));
 
     [Fact]
+    public void AvailabilityFollowsActualMinutesAndSelectionRecoversWhenRecordsAreRemoved()
+    {
+        var model = new StatisticsOverviewViewModel(false);
+        SelectDate(model, Date(2));
+        Assert.DoesNotContain(model.CalendarDays, day => day.IsSelected);
+        AddSession(model, 2, 5);
+        var selected = model.CalendarDays.Single(day => day.Date == Date(2).Date);
+        Assert.True(selected.IsSelected);
+        var empty = model.CalendarDays.Single(day => day.Date == Date(5).Date);
+        Assert.False(empty.CanSelect);
+        Assert.False(model.SelectCalendarDateCommand.CanExecute(empty));
+        model.SelectCalendarDateCommand.Execute(empty);
+        Assert.Equal(5, model.SelectedDayMinutes);
+        AddSession(model, 5, 12);
+        var added = model.CalendarDays.Single(day => day.Date == Date(5).Date);
+        Assert.True(model.SelectCalendarDateCommand.CanExecute(added));
+        model.SelectCalendarDateCommand.Execute(added);
+        Assert.Equal(12, model.SelectedDayMinutes);
+        model.FocusSessionRecords.Remove(model.FocusSessionRecords.Single(record => record.StartTime.Date == Date(5).Date));
+        Assert.False(model.SelectCalendarDateCommand.CanExecute(added));
+        model.SelectCalendarDateCommand.Execute(added);
+        Assert.Equal(5, model.SelectedDayMinutes);
+        Assert.True(model.CalendarDays.Single(day => day.Date == Date(2).Date).IsSelected);
+        model.FocusSessionRecords.Clear();
+        Assert.DoesNotContain(model.CalendarDays, day => day.IsSelected);
+        Assert.Empty(model.SelectedDayRecords);
+        Assert.Empty(model.SelectedDayDistributions);
+        Assert.Empty(model.SelectedDayCompletedTaskGroups);
+        model.FocusSessionRecords.Add(new FocusSessionRecordViewModel(Date(2), Date(2).AddSeconds(20), "a", "学习", "", 0));
+        Assert.False(model.CalendarDays.Single(day => day.Date == Date(2).Date).CanSelect);
+        model.FocusSessionRecords.Add(new FocusSessionRecordViewModel(Date(1).Date.AddMinutes(-5), Date(1).Date.AddMinutes(5), "a", "学习", "", 0));
+        var adjacent = model.CalendarDays.Single(day => !day.IsCurrentMonth && day.HasFocus);
+        Assert.False(adjacent.CanSelect);
+        Assert.True(model.CalendarDays.Single(day => day.Date == Date(1).Date).IsSelected);
+        Assert.Equal(5, model.SelectedDayMinutes);
+    }
+
+    [Fact]
     public void MonthlyAverageUsesFocusDaysAndRefreshesWhenRecordsOrMonthChange()
     {
         var model = new StatisticsOverviewViewModel(false);
@@ -155,22 +193,38 @@ public sealed class CalendarRedesignTests
                 var emptyDay = dateButtons.Single(button => ((CalendarDayViewModel)button.DataContext).Date == Date(5).Date);
                 emptyDay.Command.Execute(emptyDay.CommandParameter);
                 Pump();
-                Assert.True(((CalendarDayViewModel)emptyDay.DataContext).IsSelected);
-                Assert.Equal(0, model.SelectedDayMinutes);
+                Assert.False(((CalendarDayViewModel)emptyDay.DataContext).IsSelected);
+                Assert.False(emptyDay.IsEnabled);
+                Assert.False(emptyDay.IsHitTestVisible);
+                Assert.False(emptyDay.IsTabStop);
+                Assert.Equal(System.Windows.Input.Cursors.Arrow, emptyDay.Cursor);
+                Assert.False(emptyDay.Command.CanExecute(emptyDay.CommandParameter));
+                Assert.Equal(45, model.SelectedDayMinutes);
                 Assert.True(((Grid)page.FindName("CalendarPopulatedContent")).IsVisible);
-                Assert.True(((StackPanel)page.FindName("DailyDistributionEmptyState")).IsVisible);
-                Assert.True(((StackPanel)page.FindName("CalendarRecordsEmptyState")).IsVisible);
-                Assert.False(((ScrollViewer)page.FindName("DailyDistributionScrollViewer")).IsVisible);
+                Assert.False(((StackPanel)page.FindName("DailyDistributionEmptyState")).IsVisible);
+                Assert.False(((StackPanel)page.FindName("CalendarRecordsEmptyState")).IsVisible);
+                Assert.True(((ScrollViewer)page.FindName("DailyDistributionScrollViewer")).IsVisible);
                 var emptyDateText = (TextBlock)emptyDay.Template.FindName("DayNumberText", emptyDay);
                 var emptyDurationText = (TextBlock)emptyDay.Template.FindName("DayDurationText", emptyDay);
                 var emptyBackground = (Border)emptyDay.Template.FindName("DaySelectionBackground", emptyDay);
                 Assert.Equal(Visibility.Collapsed, emptyDurationText.Visibility);
-                Assert.Equal(Colors.White, ((SolidColorBrush)emptyDateText.Foreground).Color);
-                var emptyCenter = emptyDateText.TranslatePoint(
-                    new Point(emptyDateText.ActualWidth / 2, emptyDateText.ActualHeight / 2), emptyBackground);
-                Assert.InRange(Math.Abs(emptyCenter.X - emptyBackground.ActualWidth / 2), 0, 1);
-                Assert.InRange(Math.Abs(emptyCenter.Y - emptyBackground.ActualHeight / 2), 0, 1);
-                SavePreview(page, "calendar-empty-day");
+                Assert.Equal(((SolidColorBrush)page.FindResource("DisabledText")).Color, ((SolidColorBrush)emptyDateText.Foreground).Color);
+                Assert.Equal(0, ((SolidColorBrush)emptyBackground.Background).Color.A);
+                var focusCard = (Border)page.FindName("CalendarDayMetrics");
+                Assert.Equal(new CornerRadius(10), focusCard.CornerRadius);
+                var decoration = Descendants<Image>(focusCard).Single();
+                Assert.Contains("rili_beijing.png", decoration.Source.ToString());
+                Assert.Equal(Stretch.Uniform, decoration.Stretch);
+                Assert.False(decoration.IsHitTestVisible);
+                var monthly = (Border)page.FindName("CalendarMonthlySummary");
+                foreach (var label in new[] { "总专注时长", "专注天数", "日均专注" })
+                {
+                    var title = Descendants<TextBlock>(monthly).Single(text => text.Text == label);
+                    var column = (StackPanel)title.Parent;
+                    var number = column.Children.OfType<Viewbox>().Single();
+                    Assert.True(title.TranslatePoint(new Point(0, title.ActualHeight), monthly).Y <= number.TranslatePoint(new Point(), monthly).Y);
+                }
+                SavePreview(page, "calendar-disabled-date");
 
                 model.NextCalendarMonthCommand.Execute(null);
                 Pump();
@@ -181,7 +235,13 @@ public sealed class CalendarRedesignTests
                 Assert.True(((Border)page.FindName("CalendarMonthlySummary")).IsVisible);
                 Assert.Equal("—", ((TextBlock)page.FindName("MonthlyAverageDuration")).Text);
                 Assert.All(model.CalendarDays, day => Assert.False(day.HasFocus));
+                Assert.DoesNotContain(model.CalendarDays, day => day.IsSelected);
                 Assert.Equal(page.ActualWidth - 32, layout.ActualWidth, 1);
+                foreach (var button in Descendants<Button>(page).Where(button => button.DataContext is CalendarDayViewModel))
+                {
+                    var number = (TextBlock)button.Template.FindName("DayNumberText", button);
+                    Assert.InRange(Math.Abs(number.TranslatePoint(new Point(number.ActualWidth / 2, 0), button).X - button.ActualWidth / 2), 0, 1);
+                }
                 SavePreview(page, "calendar-empty-month");
 
                 model.SetUserAccess(false, false);

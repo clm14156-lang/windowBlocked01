@@ -8,3 +8,4 @@ verify-*/
 .dotnet/
 *.user
 *.suo
+**/artifacts/*-validation/
