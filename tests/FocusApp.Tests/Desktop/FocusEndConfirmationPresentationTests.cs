@@ -22,19 +22,21 @@ public sealed class FocusEndConfirmationPresentationTests
         var view = XDocument.Load(Path.Combine(FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "FocusFlowView.xaml"));
         var dialog = Assert.Single(view.Descendants(presentation + "Border").Where(border =>
             (string?)border.Attribute(xaml + "Name") == "FocusEndConfirmationDialog"));
-        Assert.Equal("360", (string?)dialog.Attribute("Width"));
-        Assert.Equal("225", (string?)dialog.Attribute("Height"));
+        Assert.Equal("370", (string?)dialog.Attribute("Width"));
+        Assert.Equal("315", (string?)dialog.Attribute("Height"));
         var buttons = dialog.Descendants(presentation + "Button").ToArray();
-        Assert.Equal(2, buttons.Length);
-        Assert.Equal("{Binding EndConfirmedFocusCommand}", (string?)buttons[0].Attribute("Command"));
+        Assert.Equal(3, buttons.Length);
+        Assert.Equal("{Binding ContinueFocusCommand}", (string?)buttons[0].Attribute("Command"));
         Assert.Equal("{Binding ContinueFocusCommand}", (string?)buttons[1].Attribute("Command"));
+        Assert.Equal("{Binding EndConfirmedFocusCommand}", (string?)buttons[2].Attribute("Command"));
+        Assert.Empty(dialog.Descendants(presentation + "ProgressBar"));
         Assert.All(buttons, button => Assert.Null(button.Attribute("Visibility")));
         Assert.DoesNotContain(dialog.Descendants(presentation + "TextBlock"), text =>
             (string?)text.Attribute("Text") == "{DynamicResource FocusEndNormalSaveHint}");
     }
 
     [Fact]
-    public void EndConfirmation_RendersRealProgressAndThresholdTransitionWithoutMovingAnyRegion()
+    public void EndConfirmation_RendersCenteredDurationAndThresholdTransitionWithoutMovingAnyRegion()
     {
         Exception? failure = null;
         var thread = new Thread(() =>
@@ -56,36 +58,38 @@ public sealed class FocusEndConfirmationPresentationTests
                 Pump();
                 var dialog = (Border)view.FindName("FocusEndConfirmationDialog");
                 var title = (TextBlock)view.FindName("FocusEndTitle");
-                var progress = (ProgressBar)view.FindName("FocusEndProgress");
                 var status = (Border)view.FindName("FocusEndStatusRegion");
                 var warning = (TextBlock)view.FindName("FocusEndWarningText");
                 var encouragement = (TextBlock)view.FindName("FocusEndEncouragementText");
                 var warningIcon = (FrameworkElement)view.FindName("FocusEndWarningIcon");
-                var thumbIcon = (FrameworkElement)view.FindName("FocusEndThumbsUpIcon");
+                var close = (Button)view.FindName("FocusEndCloseButton");
+                var elapsed = (TextBlock)view.FindName("FocusEndElapsedValue");
                 var end = (Button)view.FindName("FocusEndConfirmationButton");
                 var resume = (Button)view.FindName("FocusContinueConfirmationButton");
-                Assert.Equal(360, dialog.ActualWidth);
-                Assert.Equal(225, dialog.Height);
-                Assert.InRange(dialog.ActualHeight, 224.5, 225.5); // Physical-pixel rounding at 150% DPI.
-                Assert.Equal("结束本次专注？", title.Text);
-                Assert.Equal(HorizontalAlignment.Left, title.HorizontalAlignment);
+                Assert.Equal(370, dialog.ActualWidth);
+                Assert.Equal(315, dialog.Height);
+                Assert.InRange(dialog.ActualHeight, 314.5, 315.5); // Physical-pixel rounding at 150% DPI.
+                Assert.Equal("结束专注？", title.Text);
+                Assert.Equal(HorizontalAlignment.Center, title.HorizontalAlignment);
                 Assert.Equal("2分18秒", model.EndConfirmationElapsedDisplay);
-                Assert.Equal("2分18秒", ((TextBlock)view.FindName("FocusEndElapsedValue")).Text);
-                Assert.Equal(0.46, progress.Value, 10);
-                Assert.Equal(6, progress.ActualHeight);
-                Assert.Equal(44, status.ActualHeight);
-                Assert.Equal(40, end.ActualHeight);
-                Assert.InRange(Math.Abs(end.ActualWidth - resume.ActualWidth), 0, 1);
+                Assert.Equal("2 分 18 秒", InlineText(elapsed));
+                Assert.Equal(44, elapsed.FontSize);
+                Assert.Equal(36, status.ActualHeight);
+                Assert.Equal(24, end.ActualHeight);
+                Assert.Equal(46, resume.ActualHeight);
+                Assert.Equal(284, resume.ActualWidth);
+                Assert.Equal(((SolidColorBrush)view.FindResource("TextSecondary")).Color, ((SolidColorBrush)((TextBlock)end.Content).Foreground).Color);
+                Assert.True(Bounds(resume, view).Bottom < Bounds(end, view).Top);
+                Assert.True(close.IsVisible);
+                Assert.Same(model.ContinueFocusCommand, close.Command);
                 Assert.True(warning.IsVisible);
                 Assert.True(warningIcon.IsVisible);
                 Assert.False(encouragement.IsVisible);
-                Assert.False(thumbIcon.IsVisible);
-                Assert.Equal("现在结束，本次专注记录将不会保存。", InlineText(warning));
+                Assert.Equal("当前专注不足 5 分钟，结束后不会保存记录", InlineText(warning));
+                Assert.Equal(ColorConverter.ConvertFromString("#FFF5F0"), ((SolidColorBrush)status.Background).Color);
                 Assert.InRange(warning.DesiredSize.Width, 0, warning.ActualWidth);
-                var indicator = (Border)progress.Template.FindName("PART_Indicator", progress);
-                Assert.InRange(Math.Abs(indicator.ActualWidth - progress.ActualWidth * 0.46), 0, 1);
                 SavePreview(dialog, "focus-end-short");
-                var regions = new FrameworkElement[] { dialog, title, (Grid)view.FindName("FocusEndTimeRegion"), progress, status, end, resume };
+                var regions = new FrameworkElement[] { dialog, title, (TextBlock)view.FindName("FocusEndElapsedLabel"), (Grid)view.FindName("FocusEndTimeRegion"), status, end, resume, close };
                 var before = regions.Select(region => Bounds(region, view)).ToArray();
                 for (var second = 138; second < 299; second++) model.AdvanceOneSecond();
                 Pump();
@@ -95,28 +99,32 @@ public sealed class FocusEndConfirmationPresentationTests
                 Pump();
                 Assert.True(model.IsEndConfirmationOpen);
                 Assert.Equal("5分0秒", model.EndConfirmationElapsedDisplay);
-                Assert.Equal("5分0秒", ((TextBlock)view.FindName("FocusEndElapsedValue")).Text);
-                Assert.Equal(1, progress.Value);
+                Assert.Equal("5 分 0 秒", InlineText(elapsed));
                 Assert.False(warning.IsVisible);
                 Assert.False(warningIcon.IsVisible);
                 Assert.True(encouragement.IsVisible);
-                Assert.True(thumbIcon.IsVisible);
-                Assert.Equal("状态不错，要不要继续坚持一会？", InlineText(encouragement));
+                Assert.Equal("状态不错，再坚持一会儿吧", InlineText(encouragement));
+                Assert.Equal(0, ((SolidColorBrush)status.Background).Color.A);
                 Assert.InRange(encouragement.DesiredSize.Width, 0, encouragement.ActualWidth);
-                Assert.Equal(progress.ActualWidth, indicator.ActualWidth);
                 Assert.Equal(before, regions.Select(region => Bounds(region, view)).ToArray());
                 SavePreview(dialog, "focus-end-five-minutes");
-                for (var second = 300; second < 438; second++) model.AdvanceOneSecond();
+                for (var second = 300; second < 1112; second++) model.AdvanceOneSecond();
                 Pump();
-                Assert.Equal("7分18秒", model.EndConfirmationElapsedDisplay);
-                Assert.Equal("7分18秒", ((TextBlock)view.FindName("FocusEndElapsedValue")).Text);
-                Assert.Equal(1, progress.Value);
+                Assert.Equal("18分32秒", model.EndConfirmationElapsedDisplay);
+                Assert.Equal("18 分 32 秒", InlineText(elapsed));
                 Assert.Equal(before, regions.Select(region => Bounds(region, view)).ToArray());
                 SavePreview(dialog, "focus-end-encouragement");
                 resume.Command.Execute(resume.CommandParameter);
                 Pump();
                 Assert.False(dialog.IsVisible);
-                Assert.Equal(438, model.ElapsedFocusSeconds);
+                Assert.Equal(1112, model.ElapsedFocusSeconds);
+                model.RequestEndCommand.Execute(null);
+                Pump();
+                close.Command.Execute(close.CommandParameter);
+                Pump();
+                Assert.False(dialog.IsVisible);
+                Assert.Equal(FocusFlowStage.Focusing, model.Stage);
+                Assert.Equal(1112, model.ElapsedFocusSeconds);
             }
             catch (Exception exception) { failure = exception; }
             finally { window?.Close(); }
@@ -138,11 +146,11 @@ public sealed class FocusEndConfirmationPresentationTests
         var drawing = new DrawingVisual();
         using (var context = drawing.RenderOpen())
         {
-            var bounds = new Rect(0, 0, 360, 225);
+            var bounds = new Rect(0, 0, 370, 315);
             context.DrawRectangle(new SolidColorBrush(Color.FromRgb(100, 100, 100)), null, bounds);
             context.DrawRectangle(new VisualBrush(dialog), null, bounds);
         }
-        var image = new RenderTargetBitmap(720, 450, 192, 192, PixelFormats.Pbgra32);
+        var image = new RenderTargetBitmap(740, 630, 192, 192, PixelFormats.Pbgra32);
         image.Render(drawing);
         var encoder = new PngBitmapEncoder();
         encoder.Frames.Add(BitmapFrame.Create(image));

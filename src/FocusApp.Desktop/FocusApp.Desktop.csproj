@@ -68,6 +68,12 @@
     <Resource Include="Assets\Images\Illustrations\mubiao_benzhou.png" />
     <Resource Include="Assets\Images\Illustrations\mubiao_tongji.png" />
     <Resource Include="Assets\Images\Illustrations\rili_beijing.png" />
+    <Resource Include="Assets\Images\Illustrations\foucus_background02.png" />
+    <Resource Include="Assets\Images\Illustrations\focus_aixin.png" />
+    <Resource Include="Assets\Images\Illustrations\focus_gouxuan.png" />
+    <Resource Include="Assets\Images\Illustrations\focus_sun.png" />
+    <Resource Include="Assets\Images\Illustrations\focus_yewan.png" />
+    <Resource Include="Assets\Images\Illustrations\focus_yeshenle.png" />
     <Resource Include="Assets\Images\Illustrations\guidang_renwu.png" />
     <Resource Include="Assets\Images\Illustrations\rili_vip.png" />
     <Resource Include="Assets\Themes\Solid\Orange\sidebar-logo.png" />

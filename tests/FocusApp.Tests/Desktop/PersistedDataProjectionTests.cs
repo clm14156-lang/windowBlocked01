@@ -205,9 +205,7 @@ public sealed class PersistedDataProjectionTests
         Assert.Same(originalGoals[0], viewModel.Goals[0]);
         Assert.Same(originalGoals[1], viewModel.Goals[1]);
         Assert.Same(originalSelection, viewModel.SelectedGoal);
-        Assert.Equal(second.TargetId, viewModel.GoalTasks.GoalId);
-        Assert.Empty(viewModel.GoalTasks.PendingTasks);
-        Assert.Equal(1, viewModel.GoalTasks.CompletedCount);
-        Assert.Equal(1, viewModel.GoalTasks.TodayCompletedCount);
+        // A standalone task mutation must not manufacture a focus session.
+        Assert.Empty(viewModel.GoalFocusHistory.Days);
     }
 }

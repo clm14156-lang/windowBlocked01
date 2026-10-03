@@ -8,6 +8,40 @@ namespace FocusApp.Tests.Infrastructure;
 public sealed class SqliteLocalDataStoreTests
 {
     [Fact]
+    public async Task SessionTaskDetailsSurviveTaskDeletionAndVersionNineHistoryMigratesWithoutInventingDetails()
+    {
+        using var database = new TemporaryDatabase();
+        var now = DateTimeOffset.UtcNow;
+        var target = new LocalTarget("goal", "目标", false, 0, now, now);
+        var task = new LocalTask("task", target.TargetId, "任务名称", true, 0, now, now) { Description = "原备注" };
+        var details = new LocalTaskDetailsSnapshot("当时的备注\n第二行", [new("完成的子任务", true), new("未完成的子任务", false)]);
+        var session = new LocalFocusSession(Guid.NewGuid(), LocalFocusSessionStatus.Completed, false, 60, 60,
+            now, now, now.AddMinutes(1), now.AddMinutes(1), FocusCompletionKind.Natural,
+            target.TargetId, target.Name, false, null, null,
+            [new LocalFocusSessionTaskSnapshot(task.TaskId, "当时的名称", 0) { Details = details }]);
+        var store = database.CreateStore();
+        await store.SaveTargetAsync(target, [task]);
+        await store.SaveFocusSessionAsync(session);
+        await store.SaveTargetAsync(target, []);
+        var persisted = Assert.Single(Assert.Single((await database.CreateStore().LoadAsync()).FocusSessions).CompletedTasks);
+        Assert.Equal("当时的名称", persisted.TaskNameSnapshot);
+        Assert.Equal(details.Description, persisted.Details!.Description);
+        Assert.Equal(details.SubTasks, persisted.Details.SubTasks);
+
+        await using (var connection = new SqliteConnection($"Data Source={database.Path}"))
+        {
+            await connection.OpenAsync();
+            await using var command = connection.CreateCommand();
+            command.CommandText = "ALTER TABLE focus_session_tasks DROP COLUMN details_snapshot_json; PRAGMA user_version = 9;";
+            await command.ExecuteNonQueryAsync();
+        }
+        persisted = Assert.Single(Assert.Single((await database.CreateStore().LoadAsync()).FocusSessions).CompletedTasks);
+        Assert.Equal("当时的名称", persisted.TaskNameSnapshot);
+        Assert.Null(persisted.Details);
+        Assert.Equal(10, await ReadUserVersionAsync(database.Path));
+    }
+
+    [Fact]
     public async Task TaskDetailsAndSubTasksSurviveReopenUpdatesAndCascadingDeletion()
     {
         using var database = new TemporaryDatabase();
@@ -80,7 +114,7 @@ public sealed class SqliteLocalDataStoreTests
         {
             await connection.OpenAsync();
             await using var command = connection.CreateCommand();
-            command.CommandText = "DROP TABLE subtasks; ALTER TABLE tasks DROP COLUMN description; PRAGMA user_version = 8;";
+            command.CommandText = "DROP TABLE subtasks; ALTER TABLE tasks DROP COLUMN description; ALTER TABLE focus_session_tasks DROP COLUMN details_snapshot_json; PRAGMA user_version = 8;";
             await command.ExecuteNonQueryAsync();
         }
         var migrated = Assert.Single((await database.CreateStore().LoadAsync()).Tasks);
@@ -89,7 +123,7 @@ public sealed class SqliteLocalDataStoreTests
         Assert.Equal(now, migrated.CompletedAtUtc);
         Assert.Equal(string.Empty, migrated.Description);
         Assert.Empty(migrated.SubTasks);
-        Assert.Equal(9, await ReadUserVersionAsync(database.Path));
+        Assert.Equal(10, await ReadUserVersionAsync(database.Path));
     }
 
     [Fact]
@@ -117,7 +151,7 @@ public sealed class SqliteLocalDataStoreTests
         await store.InitializeAsync();
         var snapshot = await store.LoadAsync();
 
-        Assert.Equal(9, await ReadUserVersionAsync(database.Path));
+        Assert.Equal(10, await ReadUserVersionAsync(database.Path));
         Assert.Empty(snapshot.FocusSessions);
         Assert.Empty(snapshot.Targets);
         Assert.Empty(snapshot.Tasks);
@@ -156,7 +190,7 @@ public sealed class SqliteLocalDataStoreTests
 
         await database.CreateStore().InitializeAsync();
 
-        Assert.Equal(9, await ReadUserVersionAsync(database.Path));
+        Assert.Equal(10, await ReadUserVersionAsync(database.Path));
         Assert.True(await TableExistsAsync(database.Path, "focus_session_website_rules"));
         Assert.True(await TableExistsAsync(database.Path, "focus_session_application_rules"));
         Assert.True(await ColumnExistsAsync(database.Path, "targets", "icon_file_name"));
@@ -433,14 +467,14 @@ public sealed class SqliteLocalDataStoreTests
         {
             await connection.OpenAsync();
             await using var command = connection.CreateCommand();
-            command.CommandText = "DROP TABLE subtasks; ALTER TABLE tasks DROP COLUMN description; ALTER TABLE targets DROP COLUMN icon_color_hex; PRAGMA user_version = 7;";
+            command.CommandText = "DROP TABLE subtasks; ALTER TABLE tasks DROP COLUMN description; ALTER TABLE targets DROP COLUMN icon_color_hex; ALTER TABLE focus_session_tasks DROP COLUMN details_snapshot_json; PRAGMA user_version = 7;";
             await command.ExecuteNonQueryAsync();
         }
         var migrated = Assert.Single((await database.CreateStore().LoadAsync()).Targets);
         Assert.Equal("旧目标", migrated.Name);
         Assert.Equal("study.png", migrated.IconFileName);
         Assert.Null(migrated.IconColorHex);
-        Assert.Equal(9, await ReadUserVersionAsync(database.Path));
+        Assert.Equal(10, await ReadUserVersionAsync(database.Path));
     }
 
     [Fact]

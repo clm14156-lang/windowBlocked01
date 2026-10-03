@@ -227,16 +227,35 @@
             </Style.Triggers>
         </Style>
 
+        <Style x:Key="FocusFooterActionStyle" TargetType="{x:Type Button}">
+            <Setter Property="Height" Value="36"/>
+            <Setter Property="Padding" Value="12,0"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Foreground" Value="#697789"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+                <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <ControlTemplate.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter Property="Foreground" Value="#394555"/></Trigger>
+                    <Trigger Property="IsPressed" Value="True"><Setter Property="Opacity" Value="0.65"/></Trigger>
+                </ControlTemplate.Triggers>
+            </ControlTemplate></Setter.Value></Setter>
+        </Style>
+
         <Style x:Key="FocusEndConfirmationAccentButton"
                TargetType="{x:Type Button}"
                BasedOn="{StaticResource FocusFlowAccentButton}">
-            <Setter Property="Height" Value="40" />
+            <Setter Property="Height" Value="46" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type Button}">
                         <Border x:Name="ButtonBorder"
                                 Background="{TemplateBinding Background}"
-                                CornerRadius="10">
+                                CornerRadius="23">
                             <ContentPresenter HorizontalAlignment="Center"
                                               VerticalAlignment="Center"
                                               TextElement.FontWeight="{TemplateBinding FontWeight}"
@@ -256,21 +275,24 @@
         </Style>
 
         <Style x:Key="FocusEndConfirmationSecondaryButton" TargetType="{x:Type Button}">
-            <Setter Property="Height" Value="40" />
-            <Setter Property="Background" Value="#F4F4F6" />
-            <Setter Property="BorderBrush" Value="#E4E5E9" />
-            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Height" Value="24" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type Button}">
-                        <Border x:Name="ButtonBorder" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="10">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        <Border x:Name="ButtonBorder" Background="{TemplateBinding Background}" CornerRadius="8">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" TextElement.Foreground="{TemplateBinding Foreground}" />
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource ControlHoverBackground}" />
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Opacity" Value="0.65" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -279,126 +301,104 @@
         </Style>
 
         <DataTemplate x:Key="FocusCompletionDetails">
-            <StackPanel HorizontalAlignment="Center">
-                <TextBlock HorizontalAlignment="Center"
-                           FontSize="14"
-                           Foreground="{DynamicResource TextWeak}"
-                           Text="{DynamicResource FocusCompletionPraise}" />
-                <TextBlock Margin="0,8,0,0"
-                           HorizontalAlignment="Center"
-                           FontSize="32"
-                           FontWeight="SemiBold"
-                           Foreground="{DynamicResource TextPrimary}"
-                           Text="{DynamicResource FocusCompletedTitle}" />
-                <TextBlock Margin="0,3,0,0"
-                           HorizontalAlignment="Center"
-                           FontFamily="{DynamicResource FontFamilyNumeric}"
-                           Foreground="{DynamicResource AccentPrimary}">
-                    <Run FontSize="68" FontWeight="SemiBold" Text="{Binding CompletedDurationMinutes, Mode=OneWay}" />
-                    <Run FontFamily="{DynamicResource FontFamilyPrimary}"
-                         FontSize="20"
-                         FontWeight="Medium"
-                         Foreground="{DynamicResource TextPrimary}"
-                         Text="{DynamicResource FocusCompletionMinutesUnit}" />
-                </TextBlock>
-
-                <Grid Width="420" Height="66" Margin="0,18,0,0" HorizontalAlignment="Center">
+            <Grid>
+                <Grid x:Name="CompletionGreeting" Margin="44,22,44,0" HorizontalAlignment="Left" VerticalAlignment="Top">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="48" />
+                        <ColumnDefinition Width="14" />
+                        <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <Border Grid.Column="0" BorderBrush="#EAE7E3" BorderThickness="0,0,1,0">
-                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
-                            <views:SvgIcon Width="22" Height="22" Margin="0,0,10,0"
-                                           Source="/FocusApp.Desktop;component/Assets/Icons/Common/statistics.svg" />
-                            <StackPanel>
-                                <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource FocusTodayTotalShort}" />
-                                <TextBlock FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}">
-                                    <Run Text="{Binding TodayTotalMinutes, Mode=OneWay}" /><Run Text=" " /><Run Text="{DynamicResource FocusCompletionMinutesUnit}" />
-                                </TextBlock>
-                            </StackPanel>
-                        </StackPanel>
-                    </Border>
-                    <Border Grid.Column="1" BorderBrush="#EAE7E3" BorderThickness="0,0,1,0">
-                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
-                            <views:SvgIcon Width="22" Height="22" Margin="0,0,10,0"
-                                           Source="/FocusApp.Desktop;component/Assets/Icons/Common/time.svg" />
-                            <StackPanel>
-                                <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource FocusSessionCountLabel}" />
-                                <TextBlock FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}">
-                                    <Run Text="{Binding TodayFocusCount, Mode=OneWay}" /><Run Text=" " /><Run Text="{DynamicResource FocusCompletionTimesUnit}" />
-                                </TextBlock>
-                            </StackPanel>
-                        </StackPanel>
-                    </Border>
-                    <StackPanel Grid.Column="2" HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
-                        <views:SvgIcon Width="22" Height="22" Margin="0,0,10,0"
-                                       Source="/FocusApp.Desktop;component/Assets/Icons/Common/checkbox.svg" />
-                        <StackPanel>
-                            <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource FocusCompletedTasksLabel}" />
-                            <TextBlock FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}">
-                                <Run Text="{Binding SessionCompletedTaskCount, Mode=OneWay}" /><Run Text=" " /><Run Text="{DynamicResource FocusCompletionItemCountSuffix}" />
-                            </TextBlock>
-                        </StackPanel>
+                    <Image x:Name="CompletionHeart" Width="48" Height="48" Margin="0,1,0,0"
+                           VerticalAlignment="Top" IsHitTestVisible="False"
+                           Source="/FocusApp.Desktop;component/Assets/Images/Illustrations/focus_aixin.png"
+                           Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality" />
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="{DynamicResource FocusCompletedTitle}" FontSize="26" FontWeight="SemiBold" Foreground="#0B1B2A" />
+                        <TextBlock Text="{DynamicResource FocusCompletionSubtitle}" FontSize="17" Foreground="#7A8797" Margin="0,4,0,0" />
                     </StackPanel>
                 </Grid>
 
-                <StackPanel Margin="0,35,0,0" HorizontalAlignment="Center" Orientation="Horizontal">
-                    <Button Width="172" Height="48"
-                            AutomationProperties.Name="{DynamicResource FocusAgain}"
-                            Background="{DynamicResource SurfacePrimary}"
-                            BorderBrush="{DynamicResource BorderPrimary}"
-                            BorderThickness="1"
-                            Command="{Binding RequestFocusAgainCommand}"
-                            FontSize="13" FontWeight="Medium"
-                            Style="{StaticResource FocusFlowOutlineButton}">
-                        <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
-                            <views:SvgIcon Width="18" Height="18" Margin="0,0,9,0"
-                                           Source="/FocusApp.Desktop;component/Assets/Icons/Common/reset.svg" />
-                            <TextBlock VerticalAlignment="Center" FontSize="13" FontWeight="Medium"
-                                       Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource FocusAgainShort}" />
-                        </StackPanel>
-                    </Button>
-                    <Button Width="172" Height="48" Margin="20,0,0,0"
-                            AutomationProperties.Name="{DynamicResource FocusReturnHome}"
-                            Command="{Binding ReturnHomeCommand}"
-                            Style="{StaticResource FocusNoTargetReturnHomeButton}">
-                        <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
-                            <views:SvgIcon Width="18" Height="18" Margin="0,0,9,0"
-                                           FillOverride="White"
-                                           Source="/FocusApp.Desktop;component/Assets/Icons/Common/home.svg" />
-                            <TextBlock VerticalAlignment="Center" FontSize="13" FontWeight="Medium"
-                                       Foreground="{DynamicResource WhiteText}" Text="{DynamicResource FocusReturnHome}" />
-                        </StackPanel>
-                    </Button>
+                <Grid x:Name="CompletionCenter" Width="520" Height="370" Margin="0,108,0,0"
+                      HorizontalAlignment="Center" VerticalAlignment="Top" IsHitTestVisible="False">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="150" />
+                        <RowDefinition Height="6" />
+                        <RowDefinition Height="100" />
+                        <RowDefinition Height="10" />
+                        <RowDefinition Height="30" />
+                        <RowDefinition Height="46" />
+                        <RowDefinition Height="28" />
+                    </Grid.RowDefinitions>
+                    <!-- The supplied check illustration has transparent padding above and below. -->
+                    <Grid Width="256" Height="150" HorizontalAlignment="Center" ClipToBounds="True">
+                        <Image x:Name="CompletionCheck" Width="256" Height="256" Margin="0,-53,0,-53"
+                               IsHitTestVisible="False" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"
+                               Source="/FocusApp.Desktop;component/Assets/Images/Illustrations/focus_gouxuan.png" />
+                    </Grid>
+                    <Viewbox Grid.Row="2" Width="440" Height="100" Stretch="Uniform" StretchDirection="DownOnly">
+                        <TextBlock x:Name="CompletionTime" Text="{Binding CompletedTimeDisplay, Mode=OneWay}"
+                                   FontFamily="{DynamicResource FontFamilyNumeric}" FontSize="88" FontWeight="Bold"
+                                   LineHeight="100" LineStackingStrategy="BlockLineHeight"
+                                   Foreground="#071827" TextAlignment="Center" />
+                    </Viewbox>
+                    <Grid x:Name="CompletionTarget" Grid.Row="4" HorizontalAlignment="Center" MaxWidth="440"
+                          Visibility="{Binding HasTarget, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="23" />
+                            <ColumnDefinition Width="10" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Image Width="22" Height="22" VerticalAlignment="Center" Stretch="Uniform"
+                               RenderOptions.BitmapScalingMode="HighQuality"
+                               Source="{Binding ActiveTarget.IconSource, Mode=OneWay, Converter={x:Static views:TargetIconSourceConverter.Instance}, ConverterParameter=#65758B}" />
+                        <TextBlock Grid.Column="2" MaxWidth="407" VerticalAlignment="Center"
+                                   Text="{Binding TargetName, Mode=OneWay}" FontSize="20" Foreground="#65758B"
+                                   TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" ToolTip="{Binding TargetName}" />
+                    </Grid>
+                    <TextBlock x:Name="CompletionStatistics" Grid.Row="6" HorizontalAlignment="Center" VerticalAlignment="Center"
+                               FontSize="18" Foreground="#7A8797">
+                        <Run Text="{DynamicResource FocusCompletionTodayPrefix}" /><Run Text="{Binding TodayFocusCount, Mode=OneWay}" /><Run Text="{DynamicResource FocusCompletionTodaySuffix}" /><Run Text="   ·   " /><Run Text="{DynamicResource FocusCompletionTotalPrefix}" /><Run Text="{Binding CompletionTodayTotalDisplay, Mode=OneWay}" />
+                    </TextBlock>
+                </Grid>
+
+                <StackPanel x:Name="CompletionFooter" Margin="48,0,48,44" VerticalAlignment="Bottom">
+                    <Border Height="1" Background="#EEEDEA" Margin="0,0,0,22" />
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <Button x:Name="CompletionAgainButton" Height="42"
+                                Style="{StaticResource FocusFooterActionStyle}" Command="{Binding RequestFocusAgainCommand}"
+                                AutomationProperties.Name="{DynamicResource FocusAgainShort}">
+                            <StackPanel Orientation="Horizontal">
+                                <views:SvgIcon Width="20" Height="20" Margin="0,0,10,0" VerticalAlignment="Center"
+                                               FillOverride="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                               Source="/FocusApp.Desktop;component/Assets/Icons/Common/reset.svg" />
+                                <TextBlock Text="{DynamicResource FocusAgainShort}" FontSize="16" VerticalAlignment="Center"
+                                           Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                            </StackPanel>
+                        </Button>
+                        <Border Width="1" Height="28" Margin="26,0" VerticalAlignment="Center" Background="#E5E7EB" />
+                        <Button x:Name="CompletionHomeButton" Height="42"
+                                Style="{StaticResource FocusFooterActionStyle}" Command="{Binding ReturnHomeCommand}"
+                                AutomationProperties.Name="{DynamicResource FocusReturnHome}">
+                            <StackPanel Orientation="Horizontal">
+                                <views:SvgIcon Width="20" Height="20" Margin="0,0,10,0" VerticalAlignment="Center"
+                                               FillOverride="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                               Source="/FocusApp.Desktop;component/Assets/Icons/Common/home.svg" />
+                                <TextBlock Text="{DynamicResource FocusReturnHome}" FontSize="16" VerticalAlignment="Center"
+                                           Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
                 </StackPanel>
-            </StackPanel>
+            </Grid>
         </DataTemplate>
     </UserControl.Resources>
 
     <Grid Background="{DynamicResource SurfacePrimary}">
-        <Image x:Name="NoTaskFocusBackground"
-               Panel.ZIndex="-1"
-               IsHitTestVisible="False"
-               Source="/FocusApp.Desktop;component/Assets/Themes/Solid/Orange/foucus_background.png"
-               Stretch="UniformToFill">
-            <Image.Style>
-                <Style TargetType="{x:Type Image}">
-                    <Setter Property="Visibility" Value="Collapsed" />
-                    <Style.Triggers>
-                        <MultiDataTrigger>
-                            <MultiDataTrigger.Conditions>
-                                <Condition Binding="{Binding IsFocusing}" Value="True" />
-                                <Condition Binding="{Binding HasTarget}" Value="False" />
-                            </MultiDataTrigger.Conditions>
-                            <Setter Property="Visibility" Value="Visible" />
-                        </MultiDataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </Image.Style>
-        </Image>
-        <Grid Height="48"
+        <Image x:Name="FocusBackground" Panel.ZIndex="-1" IsHitTestVisible="False"
+               Source="/FocusApp.Desktop;component/Assets/Images/Illustrations/foucus_background02.png"
+               Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"
+               Visibility="{Binding IsFocusing, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+        <Grid Height="48" Panel.ZIndex="1"
               VerticalAlignment="Top"
               Background="{DynamicResource SurfacePrimary}"
               MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
@@ -416,268 +416,84 @@
             </StackPanel>
         </Grid>
 
-        <Grid x:Name="TargetFocusingView"
-              Margin="0,48,0,0"
-              MouseDown="TargetMode_MouseDown">
-            <Grid.Style>
-                <Style TargetType="{x:Type Grid}">
-                    <Setter Property="Visibility" Value="Collapsed" />
-                    <Style.Triggers>
-                        <MultiDataTrigger>
-                            <MultiDataTrigger.Conditions>
-                                <Condition Binding="{Binding IsFocusing}" Value="True" />
-                                <Condition Binding="{Binding HasTarget}" Value="True" />
-                            </MultiDataTrigger.Conditions>
-                            <Setter Property="Visibility" Value="Visible" />
-                        </MultiDataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </Grid.Style>
-
-            <Grid>
-                <Image IsHitTestVisible="False"
-                       Source="/FocusApp.Desktop;component/Assets/Themes/Solid/Orange/foucus_background.png"
-                       Stretch="UniformToFill" />
-
-                <Grid RenderTransform="{StaticResource FocusFlowCenterShift}">
-                    <TextBlock Margin="0,56,0,0"
-                               HorizontalAlignment="Center"
-                               VerticalAlignment="Top"
-                               FontSize="28"
-                               FontWeight="Normal"
-                               Foreground="{DynamicResource TextPrimary}"
-                               Text="{Binding PendingTasks[0].Name, Mode=OneWay}" />
-
-                    <Grid Width="290"
-                          Height="290"
-                          Margin="0,118,0,0"
-                          HorizontalAlignment="Center"
-                          VerticalAlignment="Top">
-                        <views:CircularProgressRing Progress="{Binding RemainingProgress, Mode=OneWay}"
-                                                    ProgressBrush="{DynamicResource AccentPrimary}"
-                                                    ProgressEndPointDiameter="5"
-                                                    RingThickness="2"
-                                                    TrackBrush="#EEE8DE" />
-                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <TextBlock HorizontalAlignment="Center"
-                                        FontFamily="/FocusApp.Desktop;component/Assets/font/#Source Han Serif CN"
-                                        FontSize="68"
-                                        FontWeight="Medium"
-                                       Foreground="{DynamicResource TextPrimary}"
-                                       Text="{Binding RemainingTimeDisplay}" />
-                            <StackPanel Margin="0,3,0,0" HorizontalAlignment="Center" Orientation="Horizontal">
-                                <Image Width="24"
-                                       Height="24"
-                                       Margin="0,0,8,0"
-                                       VerticalAlignment="Center"
-                                       IsHitTestVisible="False"
-                                       RenderOptions.BitmapScalingMode="HighQuality"
-                                       SnapsToDevicePixels="True"
-                                       Source="{Binding ActiveTarget.IconSource, Mode=OneWay, Converter={x:Static views:TargetIconSourceConverter.Instance}}"
-                                       Stretch="Uniform" />
-                                <TextBlock VerticalAlignment="Center"
-                                           FontSize="17"
-                                           Foreground="{DynamicResource TextPrimary}"
-                                           Text="{Binding TargetName, Mode=OneWay}" />
-                            </StackPanel>
-                        </StackPanel>
-                    </Grid>
-
-                    <TextBlock Margin="0,476,0,0"
-                               HorizontalAlignment="Center"
-                               VerticalAlignment="Top"
-                               FontFamily="/FocusApp.Desktop;component/Assets/font/#Source Han Serif CN"
-                               FontSize="24"
-                               FontWeight="Light"
-                               Foreground="{DynamicResource TextSecondary}"
-                               Text="{DynamicResource FocusNoTaskAtmosphere}" />
-
-                    <Image Width="44"
-                           Height="8.4"
-                           Margin="0,517,0,0"
-                           HorizontalAlignment="Center"
-                           VerticalAlignment="Top"
-                           IsHitTestVisible="False"
-                           Source="/FocusApp.Desktop;component/Assets/Themes/Solid/Orange/focusPage_OrangeLine.png"
-                           Stretch="Uniform" />
-
-                    <Grid Width="350"
-                          Height="45"
-                          Margin="0,555,0,0"
-                          HorizontalAlignment="Center"
-                          VerticalAlignment="Top">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="165" />
-                            <ColumnDefinition Width="20" />
-                            <ColumnDefinition Width="165" />
-                        </Grid.ColumnDefinitions>
-                        <Grid Grid.Column="0">
-                            <Button Height="45"
-                                     Background="#FCF8F1"
-                                     BorderBrush="#E7D9CE"
-                                     BorderThickness="1"
-                                     Command="{Binding RequestEndCommand}"
-                                     FontSize="13"
-                                     FontWeight="Medium"
-                                     Foreground="#9D9690">
-                                <Button.Style>
-                                    <Style TargetType="{x:Type Button}" BasedOn="{StaticResource FocusFlowOutlineButton}">
-                                        <Setter Property="Visibility" Value="Visible" />
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsForcedModeActive}" Value="True">
-                                                <Setter Property="Visibility" Value="Collapsed" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Button.Style>
-                                <TextBlock FontSize="13"
-                                           FontWeight="Medium"
-                                           Foreground="#9D9690"
-                                           Text="{DynamicResource FocusEndAction}" />
-                            </Button>
-                            <Button Height="45"
-                                    Padding="10,0"
-                                    AutomationProperties.Name="{DynamicResource FocusForcedEndUnavailable}"
-                                    Background="{DynamicResource FocusForcedEndDisabledBackground}"
-                                    BorderBrush="{DynamicResource BorderPrimary}"
-                                    BorderThickness="1"
-                                    Cursor="Arrow"
-                                    Focusable="False"
-                                    FontSize="13"
-                                    FontWeight="Medium"
-                                    Foreground="{DynamicResource DisabledText}"
-                                    IsEnabled="False"
-                                    IsHitTestVisible="False">
-                                <Button.Style>
-                                    <Style TargetType="{x:Type Button}">
-                                        <Setter Property="Visibility" Value="Collapsed" />
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsForcedModeActive}" Value="True">
-                                                <Setter Property="Visibility" Value="Visible" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Button.Style>
-                                <Button.Template>
-                                    <ControlTemplate TargetType="{x:Type Button}">
-                                        <Border Background="{TemplateBinding Background}"
-                                                BorderBrush="{TemplateBinding BorderBrush}"
-                                                BorderThickness="{TemplateBinding BorderThickness}"
-                                                CornerRadius="20">
-                                            <ContentPresenter HorizontalAlignment="Center"
-                                                              VerticalAlignment="Center" />
-                                        </Border>
-                                    </ControlTemplate>
-                                </Button.Template>
-                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
-                                    <TextBlock Margin="0,0,7,0" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="13" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}" Text="&#xE83D;" />
-                                    <TextBlock VerticalAlignment="Center" FontSize="13" FontWeight="Medium" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}" Text="{DynamicResource FocusForcedEndUnavailable}" />
-                                </StackPanel>
-                            </Button>
-                        </Grid>
-                        <Button Grid.Column="2"
-                                Height="45"
-                                Background="#FBF2E6"
-                                BorderBrush="#E7D9CE"
-                                BorderThickness="1"
-                                Click="ViewTasksButton_Click"
-                                Foreground="#353535"
-                                FontSize="13"
-                                FontWeight="Normal"
-                                Style="{StaticResource FocusFlowOutlineButton}">
-                            <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
-                                <Image Width="15"
-                                       Height="15"
-                                       Margin="0,0,9,0"
-                                       VerticalAlignment="Center"
-                                       IsHitTestVisible="False"
-                                       Source="/FocusApp.Desktop;component/Assets/Themes/Solid/Orange/renwugaunli.png"
-                                       Stretch="Uniform" />
-                                <TextBlock VerticalAlignment="Center" FontSize="13" FontWeight="Normal" Foreground="#353535">
-                                    <Run Text="{DynamicResource FocusViewTasks}" /><Run Text="（" /><Run Text="{Binding PendingTaskCount, Mode=OneWay}" /><Run Text="）" />
-                                </TextBlock>
-                            </StackPanel>
-                        </Button>
-                    </Grid>
-                </Grid>
-
-            </Grid>
-
-        </Grid>
-
-        <Grid x:Name="NoTaskFocusingView">
-            <Grid.Style>
-                <Style TargetType="{x:Type Grid}">
-                    <Setter Property="Visibility" Value="Collapsed" />
-                    <Style.Triggers>
-                        <MultiDataTrigger>
-                            <MultiDataTrigger.Conditions>
-                                <Condition Binding="{Binding IsFocusing}" Value="True" />
-                                <Condition Binding="{Binding HasTarget}" Value="False" />
-                            </MultiDataTrigger.Conditions>
-                            <Setter Property="Visibility" Value="Visible" />
-                        </MultiDataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </Grid.Style>
-
-            <Grid RenderTransform="{StaticResource FocusFlowCenterShift}">
-                <Grid Width="290"
-                      Height="290"
-                      Margin="0,163,0,0"
-                      HorizontalAlignment="Center"
-                      VerticalAlignment="Top">
-                    <views:CircularProgressRing Progress="{Binding RemainingProgress, Mode=OneWay}"
-                                                ProgressBrush="{DynamicResource AccentPrimary}"
-                                                ProgressEndPointDiameter="8"
-                                                RingThickness="8"
-                                                TrackBrush="#E8E8ED" />
-                    <TextBlock HorizontalAlignment="Center"
-                               VerticalAlignment="Center"
-                               FontSize="68"
-                               FontWeight="Medium"
-                               Foreground="{DynamicResource TextPrimary}"
-                               Text="{Binding RemainingTimeDisplay}" />
-                </Grid>
-
-                <Grid Width="290" Height="45" Margin="0,552,0,0" HorizontalAlignment="Center" VerticalAlignment="Top">
-                    <Button Width="165"
-                            Height="45"
-                            HorizontalAlignment="Center"
-                            AutomationProperties.Name="{DynamicResource FocusEndAction}"
-                            Command="{Binding RequestEndCommand}"
-                            FontSize="14"
-                            FontWeight="Medium"
-                            Foreground="#1E2228"
-                            Background="{DynamicResource TransparentBrush}"
-                            BorderThickness="0"
-                            Style="{StaticResource FocusNoTaskEndButton}">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <Border Width="13" Height="13" Margin="0,0,10,0"
-                                    VerticalAlignment="Center" Background="#1E2228" CornerRadius="2" />
-                            <TextBlock VerticalAlignment="Center" FontSize="14" FontWeight="Medium"
-                                       Foreground="#1E2228" Text="{DynamicResource FocusEndAction}" />
-                        </StackPanel>
-                    </Button>
-                    <Border Height="42" Padding="12,0" HorizontalAlignment="Center" VerticalAlignment="Center" Background="{DynamicResource TransparentBrush}" CornerRadius="8" IsHitTestVisible="False">
-                        <Border.Style><Style TargetType="{x:Type Border}"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding IsForcedModeActive}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></Border.Style>
-                        <StackPanel Orientation="Horizontal"><TextBlock Margin="0,0,8,0" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="17" Foreground="{DynamicResource TextSecondary}" Text="&#xE83D;" /><TextBlock VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource FocusForcedModeStatus}" /></StackPanel>
-                    </Border>
-                </Grid>
-
-                <StackPanel Margin="0,628,0,0"
-                            HorizontalAlignment="Center" VerticalAlignment="Top" Orientation="Horizontal">
-                    <Border Width="26" Height="1" Margin="0,0,12,0"
-                            VerticalAlignment="Center" Background="#D8DADF" />
-                    <TextBlock FontSize="12" FontWeight="Normal"
-                               Foreground="{DynamicResource TextSecondary}"
-                               Text="{DynamicResource FocusNoTaskAtmosphere}" />
-                    <Border Width="26" Height="1" Margin="12,0,0,0"
-                            VerticalAlignment="Center" Background="#D8DADF" />
+        <Grid x:Name="FocusingView" Margin="0,48,0,0" Background="Transparent" MouseDown="TargetMode_MouseDown"
+              Visibility="{Binding IsFocusing, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <Grid x:Name="FocusGreeting" Margin="64,40,0,0" HorizontalAlignment="Left" VerticalAlignment="Top">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="48"/><ColumnDefinition Width="18"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <Image x:Name="FocusGreetingIcon" Width="56" Height="56" VerticalAlignment="Top" Margin="0,-6,0,0"
+                       Source="{Binding GreetingIconSource}" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality" IsHitTestVisible="False"/>
+                <StackPanel Grid.Column="2">
+                    <TextBlock x:Name="FocusGreetingTitle" Text="{Binding GreetingTitle}" FontSize="28" FontWeight="SemiBold" Foreground="#202A34"/>
+                    <TextBlock x:Name="FocusGreetingSubtitle" Text="{Binding GreetingSubtitle}" FontSize="17" Margin="0,7,0,0" Foreground="#7A8290"/>
                 </StackPanel>
             </Grid>
+            <Grid IsHitTestVisible="False">
+                <Grid.RowDefinitions><RowDefinition Height="0.42*"/><RowDefinition Height="214"/><RowDefinition Height="0.58*"/></Grid.RowDefinitions>
+                <StackPanel x:Name="FocusCenter" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Top">
+                    <Viewbox Width="440" Height="116" Stretch="Uniform" StretchDirection="DownOnly">
+                        <TextBlock x:Name="FocusCountdown" Text="{Binding RemainingTimeDisplay}" FontFamily="{DynamicResource FontFamilyNumeric}"
+                                   FontSize="100" FontWeight="Normal" Foreground="#111820" TextAlignment="Center"/>
+                    </Viewbox>
+                    <Grid x:Name="FocusTargetRegion" HorizontalAlignment="Center" Height="30" Margin="0,8,0,0" MaxWidth="440"
+                          Visibility="{Binding HasTarget, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="24"/><ColumnDefinition Width="10"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <Image x:Name="FocusTargetIcon" Width="23" Height="23" VerticalAlignment="Center" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"
+                               Source="{Binding ActiveTarget.IconSource, Mode=OneWay, Converter={x:Static views:TargetIconSourceConverter.Instance}, ConverterParameter=#65758B}"/>
+                        <TextBlock x:Name="FocusTargetName" Grid.Column="2" MaxWidth="406" VerticalAlignment="Center" Text="{Binding TargetName, Mode=OneWay}"
+                                   FontSize="20" Foreground="#65758B" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" ToolTip="{Binding TargetName}"/>
+                    </Grid>
+                    <StackPanel x:Name="FocusInProgressStatus" HorizontalAlignment="Center" Orientation="Horizontal">
+                        <StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Margin" Value="0,20,0,0"/><Style.Triggers>
+                            <DataTrigger Binding="{Binding HasTarget}" Value="True"><Setter Property="Margin" Value="0,30,0,0"/></DataTrigger>
+                        </Style.Triggers></Style></StackPanel.Style>
+                        <Ellipse Width="12" Height="12" Margin="0,0,12,0" VerticalAlignment="Center" Fill="{DynamicResource AccentPrimary}"/>
+                        <TextBlock Text="{DynamicResource FocusInProgress}" FontSize="20" FontWeight="Medium" Foreground="{DynamicResource AccentPrimary}"/>
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
+            <StackPanel x:Name="FocusFooter" Margin="48,0,48,44" VerticalAlignment="Bottom">
+                <StackPanel x:Name="FocusForceNotice" Orientation="Horizontal" HorizontalAlignment="Center" IsHitTestVisible="False"
+                            Visibility="{Binding ShowForceNotice, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Margin" Value="0,0,0,16"/><Style.Triggers>
+                        <DataTrigger Binding="{Binding ShowFocusActions}" Value="False"><Setter Property="Margin" Value="0"/></DataTrigger>
+                    </Style.Triggers></Style></StackPanel.Style>
+                    <Grid Width="15" Height="15" VerticalAlignment="Center" Margin="0,0,10,0">
+                        <Ellipse Stroke="#8190A3" StrokeThickness="1.4"/>
+                        <Ellipse Width="1.8" Height="1.8" Fill="#8190A3" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,3,0,0"/>
+                        <Path Data="M 7.5,7 L 7.5,11" Stroke="#8190A3" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                    </Grid>
+                    <TextBlock Text="{DynamicResource FocusForcedModeStatus}" FontSize="14" Foreground="#8190A3" VerticalAlignment="Center"/>
+                </StackPanel>
+                <Border x:Name="FocusFooterRule" Height="1" Background="#EDEEF1" Margin="0,0,0,18"
+                        Visibility="{Binding ShowFocusActions, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                <StackPanel x:Name="FocusFooterActions" Orientation="Horizontal" HorizontalAlignment="Center"
+                            Visibility="{Binding ShowFocusActions, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <Button x:Name="FocusEndActionButton" Command="{Binding RequestEndCommand}" Style="{StaticResource FocusFooterActionStyle}"
+                            AutomationProperties.Name="{DynamicResource FocusEndAction}"
+                            Visibility="{Binding ShowEndFocus, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <StackPanel Orientation="Horizontal">
+                            <Border Width="14" Height="14" CornerRadius="1.5" Margin="0,0,14,0" VerticalAlignment="Center"
+                                    Background="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+                            <TextBlock Text="{DynamicResource FocusEndAction}" FontSize="17" VerticalAlignment="Center"
+                                       Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+                        </StackPanel>
+                    </Button>
+                    <Border x:Name="FocusActionDivider" Height="26" Width="1" Margin="18,0" VerticalAlignment="Center" Background="#E6E8ED"
+                            Visibility="{Binding ShowFocusActionDivider, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                    <Button x:Name="FocusViewTasksButton" Click="ViewTasksButton_Click" Style="{StaticResource FocusFooterActionStyle}"
+                            AutomationProperties.Name="{DynamicResource FocusViewTasks}"
+                            Visibility="{Binding ShowTaskButton, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE8FD;" FontFamily="Segoe MDL2 Assets" FontSize="19" Margin="0,0,14,0" VerticalAlignment="Center"
+                                       Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+                            <TextBlock FontSize="17" VerticalAlignment="Center" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}">
+                                <Run Text="{DynamicResource FocusViewTasks}"/><Run Text="（"/><Run Text="{Binding PendingTaskCount, Mode=OneWay}"/><Run Text="）"/>
+                            </TextBlock>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </StackPanel>
         </Grid>
-
         <Grid x:Name="TargetCompletionView" Margin="0,48,0,0">
             <Grid.Style>
                 <Style TargetType="{x:Type Grid}">
@@ -694,24 +510,13 @@
                 </Style>
             </Grid.Style>
 
-            <Image x:Name="TargetCompletionBackground"
-                   HorizontalAlignment="Stretch"
-                   VerticalAlignment="Stretch"
-                   IsHitTestVisible="False"
-                   Source="/FocusApp.Desktop;component/Assets/Themes/Solid/Orange/foucus_background.png"
+            <Image x:Name="TargetCompletionBackground" Margin="0,-48,0,0"
+                   HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                   IsHitTestVisible="False" Opacity="0.8" RenderOptions.BitmapScalingMode="HighQuality"
+                   Source="/FocusApp.Desktop;component/Assets/Images/Illustrations/foucus_background02.png"
                    Stretch="UniformToFill" />
-
-            <StackPanel Margin="0,34,0,0" HorizontalAlignment="Center" VerticalAlignment="Top">
-                <Image x:Name="TargetCompletionRibbon"
-                       Width="450" Height="162"
-                       HorizontalAlignment="Center"
-                       IsHitTestVisible="False"
-                       Source="/FocusApp.Desktop;component/Assets/Themes/Solid/Orange/foucusOntheEnd_ribbon.png"
-                       Stretch="Uniform" />
-                <ContentControl Margin="0,-4,0,0"
-                                Content="{Binding}"
-                                ContentTemplate="{StaticResource FocusCompletionDetails}" />
-            </StackPanel>
+            <ContentControl Content="{Binding}" ContentTemplate="{StaticResource FocusCompletionDetails}"
+                            HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
         </Grid>
         <Grid x:Name="NoTargetCompletionView" Margin="0,48,0,0">
             <Grid.Style>
@@ -729,24 +534,13 @@
                 </Style>
             </Grid.Style>
 
-            <Image x:Name="NoTargetCompletionBackground"
-                   HorizontalAlignment="Stretch"
-                   VerticalAlignment="Stretch"
-                   IsHitTestVisible="False"
-                   Source="/FocusApp.Desktop;component/Assets/Themes/Solid/Orange/foucus_background.png"
+            <Image x:Name="NoTargetCompletionBackground" Margin="0,-48,0,0"
+                   HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                   IsHitTestVisible="False" Opacity="0.8" RenderOptions.BitmapScalingMode="HighQuality"
+                   Source="/FocusApp.Desktop;component/Assets/Images/Illustrations/foucus_background02.png"
                    Stretch="UniformToFill" />
-
-            <StackPanel Margin="0,80,0,0" HorizontalAlignment="Center" VerticalAlignment="Top">
-                <Image x:Name="NoTargetCompletionRibbon"
-                       Width="430" Height="156"
-                       HorizontalAlignment="Center"
-                       IsHitTestVisible="False"
-                       Source="/FocusApp.Desktop;component/Assets/Images/Illustrations/foucusOntheEnd_ribbon.png"
-                       Stretch="Uniform" />
-                <ContentControl Margin="0,-20,0,0"
-                                Content="{Binding}"
-                                ContentTemplate="{StaticResource FocusCompletionDetails}" />
-            </StackPanel>
+            <ContentControl Content="{Binding}" ContentTemplate="{StaticResource FocusCompletionDetails}"
+                            HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
         </Grid>
         <Grid Panel.ZIndex="10">
             <Grid.Style>
@@ -761,99 +555,100 @@
             </Grid.Style>
             <Border Background="{DynamicResource ModalScrim}" />
             <Border x:Name="FocusEndConfirmationDialog"
-                    Width="360"
-                    Height="225"
+                    Width="370"
+                    Height="315"
                     Background="{DynamicResource SurfacePrimary}"
                     BorderBrush="{DynamicResource OverlayBorder}"
                     BorderThickness="1"
                     CornerRadius="20"
                     TextElement.FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI">
                 <Border.Effect><DropShadowEffect BlurRadius="16" Direction="270" Opacity="0.10" ShadowDepth="3" /></Border.Effect>
-                <Grid Margin="23,21,23,22">
+                <Grid>
+                <Button x:Name="FocusEndCloseButton" Width="28" Height="28" Margin="0,12,12,0"
+                        HorizontalAlignment="Right" VerticalAlignment="Top" Panel.ZIndex="1"
+                        Command="{Binding ContinueFocusCommand}" Style="{StaticResource FocusEndConfirmationSecondaryButton}"
+                        AutomationProperties.Name="关闭结束专注确认，继续专注" Foreground="{DynamicResource DisabledText}">
+                    <Path Data="M 1,1 L 13,13 M 13,1 L 1,13" Width="14" Height="14" Stretch="Uniform"
+                          Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                </Button>
+                <Grid Margin="23,29,23,18">
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="26" />
-                        <RowDefinition Height="10" />
-                        <RowDefinition Height="20" />
-                        <RowDefinition Height="6" />
-                        <RowDefinition Height="6" />
+                        <RowDefinition Height="30" />
                         <RowDefinition Height="12" />
-                        <RowDefinition Height="44" />
+                        <RowDefinition Height="20" />
+                        <RowDefinition Height="4" />
+                        <RowDefinition Height="58" />
+                        <RowDefinition Height="10" />
+                        <RowDefinition Height="36" />
                         <RowDefinition Height="16" />
-                        <RowDefinition Height="40" />
+                        <RowDefinition Height="46" />
+                        <RowDefinition Height="10" />
+                        <RowDefinition Height="24" />
                     </Grid.RowDefinitions>
 
                     <TextBlock x:Name="FocusEndTitle" Grid.Row="0"
-                               HorizontalAlignment="Left"
+                               HorizontalAlignment="Center"
                                VerticalAlignment="Center"
-                               FontSize="22"
+                               FontSize="24"
                                FontWeight="SemiBold"
                                Foreground="{DynamicResource TextPrimary}"
                                Text="{DynamicResource FocusEndNormalTitle}" />
 
-                    <Grid x:Name="FocusEndTimeRegion" Grid.Row="2">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}" FontSize="12" Margin="0,0,5,0" Text="{DynamicResource FocusElapsedPrefix}"/>
-                            <TextBlock x:Name="FocusEndElapsedValue" VerticalAlignment="Center" Text="{Binding EndConfirmationElapsedDisplay, Mode=OneWay}" Foreground="{DynamicResource AccentPrimary}" FontSize="16" FontWeight="SemiBold"/>
-                        </StackPanel>
-                        <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource FocusEndMinimumTimeLabel}"/>
-                    </Grid>
-                    <ProgressBar x:Name="FocusEndProgress" Grid.Row="4" Height="6" Minimum="0" Maximum="1" Value="{Binding EndConfirmationProgress, Mode=OneWay}"
-                                 Background="#EDEEF1" Foreground="{DynamicResource AccentPrimary}" BorderThickness="0" AutomationProperties.Name="五分钟专注进度">
-                        <ProgressBar.Template><ControlTemplate TargetType="ProgressBar">
-                            <Grid x:Name="PART_Track">
-                                <Border Background="{TemplateBinding Background}" CornerRadius="3"/>
-                                <Border x:Name="PART_Indicator" HorizontalAlignment="Left" Background="{TemplateBinding Foreground}" CornerRadius="3"/>
-                            </Grid>
-                        </ControlTemplate></ProgressBar.Template>
-                    </ProgressBar>
-                    <Border x:Name="FocusEndStatusRegion" Grid.Row="6" Height="44" Background="#FFF4ED" CornerRadius="8" Padding="12,0">
-                        <Grid>
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="20"/><ColumnDefinition Width="10"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                            <Grid x:Name="FocusEndWarningIcon" Width="18" Height="18" VerticalAlignment="Center" Visibility="{Binding IsShortEndConfirmation, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                <Ellipse Fill="{DynamicResource AccentPrimary}"/>
-                                <Path Data="M 9,4 L 9,10" Stroke="White" StrokeThickness="1.6" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
-                                <Ellipse Width="1.8" Height="1.8" Fill="White" Margin="0,11,0,0" VerticalAlignment="Top" HorizontalAlignment="Center"/>
-                            </Grid>
-                            <Path x:Name="FocusEndThumbsUpIcon" Width="20" Height="20" Stretch="Uniform" VerticalAlignment="Center" Fill="{DynamicResource AccentPrimary}"
-                                  Data="M 2,21 L 6,21 L 6,9 L 2,9 Z M 22,10 C 22,8.9 21.1,8 20,8 L 13.7,8 L 14.65,3.43 C 14.67,3.33 14.68,3.22 14.68,3.11 C 14.68,2.7 14.51,2.32 14.24,2.05 L 13.17,1 L 6.59,7.59 C 6.22,7.95 6,8.45 6,9 L 6,19 C 6,20.1 6.9,21 8,21 L 17,21 C 17.83,21 18.54,20.5 18.84,19.78 L 21.86,12.73 C 21.95,12.5 22,12.26 22,12 Z"
-                                  Visibility="{Binding IsNormalEndConfirmation, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                            <TextBlock x:Name="FocusEndWarningText" Grid.Column="2" VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource TextPrimary}"
-                                       Visibility="{Binding IsShortEndConfirmation, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                <Run Text="{DynamicResource FocusEndShortDescriptionPrefix}"/><Run Text="{DynamicResource FocusEndShortDescriptionEmphasis}" Foreground="{DynamicResource AccentPrimary}" FontWeight="SemiBold"/><Run Text="{DynamicResource FocusEndShortDescriptionSuffix}"/>
+                    <TextBlock x:Name="FocusEndElapsedLabel" Grid.Row="2" HorizontalAlignment="Center" VerticalAlignment="Center"
+                               Foreground="{DynamicResource TextSecondary}" FontSize="14" Text="{DynamicResource FocusEndElapsedLabel}"/>
+                    <Grid x:Name="FocusEndTimeRegion" Grid.Row="4">
+                        <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Center">
+                            <TextBlock x:Name="FocusEndElapsedValue" Foreground="{DynamicResource AccentPrimary}"
+                                       FontFamily="{DynamicResource FontFamilyNumeric}" FontSize="44" FontWeight="Bold"
+                                       AutomationProperties.Name="{Binding EndConfirmationElapsedDisplay}">
+                                <Run Text="{Binding EndConfirmationMinutesDisplay, Mode=OneWay}"/><Run Text=" 分 " FontSize="32" FontWeight="SemiBold"/><Run Text="{Binding EndConfirmationSecondsDisplay, Mode=OneWay}"/><Run Text=" 秒" FontSize="32" FontWeight="SemiBold"/>
                             </TextBlock>
-                            <TextBlock x:Name="FocusEndEncouragementText" Grid.Column="2" VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource TextPrimary}"
+                        </Viewbox>
+                    </Grid>
+                    <Border x:Name="FocusEndStatusRegion" Grid.Row="6" Height="36" CornerRadius="9" Padding="10,0">
+                        <Border.Style><Style TargetType="Border"><Setter Property="Background" Value="Transparent"/><Style.Triggers>
+                            <DataTrigger Binding="{Binding IsShortEndConfirmation}" Value="True"><Setter Property="Background" Value="#FFF5F0"/></DataTrigger>
+                        </Style.Triggers></Style></Border.Style>
+                        <Grid>
+                            <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Center"
+                                     Visibility="{Binding IsShortEndConfirmation, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <StackPanel Orientation="Horizontal">
+                                    <Grid x:Name="FocusEndWarningIcon" Width="18" Height="18" Margin="0,0,8,0" VerticalAlignment="Center">
+                                        <Ellipse Fill="#FFD4BD"/>
+                                        <Path Data="M 9,4 L 9,10" Stroke="{DynamicResource AccentPrimary}" StrokeThickness="1.6" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                                        <Ellipse Width="1.8" Height="1.8" Fill="{DynamicResource AccentPrimary}" Margin="0,11,0,0" VerticalAlignment="Top" HorizontalAlignment="Center"/>
+                                    </Grid>
+                                    <TextBlock x:Name="FocusEndWarningText" VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource TextSecondary}">
+                                        <Run Text="{DynamicResource FocusEndShortDescriptionPrefix}"/><Run Text="{DynamicResource FocusEndShortDescriptionEmphasis}" Foreground="{DynamicResource AccentPrimary}" FontWeight="Medium"/>
+                                    </TextBlock>
+                                </StackPanel>
+                            </Viewbox>
+                            <TextBlock x:Name="FocusEndEncouragementText" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14" Foreground="{DynamicResource TextSecondary}"
                                        Visibility="{Binding IsNormalEndConfirmation, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                <Run Text="{DynamicResource FocusEndEncouragementPrefix}"/><Run Text="{DynamicResource FocusEndEncouragementEmphasis}" Foreground="{DynamicResource AccentPrimary}" FontWeight="SemiBold"/><Run Text="{DynamicResource FocusEndEncouragementSuffix}"/>
+                                <Run Text="{DynamicResource FocusEndEncouragementPrefix}"/>
                             </TextBlock>
                         </Grid>
                     </Border>
-                    <Grid x:Name="FocusEndActionRegion" Grid.Row="8">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="10" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <Button x:Name="FocusEndConfirmationButton"
-                                Grid.Column="0"
-                                Height="40"
-                                AutomationProperties.Name="{DynamicResource FocusConfirmEndAction}"
-                                Command="{Binding EndConfirmedFocusCommand}"
-                                Style="{StaticResource FocusEndConfirmationSecondaryButton}">
-                            <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondary}"
-                                       Text="{DynamicResource FocusConfirmEndAction}" />
-                        </Button>
+                    <Grid x:Name="FocusEndActionRegion" Grid.Row="8" Grid.RowSpan="3">
+                        <Grid.RowDefinitions><RowDefinition Height="46"/><RowDefinition Height="10"/><RowDefinition Height="24"/></Grid.RowDefinitions>
                         <Button x:Name="FocusContinueConfirmationButton"
-                                Grid.Column="2"
-                                Height="40"
+                                Grid.Row="0" Width="284" Height="46" HorizontalAlignment="Center" IsDefault="True"
                                 AutomationProperties.Name="{DynamicResource FocusContinueAction}"
                                 Command="{Binding ContinueFocusCommand}"
-                                Background="{DynamicResource AccentPrimary}"
                                 BorderThickness="0"
                                 Style="{StaticResource FocusEndConfirmationAccentButton}">
-                            <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource WhiteText}"
+                            <Button.Background><LinearGradientBrush StartPoint="0,0" EndPoint="1,0"><GradientStop Color="#FFA762" Offset="0"/><GradientStop Color="#FF7526" Offset="1"/></LinearGradientBrush></Button.Background>
+                            <Button.Effect><DropShadowEffect Color="#FF8A3A" BlurRadius="14" Direction="270" Opacity="0.12" ShadowDepth="4"/></Button.Effect>
+                            <TextBlock FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource WhiteText}"
                                        Text="{DynamicResource FocusContinueAction}" />
                         </Button>
+                        <Button x:Name="FocusEndConfirmationButton" Grid.Row="2" Width="100" HorizontalAlignment="Center"
+                                AutomationProperties.Name="{DynamicResource FocusConfirmEndAction}"
+                                Command="{Binding EndConfirmedFocusCommand}" Style="{StaticResource FocusEndConfirmationSecondaryButton}">
+                            <TextBlock FontSize="14" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource FocusConfirmEndAction}" />
+                        </Button>
                     </Grid>
+                </Grid>
                 </Grid>
             </Border>
         </Grid>

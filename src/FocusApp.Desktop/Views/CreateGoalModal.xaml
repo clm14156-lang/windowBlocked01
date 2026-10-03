@@ -57,66 +57,9 @@
             </Button>
         </DataTemplate>
 
-        <Style x:Key="GoalDurationButtonStyle" TargetType="{x:Type Button}">
-            <Setter Property="Height" Value="34" />
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
-            <Setter Property="BorderBrush" Value="#E6E6EC" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-            <Setter Property="FontSize" Value="11" />
-            <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="{x:Type Button}">
-                        <Border x:Name="DurationButtonChrome"
-                                Background="{TemplateBinding Background}"
-                                Padding="{TemplateBinding Padding}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="17">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" TextElement.Foreground="{TemplateBinding Foreground}" />
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="DurationButtonChrome" Property="Background" Value="#FFF7EE" />
-                            </Trigger>
-                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                <Setter TargetName="DurationButtonChrome" Property="Background" Value="#FFF2E8" />
-                                <Setter TargetName="DurationButtonChrome" Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
-                                <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}" />
-                            </DataTrigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
 
-        <Style x:Key="GoalDurationEditButtonStyle" TargetType="{x:Type Button}">
-            <Setter Property="Width" Value="22" />
-            <Setter Property="Height" Value="22" />
-            <Setter Property="Visibility" Value="Collapsed" />
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
-            <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="{x:Type Button}">
-                        <Border x:Name="EditButtonSurface" Background="{TemplateBinding Background}" CornerRadius="11">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" TextElement.Foreground="{TemplateBinding Foreground}" />
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="EditButtonSurface" Property="Background" Value="#F1F1F3" /><Setter Property="Foreground" Value="{DynamicResource TextPrimary}" /></Trigger>
-                            <Trigger Property="IsPressed" Value="True"><Setter TargetName="EditButtonSurface" Property="Background" Value="#E7E7EA" /></Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
+
+
 
         <Style x:Key="CreateGoalSecondaryButtonStyle" TargetType="{x:Type Button}">
             <Setter Property="Height" Value="34" />
@@ -250,7 +193,7 @@
                             </StackPanel>
                         </Button>
                     </Border>
-                    <StackPanel x:Name="GoalMoreFields" Grid.Row="5" Height="150" Visibility="{Binding IsGoalMoreExpanded, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <StackPanel x:Name="GoalMoreFields" Grid.Row="5" Height="90" Visibility="{Binding IsGoalMoreExpanded, Converter={StaticResource BooleanToVisibilityConverter}}">
                         <StackPanel Height="90">
                             <TextBlock Margin="0,4,0,8" FontSize="13" Text="备注（可选）" />
                             <Border x:Name="GoalRemarkContainer" Height="34" BorderBrush="#E7E9ED" BorderThickness="1" CornerRadius="7">
@@ -264,61 +207,7 @@
                             </Border>
                             <TextBlock Margin="0,4,0,0" HorizontalAlignment="Right" FontSize="11" Foreground="{DynamicResource TextWeak}" Text="{Binding RemarkCharacterCountDisplay}" />
                         </StackPanel>
-                        <StackPanel Height="60">
-                            <TextBlock Margin="0,0,0,9" FontSize="13" Text="目标投入（小时）" />
-                        <ItemsControl Margin="-3,0" ItemsSource="{Binding GoalDurationOptions}">
-                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="4" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Grid x:Name="DurationOptionRoot" Margin="3,0">
-                                        <Button x:Name="DurationOptionButton"
-                                                Command="{Binding DataContext.SelectGoalDurationCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                                CommandParameter="{Binding}"
-                                                Style="{StaticResource GoalDurationButtonStyle}">
-                                            <TextBlock x:Name="DurationOptionLabel" HorizontalAlignment="Center" VerticalAlignment="Center" Text="{Binding Label}" />
-                                        </Button>
-                                        <Button x:Name="CustomDurationEditButton"
-                                                Width="22"
-                                                Margin="0,0,5,0"
-                                                HorizontalAlignment="Right"
-                                                VerticalAlignment="Center"
-                                                Panel.ZIndex="2"
-                                                AutomationProperties.Name="编辑自定义投入"
-                                                Command="{Binding DataContext.EditCustomDurationCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                                Content="✎"
-                                                FontFamily="Segoe UI Symbol"
-                                                FontSize="12"
-                                                Opacity="0.72"
-                                                Style="{StaticResource GoalDurationEditButtonStyle}" />
-                                    </Grid>
-                                    <DataTemplate.Triggers>
-                                        <DataTrigger Binding="{Binding IsCustom}" Value="True">
-                                            <Setter TargetName="DurationOptionButton" Property="Padding" Value="5,0" />
-                                        </DataTrigger>
-                                        <MultiDataTrigger>
-                                            <MultiDataTrigger.Conditions>
-                                                <Condition Binding="{Binding IsCustom}" Value="True" />
-                                                <Condition Binding="{Binding HasCustomValue}" Value="True" />
-                                                <Condition Binding="{Binding IsMouseOver, ElementName=DurationOptionRoot}" Value="True" />
-                                            </MultiDataTrigger.Conditions>
-                                            <Setter TargetName="CustomDurationEditButton" Property="Visibility" Value="Visible" />
-                                            <Setter TargetName="DurationOptionLabel" Property="Margin" Value="-10,0,10,0" />
-                                        </MultiDataTrigger>
-                                        <MultiDataTrigger>
-                                            <MultiDataTrigger.Conditions>
-                                                <Condition Binding="{Binding IsCustom}" Value="True" />
-                                                <Condition Binding="{Binding HasCustomValue}" Value="True" />
-                                                <Condition Binding="{Binding IsSelected}" Value="True" />
-                                            </MultiDataTrigger.Conditions>
-                                            <Setter TargetName="CustomDurationEditButton" Property="Visibility" Value="Visible" />
-                                            <Setter TargetName="DurationOptionLabel" Property="Margin" Value="-10,0,10,0" />
-                                        </MultiDataTrigger>
-                                    </DataTemplate.Triggers>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
 
-                        </StackPanel>
                     </StackPanel>
                     <StackPanel Grid.Row="6" HorizontalAlignment="Right" VerticalAlignment="Bottom" Orientation="Horizontal">
                         <Button Width="68" Command="{Binding CancelCreateGoalCommand}" Style="{StaticResource CreateGoalSecondaryButtonStyle}"><TextBlock Text="取消" Foreground="{DynamicResource TextSecondary}" /></Button>
@@ -334,64 +223,6 @@
             </Border>
         </Popup>
 
-        <Popup x:Name="CustomDurationPopup" DataContext="{Binding}" AllowsTransparency="True" IsOpen="{Binding IsCustomDurationPopupOpen, Mode=TwoWay}" Placement="Custom" PlacementTarget="{Binding ElementName=DialogCard}" PopupAnimation="Fade" StaysOpen="False">
-            <Grid Width="248">
-                <Border Margin="0,0,0,7" Padding="16,15,16,14" Background="{DynamicResource SurfacePrimary}" BorderBrush="#E4E5E9" BorderThickness="1" CornerRadius="14">
-                    <Border.Effect><DropShadowEffect BlurRadius="20" Direction="270" Opacity="0.14" ShadowDepth="5" /></Border.Effect>
-                    <StackPanel>
-                        <TextBlock FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="自定义投入" />
-                        <Border x:Name="CustomDurationInputBorder" Height="44" Margin="0,12,0,0" Background="#FCFCFD" CornerRadius="10">
-                            <Border.Style>
-                                <Style TargetType="{x:Type Border}">
-                                    <Setter Property="BorderBrush" Value="#DDDEE3" />
-                                    <Setter Property="BorderThickness" Value="1" />
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsKeyboardFocused, ElementName=CustomDurationTextBox}" Value="True">
-                                            <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
-                                            <Setter Property="BorderThickness" Value="2" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Border.Style>
-                            <Grid>
-                                <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="1" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                <TextBox x:Name="CustomDurationTextBox"
-                                         AutomationProperties.Name="自定义投入小时数"
-                                         Height="40"
-                                         Padding="12,0,8,0"
-                                         VerticalContentAlignment="Center"
-                                         Background="{DynamicResource TransparentBrush}"
-                                         BorderThickness="0"
-                                         CaretBrush="{DynamicResource AccentPrimary}"
-                                         FocusVisualStyle="{x:Null}"
-                                         FontSize="14"
-                                         Foreground="{DynamicResource TextPrimary}"
-                                         IsVisibleChanged="CustomDurationTextBox_IsVisibleChanged"
-                                         MaxLength="4"
-                                         PreviewKeyDown="CustomDurationTextBox_PreviewKeyDown"
-                                         Text="{Binding CustomDurationInput, UpdateSourceTrigger=PropertyChanged}" />
-                                <Border Grid.Column="1" Height="20" VerticalAlignment="Center" Background="#E7E7EB" />
-                                <TextBlock Grid.Column="2" Margin="11,0,12,0" VerticalAlignment="Center" FontSize="13" Foreground="{DynamicResource TextSecondary}" Text="小时" />
-                            </Grid>
-                        </Border>
-                        <TextBlock Margin="1,7,0,0" FontSize="11.5" Text="{Binding CustomDurationMessage}">
-                            <TextBlock.Style>
-                                <Style TargetType="{x:Type TextBlock}">
-                                    <Setter Property="Foreground" Value="{DynamicResource TextWeak}" />
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding HasCustomDurationError}" Value="True"><Setter Property="Foreground" Value="#D93025" /></DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
-                        <StackPanel Margin="0,13,0,0" HorizontalAlignment="Right" Orientation="Horizontal">
-                            <Button Width="56" Height="34" Padding="0" Command="{Binding CancelCustomDurationCommand}" Style="{StaticResource CreateGoalSecondaryButtonStyle}" Content="取消" />
-                            <Button Width="62" Height="34" Margin="8,0,0,0" Padding="0" Command="{Binding ConfirmCustomDurationCommand}" Style="{StaticResource CreateGoalPrimaryButtonStyle}" Content="确定" />
-                        </StackPanel>
-                    </StackPanel>
-                </Border>
-                <Path Width="16" Height="8" Margin="0,0,45,0" HorizontalAlignment="Right" VerticalAlignment="Bottom" Data="M 0,0 L 8,8 L 16,0 Z" Fill="{DynamicResource SurfacePrimary}" Stroke="#E4E5E9" StrokeThickness="1" />
-            </Grid>
-        </Popup>
+
     </Grid>
 </UserControl>

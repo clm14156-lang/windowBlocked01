@@ -19,6 +19,8 @@ public sealed class TargetIconSourceConverter : IValueConverter
     public object? Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
         if (value is not string { Length: > 0 } source) return null;
+        if (parameter is string tint && tint.StartsWith('#') && source.Split('#')[0].EndsWith(".svg", StringComparison.OrdinalIgnoreCase))
+            source = source.Split('#')[0] + tint;
         if (Cache.TryGetValue(source, out var cached)) return cached;
         var image = Load(source);
         return image is null ? null : Cache.GetOrAdd(source, image);

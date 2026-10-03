@@ -36,6 +36,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     private FocusTargetViewModel? _activeTarget;
     private bool _isCompletedTasksExpanded;
     private bool _isForcedModeActive;
+    private FocusGreetingState _greetingState;
     private readonly HashSet<FocusTaskViewModel> _sessionCompletedTaskSet = [];
     private readonly HashSet<string> _previousRoundTaskIds = new(StringComparer.Ordinal);
     private readonly HashSet<string> _currentRoundTaskIds = new(StringComparer.Ordinal);
@@ -53,6 +54,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     public FocusSessionViewModel(Func<DateTime>? nowProvider = null, bool runTimer = true)
     {
         _nowProvider = nowProvider ?? (() => DateTime.Now);
+        RefreshGreeting();
         _engine = new FocusSessionEngine(_nowProvider);
         _timer = new DispatcherTimer(DispatcherPriority.Normal)
         {
@@ -213,6 +215,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             RefreshTaskGroups();
             OnPropertyChanged();
             OnPropertyChanged(nameof(HasTarget));
+            NotifyFocusPresentationChanged();
             OnPropertyChanged(nameof(TargetName));
             OnPropertyChanged(nameof(ActiveTargetId));
             OnPropertyChanged(nameof(PendingTaskCount));
@@ -262,6 +265,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(IsFullScreenVisible));
             OnPropertyChanged(nameof(IsPreparing));
             OnPropertyChanged(nameof(IsFocusing));
+            NotifyFocusPresentationChanged();
             OnPropertyChanged(nameof(IsCompleted));
             OnPropertyChanged(nameof(IsHomeConfigurationEnabled));
         }
@@ -281,6 +285,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             if (_isForcedModeActive == value) return;
             _isForcedModeActive = value;
             OnPropertyChanged();
+            NotifyFocusPresentationChanged();
         }
     }
 
@@ -289,6 +294,58 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     public bool IsPreparing => Stage == FocusFlowStage.Preparing;
 
     public bool IsFocusing => Stage == FocusFlowStage.Focusing;
+
+    public bool ShowEndFocus => IsFocusing && !IsForcedModeActive;
+    public bool ShowTaskButton => IsFocusing && HasTarget;
+    public bool ShowForceNotice => IsFocusing && IsForcedModeActive;
+    public bool ShowFocusActions => ShowEndFocus || ShowTaskButton;
+    public bool ShowFocusActionDivider => ShowEndFocus && ShowTaskButton;
+
+    public FocusGreetingState GreetingState => _greetingState;
+    public string GreetingTitle => GreetingState switch
+    {
+        FocusGreetingState.Morning => "早上好",
+        FocusGreetingState.Afternoon => "下午好",
+        FocusGreetingState.Evening => "晚上好",
+        _ => "夜深了"
+    };
+    public string GreetingSubtitle => GreetingState switch
+    {
+        FocusGreetingState.Morning => "慢慢开始，进入今天的节奏。",
+        FocusGreetingState.Afternoon => "稳住节奏，继续往前一点。",
+        FocusGreetingState.Evening => "辛苦了，再坚持一会儿。",
+        _ => "已经很晚了，做完记得休息。"
+    };
+    public string GreetingIconSource => "/FocusApp.Desktop;component/Assets/Images/Illustrations/" + (GreetingState switch
+    {
+        FocusGreetingState.Morning or FocusGreetingState.Afternoon => "focus_sun.png",
+        FocusGreetingState.Evening => "focus_yewan.png",
+        _ => "focus_yeshenle.png"
+    });
+
+    private void RefreshGreeting()
+    {
+        _greetingState = _nowProvider().Hour switch
+        {
+            >= 5 and < 12 => FocusGreetingState.Morning,
+            >= 12 and < 18 => FocusGreetingState.Afternoon,
+            >= 18 and < 23 => FocusGreetingState.Evening,
+            _ => FocusGreetingState.LateNight
+        };
+        OnPropertyChanged(nameof(GreetingState));
+        OnPropertyChanged(nameof(GreetingTitle));
+        OnPropertyChanged(nameof(GreetingSubtitle));
+        OnPropertyChanged(nameof(GreetingIconSource));
+    }
+
+    private void NotifyFocusPresentationChanged()
+    {
+        OnPropertyChanged(nameof(ShowEndFocus));
+        OnPropertyChanged(nameof(ShowTaskButton));
+        OnPropertyChanged(nameof(ShowForceNotice));
+        OnPropertyChanged(nameof(ShowFocusActions));
+        OnPropertyChanged(nameof(ShowFocusActionDivider));
+    }
 
     public bool IsCompleted => Stage == FocusFlowStage.Completed;
 
@@ -364,6 +421,8 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
 
     public string ElapsedTimeDisplay => FormatEndConfirmationDuration(ElapsedFocusSeconds);
     public string EndConfirmationElapsedDisplay => $"{ElapsedFocusSeconds / 60}分{ElapsedFocusSeconds % 60}秒";
+    public string EndConfirmationMinutesDisplay => (ElapsedFocusSeconds / 60).ToString();
+    public string EndConfirmationSecondsDisplay => (ElapsedFocusSeconds % 60).ToString();
     public double EndConfirmationProgress => Math.Clamp((double)ElapsedFocusSeconds / MinimumSavedFocusSeconds, 0, 1);
 
     public bool IsShortEndConfirmation => ElapsedFocusSeconds < MinimumSavedFocusSeconds;
@@ -371,6 +430,22 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     public bool IsNormalEndConfirmation => !IsShortEndConfirmation;
 
     public string CompletedDurationDisplay => FormatDuration(_completedFocusSeconds);
+
+    public string CompletedTimeDisplay => $"{Math.Max(0, _completedFocusSeconds) / 60:00}:{Math.Max(0, _completedFocusSeconds) % 60:00}";
+
+    public string CompletionTodayTotalDisplay
+    {
+        get
+        {
+            var referenceDate = _completedAt == default ? _nowProvider().Date : _completedAt.Date;
+            var totalMinutes = (int)(_completionHistory
+                .Where(record => record.CompletedAt.Date == referenceDate)
+                .Sum(record => record.ActualDuration.TotalSeconds) / 60);
+            return totalMinutes >= 60
+                ? $"{totalMinutes / 60}h {totalMinutes % 60}m"
+                : $"{totalMinutes}m";
+        }
+    }
 
     public string CompletedDurationPrimaryValue => GetCompletedDurationParts().PrimaryValue;
 
@@ -415,6 +490,8 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(ElapsedFocusSeconds));
             OnPropertyChanged(nameof(ElapsedTimeDisplay));
             OnPropertyChanged(nameof(EndConfirmationElapsedDisplay));
+            OnPropertyChanged(nameof(EndConfirmationMinutesDisplay));
+            OnPropertyChanged(nameof(EndConfirmationSecondsDisplay));
             OnPropertyChanged(nameof(EndConfirmationProgress));
             OnPropertyChanged(nameof(IsShortEndConfirmation));
             OnPropertyChanged(nameof(IsNormalEndConfirmation));
@@ -445,6 +522,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         _preparationProgress = 0;
         _sessionTarget = target;
         ActiveTarget = target;
+        RefreshGreeting();
         IsForcedModeActive = true;
         _isExternalStarting = true;
         _cancelExternalStarting = cancel;
@@ -486,6 +564,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             minutes,
             forcedMode,
             target is null ? null : new FocusSessionTargetContext(target.TargetId, target.Name));
+        RefreshGreeting();
         _lastRecordedCompletion = null;
         SyncFromEngine();
         _previousRoundTaskIds.UnionWith(_currentRoundTaskIds);
@@ -528,6 +607,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         var isSameSession = _authoritativeSessionId == session.SessionId;
         if (!isSameSession)
         {
+            RefreshGreeting();
             _timer.Stop();
             _preparationStopwatch.Reset();
             _focusStopwatch.Reset();
@@ -736,6 +816,8 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(ElapsedFocusSeconds));
             OnPropertyChanged(nameof(ElapsedTimeDisplay));
             OnPropertyChanged(nameof(EndConfirmationElapsedDisplay));
+            OnPropertyChanged(nameof(EndConfirmationMinutesDisplay));
+            OnPropertyChanged(nameof(EndConfirmationSecondsDisplay));
             OnPropertyChanged(nameof(EndConfirmationProgress));
             OnPropertyChanged(nameof(IsShortEndConfirmation));
             OnPropertyChanged(nameof(IsNormalEndConfirmation));
@@ -784,6 +866,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         _focusStopwatch.Stop();
         SyncFromEngine();
         OnPropertyChanged(nameof(CompletedDurationDisplay));
+        OnPropertyChanged(nameof(CompletedTimeDisplay));
         OnPropertyChanged(nameof(CompletedDurationPrimaryValue));
         OnPropertyChanged(nameof(CompletedDurationPrimaryUnit));
         OnPropertyChanged(nameof(CompletedDurationSecondaryValue));
@@ -792,6 +875,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(TodayTotalDisplay));
         OnPropertyChanged(nameof(TodayTotalMinutes));
         OnPropertyChanged(nameof(TodayFocusCount));
+        OnPropertyChanged(nameof(CompletionTodayTotalDisplay));
         OnPropertyChanged(nameof(CompletedAtDisplay));
         Stage = FocusFlowStage.Completed;
     }
@@ -1148,7 +1232,6 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     {
         foreach (var task in ActiveTarget?.Tasks ?? [])
         {
-            task.IsMenuOpen = false;
             task.IsFocusMenuOpen = false;
         }
     }
@@ -1181,6 +1264,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
                     _engine.Completion,
                     SessionCompletedTasks.Select(task => task.Name).ToArray()));
             OnPropertyChanged(nameof(CompletedDurationDisplay));
+            OnPropertyChanged(nameof(CompletedTimeDisplay));
             OnPropertyChanged(nameof(CompletedDurationPrimaryValue));
             OnPropertyChanged(nameof(CompletedDurationPrimaryUnit));
             OnPropertyChanged(nameof(CompletedDurationSecondaryValue));
@@ -1189,6 +1273,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(TodayTotalDisplay));
             OnPropertyChanged(nameof(TodayTotalMinutes));
             OnPropertyChanged(nameof(TodayFocusCount));
+            OnPropertyChanged(nameof(CompletionTodayTotalDisplay));
             OnPropertyChanged(nameof(CompletedAtDisplay));
             OnPropertyChanged(nameof(LastCompletion));
             OnPropertyChanged(nameof(CompletionHistory));
@@ -1325,6 +1410,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
                 record,
                 session.CompletedTasks.Select(task => task.TaskNameSnapshot).ToArray()));
         OnPropertyChanged(nameof(CompletedDurationDisplay));
+        OnPropertyChanged(nameof(CompletedTimeDisplay));
         OnPropertyChanged(nameof(CompletedDurationPrimaryValue));
         OnPropertyChanged(nameof(CompletedDurationPrimaryUnit));
         OnPropertyChanged(nameof(CompletedDurationSecondaryValue));
@@ -1333,6 +1419,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(TodayTotalDisplay));
         OnPropertyChanged(nameof(TodayTotalMinutes));
         OnPropertyChanged(nameof(TodayFocusCount));
+        OnPropertyChanged(nameof(CompletionTodayTotalDisplay));
         OnPropertyChanged(nameof(CompletedAtDisplay));
         OnPropertyChanged(nameof(LastCompletion));
         OnPropertyChanged(nameof(CompletionHistory));

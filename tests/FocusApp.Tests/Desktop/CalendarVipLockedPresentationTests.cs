@@ -88,7 +88,7 @@ public sealed class CalendarVipLockedPresentationTests
                 Assert.Equal(layout.ActualWidth - 348, card.ActualWidth, 1);
                 model.NextCalendarMonthCommand.Execute(null);
                 Pump();
-                Assert.True(((StackPanel)page.FindName("DailyDistributionEmptyState")).IsVisible);
+                Assert.Empty(((CalendarFocusTimeline)page.FindName("CalendarDayTimeline")).Timeline!.Segments);
                 Assert.True(((StackPanel)page.FindName("CalendarRecordsEmptyState")).IsVisible);
                 model.SetUserAccess(true, false);
                 Pump();

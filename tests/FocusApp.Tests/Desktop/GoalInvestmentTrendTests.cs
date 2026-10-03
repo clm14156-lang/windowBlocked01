@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Xml.Linq;
@@ -161,21 +161,6 @@ public sealed class GoalInvestmentTrendTests
     }
 
     [Fact]
-    public void TargetProgressIsOptionalAndClampedToOneHundredPercent()
-    {
-        var withoutTarget = new GoalInvestmentTrendViewModel(() => Now);
-        withoutTarget.ApplyState(Goal("plain", null), [Record(new DateTime(2026, 9, 16, 8, 0, 0), 30, "plain")]);
-        Assert.False(withoutTarget.HasTargetDuration);
-        Assert.Empty(withoutTarget.TargetDurationDisplay);
-
-        var withTarget = new GoalInvestmentTrendViewModel(() => Now);
-        withTarget.ApplyState(Goal("goal", 20), [Record(new DateTime(2026, 9, 16, 8, 0, 0), 30, "goal")]);
-        Assert.True(withTarget.HasTargetDuration);
-        Assert.Equal(1, withTarget.TotalInvestmentProgress);
-        Assert.Equal("100%", withTarget.TotalInvestmentProgressDisplay);
-    }
-
-    [Fact]
     public void ModalUsesThreeMetricsAndInteractiveTrendSummary()
     {
         var root = FindRepositoryRoot();
@@ -306,7 +291,7 @@ public sealed class GoalInvestmentTrendTests
 
     private static GoalOverviewItemViewModel Goal(string id, int? targetMinutes) =>
         new(id, "学习UE5", "", "", false, false, createdAtUtc: new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero),
-            remark: "专注于提升游戏开发能力", targetDurationMinutes: targetMinutes);
+            remark: "专注于提升游戏开发能力");
 
     private static FocusSessionRecordViewModel Record(DateTime start, int minutes, string goalId, params string[] tasks) =>
         new(start, start.AddMinutes(minutes), goalId, goalId == "goal" ? "学习UE5" : "其他目标", tasks.FirstOrDefault() ?? string.Empty, tasks.Length, tasks);

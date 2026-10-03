@@ -36,8 +36,6 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private FocusResultKind _focusResultToastKind;
     private LocalDataSnapshotDto? _pendingServiceState;
     private bool _serviceStateApplyScheduled;
-    private bool _isGoalTaskStateOperation;
-    private long _latestGoalTaskOnlyRevision = -1;
     private int _pendingFocusTaskWrites;
 
     public MainWindowViewModel(
@@ -92,12 +90,6 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         HomePage.FocusSession.PropertyChanged += FocusSession_PropertyChanged;
         StatisticsPage.GoalChanged += StatisticsPage_GoalChanged;
         StatisticsPage.GoalDeleted += StatisticsPage_GoalDeleted;
-        StatisticsPage.GoalTasks.RefreshTasksAsync = RefreshGoalTasksAsync;
-        StatisticsPage.GoalTasks.PersistTaskAsync = PersistGoalTaskAsync;
-        StatisticsPage.GoalTasks.PersistTaskDetailsAsync = task => PersistGoalTaskAsync(task, false, detailsOnly: true);
-        StatisticsPage.GoalTasks.PersistPendingTaskDeletionAsync = (targetId, taskId) => DeleteGoalTaskAsync(targetId, taskId, false);
-        StatisticsPage.GoalTasks.PersistCompletedTaskDeletionAsync = DeleteCompletedGoalTaskAsync;
-        StatisticsPage.GoalTasks.PersistPendingTaskOrderAsync = PersistGoalTaskOrderAsync;
         StatisticsPage.MonthlyFocusTargetChanged += StatisticsPage_MonthlyFocusTargetChanged;
         StateCoordinator = new FocusStateCoordinator(HomePage, SettingsPage, BlockingPage, StatisticsPage);
         SettingsPage.SetUserAccess(IsLoggedIn, IsVipMember);
@@ -558,11 +550,6 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     private void ServiceConnection_StateChanged(object? sender, LocalDataSnapshotDto state)
     {
-        if (_isGoalTaskStateOperation)
-        {
-            _latestGoalTaskOnlyRevision = Math.Max(_latestGoalTaskOnlyRevision, state.Revision);
-        }
-
         _pendingServiceState = state;
         if (_serviceStateApplyScheduled)
         {
@@ -589,12 +576,6 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         _pendingServiceState = null;
         if (state is null)
         {
-            return;
-        }
-
-        if (state.Revision == _latestGoalTaskOnlyRevision)
-        {
-            ApplyGoalTaskState(state);
             return;
         }
 
@@ -718,9 +699,11 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
                     var task = target?.Tasks.FirstOrDefault(item => item.TaskId == taskId);
                     var name = task?.Name ?? e.CompletedTaskNames.ElementAtOrDefault(index) ?? string.Empty;
                     persistedSnapshots.TryGetValue(taskId, out var persisted);
-                    return new LocalFocusSessionTaskSnapshotDto(taskId, name, index)
+                    return new LocalFocusSessionTaskSnapshotDto(taskId, persisted?.TaskNameSnapshot ?? name, index)
                     {
-                        CompletedAtUtc = task?.CompletedAtUtc ?? persisted?.CompletedAtUtc ?? completedAt
+                        CompletedAtUtc = task?.CompletedAtUtc ?? persisted?.CompletedAtUtc ?? completedAt,
+                        Details = persisted?.Details ?? (task is null ? null : new LocalTaskDetailsSnapshotDto(task.Description,
+                            task.SubTasks.Select(child => new LocalSubTaskSnapshotDto(child.Title, child.IsCompleted)).ToArray()))
                     };
                 }).ToArray();
                 var session = new LocalFocusSessionDto(
@@ -871,9 +854,11 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         var snapshots = HomePage.FocusSession.SessionCompletedTasks.Select((task, index) =>
         {
             persistedSnapshots.TryGetValue(task.TaskId, out var persisted);
-            return new LocalFocusSessionTaskSnapshotDto(task.TaskId, task.Name, index)
+            return new LocalFocusSessionTaskSnapshotDto(task.TaskId, persisted?.TaskNameSnapshot ?? task.Name, index)
             {
-                CompletedAtUtc = task.CompletedAtUtc ?? persisted?.CompletedAtUtc ?? now
+                CompletedAtUtc = task.CompletedAtUtc ?? persisted?.CompletedAtUtc ?? now,
+                Details = persisted?.Details ?? new LocalTaskDetailsSnapshotDto(task.Description,
+                    task.SubTasks.Select(child => new LocalSubTaskSnapshotDto(child.Title, child.IsCompleted)).ToArray())
             };
         }).ToArray();
 
@@ -938,7 +923,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             IconFileName = goal.IconFileName,
             IconColorHex = goal.IconColorHex,
             Remark = goal.Remark,
-            TargetDurationMinutes = goal.TargetDurationMinutes
+            TargetDurationMinutes = existing?.TargetDurationMinutes // Preserve legacy storage without exposing a planned-investment feature.
         };
         var tasks = state.Tasks.Where(item => item.TargetId == goal.GoalId).ToArray();
         var recentIconsJson = TargetIconCatalog.SerializeRecentIconFileNames(StatisticsPage.RecentTargetIconFileNames);
@@ -986,119 +971,6 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             }
         }
         finally { _targetPersistenceGate.Release(); }
-    }
-
-    private async Task RefreshGoalTasksAsync()
-    {
-        if (ServiceConnection is null || !ServiceConnection.IsConnected) return;
-        try
-        {
-            _isGoalTaskStateOperation = true;
-            var state = await ServiceConnection.RefreshStateAsync();
-            ApplyGoalTaskState(state);
-        }
-        catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException) { }
-        finally
-        {
-            _isGoalTaskStateOperation = false;
-        }
-    }
-
-    private Task<LocalTaskDto?> PersistGoalTaskAsync(LocalTaskDto task, bool insertAtTop) => PersistGoalTaskAsync(task, insertAtTop, false);
-
-    private async Task<LocalTaskDto?> PersistGoalTaskAsync(LocalTaskDto task, bool insertAtTop, bool detailsOnly)
-    {
-        if (ServiceConnection is null || !ServiceConnection.IsConnected) return null;
-        await _targetPersistenceGate.WaitAsync();
-        try
-        {
-            if (ServiceConnection.State is not { } state) return null;
-            var command = detailsOnly ? GoalTaskPersistence.CreateDetailsCommand(state, task)
-                : GoalTaskPersistence.CreateSaveCommand(state, task, insertAtTop);
-            if (command is null) return null;
-            try
-            {
-                _isGoalTaskStateOperation = true;
-                var result = await ServiceConnection.SaveTargetAsync(command);
-                ApplyGoalTaskState(result.State);
-                return result.State.Tasks.FirstOrDefault(item => item.TaskId == task.TaskId && item.TargetId == task.TargetId);
-            }
-            catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException) { return null; }
-            finally
-            {
-                _isGoalTaskStateOperation = false;
-            }
-        }
-        finally { _targetPersistenceGate.Release(); }
-    }
-
-    private Task<bool> DeleteCompletedGoalTaskAsync(string targetId, string taskId) => DeleteGoalTaskAsync(targetId, taskId, true);
-
-    private async Task<bool> DeleteGoalTaskAsync(string targetId, string taskId, bool isCompleted)
-    {
-        if (ServiceConnection is null || !ServiceConnection.IsConnected) return false;
-        await _targetPersistenceGate.WaitAsync();
-        try
-        {
-            if (ServiceConnection.State is not { } state) return false;
-            var command = isCompleted ? GoalTaskPersistence.CreateDeleteCommand(state, targetId, taskId)
-                : GoalTaskPersistence.CreatePendingDeleteCommand(state, targetId, taskId);
-            if (command is null) return false;
-            try
-            {
-                _isGoalTaskStateOperation = true;
-                var result = await ServiceConnection.SaveTargetAsync(command);
-                ApplyGoalTaskState(result.State);
-                return !result.State.Tasks.Any(item => item.TaskId == taskId && item.TargetId == targetId);
-            }
-            finally
-            {
-                _isGoalTaskStateOperation = false;
-            }
-        }
-        finally { _targetPersistenceGate.Release(); }
-    }
-
-    private async Task<bool> PersistGoalTaskOrderAsync(
-        string targetId,
-        IReadOnlyList<string> orderedPendingTaskIds)
-    {
-        if (ServiceConnection is null || !ServiceConnection.IsConnected) return false;
-        await _targetPersistenceGate.WaitAsync();
-        try
-        {
-            if (ServiceConnection.State is not { } state) return false;
-            var command = GoalTaskPersistence.CreateReorderCommand(
-                state,
-                targetId,
-                orderedPendingTaskIds,
-                DateTimeOffset.UtcNow);
-            if (command is null) return false;
-            try
-            {
-                _isGoalTaskStateOperation = true;
-                var result = await ServiceConnection.SaveTargetAsync(command);
-                ApplyGoalTaskState(result.State);
-                return true;
-            }
-            catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException)
-            {
-                return false;
-            }
-            finally
-            {
-                _isGoalTaskStateOperation = false;
-            }
-        }
-        finally { _targetPersistenceGate.Release(); }
-    }
-
-    private void ApplyGoalTaskState(LocalDataSnapshotDto state)
-    {
-        _latestGoalTaskOnlyRevision = Math.Max(_latestGoalTaskOnlyRevision, state.Revision);
-        if (_pendingFocusTaskWrites == 0)
-            HomePage.FocusSession.ApplyTaskSnapshot(() => HomePage.FocusTargetModal.ApplyTasks(state.Tasks));
-        StatisticsPage.ApplyTaskState(state);
     }
 
     private async void StatisticsPage_MonthlyFocusTargetChanged(object? sender, EventArgs e)

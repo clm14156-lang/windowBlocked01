@@ -359,7 +359,11 @@ public sealed class ForcedFocusRecoveryTests
         {
             TargetId = target.TargetId,
             TargetNameSnapshot = target.Name,
-            CompletedTasks = [new LocalFocusSessionTaskSnapshot(task.TaskId, task.Name, 0)]
+            CompletedTasks = [new LocalFocusSessionTaskSnapshot(task.TaskId, task.Name, 0)
+            {
+                Details = new LocalTaskDetailsSnapshot("恢复前保存的历史备注",
+                    [new("完成的子任务", true), new("未完成的子任务", false)])
+            }]
         };
         await store.SaveFocusSessionAsync(expired);
 
@@ -373,6 +377,10 @@ public sealed class ForcedFocusRecoveryTests
         Assert.Equal(expired.PlannedEndAtUtc, completed.CompletedAtUtc);
         Assert.Equal(expired.ConfiguredSeconds, completed.ActualSeconds);
         Assert.True(Assert.Single(snapshot.Tasks).IsCompleted);
+        var details = Assert.Single(completed.CompletedTasks).Details!;
+        Assert.Equal("恢复前保存的历史备注", details.Description);
+        Assert.True(details.SubTasks[0].IsCompleted);
+        Assert.False(details.SubTasks[1].IsCompleted);
     }
 
     [Fact]

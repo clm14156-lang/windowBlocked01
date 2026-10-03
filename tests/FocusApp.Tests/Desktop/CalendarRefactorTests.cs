@@ -206,9 +206,9 @@ public sealed class CalendarRefactorTests
                 window.Show();
                 Pump();
                 var focusCard = (Border)page.FindName("CalendarDayMetrics");
-                Assert.Equal(124, focusCard.Height);
-                Assert.Equal("今日专注", ((TextBlock)page.FindName("CalendarDayFocusTitle")).Text);
-                var focusSummary = (Grid)page.FindName("CalendarDayFocusSummary");
+                Assert.Equal(104, focusCard.Height);
+                Assert.Equal("今日专注时长", ((TextBlock)page.FindName("CalendarDayFocusTitle")).Text);
+                var focusSummary = (TextBlock)page.FindName("CalendarDayCompletedTaskCount");
                 Assert.True(focusSummary.ActualWidth <= focusCard.ActualWidth);
                 var button = (ToggleButton)page.FindName("CompletedTasksButton");
                 button.IsChecked = true;

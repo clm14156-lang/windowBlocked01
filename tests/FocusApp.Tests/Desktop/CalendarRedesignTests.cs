@@ -188,7 +188,7 @@ public sealed class CalendarRedesignTests
                 Assert.Equal(45, model.SelectedDayMinutes);
                 Assert.Equal(2, model.SelectedDayDistributions.Count);
                 Assert.Equal(1, model.SelectedDayDistributions.Sum(item => item.Ratio), 6);
-                Assert.Equal(0, ((ScrollViewer)page.FindName("DailyDistributionScrollViewer")).ScrollableHeight);
+                Assert.Equal(2, ((CalendarFocusTimeline)page.FindName("CalendarDayTimeline")).Timeline!.Segments.Count);
 
                 var emptyDay = dateButtons.Single(button => ((CalendarDayViewModel)button.DataContext).Date == Date(5).Date);
                 emptyDay.Command.Execute(emptyDay.CommandParameter);
@@ -201,9 +201,9 @@ public sealed class CalendarRedesignTests
                 Assert.False(emptyDay.Command.CanExecute(emptyDay.CommandParameter));
                 Assert.Equal(45, model.SelectedDayMinutes);
                 Assert.True(((Grid)page.FindName("CalendarPopulatedContent")).IsVisible);
-                Assert.False(((StackPanel)page.FindName("DailyDistributionEmptyState")).IsVisible);
+                Assert.Null(page.FindName("DailyDistributionEmptyState"));
                 Assert.False(((StackPanel)page.FindName("CalendarRecordsEmptyState")).IsVisible);
-                Assert.True(((ScrollViewer)page.FindName("DailyDistributionScrollViewer")).IsVisible);
+                Assert.True(((CalendarFocusTimeline)page.FindName("CalendarDayTimeline")).IsVisible);
                 var emptyDateText = (TextBlock)emptyDay.Template.FindName("DayNumberText", emptyDay);
                 var emptyDurationText = (TextBlock)emptyDay.Template.FindName("DayDurationText", emptyDay);
                 var emptyBackground = (Border)emptyDay.Template.FindName("DaySelectionBackground", emptyDay);
@@ -211,16 +211,13 @@ public sealed class CalendarRedesignTests
                 Assert.Equal(((SolidColorBrush)page.FindResource("DisabledText")).Color, ((SolidColorBrush)emptyDateText.Foreground).Color);
                 Assert.Equal(0, ((SolidColorBrush)emptyBackground.Background).Color.A);
                 var focusCard = (Border)page.FindName("CalendarDayMetrics");
-                Assert.Equal(new CornerRadius(10), focusCard.CornerRadius);
-                var decoration = Descendants<Image>(focusCard).Single();
-                Assert.Contains("rili_beijing.png", decoration.Source.ToString());
-                Assert.Equal(Stretch.Uniform, decoration.Stretch);
-                Assert.False(decoration.IsHitTestVisible);
+                Assert.Equal(Colors.Transparent, ((SolidColorBrush)focusCard.Background).Color);
+                Assert.Empty(Descendants<Image>(focusCard));
                 var monthly = (Border)page.FindName("CalendarMonthlySummary");
-                foreach (var label in new[] { "总专注时长", "专注天数", "日均专注" })
+                foreach (var label in new[] { "总专注时长", "专注天数" })
                 {
                     var title = Descendants<TextBlock>(monthly).Single(text => text.Text == label);
-                    var column = (StackPanel)title.Parent;
+                    var column = (StackPanel)((StackPanel)title.Parent).Parent;
                     var number = column.Children.OfType<Viewbox>().Single();
                     Assert.True(title.TranslatePoint(new Point(0, title.ActualHeight), monthly).Y <= number.TranslatePoint(new Point(), monthly).Y);
                 }
@@ -230,10 +227,10 @@ public sealed class CalendarRedesignTests
                 Pump();
                 Assert.False(model.HasMonthlyFocusData);
                 Assert.True(((Grid)page.FindName("CalendarPopulatedContent")).IsVisible);
-                Assert.True(((StackPanel)page.FindName("DailyDistributionEmptyState")).IsVisible);
+                Assert.Empty(((CalendarFocusTimeline)page.FindName("CalendarDayTimeline")).Timeline!.Segments);
                 Assert.True(((StackPanel)page.FindName("CalendarRecordsEmptyState")).IsVisible);
                 Assert.True(((Border)page.FindName("CalendarMonthlySummary")).IsVisible);
-                Assert.Equal("—", ((TextBlock)page.FindName("MonthlyAverageDuration")).Text);
+                Assert.Null(page.FindName("MonthlyAverageDuration"));
                 Assert.All(model.CalendarDays, day => Assert.False(day.HasFocus));
                 Assert.DoesNotContain(model.CalendarDays, day => day.IsSelected);
                 Assert.Equal(page.ActualWidth - 32, layout.ActualWidth, 1);

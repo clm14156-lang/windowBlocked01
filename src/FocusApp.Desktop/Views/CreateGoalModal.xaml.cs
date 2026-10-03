@@ -12,7 +12,7 @@ public partial class CreateGoalModal : UserControl
     {
         InitializeComponent();
         GoalIconLibraryPopup.CustomPopupPlacementCallback = PlaceGoalIconLibraryPopup;
-        CustomDurationPopup.CustomPopupPlacementCallback = PlaceCustomDurationPopup;
+
     }
 
     private void Overlay_MouseDown(object sender, MouseButtonEventArgs e)
@@ -31,14 +31,7 @@ public partial class CreateGoalModal : UserControl
     {
         if (e.Key == Key.Escape && DataContext is StatisticsOverviewViewModel viewModel)
         {
-            if (viewModel.IsCustomDurationPopupOpen)
-            {
-                viewModel.CancelCustomDurationCommand.Execute(null);
-            }
-            else
-            {
-                viewModel.CancelCreateGoalCommand.Execute(null);
-            }
+            viewModel.CancelCreateGoalCommand.Execute(null);
             e.Handled = true;
         }
     }
@@ -65,37 +58,6 @@ public partial class CreateGoalModal : UserControl
         }
     }
 
-    private void CustomDurationTextBox_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
-    {
-        if (sender is TextBox { IsVisible: true } textBox)
-        {
-            Dispatcher.BeginInvoke(() =>
-            {
-                textBox.Focus();
-                textBox.SelectAll();
-            });
-        }
-    }
-
-    private void CustomDurationTextBox_PreviewKeyDown(object sender, KeyEventArgs e)
-    {
-        if (DataContext is not StatisticsOverviewViewModel viewModel)
-        {
-            return;
-        }
-
-        if (e.Key == Key.Enter)
-        {
-            viewModel.ConfirmCustomDurationCommand.Execute(null);
-            e.Handled = true;
-        }
-        else if (e.Key == Key.Escape)
-        {
-            viewModel.CancelCustomDurationCommand.Execute(null);
-            e.Handled = true;
-        }
-    }
-
     private CustomPopupPlacement[] PlaceGoalIconLibraryPopup(
         Size popupSize,
         Size targetSize,
@@ -114,19 +76,6 @@ public partial class CreateGoalModal : UserControl
                 new Point(-popupSize.Width - gap, centeredTop),
                 PopupPrimaryAxis.Horizontal)
         ];
-    }
-
-    private CustomPopupPlacement[] PlaceCustomDurationPopup(
-        Size popupSize,
-        Size targetSize,
-        Point offset)
-    {
-        const double rightInset = 18;
-        // Keep the tip just above the custom option in the 540-DIP expanded card.
-        const double bottomClearance = 98;
-        var x = targetSize.Width - popupSize.Width - rightInset;
-        var y = targetSize.Height - popupSize.Height - bottomClearance;
-        return [new CustomPopupPlacement(new Point(Math.Max(0, x), Math.Max(0, y)), PopupPrimaryAxis.Vertical)];
     }
 
 }

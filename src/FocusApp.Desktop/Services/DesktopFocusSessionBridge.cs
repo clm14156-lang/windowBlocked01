@@ -206,13 +206,20 @@ public sealed class DesktopFocusSessionBridge : IDisposable
             return;
         }
 
+        var persistedSnapshots = _connection.State?.FocusSessions
+            .FirstOrDefault(session => session.SessionId == sessionId)?.CompletedTasks
+            .ToDictionary(task => task.TaskId, StringComparer.Ordinal)
+            ?? new Dictionary<string, LocalFocusSessionTaskSnapshotDto>(StringComparer.Ordinal);
         var snapshots = _homePage.FocusSession.SessionCompletedTasks
-            .Select((task, index) => new LocalFocusSessionTaskSnapshotDto(
-                task.TaskId,
-                task.Name,
-                index)
+            .Select((task, index) =>
             {
-                CompletedAtUtc = task.CompletedAtUtc
+                persistedSnapshots.TryGetValue(task.TaskId, out var persisted);
+                return new LocalFocusSessionTaskSnapshotDto(task.TaskId, persisted?.TaskNameSnapshot ?? task.Name, index)
+                {
+                    CompletedAtUtc = task.CompletedAtUtc ?? persisted?.CompletedAtUtc,
+                    Details = persisted?.Details ?? new LocalTaskDetailsSnapshotDto(task.Description,
+                        task.SubTasks.Select(child => new LocalSubTaskSnapshotDto(child.Title, child.IsCompleted)).ToArray())
+                };
             })
             .ToArray();
         _pendingTaskUpdate = UpdateTasksSafeAsync(sessionId, snapshots);

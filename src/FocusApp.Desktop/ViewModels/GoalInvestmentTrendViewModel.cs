@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows;
@@ -154,15 +154,6 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
     public int ActiveDays { get; private set; }
     public GoalInvestmentDurationViewModel AverageInvestment { get; private set; } = new(0);
     public GoalInvestmentDurationViewModel TotalInvestment { get; private set; } = new(0);
-    public bool HasTargetDuration => _goal?.TargetDurationMinutes is > 0;
-    public string TargetDurationDisplay => HasTargetDuration
-        ? new GoalInvestmentDurationViewModel(_goal!.TargetDurationMinutes!.Value).Display
-        : string.Empty;
-    public double TotalInvestmentProgress => HasTargetDuration
-        ? Math.Clamp(TotalInvestment.TotalMinutes / (double)_goal!.TargetDurationMinutes!.Value, 0, 1)
-        : 0;
-    public string TotalInvestmentProgressDisplay =>
-        $"{Math.Round(TotalInvestmentProgress * 100, MidpointRounding.AwayFromZero):0}%";
     public PathGeometry TrendCurveGeometry { get; private set; } = new();
     public PathGeometry TrendAreaGeometry { get; private set; } = new();
     public GoalInvestmentTrendPointViewModel? HoveredPoint
@@ -532,7 +523,7 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
 
     private void NotifyGoalProperties()
     {
-        foreach (var property in new[] { nameof(GoalName), nameof(GoalRemark), nameof(GoalIconSource), nameof(HasGoalRemark), nameof(HasTargetDuration), nameof(TargetDurationDisplay) })
+        foreach (var property in new[] { nameof(GoalName), nameof(GoalRemark), nameof(GoalIconSource), nameof(HasGoalRemark) })
             OnPropertyChanged(property);
     }
 
@@ -547,8 +538,8 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
     {
         foreach (var property in new[]
                  {
-                     nameof(PeriodInvestment), nameof(ActiveDays), nameof(AverageInvestment), nameof(TotalInvestment), nameof(HasTargetDuration), nameof(TargetDurationDisplay),
-                     nameof(TotalInvestmentProgress), nameof(TotalInvestmentProgressDisplay), nameof(PeriodInvestmentTitle),
+                     nameof(PeriodInvestment), nameof(ActiveDays), nameof(AverageInvestment), nameof(TotalInvestment),
+                     nameof(PeriodInvestmentTitle),
                      nameof(TrendTitle), nameof(OverviewSubtitle), nameof(TrendSubtitle), nameof(MonthButtonText), nameof(SelectedMonthDisplay), nameof(SelectedDateTitle),
                      nameof(SelectedDateSummary), nameof(HasSelectedDateRecords)
                  })

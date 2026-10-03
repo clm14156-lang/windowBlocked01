@@ -205,14 +205,15 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
             {
                 await using var command = CreateCommand(connection, transaction, """
                     INSERT INTO focus_session_tasks (
-                        session_id, task_id, task_name_snapshot, sort_order, completed_utc)
-                    VALUES ($sessionId, $taskId, $name, $sort, $completed);
+                        session_id, task_id, task_name_snapshot, sort_order, completed_utc, details_snapshot_json)
+                    VALUES ($sessionId, $taskId, $name, $sort, $completed, $details);
                     """);
                 command.Parameters.AddWithValue("$sessionId", FormatGuid(session.SessionId));
                 command.Parameters.AddWithValue("$taskId", snapshot.TaskId);
                 command.Parameters.AddWithValue("$name", snapshot.TaskNameSnapshot);
                 command.Parameters.AddWithValue("$sort", snapshot.SortOrder);
                 command.Parameters.AddWithValue("$completed", FormatNullableDateTime(snapshot.CompletedAtUtc ?? session.CompletedAtUtc));
+                command.Parameters.AddWithValue("$details", snapshot.Details is null ? DBNull.Value : JsonSerializer.Serialize(snapshot.Details));
                 await command.ExecuteNonQueryAsync(cancellationToken);
             }
 
@@ -659,7 +660,7 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
         var result = new Dictionary<Guid, List<LocalFocusSessionTaskSnapshot>>();
         await using var command = connection.CreateCommand();
         command.CommandText = """
-            SELECT session_id, task_id, task_name_snapshot, sort_order, completed_utc
+            SELECT session_id, task_id, task_name_snapshot, sort_order, completed_utc, details_snapshot_json
             FROM focus_session_tasks
             ORDER BY session_id, sort_order, task_id;
             """;
@@ -676,7 +677,11 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
             tasks.Add(new LocalFocusSessionTaskSnapshot(
                 reader.GetString(1),
                 reader.GetString(2),
-                reader.GetInt32(3)) { CompletedAtUtc = ReadNullableDateTime(reader, 4) });
+                reader.GetInt32(3))
+            {
+                CompletedAtUtc = ReadNullableDateTime(reader, 4),
+                Details = reader.IsDBNull(5) ? null : JsonSerializer.Deserialize<LocalTaskDetailsSnapshot>(reader.GetString(5))
+            });
         }
 
         return result.ToDictionary(

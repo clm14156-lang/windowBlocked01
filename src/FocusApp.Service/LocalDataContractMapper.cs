@@ -91,7 +91,12 @@ internal static class LocalDataContractMapper
             source.AutomaticRuleId,
             source.AutomaticOccurrenceStartedAtUtc,
             source.CompletedTasks.Select(task => new LocalFocusSessionTaskSnapshot(
-                task.TaskId, task.TaskNameSnapshot, task.SortOrder) { CompletedAtUtc = task.CompletedAtUtc }).ToArray());
+                task.TaskId, task.TaskNameSnapshot, task.SortOrder)
+            {
+                CompletedAtUtc = task.CompletedAtUtc,
+                Details = task.Details is null ? null : new LocalTaskDetailsSnapshot(task.Details.Description,
+                    task.Details.SubTasks.Select(child => new LocalSubTaskSnapshot(child.Title, child.IsCompleted)).ToArray())
+            }).ToArray());
 
     internal static LocalFocusSessionDto ToDto(LocalFocusSession source)
         => new LocalFocusSessionDto(
@@ -113,7 +118,12 @@ internal static class LocalDataContractMapper
             source.CompletedTasks.Select(task => new LocalFocusSessionTaskSnapshotDto(
                 task.TaskId,
                 task.TaskNameSnapshot,
-                task.SortOrder) { CompletedAtUtc = task.CompletedAtUtc }).ToArray())
+                task.SortOrder)
+            {
+                CompletedAtUtc = task.CompletedAtUtc,
+                Details = task.Details is null ? null : new LocalTaskDetailsSnapshotDto(task.Details.Description,
+                    task.Details.SubTasks.Select(child => new LocalSubTaskSnapshotDto(child.Title, child.IsCompleted)).ToArray())
+            }).ToArray())
         {
             WebsiteRuleSnapshots = source.Status == LocalFocusSessionStatus.Completed
                 ? []

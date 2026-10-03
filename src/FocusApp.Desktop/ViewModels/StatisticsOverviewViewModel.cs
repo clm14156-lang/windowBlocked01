@@ -37,12 +37,6 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     private bool _isGoalIconLibraryOpen;
     private string _newGoalName = string.Empty;
     private string _newGoalRemark = string.Empty;
-    private int? _selectedGoalDurationMinutes;
-    private GoalDurationOptionViewModel? _selectedGoalDurationOption;
-    private bool _selectCustomDurationOnConfirm;
-    private bool _isCustomDurationPopupOpen;
-    private string _customDurationInput = string.Empty;
-    private string _customDurationError = string.Empty;
     private TargetIconOptionViewModel? _selectedTargetIcon;
     private IReadOnlyList<string> _recentTargetIconFileNames = [];
     private readonly RelayCommand<object> _confirmCreateGoalCommand;
@@ -76,7 +70,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     {
         _useSampleData = useSampleData;
         _localNowProvider = localNowProvider ?? (() => DateTime.Now);
-        GoalTasks = new GoalTasksViewModel(() => new DateTimeOffset(_localNowProvider()));
+        GoalFocusHistory = new GoalFocusHistoryViewModel(_localNowProvider);
         GoalInvestmentTrend = new GoalInvestmentTrendViewModel(_localNowProvider);
         RangeOptions =
         [
@@ -90,13 +84,6 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
                     fileName,
                     TargetIconCatalog.GetIconSource(fileName))));
         QuickTargetIcons = [];
-        GoalDurationOptions = new ObservableCollection<GoalDurationOptionViewModel>
-        {
-            new("20", 20 * 60),
-            new("50", 50 * 60),
-            new("100", 100 * 60),
-            new("自定义", null, true)
-        };
         _selectedTargetIcon = AllTargetIcons.FirstOrDefault(icon =>
                                   string.Equals(
                                       icon.FileName,
@@ -110,7 +97,11 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         RebuildTargetIconShortcuts();
         SelectOverviewCommand = new RelayCommand<object>(_ => SelectedTab = StatisticsTab.Overview);
         SelectCalendarCommand = new RelayCommand<object>(_ => SelectedTab = StatisticsTab.Calendar);
-        SelectGoalsCommand = new RelayCommand<object>(_ => SelectedTab = StatisticsTab.Goals);
+        SelectGoalsCommand = new RelayCommand<object>(_ =>
+        {
+            GoalFocusHistory.CollapseAll();
+            SelectedTab = StatisticsTab.Goals;
+        });
         PreviousCalendarMonthCommand = new RelayCommand<object>(_ => ChangeCalendarMonth(-1));
         NextCalendarMonthCommand = new RelayCommand<object>(_ => ChangeCalendarMonth(1));
         PreviousCalendarDayCommand = new RelayCommand<object>(_ => ChangeCalendarDay(-1));
@@ -154,10 +145,6 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         SelectTargetIconCommand = new RelayCommand<TargetIconOptionViewModel>(SelectTargetIcon);
         ToggleGoalMoreCommand = new RelayCommand<object>(_ => IsGoalMoreExpanded = !IsGoalMoreExpanded);
         SelectGoalColorCommand = new RelayCommand<GoalColorOptionViewModel>(SelectGoalColor);
-        SelectGoalDurationCommand = new RelayCommand<GoalDurationOptionViewModel>(SelectGoalDuration);
-        EditCustomDurationCommand = new RelayCommand<object>(_ => OpenCustomDurationEditor(false));
-        ConfirmCustomDurationCommand = new RelayCommand<object>(_ => ConfirmCustomDuration());
-        CancelCustomDurationCommand = new RelayCommand<object>(_ => CloseCustomDurationPopup());
         ToggleGoalIconLibraryCommand = new RelayCommand<object>(_ => IsGoalIconLibraryOpen = !IsGoalIconLibraryOpen);
         ClearNewGoalNameCommand = new RelayCommand<object>(_ => NewGoalName = string.Empty);
         SubscribeToFocusSessionRecords();
@@ -199,7 +186,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         }
 
         _goalTaskSnapshot = state.Tasks;
-        GoalTasks.ApplyState(GetEditableSelectedGoal(), _goalTaskSnapshot);
+        GoalFocusHistory.ApplyState(SelectedGoal, FocusSessionRecords, _goalTaskSnapshot);
         RefreshSelectedDayCompletedTasks();
     }
 
@@ -212,7 +199,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     {
         if (_isInitialized)
         {
-            GoalTasks.RefreshDateSensitiveViews();
+            GoalFocusHistory.ApplyState(SelectedGoal, FocusSessionRecords, _goalTaskSnapshot);
             return;
         }
 
@@ -271,7 +258,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
                         target.IconFileName,
                         target.CreatedAtUtc,
                         target.Remark,
-                        target.TargetDurationMinutes,
+
                         target.ArchivedAtUtc, target.IconColorHex));
                 }
             }
@@ -296,6 +283,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
                     start, end, goalId!, goalName!, taskNames.FirstOrDefault() ?? string.Empty, taskNames.Length, taskNames)
                 {
                     SessionId = session.SessionId,
+                    CompletedTaskSnapshots = session.CompletedTasks,
                     CompletedTaskIds = session.CompletedTasks.OrderBy(task => task.SortOrder)
                         .Select(task => task.TaskId).ToArray(),
                     CompletedTaskTimes = session.CompletedTasks.OrderBy(task => task.SortOrder)
@@ -330,12 +318,9 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         var nextSelectedGoal = Goals.FirstOrDefault(goal =>
             goal.GoalId == selectedGoalId && goal.IsArchived == ShowArchivedGoals)
             ?? Goals.FirstOrDefault(goal => goal.IsArchived == ShowArchivedGoals);
-        var selectionUnchanged = ReferenceEquals(SelectedGoal, nextSelectedGoal);
+
         SelectGoal(nextSelectedGoal);
-        if (selectionUnchanged)
-        {
-            GoalTasks.ApplyState(GetEditableSelectedGoal(), _goalTaskSnapshot);
-        }
+
         RefreshCalendar(selectedCalendarDate);
         RefreshTrend();
         NotifyMonthlyFocusTargetChanged();
@@ -368,8 +353,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
                 goal.CreatedAtUtc != target.CreatedAtUtc ||
                 goal.ArchivedAtUtc != target.ArchivedAtUtc ||
                 goal.Remark != target.Remark ||
-                goal.IconColorHex != (target.IconColorHex ?? TargetIconCatalog.DefaultColorHex) ||
-                goal.TargetDurationMinutes != target.TargetDurationMinutes)
+                goal.IconColorHex != (target.IconColorHex ?? TargetIconCatalog.DefaultColorHex))
             {
                 return true;
             }
@@ -515,13 +499,9 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     public ICommand SelectTargetIconCommand { get; }
 
-    public ICommand SelectGoalDurationCommand { get; }
 
-    public ICommand EditCustomDurationCommand { get; }
 
-    public ICommand ConfirmCustomDurationCommand { get; }
 
-    public ICommand CancelCustomDurationCommand { get; }
 
     public ICommand ToggleGoalIconLibraryCommand { get; }
 
@@ -549,6 +529,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     public string PeriodFocusDistributionEmptyTitle => SelectedRange.Days == 7 ? "近七天没有专注记录" : $"{SelectedRange.Label}没有专注记录";
 
     public ObservableCollection<FocusSessionRecordViewModel> SelectedDayRecords { get; } = [];
+    public CalendarFocusTimelineViewModel SelectedDayTimeline { get; private set; } = CalendarFocusTimelineViewModel.Create(DateTime.Today, []);
     public ObservableCollection<CalendarTimeDistributionViewModel> SelectedDayDistributions { get; } = [];
     public bool HasSelectedDayFocusData => SelectedDayMinutes > 0 || SelectedDayRecords.Count > 0;
     public bool HasSelectedDayDistributions => SelectedDayDistributions.Count > 0;
@@ -566,7 +547,6 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     public ObservableCollection<TargetIconOptionViewModel> QuickTargetIcons { get; }
 
-    public ObservableCollection<GoalDurationOptionViewModel> GoalDurationOptions { get; }
 
     public IReadOnlyList<GoalColorOptionViewModel> GoalColors { get; } =
     [
@@ -582,14 +562,13 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         {
             if (_isGoalMoreExpanded == value) return;
             _isGoalMoreExpanded = value;
-            if (!value) IsCustomDurationPopupOpen = false;
             OnPropertyChanged();
             OnPropertyChanged(nameof(GoalDialogHeight));
             OnPropertyChanged(nameof(GoalMoreToggleText));
         }
     }
 
-    public double GoalDialogHeight => IsGoalMoreExpanded ? 540 : 390;
+    public double GoalDialogHeight => IsGoalMoreExpanded ? 480 : 390;
     public string GoalMoreToggleText => IsGoalMoreExpanded ? "收起更多" : "添加更多";
     public ICommand ToggleGoalMoreCommand { get; }
     public ICommand SelectGoalColorCommand { get; }
@@ -663,43 +642,6 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     }
 
     public string RemarkCharacterCountDisplay => $"{_newGoalRemark.Length}/150";
-
-    public int? SelectedGoalDurationMinutes => _selectedGoalDurationMinutes;
-
-    public bool IsCustomDurationPopupOpen
-    {
-        get => _isCustomDurationPopupOpen;
-        set
-        {
-            if (_isCustomDurationPopupOpen == value) return;
-            _isCustomDurationPopupOpen = value;
-            OnPropertyChanged();
-        }
-    }
-
-    public string CustomDurationInput
-    {
-        get => _customDurationInput;
-        set
-        {
-            var normalized = new string((value ?? string.Empty).Where(char.IsDigit).ToArray());
-            if (_customDurationInput == normalized) return;
-            _customDurationInput = normalized;
-            OnPropertyChanged();
-            if (_customDurationError.Length > 0)
-            {
-                SetCustomDurationError(string.Empty);
-            }
-        }
-    }
-
-    public string CustomDurationError => _customDurationError;
-
-    public string CustomDurationMessage => HasCustomDurationError
-        ? _customDurationError
-        : "请输入 1-9999 小时";
-
-    public bool HasCustomDurationError => _customDurationError.Length > 0;
 
     public TargetIconOptionViewModel? SelectedTargetIcon
     {
@@ -782,7 +724,6 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             if (_selectedGoal is not null) _selectedGoal.PropertyChanged -= SelectedGoal_PropertyChanged;
             _selectedGoal = value;
             if (_selectedGoal is not null) _selectedGoal.PropertyChanged += SelectedGoal_PropertyChanged;
-            GoalTasks.ApplyState(GetEditableSelectedGoal(), _goalTaskSnapshot);
             OnPropertyChanged();
             OnPropertyChanged(nameof(SelectedGoalName));
             OnPropertyChanged(nameof(HasSelectedGoal));
@@ -792,81 +733,27 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     public string SelectedGoalName => SelectedGoal?.Name ?? string.Empty;
 
-    public GoalTasksViewModel GoalTasks { get; }
+    public GoalFocusHistoryViewModel GoalFocusHistory { get; }
 
     public GoalInvestmentTrendViewModel GoalInvestmentTrend { get; }
 
     public bool HasSelectedGoal => SelectedGoal is not null;
 
-    public bool HasSelectedGoalRemark => !string.IsNullOrWhiteSpace(SelectedGoal?.Remark);
-
-    public bool HasSelectedGoalTargetDuration => SelectedGoal?.TargetDurationMinutes is > 0;
-
-    public GoalInvestmentDurationViewModel SelectedGoalWeeklyInvestment
+    public GoalInvestmentDurationViewModel SelectedGoalRecentInvestment
     {
         get
         {
             var now = _localNowProvider();
-            var daysSinceMonday = ((int)now.DayOfWeek + 6) % 7;
-            var monday = now.Date.AddDays(-daysSinceMonday);
-            return new GoalInvestmentDurationViewModel(GetSelectedGoalInvestmentMinutes(monday, now));
+            return new GoalInvestmentDurationViewModel(GetSelectedGoalInvestmentMinutes(now.Date.AddDays(-6), now));
         }
     }
 
     public GoalInvestmentDurationViewModel SelectedGoalTotalInvestment =>
         new(GetSelectedGoalInvestmentMinutes(null, _localNowProvider()));
 
-    public string SelectedGoalWeeklyInvestmentDisplay => SelectedGoalWeeklyInvestment.Display;
+    public string SelectedGoalRecentInvestmentDisplay => SelectedGoalRecentInvestment.Display;
 
     public string SelectedGoalTotalInvestmentDisplay => SelectedGoalTotalInvestment.Display;
-
-    public int SelectedGoalFocusSessionCount => SelectedGoal is null
-        ? 0
-        : GetRecordsForGoal(SelectedGoal.GoalId).Count();
-
-    public string SelectedGoalFocusSessionCountDisplay => $"{SelectedGoalFocusSessionCount} 次";
-
-    public string SelectedGoalWeeklyInvestmentComparisonDisplay
-    {
-        get
-        {
-            var percentage = GetSelectedGoalWeeklyInvestmentComparisonPercentage();
-            return percentage > 0 ? $"+{percentage}%" : $"{percentage}%";
-        }
-    }
-
-    public string SelectedGoalWeeklyInvestmentComparisonState =>
-        GetSelectedGoalWeeklyInvestmentComparisonPercentage() switch
-        {
-            > 0 => "Increase",
-            < 0 => "Decrease",
-            _ => "Unchanged"
-        };
-
-    public string SelectedGoalWeeklyInvestmentComparisonIconSource =>
-        SelectedGoalWeeklyInvestmentComparisonState switch
-        {
-            "Increase" => "/FocusApp.Desktop;component/Assets/Icons/Common/week_zengjia.png",
-            "Decrease" => "/FocusApp.Desktop;component/Assets/Icons/Common/week_jianshao.png",
-            _ => "/FocusApp.Desktop;component/Assets/Icons/Common/week_chiping.png"
-        };
-
-    public GoalInvestmentDurationViewModel? SelectedGoalTargetDuration => HasSelectedGoalTargetDuration
-        ? new(SelectedGoal!.TargetDurationMinutes!.Value)
-        : null;
-
-    public string SelectedGoalTargetDurationSeparator => HasSelectedGoalTargetDuration ? " / " : string.Empty;
-
-    public string SelectedGoalTargetDurationDisplay => HasSelectedGoalTargetDuration
-        ? SelectedGoalTargetDuration!.Display
-        : string.Empty;
-
-    public double SelectedGoalInvestmentProgressRatio => HasSelectedGoalTargetDuration
-        ? Math.Clamp(GetSelectedGoalInvestmentMinutes(null, _localNowProvider()) / (double)SelectedGoal!.TargetDurationMinutes!.Value, 0, 1)
-        : 0;
-
-    public string SelectedGoalInvestmentProgressDisplay =>
-        $"{Math.Round(SelectedGoalInvestmentProgressRatio * 100, MidpointRounding.AwayFromZero):0}%";
 
     private int GetSelectedGoalInvestmentMinutes(DateTime? rangeStart, DateTime rangeEnd)
     {
@@ -881,52 +768,21 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         return (int)(ticks / TimeSpan.TicksPerMinute);
     }
 
-    private GoalOverviewItemViewModel? GetEditableSelectedGoal() =>
-        IsCurrentGoalView && SelectedGoal is { IsArchived: false } ? SelectedGoal : null;
-
-    private int GetSelectedGoalWeeklyInvestmentComparisonPercentage()
-    {
-        var now = _localNowProvider();
-        var daysSinceMonday = ((int)now.DayOfWeek + 6) % 7;
-        var monday = now.Date.AddDays(-daysSinceMonday);
-        var currentWeekMinutes = GetSelectedGoalInvestmentMinutes(monday, now);
-        var previousWeekMinutes = GetSelectedGoalInvestmentMinutes(monday.AddDays(-7), monday);
-        if (previousWeekMinutes == 0)
-            return currentWeekMinutes == 0 ? 0 : 100;
-
-        return (int)Math.Round(
-            (currentWeekMinutes - previousWeekMinutes) / (double)previousWeekMinutes * 100,
-            MidpointRounding.AwayFromZero);
-    }
-
     private void SelectedGoal_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(GoalOverviewItemViewModel.Name))
             OnPropertyChanged(nameof(SelectedGoalName));
-        if (e.PropertyName is nameof(GoalOverviewItemViewModel.Remark) or nameof(GoalOverviewItemViewModel.TargetDurationMinutes))
-            NotifyGoalDetailStatistics();
-        else
-            GoalInvestmentTrend.ApplyState(SelectedGoal, FocusSessionRecords, _goalTaskSnapshot);
+        GoalFocusHistory.ApplyState(SelectedGoal, FocusSessionRecords, _goalTaskSnapshot);
+        GoalInvestmentTrend.ApplyState(SelectedGoal, FocusSessionRecords, _goalTaskSnapshot);
     }
 
     private void NotifyGoalDetailStatistics()
     {
-        OnPropertyChanged(nameof(HasSelectedGoalRemark));
-        OnPropertyChanged(nameof(SelectedGoalWeeklyInvestment));
+        OnPropertyChanged(nameof(SelectedGoalRecentInvestment));
         OnPropertyChanged(nameof(SelectedGoalTotalInvestment));
-        OnPropertyChanged(nameof(SelectedGoalWeeklyInvestmentDisplay));
+        OnPropertyChanged(nameof(SelectedGoalRecentInvestmentDisplay));
         OnPropertyChanged(nameof(SelectedGoalTotalInvestmentDisplay));
-        OnPropertyChanged(nameof(SelectedGoalFocusSessionCount));
-        OnPropertyChanged(nameof(SelectedGoalFocusSessionCountDisplay));
-        OnPropertyChanged(nameof(SelectedGoalWeeklyInvestmentComparisonDisplay));
-        OnPropertyChanged(nameof(SelectedGoalWeeklyInvestmentComparisonState));
-        OnPropertyChanged(nameof(SelectedGoalWeeklyInvestmentComparisonIconSource));
-        OnPropertyChanged(nameof(HasSelectedGoalTargetDuration));
-        OnPropertyChanged(nameof(SelectedGoalTargetDuration));
-        OnPropertyChanged(nameof(SelectedGoalTargetDurationSeparator));
-        OnPropertyChanged(nameof(SelectedGoalTargetDurationDisplay));
-        OnPropertyChanged(nameof(SelectedGoalInvestmentProgressRatio));
-        OnPropertyChanged(nameof(SelectedGoalInvestmentProgressDisplay));
+        GoalFocusHistory.ApplyState(SelectedGoal, FocusSessionRecords, _goalTaskSnapshot);
         GoalInvestmentTrend.ApplyState(SelectedGoal, FocusSessionRecords, _goalTaskSnapshot);
     }
 
@@ -1173,7 +1029,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             }
 
             _selectedTab = value;
-            if (_selectedTab == StatisticsTab.Goals) GoalTasks.RefreshDateSensitiveViews();
+            if (_selectedTab == StatisticsTab.Goals) GoalFocusHistory.ApplyState(SelectedGoal, FocusSessionRecords, _goalTaskSnapshot);
             SetHoveredPoint(null);
             IsTrendVipGuideOpen = false;
             IsDailyFocusRecordVipGuideOpen = false;
@@ -1335,7 +1191,6 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         NewGoalRemark = string.Empty;
         IsGoalMoreExpanded = false;
         SelectGoalColor(GoalColors[2]);
-        ResetGoalDuration();
         IsGoalIconLibraryOpen = false;
         SelectTargetIcon(QuickTargetIcons.FirstOrDefault() ?? AllTargetIcons.FirstOrDefault());
         IsCreateGoalDialogOpen = true;
@@ -1344,13 +1199,11 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     private void CloseCreateGoalDialog()
     {
         IsGoalIconLibraryOpen = false;
-        IsCustomDurationPopupOpen = false;
         IsCreateGoalDialogOpen = false;
         IsGoalMoreExpanded = false;
         SetEditingGoal(null);
         NewGoalName = string.Empty;
         NewGoalRemark = string.Empty;
-        ResetGoalDuration();
         SelectTargetIcon(QuickTargetIcons.FirstOrDefault() ?? AllTargetIcons.FirstOrDefault());
     }
 
@@ -1379,7 +1232,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
             goal.Name = name;
             goal.DraftName = name;
-            goal.UpdateDetails(string.IsNullOrWhiteSpace(NewGoalRemark) ? null : NewGoalRemark.Trim(), _selectedGoalDurationMinutes);
+            goal.UpdateDetails(string.IsNullOrWhiteSpace(NewGoalRemark) ? null : NewGoalRemark.Trim());
             goal.UpdateIcon(iconFileName, SelectedGoalColorHex);
             foreach (var record in FocusSessionRecords.Where(record => record.GoalId == goal.GoalId))
                 record.GoalName = name;
@@ -1400,7 +1253,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             iconFileName,
             DateTimeOffset.UtcNow,
             string.IsNullOrWhiteSpace(NewGoalRemark) ? null : NewGoalRemark.Trim(),
-            _selectedGoalDurationMinutes, iconColorHex: SelectedGoalColorHex);
+            iconColorHex: SelectedGoalColorHex);
 
         Goals.Add(newGoal);
         OnPropertyChanged(nameof(VisibleGoals));
@@ -1429,7 +1282,6 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         SelectGoalColor(GoalColors.FirstOrDefault(color => color.ColorHex == goal.IconColorHex) ?? GoalColors[2]);
         NewGoalName = goal.Name;
         NewGoalRemark = goal.Remark ?? string.Empty;
-        SetGoalDuration(goal.TargetDurationMinutes);
         IsGoalIconLibraryOpen = false;
         SelectTargetIcon(AllTargetIcons.FirstOrDefault(icon =>
             string.Equals(icon.FileName, goal.IconFileName, StringComparison.OrdinalIgnoreCase)));
@@ -1441,121 +1293,6 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         if (icon is not null && AllTargetIcons.Contains(icon))
         {
             SelectedTargetIcon = icon;
-        }
-    }
-
-    private void SelectGoalDuration(GoalDurationOptionViewModel? option)
-    {
-        if (option is null || !GoalDurationOptions.Contains(option)) return;
-        if (option.IsCustom && !option.HasCustomValue)
-        {
-            OpenCustomDurationEditor(true);
-            return;
-        }
-
-        if (ReferenceEquals(option, _selectedGoalDurationOption))
-        {
-            SetGoalDuration(null);
-            IsCustomDurationPopupOpen = false;
-            return;
-        }
-
-        _selectedGoalDurationOption = option;
-        _selectedGoalDurationMinutes = option.Minutes;
-        UpdateGoalDurationSelection();
-        IsCustomDurationPopupOpen = false;
-        OnPropertyChanged(nameof(SelectedGoalDurationMinutes));
-    }
-
-    private void OpenCustomDurationEditor(bool selectOnConfirm)
-    {
-        var customOption = GoalDurationOptions.Single(option => option.IsCustom);
-        if (!selectOnConfirm && !customOption.HasCustomValue)
-        {
-            return;
-        }
-
-        _selectCustomDurationOnConfirm = selectOnConfirm;
-        CustomDurationInput = customOption.Minutes is { } minutes
-            ? (minutes / 60).ToString(CultureInfo.InvariantCulture)
-            : string.Empty;
-        SetCustomDurationError(string.Empty);
-        IsCustomDurationPopupOpen = true;
-    }
-
-    private void ConfirmCustomDuration()
-    {
-        if (!int.TryParse(CustomDurationInput, NumberStyles.None, CultureInfo.InvariantCulture, out var hours) ||
-            hours is < 1 or > 9999)
-        {
-            SetCustomDurationError("请输入 1-9999 小时");
-            return;
-        }
-
-        var customOption = GoalDurationOptions.Single(option => option.IsCustom);
-        var wasCustomSelected = ReferenceEquals(_selectedGoalDurationOption, customOption);
-        customOption.SetCustomDuration(hours * 60);
-        if (_selectCustomDurationOnConfirm || wasCustomSelected)
-        {
-            _selectedGoalDurationOption = customOption;
-            _selectedGoalDurationMinutes = customOption.Minutes;
-        }
-
-        UpdateGoalDurationSelection();
-        _selectCustomDurationOnConfirm = false;
-        IsCustomDurationPopupOpen = false;
-        OnPropertyChanged(nameof(SelectedGoalDurationMinutes));
-    }
-
-    private void CloseCustomDurationPopup()
-    {
-        IsCustomDurationPopupOpen = false;
-        _selectCustomDurationOnConfirm = false;
-        SetCustomDurationError(string.Empty);
-    }
-
-    private void SetGoalDuration(int? minutes)
-    {
-        var option = minutes is null
-            ? null
-            : GoalDurationOptions.FirstOrDefault(item => !item.IsCustom && item.Minutes == minutes);
-        if (minutes is not null && option is null)
-        {
-            option = GoalDurationOptions.Single(item => item.IsCustom);
-            option.SetCustomDuration(minutes.Value);
-        }
-
-        _selectedGoalDurationOption = option;
-        _selectedGoalDurationMinutes = minutes;
-        CustomDurationInput = option?.IsCustom == true && option.Minutes is { } customMinutes
-            ? (customMinutes / 60).ToString(CultureInfo.InvariantCulture)
-            : string.Empty;
-        UpdateGoalDurationSelection();
-        OnPropertyChanged(nameof(SelectedGoalDurationMinutes));
-    }
-
-    private void ResetGoalDuration()
-    {
-        GoalDurationOptions.Single(option => option.IsCustom).ResetCustomDuration();
-        _selectCustomDurationOnConfirm = false;
-        SetGoalDuration(null);
-        SetCustomDurationError(string.Empty);
-    }
-
-    private void SetCustomDurationError(string value)
-    {
-        if (_customDurationError == value) return;
-        _customDurationError = value;
-        OnPropertyChanged(nameof(CustomDurationError));
-        OnPropertyChanged(nameof(CustomDurationMessage));
-        OnPropertyChanged(nameof(HasCustomDurationError));
-    }
-
-    private void UpdateGoalDurationSelection()
-    {
-        foreach (var option in GoalDurationOptions)
-        {
-            option.IsSelected = ReferenceEquals(option, _selectedGoalDurationOption);
         }
     }
 
@@ -1792,6 +1529,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
                 goal?.IconSource ?? TargetIconCatalog.GetIconSource(null)));
         }
         OnPropertyChanged(nameof(PeriodFocusDistributionTotalMinutes));
+        OnPropertyChanged(nameof(PeriodFocusDistributionTotalDisplay));
         OnPropertyChanged(nameof(HasPeriodFocusDistribution));
         OnPropertyChanged(nameof(PeriodFocusDistributionEmptyTitle));
     }
@@ -1809,6 +1547,10 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(HasFocusGoal));
         OnPropertyChanged(nameof(IsMonthlyFocusGoal));
         OnPropertyChanged(nameof(TodayFocusDurationCompact));
+        OnPropertyChanged(nameof(OverviewFocusGoalProgressRatio));
+        OnPropertyChanged(nameof(OverviewFocusGoalTodayDisplay));
+        OnPropertyChanged(nameof(OverviewFocusGoalDetailLabel));
+        OnPropertyChanged(nameof(OverviewFocusGoalDetailDisplay));
         OnPropertyChanged(nameof(DailyFixedFocusTargetDisplay));
         OnPropertyChanged(nameof(TodayFocusTargetProgressPercent));
         OnPropertyChanged(nameof(TodayFocusTargetProgressRatio));
@@ -1973,6 +1715,8 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             SelectedDayRecords.Add(record);
         }
         OnPropertyChanged(nameof(HasSelectedDayRecords));
+        SelectedDayTimeline = CalendarFocusTimelineViewModel.Create(date, SelectedDayRecords);
+        OnPropertyChanged(nameof(SelectedDayTimeline));
 
         RefreshSelectedDayCompletedTasks();
         OnPropertyChanged(nameof(SelectedDateDisplay));
@@ -2297,6 +2041,22 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     public bool HasDailyFixedFocusTarget => _hasDailyFixedFocusTarget;
 
     public string TodayFocusDurationCompact => FormatTargetDuration(GetDailySummary(DateTime.Today).FocusMinutes);
+
+    public double OverviewFocusGoalProgressRatio => IsMonthlyFocusGoal
+        ? Math.Clamp(CurrentMonthFocusMinutes / (MonthlyFocusTargetHours * 60d), 0, 1)
+        : TodayFocusTargetProgressRatio;
+
+    public string OverviewFocusGoalTodayDisplay => HasDailyFixedFocusTarget
+        ? $"{TodayFocusDurationCompact} / {DailyFixedFocusTargetDisplay}"
+        : TodayFocusDurationCompact;
+
+    public string OverviewFocusGoalDetailLabel => IsMonthlyFocusGoal ? "本月" : "剩余";
+
+    public string OverviewFocusGoalDetailDisplay => IsMonthlyFocusGoal
+        ? $"{FormatTargetDuration(CurrentMonthFocusMinutes)} / {MonthlyFocusTargetHours}小时"
+        : FormatTargetDuration(Math.Max(0, _dailyFixedFocusTargetHours * 60 - GetDailySummary(DateTime.Today).FocusMinutes));
+
+    public string PeriodFocusDistributionTotalDisplay => FormatTargetDuration(PeriodFocusDistributionTotalMinutes);
 
     public string DailyFixedFocusTargetDisplay => $"{_dailyFixedFocusTargetHours}小时";
 
@@ -2745,6 +2505,7 @@ public sealed class FocusSessionRecordViewModel : INotifyPropertyChanged
 {
     public Guid? SessionId { get; init; }
     public IReadOnlyList<DateTime?> CompletedTaskTimes { get; init; } = [];
+    public IReadOnlyList<LocalFocusSessionTaskSnapshotDto> CompletedTaskSnapshots { get; init; } = [];
     public IReadOnlyList<string> CompletedTaskIds { get; init; } = [];
     public string IconSource { get; init; } = TargetIconCatalog.GetIconSource(null);
     public string CalendarTitle => HasGoal ? GoalName : "自由专注";
@@ -2905,7 +2666,7 @@ public sealed class GoalOverviewItemViewModel : INotifyPropertyChanged
         string? iconFileName = null,
         DateTimeOffset? createdAtUtc = null,
         string? remark = null,
-        int? targetDurationMinutes = null,
+
         DateTimeOffset? archivedAtUtc = null,
         string? iconColorHex = null)
     {
@@ -2922,7 +2683,7 @@ public sealed class GoalOverviewItemViewModel : INotifyPropertyChanged
         IsArchived = isArchived;
         _archivedAtUtc = archivedAtUtc;
         Remark = remark;
-        TargetDurationMinutes = targetDurationMinutes;
+
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -2955,20 +2716,15 @@ public sealed class GoalOverviewItemViewModel : INotifyPropertyChanged
 
     public string? Remark { get; private set; }
 
-    public int? TargetDurationMinutes { get; private set; }
 
-    public void UpdateDetails(string? remark, int? targetDurationMinutes)
+
+    public void UpdateDetails(string? remark)
     {
         if (Remark != remark)
         {
             Remark = remark;
             OnPropertyChanged(nameof(Remark));
             OnPropertyChanged(nameof(DetailMetadataDisplay));
-        }
-        if (TargetDurationMinutes != targetDurationMinutes)
-        {
-            TargetDurationMinutes = targetDurationMinutes;
-            OnPropertyChanged(nameof(TargetDurationMinutes));
         }
     }
 
@@ -3128,61 +2884,6 @@ public sealed class GoalColorOptionViewModel(string name, string colorHex, bool 
             _isSelected = value;
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsSelected)));
         }
-    }
-}
-
-public sealed class GoalDurationOptionViewModel : INotifyPropertyChanged
-{
-    private bool _isSelected;
-    private string _label;
-    private int? _minutes;
-
-    public GoalDurationOptionViewModel(string label, int? minutes, bool isCustom = false)
-    {
-        _label = label;
-        _minutes = minutes;
-        IsCustom = isCustom;
-    }
-
-    public event PropertyChangedEventHandler? PropertyChanged;
-
-    public string Label => _label;
-
-    public int? Minutes => _minutes;
-
-    public bool IsCustom { get; }
-
-    public bool HasCustomValue => IsCustom && _minutes is not null;
-
-    public bool IsSelected
-    {
-        get => _isSelected;
-        set
-        {
-            if (_isSelected == value) return;
-            _isSelected = value;
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsSelected)));
-        }
-    }
-
-    public void SetCustomDuration(int minutes)
-    {
-        if (!IsCustom || minutes <= 0) return;
-        _minutes = minutes;
-        _label = $"{minutes / 60}小时";
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Minutes)));
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Label)));
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasCustomValue)));
-    }
-
-    public void ResetCustomDuration()
-    {
-        if (!IsCustom || _minutes is null && _label == "自定义") return;
-        _minutes = null;
-        _label = "自定义";
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Minutes)));
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Label)));
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasCustomValue)));
     }
 }
 

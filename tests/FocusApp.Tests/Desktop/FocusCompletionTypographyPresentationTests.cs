@@ -19,47 +19,32 @@ public sealed class FocusCompletionTypographyPresentationTests
         var view = XDocument.Load(Path.Combine(FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "FocusFlowView.xaml"));
         var template = Assert.Single(view.Descendants(Presentation + "DataTemplate").Where(element =>
             (string?)element.Attribute(Xaml + "Key") == "FocusCompletionDetails"));
-        var content = Assert.Single(template.Elements(Presentation + "StackPanel"));
-        var children = content.Elements().ToArray();
-
-        Assert.Equal("{DynamicResource FocusCompletionPraise}", (string?)children[0].Attribute("Text"));
-        Assert.Equal("{DynamicResource FocusCompletedTitle}", (string?)children[1].Attribute("Text"));
-        Assert.Equal("32", (string?)children[1].Attribute("FontSize"));
-        Assert.Equal("{DynamicResource AccentPrimary}", (string?)children[2].Attribute("Foreground"));
-        var duration = Assert.Single(children[2].Elements(Presentation + "Run").Where(run =>
-            (string?)run.Attribute("Text") == "{Binding CompletedDurationMinutes, Mode=OneWay}"));
-        Assert.Equal("68", (string?)duration.Attribute("FontSize"));
-        Assert.Equal(Presentation + "Grid", children[3].Name);
-        Assert.Equal(Presentation + "StackPanel", children[4].Name);
-
-        var statistics = children[3];
-        Assert.Equal("420", (string?)statistics.Attribute("Width"));
-        Assert.Equal(3, statistics.Element(Presentation + "Grid.ColumnDefinitions")?.Elements().Count());
-        Assert.Equal(new[] { "statistics.svg", "time.svg", "checkbox.svg" },
-            statistics.Descendants(Views + "SvgIcon")
-                .Select(icon => Path.GetFileName((string?)icon.Attribute("Source"))).ToArray());
-        Assert.Contains(statistics.Descendants(Presentation + "Run"), run =>
-            (string?)run.Attribute("Text") == "{Binding TodayTotalMinutes, Mode=OneWay}");
+        Assert.Contains(template.Descendants(Presentation + "TextBlock"), element =>
+            (string?)element.Attribute("Text") == "{DynamicResource FocusCompletedTitle}");
+        Assert.Contains(template.Descendants(Presentation + "TextBlock"), element =>
+            (string?)element.Attribute("Text") == "{DynamicResource FocusCompletionSubtitle}");
+        Assert.Contains(template.Descendants(Presentation + "TextBlock"), element =>
+            (string?)element.Attribute("Text") == "{Binding CompletedTimeDisplay, Mode=OneWay}");
+        var target = Assert.Single(template.Descendants(Presentation + "Grid").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "CompletionTarget"));
+        Assert.Equal("{Binding HasTarget, Converter={StaticResource BooleanToVisibilityConverter}}", (string?)target.Attribute("Visibility"));
+        Assert.Contains(target.Descendants(Presentation + "TextBlock"), element =>
+            (string?)element.Attribute("Text") == "{Binding TargetName, Mode=OneWay}");
+        var statistics = Assert.Single(template.Descendants(Presentation + "TextBlock").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "CompletionStatistics"));
         Assert.Contains(statistics.Descendants(Presentation + "Run"), run =>
             (string?)run.Attribute("Text") == "{Binding TodayFocusCount, Mode=OneWay}");
         Assert.Contains(statistics.Descendants(Presentation + "Run"), run =>
-            (string?)run.Attribute("Text") == "{Binding SessionCompletedTaskCount, Mode=OneWay}");
+            (string?)run.Attribute("Text") == "{Binding CompletionTodayTotalDisplay, Mode=OneWay}");
 
-        var buttons = children[4].Elements(Presentation + "Button").ToArray();
+        var buttons = template.Descendants(Presentation + "Button").ToArray();
         Assert.Equal(2, buttons.Length);
         Assert.Equal("{Binding RequestFocusAgainCommand}", (string?)buttons[0].Attribute("Command"));
         Assert.Equal("{Binding ReturnHomeCommand}", (string?)buttons[1].Attribute("Command"));
-        Assert.All(buttons, button => Assert.Equal("48", (string?)button.Attribute("Height")));
+        Assert.All(buttons, button => Assert.Equal("{StaticResource FocusFooterActionStyle}", (string?)button.Attribute("Style")));
         Assert.Equal(new[] { "reset.svg", "home.svg" },
             buttons.SelectMany(button => button.Descendants(Views + "SvgIcon"))
                 .Select(icon => Path.GetFileName((string?)icon.Attribute("Source"))).ToArray());
-        foreach (var styleKey in new[] { "FocusFlowOutlineButton", "FocusNoTargetReturnHomeButton" })
-        {
-            var style = Assert.Single(view.Descendants(Presentation + "Style").Where(element =>
-                (string?)element.Attribute(Xaml + "Key") == styleKey));
-            Assert.Contains(style.Descendants(Presentation + "Border"), border =>
-                (string?)border.Attribute("CornerRadius") == "20");
-        }
 
         foreach (var name in new[] { "TargetCompletionView", "NoTargetCompletionView" })
         {
@@ -67,13 +52,14 @@ public sealed class FocusCompletionTypographyPresentationTests
                 (string?)element.Attribute(Xaml + "Name") == name));
             Assert.Contains(completion.Descendants(Presentation + "ContentControl"), element =>
                 (string?)element.Attribute("ContentTemplate") == "{StaticResource FocusCompletionDetails}");
-            Assert.DoesNotContain(completion.Descendants(Presentation + "Button"), button =>
-                (string?)button.Attribute("Command") == "{Binding ToggleCompletedTasksCommand}");
+            var background = Assert.Single(completion.Descendants(Presentation + "Image"));
+            Assert.Equal("/FocusApp.Desktop;component/Assets/Images/Illustrations/foucus_background02.png", (string?)background.Attribute("Source"));
             Assert.DoesNotContain(completion.Descendants(Presentation + "ItemsControl"), items =>
                 (string?)items.Attribute("ItemsSource") == "{Binding SessionCompletedTasks}");
         }
+        Assert.DoesNotContain(template.Descendants(Presentation + "Button"), button =>
+            (string?)button.Attribute("Command") == "{Binding ToggleCompletedTasksCommand}");
     }
-
     [Fact]
     public void CompletionSvgResources_ContainRenderablePaths()
     {

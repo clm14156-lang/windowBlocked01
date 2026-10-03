@@ -1,4 +1,4 @@
-﻿using System.Xml.Linq;
+using System.Xml.Linq;
 using Xunit;
 
 namespace FocusApp.Tests.Desktop;
@@ -11,188 +11,109 @@ public sealed class StatisticsMonthlyTargetPresentationTests
     [Fact]
     public void PeriodDistributionCard_DoesNotAddMonthlyEditingUi()
     {
-        var page = XDocument.Load(Path.Combine(
-            FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
-        var card = Assert.Single(page.Descendants(Presentation + "Border").Where(border =>
-            (string?)border.Attribute(Xaml + "Name") == "PeriodFocusDistributionCard"));
+        var page = LoadPage();
+        var card = Named(page, "Border", "PeriodFocusDistributionCard");
         Assert.Equal("4", (string?)card.Attribute("Grid.Row"));
         Assert.Null(card.Attribute("Height"));
-        var content = Assert.Single(card.Elements(Presentation + "Grid"));
-        Assert.Contains(content.Descendants(Presentation + "TextBlock"), text =>
-            (string?)text.Attribute("Text") == "{Binding TrendRangeTitle, Mode=OneWay}");
+        Assert.Contains(card.Descendants(Presentation + "TextBlock"), text => (string?)text.Attribute("Text") == "投入分布");
         Assert.DoesNotContain(page.Descendants(Presentation + "Popup"), popup =>
             (string?)popup.Attribute(Xaml + "Name") is "MonthlyFocusTargetPopup" or "MonthlyFocusTargetActionMenu");
-        Assert.DoesNotContain(page.Descendants(), element =>
-            (string?)element.Attribute(Xaml + "Name") is "MonthlyFocusTargetEmptyState" or
-            "MonthlyFocusTargetSetState" or
-            "SetMonthlyFocusTargetButton" or
-            "EditMonthlyFocusTargetButton");
     }
 
     [Fact]
     public void TodayStatisticsCard_UsesCompactUnsetTargetLayout()
     {
-        var page = XDocument.Load(Path.Combine(
-            FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
-        var card = Assert.Single(page.Descendants(Presentation + "Border").Where(border =>
-            (string?)border.Attribute(Xaml + "Name") == "TodayStatisticsCard"));
-        var emptyState = Assert.Single(card.Descendants(Presentation + "Grid").Where(grid =>
-            (string?)grid.Attribute(Xaml + "Name") == "TodayFocusEmptyState"));
-
-        Assert.Null(card.Descendants().FirstOrDefault(element =>
-            (string?)element.Attribute(Xaml + "Name") == "TodayStatisticsDivider"));
-        Assert.Empty(card.Descendants(Presentation + "Ellipse"));
-        Assert.DoesNotContain(card.Descendants(Presentation + "ColumnDefinition"), column => (string?)column.Attribute("Width") == "58");
-        Assert.DoesNotContain(emptyState.Descendants(Presentation + "TextBlock"), text =>
-            (string?)text.Attribute("Text") == "{DynamicResource StatisticsTodayCount}");
-        Assert.Contains(emptyState.Descendants(Presentation + "TextBlock"), text =>
-            (string?)text.Attribute("Text") == "{Binding TodayFocusDurationCompact, Converter={StaticResource DurationTextPartConverter}, ConverterParameter=Value}");
-        Assert.Contains(emptyState.Descendants(Presentation + "TextBlock"), text =>
-            (string?)text.Attribute("Text") == "今日专注");
-        Assert.Contains(emptyState.Descendants(Presentation + "TextBlock"), text =>
-            (string?)text.Attribute("Text") == "{Binding TodayFocusCount, StringFormat='今日 {0} 次专注'}");
-        Assert.Contains(emptyState.Descendants(Presentation + "TextBlock"), text =>
-            (string?)text.Attribute("Text") == "未设置今日目标，让专注更有方向");
-
-        var setTargetButton = Assert.Single(emptyState.Descendants(Presentation + "Button").Where(button =>
-            (string?)button.Attribute(Xaml + "Name") == "SetTodayFocusTargetButton"));
-        Assert.Equal("{Binding OpenMonthlyFocusTargetCommand}", (string?)setTargetButton.Attribute("Command"));
-        var linkStyle = page.Descendants(Presentation + "Style").Single(style =>
-            (string?)style.Attribute(Xaml + "Key") == "TodayFocusTargetLinkStyle");
-        Assert.Contains(linkStyle.Descendants(Presentation + "TextBlock"), text =>
-            (string?)text.Attribute("Text") == "设置目标");
-        Assert.Single(linkStyle.Descendants(Presentation + "Path"));
+        var page = LoadPage();
+        var empty = Named(page, "Grid", "TodayFocusEmptyState");
+        Assert.Empty(empty.Descendants(Presentation + "ProgressBar"));
+        Assert.Contains(empty.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "设定一个小目标，会让专注更有方向。");
+        Assert.DoesNotContain(empty.Descendants(Presentation + "TextBlock"), text =>
+            ((string?)text.Attribute("Text"))?.Contains("TodayFocusCount") == true);
+        var setting = Named(page, "Button", "SetTodayFocusTargetButton");
+        Assert.Equal("{Binding OpenMonthlyFocusTargetCommand}", (string?)setting.Attribute("Command"));
+        Assert.Equal("FocusGoalSettings", (string?)setting.Attribute("CommandParameter"));
+        Assert.Equal("#9097A2", (string?)setting.Attribute("Foreground"));
+        Assert.Equal("{Binding OpenFocusGoalSettingsCommand}", (string?)Named(page, "Button", "TodayFocusEmptyMoreButton").Attribute("Command"));
     }
 
     [Fact]
     public void TodayStatisticsCard_UsesFixedHeightForBothTargetStates()
     {
-        var page = XDocument.Load(Path.Combine(
-            FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
-        var cardHost = Assert.Single(page.Descendants(Presentation + "Grid").Where(grid =>
-            grid.Element(Presentation + "Border")?.Attribute(Xaml + "Name")?.Value == "TodayStatisticsCard"));
-
-        Assert.Equal("0", (string?)cardHost.Attribute("Grid.Row"));
-        Assert.Null(cardHost.Attribute("Height"));
-        Assert.Null(cardHost.Element(Presentation + "Grid")?.Element(Presentation + "Style"));
+        var page = LoadPage();
+        var card = Named(page, "Border", "TodayStatisticsCard");
+        Assert.Equal("0", (string?)card.Parent?.Attribute("Grid.Row"));
+        Assert.Null(card.Attribute("Height"));
+        var titleStyle = "{StaticResource TodayFocusCardTitleStyle}";
+        Assert.Equal(titleStyle, (string?)Named(page, "TextBlock", "TrendRangeTitle").Attribute("Style"));
+        Assert.Equal(titleStyle, (string?)Named(page, "TextBlock", "PeriodFocusDistributionTitle").Attribute("Style"));
+        Assert.All(card.Descendants(Presentation + "TextBlock").Where(text => (string?)text.Attribute("Text") == "今日专注"),
+            text => Assert.Equal(titleStyle, (string?)text.Attribute("Style")));
     }
 
     [Fact]
     public void TodayFocusGoalStatesUseFullWidthProgressWithoutPercentages()
     {
-        var page = XDocument.Load(Path.Combine(FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
+        var page = LoadPage();
         foreach (var name in new[] { "TodayFocusTargetState", "TodayFocusMonthlyTargetState" })
         {
-            var state = page.Descendants(Presentation + "Grid").Single(grid => (string?)grid.Attribute(Xaml + "Name") == name);
+            var state = Named(page, "Grid", name);
             var progress = Assert.Single(state.Descendants(Presentation + "ProgressBar"));
             Assert.Equal("4", (string?)progress.Attribute("Grid.Row"));
             Assert.Null(progress.Attribute("Grid.Column"));
+            Assert.Equal("{Binding OverviewFocusGoalProgressRatio, Mode=OneWay}", (string?)progress.Attribute("Value"));
             Assert.DoesNotContain(state.Descendants().Attributes(), attribute => attribute.Value.Contains("ProgressPercent"));
-            Assert.Contains(state.Descendants(Presentation + "TextBlock"), text => (string?)text.Attribute("Text") == "今日目标");
+            Assert.DoesNotContain(state.Descendants(Presentation + "TextBlock"), text =>
+                (string?)text.Attribute("Text") == "今日目标" || ((string?)text.Attribute("Text"))?.Contains("RemainingDays") == true);
         }
     }
 
     [Fact]
     public void TodayFocusTargetState_UsesTransparentMoreButtonToReopenExistingModal()
     {
-        var page = XDocument.Load(Path.Combine(
-            FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
-        var targetState = Assert.Single(page.Descendants(Presentation + "Grid").Where(grid =>
-            (string?)grid.Attribute(Xaml + "Name") == "TodayFocusTargetState"));
-        var button = Assert.Single(targetState.Descendants(Presentation + "Button").Where(candidate =>
-            (string?)candidate.Attribute(Xaml + "Name") == "TodayFocusTargetMoreButton"));
-
-        Assert.Equal("{Binding OpenFocusGoalSettingsCommand}", (string?)button.Attribute("Command"));
-        Assert.Equal("Transparent", (string?)button.Attribute("Background"));
-        Assert.Equal("Right", (string?)button.Attribute("HorizontalAlignment"));
-        Assert.Equal("Top", (string?)button.Attribute("VerticalAlignment"));
-        Assert.Equal("···", (string?)button.Attribute("Content"));
-        Assert.Contains(button.Descendants(Presentation + "Border"), border =>
-            (string?)border.Attribute(Xaml + "Name") == "HoverSurface" &&
-            (string?)border.Attribute("Opacity") == "0");
+        var page = LoadPage();
+        foreach (var name in new[] { "TodayFocusEmptyMoreButton", "TodayFocusTargetMoreButton", "TodayFocusMonthlyTargetMoreButton" })
+        {
+            var button = Named(page, "Button", name);
+            Assert.Equal("{Binding OpenFocusGoalSettingsCommand}", (string?)button.Attribute("Command"));
+            Assert.Equal("{StaticResource TodayFocusMoreButtonStyle}", (string?)button.Attribute("Style"));
+        }
     }
 
     [Fact]
     public void TodayStatisticsCard_HasIndependentMonthlyGoalStateAndSummaryBindings()
     {
-        var page = XDocument.Load(Path.Combine(
-            FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
-        var monthlyState = Assert.Single(page.Descendants(Presentation + "Grid").Where(grid =>
-            (string?)grid.Attribute(Xaml + "Name") == "TodayFocusMonthlyTargetState"));
-
-        Assert.Contains(monthlyState.Descendants(Presentation + "DataTrigger"), trigger =>
-            (string?)trigger.Attribute("Binding") == "{Binding IsMonthlyFocusGoal}" &&
-            (string?)trigger.Attribute("Value") == "True");
-        Assert.Contains(monthlyState.Descendants(Presentation + "TextBlock"), text =>
-            (string?)text.Attribute("Text") == "{Binding MonthlyFocusTodayRecommendationDisplay, Converter={StaticResource DurationTextPartConverter}, ConverterParameter=ReadableSummary}");
-        Assert.Contains(monthlyState.Descendants(Presentation + "ProgressBar"), progress =>
-            (string?)progress.Attribute("Value") == "{Binding MonthlyFocusTodayProgressRatio, Mode=OneWay}");
-        Assert.Contains(monthlyState.Descendants(Presentation + "TextBlock"), text =>
-            (string?)text.Attribute("Text") == "{Binding MonthlyFocusCompletedSummaryDisplay, Converter={StaticResource DurationTextPartConverter}, ConverterParameter=ReadableSummary}");
-        Assert.DoesNotContain(monthlyState.Descendants(Presentation + "TextBlock"), text =>
-            (string?)text.Attribute("Text") == "{Binding MonthlyFocusRemainingSummaryDisplay}");
-        var remainingDays = Assert.Single(monthlyState.Descendants(Presentation + "TextBlock").Where(text =>
-            (string?)text.Attribute("Text") == "{Binding MonthlyFocusRemainingDaysSummaryDisplay, Converter={StaticResource DurationTextPartConverter}, ConverterParameter=ReadableSummary}"));
-        Assert.Equal("Right", (string?)remainingDays.Attribute("HorizontalAlignment"));
-        Assert.Equal("1", (string?)remainingDays.Attribute("Grid.Column"));
-        Assert.DoesNotContain(monthlyState.Descendants().Attributes(), attribute => attribute.Value.Contains("今日建议", StringComparison.Ordinal));
+        var page = LoadPage();
+        var monthly = Named(page, "Grid", "TodayFocusMonthlyTargetState");
+        Assert.Equal("{Binding IsMonthlyFocusGoal, Converter={StaticResource BooleanToVisibilityConverter}}", (string?)monthly.Attribute("Visibility"));
+        foreach (var name in new[] { "DailyFocusGoalTip", "MonthlyFocusGoalTip" })
+        {
+            var tip = Named(page, "ToolTip", name);
+            Assert.Equal("{StaticResource FocusGoalProgressTipStyle}", (string?)tip.Attribute("Style"));
+            Assert.Contains(tip.Descendants(Presentation + "TextBlock"), text => (string?)text.Attribute("Text") == "{Binding OverviewFocusGoalTodayDisplay}");
+            Assert.Contains(tip.Descendants(Presentation + "TextBlock"), text => (string?)text.Attribute("Text") == "{Binding OverviewFocusGoalDetailDisplay}");
+        }
     }
 
     [Fact]
-    public void TrendCard_UsesHierarchicalToolbarAndOverviewPopTip()
+    public void TrendCard_UsesHierarchicalToolbarAndRangeFilterOnly()
     {
-        var page = XDocument.Load(Path.Combine(
-            FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
-        var card = Assert.Single(page.Descendants(Presentation + "Border").Where(border =>
-            (string?)border.Attribute(Xaml + "Name") == "TrendCard"));
-
-        Assert.Equal("2", (string?)card.Attribute("Grid.Row"));
-        Assert.Null(card.Attribute("Height"));
-        Assert.DoesNotContain(card.Descendants(), element =>
-            (string?)element.Attribute(Xaml + "Name") == "LockedTrendSummary");
-        Assert.DoesNotContain(card.Descendants(Presentation + "Border"), border =>
-            (string?)border.Attribute(Xaml + "Name") == "TrendSummaryFooter");
-
-        Assert.DoesNotContain(card.Descendants(), element =>
-            (string?)element.Attribute(Xaml + "Name") == "TrendSummaryHeader");
-        var toolbar = Assert.Single(card.Descendants(Presentation + "Grid").Where(grid =>
-            (string?)grid.Attribute(Xaml + "Name") == "TrendToolbar"));
-        var title = Assert.Single(toolbar.Elements(Presentation + "TextBlock"));
-        Assert.Equal("{Binding TrendRangeTitle, Mode=OneWay}", (string?)title.Attribute("Text"));
-        Assert.Equal("20", (string?)title.Attribute("FontSize"));
-        Assert.Equal("SemiBold", (string?)title.Attribute("FontWeight"));
-
-        var overviewButton = Assert.Single(toolbar.Descendants(Presentation + "ToggleButton").Where(button =>
-            (string?)button.Attribute(Xaml + "Name") == "TrendOverviewButton"));
-        Assert.Contains(overviewButton.Descendants(Presentation + "TextBlock"), text =>
-            (string?)text.Attribute("Text") == "数据概览");
-        var overviewPopup = Assert.Single(toolbar.Descendants(Presentation + "Popup").Where(popup =>
-            (string?)popup.Attribute(Xaml + "Name") == "TrendOverviewPopup"));
-        Assert.Equal("False", (string?)overviewPopup.Attribute("StaysOpen"));
-        Assert.Equal("{Binding ElementName=TrendOverviewButton}", (string?)overviewPopup.Attribute("PlacementTarget"));
-        Assert.Contains(overviewPopup.Descendants(Presentation + "TextBlock"), text =>
-            (string?)text.Attribute("Text") == "{Binding PeriodTotalOverviewDisplay, Mode=OneWay}");
-        Assert.Contains(overviewPopup.Descendants(Presentation + "TextBlock"), text =>
-            (string?)text.Attribute("Text") == "{Binding AverageDurationOverviewDisplay, Mode=OneWay}");
-        Assert.Contains(overviewPopup.Descendants(Presentation + "TextBlock"), text =>
-            (string?)text.Attribute("Text") == "{Binding ComparisonOverviewDisplay, Mode=OneWay}");
-
-        Assert.Contains(card.Descendants(Presentation + "ComboBox"), combo =>
-            (string?)combo.Attribute("ItemsSource") == "{Binding RangeOptions}");
-
-        var plot = Assert.Single(card.Descendants(Presentation + "Grid").Where(grid =>
-            (string?)grid.Attribute("Height") == "155"));
-        Assert.Equal("{StaticResource GroupGapAbove}", (string?)plot.Attribute("Margin"));
+        var page = LoadPage();
+        var toolbar = Named(page, "Grid", "TrendToolbar");
+        Assert.Equal("{Binding TrendRangeTitle, Mode=OneWay}", (string?)Assert.Single(toolbar.Elements(Presentation + "TextBlock")).Attribute("Text"));
+        Assert.Single(toolbar.Descendants(Presentation + "ComboBox"));
+        Assert.Empty(toolbar.Descendants(Presentation + "ToggleButton"));
+        Assert.Empty(toolbar.Descendants(Presentation + "Popup"));
+        Assert.DoesNotContain(Named(page, "Border", "TrendCard").Descendants(Presentation + "TextBlock"), text => (string?)text.Attribute("Text") == "数据概览");
     }
 
-    private static string FindRepositoryRoot()
-    {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "FocusApp.sln")))
-        {
-            directory = directory.Parent;
-        }
+    private static XElement Named(XDocument page, string type, string name) =>
+        Assert.Single(page.Descendants(Presentation + type).Where(element => (string?)element.Attribute(Xaml + "Name") == name));
 
-        return directory?.FullName ?? throw new DirectoryNotFoundException("Could not locate the FocusApp repository root.");
+    private static XDocument LoadPage()
+    {
+        var root = new DirectoryInfo(AppContext.BaseDirectory);
+        while (root is not null && !File.Exists(Path.Combine(root.FullName, "FocusApp.sln"))) root = root.Parent;
+        return XDocument.Load(Path.Combine(root!.FullName, "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
     }
 }

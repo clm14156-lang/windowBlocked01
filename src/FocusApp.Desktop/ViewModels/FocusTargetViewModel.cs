@@ -182,25 +182,12 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
     private bool _applyingDetails;
     private string _name;
     private string _editName;
-    private bool _isMenuOpen;
-    private bool _isHovered;
     private bool _isFocusMenuOpen;
     private bool _isEditing;
     private bool _isCompleted;
     private DateTimeOffset _createdAtUtc;
     private DateTimeOffset? _completedAtUtc;
     private bool _isNew;
-    private bool _isDragging;
-    private bool _showDropBefore;
-    private bool _showDropAfter;
-    private bool _isCompleting;
-    private bool _isCompletionStyled;
-    private bool _isCompletionExiting;
-    private bool _isUncompleting;
-    private bool _isUncompletionRestored;
-    private bool _isUncompletionExiting;
-    private bool _isBatchSelected;
-    private int _listPriorityRank;
 
     internal FocusTaskViewModel(
         string targetId,
@@ -234,7 +221,7 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
     public event EventHandler? DetailsChanged;
 
     public ObservableCollection<FocusSubTaskViewModel> SubTasks { get; } = [];
-    public GoalTaskInlineEditorViewModel NextTaskEditor { get; } = new();
+
     // Keep the stored order intact so unchecking an item restores its original position.
     public IEnumerable<FocusSubTaskViewModel> SortedSubTasks => SubTasks.OrderBy(item => item.IsCompleted);
     public string Description
@@ -254,9 +241,7 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
     public string RemarkActionLabel => HasDescription ? "编辑备注" : "添加备注";
     public bool HasSubTasks => SubTasks.Count > 0;
     public bool HasExpandedSubTasks => HasSubTasks && IsExpanded;
-    public bool ShowInlineAddSubTask => HasExpandedSubTasks && CanAddSubTask;
     public string SubTaskProgress => $"子任务 · {SubTasks.Count(item => item.IsCompleted)}/{SubTasks.Count}";
-    public string GoalSubTaskProgress => $"子任务 {SubTasks.Count(item => item.IsCompleted)}/{SubTasks.Count}";
     public bool CanAddSubTask => SubTasks.Count < 20;
     public string DrawerSubTaskToggleLabel => IsExpanded ? "收起" : $"子任务 {SubTasks.Count(item => item.IsCompleted)}/{SubTasks.Count}";
     public bool IsDrawerSelected
@@ -274,7 +259,6 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
             OnPropertyChanged();
             OnPropertyChanged(nameof(DrawerSubTaskToggleLabel));
             OnPropertyChanged(nameof(HasExpandedSubTasks));
-            OnPropertyChanged(nameof(ShowInlineAddSubTask));
         }
     }
     public int DrawerNumber
@@ -291,15 +275,13 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
 
     private void NotifyDetailsChanged()
     {
-        if (!HasSubTasks && !NextTaskEditor.IsAddingSubTask) IsExpanded = false;
+        if (!HasSubTasks) IsExpanded = false;
         OnPropertyChanged(nameof(SortedSubTasks));
         OnPropertyChanged(nameof(SubTaskProgress));
-        OnPropertyChanged(nameof(GoalSubTaskProgress));
         OnPropertyChanged(nameof(CanAddSubTask));
         OnPropertyChanged(nameof(DrawerSubTaskToggleLabel));
         OnPropertyChanged(nameof(HasSubTasks));
         OnPropertyChanged(nameof(HasExpandedSubTasks));
-        OnPropertyChanged(nameof(ShowInlineAddSubTask));
         if (!_applyingDetails) DetailsChanged?.Invoke(this, EventArgs.Empty);
     }
 
@@ -382,40 +364,6 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
         }
     }
 
-    public bool IsMenuOpen
-    {
-        get => _isMenuOpen;
-        set
-        {
-            if (_isMenuOpen == value)
-            {
-                return;
-            }
-
-            _isMenuOpen = value;
-            OnPropertyChanged();
-            OnPropertyChanged(nameof(IsMenuButtonVisible));
-        }
-    }
-
-    public bool IsHovered
-    {
-        get => _isHovered;
-        set
-        {
-            if (_isHovered == value)
-            {
-                return;
-            }
-
-            _isHovered = value;
-            OnPropertyChanged();
-            OnPropertyChanged(nameof(IsMenuButtonVisible));
-        }
-    }
-
-    public bool IsMenuButtonVisible => IsHovered || IsMenuOpen;
-
     public bool IsFocusMenuOpen
     {
         get => _isFocusMenuOpen;
@@ -493,167 +441,6 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
         if (completionChanged) OnPropertyChanged(nameof(IsCompleted));
     }
 
-    public bool IsDragging
-    {
-        get => _isDragging;
-        internal set
-        {
-            if (_isDragging == value)
-            {
-                return;
-            }
-
-            _isDragging = value;
-            OnPropertyChanged();
-        }
-    }
-
-    public bool ShowDropBefore
-    {
-        get => _showDropBefore;
-        internal set
-        {
-            if (_showDropBefore == value)
-            {
-                return;
-            }
-
-            _showDropBefore = value;
-            OnPropertyChanged();
-        }
-    }
-
-    public bool ShowDropAfter
-    {
-        get => _showDropAfter;
-        internal set
-        {
-            if (_showDropAfter == value)
-            {
-                return;
-            }
-
-            _showDropAfter = value;
-            OnPropertyChanged();
-        }
-    }
-
-    public bool IsCompleting
-    {
-        get => _isCompleting;
-        internal set
-        {
-            if (_isCompleting == value)
-            {
-                return;
-            }
-
-            _isCompleting = value;
-            OnPropertyChanged();
-        }
-    }
-
-    public bool IsCompletionStyled
-    {
-        get => _isCompletionStyled;
-        internal set
-        {
-            if (_isCompletionStyled == value)
-            {
-                return;
-            }
-
-            _isCompletionStyled = value;
-            OnPropertyChanged();
-        }
-    }
-
-    public bool IsCompletionExiting
-    {
-        get => _isCompletionExiting;
-        internal set
-        {
-            if (_isCompletionExiting == value)
-            {
-                return;
-            }
-
-            _isCompletionExiting = value;
-            OnPropertyChanged();
-        }
-    }
-
-    public bool IsUncompleting
-    {
-        get => _isUncompleting;
-        internal set
-        {
-            if (_isUncompleting == value)
-            {
-                return;
-            }
-
-            _isUncompleting = value;
-            OnPropertyChanged();
-        }
-    }
-
-    public bool IsUncompletionRestored
-    {
-        get => _isUncompletionRestored;
-        internal set
-        {
-            if (_isUncompletionRestored == value)
-            {
-                return;
-            }
-
-            _isUncompletionRestored = value;
-            OnPropertyChanged();
-        }
-    }
-
-    public bool IsBatchSelected
-    {
-        get => _isBatchSelected;
-        internal set
-        {
-            if (_isBatchSelected == value) return;
-            _isBatchSelected = value;
-            OnPropertyChanged();
-        }
-    }
-
-    public bool IsUncompletionExiting
-    {
-        get => _isUncompletionExiting;
-        internal set
-        {
-            if (_isUncompletionExiting == value)
-            {
-                return;
-            }
-
-            _isUncompletionExiting = value;
-            OnPropertyChanged();
-        }
-    }
-
-    public int ListPriorityRank
-    {
-        get => _listPriorityRank;
-        internal set
-        {
-            if (_listPriorityRank == value)
-            {
-                return;
-            }
-
-            _listPriorityRank = value;
-            OnPropertyChanged();
-        }
-    }
-
     public bool IsNew
     {
         get => _isNew;
@@ -672,7 +459,6 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
     public void BeginEdit()
     {
         EditName = Name;
-        IsMenuOpen = false;
         IsFocusMenuOpen = false;
         IsEditing = true;
     }

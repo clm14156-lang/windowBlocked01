@@ -261,7 +261,11 @@ public sealed record LocalFocusSessionDto(
 public sealed record LocalFocusSessionTaskSnapshotDto(string TaskId, string TaskNameSnapshot, int SortOrder)
 {
     public DateTimeOffset? CompletedAtUtc { get; init; }
+    public LocalTaskDetailsSnapshotDto? Details { get; init; }
 }
+
+public sealed record LocalTaskDetailsSnapshotDto(string Description, IReadOnlyList<LocalSubTaskSnapshotDto> SubTasks);
+public sealed record LocalSubTaskSnapshotDto(string Title, bool IsCompleted);
 
 public sealed record LocalTargetDto(
     string TargetId,

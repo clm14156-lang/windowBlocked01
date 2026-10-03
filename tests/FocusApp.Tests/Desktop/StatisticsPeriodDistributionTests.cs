@@ -42,16 +42,19 @@ public sealed class StatisticsPeriodDistributionTests
         Add(model, 29, 90, "a", 12);
         Add(model, 30, 120, "outside");
         Assert.Equal(30, model.PeriodFocusDistributionTotalMinutes);
+        Assert.Equal("30分钟", model.PeriodFocusDistributionTotalDisplay);
         Assert.Equal(30, model.TrendPoints.Sum(day => day.Minutes));
         Assert.Equal("window屏蔽软件", Assert.Single(model.PeriodFocusDistributions).TargetName);
         model.SelectedRange = model.RangeOptions.Single(range => range.Days == 30);
         Assert.Equal("近30天趋势", model.TrendRangeTitle);
         Assert.Equal(180, model.PeriodFocusDistributionTotalMinutes);
+        Assert.Equal("3小时", model.PeriodFocusDistributionTotalDisplay);
         Assert.Equal(180, model.TrendPoints.Sum(day => day.Minutes));
         Assert.Equal(new[] { 120, 60 }, model.PeriodFocusDistributions.Select(item => item.Minutes));
         Assert.Equal(2d / 3, model.PeriodFocusDistributions[0].Ratio, 6);
         recent.EndTime = recent.StartTime.AddMinutes(45);
         Assert.Equal(195, model.PeriodFocusDistributionTotalMinutes);
+        Assert.Equal("3小时15分钟", model.PeriodFocusDistributionTotalDisplay);
         model.FocusSessionRecords.Remove(recent);
         model.SelectedRange = model.RangeOptions.Single(range => range.Days == 7);
         Assert.False(model.HasPeriodFocusDistribution);
@@ -112,7 +115,7 @@ public sealed class StatisticsPeriodDistributionTests
                 var scroll = (ScrollViewer)page.FindName("PeriodFocusDistributionScrollViewer");
                 var top = (Border)page.FindName("TodayStatisticsCard");
                 var progress = (ProgressBar)page.FindName("TodayFocusMonthlyTargetStateProgress");
-                Assert.Equal("近7天趋势", title.Text);
+                Assert.Equal("投入分布", title.Text);
                 Assert.Equal(4, list.Items.Count);
                 Assert.Equal(0, scroll.ScrollableHeight);
                 Assert.True(((Grid)page.FindName("TodayFocusMonthlyTargetState")).IsVisible);
@@ -123,7 +126,7 @@ public sealed class StatisticsPeriodDistributionTests
                 var range = Descendants<ComboBox>(page).Single(combo => ReferenceEquals(combo.ItemsSource, model.RangeOptions));
                 range.SelectedItem = model.RangeOptions.Single(option => option.Days == 30);
                 Pump();
-                Assert.Equal("近30天趋势", title.Text);
+                Assert.Equal("投入分布", title.Text);
                 Assert.Equal(5, list.Items.Count);
                 Assert.True(scroll.ScrollableHeight > 0);
                 SavePreview(page, "overview-30-days");

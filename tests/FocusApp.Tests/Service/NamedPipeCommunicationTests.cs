@@ -454,12 +454,14 @@ public sealed class NamedPipeCommunicationTests
         await client.SendAsync<StartNormalFocusCommand, MutationResult>(
             IpcOperations.StartNormalFocus, new StartNormalFocusCommand(running), RequestTimeout);
         var taskCompletedAt = now.AddSeconds(20);
+        var details = new LocalTaskDetailsSnapshotDto("专注时的备注\n保留第二行",
+            [new("已完成子任务", true), new("尚未完成子任务", false)]);
         await client.SendAsync<UpdateFocusTasksCommand, MutationResult>(
             IpcOperations.UpdateFocusTasks,
             new UpdateFocusTasksCommand(
                 sessionId,
                 [new LocalFocusSessionTaskSnapshotDto(task.TaskId, task.Name, 0)
-                    { CompletedAtUtc = taskCompletedAt }]),
+                    { CompletedAtUtc = taskCompletedAt, Details = details }]),
             RequestTimeout);
         var activeState = await client.SendAsync<EmptyPayload, LocalDataSnapshotDto>(
             IpcOperations.GetState, new EmptyPayload(), RequestTimeout);
@@ -467,6 +469,9 @@ public sealed class NamedPipeCommunicationTests
         Assert.Equal(
             taskCompletedAt,
             Assert.Single(Assert.Single(activeState.FocusSessions).CompletedTasks).CompletedAtUtc);
+        var activeDetails = Assert.Single(activeState.FocusSessions[0].CompletedTasks).Details!;
+        Assert.Equal(details.Description, activeDetails.Description);
+        Assert.Equal(details.SubTasks, activeDetails.SubTasks);
         var completed = running with
         {
             Status = LocalFocusSessionStatusDto.Completed,
@@ -474,7 +479,7 @@ public sealed class NamedPipeCommunicationTests
             CompletedAtUtc = now.AddSeconds(65),
             CompletionKind = FocusCompletionKindDto.Natural,
             CompletedTasks = [new LocalFocusSessionTaskSnapshotDto(task.TaskId, task.Name, 0)
-                { CompletedAtUtc = taskCompletedAt }]
+                { CompletedAtUtc = taskCompletedAt, Details = details }]
         };
         await client.SendAsync<RecordCompletedFocusCommand, MutationResult>(
             IpcOperations.RecordCompletedFocus, new RecordCompletedFocusCommand(completed), RequestTimeout);
@@ -486,6 +491,8 @@ public sealed class NamedPipeCommunicationTests
         var completedTask = Assert.Single(state.FocusSessions[0].CompletedTasks);
         Assert.Equal(task.TaskId, completedTask.TaskId);
         Assert.Equal(taskCompletedAt, completedTask.CompletedAtUtc);
+        Assert.Equal(details.Description, completedTask.Details!.Description);
+        Assert.Equal(details.SubTasks, completedTask.Details.SubTasks);
         var deleted = await client.SendAsync<DeleteFocusRecordCommand, MutationResult>(
             IpcOperations.DeleteFocusRecord, new DeleteFocusRecordCommand(sessionId), RequestTimeout);
         Assert.Empty(deleted.State.FocusSessions);

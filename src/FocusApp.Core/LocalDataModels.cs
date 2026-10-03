@@ -36,7 +36,11 @@ public sealed record LocalFocusSessionTaskSnapshot(
     int SortOrder)
 {
     public DateTimeOffset? CompletedAtUtc { get; init; }
+    public LocalTaskDetailsSnapshot? Details { get; init; }
 }
+
+public sealed record LocalTaskDetailsSnapshot(string Description, IReadOnlyList<LocalSubTaskSnapshot> SubTasks);
+public sealed record LocalSubTaskSnapshot(string Title, bool IsCompleted);
 
 public sealed record LocalTarget(
     string TargetId,

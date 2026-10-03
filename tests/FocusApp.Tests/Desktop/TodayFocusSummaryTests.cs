@@ -29,14 +29,12 @@ public sealed class TodayFocusSummaryTests
                 var monthly = (Grid)page.FindName("TodayFocusMonthlyTargetState");
                 var originalHeight = card.ActualHeight;
                 Assert.Equal(Visibility.Visible, empty.Visibility);
-                Assert.Contains(Descendants<TextBlock>(empty), text => text.Text == "未设置今日目标，让专注更有方向");
-                Assert.Contains(Descendants<TextBlock>(empty), text => text.Text == "今日 0 次专注");
+                Assert.Contains(Descendants<TextBlock>(empty), text => text.Text == "设定一个小目标，会让专注更有方向。");
                 Assert.Empty(Descendants<ProgressBar>(empty));
                 var setting = (Button)page.FindName("SetTodayFocusTargetButton");
                 setting.Command.Execute(setting.CommandParameter);
                 Assert.True(model.FocusGoalSettingsModal.IsOpen);
                 model.FocusGoalSettingsModal.CancelCommand.Execute(null);
-                SavePreview(card, "empty");
 
                 model.FocusGoalSettingsModal.DailyTargetHoursInput = "4";
                 model.FocusGoalSettingsModal.SaveCommand.Execute(null);
@@ -46,81 +44,78 @@ public sealed class TodayFocusSummaryTests
                 Assert.Equal(Visibility.Collapsed, empty.Visibility);
                 Assert.Equal(Visibility.Collapsed, monthly.Visibility);
                 AssertAligned(daily, card);
-                Assert.Contains(Descendants<TextBlock>(daily), text => text.Text == "本日 0 分钟 / 4 小时");
-                Assert.Contains(Descendants<TextBlock>(daily), text => text.Text == "剩余 4 小时");
-                Assert.DoesNotContain(Descendants<TextBlock>(daily), text => text.Text.Contains("次专注"));
-                var dailyProgress = (ProgressBar)page.FindName("TodayFocusTargetStateProgress");
-                var node = (FrameworkElement)dailyProgress.Template.FindName("ProgressNode", dailyProgress);
-                Assert.Equal(Visibility.Collapsed, node.Visibility);
-                SavePreview(card, "daily-zero");
+                var progress = (ProgressBar)page.FindName("TodayFocusTargetStateProgress");
+                var node = (FrameworkElement)progress.Template.FindName("ProgressNode", progress);
+                Assert.Equal(Visibility.Visible, node.Visibility);
+                AssertTip(progress, "0分钟 / 4小时", "4小时");
+                Assert.DoesNotContain(Descendants<TextBlock>(daily), text => text.Text.Contains("今日目标"));
 
                 var todayEnd = DateTime.Today.AddHours(12);
-                var todayRecord = new FocusSessionRecordViewModel(todayEnd.AddMinutes(-129), todayEnd, "goal", "学习", "", 0);
-                model.FocusSessionRecords.Add(todayRecord);
+                var record = new FocusSessionRecordViewModel(todayEnd.AddMinutes(-129), todayEnd, "goal", "学习", "", 0);
+                model.FocusSessionRecords.Add(record);
                 Layout(page);
-                Assert.Contains(Descendants<TextBlock>(daily), text => text.Text == "本日 2 小时 9 分钟 / 4 小时");
-                Assert.Contains(Descendants<TextBlock>(daily), text => text.Text == "剩余 1 小时 51 分钟");
-                Assert.Equal(129 / 240d, dailyProgress.Value);
-                Assert.Equal(Visibility.Visible, node.Visibility);
-                AssertProgressNodeAtEnd(dailyProgress, node);
-                var existingSetting = (Button)page.FindName("SetExistingTodayFocusTargetButton");
-                Assert.Equal(Visibility.Visible, existingSetting.Visibility);
-                Assert.True(Descendants<TextBlock>(existingSetting).Single().ActualWidth > 0);
-                SavePreview(card, "daily");
+                Assert.Equal(129 / 240d, progress.Value);
+                AssertTip(progress, "2小时9分钟 / 4小时", "1小时51分钟");
+                AssertProgressNodeAtEnd(progress, node);
 
-                todayRecord.EndTime = todayRecord.StartTime.AddHours(4);
+                record.EndTime = record.StartTime.AddMinutes(309);
                 Layout(page);
-                Assert.Equal(1, dailyProgress.Value);
-                Assert.Contains(Descendants<TextBlock>(daily), text => text.Text == "剩余 0 分钟");
-                AssertProgressNodeAtEnd(dailyProgress, node);
-                todayRecord.EndTime = todayRecord.StartTime.AddMinutes(309);
-                Layout(page);
-                Assert.Contains(Descendants<TextBlock>(daily), text => text.Text == "本日 5 小时 9 分钟 / 4 小时");
-                Assert.Contains(Descendants<TextBlock>(daily), text => text.Text == "剩余 0 分钟");
-                Assert.Equal(1, dailyProgress.Value);
+                Assert.Equal(1, progress.Value);
+                AssertTip(progress, "5小时9分钟 / 4小时", "0分钟");
+                AssertProgressNodeAtEnd(progress, node);
                 SavePreview(card, "daily-exceeded");
 
-                existingSetting.Command.Execute(null);
-                Assert.True(model.FocusGoalSettingsModal.IsOpen);
-                model.FocusGoalSettingsModal.DeleteTargetCommand.Execute(null);
-                Layout(page);
-                Assert.Equal(originalHeight, card.ActualHeight);
-                Assert.Equal(Visibility.Visible, empty.Visibility);
-                Assert.Equal(Visibility.Collapsed, daily.Visibility);
-                Assert.Contains(Descendants<TextBlock>(empty), text => text.Text == "今日 1 次专注");
-                SavePreview(card, "removed-target");
-                model.FocusSessionRecords.Remove(todayRecord);
-
-                var end = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1, 12, 0, 0);
-                var record = new FocusSessionRecordViewModel(end.AddMinutes(-264), end, "goal", "学习", "", 0);
-                model.FocusSessionRecords.Add(record);
                 model.FocusGoalSettingsModal.SelectMonthlyModeCommand.Execute(null);
                 model.FocusGoalSettingsModal.MonthlyTargetHoursInput = "60";
                 model.FocusGoalSettingsModal.SaveCommand.Execute(null);
                 Layout(page);
                 Assert.Equal(Visibility.Visible, monthly.Visibility);
                 Assert.Equal(Visibility.Collapsed, daily.Visibility);
-                AssertAligned(monthly, card);
                 Assert.Equal(originalHeight, card.ActualHeight);
-                Assert.Contains(Descendants<TextBlock>(monthly), text => text.Text == "本月 4 小时 24 分钟 / 60 小时");
-                var days = Descendants<TextBlock>(monthly).Single(text => text.Text == $"剩余 {model.MonthlyFocusRemainingDays} 天");
-                var progress = Descendants<ProgressBar>(monthly).Single();
-                Assert.InRange(Math.Abs(days.TranslatePoint(new Point(days.ActualWidth, 0), card).X - progress.TranslatePoint(new Point(progress.ActualWidth, 0), card).X), 0, 1);
-                SavePreview(card, "monthly");
-                record.EndTime = end.AddMinutes(30);
+                AssertAligned(monthly, card);
+                var monthlyProgress = (ProgressBar)page.FindName("TodayFocusMonthlyTargetStateProgress");
+                Assert.Equal(309 / 3600d, monthlyProgress.Value);
+                AssertTip(monthlyProgress, "5小时9分钟", "5小时9分钟 / 60小时");
+                var tip = (ToolTip)monthlyProgress.ToolTip;
+                foreach (var ratio in new[] { 0d, 0.5d, 1d })
+                {
+                    monthlyProgress.SetCurrentValue(ProgressBar.ValueProperty, ratio);
+                    var position = tip.CustomPopupPlacementCallback(new Size(340, 121), new Size(monthlyProgress.ActualWidth, 18), new Point())[0].Point;
+                    var pointer = (FrameworkElement)tip.Template.FindName("FocusGoalTipPointer", tip);
+                    Assert.InRange(Math.Abs(position.X + 8 + pointer.Margin.Left + 9 - ratio * monthlyProgress.ActualWidth), 0, 1);
+                    Assert.InRange(position.X, -17, monthlyProgress.ActualWidth - 340 + 17);
+                }
+                monthlyProgress.GetBindingExpression(ProgressBar.ValueProperty)?.UpdateTarget();
+
+                model.FocusGoalSettingsModal.DeleteTargetCommand.Execute(null);
                 Layout(page);
-                Assert.Contains(Descendants<TextBlock>(monthly), text => text.Text == "本月 4 小时 54 分钟 / 60 小时");
-                Assert.Equal(model.MonthlyFocusTodayProgressRatio, progress.Value);
-                Assert.DoesNotContain(Descendants<TextBlock>(card), text => text.Text.Contains("今日建议") || text.FontFamily.Source == "Segoe MDL2 Assets");
+                Assert.Equal(originalHeight, card.ActualHeight);
+                Assert.Equal(Visibility.Visible, empty.Visibility);
+                Assert.Equal(Visibility.Collapsed, daily.Visibility);
+                Assert.Equal(Visibility.Collapsed, monthly.Visibility);
+                Assert.DoesNotContain(Descendants<TextBlock>(card), text => text.IsVisible && text.Text.Contains("次专注"));
+                SavePreview(card, "removed-target");
             }
             catch (Exception exception) { failure = exception; }
         });
         thread.SetApartmentState(ApartmentState.STA);
         thread.Start();
-        Assert.True(thread.Join(TimeSpan.FromSeconds(20)), "Today-focus UI verification timed out.");
-        if (failure is not null) throw new InvalidOperationException("Today-focus UI verification failed.", failure);
+        thread.Join();
+        if (failure is not null) throw failure;
     }
 
+    private static void AssertTip(ProgressBar progress, string today, string detail)
+    {
+        var tip = (ToolTip)progress.ToolTip;
+        tip.Measure(new Size(340, 121));
+        tip.Arrange(new Rect(0, 0, 340, 121));
+        tip.UpdateLayout();
+        tip.Dispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
+        var content = (Grid)tip.Content;
+        var values = Descendants<TextBlock>(content).Select(text => text.Text).ToArray();
+        Assert.Contains(today, values);
+        Assert.Contains(detail, values);
+    }
     private static void AssertProgressNodeAtEnd(ProgressBar progress, FrameworkElement node)
     {
         var center = node.TranslatePoint(new Point(node.ActualWidth / 2, 0), progress).X;
@@ -139,7 +134,7 @@ public sealed class TodayFocusSummaryTests
     {
         var labels = Descendants<TextBlock>(state).ToArray();
         var title = labels.Single(text => text.Text == "今日专注");
-        var value = labels.Single(text => text.FontSize == 40);
+        var value = labels.First(text => text.FontSize == 50);
         var progress = Descendants<ProgressBar>(state).Single();
         var x = title.TranslatePoint(new Point(0, 0), card).X;
         Assert.InRange(Math.Abs(value.TranslatePoint(new Point(0, 0), card).X - x), 0, 1);

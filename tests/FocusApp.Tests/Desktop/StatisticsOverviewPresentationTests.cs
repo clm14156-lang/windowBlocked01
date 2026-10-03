@@ -9,22 +9,22 @@ public sealed class StatisticsOverviewPresentationTests
     private static readonly XNamespace Xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
 
     [Fact]
-    public void CalendarDayFocusCardKeepsLiveBindingsAndUsesTheCompactThreeLevelLayout()
+    public void CalendarDayMetricsUseTwoLightweightColumnsAndKeepLiveBindings()
     {
         var page = XDocument.Load(Path.Combine(
             FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
         var card = Assert.Single(page.Descendants(Presentation + "Border").Where(element =>
             (string?)element.Attribute(Xaml + "Name") == "CalendarDayMetrics"));
 
-        Assert.Equal("124", (string?)card.Attribute("Height"));
-        Assert.Equal("#FFF8F2", (string?)card.Attribute("Background"));
-        Assert.Equal("10", (string?)card.Attribute("CornerRadius"));
+        Assert.Equal("104", (string?)card.Attribute("Height"));
+        Assert.Equal("Transparent", (string?)card.Attribute("Background"));
+        Assert.Null(card.Attribute("CornerRadius"));
 
         var title = Assert.Single(card.Descendants(Presentation + "TextBlock").Where(element =>
             (string?)element.Attribute(Xaml + "Name") == "CalendarDayFocusTitle"));
-        Assert.Equal("今日专注", (string?)title.Attribute("Text"));
-        Assert.Equal("13", (string?)title.Attribute("FontSize"));
-        Assert.Equal("{DynamicResource TextPrimary}", (string?)title.Attribute("Foreground"));
+        Assert.Equal("今日专注时长", (string?)title.Attribute("Text"));
+        Assert.Equal("12", (string?)title.Attribute("FontSize"));
+        Assert.Equal("{DynamicResource TextSecondary}", (string?)title.Attribute("Foreground"));
 
         var duration = Assert.Single(card.Descendants(Presentation + "TextBlock").Where(element =>
             (string?)element.Attribute(Xaml + "Name") == "CalendarDayFocusDuration"));
@@ -32,12 +32,12 @@ public sealed class StatisticsOverviewPresentationTests
         Assert.Equal(4, durationRuns.Length);
         Assert.Equal("{Binding SelectedDayHoursValueDisplay, Mode=OneWay}", (string?)durationRuns[0].Attribute("Text"));
         Assert.Equal("36", (string?)durationRuns[0].Attribute("FontSize"));
-        Assert.Equal("Bold", (string?)durationRuns[0].Attribute("FontWeight"));
+        Assert.Equal("SemiBold", (string?)durationRuns[0].Attribute("FontWeight"));
         Assert.Equal("{Binding SelectedDayHoursUnitDisplay, Mode=OneWay}", (string?)durationRuns[1].Attribute("Text"));
-        Assert.Equal("14", (string?)durationRuns[1].Attribute("FontSize"));
+        Assert.Equal("13", (string?)durationRuns[1].Attribute("FontSize"));
         Assert.Equal("{Binding SelectedDayMinutesValueDisplay, Mode=OneWay}", (string?)durationRuns[2].Attribute("Text"));
         Assert.Equal("36", (string?)durationRuns[2].Attribute("FontSize"));
-        Assert.Equal("Bold", (string?)durationRuns[2].Attribute("FontWeight"));
+        Assert.Equal("SemiBold", (string?)durationRuns[2].Attribute("FontWeight"));
         Assert.Equal(" 分钟", (string?)durationRuns[3].Attribute("Text"));
 
         Assert.DoesNotContain(card.Descendants(Presentation + "Image"), image =>
@@ -49,7 +49,7 @@ public sealed class StatisticsOverviewPresentationTests
 
         var completedTasks = Assert.Single(card.Descendants(Presentation + "ToggleButton").Where(element =>
             (string?)element.Attribute(Xaml + "Name") == "CompletedTasksButton"));
-        Assert.Contains(completedTasks.Descendants(Presentation + "Run"), run =>
+        Assert.Contains(card.Descendants(Presentation + "Run"), run =>
             (string?)run.Attribute("Text") == "{Binding SelectedDayCompletedTasks, Mode=OneWay}");
         Assert.Single(completedTasks.Descendants(Presentation + "TextBlock").Where(element =>
             (string?)element.Attribute(Xaml + "Name") == "CalendarDayCompletedTaskChevron" &&
@@ -358,7 +358,7 @@ public sealed class StatisticsOverviewPresentationTests
     }
 
     [Fact]
-    public void CalendarSeparatesTheMonthGridAndThreeColumnSummary()
+    public void CalendarSeparatesTheMonthGridAndTwoMetricSummary()
     {
         var page = XDocument.Load(Path.Combine(FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
         var calendar = Assert.Single(page.Descendants(Presentation + "Border").Where(item => (string?)item.Attribute(Xaml + "Name") == "CalendarCard"));
@@ -366,17 +366,16 @@ public sealed class StatisticsOverviewPresentationTests
         Assert.DoesNotContain(calendar.Descendants(), item => item == summary);
         Assert.Null(calendar.Attribute("Height"));
         Assert.Equal("{StaticResource CardContentPadding}", (string?)calendar.Attribute("Padding"));
-        foreach (var label in new[] { "本月概括", "总专注时长", "专注天数", "日均专注" })
+        foreach (var label in new[] { "本月概括", "总专注时长", "专注天数" })
             Assert.Contains(summary.Descendants(Presentation + "TextBlock"), item => (string?)item.Attribute("Text") == label);
-        Assert.Contains(summary.Descendants(Presentation + "Run"), item => (string?)item.Attribute("Text") == "{Binding MonthlyAverageMinutesValueDisplay, Mode=OneWay}");
-        Assert.DoesNotContain(summary.Descendants(Presentation + "Border"), item =>
-            (string?)item.Attribute("Background") == "#F7F8FA");
-        var focusDaysChange = Assert.Single(summary.Descendants(Presentation + "TextBlock").Where(item =>
-            (string?)item.Attribute("Text") == "{Binding MonthlyFocusDaysChangeDisplay, Mode=OneWay}"));
-        Assert.Contains(focusDaysChange.Descendants(Presentation + "DataTrigger"), trigger =>
-            (string?)trigger.Attribute("Binding") == "{Binding IsMonthlyFocusDaysIncrease}" &&
-            trigger.Descendants(Presentation + "Setter").Any(setter =>
-                (string?)setter.Attribute("Value") == "{DynamicResource AccentPrimary}"));
+        Assert.DoesNotContain(summary.Descendants(), item =>
+            ((string?)item.Attribute("Text"))?.Contains("较上月") == true ||
+            (string?)item.Attribute("Text") == "日均专注" ||
+            (string?)item.Attribute(Xaml + "Name") == "MonthlyAverageDuration");
+        Assert.Contains(summary.Descendants(Presentation + "Run"), item =>
+            (string?)item.Attribute("Text") == "{Binding MonthlyTotalMinutesValueDisplay, Mode=OneWay}");
+        Assert.Contains(summary.Descendants(Presentation + "Run"), item =>
+            (string?)item.Attribute("Text") == "{Binding MonthlyFocusDaysValueDisplay, Mode=OneWay}");
         Assert.DoesNotContain(page.Descendants(Presentation + "Button"), button => (string?)button.Attribute("Command") == "{Binding ReturnToTodayCommand}");
     }
 

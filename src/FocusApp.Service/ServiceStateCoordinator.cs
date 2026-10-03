@@ -1063,7 +1063,9 @@ public sealed class ServiceStateCoordinator : IAsyncDisposable
     private static LocalFocusSessionTaskSnapshot ToCore(LocalFocusSessionTaskSnapshotDto source)
         => new(source.TaskId, source.TaskNameSnapshot, source.SortOrder)
         {
-            CompletedAtUtc = source.CompletedAtUtc
+            CompletedAtUtc = source.CompletedAtUtc,
+            Details = source.Details is null ? null : new LocalTaskDetailsSnapshot(source.Details.Description,
+                source.Details.SubTasks.Select(child => new LocalSubTaskSnapshot(child.Title, child.IsCompleted)).ToArray())
         };
 
     private static void ValidateTaskSnapshots(IReadOnlyCollection<LocalFocusSessionTaskSnapshotDto> snapshots)

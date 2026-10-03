@@ -6,6 +6,50 @@ namespace FocusApp.Tests.Desktop;
 
 public sealed class FocusSessionViewModelTests
 {
+    [Theory]
+    [InlineData(10, 600, "10:00", "10m")]
+    [InlineData(11, 619, "10:19", "10m")]
+    [InlineData(60, 3600, "60:00", "1h 0m")]
+    public void CompletionDesign_UsesActualElapsedSecondsAndCompactDailyTotal(
+        int configuredMinutes, int elapsedSeconds, string expectedTime, string expectedTotal)
+    {
+        var viewModel = CreateViewModel();
+        var notifications = new List<string?>();
+        viewModel.PropertyChanged += (_, args) => notifications.Add(args.PropertyName);
+        viewModel.Start(configuredMinutes);
+        Advance(viewModel, 5 + elapsedSeconds);
+        if (viewModel.IsFocusing)
+        {
+            viewModel.RequestEndCommand.Execute(null);
+            viewModel.ConfirmEndCommand.Execute(null);
+        }
+
+        Assert.True(viewModel.IsCompleted);
+        Assert.Equal(expectedTime, viewModel.CompletedTimeDisplay);
+        Assert.Equal(expectedTotal, viewModel.CompletionTodayTotalDisplay);
+        Assert.Contains(nameof(FocusSessionViewModel.CompletedTimeDisplay), notifications);
+        Assert.Contains(nameof(FocusSessionViewModel.CompletionTodayTotalDisplay), notifications);
+    }
+
+    [Fact]
+    public void CompletionDesign_DailySummaryExcludesPriorDates()
+    {
+        var now = new DateTime(2026, 10, 1, 12, 0, 0);
+        var viewModel = new FocusSessionViewModel(() => now, runTimer: false);
+        viewModel.Start(40);
+        Advance(viewModel, 5 + 40 * 60);
+        now = now.AddDays(1);
+        foreach (var minutes in new[] { 30, 40, 10 })
+        {
+            viewModel.Start(minutes);
+            Advance(viewModel, 5 + minutes * 60);
+        }
+
+        Assert.Equal(3, viewModel.TodayFocusCount);
+        Assert.Equal("1h 20m", viewModel.CompletionTodayTotalDisplay);
+        Assert.Equal("10:00", viewModel.CompletedTimeDisplay);
+    }
+
     [Fact]
     public void AuthoritativeForcedSession_ProjectsServiceTimesWithoutCreatingALocalSession()
     {
@@ -15,9 +59,11 @@ public sealed class FocusSessionViewModelTests
             now,
             now.AddSeconds(5),
             now.AddSeconds(65));
-        var viewModel = CreateViewModel();
+        var localNow = new DateTime(2026, 10, 2, 20, 0, 0);
+        var viewModel = new FocusSessionViewModel(() => localNow, runTimer: false);
 
         viewModel.ApplyAuthoritativeSession(session, nowUtc: now.AddSeconds(2));
+        Assert.Equal(FocusGreetingState.Evening, viewModel.GreetingState);
 
         Assert.True(viewModel.IsServiceOwnedForcedSession);
         Assert.Equal(session.SessionId, viewModel.AuthoritativeSessionId);
@@ -25,12 +71,16 @@ public sealed class FocusSessionViewModelTests
         Assert.Equal(3, viewModel.PreparationSeconds);
         Assert.Equal(60, viewModel.RemainingFocusSeconds);
 
+        localNow = localNow.AddHours(3);
         viewModel.ApplyAuthoritativeSession(
             session with { Status = LocalFocusSessionStatusDto.Focusing },
             nowUtc: now.AddSeconds(15));
 
         Assert.Equal(FocusFlowStage.Focusing, viewModel.Stage);
         Assert.Equal(50, viewModel.RemainingFocusSeconds);
+        Assert.Equal(FocusGreetingState.Evening, viewModel.GreetingState);
+        viewModel.ApplyAuthoritativeSession(session with { SessionId = Guid.NewGuid(), Status = LocalFocusSessionStatusDto.Focusing }, nowUtc: now.AddSeconds(15));
+        Assert.Equal(FocusGreetingState.LateNight, viewModel.GreetingState);
     }
 
     [Fact]
@@ -55,6 +105,8 @@ public sealed class FocusSessionViewModelTests
         Assert.Equal(FocusFlowStage.Completed, viewModel.Stage);
         Assert.Single(viewModel.CompletionHistory);
         Assert.Equal(60, viewModel.LastCompletion!.ActualDuration.TotalSeconds);
+        Assert.Equal("01:00", viewModel.CompletedTimeDisplay);
+        Assert.Equal("1m", viewModel.CompletionTodayTotalDisplay);
     }
 
     [Fact]
@@ -152,9 +204,13 @@ public sealed class FocusSessionViewModelTests
             viewModel.AdvanceOneSecond();
             Assert.True(viewModel.IsNormalEndConfirmation);
             Assert.Equal("5分0秒", viewModel.EndConfirmationElapsedDisplay);
+            Assert.Equal("5", viewModel.EndConfirmationMinutesDisplay);
+            Assert.Equal("0", viewModel.EndConfirmationSecondsDisplay);
             Assert.Equal(1, viewModel.EndConfirmationProgress);
             Assert.Contains(nameof(viewModel.EndConfirmationProgress), changed);
             Assert.Contains(nameof(viewModel.EndConfirmationElapsedDisplay), changed);
+            Assert.Contains(nameof(viewModel.EndConfirmationMinutesDisplay), changed);
+            Assert.Contains(nameof(viewModel.EndConfirmationSecondsDisplay), changed);
             Assert.Contains(nameof(viewModel.IsNormalEndConfirmation), changed);
         }
         viewModel.EndConfirmedFocusCommand.Execute(null);

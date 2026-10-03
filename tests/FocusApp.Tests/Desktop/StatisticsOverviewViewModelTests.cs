@@ -1,4 +1,4 @@
-﻿using FocusApp.Contracts;
+using FocusApp.Contracts;
 using FocusApp.Desktop.ViewModels;
 using System.Windows.Media;
 using Xunit;
@@ -7,6 +7,38 @@ namespace FocusApp.Tests.Desktop;
 
 public sealed class StatisticsOverviewViewModelTests
 {
+    [Fact]
+    public void OverviewProgressTipUsesDailyRemainingOrMonthlyTotalAndRefreshesAfterEdits()
+    {
+        var model = new StatisticsOverviewViewModel(false);
+        var end = DateTime.Today.AddHours(20);
+        var record = new FocusSessionRecordViewModel(end.AddMinutes(-110), end, "goal", "开发屏蔽软件", "", 0);
+        model.FocusSessionRecords.Add(record);
+        model.FocusGoalSettingsModal.DailyTargetHoursInput = "2";
+        model.FocusGoalSettingsModal.SaveCommand.Execute(null);
+        Assert.Equal("1小时50分钟 / 2小时", model.OverviewFocusGoalTodayDisplay);
+        Assert.Equal("剩余", model.OverviewFocusGoalDetailLabel);
+        Assert.Equal("10分钟", model.OverviewFocusGoalDetailDisplay);
+        Assert.Equal(110 / 120d, model.OverviewFocusGoalProgressRatio);
+
+        var previousMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1).AddDays(-1).AddHours(10);
+        model.FocusSessionRecords.Add(new FocusSessionRecordViewModel(previousMonth, previousMonth.AddHours(4), "goal", "开发屏蔽软件", "", 0));
+        model.FocusGoalSettingsModal.SelectMonthlyModeCommand.Execute(null);
+        model.FocusGoalSettingsModal.MonthlyTargetHoursInput = "4";
+        model.FocusGoalSettingsModal.SaveCommand.Execute(null);
+        Assert.Equal("1小时50分钟", model.OverviewFocusGoalTodayDisplay);
+        Assert.Equal("本月", model.OverviewFocusGoalDetailLabel);
+        Assert.Equal("1小时50分钟 / 4小时", model.OverviewFocusGoalDetailDisplay);
+        Assert.Equal(110 / 240d, model.OverviewFocusGoalProgressRatio);
+        var changes = new List<string?>();
+        model.PropertyChanged += (_, args) => changes.Add(args.PropertyName);
+        record.EndTime = record.StartTime.AddMinutes(300);
+        Assert.Equal("5小时 / 4小时", model.OverviewFocusGoalDetailDisplay);
+        Assert.Equal(1, model.OverviewFocusGoalProgressRatio);
+        Assert.Contains(nameof(model.OverviewFocusGoalDetailDisplay), changes);
+        Assert.Contains(nameof(model.OverviewFocusGoalProgressRatio), changes);
+    }
+
     [Fact]
     public void MonthlyGoalHintUsesCurrentMonthSlicesAndRefreshesWhenRecordsChange()
     {
@@ -532,7 +564,6 @@ public sealed class StatisticsOverviewViewModelTests
 
         Assert.Contains(selected, viewModel.VisibleGoals);
         Assert.Equal(GoalDetailsViewState.ArchivedGoal, viewModel.GoalViewState);
-        Assert.Null(viewModel.GoalTasks.GoalId);
         viewModel.EditGoalCommand.Execute(selected);
         Assert.False(viewModel.IsCreateGoalDialogOpen);
         viewModel.RestoreGoalCommand.Execute(selected);
@@ -563,9 +594,6 @@ public sealed class StatisticsOverviewViewModelTests
         viewModel.AddGoalCommand.Execute(null);
 
         Assert.True(viewModel.IsCreateGoalDialogOpen);
-        Assert.Equal(new[] { "20", "50", "100", "自定义" }, viewModel.GoalDurationOptions.Select(option => option.Label));
-        Assert.Null(viewModel.SelectedGoalDurationMinutes);
-        Assert.DoesNotContain(viewModel.GoalDurationOptions, option => option.IsSelected);
         Assert.Equal(originalCount, viewModel.Goals.Count);
         Assert.False(viewModel.ConfirmCreateGoalCommand.CanExecute(null));
 
@@ -587,52 +615,25 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.Equal("code.svg", viewModel.RecentTargetIconFileNames[0]);
         Assert.Equal("code.svg", viewModel.QuickTargetIcons[0].FileName);
         Assert.Equal(6, viewModel.QuickTargetIcons.Count);
-        Assert.Null(added.TargetDurationMinutes);
+        Assert.Null(typeof(GoalOverviewItemViewModel).GetProperty("TargetDurationMinutes"));
         Assert.False(viewModel.IsCreateGoalDialogOpen);
         Assert.Equal("0分钟", viewModel.SelectedGoalTotalInvestmentDisplay);
         Assert.DoesNotContain(viewModel.FocusSessionRecords, record => record.GoalId == added.GoalId);
     }
 
     [Fact]
-    public void GoalDurationSelectionSwitchesAndCanReturnToEmpty()
-    {
-        var viewModel = new StatisticsOverviewViewModel();
-        viewModel.AddGoalCommand.Execute(null);
-        var twentyHours = viewModel.GoalDurationOptions.Single(option => option.Minutes == 20 * 60);
-        var fiftyHours = viewModel.GoalDurationOptions.Single(option => option.Minutes == 50 * 60);
-
-        viewModel.SelectGoalDurationCommand.Execute(twentyHours);
-
-        Assert.Equal(20 * 60, viewModel.SelectedGoalDurationMinutes);
-        Assert.True(twentyHours.IsSelected);
-
-        viewModel.SelectGoalDurationCommand.Execute(fiftyHours);
-
-        Assert.Equal(50 * 60, viewModel.SelectedGoalDurationMinutes);
-        Assert.False(twentyHours.IsSelected);
-        Assert.True(fiftyHours.IsSelected);
-
-        viewModel.SelectGoalDurationCommand.Execute(fiftyHours);
-
-        Assert.Null(viewModel.SelectedGoalDurationMinutes);
-        Assert.DoesNotContain(viewModel.GoalDurationOptions, option => option.IsSelected);
-    }
-
-    [Fact]
-    public void CreatingGoalCapturesRemarkAndPresetDuration()
+    public void CreatingGoalCapturesRemarkWithoutPlannedInvestment()
     {
         var viewModel = new StatisticsOverviewViewModel();
         viewModel.AddGoalCommand.Execute(null);
         viewModel.NewGoalName = "学习 UE5";
         viewModel.NewGoalRemark = "完成基础材质练习";
-        var fiftyHours = viewModel.GoalDurationOptions.Single(option => option.Minutes == 50 * 60);
-        viewModel.SelectGoalDurationCommand.Execute(fiftyHours);
 
         viewModel.ConfirmCreateGoalCommand.Execute(null);
 
         var goal = Assert.IsType<GoalOverviewItemViewModel>(viewModel.SelectedGoal);
         Assert.Equal("完成基础材质练习", goal.Remark);
-        Assert.Equal(50 * 60, goal.TargetDurationMinutes);
+        Assert.Null(typeof(GoalOverviewItemViewModel).GetProperty("TargetDurationMinutes"));
     }
 
     [Fact]
@@ -649,111 +650,18 @@ public sealed class StatisticsOverviewViewModelTests
     }
 
     [Fact]
-    public void RemarkIsLimitedTo150CharactersAndCustomDurationRequiresValidHours()
-    {
-        var viewModel = new StatisticsOverviewViewModel();
-        viewModel.AddGoalCommand.Execute(null);
-
-        viewModel.NewGoalRemark = new string('字', 151);
-        Assert.Equal(150, viewModel.NewGoalRemark.Length);
-        Assert.Equal("150/150", viewModel.RemarkCharacterCountDisplay);
-
-        var custom = viewModel.GoalDurationOptions.Single(option => option.IsCustom);
-        viewModel.SelectGoalDurationCommand.Execute(custom);
-        Assert.True(viewModel.IsCustomDurationPopupOpen);
-        Assert.Equal("请输入 1-9999 小时", viewModel.CustomDurationMessage);
-        viewModel.CustomDurationInput = "10000";
-        viewModel.ConfirmCustomDurationCommand.Execute(null);
-        Assert.True(viewModel.IsCustomDurationPopupOpen);
-        Assert.Null(viewModel.SelectedGoalDurationMinutes);
-        Assert.True(viewModel.HasCustomDurationError);
-
-        viewModel.CustomDurationInput = "25";
-        viewModel.ConfirmCustomDurationCommand.Execute(null);
-        Assert.False(viewModel.IsCustomDurationPopupOpen);
-        Assert.Equal(25 * 60, viewModel.SelectedGoalDurationMinutes);
-        Assert.Equal("25小时", custom.Label);
-        Assert.True(custom.HasCustomValue);
-        Assert.True(custom.IsSelected);
-
-        var fiftyHours = viewModel.GoalDurationOptions.Single(option => option.Minutes == 50 * 60 && !option.IsCustom);
-        viewModel.SelectGoalDurationCommand.Execute(fiftyHours);
-        Assert.Equal(50 * 60, viewModel.SelectedGoalDurationMinutes);
-        Assert.False(custom.IsSelected);
-        Assert.Equal("25小时", custom.Label);
-
-        viewModel.SelectGoalDurationCommand.Execute(custom);
-        Assert.False(viewModel.IsCustomDurationPopupOpen);
-        Assert.Equal(25 * 60, viewModel.SelectedGoalDurationMinutes);
-        Assert.True(custom.IsSelected);
-
-        viewModel.EditCustomDurationCommand.Execute(null);
-        Assert.True(viewModel.IsCustomDurationPopupOpen);
-        Assert.Equal("25", viewModel.CustomDurationInput);
-        viewModel.CustomDurationInput = "30";
-        viewModel.ConfirmCustomDurationCommand.Execute(null);
-        Assert.Equal("30小时", custom.Label);
-        Assert.Equal(30 * 60, viewModel.SelectedGoalDurationMinutes);
-        Assert.True(custom.IsSelected);
-
-        viewModel.SelectGoalDurationCommand.Execute(custom);
-        Assert.False(viewModel.IsCustomDurationPopupOpen);
-        Assert.Null(viewModel.SelectedGoalDurationMinutes);
-        Assert.DoesNotContain(viewModel.GoalDurationOptions, option => option.IsSelected);
-
-        viewModel.EditCustomDurationCommand.Execute(null);
-        viewModel.CustomDurationInput = "35";
-        viewModel.ConfirmCustomDurationCommand.Execute(null);
-        Assert.Equal("35小时", custom.Label);
-        Assert.Null(viewModel.SelectedGoalDurationMinutes);
-        Assert.False(custom.IsSelected);
-
-        viewModel.SelectGoalDurationCommand.Execute(custom);
-        Assert.Equal(35 * 60, viewModel.SelectedGoalDurationMinutes);
-        Assert.False(viewModel.IsCustomDurationPopupOpen);
-
-        viewModel.EditCustomDurationCommand.Execute(null);
-        viewModel.CustomDurationInput = "40";
-        viewModel.CancelCustomDurationCommand.Execute(null);
-        Assert.Equal("35小时", custom.Label);
-        Assert.Equal(35 * 60, viewModel.SelectedGoalDurationMinutes);
-    }
-
-    [Fact]
-    public void CustomDurationAccepts9999Hours()
-    {
-        var viewModel = new StatisticsOverviewViewModel();
-        viewModel.AddGoalCommand.Execute(null);
-        var custom = viewModel.GoalDurationOptions.Single(option => option.IsCustom);
-
-        viewModel.SelectGoalDurationCommand.Execute(custom);
-        viewModel.CustomDurationInput = "9999";
-        viewModel.ConfirmCustomDurationCommand.Execute(null);
-
-        Assert.False(viewModel.IsCustomDurationPopupOpen);
-        Assert.Equal(9999 * 60, viewModel.SelectedGoalDurationMinutes);
-        Assert.Equal("9999小时", custom.Label);
-        Assert.True(custom.IsSelected);
-    }
-
-    [Fact]
-    public void EditingGoalEchoesRemarkAndTargetDuration()
+    public void EditingGoalEchoesRemark()
     {
         var viewModel = new StatisticsOverviewViewModel();
         viewModel.AddGoalCommand.Execute(null);
         viewModel.NewGoalName = "目标";
         viewModel.NewGoalRemark = "备注";
-        viewModel.SelectGoalDurationCommand.Execute(viewModel.GoalDurationOptions.Single(option => option.IsCustom));
-        viewModel.CustomDurationInput = "37";
-        viewModel.ConfirmCustomDurationCommand.Execute(null);
         viewModel.ConfirmCreateGoalCommand.Execute(null);
         var goal = Assert.IsType<GoalOverviewItemViewModel>(viewModel.SelectedGoal);
 
         viewModel.EditGoalCommand.Execute(goal);
 
         Assert.Equal("备注", viewModel.NewGoalRemark);
-        Assert.Equal(37 * 60, viewModel.SelectedGoalDurationMinutes);
-        Assert.True(viewModel.GoalDurationOptions.Single(option => option.IsCustom).IsSelected);
     }
 
     [Fact]

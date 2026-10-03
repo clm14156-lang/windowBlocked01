@@ -62,8 +62,7 @@ public sealed class GoalEmptyStatePresentationTests
                 Assert.InRange(right.ActualHeight, page.ActualHeight - 64, page.ActualHeight - 62);
 
                 RenderHeaderPreview(page, left, headerAdd);
-                var state = GoalNextTaskDetailsTests.State();
-                model.ApplyState(state with { Targets = [state.Targets[0] with { IsArchived = true }] });
+                model.ArchiveGoalCommand.Execute(model.SelectedGoal);
                 Pump();
                 Assert.Empty(model.VisibleGoals);
                 Assert.True(model.IsGoalCreationGuideVisible);
@@ -96,7 +95,7 @@ public sealed class GoalEmptyStatePresentationTests
                 Assert.True(existing.IsVisible);
                 Assert.True(headerAdd.IsVisible);
 
-                model.ApplyState(state with { Targets = [] });
+                model.Goals.Clear();
                 Pump();
                 Assert.True(guide.IsVisible);
                 Assert.True(leftEmpty.IsVisible);
