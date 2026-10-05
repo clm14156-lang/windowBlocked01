@@ -965,6 +965,9 @@
                                    HorizontalAlignment="Stretch"
                                    VerticalAlignment="Stretch"
                                    DataContext="{Binding StatisticsPage}" />
+            <views:GoalCompletedTasksModal Grid.ColumnSpan="2" Panel.ZIndex="207" Margin="-1"
+                                            HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                                            DataContext="{Binding StatisticsPage.GoalCompletedTasks}" />
             <views:GoalInvestmentTrendModal Grid.ColumnSpan="2"
                                             Panel.ZIndex="206"
                                             Margin="-1"

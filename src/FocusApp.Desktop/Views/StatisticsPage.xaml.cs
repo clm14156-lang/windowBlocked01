@@ -1,10 +1,11 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Controls.Primitives;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using FocusApp.Desktop.ViewModels;
 
@@ -13,36 +14,149 @@ namespace FocusApp.Desktop.Views;
 public partial class StatisticsPage : UserControl
 {
     private ToggleButton? _openGoalListMoreButton;
+    private FrameworkElement? _distributionHoverRow;
+    private ToolTip? _distributionTip;
 
-    private void GoalCompletedTasksButton_Click(object sender, RoutedEventArgs e) => GoalFocusHistoryControl.ShowCompletedTasks();
-
-    private void CompletedTasksModalOverlay_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+    private void PeriodDistributionRow_MouseEnter(object sender, MouseEventArgs e)
     {
-        if (CompletedTasksModalOverlay.IsVisible)
+        if (sender is not FrameworkElement row || row.DataContext is not PeriodFocusDistributionViewModel item) return;
+        CloseDistributionTip();
+        if (_distributionTip is null)
         {
-            CompletedTasksListScroll.ScrollToTop();
-            Dispatcher.BeginInvoke(() => CompletedTasksCloseButton.Focus());
+            var content = new PeriodFocusDistributionToolTip();
+            _distributionTip = new ToolTip
+            {
+                Content = content, Placement = PlacementMode.Custom, StaysOpen = true,
+                IsHitTestVisible = false, Style = (Style)content.FindResource("PeriodDistributionTipStyle")
+            };
+            _distributionTip.Opened += (_, _) => content.BeginAnimation(OpacityProperty,
+                new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(100)));
         }
-    }
-
-    private void CompletedTasksCloseButton_Click(object sender, RoutedEventArgs e)
-    {
-        CloseCompletedTasksModal();
-    }
-
-    private void CompletedTasksModal_KeyDown(object sender, KeyEventArgs e)
-    {
-        if (e.Key == Key.Escape)
+        _distributionHoverRow = row;
+        ((PeriodFocusDistributionToolTip)_distributionTip.Content).DataContext = item;
+        _distributionTip.PlacementTarget = row;
+        _distributionTip.CustomPopupPlacementCallback = (size, target, _) =>
         {
-            CloseCompletedTasksModal();
-            e.Handled = true;
-        }
+            var rowLeft = row.TranslatePoint(new Point(), this).X;
+            var left = Math.Clamp((target.Width - size.Width) / 2,
+                -rowLeft, Math.Max(-rowLeft, ActualWidth - rowLeft - size.Width));
+            ((PeriodFocusDistributionToolTip)_distributionTip.Content).PointerLeft =
+                Math.Clamp(target.Width / 2 - left - 6, 12, size.Width - 24);
+            return [new CustomPopupPlacement(new Point(left, -size.Height - 8), PopupPrimaryAxis.Horizontal),
+                new CustomPopupPlacement(new Point(left, target.Height + 8), PopupPrimaryAxis.Horizontal)];
+        };
+        _distributionTip.IsOpen = true;
     }
 
-    private void CloseCompletedTasksModal()
+    private void PeriodDistributionRow_MouseLeave(object sender, MouseEventArgs e)
+    {
+        if (ReferenceEquals(sender, _distributionHoverRow)) CloseDistributionTip();
+    }
+
+    private void PeriodDistributionRow_Unloaded(object sender, RoutedEventArgs e)
+    {
+        if (ReferenceEquals(sender, _distributionHoverRow)) CloseDistributionTip();
+    }
+
+    private void PeriodDistributionRow_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        if (ReferenceEquals(sender, _distributionHoverRow)) CloseDistributionTip();
+    }
+
+    private void PeriodFocusDistributionScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)
+    {
+        if (e.VerticalChange != 0 || e.HorizontalChange != 0) CloseDistributionTip();
+    }
+
+    private void CloseDistributionTip()
+    {
+        if (_distributionTip is not null)
+        {
+            _distributionTip.IsOpen = false;
+            _distributionTip.PlacementTarget = null;
+            _distributionTip.CustomPopupPlacementCallback = null;
+            ((PeriodFocusDistributionToolTip)_distributionTip.Content).DataContext = null;
+        }
+        _distributionHoverRow = null;
+    }
+
+    private Window? _completedTasksOwner;
+
+    private void CompletedTasksPopup_Opened(object? sender, EventArgs e)
+    {
+        CompletedTasksListScroll.ScrollToTop();
+        _completedTasksOwner = Window.GetWindow(this);
+        if (_completedTasksOwner is { } owner)
+        {
+            owner.PreviewMouseDown += CompletedTasksOutside_MouseDown;
+            owner.PreviewKeyDown += CompletedTasksPopover_KeyDown;
+            owner.Deactivated += CompletedTasksOwner_Changed;
+            owner.LocationChanged += CompletedTasksOwner_Changed;
+            owner.SizeChanged += CompletedTasksOwner_SizeChanged;
+        }
+        Dispatcher.BeginInvoke(() => { if (CompletedTasksPopup.IsOpen) CompletedTasksPopoverSurface.Focus(); });
+    }
+
+    private void CompletedTasksPopup_Closed(object? sender, EventArgs e)
     {
         CompletedTasksButton.IsChecked = false;
+        if (_completedTasksOwner is { } owner)
+        {
+            owner.PreviewMouseDown -= CompletedTasksOutside_MouseDown;
+            owner.PreviewKeyDown -= CompletedTasksPopover_KeyDown;
+            owner.Deactivated -= CompletedTasksOwner_Changed;
+            owner.LocationChanged -= CompletedTasksOwner_Changed;
+            owner.SizeChanged -= CompletedTasksOwner_SizeChanged;
+        }
+        _completedTasksOwner = null;
+        CompletedTasksPopoverSurface.MaxHeight = 450;
+    }
+
+    private void CompletedTasksOutside_MouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (!CompletedTasksPopup.IsOpen || e.OriginalSource is not DependencyObject source) return;
+        if (IsWithin(source, CompletedTasksPopoverSurface) || IsWithin(source, CompletedTasksButton)) return;
+        CompletedTasksButton.IsChecked = false;
+    }
+
+    private static bool IsWithin(DependencyObject source, DependencyObject ancestor)
+    {
+        for (DependencyObject? item = source; item is not null;)
+        {
+            if (ReferenceEquals(item, ancestor)) return true;
+            item = item is Visual or System.Windows.Media.Media3D.Visual3D
+                ? VisualTreeHelper.GetParent(item) : LogicalTreeHelper.GetParent(item);
+        }
+        return false;
+    }
+
+    private void CompletedTasksPopover_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Escape || !CompletedTasksPopup.IsOpen) return;
+        CompletedTasksButton.IsChecked = false;
         CompletedTasksButton.Focus();
+        e.Handled = true;
+    }
+
+    private void CompletedTasksOwner_Changed(object? sender, EventArgs e) => CompletedTasksButton.IsChecked = false;
+    private void CompletedTasksOwner_SizeChanged(object sender, SizeChangedEventArgs e) => CompletedTasksButton.IsChecked = false;
+
+    private CustomPopupPlacement[] PlaceCompletedTasksPopup(Size popupSize, Size targetSize, Point offset)
+    {
+        var bounds = _completedTasksOwner?.Content as FrameworkElement ?? this;
+        var origin = CompletedTasksButton.TranslatePoint(new Point(), bounds);
+        var below = Math.Max(0, bounds.ActualHeight - origin.Y - targetSize.Height - 4);
+        var above = Math.Max(0, origin.Y - 4);
+        var placeBelow = below >= popupSize.Height || (above < popupSize.Height && below >= above);
+        CompletedTasksPopoverSurface.MaxHeight = Math.Clamp((placeBelow ? below : above) - 12, 140, 450);
+        var left = Math.Clamp((targetSize.Width - popupSize.Width) / 2,
+            6 - origin.X, Math.Max(6 - origin.X, bounds.ActualWidth - origin.X - popupSize.Width - 6));
+        var pointerLeft = Math.Clamp(targetSize.Width / 2 - left - 15, 16, 266);
+        CompletedTasksTopPointer.Margin = new Thickness(pointerLeft, 0, 0, -1);
+        CompletedTasksBottomPointer.Margin = new Thickness(pointerLeft, -1, 0, 0);
+        CompletedTasksTopPointer.Visibility = placeBelow ? Visibility.Visible : Visibility.Collapsed;
+        CompletedTasksBottomPointer.Visibility = placeBelow ? Visibility.Collapsed : Visibility.Visible;
+        return [new CustomPopupPlacement(new Point(left, placeBelow ? targetSize.Height + 4 : -popupSize.Height - 4), PopupPrimaryAxis.None)];
     }
 
     private const int WmNcHitTest = 0x0084;
@@ -52,6 +166,9 @@ public partial class StatisticsPage : UserControl
     public StatisticsPage()
     {
         InitializeComponent();
+        CompletedTasksPopup.CustomPopupPlacementCallback = PlaceCompletedTasksPopup;
+        PreviewMouseDown += CompletedTasksOutside_MouseDown;
+        PreviewKeyDown += CompletedTasksPopover_KeyDown;
         ConfigureFocusGoalTip(TodayFocusTargetStateProgress);
         ConfigureFocusGoalTip(TodayFocusMonthlyTargetStateProgress);
         DataContextChanged += StatisticsPage_DataContextChanged;
@@ -59,6 +176,7 @@ public partial class StatisticsPage : UserControl
         Unloaded += (_, _) =>
         {
             CloseFocusGoalTips();
+            CloseDistributionTip();
             CompletedTasksButton.IsChecked = false;
             DetachTrendTooltipWindowHook();
         };
@@ -74,11 +192,10 @@ public partial class StatisticsPage : UserControl
             var ratio = progress.Maximum <= progress.Minimum ? 0
                 : Math.Clamp((progress.Value - progress.Minimum) / (progress.Maximum - progress.Minimum), 0, 1);
             var anchor = ratio * targetSize.Width;
-            // Keep the bubble within the card, with its arrow following the progress node.
-            var left = Math.Clamp(anchor - popupSize.Width / 2, -17, Math.Max(-17, targetSize.Width - popupSize.Width + 17));
-            if (tip.Template.FindName("FocusGoalTipPointer", tip) is System.Windows.Shapes.Path pointer)
-                pointer.Margin = new Thickness(Math.Clamp(anchor - left - 17, 0, Math.Max(0, popupSize.Width - 34)), -1, 0, 0);
-            return [new CustomPopupPlacement(new Point(left, -popupSize.Height + 6), PopupPrimaryAxis.None)];
+            // Keep the compact tip within the card and clear of the progress track.
+            var left = Math.Clamp(anchor - popupSize.Width / 2, 0, Math.Max(0, targetSize.Width - popupSize.Width));
+            return [new CustomPopupPlacement(new Point(left, -popupSize.Height - 8), PopupPrimaryAxis.Horizontal),
+                new CustomPopupPlacement(new Point(left, targetSize.Height + 8), PopupPrimaryAxis.Horizontal)];
         };
     }
 
@@ -129,6 +246,7 @@ public partial class StatisticsPage : UserControl
     private void StatisticsPage_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
         CompletedTasksButton.IsChecked = false;
+        CloseDistributionTip();
         if (e.OldValue is StatisticsOverviewViewModel oldViewModel)
         {
             oldViewModel.PropertyChanged -= StatisticsViewModel_PropertyChanged;
@@ -142,6 +260,8 @@ public partial class StatisticsPage : UserControl
 
     private void StatisticsViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (e.PropertyName is nameof(StatisticsOverviewViewModel.SelectedTab) or nameof(StatisticsOverviewViewModel.HasPeriodFocusDistribution))
+            CloseDistributionTip();
         if (e.PropertyName is nameof(StatisticsOverviewViewModel.HasFocusGoal) or nameof(StatisticsOverviewViewModel.SelectedTab))
             CloseFocusGoalTips();
         if (e.PropertyName is nameof(StatisticsOverviewViewModel.SelectedTab) or nameof(StatisticsOverviewViewModel.SelectedDateDisplay))

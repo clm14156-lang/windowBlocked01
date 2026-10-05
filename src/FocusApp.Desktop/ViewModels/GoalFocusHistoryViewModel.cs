@@ -11,6 +11,7 @@ public sealed class GoalFocusHistoryViewModel(Func<DateTime> now) : INotifyPrope
     public event PropertyChangedEventHandler? PropertyChanged;
     public ObservableCollection<GoalFocusDayViewModel> Days { get; } = [];
     public bool HasRecords => Days.Count > 0;
+    public bool ShowEmptyState => _goalId is not null && !HasRecords;
     public int CompletedTaskCount => Days.Sum(day => day.Sessions.Sum(session => session.Tasks.Count));
     public bool HasCompletedTasks => CompletedTaskCount > 0;
     public string CompletedTaskSummaryDisplay => $"已完成 {CompletedTaskCount} 项";
@@ -67,6 +68,7 @@ public sealed class GoalFocusHistoryViewModel(Func<DateTime> now) : INotifyPrope
             }
         }
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasRecords)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ShowEmptyState)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CompletedTaskCount)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasCompletedTasks)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CompletedTaskSummaryDisplay)));

@@ -65,6 +65,7 @@
     <Resource Include="Assets\Images\Illustrations\MenberCenter_check.png" />
     <Resource Include="Assets\Images\Illustrations\foucusOntheEnd_ribbon.png" />
     <Resource Include="Assets\Images\Illustrations\mubiao_wurenwu.png" />
+    <Resource Include="Assets\Images\Illustrations\mubiao_empty.png" />
     <Resource Include="Assets\Images\Illustrations\mubiao_benzhou.png" />
     <Resource Include="Assets\Images\Illustrations\mubiao_tongji.png" />
     <Resource Include="Assets\Images\Illustrations\rili_beijing.png" />
@@ -76,6 +77,8 @@
     <Resource Include="Assets\Images\Illustrations\focus_yeshenle.png" />
     <Resource Include="Assets\Images\Illustrations\guidang_renwu.png" />
     <Resource Include="Assets\Images\Illustrations\rili_vip.png" />
+    <Resource Include="Assets\Images\Illustrations\sun01.png" />
+    <Resource Include="Assets\Images\Illustrations\moon01.png" />
     <Resource Include="Assets\Images\Illustrations\todolist_empty.png" />
     <Resource Include="Assets\Themes\Solid\Orange\sidebar-logo.png" />
     <Resource Include="Assets\Themes\Solid\Orange\foucus_background.png" />

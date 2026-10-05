@@ -1,0 +1,74 @@
+<UserControl x:Class="FocusApp.Desktop.Views.GoalCompletedTasksModal"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ UseLayoutRounding="True" SnapsToDevicePixels="True" Focusable="True" KeyboardNavigation.TabNavigation="Cycle"
+ PreviewKeyDown="Modal_PreviewKeyDown" IsVisibleChanged="Modal_IsVisibleChanged">
+ <UserControl.Style><Style TargetType="UserControl"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding IsOpen}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></UserControl.Style>
+ <UserControl.Resources>
+  <BooleanToVisibilityConverter x:Key="VisibleIf"/>
+  <Style TargetType="TextBlock"><Setter Property="FontFamily" Value="Segoe UI Variable, Microsoft YaHei UI, Segoe UI"/><Setter Property="FontSize" Value="12"/><Setter Property="FontWeight" Value="Normal"/><Setter Property="Foreground" Value="#273344"/></Style>
+  <Style x:Key="QuietAction" TargetType="Button">
+   <Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/><Setter Property="Cursor" Value="Hand"/><Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+   <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button"><Border x:Name="Surface" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" CornerRadius="6"><ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center"/></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Surface" Property="Background" Value="#F5F6F8"/></Trigger><Trigger Property="IsEnabled" Value="False"><Setter TargetName="Surface" Property="Opacity" Value="0.45"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
+  </Style>
+  <Style x:Key="QuietToggle" TargetType="ToggleButton">
+   <Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/><Setter Property="Cursor" Value="Hand"/><Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+   <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ToggleButton"><Border x:Name="Surface" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Surface" Property="Background" Value="#F5F6F8"/></Trigger><Trigger Property="IsChecked" Value="True"><Setter TargetName="Surface" Property="Background" Value="#F1F3F6"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
+  </Style>
+  <Style TargetType="ScrollBar">
+   <Setter Property="Width" Value="5"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ScrollBar"><Grid Width="5"><Track x:Name="PART_Track" IsDirectionReversed="True" Orientation="Vertical"><Track.DecreaseRepeatButton><RepeatButton Command="ScrollBar.PageUpCommand" Opacity="0" Focusable="False"/></Track.DecreaseRepeatButton><Track.Thumb><Thumb><Thumb.Template><ControlTemplate TargetType="Thumb"><Border Background="#D7DBE3" CornerRadius="2" Width="3" MinHeight="24"/></ControlTemplate></Thumb.Template></Thumb></Track.Thumb><Track.IncreaseRepeatButton><RepeatButton Command="ScrollBar.PageDownCommand" Opacity="0" Focusable="False"/></Track.IncreaseRepeatButton></Track></Grid></ControlTemplate></Setter.Value></Setter>
+  </Style>
+ </UserControl.Resources>
+ <Grid x:Name="Overlay" Background="#26000000" MouseDown="Overlay_MouseDown">
+  <Border x:Name="ModalSurface" Width="400" Height="430" Padding="20,17,20,18" Background="White" BorderBrush="#ECEEF2" BorderThickness="1" CornerRadius="14" HorizontalAlignment="Center" VerticalAlignment="Center">
+   <Border.Effect><DropShadowEffect Color="#526070" BlurRadius="18" Opacity="0.1" ShadowDepth="3"/></Border.Effect>
+   <Grid>
+    <Grid.RowDefinitions><RowDefinition Height="27"/><RowDefinition Height="12"/><RowDefinition Height="30"/><RowDefinition Height="12"/><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+    <Grid><StackPanel Orientation="Horizontal"><TextBlock Text="已完成任务" FontSize="20" FontWeight="SemiBold" Foreground="#17202C" VerticalAlignment="Center"/><TextBlock Text="{Binding TotalCount}" Margin="10,0,0,0" FontSize="12" Foreground="#939BA9" VerticalAlignment="Center"/></StackPanel><Button x:Name="CloseModalButton" Width="24" Height="24" HorizontalAlignment="Right" Style="{StaticResource QuietAction}" Command="{Binding CloseCommand}" AutomationProperties.Name="关闭已完成任务"><Path Width="10" Height="10" Data="M 0,0 L 10,10 M 10,0 L 0,10" Stroke="#8993A4" StrokeThickness="1.3" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/></Button></Grid>
+    <Grid Grid.Row="2"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="8"/><ColumnDefinition Width="91"/></Grid.ColumnDefinitions>
+     <Border Background="#F7F8FA" BorderBrush="#E8EBF1" BorderThickness="1" CornerRadius="6" Padding="9,0">
+      <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="19"/><ColumnDefinition/></Grid.ColumnDefinitions><Path Width="12" Height="12" Data="M 9,5 A 4,4 0 1 1 1,5 A 4,4 0 1 1 9,5 M 8,8 L 12,12" Stroke="#929CAC" StrokeThickness="1.2" VerticalAlignment="Center"/>
+       <TextBox x:Name="SearchInput" Grid.Column="1" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" Background="Transparent" BorderThickness="0" Padding="0" FontSize="11.5" FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI" Foreground="#273344" VerticalContentAlignment="Center"/>
+       <TextBlock Grid.Column="1" Text="搜索已完成任务…" FontSize="11.5" Foreground="#939BA9" VerticalAlignment="Center" IsHitTestVisible="False"><TextBlock.Style><Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding SearchText}" Value=""><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
+      </Grid>
+     </Border>
+     <ToggleButton x:Name="SortToggle" Grid.Column="2" Style="{StaticResource QuietToggle}" Background="White" BorderBrush="#E8EBF1" BorderThickness="1" AutomationProperties.Name="已完成任务排序"><StackPanel Orientation="Horizontal"><TextBlock Text="{Binding SelectedSort}" FontSize="11.5"/><Path Width="7" Height="4" Margin="9,0,0,0" VerticalAlignment="Center" Data="M 0,0 L 3.5,3.5 L 7,0" Stroke="#8993A4" StrokeThickness="1.2"/></StackPanel></ToggleButton>
+     <Popup x:Name="SortPopup" PlacementTarget="{Binding ElementName=SortToggle}" IsOpen="{Binding IsChecked, ElementName=SortToggle, Mode=TwoWay}" Placement="Bottom" VerticalOffset="4" AllowsTransparency="True" StaysOpen="False" PopupAnimation="Fade">
+      <Border Width="110" Padding="5" Margin="5" Background="White" BorderBrush="#ECEEF2" BorderThickness="1" CornerRadius="8"><Border.Effect><DropShadowEffect BlurRadius="10" Opacity="0.08" ShadowDepth="2"/></Border.Effect><ItemsControl ItemsSource="{Binding SortOptions}"><ItemsControl.ItemTemplate><DataTemplate><Button Height="29" Padding="9,0" HorizontalContentAlignment="Left" Style="{StaticResource QuietAction}" Command="{Binding DataContext.SelectSortCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}" Click="SortOption_Click"><TextBlock Text="{Binding}" FontSize="11.5"/></Button></DataTemplate></ItemsControl.ItemTemplate></ItemsControl></Border>
+     </Popup>
+    </Grid>
+    <Grid Grid.Row="4">
+     <ScrollViewer x:Name="TasksScrollViewer" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+      <ItemsControl x:Name="DateGroups" ItemsSource="{Binding Days}"><ItemsControl.ItemTemplate><DataTemplate>
+       <StackPanel>
+        <Button Height="34" HorizontalContentAlignment="Stretch" Style="{StaticResource QuietAction}" Command="{Binding ToggleCommand}" AutomationProperties.Name="{Binding DateDisplay}">
+         <Grid><StackPanel Orientation="Horizontal" VerticalAlignment="Center"><TextBlock Text="{Binding DateDisplay}" FontSize="14" FontWeight="SemiBold" Foreground="#17202C"/><TextBlock Text="{Binding CountDisplay}" FontSize="11" Foreground="#939BA9" Margin="10,0,0,0" VerticalAlignment="Center"/></StackPanel><Path Width="6" Height="9" Margin="0,0,5,0" HorizontalAlignment="Right" VerticalAlignment="Center" Data="M 0,0 L 5,4.5 L 0,9" Stroke="#939BA9" StrokeThickness="1.2" RenderTransformOrigin="0.5,0.5"><Path.Style><Style TargetType="Path"><Style.Triggers><DataTrigger Binding="{Binding IsExpanded}" Value="True"><Setter Property="RenderTransform"><Setter.Value><RotateTransform Angle="90"/></Setter.Value></Setter></DataTrigger></Style.Triggers></Style></Path.Style></Path></Grid>
+        </Button>
+        <ItemsControl ItemsSource="{Binding Tasks}" Visibility="{Binding IsExpanded, Converter={StaticResource VisibleIf}}"><ItemsControl.ItemTemplate><DataTemplate>
+         <Border Margin="0,3,0,6" Padding="0,0,0,9" BorderBrush="#F0F2F5" BorderThickness="0,0,0,1">
+          <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="17"/><ColumnDefinition Width="10"/><ColumnDefinition/><ColumnDefinition Width="34"/><ColumnDefinition Width="24"/></Grid.ColumnDefinitions><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+           <Grid Width="15" Height="15" VerticalAlignment="Top" Margin="0,3,0,0"><Ellipse Fill="{DynamicResource AccentPrimary}"/><Path Data="M 3.5,7.5 L 6.5,10.5 L 11.5,4.5" Stroke="White" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/></Grid>
+           <TextBlock Grid.Column="2" Text="{Binding Name}" FontSize="12.5" FontWeight="Medium" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding Name}"/>
+           <TextBlock Grid.Column="3" Text="{Binding TimeDisplay}" FontSize="10.5" Foreground="#939BA9" VerticalAlignment="Center" HorizontalAlignment="Right"/>
+           <ToggleButton x:Name="TaskMoreToggle" Grid.Column="4" Width="22" Height="23" HorizontalAlignment="Right" Style="{StaticResource QuietToggle}" Click="TaskMore_Click" AutomationProperties.Name="任务操作"><Path Width="11" Height="3" Data="M 1.5,1.5 A 0.5,0.5 0 1 1 1.49,1.5 M 5.5,1.5 A 0.5,0.5 0 1 1 5.49,1.5 M 9.5,1.5 A 0.5,0.5 0 1 1 9.49,1.5" Stroke="#8993A4" StrokeThickness="2" StrokeStartLineCap="Round"/></ToggleButton>
+           <Popup PlacementTarget="{Binding ElementName=TaskMoreToggle}" IsOpen="{Binding IsChecked, ElementName=TaskMoreToggle, Mode=TwoWay}" DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}" Placement="Bottom" HorizontalOffset="-93" AllowsTransparency="True" StaysOpen="False" PopupAnimation="Fade">
+            <Border Width="120" Padding="5" Margin="5" Background="White" BorderBrush="#ECEEF2" BorderThickness="1" CornerRadius="8"><Border.Effect><DropShadowEffect BlurRadius="10" Opacity="0.1" ShadowDepth="2"/></Border.Effect><StackPanel>
+             <Button Height="29" Padding="7,0" HorizontalContentAlignment="Left" Style="{StaticResource QuietAction}" Command="{Binding RestoreCommand}" CommandParameter="{Binding}" Click="TaskOperation_Click"><StackPanel Orientation="Horizontal"><TextBlock Text="&#xE7A7;" FontFamily="Segoe MDL2 Assets" FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center"/><TextBlock Text="恢复任务" FontSize="11.5"/></StackPanel></Button>
+             <Button Height="29" Padding="7,0" HorizontalContentAlignment="Left" Style="{StaticResource QuietAction}" Command="{Binding DeleteCommand}" CommandParameter="{Binding}" Click="TaskOperation_Click"><StackPanel Orientation="Horizontal"><TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="#E65353" Margin="0,0,8,0" VerticalAlignment="Center"/><TextBlock Text="删除任务" FontSize="11.5" Foreground="#E65353"/></StackPanel></Button>
+            </StackPanel></Border>
+           </Popup>
+           <TextBlock Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="3" Margin="0,3,0,0" Text="{Binding Description}" FontSize="11" LineHeight="16" Foreground="#939BA9" TextWrapping="Wrap" Visibility="{Binding HasDescription, Converter={StaticResource VisibleIf}}"/>
+           <ItemsControl Grid.Row="2" Grid.Column="2" Grid.ColumnSpan="3" Margin="4,5,0,0" ItemsSource="{Binding SubTasks}" Visibility="{Binding HasSubTasks, Converter={StaticResource VisibleIf}}"><ItemsControl.ItemTemplate><DataTemplate><Grid Margin="0,2,0,2"><Grid.ColumnDefinitions><ColumnDefinition Width="12"/><ColumnDefinition Width="7"/><ColumnDefinition/></Grid.ColumnDefinitions><Grid Width="11" Height="11" VerticalAlignment="Top" Margin="0,3,0,0"><Ellipse Stroke="#FFC49A" StrokeThickness="1"/><Path Data="M 2.5,5.5 L 4.5,7.5 L 8.5,3.5" Stroke="#FFAA70" StrokeThickness="1" Visibility="{Binding IsCompleted, Converter={StaticResource VisibleIf}}"/></Grid><TextBlock Grid.Column="2" Text="{Binding Title}" FontSize="11" Foreground="#8A94A5" TextWrapping="Wrap"/></Grid></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+          </Grid>
+         </Border>
+        </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+        <Border Height="1" Background="#F0F2F5" Margin="0,0,0,5"><Border.Style><Style TargetType="Border"><Style.Triggers><DataTrigger Binding="{Binding IsExpanded}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></Border.Style></Border>
+       </StackPanel>
+      </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+     </ScrollViewer>
+     <TextBlock Text="{Binding EmptyText}" Foreground="#939BA9" HorizontalAlignment="Center" VerticalAlignment="Center"><TextBlock.Style><Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding HasResults}" Value="False"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
+    </Grid>
+    <TextBlock Grid.Row="5" Text="{Binding ErrorText}" FontSize="11" Foreground="#D85B57" Margin="0,7,0,0" Visibility="{Binding HasError, Converter={StaticResource VisibleIf}}"/>
+   </Grid>
+  </Border>
+ </Grid>
+</UserControl>

@@ -794,6 +794,11 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
 
     private void OpenEndConfirmation()
     {
+        if (Stage != FocusFlowStage.Focusing || IsEndConfirmationOpen || IsForcedModeActive) return;
+
+        // Commit the time since the last tick before freezing both clocks.
+        _focusStopwatch.Stop();
+        if (RunTimer) OnTimerTick();
         if (_engine.RequestEnd())
         {
             OnPropertyChanged(nameof(ElapsedFocusSeconds));
@@ -804,6 +809,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(EndConfirmationProgress));
             OnPropertyChanged(nameof(IsShortEndConfirmation));
             OnPropertyChanged(nameof(IsNormalEndConfirmation));
+            _timer.Stop();
             IsEndConfirmationOpen = true;
         }
     }
@@ -816,6 +822,12 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         }
 
         IsEndConfirmationOpen = false;
+        if (RunTimer)
+        {
+            _lastFocusElapsed = _focusStopwatch.Elapsed;
+            _focusStopwatch.Start();
+            _timer.Start();
+        }
     }
 
     private void DiscardShortFocus()

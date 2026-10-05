@@ -90,6 +90,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         HomePage.FocusSession.PropertyChanged += FocusSession_PropertyChanged;
         StatisticsPage.GoalChanged += StatisticsPage_GoalChanged;
         StatisticsPage.GoalDeleted += StatisticsPage_GoalDeleted;
+        StatisticsPage.GoalCompletedTasks.MutationHandler = MutateCompletedTaskAsync;
         StatisticsPage.MonthlyFocusTargetChanged += StatisticsPage_MonthlyFocusTargetChanged;
         StateCoordinator = new FocusStateCoordinator(HomePage, SettingsPage, BlockingPage, StatisticsPage);
         SettingsPage.SetUserAccess(IsLoggedIn, IsVipMember);
@@ -638,6 +639,61 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     private static DayOfWeek? ParseDayKey(string key)
         => Enum.TryParse<DayOfWeek>(key, out var day) ? day : null;
+
+    private async Task<bool> MutateCompletedTaskAsync(LocalTaskDto source, bool delete)
+    {
+        if (ServiceConnection is null)
+        {
+            ApplyCompletedTaskToFocus(source, delete);
+            StatisticsPage.ApplyCompletedTaskMutation(source, delete);
+            return true;
+        }
+        if (!ServiceConnection.IsConnected) return false;
+        _pendingFocusTaskWrites++;
+        await _targetPersistenceGate.WaitAsync();
+        try
+        {
+            // Read after queued target saves finish; do not replace a newer task edit with the modal's snapshot.
+            var state = ServiceConnection.State;
+            var target = state?.Targets.FirstOrDefault(item => item.TargetId == source.TargetId);
+            var task = state?.Tasks.FirstOrDefault(item => item.TaskId == source.TaskId && item.TargetId == source.TargetId);
+            if (state is null || target is null || task is not { IsCompleted: true }) return false;
+            ApplyCompletedTaskToFocus(task, delete);
+            var now = DateTimeOffset.UtcNow;
+            var tasks = state.Tasks.Where(item => item.TargetId == source.TargetId && item.TaskId != source.TaskId)
+                .Concat(delete ? [] : [task with { IsCompleted = false, CompletedAtUtc = null, UpdatedAtUtc = now }]).ToArray();
+            var result = await ServiceConnection.SaveTargetAsync(new SaveTargetCommand(target with { UpdatedAtUtc = now }, tasks));
+            StatisticsPage.ApplyTaskState(result.State);
+            return true;
+        }
+        catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException)
+        { return false; }
+        finally
+        {
+            _targetPersistenceGate.Release();
+            _pendingFocusTaskWrites--;
+            if (_pendingFocusTaskWrites == 0 && ServiceConnection.State is { } state)
+            {
+                ApplyFocusTaskState(state);
+                StatisticsPage.ApplyTaskState(state);
+            }
+        }
+    }
+
+    private void ApplyCompletedTaskToFocus(LocalTaskDto source, bool delete)
+    {
+        var session = HomePage.FocusSession;
+        var target = session.ActiveTarget?.TargetId == source.TargetId ? session.ActiveTarget
+            : HomePage.FocusTargetModal.Targets.FirstOrDefault(item => item.TargetId == source.TargetId);
+        var task = target?.Tasks.FirstOrDefault(item => item.TaskId == source.TaskId);
+        if (target is null || task is null) return;
+        session.ApplyTaskSnapshot(() =>
+        {
+            if (!delete) task.ApplyCompletion(false, null);
+            else if (ReferenceEquals(target, session.ActiveTarget)) session.DeleteTaskCommand.Execute(task);
+            else target.RemoveTask(task);
+        });
+    }
 
     private async void FocusSession_TargetChanged(object? sender, FocusTargetViewModel target)
     {

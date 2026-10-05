@@ -13,6 +13,9 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
     private readonly RelayCommand<object> _addSubTaskCommand;
     private bool _isOpen;
     private bool _isCreating;
+    private bool _isDescriptionExpanded;
+    private bool _isSubTasksExpanded;
+    private bool _isSubTaskInputVisible;
     private string _draftTitle = string.Empty;
     private string _subTaskInput = string.Empty;
     private FocusTaskViewModel? _draft;
@@ -26,6 +29,13 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
         CloseCommand = new RelayCommand<object>(_ => Close());
         AddTaskCommand = new RelayCommand<object>(_ => BeginCreation());
         CancelCreationCommand = new RelayCommand<object>(_ => CancelCreation());
+        ExpandDescriptionCommand = new RelayCommand<object>(_ => { if (_draft is not null && HasDraftTitle) IsDescriptionExpanded = true; });
+        BeginSubTaskCommand = new RelayCommand<object>(_ =>
+        {
+            if (_draft is null || !HasDraftTitle || !CanEnterSubTask) return;
+            IsSubTasksExpanded = true;
+            IsSubTaskInputVisible = true;
+        });
         ToggleExpandedCommand = new RelayCommand<FocusTaskViewModel>(task =>
         {
             if (task is null) return;
@@ -52,6 +62,8 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
     public ICommand CloseCommand { get; }
     public ICommand AddTaskCommand { get; }
     public ICommand CancelCreationCommand { get; }
+    public ICommand ExpandDescriptionCommand { get; }
+    public ICommand BeginSubTaskCommand { get; }
     public ICommand ToggleExpandedCommand { get; }
     public ICommand EditTaskCommand { get; }
     public ICommand DeleteTaskCommand { get; }
@@ -72,13 +84,44 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
     }
     public bool IsCreating { get => _isCreating; private set => Set(ref _isCreating, value); }
     public bool IsEditingTask => _editingTask is not null;
-    public string CommitButtonText => IsEditingTask ? "保存修改" : "创建任务";
+    public string CommitButtonText => IsEditingTask ? "保存修改" : "创建";
     public string DraftTitle
     {
         get => _draftTitle;
-        set { if (Set(ref _draftTitle, value)) _createTaskCommand.NotifyCanExecuteChanged(); }
+        set
+        {
+            if (!Set(ref _draftTitle, value ?? string.Empty)) return;
+            _createTaskCommand.NotifyCanExecuteChanged();
+            OnPropertyChanged(nameof(HasDraftTitle));
+            RefreshDraftActions();
+        }
     }
     public FocusTaskViewModel? Draft => _draft;
+    public bool HasDraftTitle => !string.IsNullOrWhiteSpace(DraftTitle);
+    public bool IsDescriptionExpanded
+    {
+        get => _isDescriptionExpanded;
+        private set { if (Set(ref _isDescriptionExpanded, value)) RefreshDraftActions(); }
+    }
+    public bool IsSubTasksExpanded { get => _isSubTasksExpanded; private set => Set(ref _isSubTasksExpanded, value); }
+    public bool IsSubTaskInputVisible
+    {
+        get => _isSubTaskInputVisible;
+        private set { if (Set(ref _isSubTaskInputVisible, value)) RefreshDraftActions(); }
+    }
+    public bool ShowAddDescription => HasDraftTitle && !IsDescriptionExpanded;
+    public bool ShowAddSubTask => HasDraftTitle && !IsSubTaskInputVisible;
+    public string DraftDescription
+    {
+        get => _draft?.Description ?? string.Empty;
+        set
+        {
+            if (_draft is null) return;
+            value ??= string.Empty;
+            _draft.Description = value.Length > 200 ? value[..200] : value;
+        }
+    }
+    public string DescriptionCountDisplay => $"{DraftDescription.Length}/200";
     public string SubTaskInput
     {
         get => _subTaskInput;
@@ -142,6 +185,7 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
         var now = DateTimeOffset.UtcNow;
         _draft = new FocusTaskViewModel(target.TargetId, string.Empty, createdAtUtc: now);
         _draft.SubTasks.CollectionChanged += DraftSubTasksChanged;
+        _draft.PropertyChanged += DraftPropertyChanged;
         DraftTitle = string.Empty;
         SubTaskInput = string.Empty;
         IsCreating = true;
@@ -161,6 +205,9 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
         };
         foreach (var source in task.ExportSubTasks()) _draft.SubTasks.Add(new FocusSubTaskViewModel(source));
         _draft.SubTasks.CollectionChanged += DraftSubTasksChanged;
+        _draft.PropertyChanged += DraftPropertyChanged;
+        IsDescriptionExpanded = true;
+        IsSubTasksExpanded = task.SubTasks.Count > 0;
         DraftTitle = task.Name;
         SubTaskInput = string.Empty;
         IsCreating = true;
@@ -197,6 +244,8 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
         _draft.SubTasks.Add(new FocusSubTaskViewModel(new LocalSubTaskDto(Guid.NewGuid().ToString("N"),
             _draft.TaskId, SubTaskInput.Trim(), false, _draft.SubTasks.Count, now, now)));
         SubTaskInput = string.Empty;
+        IsSubTasksExpanded = true;
+        IsSubTaskInputVisible = false;
     }
 
     private void CommitCreation()
@@ -217,9 +266,16 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
 
     private void CancelCreation()
     {
-        if (_draft is not null) _draft.SubTasks.CollectionChanged -= DraftSubTasksChanged;
+        if (_draft is not null)
+        {
+            _draft.SubTasks.CollectionChanged -= DraftSubTasksChanged;
+            _draft.PropertyChanged -= DraftPropertyChanged;
+        }
         _draft = null;
         _editingTask = null;
+        IsDescriptionExpanded = false;
+        IsSubTasksExpanded = false;
+        IsSubTaskInputVisible = false;
         IsCreating = false;
         DraftTitle = string.Empty;
         SubTaskInput = string.Empty;
@@ -229,9 +285,22 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
         RefreshDraftCount();
     }
 
+    private void RefreshDraftActions()
+    {
+        OnPropertyChanged(nameof(ShowAddDescription));
+        OnPropertyChanged(nameof(ShowAddSubTask));
+    }
+    private void DraftPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(FocusTaskViewModel.Description)) return;
+        OnPropertyChanged(nameof(DraftDescription));
+        OnPropertyChanged(nameof(DescriptionCountDisplay));
+    }
     private void DraftSubTasksChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e) => RefreshDraftCount();
     private void RefreshDraftCount()
     {
+        OnPropertyChanged(nameof(DraftDescription));
+        OnPropertyChanged(nameof(DescriptionCountDisplay));
         OnPropertyChanged(nameof(SubTaskCountDisplay));
         OnPropertyChanged(nameof(CanEnterSubTask));
         _addSubTaskCommand.NotifyCanExecuteChanged();

@@ -23,12 +23,23 @@ public partial class FocusTaskDrawer : UserControl
         menu.IsOpen = true;
         e.Handled = true;
     }
+    private void DraftAddDescriptionButton_Click(object sender, RoutedEventArgs e)
+    {
+        Dispatcher.BeginInvoke(DispatcherPriority.Input, () => DraftTaskDescriptionInput.Focus());
+    }
+
+    private void DraftAddSubTaskButton_Click(object sender, RoutedEventArgs e)
+    {
+        Dispatcher.BeginInvoke(DispatcherPriority.Input, () => DraftSubTaskInput.Focus());
+    }
+
     private void DraftSubTaskInput_KeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key != Key.Enter || ViewModel is not { } vm) return;
         if (vm.AddSubTaskCommand.CanExecute(null)) vm.AddSubTaskCommand.Execute(null);
         e.Handled = true;
-        DraftSubTaskInput.Focus();
+        if (!vm.IsSubTaskInputVisible)
+            (vm.CanEnterSubTask ? DraftAddSubTaskButton : DrawerCreateTaskButton).Focus();
     }
     private void DraftTaskTitleInput_KeyDown(object sender, KeyEventArgs e)
     {

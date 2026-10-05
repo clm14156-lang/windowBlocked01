@@ -46,6 +46,8 @@ public sealed class BlockingContentItemViewModel : INotifyPropertyChanged, IDisp
 
     public ImageSource? Favicon => _website?.Favicon;
 
+    public bool HasFavicon => Favicon is not null;
+
     public void Disable()
     {
         if (_website is not null)
@@ -74,6 +76,7 @@ public sealed class BlockingContentItemViewModel : INotifyPropertyChanged, IDisp
         if (e.PropertyName == nameof(BlockingWebsiteItemViewModel.Favicon))
         {
             OnPropertyChanged(nameof(Favicon));
+            OnPropertyChanged(nameof(HasFavicon));
         }
     }
 

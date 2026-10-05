@@ -56,6 +56,28 @@
             </ControlTemplate></Setter.Value></Setter>
             <Style.Triggers><DataTrigger Binding="{Binding IsCreating}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers>
         </Style>
+        <Style x:Key="DraftActionButton" TargetType="Button" BasedOn="{StaticResource PlainButton}">
+            <Setter Property="Height" Value="30"/><Setter Property="FontSize" Value="11.5"/>
+            <Setter Property="Foreground" Value="#929AA7"/><Setter Property="Padding" Value="3,0"/>
+        </Style>
+        <Style x:Key="DraftSubTaskCheck" TargetType="CheckBox" BasedOn="{StaticResource CircleCheck}">
+            <Setter Property="Width" Value="15"/><Setter Property="Height" Value="15"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="CheckBox">
+                <Border x:Name="DraftCheckSurface" Background="White" BorderBrush="#BAC2CD" BorderThickness="1" CornerRadius="3">
+                    <Path x:Name="DraftTick" Visibility="Collapsed" Width="8" Height="6" Data="M 0,3 L 3,6 L 8,0" Stroke="White" StrokeThickness="1.3" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <ControlTemplate.Triggers><Trigger Property="IsChecked" Value="True">
+                    <Setter TargetName="DraftCheckSurface" Property="Background" Value="#FF9144"/>
+                    <Setter TargetName="DraftCheckSurface" Property="BorderBrush" Value="#FF9144"/>
+                    <Setter TargetName="DraftTick" Property="Visibility" Value="Visible"/>
+                </Trigger></ControlTemplate.Triggers>
+            </ControlTemplate></Setter.Value></Setter>
+        </Style>
+        <Style x:Key="DraftCreateButton" TargetType="Button" BasedOn="{StaticResource SheetButton}">
+            <Setter Property="Background" Value="#FF781A"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Style.Triggers><Trigger Property="IsEnabled" Value="False"><Setter Property="Background" Value="#ECEEF1"/><Setter Property="Foreground" Value="#B2B8C2"/></Trigger></Style.Triggers>
+        </Style>
         <DataTemplate x:Key="TaskRow">
             <Grid x:Name="TaskRowSurface" Background="Transparent">
                 <StackPanel Margin="18,14,14,15">
@@ -152,58 +174,84 @@
             <Border x:Name="TaskEditorScrim" Grid.RowSpan="4" Panel.ZIndex="1" Background="#280F172A"
                     Visibility="{Binding IsCreating, Converter={StaticResource BoolVisibility}}"
                     MouseLeftButtonDown="TaskEditorScrim_MouseLeftButtonDown" />
-            <Grid Grid.Row="3" Panel.ZIndex="2">
+            <Grid Grid.Row="3">
                 <Button x:Name="DrawerAddTaskButton" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,14,16,18"
                         Style="{StaticResource DrawerAddTaskButtonStyle}" Command="{Binding AddTaskCommand}" AutomationProperties.Name="创建任务" ToolTip="添加任务"/>
+            </Grid>
+            <Grid Grid.RowSpan="4" Panel.ZIndex="2" VerticalAlignment="Bottom">
                 <Border x:Name="TaskEditorPanel" Background="White" BorderBrush="#E9EBEF" BorderThickness="0,1,0,0" CornerRadius="14,14,0,0"
-                        Visibility="{Binding IsCreating, Converter={StaticResource BoolVisibility}}" IsVisibleChanged="TaskEditorPanel_IsVisibleChanged" Padding="16,18,16,13">
+                        MaxHeight="500" MinHeight="150" VerticalAlignment="Bottom" Padding="18,14,18,16"
+                        Visibility="{Binding IsCreating, Converter={StaticResource BoolVisibility}}" IsVisibleChanged="TaskEditorPanel_IsVisibleChanged">
                     <Border.RenderTransform><TranslateTransform /></Border.RenderTransform>
-                    <StackPanel>
-                        <Grid Margin="12,0,0,0">
-                            <TextBox x:Name="DraftTaskTitleInput" Height="34" FontSize="17" FontWeight="Medium" Style="{StaticResource BorderlessInput}"
-                                     Text="{Binding DraftTitle, UpdateSourceTrigger=PropertyChanged}" KeyDown="DraftTaskTitleInput_KeyDown" AutomationProperties.Name="任务名称" />
-                            <TextBlock VerticalAlignment="Center" Text="输入任务名称" FontSize="17" Foreground="#4F5662" IsHitTestVisible="False">
-                                <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding DraftTitle}" Value=""><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></TextBlock.Style>
-                            </TextBlock>
-                        </Grid>
-                        <Grid Margin="12,8,0,0">
-                            <TextBox x:Name="DraftTaskDescriptionInput" Height="48" VerticalContentAlignment="Top" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
-                                     FontSize="12" Foreground="#69717E" Style="{StaticResource BorderlessInput}" Text="{Binding Draft.Description, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="任务描述" />
-                            <TextBlock Text="添加任务描述..." FontSize="12" Foreground="#A5ABB5" Margin="0,2,0,0" IsHitTestVisible="False">
-                                <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding Draft.Description}" Value=""><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></TextBlock.Style>
-                            </TextBlock>
-                        </Grid>
-                        <Border Height="1" Margin="0,9,0,15" Background="#EBEDF0" />
-                        <Grid Margin="1,0,1,10"><TextBlock Text="子任务" FontSize="12" FontWeight="SemiBold" Foreground="#454B55" /><TextBlock HorizontalAlignment="Right" Text="{Binding SubTaskCountDisplay}" FontFamily="Segoe UI" FontSize="11" Foreground="#959CAA" /></Grid>
-                        <ScrollViewer MaxHeight="105" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-                            <ItemsControl x:Name="DraftSubTaskList" ItemsSource="{Binding Draft.SubTasks}">
-                                <ItemsControl.ItemTemplate><DataTemplate>
-                                    <Grid MinHeight="29"><Grid.ColumnDefinitions><ColumnDefinition Width="27" /><ColumnDefinition Width="*" /><ColumnDefinition Width="20" /></Grid.ColumnDefinitions>
-                                        <CheckBox IsChecked="{Binding IsCompleted, Mode=TwoWay}" VerticalAlignment="Center" Style="{StaticResource CircleCheck}" AutomationProperties.Name="子任务完成状态" />
-                                        <TextBox Grid.Column="1" VerticalAlignment="Center" Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}" FontSize="11" Style="{StaticResource BorderlessInput}" AutomationProperties.Name="子任务名称" />
-                                        <Button Grid.Column="2" Width="20" Height="22" Style="{StaticResource PlainButton}" Content="×" FontSize="16" Command="{Binding DataContext.DeleteSubTaskCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" AutomationProperties.Name="删除子任务" />
+                    <Grid>
+                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                        <Button x:Name="DraftCloseButton" HorizontalAlignment="Right" Width="26" Height="26" Margin="0,-6,-8,0"
+                                Style="{StaticResource DrawerCloseButtonStyle}" Command="{Binding CancelCreationCommand}" AutomationProperties.Name="关闭创建任务"/>
+                        <ScrollViewer x:Name="DraftContentScroll" Grid.Row="1" MaxHeight="380" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                            <StackPanel Margin="4,6,4,0">
+                                <Grid>
+                                    <TextBox x:Name="DraftTaskTitleInput" Height="34" FontSize="17" FontWeight="Medium" Style="{StaticResource BorderlessInput}"
+                                             Text="{Binding DraftTitle, UpdateSourceTrigger=PropertyChanged}" KeyDown="DraftTaskTitleInput_KeyDown" AutomationProperties.Name="任务名称" />
+                                    <TextBlock VerticalAlignment="Center" Text="要做什么？" FontSize="18" Foreground="#929AA7" IsHitTestVisible="False">
+                                        <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding DraftTitle}" Value=""><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                                    </TextBlock>
+                                </Grid>
+                                <Border x:Name="DraftDescriptionArea" CornerRadius="7" Background="#FAFAFB" Padding="8,8,8,6" Margin="0,10,0,0"
+                                        Visibility="{Binding IsDescriptionExpanded, Converter={StaticResource BoolVisibility}}">
+                                    <StackPanel>
+                                        <Grid>
+                                            <TextBox x:Name="DraftTaskDescriptionInput" MinHeight="42" MaxHeight="90" MaxLength="200" VerticalContentAlignment="Top" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                                                     FontSize="11.5" Foreground="#69717E" Style="{StaticResource BorderlessInput}" Text="{Binding DraftDescription, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="任务描述，最多200字"/>
+                                            <TextBlock Text="添加描述…" FontSize="11.5" Foreground="#A5ABB5" IsHitTestVisible="False">
+                                                <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding DraftDescription}" Value=""><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                                            </TextBlock>
+                                        </Grid>
+                                        <TextBlock x:Name="DraftDescriptionCount" Text="{Binding DescriptionCountDisplay}" FontSize="10" Foreground="#969EAA" HorizontalAlignment="Right" Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                                <StackPanel x:Name="DraftSubTaskArea" Margin="0,12,0,0" Visibility="{Binding IsSubTasksExpanded, Converter={StaticResource BoolVisibility}}">
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                        <TextBlock Text="子任务" FontSize="11.5" Foreground="#454B55"/>
+                                        <TextBlock Text="{Binding SubTaskCountDisplay}" FontSize="11" Foreground="#959CAA" Margin="7,0,0,0"/>
+                                    </StackPanel>
+                                    <ItemsControl x:Name="DraftSubTaskList" ItemsSource="{Binding Draft.SubTasks}">
+                                        <ItemsControl.ItemTemplate><DataTemplate>
+                                            <Grid MinHeight="31"><Grid.ColumnDefinitions><ColumnDefinition Width="25"/><ColumnDefinition Width="*"/><ColumnDefinition Width="20"/></Grid.ColumnDefinitions>
+                                                <CheckBox IsChecked="{Binding IsCompleted, Mode=TwoWay}" VerticalAlignment="Center" Style="{StaticResource DraftSubTaskCheck}" AutomationProperties.Name="子任务完成状态"/>
+                                                <TextBox Grid.Column="1" VerticalAlignment="Center" Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}" FontSize="11.5" Style="{StaticResource BorderlessInput}" AutomationProperties.Name="子任务名称"/>
+                                                <Button Grid.Column="2" Width="20" Height="22" Style="{StaticResource PlainButton}" Content="×" FontSize="16" Command="{Binding DataContext.DeleteSubTaskCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" AutomationProperties.Name="删除子任务"/>
+                                            </Grid>
+                                        </DataTemplate></ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <Grid x:Name="DraftSubTaskInputArea" Height="32" Visibility="{Binding IsSubTaskInputVisible, Converter={StaticResource BoolVisibility}}" IsEnabled="{Binding CanEnterSubTask}">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="25"/><ColumnDefinition Width="*"/><ColumnDefinition Width="24"/></Grid.ColumnDefinitions>
+                                        <Border Width="16" Height="16" CornerRadius="4" BorderBrush="#BDC4CE" BorderThickness="1" VerticalAlignment="Center" HorizontalAlignment="Left"/>
+                                        <Grid Grid.Column="1">
+                                            <TextBox x:Name="DraftSubTaskInput" Style="{StaticResource BorderlessInput}" FontSize="11.5" Text="{Binding SubTaskInput, UpdateSourceTrigger=PropertyChanged}" KeyDown="DraftSubTaskInput_KeyDown" AutomationProperties.Name="输入子任务，按回车添加"/>
+                                            <TextBlock Text="子任务名称" Foreground="#A0A6B0" FontSize="11.5" VerticalAlignment="Center" IsHitTestVisible="False">
+                                                <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding SubTaskInput}" Value=""><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                                            </TextBlock>
+                                        </Grid>
+                                        <Button Grid.Column="2" Width="24" Height="26" Style="{StaticResource PlainButton}" Command="{Binding AddSubTaskCommand}" Content="↵" FontSize="16" AutomationProperties.Name="添加当前子任务"/>
                                     </Grid>
-                                </DataTemplate></ItemsControl.ItemTemplate>
-                            </ItemsControl>
+                                </StackPanel>
+                                <WrapPanel Margin="-3,10,0,0">
+                                    <Button x:Name="DraftAddDescriptionButton" Style="{StaticResource DraftActionButton}" Margin="0,0,14,0"
+                                            Visibility="{Binding ShowAddDescription, Converter={StaticResource BoolVisibility}}" Command="{Binding ExpandDescriptionCommand}" Click="DraftAddDescriptionButton_Click">
+                                        <StackPanel Orientation="Horizontal"><TextBlock Text="+" FontSize="17" Foreground="#6F7A89" Margin="0,0,6,0"/><TextBlock Text="添加描述" Foreground="#929AA7" VerticalAlignment="Center"/></StackPanel>
+                                    </Button>
+                                    <Button x:Name="DraftAddSubTaskButton" Style="{StaticResource DraftActionButton}" IsEnabled="{Binding CanEnterSubTask}"
+                                            Visibility="{Binding ShowAddSubTask, Converter={StaticResource BoolVisibility}}" Command="{Binding BeginSubTaskCommand}" Click="DraftAddSubTaskButton_Click">
+                                        <StackPanel Orientation="Horizontal"><TextBlock Text="+" FontSize="17" Foreground="#6F7A89" Margin="0,0,6,0"/><TextBlock Text="添加子任务" Foreground="#929AA7" VerticalAlignment="Center"/></StackPanel>
+                                    </Button>
+                                </WrapPanel>
+                            </StackPanel>
                         </ScrollViewer>
-                        <Grid Height="33" Margin="0,2,0,8" IsEnabled="{Binding CanEnterSubTask}">
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="28" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                            <Path Width="20" Height="20" HorizontalAlignment="Left" VerticalAlignment="Center"
-                                  Data="M 4,3 L 10,3 L 10,8 L 4,8 Z M 8,8 L 8,16 L 16,16 M 10,13 L 16,13 L 16,19 L 10,19 Z"
-                                  Stroke="#8D949E" StrokeThickness="1.3" StrokeLineJoin="Round" Fill="Transparent" />
-                            <Grid Grid.Column="1">
-                                <TextBox x:Name="DraftSubTaskInput" Style="{StaticResource BorderlessInput}" FontSize="11" Text="{Binding SubTaskInput, UpdateSourceTrigger=PropertyChanged}" KeyDown="DraftSubTaskInput_KeyDown" AutomationProperties.Name="添加子任务，按回车创建" />
-                                <TextBlock Text="添加子任务" Foreground="#A0A6B0" FontSize="11" VerticalAlignment="Center" IsHitTestVisible="False">
-                                    <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding SubTaskInput}" Value=""><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></TextBlock.Style>
-                                </TextBlock>
-                            </Grid>
-                        </Grid>
-                        <Border Height="1" Background="#EBEDF0" Margin="0,0,0,11" />
-                        <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
-                            <Button Width="56" Height="34" Command="{Binding CancelCreationCommand}" Content="取消" Foreground="#717987" Style="{StaticResource PlainButton}" />
-                            <Button x:Name="DrawerCreateTaskButton" Width="88" Height="34" Margin="9,0,0,0" Command="{Binding CreateTaskCommand}" Content="{Binding CommitButtonText}" Style="{StaticResource TaskPrimaryButton}" />
+                        <StackPanel Grid.Row="2" HorizontalAlignment="Right" Orientation="Horizontal" Margin="0,18,0,0">
+                            <Button Width="46" Height="32" Command="{Binding CancelCreationCommand}" Foreground="#717987" FontSize="12" Style="{StaticResource PlainButton}"><TextBlock Text="取消" Foreground="#717987" FontSize="12"/></Button>
+                            <Button x:Name="DrawerCreateTaskButton" MinWidth="62" Padding="12,0" Height="32" Margin="8,0,0,0" Command="{Binding CreateTaskCommand}" Content="{Binding CommitButtonText}" Style="{StaticResource DraftCreateButton}"/>
                         </StackPanel>
-                    </StackPanel>
+                    </Grid>
                 </Border>
             </Grid>
         </Grid>
