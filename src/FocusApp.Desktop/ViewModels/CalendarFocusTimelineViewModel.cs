@@ -1,4 +1,4 @@
-namespace FocusApp.Desktop.ViewModels;
+﻿namespace FocusApp.Desktop.ViewModels;
 
 public sealed record CalendarFocusTimelineSegment(
     FocusSessionRecordViewModel Record,
@@ -12,7 +12,7 @@ public sealed record CalendarFocusTimelineViewModel(
     IReadOnlyList<CalendarFocusTimelineSegment> Segments)
 {
     public static CalendarFocusTimelineViewModel Create(
-        DateTime date, IEnumerable<FocusSessionRecordViewModel> records)
+        DateTime date, IEnumerable<FocusSessionRecordViewModel> records, bool fullDay = false)
     {
         var dayStart = date.Date;
         var dayEnd = dayStart.AddDays(1);
@@ -25,8 +25,8 @@ public sealed record CalendarFocusTimelineViewModel(
                 Start = record.StartTime < dayStart ? dayStart : record.StartTime,
                 End = record.EndTime > dayEnd ? dayEnd : record.EndTime
             }).ToArray();
-        // Keep the reference's 08:00–24:00 scale unless it would hide an early session.
-        var startHour = intervals.Any(interval => interval.Start < dayStart.AddHours(8)) ? 0 : 8;
+        // Full-day consumers keep a fixed midnight origin; compact consumers may still start at 08:00.
+        var startHour = fullDay || intervals.Any(interval => interval.Start < dayStart.AddHours(8)) ? 0 : 8;
         var axisStart = dayStart.AddHours(startHour);
         var axisTicks = (dayEnd - axisStart).Ticks;
         return new CalendarFocusTimelineViewModel(startHour, intervals.Select(interval =>

@@ -93,7 +93,7 @@ public static class FocusFloatingSnapCalculator
     public const double MaximumHorizontalWidth = 320;
     public const double HorizontalHeight = 50;
     public const double FloatingWidth = 300;
-    public const double FloatingHeight = 220;
+    public const double FloatingHeight = ViewModels.FocusFloatingWindowViewModel.EmptyWindowHeight;
     public const double DefaultSnapThreshold = 24;
 
     public static FocusFloatingWindowState? FindSnapState(
@@ -146,18 +146,20 @@ public static class FocusFloatingSnapCalculator
     public static Rect GetExpandedBounds(
         FocusFloatingWindowState foldedState,
         Rect foldedBounds,
-        Rect workArea)
+        Rect workArea,
+        double floatingHeight = FloatingHeight)
     {
+        floatingHeight = Math.Clamp(floatingHeight, FloatingHeight, ViewModels.FocusFloatingWindowViewModel.MaximumWindowHeight);
         var centerX = foldedBounds.Left + foldedBounds.Width / 2;
         var centerY = foldedBounds.Top + foldedBounds.Height / 2;
         var left = Clamp(centerX - FloatingWidth / 2, workArea.Left, workArea.Right - FloatingWidth);
-        var top = Clamp(centerY - FloatingHeight / 2, workArea.Top, workArea.Bottom - FloatingHeight);
+        var top = Clamp(centerY - floatingHeight / 2, workArea.Top, workArea.Bottom - floatingHeight);
 
         return foldedState switch
         {
-            FocusFloatingWindowState.FoldedTop => new Rect(left, workArea.Top, FloatingWidth, FloatingHeight),
-            FocusFloatingWindowState.FoldedBottom => new Rect(left, workArea.Bottom - FloatingHeight, FloatingWidth, FloatingHeight),
-            _ => new Rect(left, top, FloatingWidth, FloatingHeight)
+            FocusFloatingWindowState.FoldedTop => new Rect(left, workArea.Top, FloatingWidth, floatingHeight),
+            FocusFloatingWindowState.FoldedBottom => new Rect(left, workArea.Bottom - floatingHeight, FloatingWidth, floatingHeight),
+            _ => new Rect(left, top, FloatingWidth, floatingHeight)
         };
     }
 

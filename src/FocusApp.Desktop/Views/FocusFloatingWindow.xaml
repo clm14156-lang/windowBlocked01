@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:views="clr-namespace:FocusApp.Desktop.Views"
         Width="300"
-        Height="220"
+        Height="115"
         Background="Transparent"
         AllowsTransparency="True"
         Topmost="True"

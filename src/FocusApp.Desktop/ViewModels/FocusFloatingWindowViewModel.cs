@@ -11,6 +11,11 @@ namespace FocusApp.Desktop.ViewModels;
 /// </summary>
 public sealed class FocusFloatingWindowViewModel : INotifyPropertyChanged, IDisposable
 {
+    public const double EmptyWindowHeight = 115;
+    public const double TaskHeaderHeight = 46;
+    public const double TaskRowHeight = 28;
+    public const int VisibleTaskLimit = 3;
+    public const double MaximumWindowHeight = EmptyWindowHeight + TaskHeaderHeight + TaskRowHeight * VisibleTaskLimit;
     private readonly FocusSessionViewModel _session;
     private readonly HashSet<FocusTaskViewModel> _subscribedTasks = [];
     private FocusTargetViewModel? _subscribedTarget;
@@ -35,9 +40,25 @@ public sealed class FocusFloatingWindowViewModel : INotifyPropertyChanged, IDisp
 
     public double RemainingProgress => _session.RemainingProgress;
 
+    public double FocusProgress => Math.Clamp(1 - RemainingProgress, 0, 1);
+
+    public string TotalTimeDisplay => $"{_session.TotalFocusSeconds / 60:00}:{_session.TotalFocusSeconds % 60:00}";
+
+    public IReadOnlyList<FocusTaskViewModel> PendingTasks => _session.PendingTasks.Where(task => !task.IsCompleted).ToArray();
+
+    public int PendingTaskCount => PendingTasks.Count;
+
+    public bool HasTaskOverflow => PendingTaskCount > VisibleTaskLimit;
+
+    public double TaskListHeight => Math.Min(VisibleTaskLimit, PendingTaskCount) * TaskRowHeight;
+
+    public double WindowHeight => EmptyWindowHeight + (HasCurrentTask ? TaskHeaderHeight + TaskListHeight : 0);
+
+    public string TaskProgressDisplay => $"{_session.SessionCompletedTaskCount} / {PendingTaskCount + _session.SessionCompletedTaskCount}";
+
     public bool IsFocusing => _session.IsFocusing;
 
-    public FocusTaskViewModel? CurrentTask => _session.PendingTasks.FirstOrDefault();
+    public FocusTaskViewModel? CurrentTask => PendingTasks.FirstOrDefault();
 
     public bool HasCurrentTask => CurrentTask is not null;
 
@@ -73,6 +94,9 @@ public sealed class FocusFloatingWindowViewModel : INotifyPropertyChanged, IDisp
         {
             OnPropertyChanged(e.PropertyName);
         }
+        if (e.PropertyName == nameof(FocusSessionViewModel.RemainingProgress)) OnPropertyChanged(nameof(FocusProgress));
+        if (e.PropertyName == nameof(FocusSessionViewModel.TotalFocusSeconds)) OnPropertyChanged(nameof(TotalTimeDisplay));
+        if (e.PropertyName == nameof(FocusSessionViewModel.SessionCompletedTaskCount)) OnPropertyChanged(nameof(TaskProgressDisplay));
     }
 
     private void SubscribeTarget()
@@ -91,6 +115,17 @@ public sealed class FocusFloatingWindowViewModel : INotifyPropertyChanged, IDisp
     {
         UnsubscribeTasks();
         SubscribeTasks();
+        NotifyPendingTasksChanged();
+    }
+
+    private void NotifyPendingTasksChanged()
+    {
+        OnPropertyChanged(nameof(PendingTasks));
+        OnPropertyChanged(nameof(PendingTaskCount));
+        OnPropertyChanged(nameof(HasTaskOverflow));
+        OnPropertyChanged(nameof(TaskListHeight));
+        OnPropertyChanged(nameof(WindowHeight));
+        OnPropertyChanged(nameof(TaskProgressDisplay));
         OnPropertyChanged(nameof(CurrentTask));
         OnPropertyChanged(nameof(HasCurrentTask));
         OnPropertyChanged(nameof(CurrentTaskName));
@@ -123,6 +158,7 @@ public sealed class FocusFloatingWindowViewModel : INotifyPropertyChanged, IDisp
         {
             OnPropertyChanged(nameof(CurrentTaskName));
         }
+        if (e.PropertyName == nameof(FocusTaskViewModel.IsCompleted)) NotifyPendingTasksChanged();
     }
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null)

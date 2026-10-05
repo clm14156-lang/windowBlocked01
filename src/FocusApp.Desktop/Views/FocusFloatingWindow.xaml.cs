@@ -13,6 +13,10 @@ public partial class FocusFloatingWindow : Window
     private Rect _foldedBounds;
     private bool _foldHoverArmed = true;
     private bool _isDragging;
+    private DispatcherOperation? _sizeRefreshOperation;
+
+    private double PreferredFloatingHeight => (DataContext as FocusFloatingWindowViewModel)?.WindowHeight
+        ?? FocusFloatingWindowViewModel.EmptyWindowHeight;
 
     public FocusFloatingWindow()
     {
@@ -35,12 +39,44 @@ public partial class FocusFloatingWindow : Window
         if (e.OldValue is FocusFloatingWindowViewModel oldModel) oldModel.PropertyChanged -= Model_PropertyChanged;
         if (e.NewValue is FocusFloatingWindowViewModel newModel) newModel.PropertyChanged += Model_PropertyChanged;
         RefreshFoldedBounds();
+        RefreshFloatingSize();
     }
 
     private void Model_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName is nameof(FocusFloatingWindowViewModel.HasTarget) or nameof(FocusFloatingWindowViewModel.TargetName))
             RefreshFoldedBounds();
+        if (e.PropertyName == nameof(FocusFloatingWindowViewModel.WindowHeight)
+            && _sizeRefreshOperation?.Status != DispatcherOperationStatus.Pending)
+        {
+            // The session rebuilds its pending collection in one synchronous batch.
+            // Resize once after that batch, rather than flashing through intermediate task counts.
+            _sizeRefreshOperation = Dispatcher.InvokeAsync(RefreshFloatingSize, DispatcherPriority.DataBind);
+        }
+    }
+
+    private void RefreshFloatingSize()
+    {
+        if (_stateMachine.IsFolded) return;
+        if (!IsVisible)
+        {
+            Width = FocusFloatingSnapCalculator.FloatingWidth;
+            Height = PreferredFloatingHeight;
+            return;
+        }
+        var monitor = MonitorWorkAreaProvider.GetForWindow(this);
+        if (_stateMachine.IsExpandedFromFold)
+        {
+            ApplyBounds(FocusFloatingSnapCalculator.GetExpandedBounds(_stateMachine.FoldedState,
+                _foldedBounds, monitor.WorkArea, PreferredFloatingHeight));
+            return;
+        }
+        var bounds = GetCurrentBounds();
+        var left = Math.Clamp(bounds.Left, monitor.WorkArea.Left,
+            Math.Max(monitor.WorkArea.Left, monitor.WorkArea.Right - FocusFloatingSnapCalculator.FloatingWidth));
+        var top = Math.Clamp(bounds.Top, monitor.WorkArea.Top,
+            Math.Max(monitor.WorkArea.Top, monitor.WorkArea.Bottom - PreferredFloatingHeight));
+        ApplyBounds(new Rect(left, top, FocusFloatingSnapCalculator.FloatingWidth, PreferredFloatingHeight));
     }
 
     private void RefreshFoldedBounds()
@@ -152,7 +188,8 @@ public partial class FocusFloatingWindow : Window
         var expandedBounds = FocusFloatingSnapCalculator.GetExpandedBounds(
             _stateMachine.FoldedState,
             _foldedBounds,
-            monitor.WorkArea);
+            monitor.WorkArea,
+            PreferredFloatingHeight);
 
         ShowFloatingContent();
         ApplyBounds(expandedBounds);
@@ -204,7 +241,7 @@ public partial class FocusFloatingWindow : Window
         _stateMachine.Detach();
         ShowFloatingContent();
         Width = FocusFloatingSnapCalculator.FloatingWidth;
-        Height = FocusFloatingSnapCalculator.FloatingHeight;
+        Height = PreferredFloatingHeight;
         _foldHoverArmed = true;
     }
 
@@ -242,28 +279,29 @@ public partial class FocusFloatingWindow : Window
         Height = bounds.Height;
     }
 
-    private static Rect GetFloatingBoundsAround(Rect sourceBounds, Rect workArea)
+    private Rect GetFloatingBoundsAround(Rect sourceBounds, Rect workArea)
     {
         var centerX = sourceBounds.Left + sourceBounds.Width / 2;
         var centerY = sourceBounds.Top + sourceBounds.Height / 2;
         var maximumLeft = workArea.Right - FocusFloatingSnapCalculator.FloatingWidth;
-        var maximumTop = workArea.Bottom - FocusFloatingSnapCalculator.FloatingHeight;
+        var maximumTop = workArea.Bottom - PreferredFloatingHeight;
         var left = maximumLeft <= workArea.Left
             ? workArea.Left
             : Math.Clamp(centerX - FocusFloatingSnapCalculator.FloatingWidth / 2, workArea.Left, maximumLeft);
         var top = maximumTop <= workArea.Top
             ? workArea.Top
-            : Math.Clamp(centerY - FocusFloatingSnapCalculator.FloatingHeight / 2, workArea.Top, maximumTop);
+            : Math.Clamp(centerY - PreferredFloatingHeight / 2, workArea.Top, maximumTop);
         return new Rect(
             left,
             top,
             FocusFloatingSnapCalculator.FloatingWidth,
-            FocusFloatingSnapCalculator.FloatingHeight);
+            PreferredFloatingHeight);
     }
 
     protected override void OnClosed(EventArgs e)
     {
         _collapseTimer.Stop();
+        _sizeRefreshOperation?.Abort();
         _collapseTimer.Tick -= CollapseTimer_Tick;
         FloatingContentView.ExpandRequested -= FloatingContentView_ExpandRequested;
         if (DataContext is FocusFloatingWindowViewModel model) model.PropertyChanged -= Model_PropertyChanged;

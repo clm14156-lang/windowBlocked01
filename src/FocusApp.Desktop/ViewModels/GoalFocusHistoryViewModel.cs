@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows.Input;
 using FocusApp.Contracts;
@@ -14,6 +14,21 @@ public sealed class GoalFocusHistoryViewModel(Func<DateTime> now) : INotifyPrope
     public int CompletedTaskCount => Days.Sum(day => day.Sessions.Sum(session => session.Tasks.Count));
     public bool HasCompletedTasks => CompletedTaskCount > 0;
     public string CompletedTaskSummaryDisplay => $"已完成 {CompletedTaskCount} 项";
+
+    public GoalFocusSessionViewModel? ShowCompletedTasks()
+    {
+        GoalFocusSessionViewModel? first = null;
+        foreach (var day in Days.Where(day => day.Sessions.Any(session => session.HasTasks)))
+        {
+            if (!day.IsExpanded) day.ToggleCommand.Execute(null);
+            foreach (var session in day.Sessions.Where(session => session.HasTasks))
+            {
+                first ??= session;
+                if (!session.IsTasksExpanded) session.ToggleTasksCommand.Execute(null);
+            }
+        }
+        return first;
+    }
 
     public void CollapseAll()
     {
@@ -87,7 +102,7 @@ public sealed class GoalFocusDayViewModel : INotifyPropertyChanged
         DateDisplay = date == today ? $"今天 · {date:M月d日}" : date == today.AddDays(-1) ? $"昨天 · {date:M月d日}" : $"{date:M月d日}";
         var minutes = (int)TimeSpan.FromTicks(sessions.Sum(session => (session.Record.EndTime - session.Record.StartTime).Ticks)).TotalMinutes;
         SummaryDisplay = $"{new GoalInvestmentDurationViewModel(minutes).Display} · {sessions.Count}次专注";
-        Timeline = CalendarFocusTimelineViewModel.Create(date, sessions.Select(session => session.Record));
+        Timeline = CalendarFocusTimelineViewModel.Create(date, sessions.Select(session => session.Record), fullDay: true);
         ToggleCommand = new RelayCommand<object>(_ => IsExpanded = !IsExpanded);
     }
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -116,11 +131,15 @@ public sealed class GoalFocusSessionViewModel : INotifyPropertyChanged
     }
     public event PropertyChangedEventHandler? PropertyChanged;
     public FocusSessionRecordViewModel Record { get; }
+    public string StartTimeDisplay => $"{Record.StartTime:HH:mm}";
+    public string FocusDurationDisplay => $"专注 {DurationDisplay}";
     public string TimeRangeDisplay => Record.TimeRangeDisplay;
     public string DurationDisplay => Record.CalendarDurationDisplay;
     public IReadOnlyList<GoalHistoryTaskViewModel> Tasks { get; }
     public bool HasTasks => Tasks.Count > 0;
-    public string TaskToggleDisplay => IsTasksExpanded ? "⌃ 收起" : $"{Tasks.Count}项任务";
+    public int TaskCount => Tasks.Count;
+    public string TaskCountDisplay => $"{Tasks.Count}项任务";
+    public string TaskToggleDisplay => IsTasksExpanded ? $"收起{Tasks.Count}项历史任务" : $"查看{Tasks.Count}项历史任务";
     public ICommand ToggleTasksCommand { get; }
     public bool IsTasksExpanded
     {

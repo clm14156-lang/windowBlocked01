@@ -14,6 +14,8 @@ public partial class StatisticsPage : UserControl
 {
     private ToggleButton? _openGoalListMoreButton;
 
+    private void GoalCompletedTasksButton_Click(object sender, RoutedEventArgs e) => GoalFocusHistoryControl.ShowCompletedTasks();
+
     private void CompletedTasksModalOverlay_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
         if (CompletedTasksModalOverlay.IsVisible)

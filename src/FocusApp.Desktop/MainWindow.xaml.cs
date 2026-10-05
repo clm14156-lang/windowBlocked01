@@ -246,7 +246,7 @@ public partial class MainWindow : Window
         {
             DataContext = _focusFloatingViewModel,
             Left = SystemParameters.WorkArea.Right - 324,
-            Top = SystemParameters.WorkArea.Bottom - 244
+            Top = SystemParameters.WorkArea.Bottom - _focusFloatingViewModel.WindowHeight - 24
         };
         _focusFloatingWindow.ExpandRequested += FocusFloatingWindow_ExpandRequested;
         _focusFloatingWindow.Closed += FocusFloatingWindow_Closed;

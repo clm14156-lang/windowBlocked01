@@ -2,17 +2,20 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using System.Windows.Threading;
 using FocusApp.Desktop.ViewModels;
 
 namespace FocusApp.Desktop.Views;
 
 public partial class CreateGoalModal : UserControl
 {
+    private bool _remarkLayoutPending;
     public CreateGoalModal()
     {
         InitializeComponent();
         GoalIconLibraryPopup.CustomPopupPlacementCallback = PlaceGoalIconLibraryPopup;
-
+        Loaded += (_, _) => ScheduleRemarkLayout();
+        DataContextChanged += (_, _) => ScheduleRemarkLayout();
     }
 
     private void Overlay_MouseDown(object sender, MouseButtonEventArgs e)
@@ -56,6 +59,23 @@ public partial class CreateGoalModal : UserControl
             viewModel.ConfirmCreateGoalCommand.Execute(null);
             e.Handled = true;
         }
+    }
+
+    private void NewGoalRemarkTextBox_TextChanged(object sender, TextChangedEventArgs e) => ScheduleRemarkLayout();
+    private void NewGoalRemarkTextBox_SizeChanged(object sender, SizeChangedEventArgs e) => ScheduleRemarkLayout();
+
+    private void ScheduleRemarkLayout()
+    {
+        if (_remarkLayoutPending) return;
+        _remarkLayoutPending = true;
+        Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () =>
+        {
+            _remarkLayoutPending = false;
+            if (DataContext is not StatisticsOverviewViewModel model || !model.IsCreateGoalDialogOpen) return;
+            NewGoalRemarkTextBox.UpdateLayout();
+            // LineCount includes automatic wrapping and explicit newlines, including a trailing Enter.
+            model.SetGoalRemarkLineCount(NewGoalRemarkTextBox.LineCount);
+        });
     }
 
     private CustomPopupPlacement[] PlaceGoalIconLibraryPopup(

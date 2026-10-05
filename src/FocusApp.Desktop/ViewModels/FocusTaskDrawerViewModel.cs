@@ -47,6 +47,7 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
 
     public event PropertyChangedEventHandler? PropertyChanged;
     public ObservableCollection<FocusTaskViewModel> Tasks { get; } = [];
+    public ObservableCollection<FocusTaskViewModel> TodayCompletedTasks { get; } = [];
     public ICommand ToggleCommand { get; }
     public ICommand CloseCommand { get; }
     public ICommand AddTaskCommand { get; }
@@ -57,6 +58,7 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
     public ICommand CreateTaskCommand { get; }
     public ICommand AddSubTaskCommand { get; }
     public ICommand DeleteSubTaskCommand { get; }
+    public ICommand ToggleTaskCompletedCommand => _session.ToggleTaskCompletedCommand;
     public FocusTaskViewModel? SelectedTask => _selectedTask;
     public bool IsOpen
     {
@@ -84,20 +86,34 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
     }
     public string SubTaskCountDisplay => $"{_draft?.SubTasks.Count ?? 0}/20";
     public bool CanEnterSubTask => _draft?.SubTasks.Count < 20;
-    public string TaskProgress => $"{Tasks.Count(task => task.IsCompleted)}/{Tasks.Count}";
+    public bool HasPendingTasks => Tasks.Count > 0;
+    public bool HasTodayCompletedTasks => TodayCompletedTasks.Count > 0;
+    public bool IsEmpty => !HasPendingTasks && !HasTodayCompletedTasks;
+    public int TotalTaskCount => Tasks.Count + TodayCompletedTasks.Count;
+    public string TaskProgress => TotalTaskCount == 0 ? string.Empty : $"{TodayCompletedTasks.Count}/{TotalTaskCount}";
+    public string TaskProgressDisplay => TotalTaskCount == 0 ? string.Empty : $"{TaskProgress} 已推进";
+    public double TaskProgressRatio => TotalTaskCount == 0 ? 0 : TodayCompletedTasks.Count / (double)TotalTaskCount;
 
     internal void RefreshTasks()
     {
-        var current = _session.CurrentRoundTasks.ToArray();
+        var current = (_session.ActiveTarget?.Tasks.AsEnumerable() ?? []).ToArray();
         var pending = current.Where(item => !item.IsCompleted).ToArray();
-        var completed = current.Where(item => item.IsCompleted).ToArray();
-        if (SelectedTask is not null && !current.Contains(SelectedTask)) SelectTask(null);
-        if (_editingTask is not null && !current.Contains(_editingTask)) CancelCreation();
-        SyncTasks(Tasks, pending.Concat(completed).ToArray());
+        var completed = _session.CompletedTasks.OrderByDescending(item => item.CompletedAtUtc).ToArray();
+        var visible = pending.Concat(completed).ToArray();
+        if (SelectedTask is not null && !visible.Contains(SelectedTask)) SelectTask(null);
+        if (_editingTask is not null && !visible.Contains(_editingTask)) CancelCreation();
+        SyncTasks(Tasks, pending);
+        SyncTasks(TodayCompletedTasks, completed);
         for (var index = 0; index < pending.Length; index++) pending[index].DrawerNumber = index + 1;
         var highlighted = _selectedTask is { IsCompleted: false } ? _selectedTask : pending.FirstOrDefault();
         foreach (var currentTask in current) currentTask.IsDrawerSelected = currentTask == highlighted;
         OnPropertyChanged(nameof(TaskProgress));
+        OnPropertyChanged(nameof(TaskProgressDisplay));
+        OnPropertyChanged(nameof(TaskProgressRatio));
+        OnPropertyChanged(nameof(TotalTaskCount));
+        OnPropertyChanged(nameof(HasPendingTasks));
+        OnPropertyChanged(nameof(HasTodayCompletedTasks));
+        OnPropertyChanged(nameof(IsEmpty));
     }
 
     private static void SyncTasks(ObservableCollection<FocusTaskViewModel> destination, FocusTaskViewModel[] desired)
@@ -157,7 +173,7 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
     private void SelectTask(FocusTaskViewModel? task)
     {
         if (task is not null && (!_session.IsFocusing || _session.ActiveTarget?.Tasks.Contains(task) != true)) return;
-        foreach (var currentTask in _session.CurrentRoundTasks) currentTask.IsDrawerSelected = false;
+        foreach (var currentTask in _session.ActiveTarget?.Tasks.AsEnumerable() ?? []) currentTask.IsDrawerSelected = false;
         if (_selectedTask is not null)
         {
             _selectedTask.IsExpanded = false;

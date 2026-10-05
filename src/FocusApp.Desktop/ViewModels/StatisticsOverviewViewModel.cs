@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Globalization;
@@ -143,7 +143,6 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         _confirmCreateGoalCommand = new RelayCommand<object>(_ => CreateGoal(), _ => CanCreateGoal);
         ConfirmCreateGoalCommand = _confirmCreateGoalCommand;
         SelectTargetIconCommand = new RelayCommand<TargetIconOptionViewModel>(SelectTargetIcon);
-        ToggleGoalMoreCommand = new RelayCommand<object>(_ => IsGoalMoreExpanded = !IsGoalMoreExpanded);
         SelectGoalColorCommand = new RelayCommand<GoalColorOptionViewModel>(SelectGoalColor);
         ToggleGoalIconLibraryCommand = new RelayCommand<object>(_ => IsGoalIconLibraryOpen = !IsGoalIconLibraryOpen);
         ClearNewGoalNameCommand = new RelayCommand<object>(_ => NewGoalName = string.Empty);
@@ -529,7 +528,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     public string PeriodFocusDistributionEmptyTitle => SelectedRange.Days == 7 ? "近七天没有专注记录" : $"{SelectedRange.Label}没有专注记录";
 
     public ObservableCollection<FocusSessionRecordViewModel> SelectedDayRecords { get; } = [];
-    public CalendarFocusTimelineViewModel SelectedDayTimeline { get; private set; } = CalendarFocusTimelineViewModel.Create(DateTime.Today, []);
+    public CalendarFocusTimelineViewModel SelectedDayTimeline { get; private set; } = CalendarFocusTimelineViewModel.Create(DateTime.Today, [], fullDay: true);
     public ObservableCollection<CalendarTimeDistributionViewModel> SelectedDayDistributions { get; } = [];
     public bool HasSelectedDayFocusData => SelectedDayMinutes > 0 || SelectedDayRecords.Count > 0;
     public bool HasSelectedDayDistributions => SelectedDayDistributions.Count > 0;
@@ -554,23 +553,20 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         new("黄色", "#FFD332"), new("绿色", "#2BC46D"), new("蓝色", "#299BFA"), new("紫色", "#A66AF3")
     ];
 
-    private bool _isGoalMoreExpanded;
-    public bool IsGoalMoreExpanded
+    private int _goalRemarkVisibleLines = 1;
+    public double GoalDialogHeight => 310 + (_goalRemarkVisibleLines - 1) * 20;
+    public double GoalRemarkInputHeight => _goalRemarkVisibleLines * 20;
+    public bool IsGoalRemarkAtLimit => _newGoalRemark.Length >= 150;
+
+    public void SetGoalRemarkLineCount(int lineCount)
     {
-        get => _isGoalMoreExpanded;
-        private set
-        {
-            if (_isGoalMoreExpanded == value) return;
-            _isGoalMoreExpanded = value;
-            OnPropertyChanged();
-            OnPropertyChanged(nameof(GoalDialogHeight));
-            OnPropertyChanged(nameof(GoalMoreToggleText));
-        }
+        var visibleLines = Math.Clamp(lineCount, 1, 3);
+        if (_goalRemarkVisibleLines == visibleLines) return;
+        _goalRemarkVisibleLines = visibleLines;
+        OnPropertyChanged(nameof(GoalDialogHeight));
+        OnPropertyChanged(nameof(GoalRemarkInputHeight));
     }
 
-    public double GoalDialogHeight => IsGoalMoreExpanded ? 480 : 390;
-    public string GoalMoreToggleText => IsGoalMoreExpanded ? "收起更多" : "添加更多";
-    public ICommand ToggleGoalMoreCommand { get; }
     public ICommand SelectGoalColorCommand { get; }
     public string SelectedGoalColorHex => GoalColors.First(color => color.IsSelected).ColorHex;
 
@@ -629,7 +625,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         get => _newGoalRemark;
         set
         {
-            var normalized = (value ?? string.Empty).TrimEnd('\r', '\n');
+            var normalized = value ?? string.Empty;
             if (normalized.Length > 150)
             {
                 normalized = normalized[..150];
@@ -638,6 +634,8 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             _newGoalRemark = normalized;
             OnPropertyChanged();
             OnPropertyChanged(nameof(RemarkCharacterCountDisplay));
+            OnPropertyChanged(nameof(IsGoalRemarkAtLimit));
+            if (normalized.Length == 0) SetGoalRemarkLineCount(1);
         }
     }
 
@@ -1189,7 +1187,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
         NewGoalName = string.Empty;
         NewGoalRemark = string.Empty;
-        IsGoalMoreExpanded = false;
+        SetGoalRemarkLineCount(1);
         SelectGoalColor(GoalColors[2]);
         IsGoalIconLibraryOpen = false;
         SelectTargetIcon(QuickTargetIcons.FirstOrDefault() ?? AllTargetIcons.FirstOrDefault());
@@ -1200,7 +1198,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     {
         IsGoalIconLibraryOpen = false;
         IsCreateGoalDialogOpen = false;
-        IsGoalMoreExpanded = false;
+        SetGoalRemarkLineCount(1);
         SetEditingGoal(null);
         NewGoalName = string.Empty;
         NewGoalRemark = string.Empty;
@@ -1278,7 +1276,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         if (goal is null || goal.IsArchived || IsCreateGoalDialogOpen || !Goals.Contains(goal)) return;
         IsGoalListMenuOpen = false;
         SetEditingGoal(goal);
-        IsGoalMoreExpanded = false;
+        SetGoalRemarkLineCount(1);
         SelectGoalColor(GoalColors.FirstOrDefault(color => color.ColorHex == goal.IconColorHex) ?? GoalColors[2]);
         NewGoalName = goal.Name;
         NewGoalRemark = goal.Remark ?? string.Empty;
@@ -1715,7 +1713,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             SelectedDayRecords.Add(record);
         }
         OnPropertyChanged(nameof(HasSelectedDayRecords));
-        SelectedDayTimeline = CalendarFocusTimelineViewModel.Create(date, SelectedDayRecords);
+        SelectedDayTimeline = CalendarFocusTimelineViewModel.Create(date, SelectedDayRecords, fullDay: true);
         OnPropertyChanged(nameof(SelectedDayTimeline));
 
         RefreshSelectedDayCompletedTasks();
