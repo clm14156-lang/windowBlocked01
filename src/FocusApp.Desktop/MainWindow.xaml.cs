@@ -25,19 +25,25 @@ public partial class MainWindow : Window
     private HwndSource? _hotKeySource;
     private FocusFloatingWindow? _focusFloatingWindow;
     private FocusFloatingWindowViewModel? _focusFloatingViewModel;
+    private readonly FocusFloatingPositionStore _floatingPositionStore;
+    private FocusFloatingPosition? _lastFloatingPosition;
     private CompletionReminderWindow? _completionReminderWindow;
     private HomePage? _homePageView;
     private SettingsPage? _settingsPageView;
     private BlockingPage? _blockingPageView;
     private StatisticsPage? _statisticsPageView;
     private bool _isClosing;
+    private bool _ruleScrimPressed;
 #if DEBUG
     private bool _debugForcedExitInProgress;
 #endif
     private readonly DispatcherTimer _guestLoginHintCloseTimer;
 
-    public MainWindow()
+    public MainWindow() : this(new FocusFloatingPositionStore()) { }
+
+    public MainWindow(FocusFloatingPositionStore floatingPositionStore)
     {
+        _floatingPositionStore = floatingPositionStore;
         InitializeComponent();
         GuestLoginHintPopup.CustomPopupPlacementCallback = PlaceGuestLoginHintPopup;
         _guestLoginHintCloseTimer = new DispatcherTimer
@@ -244,14 +250,21 @@ public partial class MainWindow : Window
         _focusFloatingViewModel = new FocusFloatingWindowViewModel(session);
         _focusFloatingWindow = new FocusFloatingWindow
         {
-            DataContext = _focusFloatingViewModel,
-            Left = SystemParameters.WorkArea.Right - 324,
-            Top = SystemParameters.WorkArea.Bottom - _focusFloatingViewModel.WindowHeight - 24
+            DataContext = _focusFloatingViewModel
         };
+        MonitorWorkAreaProvider.RestorePosition(_focusFloatingWindow, this, _lastFloatingPosition ?? _floatingPositionStore.Load());
         _focusFloatingWindow.ExpandRequested += FocusFloatingWindow_ExpandRequested;
+        _focusFloatingWindow.UserPositionChanged += FocusFloatingWindow_UserPositionChanged;
         _focusFloatingWindow.Closed += FocusFloatingWindow_Closed;
         Hide();
         _focusFloatingWindow.Show();
+    }
+
+    private void FocusFloatingWindow_UserPositionChanged(object? sender, EventArgs e)
+    {
+        if (sender is not FocusFloatingWindow window) return;
+        _lastFloatingPosition = window.GetPositionForMemory();
+        _floatingPositionStore.Save(_lastFloatingPosition);
     }
 
     private void FocusFloatingWindow_ExpandRequested(object? sender, EventArgs e)
@@ -261,6 +274,8 @@ public partial class MainWindow : Window
 
     private void FocusFloatingWindow_Closed(object? sender, EventArgs e)
     {
+        if (sender is FocusFloatingWindow closedWindow)
+            closedWindow.UserPositionChanged -= FocusFloatingWindow_UserPositionChanged;
         if (!ReferenceEquals(sender, _focusFloatingWindow))
         {
             return;
@@ -525,12 +540,26 @@ public partial class MainWindow : Window
 
     private void RuleScrim_MouseDown(object sender, MouseButtonEventArgs e)
     {
-        if (ReferenceEquals(e.OriginalSource, sender) &&
-            DataContext is ViewModels.MainWindowViewModel viewModel)
-        {
-            viewModel.SettingsPage.RuleModal.CloseCommand.Execute(null);
-        }
+        if (e.ChangedButton != MouseButton.Left || !ReferenceEquals(e.OriginalSource, sender)) return;
+        e.Handled = true;
+        _ruleScrimPressed = true;
+        ((UIElement)sender).CaptureMouse();
     }
+
+    private void RuleScrim_MouseUp(object sender, MouseButtonEventArgs e)
+    {
+        if (!_ruleScrimPressed || e.ChangedButton != MouseButton.Left) return;
+        e.Handled = true;
+        _ruleScrimPressed = false;
+        if (DataContext is MainWindowViewModel viewModel)
+        {
+            if (viewModel.SettingsPage.RuleModal.IsEditorOpen) viewModel.SettingsPage.RuleModal.CancelEditor();
+            else viewModel.SettingsPage.RuleModal.CloseCommand.Execute(null);
+        }
+        ((UIElement)sender).ReleaseMouseCapture();
+    }
+
+    private void RuleScrim_LostMouseCapture(object sender, MouseEventArgs e) => _ruleScrimPressed = false;
 
     private void RuleActivationScrim_MouseDown(object sender, MouseButtonEventArgs e)
     {

@@ -1,5 +1,6 @@
 using System.IO.Pipes;
 using System.Security.Principal;
+using System.Windows.Threading;
 using FocusApp.Contracts;
 using FocusApp.Desktop.Services;
 using FocusApp.Desktop.ViewModels;
@@ -506,6 +507,93 @@ public sealed class NamedPipeCommunicationTests
             new EmptyPayload(),
             RequestTimeout);
         return $"ping:{response.ServiceInstanceId}";
+    }
+
+    [Fact]
+    public async Task ImmediateRuleEditsPersistTheLatestValuesAfterRapidChangesClosingAndServiceRestart()
+    {
+        await using var fixture = await ServiceFixture.StartAsync();
+        var id = Guid.NewGuid();
+        await using (var seed = await fixture.ConnectAsync(IpcClientRole.Desktop))
+        {
+            var now = DateTimeOffset.UtcNow;
+            await seed.SendAsync<SaveTargetCommand, MutationResult>(IpcOperations.SaveTarget,
+                new SaveTargetCommand(new LocalTargetDto("goal", "学习", false, 0, now, now), []), RequestTimeout);
+            await seed.SendAsync<ReplaceAutomaticRulesCommand, MutationResult>(IpcOperations.ReplaceAutomaticRules,
+                new ReplaceAutomaticRulesCommand([new LocalAutomaticRuleDto(id, Enum.GetValues<DayOfWeek>(), 60, 120, false, 0)]), RequestTimeout);
+        }
+        await RunOnUiThreadAsync(async () =>
+        {
+            await using var connection = new DesktopServiceConnection(fixture.PipeName);
+            await connection.StartAsync();
+            await WaitUntilAsync(() => connection.IsConnected, RequestTimeout);
+            var settings = new SettingsPageViewModel([], []);
+            settings.RuleModal.ApplyTargets(connection.State!.Targets);
+            settings.ApplyAutomaticRules(connection.State.AutomaticRules);
+            var home = new HomePageViewModel([new HomeDurationOptionViewModel("30", "", true, 30)],
+                focusSession: new FocusSessionViewModel(runTimer: false));
+            _ = new MainWindowViewModel([new NavigationItemViewModel(NavigationPage.Home, "首页", "H")],
+                new NavigationItemViewModel(NavigationPage.Account, "账号", "A"), home, settings, serviceConnection: connection);
+            var revision = connection.State.Revision;
+            var changes = 0;
+            settings.RulesChanged += (_, _) => changes++;
+            settings.EditRuleCommand.Execute(settings.AutomaticRules[0]);
+            var editor = settings.RuleModal;
+            editor.EditorIsEnabled = true;
+            editor.IsCustom = true;
+            foreach (var day in editor.Weekdays) day.IsSelected = day.Key is "Monday" or "Friday";
+            editor.EditorStartText = "01:15";
+            editor.EditorEndText = "03:00";
+            editor.SelectedTargetId = "goal";
+            for (var index = 0; index < 30; index++)
+                editor.EditorEndText = $"02:{index % 4 * 15:00}";
+            editor.CancelEditor();
+            Assert.Equal(135, Assert.Single(settings.AutomaticRules).EndMinutes);
+            await WaitUntilAsync(() => connection.State!.Revision >= revision + changes, RequestTimeout);
+            // Let the final UI continuation apply the committed snapshot.
+            await Dispatcher.Yield(DispatcherPriority.Background);
+            var saved = Assert.Single(connection.State!.AutomaticRules);
+            Assert.Equal(id, saved.Id);
+            Assert.Equal(75, saved.StartMinutes);
+            Assert.Equal(135, saved.EndMinutes);
+            Assert.True(saved.IsEnabled);
+            Assert.True(saved.IsCustom);
+            Assert.Equal("goal", saved.TargetId);
+            Assert.Equal(new[] { DayOfWeek.Monday, DayOfWeek.Friday }, saved.ActiveDays.Order());
+            Assert.Equal(135, Assert.Single(settings.AutomaticRules).EndMinutes);
+        });
+        await fixture.StopWorkerAsync();
+        await fixture.StartWorkerAsync();
+        await using var observer = await fixture.ConnectAsync(IpcClientRole.Desktop);
+        var reloaded = await observer.SendAsync<EmptyPayload, LocalDataSnapshotDto>(IpcOperations.GetState, new EmptyPayload(), RequestTimeout);
+        var restored = Assert.Single(reloaded.AutomaticRules);
+        Assert.Equal(id, restored.Id);
+        Assert.Equal(75, restored.StartMinutes);
+        Assert.Equal(135, restored.EndMinutes);
+        Assert.Equal("goal", restored.TargetId);
+        Assert.True(restored.IsEnabled);
+        Assert.True(restored.IsCustom);
+        Assert.Equal(new[] { DayOfWeek.Monday, DayOfWeek.Friday }, restored.ActiveDays.Order());
+    }
+
+    private static Task RunOnUiThreadAsync(Func<Task> action)
+    {
+        var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var thread = new Thread(() =>
+        {
+            var dispatcher = Dispatcher.CurrentDispatcher;
+            SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(dispatcher));
+            dispatcher.BeginInvoke(new Action(async () =>
+            {
+                try { await action(); completion.TrySetResult(); }
+                catch (Exception exception) { completion.TrySetException(exception); }
+                finally { dispatcher.BeginInvokeShutdown(DispatcherPriority.Background); }
+            }));
+            Dispatcher.Run();
+        }) { IsBackground = true };
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        return completion.Task;
     }
 
     private static async Task<string> GetStateIdentityAsync(NamedPipeIpcClient client)

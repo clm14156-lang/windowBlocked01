@@ -217,8 +217,7 @@ public sealed class DesktopFocusSessionBridge : IDisposable
                 return new LocalFocusSessionTaskSnapshotDto(task.TaskId, persisted?.TaskNameSnapshot ?? task.Name, index)
                 {
                     CompletedAtUtc = task.CompletedAtUtc ?? persisted?.CompletedAtUtc,
-                    Details = persisted?.Details ?? new LocalTaskDetailsSnapshotDto(task.Description,
-                        task.SubTasks.Select(child => new LocalSubTaskSnapshotDto(child.Title, child.IsCompleted)).ToArray())
+                    Details = task.CaptureHistoryDetails()
                 };
             })
             .ToArray();

@@ -142,8 +142,8 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
     {
         var current = (_session.ActiveTarget?.Tasks.AsEnumerable() ?? []).ToArray();
         var pending = current.Where(item => !item.IsCompleted).ToArray();
-        var completed = _session.CompletedTasks.OrderByDescending(item => item.CompletedAtUtc).ToArray();
-        var visible = current.Where(item => !item.IsCompleted || completed.Contains(item)).ToArray();
+        var completed = _session.CompletedTasks.OrderBy(item => item.CompletedAtUtc).ToArray();
+        var visible = pending.Concat(completed).ToArray();
         if (SelectedTask is not null && !visible.Contains(SelectedTask)) SelectTask(null);
         if (_editingTask is not null && !visible.Contains(_editingTask)) CancelCreation();
         SyncTasks(Tasks, pending);
@@ -163,11 +163,11 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
 
     public bool MoveTask(FocusTaskViewModel task, int destinationIndex)
     {
-        if (!_session.IsFocusing || IsCreating || _session.ActiveTarget is not { } target ||
-            !VisibleTasks.Contains(task) || destinationIndex < 0 || destinationIndex >= VisibleTasks.Count)
+        if (!_session.IsFocusing || IsCreating || task.IsCompleted || _session.ActiveTarget is not { } target ||
+            !Tasks.Contains(task) || destinationIndex < 0 || destinationIndex >= Tasks.Count)
             return false;
         var oldIndex = target.Tasks.IndexOf(task);
-        var newIndex = target.Tasks.IndexOf(VisibleTasks[destinationIndex]);
+        var newIndex = target.Tasks.IndexOf(Tasks[destinationIndex]);
         if (oldIndex < 0 || newIndex < 0 || oldIndex == newIndex) return false;
         // Move the existing model so its details and disclosure state travel together.
         // The session's collection subscription publishes the new persisted sort order.

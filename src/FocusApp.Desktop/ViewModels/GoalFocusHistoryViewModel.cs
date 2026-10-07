@@ -77,6 +77,8 @@ public sealed class GoalFocusHistoryViewModel(Func<DateTime> now) : INotifyPrope
     private static IReadOnlyList<GoalHistoryTaskViewModel> ReadTasks(FocusSessionRecordViewModel record,
         IReadOnlyDictionary<string, LocalTaskDto> tasks)
     {
+        // Recorded membership establishes the parent's completion; child states come
+        // from its immutable session snapshot, not later edits to the live task.
         return record.CompletedTaskNames.Select((name, index) =>
         {
             var id = index < record.CompletedTaskIds.Count ? record.CompletedTaskIds[index] : null;
@@ -87,6 +89,7 @@ public sealed class GoalFocusHistoryViewModel(Func<DateTime> now) : INotifyPrope
                 ? details.SubTasks.Select(child => new GoalHistorySubTaskViewModel(child.Title, child.IsCompleted)).ToArray()
                 : source?.SubTasks.OrderBy(child => child.SortOrder)
                     .Select(child => new GoalHistorySubTaskViewModel(child.Title, child.IsCompleted)).ToArray() ?? [];
+            children = children.Select((child, childIndex) => child with { IsLast = childIndex == children.Length - 1 }).ToArray();
             var completedAt = snapshot?.CompletedAtUtc?.LocalDateTime
                 ?? (index < record.CompletedTaskTimes.Count ? record.CompletedTaskTimes[index] : null);
             if (completedAt is null && source?.CompletedAtUtc?.LocalDateTime is { } sourceTime &&
@@ -94,7 +97,7 @@ public sealed class GoalFocusHistoryViewModel(Func<DateTime> now) : INotifyPrope
                 completedAt = sourceTime;
             return new GoalHistoryTaskViewModel(snapshot?.TaskNameSnapshot ?? name,
                 details?.Description ?? source?.Description ?? string.Empty, children, completedAt);
-        }).ToArray();
+        }).Where(task => task.SubTasks.All(child => child.IsCompleted)).ToArray();
     }
 }
 
@@ -169,4 +172,7 @@ public sealed record GoalHistoryTaskViewModel(string Name, string Description, I
     public string CompletedTimeDisplay => CompletedAt?.ToString("HH:mm") ?? string.Empty;
     public bool HasCompletedTime => CompletedAt is not null;
 }
-public sealed record GoalHistorySubTaskViewModel(string Title, bool IsCompleted);
+public sealed record GoalHistorySubTaskViewModel(string Title, bool IsCompleted)
+{
+    public bool IsLast { get; init; }
+}

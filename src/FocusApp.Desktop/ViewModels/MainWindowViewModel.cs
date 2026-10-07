@@ -37,6 +37,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private LocalDataSnapshotDto? _pendingServiceState;
     private bool _serviceStateApplyScheduled;
     private int _pendingFocusTaskWrites;
+    private int _pendingAutomaticRuleWrites;
 
     public MainWindowViewModel(
         IEnumerable<NavigationItemViewModel> primaryNavigationItems,
@@ -581,7 +582,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         }
 
         SettingsPage.RuleModal.ApplyTargets(state.Targets);
-        SettingsPage.ApplyAutomaticRules(state.AutomaticRules);
+        if (_pendingAutomaticRuleWrites == 0) SettingsPage.ApplyAutomaticRules(state.AutomaticRules);
         SettingsPage.ApplyLaunchAtStartupState(state.Settings.LaunchAtStartup);
         SettingsPage.ApplyWindowsNotificationsState(state.Settings.WindowsNotificationsEnabled);
         SettingsPage.ApplyFocusSoundState(state.Settings.FocusSoundEnabled);
@@ -622,6 +623,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             rule.IsCustom,
             rule.CreatedAtUtc == DateTimeOffset.UnixEpoch ? now : rule.CreatedAtUtc,
             now, rule.TargetId)).ToArray();
+        _pendingAutomaticRuleWrites++;
         await _automaticRulesPersistenceGate.WaitAsync();
         try
         {
@@ -631,10 +633,16 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             }
             catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException)
             {
-                SettingsPage.ApplyAutomaticRules(persistedRules);
+                if (_pendingAutomaticRuleWrites == 1) SettingsPage.ApplyAutomaticRules(persistedRules);
             }
         }
-        finally { _automaticRulesPersistenceGate.Release(); }
+        finally
+        {
+            _automaticRulesPersistenceGate.Release();
+            _pendingAutomaticRuleWrites--;
+            if (_pendingAutomaticRuleWrites == 0 && ServiceConnection.State is { } state)
+                SettingsPage.ApplyAutomaticRules(state.AutomaticRules);
+        }
     }
 
     private static DayOfWeek? ParseDayKey(string key)
@@ -758,8 +766,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
                     return new LocalFocusSessionTaskSnapshotDto(taskId, persisted?.TaskNameSnapshot ?? name, index)
                     {
                         CompletedAtUtc = task?.CompletedAtUtc ?? persisted?.CompletedAtUtc ?? completedAt,
-                        Details = persisted?.Details ?? (task is null ? null : new LocalTaskDetailsSnapshotDto(task.Description,
-                            task.SubTasks.Select(child => new LocalSubTaskSnapshotDto(child.Title, child.IsCompleted)).ToArray()))
+                        Details = task?.CaptureHistoryDetails() ?? persisted?.Details
                     };
                 }).ToArray();
                 var session = new LocalFocusSessionDto(
@@ -817,28 +824,19 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     private void ShowFocusResultToast(FocusResultReturnedHomeEventArgs result)
     {
+        if (result.Kind != FocusResultKind.NaturalCompleted)
+        {
+            CloseFocusResultToast();
+            return;
+        }
+
         var minutes = Math.Max(0, (int)result.Duration.TotalMinutes);
         FocusResultToastKind = result.Kind;
-        switch (result.Kind)
-        {
-            case FocusResultKind.NaturalCompleted:
-                FocusResultToastTitle = "专注已完成";
-                FocusResultToastSubtitle = result.CompletedTaskCount > 0
-                    ? $"本次专注 {minutes} 分钟 · 完成 {result.CompletedTaskCount} 项任务"
-                    : $"本次专注 {minutes} 分钟";
-                FocusResultToastIconSource = "/FocusApp.Desktop;component/Assets/Themes/Solid/Orange/toast_gouxuan.png";
-                break;
-            case FocusResultKind.EarlyEndedSaved:
-                FocusResultToastTitle = "专注已结束";
-                FocusResultToastSubtitle = $"本次 {minutes} 分钟 · 记录已保存";
-                FocusResultToastIconSource = "/FocusApp.Desktop;component/Assets/Themes/Solid/Orange/toast_tixing.png";
-                break;
-            default:
-                FocusResultToastTitle = "专注已结束";
-                FocusResultToastSubtitle = "未满 5 分钟，本次记录未保存";
-                FocusResultToastIconSource = "/FocusApp.Desktop;component/Assets/Themes/Solid/Orange/toast_jinggao.png";
-                break;
-        }
+        FocusResultToastTitle = "专注已完成";
+        FocusResultToastSubtitle = result.CompletedTaskCount > 0
+            ? $"本次专注 {minutes} 分钟 · 完成 {result.CompletedTaskCount} 项任务"
+            : $"本次专注 {minutes} 分钟";
+        FocusResultToastIconSource = "/FocusApp.Desktop;component/Assets/Themes/Solid/Orange/toast_gouxuan.png";
 
         _focusResultToastTimer.Stop();
         IsFocusResultToastVisible = true;
@@ -913,8 +911,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             return new LocalFocusSessionTaskSnapshotDto(task.TaskId, persisted?.TaskNameSnapshot ?? task.Name, index)
             {
                 CompletedAtUtc = task.CompletedAtUtc ?? persisted?.CompletedAtUtc ?? now,
-                Details = persisted?.Details ?? new LocalTaskDetailsSnapshotDto(task.Description,
-                    task.SubTasks.Select(child => new LocalSubTaskSnapshotDto(child.Title, child.IsCompleted)).ToArray())
+                Details = task.CaptureHistoryDetails()
             };
         }).ToArray();
 

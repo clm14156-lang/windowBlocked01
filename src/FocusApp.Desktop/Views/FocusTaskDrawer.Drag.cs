@@ -27,7 +27,7 @@ public partial class FocusTaskDrawer
     private void PrepareTaskDrag(FrameworkElement row, DependencyObject? source, Point origin)
     {
         ResetTaskDrag();
-        if (row.DataContext is not FocusTaskViewModel task ||
+        if (row.DataContext is not FocusTaskViewModel { IsCompleted: false } task ||
             ViewModel is not { IsCreating: false } ||
             !IsTaskDragSource(source, row)) return;
         _dragRow = row;
@@ -57,7 +57,7 @@ public partial class FocusTaskDrawer
     {
         if (_dragRow is null) return;
         if (leftButton != MouseButtonState.Pressed || ViewModel is not { IsCreating: false } vm ||
-            _dragTask is null || !vm.VisibleTasks.Contains(_dragTask))
+            _dragTask is null || _dragTask.IsCompleted || !vm.Tasks.Contains(_dragTask))
         {
             ResetTaskDrag();
             return;
@@ -75,6 +75,7 @@ public partial class FocusTaskDrawer
 
     private void StartTaskDragFeedback()
     {
+        if (_dragRow is null || _dragTask is null || _dragTask.IsCompleted) return;
         _isDragging = true;
         _dragRow?.SetCurrentValue(OpacityProperty, 0.45);
         _dragScrollTimer ??= new DispatcherTimer(TimeSpan.FromMilliseconds(100), DispatcherPriority.Input,
@@ -86,16 +87,16 @@ public partial class FocusTaskDrawer
     {
         _insertionIndex = -1;
         TaskInsertionLine.Visibility = Visibility.Collapsed;
-        if (ViewModel is not { } vm || _dragTask is null || !vm.VisibleTasks.Contains(_dragTask) ||
+        if (ViewModel is not { } vm || _dragTask is null || _dragTask.IsCompleted || !vm.Tasks.Contains(_dragTask) ||
             _dragPointer.X < 0 || _dragPointer.X > TaskDrawerScrollViewer.ActualWidth ||
             _dragPointer.Y < 0 || _dragPointer.Y > TaskDrawerScrollViewer.ActualHeight) return;
 
-        var rows = GetTaskRows().ToArray();
-        if (rows.Length != vm.VisibleTasks.Count) return;
+        var rows = GetTaskRows().Where(row => row.DataContext is FocusTaskViewModel { IsCompleted: false }).ToArray();
+        if (rows.Length != vm.Tasks.Count) return;
         var tops = rows.Select(row => row.TranslatePoint(new Point(), TaskDrawerScrollViewer).Y).ToArray();
         var heights = rows.Select(row => row.ActualHeight).ToArray();
         _insertionIndex = FindInsertionIndex(_dragPointer.Y, tops, heights);
-        var oldIndex = vm.VisibleTasks.IndexOf(_dragTask);
+        var oldIndex = vm.Tasks.IndexOf(_dragTask);
         if (_insertionIndex == oldIndex || _insertionIndex == oldIndex + 1) return;
 
         var y = _insertionIndex == rows.Length ? tops[^1] + heights[^1] : tops[_insertionIndex];

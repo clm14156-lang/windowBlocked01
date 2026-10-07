@@ -14,9 +14,13 @@ public sealed partial class AutomaticRuleModalViewModel : INotifyPropertyChanged
     private string _validationMessage = string.Empty;
     public AutomaticRuleModalViewModel(IEnumerable<WeekdayOptionViewModel> weekdays)
     {
-        Targets.Add(new(string.Empty, "- 未绑定"));
+        Targets.Add(new(string.Empty, "未绑定"));
         Weekdays = new(weekdays.ToList());
-        foreach (var day in Weekdays) day.PropertyChanged += (_, _) => OnPropertyChanged(nameof(SelectedDaysText));
+        foreach (var day in Weekdays) day.PropertyChanged += (_, _) =>
+        {
+            OnPropertyChanged(nameof(SelectedDaysText));
+            AutoSaveEditor();
+        };
         SelectDailyCommand = new RelayCommand<object>(_ => IsCustom = false);
         SelectCustomCommand = new RelayCommand<object>(_ => IsCustom = true);
         CloseCommand = new RelayCommand<object>(_ => Close());
@@ -36,7 +40,7 @@ public sealed partial class AutomaticRuleModalViewModel : INotifyPropertyChanged
     public bool IsCustom
     {
         get => _isCustom;
-        set { if (SetField(ref _isCustom, value)) OnPropertyChanged(nameof(IsDaily)); }
+        set { if (SetField(ref _isCustom, value)) { OnPropertyChanged(nameof(IsDaily)); AutoSaveEditor(); } }
     }
     public bool IsDaily => !IsCustom;
     public string StartTimeText { get => EditorStartText; set => EditorStartText = value; }
@@ -48,6 +52,7 @@ public sealed partial class AutomaticRuleModalViewModel : INotifyPropertyChanged
     public string ValidationMessage { get => _validationMessage; private set => SetField(ref _validationMessage, value); }
     public void Open()
     {
+        CancelEditor();
         SelectedRuleId = null;
         NewRequested?.Invoke();
         IsEditing = false; IsCustom = false; IsEditorOpen = false;
@@ -59,6 +64,7 @@ public sealed partial class AutomaticRuleModalViewModel : INotifyPropertyChanged
     }
     public void OpenForEdit(bool isCustom, IEnumerable<string> selectedDayKeys, double startMinutes, double endMinutes)
     {
+        CancelEditor();
         IsEditing = true; IsCustom = isCustom;
         var selected = selectedDayKeys.ToHashSet(StringComparer.Ordinal);
         foreach (var day in Weekdays) day.IsSelected = selected.Contains(day.Key);

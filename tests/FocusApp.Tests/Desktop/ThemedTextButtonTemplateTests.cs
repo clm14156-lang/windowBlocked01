@@ -27,7 +27,7 @@ public sealed class ThemedTextButtonTemplateTests
     }
 
     [Fact]
-    public void AutomaticRuleTimeline_HasFixedSizeAndThemeSafeWhiteSaveText()
+    public void AutomaticRuleTimeline_KeepsItsSizeAndEditorHasNoSaveOrCancel()
     {
         var modal = XDocument.Load(Path.Combine(FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "AutomaticRuleModal.xaml"));
         var editor = XDocument.Load(Path.Combine(FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "AutomaticRuleEditorWindow.xaml"));
@@ -35,14 +35,10 @@ public sealed class ThemedTextButtonTemplateTests
         Assert.Equal("620", (string?)modal.Root?.Attribute("Height"));
         Assert.Single(modal.Descendants(Presentation + "Canvas"));
         Assert.DoesNotContain(modal.Descendants(), element => element.Name.LocalName == "TimeRangeSlider");
-        var save = Assert.Single(editor.Descendants(Presentation + "Button").Where(e => (string?)e.Attribute("Content") == "保存"));
-        Assert.Equal("{StaticResource SaveButton}", (string?)save.Attribute("Style"));
-        var saveStyle = FindKeyedElement(editor, "Style", "SaveButton");
-        Assert.Contains(saveStyle.Elements(Presentation + "Setter"), setter =>
-            (string?)setter.Attribute("Property") == "Foreground" &&
-            (string?)setter.Attribute("Value") == "White");
-        var template = FindKeyedElement(editor, "Style", "TextButton");
-        Assert.Contains(template.Descendants(Presentation + "TextBlock"), text => (string?)text.Attribute("Foreground") == "{TemplateBinding Foreground}");
+        Assert.Equal("280", (string?)editor.Root?.Attribute("Width"));
+        Assert.Equal("400", (string?)editor.Root?.Attribute("Height"));
+        Assert.DoesNotContain(editor.Descendants(Presentation + "Button"), button => (string?)button.Attribute("Content") is "保存" or "取消");
+        Assert.DoesNotContain(editor.Descendants(Presentation + "Style"), style => (string?)style.Attribute(Xaml + "Key") is "SaveButton" or "CancelButton");
     }
 
     [Fact]

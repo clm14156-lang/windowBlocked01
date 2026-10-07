@@ -19,7 +19,11 @@ public sealed class HomeForcedModeStatusPresentationTests
 
         Assert.Equal("Center", (string?)status.Attribute("HorizontalAlignment"));
         Assert.Equal("Horizontal", (string?)status.Attribute("Orientation"));
-        Assert.Equal("0,99,24,0", (string?)status.Attribute("Margin"));
+        Assert.Equal("0,507,4,0", (string?)status.Attribute("Margin"));
+        var durationOptions = Assert.Single(view.Descendants(Presentation + "ItemsControl").Where(control =>
+            (string?)control.Attribute(Xaml + "Name") == "HomeDurationOptions"));
+        Assert.Equal("0,446,4,0", (string?)durationOptions.Attribute("Margin"));
+        Assert.Equal("44", (string?)durationOptions.Attribute("Height"));
         Assert.Equal("False", (string?)status.Attribute("IsHitTestVisible"));
         Assert.DoesNotContain(status.Elements(), element => element.Name == Presentation + "Border");
 
@@ -53,7 +57,7 @@ public sealed class HomeForcedModeStatusPresentationTests
             root, "src", "FocusApp.Desktop", "Resources", "Strings.xaml"));
         Assert.Contains(strings.Root!.Elements(), resource =>
             (string?)resource.Attribute(Xaml + "Key") == "HomeForcedModeEnabled" &&
-            resource.Value == "已开启强制模式");
+            resource.Value == "强制模式开启 · 开启后不可提前结束");
     }
 
     private static string FindRepositoryRoot()

@@ -177,6 +177,11 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
             item.PropertyChanged += AutomaticRule_PropertyChanged;
             AutomaticRules.Add(item);
         }
+        if (RuleModal.IsEditorOpen && RuleModal.EditorRuleId is { } editorId)
+        {
+            _editingRule = AutomaticRules.FirstOrDefault(rule => rule.Id == editorId);
+            if (_editingRule is not null) RuleModal.AttachEditorRule(_editingRule);
+        }
         RuleModal.RefreshTimeline();
     }
 
@@ -304,6 +309,8 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
 
     private void RuleModal_RuleSubmitted(object? sender, AutomaticRuleDraft rule)
     {
+        if (_editingRule is null && RuleModal.EditorRuleId is { } editorId)
+            _editingRule = AutomaticRules.FirstOrDefault(item => item.Id == editorId);
         var repeatText = rule.IsCustom
             ? string.Join(" / ", rule.SelectedDays.Select(day => day.DisplayName))
             : _dailyLabel;
@@ -329,7 +336,8 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
             {
                 _isApplyingRuleEditorSave = false;
             }
-            _editingRule = null;
+            RuleModal.AttachEditorRule(_editingRule);
+            if (!RuleModal.IsImmediateEditing) _editingRule = null;
             RuleModal.RefreshTimeline();
             RulesChanged?.Invoke(this, EventArgs.Empty);
             return;
@@ -341,6 +349,8 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
         item.SetTarget(rule.TargetId, ResolveTargetName(rule.TargetId));
         item.PropertyChanged += AutomaticRule_PropertyChanged;
         AutomaticRules.Add(item);
+        RuleModal.AttachEditorRule(item);
+        if (RuleModal.IsImmediateEditing) _editingRule = item;
         RuleModal.RefreshTimeline();
         RulesChanged?.Invoke(this, EventArgs.Empty);
     }
@@ -402,7 +412,7 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
 
     private bool CanSubmitRule(AutomaticRuleDraft draft)
     {
-        var candidate = AutomaticBlockingRuleMapper.ToRule(draft, _editingRule?.Id ?? Guid.NewGuid());
+        var candidate = AutomaticBlockingRuleMapper.ToRule(draft, _editingRule?.Id ?? RuleModal.EditorRuleId ?? Guid.NewGuid());
         if (!AutomaticBlockingDailyLimitValidator.IsSingleRuleWithinLimit(candidate))
         {
             return false;
@@ -611,14 +621,16 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
 
     private string? ValidateRule(AutomaticRuleDraft draft)
     {
-        if (_editingRule is not null && !AutomaticRules.Any(rule => rule.Id == _editingRule.Id))
+        var editingId = _editingRule?.Id ?? RuleModal.EditorRuleId;
+        var editingRule = AutomaticRules.FirstOrDefault(rule => rule.Id == editingId);
+        if (editingId is not null && editingRule is null)
             return "该规则已被删除，请关闭编辑窗口后重试";
         if (draft.SelectedDays.Count == 0) return "请至少选择一天";
-        var legacyOvernight = _editingRule is not null && _editingRule.EndMinutes < _editingRule.StartMinutes;
+        var legacyOvernight = editingRule is not null && editingRule.EndMinutes < editingRule.StartMinutes;
         if (draft.StartMinutes < 0 || draft.StartMinutes >= 1440 || draft.EndMinutes < 0 || draft.EndMinutes == draft.StartMinutes
             || (!legacyOvernight && draft.EndMinutes < draft.StartMinutes) || draft.EndMinutes > 1440)
             return "结束时间必须晚于开始时间（00:00–24:00）";
-        return AutomaticRules.Any(existing => existing.Id != _editingRule?.Id
+        return AutomaticRules.Any(existing => existing.Id != editingId
             && RuleTimelineRange.Overlaps(draft.StartMinutes, draft.EndMinutes, existing.StartMinutes, existing.EndMinutes))
             ? "该时间段与已有规则重叠，请调整开始或结束时间" : null;
     }

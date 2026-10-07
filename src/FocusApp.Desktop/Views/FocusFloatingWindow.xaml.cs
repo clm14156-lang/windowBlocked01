@@ -2,6 +2,8 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
 using System.ComponentModel;
+using System.Windows.Interop;
+using FocusApp.Desktop.Services;
 using FocusApp.Desktop.ViewModels;
 
 namespace FocusApp.Desktop.Views;
@@ -14,6 +16,8 @@ public partial class FocusFloatingWindow : Window
     private bool _foldHoverArmed = true;
     private bool _isDragging;
     private DispatcherOperation? _sizeRefreshOperation;
+    private DispatcherOperation? _positionRefreshOperation;
+    private HwndSource? _windowSource;
 
     private double PreferredFloatingHeight => (DataContext as FocusFloatingWindowViewModel)?.WindowHeight
         ?? FocusFloatingWindowViewModel.EmptyWindowHeight;
@@ -31,6 +35,16 @@ public partial class FocusFloatingWindow : Window
     }
 
     public event EventHandler? ExpandRequested;
+    public event EventHandler? UserPositionChanged;
+
+    public FocusFloatingPosition GetPositionForMemory()
+    {
+        if (!_stateMachine.IsFolded) return MonitorWorkAreaProvider.CapturePosition(this);
+        var monitor = MonitorWorkAreaProvider.GetForWindow(this);
+        var fullBounds = FocusFloatingSnapCalculator.GetExpandedBounds(_stateMachine.FoldedState,
+            _foldedBounds, monitor.WorkArea, PreferredFloatingHeight);
+        return MonitorWorkAreaProvider.CapturePosition(this, fullBounds.TopLeft);
+    }
 
     public FocusFloatingWindowState State => _stateMachine.State;
 
@@ -103,12 +117,15 @@ public partial class FocusFloatingWindow : Window
 
         _collapseTimer.Stop();
         PrepareFloatingStateForDrag();
+        var dragStart = GetCurrentBounds().TopLeft;
+        var completedDrag = false;
 
         e.Handled = true;
         _isDragging = true;
         try
         {
             DragMove();
+            completedDrag = true;
         }
         catch (InvalidOperationException)
         {
@@ -121,7 +138,9 @@ public partial class FocusFloatingWindow : Window
 
         if (IsVisible && WindowState == WindowState.Normal)
         {
+            var moved = completedDrag && GetCurrentBounds().TopLeft != dragStart;
             EvaluateSnapAfterDrag();
+            if (moved) UserPositionChanged?.Invoke(this, EventArgs.Empty);
         }
     }
 
@@ -298,10 +317,36 @@ public partial class FocusFloatingWindow : Window
             PreferredFloatingHeight);
     }
 
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+        _windowSource = PresentationSource.FromVisual(this) as HwndSource;
+        _windowSource?.AddHook(WindowMessages);
+    }
+
+    private IntPtr WindowMessages(IntPtr handle, int message, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        // Recheck after Windows has applied monitor, taskbar, or DPI changes.
+        if (message is 0x007E or 0x001A or 0x02E0 &&
+            _positionRefreshOperation?.Status != DispatcherOperationStatus.Pending)
+        {
+            _positionRefreshOperation = Dispatcher.InvokeAsync(() =>
+            {
+                if (!IsVisible || _isDragging) return;
+                MonitorWorkAreaProvider.EnsureVisible(this);
+                RefreshFoldedBounds();
+                RefreshFloatingSize();
+            }, DispatcherPriority.Loaded);
+        }
+        return IntPtr.Zero;
+    }
+
     protected override void OnClosed(EventArgs e)
     {
         _collapseTimer.Stop();
         _sizeRefreshOperation?.Abort();
+        _positionRefreshOperation?.Abort();
+        _windowSource?.RemoveHook(WindowMessages);
         _collapseTimer.Tick -= CollapseTimer_Tick;
         FloatingContentView.ExpandRequested -= FloatingContentView_ExpandRequested;
         if (DataContext is FocusFloatingWindowViewModel model) model.PropertyChanged -= Model_PropertyChanged;

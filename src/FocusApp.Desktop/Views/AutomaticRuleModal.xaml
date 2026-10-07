@@ -104,7 +104,7 @@
        </Grid>
       </ControlTemplate></ScrollViewer.Template>
       <Canvas x:Name="Timeline" Height="1464" Background="Transparent" SizeChanged="Timeline_SizeChanged"
-       MouseLeftButtonDown="Timeline_MouseDown" MouseMove="Timeline_MouseMove" MouseLeftButtonUp="Timeline_MouseUp" LostMouseCapture="Timeline_LostCapture"/>
+       MouseLeftButtonDown="Timeline_MouseDown" MouseMove="Timeline_MouseMove" PreviewMouseLeftButtonUp="Timeline_MouseUp" LostMouseCapture="Timeline_LostCapture"/>
      </ScrollViewer>
     </Border>
    </Grid>

@@ -26,7 +26,7 @@
         </StackPanel>
 
         <StackPanel x:Name="ForcedModeStatus"
-                    Margin="0,99,24,0"
+                    Margin="0,507,4,0"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Top"
                     IsHitTestVisible="False"
@@ -421,7 +421,7 @@
             </Grid>
         </Button>
 
-        <ItemsControl Width="550"
+        <ItemsControl x:Name="HomeDurationOptions" Width="550"
                       Height="44"
                       Margin="0,446,4,0"
                       HorizontalAlignment="Center"

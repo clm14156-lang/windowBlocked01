@@ -273,7 +273,7 @@ public class RuleTimelineLayoutTests
     }
 
     [Fact]
-    public void FloatingEditorSaveClosesEditorButKeepsTimelineOpen()
+    public void EditorAutoSavesAndClosingKeepsTimelineOpen()
     {
         Exception? failure = null;
         var thread = new Thread(() =>
@@ -285,16 +285,17 @@ public class RuleTimelineLayoutTests
                 settings.RuleModal.BeginEditor(null, 60, 120);
                 var editor = new AutomaticRuleEditorWindow(settings.RuleModal);
                 var content = Assert.IsAssignableFrom<FrameworkElement>(editor.Content);
-                content.Measure(new Size(300, double.PositiveInfinity));
-                content.Arrange(new Rect(0, 0, 300, content.DesiredSize.Height));
+                content.Measure(new Size(280, 400));
+                content.Arrange(new Rect(0, 0, 280, 400));
                 content.UpdateLayout();
 
-                var save = Assert.Single(
-                    Descendants(content).OfType<Button>().Where(button => Equals(button.Content, "保存")));
-                Assert.Contains(
-                    Descendants(content).OfType<Button>(),
-                    button => Equals(button.Content, "删除"));
-                save.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                Assert.DoesNotContain(Descendants(content).OfType<Button>(), button => button.Content is "保存" or "取消");
+                Assert.IsType<Button>(editor.FindName("DeleteRuleButton"));
+                settings.RuleModal.EditorEndText = "02:30";
+                Assert.Equal(150, Assert.Single(settings.AutomaticRules).EndMinutes);
+                Assert.Equal(settings.AutomaticRules[0].Id, settings.RuleModal.SelectedRuleId);
+                var close = Assert.IsType<Button>(editor.FindName("CloseEditorButton"));
+                close.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
 
                 Assert.True(settings.RuleModal.IsOpen);
                 Assert.False(settings.RuleModal.IsEditorOpen);
@@ -332,8 +333,8 @@ public class RuleTimelineLayoutTests
                         UriKind.RelativeOrAbsolute)
                 });
                 var content = Assert.IsAssignableFrom<FrameworkElement>(editor.Content);
-                content.Measure(new Size(300, double.PositiveInfinity));
-                content.Arrange(new Rect(0, 0, 300, content.DesiredSize.Height));
+                content.Measure(new Size(280, 400));
+                content.Arrange(new Rect(0, 0, 280, 400));
                 content.UpdateLayout();
 
                 var statusRow = Assert.IsType<Grid>(editor.FindName("RuleStatusRow"));
@@ -342,11 +343,11 @@ public class RuleTimelineLayoutTests
                 Assert.False(statusSwitch.IsChecked);
                 Assert.Equal("关闭", AutomationProperties.GetHelpText(statusSwitch));
 
-                var target = Assert.Single(Descendants(content).OfType<ComboBox>());
+                var target = Assert.IsType<Button>(editor.FindName("TargetField"));
                 var repeatButtons = Descendants(content).OfType<ToggleButton>()
                     .Where(button => button.Content is "每天" or "自定义")
                     .ToArray();
-                var timeFields = Descendants(content).OfType<TextBox>().ToArray();
+                var timeFields = new[] { (Button)editor.FindName("StartTimeField"), (Button)editor.FindName("EndTimeField") };
                 Assert.True(target.IsEnabled);
                 Assert.Equal(2, repeatButtons.Length);
                 Assert.All(repeatButtons, button => Assert.True(button.IsEnabled));
@@ -357,7 +358,7 @@ public class RuleTimelineLayoutTests
                 if (!string.IsNullOrWhiteSpace(visualQaPath))
                 {
                     var bitmap = new RenderTargetBitmap(
-                        300,
+                        280,
                         (int)Math.Ceiling(content.ActualHeight),
                         96,
                         96,
@@ -419,11 +420,10 @@ public class RuleTimelineLayoutTests
                     settings.RuleModal.IsCustom = true;
                     var editor = new AutomaticRuleEditorWindow(settings.RuleModal);
                     var content = Assert.IsAssignableFrom<FrameworkElement>(editor.Content);
-                    content.Measure(new Size(300, double.PositiveInfinity));
-                    content.Arrange(new Rect(0, 0, 300, content.DesiredSize.Height));
+                    content.Measure(new Size(280, 400));
+                    content.Arrange(new Rect(0, 0, 280, 400));
                     content.UpdateLayout();
-                    var buttons = Descendants(content).OfType<Button>().Where(b => Equals(b.Content, "保存")).ToArray();
-                    var save = Assert.Single(buttons);
+                    var save = Assert.IsType<Button>(editor.FindName("DeleteRuleButton"));
                     var location = save.TransformToAncestor(content).Transform(new Point());
                     Assert.InRange(location.Y + save.ActualHeight, 1, content.ActualHeight);
                     foreach (var weekday in Descendants(content).OfType<ToggleButton>()
@@ -432,7 +432,7 @@ public class RuleTimelineLayoutTests
                         var weekdayLocation = weekday.TransformToAncestor(content).Transform(new Point());
                         Assert.InRange(weekdayLocation.X, 0, content.ActualWidth - weekday.ActualWidth);
                     }
-                    Render(content, scale, "floating-editor", 300, content.DesiredSize.Height);
+                    Render(content, scale, "floating-editor", 280, 400);
                     settings.RuleModal.CancelEditor();
                 }
             }

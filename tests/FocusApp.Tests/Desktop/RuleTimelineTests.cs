@@ -79,7 +79,7 @@ public class RuleTimelineTests
     }
 
     [Fact]
-    public void EditorStatusUsesRuleStateAndOnlyCommitsTogetherWithOtherFieldsOnSave()
+    public void EveryEditorChangeUpdatesTheRuleAndClosingKeepsTheChanges()
     {
         var settings = new SettingsPageViewModel([], [], dailyLabel: "每天");
         var id = Guid.NewGuid();
@@ -94,27 +94,16 @@ public class RuleTimelineTests
 
         Assert.True(settings.RuleModal.EditorIsEnabled);
         Assert.Equal("开启", settings.RuleModal.EditorStatusDisplay);
+        Assert.Equal(0, changes);
         settings.RuleModal.EditorIsEnabled = false;
+        Assert.False(rule.IsEnabled);
+        Assert.Equal(1, changes);
         settings.RuleModal.IsCustom = true;
+        Assert.True(rule.IsCustom);
         foreach (var day in settings.RuleModal.Weekdays) day.IsSelected = day.Key is "Monday" or "Wednesday";
         settings.RuleModal.EditorStartText = "01:15";
         settings.RuleModal.EditorEndText = "02:30";
         settings.RuleModal.CancelEditor();
-
-        Assert.True(rule.IsEnabled);
-        Assert.Equal(60, rule.StartMinutes);
-        Assert.False(rule.IsCustom);
-        Assert.Equal(0, changes);
-
-        settings.EditRuleCommand.Execute(rule);
-        Assert.True(settings.RuleModal.EditorIsEnabled);
-        settings.RuleModal.EditorIsEnabled = false;
-        settings.RuleModal.IsCustom = true;
-        foreach (var day in settings.RuleModal.Weekdays) day.IsSelected = day.Key is "Monday" or "Wednesday";
-        settings.RuleModal.EditorStartText = "01:15";
-        settings.RuleModal.EditorEndText = "02:30";
-
-        Assert.True(settings.RuleModal.SaveEditor());
 
         Assert.Same(rule, Assert.Single(settings.AutomaticRules));
         Assert.False(rule.IsEnabled);
@@ -123,13 +112,14 @@ public class RuleTimelineTests
         Assert.True(rule.IsCustom);
         Assert.Equal(new[] { "Monday", "Wednesday" }, rule.DayKeys.OrderBy(key => key));
         Assert.Equal(0, settings.RuleModal.EnabledRuleCount);
-        Assert.Equal(1, changes);
-
-        rule.IsEnabled = true;
+        Assert.True(changes >= 5);
+        var committedChanges = changes;
         settings.EditRuleCommand.Execute(rule);
-        Assert.True(settings.RuleModal.EditorIsEnabled);
-        Assert.Equal("开启", settings.RuleModal.EditorStatusDisplay);
+        Assert.False(settings.RuleModal.EditorIsEnabled);
+        Assert.Equal("01:15", settings.RuleModal.EditorStartText);
+        Assert.Equal("02:30", settings.RuleModal.EditorEndText);
         settings.RuleModal.CancelEditor();
+        Assert.Equal(committedChanges, changes);
     }
 
     [Fact]
@@ -143,7 +133,7 @@ public class RuleTimelineTests
             new LocalTargetDto("goal-b", "当前目标 B", false, 2, now, now)
         ]);
 
-        Assert.Equal(["- 未绑定", "当前目标 A", "当前目标 B"], modal.Targets.Select(target => target.Name));
+        Assert.Equal(["未绑定", "当前目标 A", "当前目标 B"], modal.Targets.Select(target => target.Name));
         Assert.DoesNotContain(modal.Targets, target => target.Id == "goal-archived");
         Assert.False(modal.Targets[0].HasIcon);
         Assert.True(modal.Targets[1].HasIcon);
@@ -184,7 +174,7 @@ public class RuleTimelineTests
         modal.ApplyTargets([new LocalTargetDto("goal-a", "当前目标", true, 0, now, now)]);
 
         Assert.Null(modal.SelectedTargetId);
-        Assert.Equal(["- 未绑定"], modal.Targets.Select(target => target.Name));
+        Assert.Equal(["未绑定"], modal.Targets.Select(target => target.Name));
     }
 
     [Fact]
@@ -346,7 +336,7 @@ public class RuleTimelineTests
     }
 
     [Fact]
-    public void EditorPreservesMinutesAndIdentityAndCancelDiscardsChanges()
+    public void EditorPreservesMinutesAndIdentityAndClosingKeepsChanges()
     {
         var settings = new SettingsPageViewModel([], []);
         var modal = settings.RuleModal;
@@ -368,7 +358,7 @@ public class RuleTimelineTests
         Assert.Equal("01:02", modal.EditorStartText);
         modal.EditorEndText = "03:00";
         modal.CancelEditor();
-        Assert.Equal(157, rule.EndMinutes);
+        Assert.Equal(180, rule.EndMinutes);
         settings.EditRuleCommand.Execute(rule);
         modal.EditorEndText = "03:00";
         Assert.True(modal.SaveEditor());

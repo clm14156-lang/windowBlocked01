@@ -384,7 +384,9 @@
                     </Style>
                 </Grid.Style>
                 <Border Background="{DynamicResource ModalScrim}"
-                        MouseDown="RuleScrim_MouseDown">
+                        MouseDown="RuleScrim_MouseDown"
+                        MouseUp="RuleScrim_MouseUp"
+                        LostMouseCapture="RuleScrim_LostMouseCapture">
                     <views:AutomaticRuleModal HorizontalAlignment="Center"
                                               VerticalAlignment="Center"
                                               DataContext="{Binding SettingsPage.RuleModal}" />

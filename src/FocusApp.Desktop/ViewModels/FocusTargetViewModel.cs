@@ -317,6 +317,9 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
     public IReadOnlyList<LocalSubTaskDto> ExportSubTasks() => SubTasks.Select((item, index) =>
         new LocalSubTaskDto(item.Id, TaskId, item.Title, item.IsCompleted, index, item.CreatedAtUtc, item.UpdatedAtUtc)).ToArray();
 
+    public LocalTaskDetailsSnapshotDto CaptureHistoryDetails() => new(Description,
+        SubTasks.Select(child => new LocalSubTaskSnapshotDto(child.Title, child.IsCompleted)).ToArray());
+
     public string TargetId { get; }
 
     public string TaskId { get; }

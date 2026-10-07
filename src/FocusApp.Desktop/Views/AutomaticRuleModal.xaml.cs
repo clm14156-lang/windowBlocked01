@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
@@ -26,6 +27,9 @@ public partial class AutomaticRuleModal : UserControl
     private readonly DispatcherTimer _scrollTimer = new() { Interval = TimeSpan.FromMilliseconds(30) };
     private AutomaticRuleModalViewModel? _subscribed;
     private AutomaticRuleEditorWindow? _editorWindow;
+    private AutomaticRuleEditorAdorner? _editorAdorner;
+    private AdornerLayer? _editorLayer;
+    private bool _dismissEditorOnRelease;
     private AutomaticRuleModalViewModel? Model => DataContext as AutomaticRuleModalViewModel;
 
     public AutomaticRuleModal()
@@ -52,6 +56,11 @@ public partial class AutomaticRuleModal : UserControl
     }
     private void ModelChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (e.PropertyName == nameof(AutomaticRuleModalViewModel.EditorRuleId))
+        {
+            _draft = null;
+            RenderTimeline();
+        }
         if (e.PropertyName is nameof(AutomaticRuleModalViewModel.GetRules)
             or nameof(AutomaticRuleModalViewModel.SelectedRuleId)) RenderTimeline();
         if (e.PropertyName == nameof(AutomaticRuleModalViewModel.IsOpen))
@@ -76,22 +85,26 @@ public partial class AutomaticRuleModal : UserControl
         if (!IsLoaded || Model?.IsEditorOpen != true) return;
         if (_editorWindow is not null)
         {
-            PositionEditorWindow(_editorWindow);
+            PositionEditorWindow();
             return;
         }
 
+        if (Window.GetWindow(this)?.Content is not FrameworkElement ownerContent) return;
+        var layer = AdornerLayer.GetAdornerLayer(ownerContent);
+        if (layer is null) return;
         var editor = new AutomaticRuleEditorWindow(Model);
-        var owner = Window.GetWindow(this);
-        if (owner is not null) editor.Owner = owner;
-        editor.Closed += (_, _) => { if (ReferenceEquals(_editorWindow, editor)) _editorWindow = null; };
         _editorWindow = editor;
-        PositionEditorWindow(editor);
-        editor.Show();
-        editor.Activate();
+        _editorLayer = layer;
+        var surface = editor.DetachSurface();
+        _editorAdorner = new AutomaticRuleEditorAdorner(ownerContent, surface);
+        layer.Add(_editorAdorner);
+        PositionEditorWindow();
+        _editorAdorner.UpdateLayout();
+        Keyboard.Focus(surface);
     }
-    private void PositionEditorWindow(AutomaticRuleEditorWindow editor)
+    private void PositionEditorWindow()
     {
-        if (!IsLoaded) return;
+        if (!IsLoaded || _editorAdorner?.AdornedElement is not FrameworkElement ownerContent) return;
         TimelineScroll.ApplyTemplate();
         var scrollBar = TimelineScroll.Template.FindName("PART_VerticalScrollBar", TimelineScroll) as FrameworkElement;
         var editorLeft = scrollBar is not null
@@ -99,18 +112,19 @@ public partial class AutomaticRuleModal : UserControl
             : TimelineScroll.TranslatePoint(new Point(TimelineScroll.ActualWidth, 0), this).X
               - AutomaticRuleEditorWindow.SurfaceInset;
         var blockTop = Timeline.TranslatePoint(new Point(0, TopInset + (Model?.StartValue ?? 0)), this).Y;
-        var screenPoint = PointToScreen(new Point(editorLeft, blockTop));
-        var source = PresentationSource.FromVisual(this);
-        if (source?.CompositionTarget is not null)
-            screenPoint = source.CompositionTarget.TransformFromDevice.Transform(screenPoint);
-        editor.Left = screenPoint.X;
-        editor.Top = screenPoint.Y;
+        var position = TranslatePoint(new Point(editorLeft, blockTop), ownerContent);
+        _editorAdorner.Position = new Point(
+            Math.Clamp(position.X, 6, Math.Max(6, ownerContent.ActualWidth - 280 - 6)),
+            Math.Clamp(position.Y, 6, Math.Max(6, ownerContent.ActualHeight - 400 - 6)));
     }
     private void CloseEditorWindow()
     {
         var editor = _editorWindow;
         _editorWindow = null;
-        if (editor?.IsLoaded == true) editor.Close();
+        editor?.DisposeEditor();
+        if (_editorAdorner is not null) _editorLayer?.Remove(_editorAdorner);
+        _editorAdorner = null;
+        _editorLayer = null;
     }
     private void Timeline_SizeChanged(object sender, SizeChangedEventArgs e) => RenderTimeline();
     private static SolidColorBrush Brush(string color) => new((Color)ColorConverter.ConvertFromString(color));
@@ -119,6 +133,9 @@ public partial class AutomaticRuleModal : UserControl
     private void RenderTimeline()
     {
         if (Timeline is null) return;
+        // Do not replace the pressed visual before its matching mouse-up.
+        // Capture belongs to the stable canvas, rather than a generated block.
+        if (_anchor is not null && !_moving) return;
         Timeline.Children.Clear();
         var width = Math.Max(0, Timeline.ActualWidth - LabelWidth - 8);
         for (var hour = 0; hour <= 24; hour++)
@@ -197,7 +214,7 @@ public partial class AutomaticRuleModal : UserControl
 
     private void PositionEditorWindowIfOpen()
     {
-        if (_editorWindow?.IsLoaded == true) PositionEditorWindow(_editorWindow);
+        if (_editorWindow is not null) PositionEditorWindow();
     }
     private string? RuleTargetName(AutomaticRuleItemViewModel rule)
         => string.IsNullOrEmpty(rule.TargetId)
@@ -441,17 +458,18 @@ public partial class AutomaticRuleModal : UserControl
         MouseButtonEventArgs e)
     {
         e.Handled = true;
-        if (Model is not null) Model.SelectedRuleId = rule.Id;
-        if (Model?.IsEditorOpen != false) return;
+        if (Model is null) return;
         _pressedRule = rule;
         _dragMode = mode;
         _pressPoint = e.GetPosition(TimelineScroll);
         _anchor = e.GetPosition(Timeline).Y - TopInset;
         _moving = false;
+        _dismissEditorOnRelease = false;
         Timeline.Cursor = mode is RuleDragMode.ResizeStart or RuleDragMode.ResizeEnd
             ? Cursors.SizeNS
             : Cursors.Hand;
         Timeline.CaptureMouse();
+        Model.SelectedRuleId = rule.Id;
     }
     private static string Time(double minute) => $"{(int)minute / 60:00}:{(int)minute % 60:00}";
     private static string Duration(double minutes) => minutes < 60
@@ -459,14 +477,21 @@ public partial class AutomaticRuleModal : UserControl
         : $"{(int)minutes / 60}小时{((int)minutes % 60 == 0 ? "" : $"{(int)minutes % 60}分钟")}";
     private void Timeline_MouseDown(object sender, MouseButtonEventArgs e)
     {
-        if (Model is not null) Model.SelectedRuleId = null;
-        if (Model is null || Model.IsEditorOpen || e.GetPosition(Timeline).X < LabelWidth) return;
+        if (Model is null) return;
+        e.Handled = true;
+        if (Model.IsEditorOpen)
+        {
+            _dismissEditorOnRelease = true;
+            Timeline.CaptureMouse();
+            return;
+        }
+        if (e.GetPosition(Timeline).X < LabelWidth) return;
         var minute = e.GetPosition(Timeline).Y - TopInset;
         if (RuleTimelineRange.Drag(minute, minute, Model.GetRules().Select(r => (r.StartMinutes, r.EndMinutes))) is null) return;
         _anchor = minute;
         Timeline.CaptureMouse();
+        Model.SelectedRuleId = null;
         _scrollTimer.Start();
-        e.Handled = true;
     }
     private void Timeline_MouseMove(object sender, MouseEventArgs e) => UpdateDrag();
     private void UpdateDrag()
@@ -479,6 +504,7 @@ public partial class AutomaticRuleModal : UserControl
             {
                 if ((Mouse.GetPosition(TimelineScroll) - _pressPoint).Length < RuleTimelineRange.DragThreshold) return;
                 _moving = true;
+                if (Model.IsEditorOpen) Model.CancelEditor();
                 _scrollTimer.Start();
             }
             var pointer = Mouse.GetPosition(Timeline).Y - TopInset;
@@ -526,6 +552,14 @@ public partial class AutomaticRuleModal : UserControl
     }
     private void Timeline_MouseUp(object sender, MouseButtonEventArgs e)
     {
+        e.Handled = true;
+        if (_dismissEditorOnRelease)
+        {
+            _dismissEditorOnRelease = false;
+            Model?.CancelEditor();
+            Timeline.ReleaseMouseCapture();
+            return;
+        }
         if (_anchor is null) return;
         var range = _draft;
         var rule = _pressedRule;
@@ -538,7 +572,11 @@ public partial class AutomaticRuleModal : UserControl
         if (rule is not null)
         {
             _draft = null;
-            if (!moving && dragMode == RuleDragMode.Move) Model?.EditRequested?.Invoke(rule);
+            if (!moving && dragMode == RuleDragMode.Move)
+            {
+                if (Model?.IsEditorOpen == true && Model.EditorRuleId == rule.Id) Model.CancelEditor();
+                else Model?.EditRequested?.Invoke(rule);
+            }
             else if (range is { } moved)
             {
                 if (dragMode == RuleDragMode.Move)
@@ -561,11 +599,11 @@ public partial class AutomaticRuleModal : UserControl
         }
         else if (range is { } r && r.End > r.Start) Model?.BeginEditor(null, r.Start, r.End);
         else CancelDrag();
-        e.Handled = true;
     }
     private void Timeline_LostCapture(object sender, MouseEventArgs e) { if (_anchor is not null) CancelDrag(); }
     private void CancelDrag()
     {
+        _dismissEditorOnRelease = false;
         _anchor = null; _draft = null; _pressedRule = null; _moving = false; _dragMode = RuleDragMode.Move;
         Timeline.ClearValue(CursorProperty);
         _scrollTimer.Stop();

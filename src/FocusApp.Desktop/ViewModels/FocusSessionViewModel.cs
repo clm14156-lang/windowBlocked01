@@ -173,6 +173,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             task.ApplyDetails(source);
         }
         finally { _applyingAuthoritativeSession = wasApplying; }
+        NormalizeFocusTaskOrder();
         RefreshTaskGroups();
         TargetTasksChanged?.Invoke(this, target);
         return true;
@@ -1100,6 +1101,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             }
         }
 
+        NormalizeFocusTaskOrder();
         RefreshTaskGroups();
         if (!_applyingAuthoritativeSession && ActiveTarget is not null)
         {
@@ -1110,13 +1112,19 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     private void Task_DetailsChanged(object? sender, EventArgs e)
     {
         if (!_applyingAuthoritativeSession && ActiveTarget is not null)
+        {
             TargetTasksChanged?.Invoke(this, ActiveTarget);
+            if (IsServiceOwnedForcedSession && sender is FocusTaskViewModel task &&
+                _sessionCompletedTaskSet.Contains(task))
+                AuthoritativeTasksChanged?.Invoke(this, EventArgs.Empty);
+        }
     }
 
     private void Task_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(FocusTaskViewModel.IsCompleted) && sender is FocusTaskViewModel changedTask)
         {
+            NormalizeFocusTaskOrder();
             if (Stage == FocusFlowStage.Focusing && changedTask.IsCompleted)
             {
                 if (_sessionCompletedTaskSet.Add(changedTask))
@@ -1158,6 +1166,24 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         {
             AuthoritativeTasksChanged?.Invoke(this, EventArgs.Empty);
         }
+    }
+
+    private void NormalizeFocusTaskOrder()
+    {
+        if (_applyingAuthoritativeSession || !IsFocusing || ActiveTarget is not { } target) return;
+        var desired = target.Tasks.Where(task => !task.IsCompleted)
+            .Concat(target.Tasks.Where(task => task.IsCompleted).OrderBy(task => task.CompletedAtUtc)).ToArray();
+        // Publish one final save from the caller, rather than one save per collection move.
+        _applyingAuthoritativeSession = true;
+        try
+        {
+            for (var index = 0; index < desired.Length; index++)
+            {
+                var oldIndex = target.Tasks.IndexOf(desired[index]);
+                if (oldIndex != index) target.Tasks.Move(oldIndex, index);
+            }
+        }
+        finally { _applyingAuthoritativeSession = false; }
     }
 
     private void RefreshTaskGroups()

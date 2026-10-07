@@ -119,7 +119,7 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
-    public void EarlySavedFocus_ReturnsHomeAndShowsSavedToast()
+    public void EarlySavedFocus_ReturnsHomeWithoutToast()
     {
         var session = new FocusSessionViewModel(runTimer: false);
         var homePage = new HomePageViewModel(
@@ -136,11 +136,9 @@ public sealed class MainWindowViewModelTests
         session.ConfirmEndAndReturnHomeCommand.Execute(null);
 
         Assert.Equal(FocusFlowStage.Idle, session.Stage);
-        Assert.True(viewModel.IsFocusResultToastVisible);
-        Assert.Equal("专注已结束", viewModel.FocusResultToastTitle);
-        Assert.Equal("本次 12 分钟 · 记录已保存", viewModel.FocusResultToastSubtitle);
-        Assert.Equal(FocusResultKind.EarlyEndedSaved, viewModel.FocusResultToastKind);
-        Assert.EndsWith("toast_tixing.png", viewModel.FocusResultToastIconSource, StringComparison.Ordinal);
+        Assert.False(viewModel.IsFocusResultToastVisible);
+        Assert.Equal(NavigationPage.Home, viewModel.CurrentPage);
+        Assert.Equal(12, session.LastCompletion!.ActualDuration.TotalMinutes);
     }
 
     [Fact]
@@ -166,7 +164,7 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
-    public void ShortDiscardedFocus_ReturnsHomeAndShowsUnsavedToast()
+    public void ShortDiscardedFocus_ReturnsHomeWithoutToastOrRecord()
     {
         var session = new FocusSessionViewModel(runTimer: false);
         var homePage = new HomePageViewModel(
@@ -183,14 +181,9 @@ public sealed class MainWindowViewModelTests
         session.DiscardEndCommand.Execute(null);
 
         Assert.Equal(FocusFlowStage.Idle, session.Stage);
-        Assert.True(viewModel.IsFocusResultToastVisible);
-        Assert.Equal("专注已结束", viewModel.FocusResultToastTitle);
-        Assert.Equal("未满 5 分钟，本次记录未保存", viewModel.FocusResultToastSubtitle);
-        Assert.Equal(FocusResultKind.EarlyEndedDiscarded, viewModel.FocusResultToastKind);
-        Assert.EndsWith("toast_jinggao.png", viewModel.FocusResultToastIconSource, StringComparison.Ordinal);
-
-        viewModel.CloseFocusResultToastCommand.Execute(null);
         Assert.False(viewModel.IsFocusResultToastVisible);
+        Assert.Equal(NavigationPage.Home, viewModel.CurrentPage);
+        Assert.Null(session.LastCompletion);
     }
 
     [Fact]

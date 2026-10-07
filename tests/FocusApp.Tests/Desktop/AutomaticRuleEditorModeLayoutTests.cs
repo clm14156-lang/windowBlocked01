@@ -9,7 +9,7 @@ namespace FocusApp.Tests.Desktop;
 public sealed class AutomaticRuleEditorModeLayoutTests
 {
     [Fact]
-    public void SwitchingRepeatModeChangesOnlyTheWindowHeightAndShowsWeekdays()
+    public void SwitchingRepeatModeKeepsTheFixedSizeAndShowsWeekdays()
     {
         Exception? failure = null;
         var thread = new Thread(() =>
@@ -19,35 +19,35 @@ public sealed class AutomaticRuleEditorModeLayoutTests
                 var model = AutomaticRuleModalViewModel.CreateDefault();
                 model.OpenForEdit(false, ["Monday", "Tuesday", "Wednesday"], 75, 135);
                 var window = new AutomaticRuleEditorWindow(model);
-                window.Top = SystemParameters.WorkArea.Bottom - 340 - 6;
-                window.Show();
-                window.UpdateLayout();
+                var content = Assert.IsAssignableFrom<FrameworkElement>(window.Content);
+                content.Measure(new Size(280, 400));
+                content.Arrange(new Rect(0, 0, 280, 400));
+                content.UpdateLayout();
 
                 var weekdays = Assert.IsType<ItemsControl>(window.FindName("WeekdaySelector"));
-                var save = Assert.IsType<Button>(window.FindName("SaveRuleButton"));
-                Assert.Equal(330, window.Width);
-                Assert.Equal(340, window.Height);
-                Assert.Equal(340, window.MinHeight);
-                Assert.Equal(340, window.MaxHeight);
-                Assert.Equal(Visibility.Collapsed, weekdays.Visibility);
-                AssertInsideWindow(save, window);
-
-                model.IsCustom = true;
-                window.UpdateLayout();
-                Assert.Equal(330, window.Width);
+                var delete = Assert.IsType<Button>(window.FindName("DeleteRuleButton"));
+                Assert.Equal(280, window.Width);
                 Assert.Equal(400, window.Height);
                 Assert.Equal(400, window.MinHeight);
                 Assert.Equal(400, window.MaxHeight);
-                Assert.True(window.Top + window.Height <= SystemParameters.WorkArea.Bottom - 6);
+                Assert.Equal(Visibility.Collapsed, weekdays.Visibility);
+                AssertInsideSurface(delete, content);
+
+                model.IsCustom = true;
+                content.UpdateLayout();
+                Assert.Equal(280, window.Width);
+                Assert.Equal(400, window.Height);
+                Assert.Equal(400, window.MinHeight);
+                Assert.Equal(400, window.MaxHeight);
                 Assert.Equal(Visibility.Visible, weekdays.Visibility);
                 Assert.Equal(7, weekdays.Items.Count);
-                AssertInsideWindow(save, window);
+                AssertInsideSurface(delete, content);
 
                 model.IsCustom = false;
-                window.UpdateLayout();
-                Assert.Equal(340, window.Height);
+                content.UpdateLayout();
+                Assert.Equal(400, window.Height);
                 Assert.Equal(Visibility.Collapsed, weekdays.Visibility);
-                window.Close();
+                window.DisposeEditor();
             }
             catch (Exception exception)
             {
@@ -60,11 +60,11 @@ public sealed class AutomaticRuleEditorModeLayoutTests
         Assert.Null(failure);
     }
 
-    private static void AssertInsideWindow(FrameworkElement element, Window window)
+    private static void AssertInsideSurface(FrameworkElement element, FrameworkElement surface)
     {
-        var bottomRight = element.TransformToAncestor(window)
+        var bottomRight = element.TransformToAncestor(surface)
             .Transform(new Point(element.ActualWidth, element.ActualHeight));
-        Assert.InRange(bottomRight.X, 0, window.ActualWidth);
-        Assert.InRange(bottomRight.Y, 0, window.ActualHeight);
+        Assert.InRange(bottomRight.X, 0, surface.ActualWidth);
+        Assert.InRange(bottomRight.Y, 0, surface.ActualHeight);
     }
 }

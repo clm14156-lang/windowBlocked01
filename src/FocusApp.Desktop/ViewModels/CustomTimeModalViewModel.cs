@@ -19,6 +19,7 @@ public sealed class CustomTimeModalViewModel : INotifyPropertyChanged
     {
         _confirm = confirm;
         CommonTimes = new ObservableCollection<HomeDurationOptionViewModel>(commonTimes ?? []);
+        CommonTimes.CollectionChanged += (_, _) => OnPropertyChanged(nameof(SelectedTime));
         _toggleVisibility = toggleVisibility ?? (_ => { });
         _deleteTime = deleteTime ?? (_ => { });
         CancelCommand = new RelayCommand<object>(_ => Close());
@@ -44,6 +45,12 @@ public sealed class CustomTimeModalViewModel : INotifyPropertyChanged
     public ICommand SelectTimeCommand { get; }
 
     public ObservableCollection<HomeDurationOptionViewModel> CommonTimes { get; }
+
+    // Home visibility (IsSelected) may include several presets. The poptip's
+    // single active preset follows only its own current input.
+    public HomeDurationOptionViewModel? SelectedTime => IsDurationValid
+        ? CommonTimes.FirstOrDefault(option => option.Minutes == Minutes)
+        : null;
 
     public bool IsEditing
     {
@@ -87,6 +94,7 @@ public sealed class CustomTimeModalViewModel : INotifyPropertyChanged
             OnPropertyChanged();
             OnPropertyChanged(nameof(Minutes));
             OnPropertyChanged(nameof(IsDurationValid));
+            OnPropertyChanged(nameof(SelectedTime));
             _confirmCommand.NotifyCanExecuteChanged();
         }
     }

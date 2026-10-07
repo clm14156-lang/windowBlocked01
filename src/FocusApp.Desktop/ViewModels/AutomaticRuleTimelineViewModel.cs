@@ -12,6 +12,9 @@ public sealed partial class AutomaticRuleModalViewModel
     private bool _editorIsEnabled;
     private AutomaticRuleItemViewModel? _editorRule;
     private Guid? _selectedRuleId;
+    private bool _initializingEditor, _submittingEditor;
+    public bool IsImmediateEditing { get; private set; }
+    public Guid? EditorRuleId => _editorRule?.Id;
     public Guid? SelectedRuleId { get => _selectedRuleId; set => SetField(ref _selectedRuleId, value); }
     public Func<IReadOnlyList<AutomaticRuleItemViewModel>> GetRules { get; set; } = () => [];
     public int EnabledRuleCount => GetRules().Count(rule => rule.IsEnabled);
@@ -33,22 +36,25 @@ public sealed partial class AutomaticRuleModalViewModel
     public Func<AutomaticRuleItemViewModel, double, double, string?>? ResizeRequested { get; set; }
     public ObservableCollection<RuleTargetOption> Targets { get; } = [];
     public bool IsEditorOpen { get => _isEditorOpen; private set => SetField(ref _isEditorOpen, value); }
-    public string EditorStartText { get => _editorStartText; set => SetField(ref _editorStartText, value); }
-    public string EditorEndText { get => _editorEndText; set => SetField(ref _editorEndText, value); }
+    public string EditorStartText { get => _editorStartText; set { if (SetField(ref _editorStartText, value)) AutoSaveEditor(); } }
+    public string EditorEndText { get => _editorEndText; set { if (SetField(ref _editorEndText, value)) AutoSaveEditor(); } }
     public bool EditorIsEnabled
     {
         get => _editorIsEnabled;
         set
         {
             if (SetField(ref _editorIsEnabled, value))
+            {
                 OnPropertyChanged(nameof(EditorStatusDisplay));
+                AutoSaveEditor();
+            }
         }
     }
     public string EditorStatusDisplay => EditorIsEnabled ? "开启" : "关闭";
     public string? SelectedTargetId
     {
         get => _selectedTargetId;
-        set { if (SetField(ref _selectedTargetId, value)) OnPropertyChanged(nameof(TargetChoice)); }
+        set { if (SetField(ref _selectedTargetId, value)) { OnPropertyChanged(nameof(TargetChoice)); AutoSaveEditor(); } }
     }
     public string TargetChoice { get => SelectedTargetId ?? string.Empty; set => SelectedTargetId = string.IsNullOrEmpty(value) ? null : value; }
 
@@ -56,7 +62,7 @@ public sealed partial class AutomaticRuleModalViewModel
     {
         var selected = SelectedTargetId;
         Targets.Clear();
-        Targets.Add(new(string.Empty, "- 未绑定"));
+        Targets.Add(new(string.Empty, "未绑定"));
         foreach (var target in targets.Where(target => !target.IsArchived))
             Targets.Add(new(
                 target.TargetId,
@@ -76,24 +82,61 @@ public sealed partial class AutomaticRuleModalViewModel
 
     public void BeginEditor(AutomaticRuleItemViewModel? rule, double start = 0, double end = 0)
     {
-        SelectedRuleId = rule?.Id;
-        _editorRule = rule;
-        IsEditing = rule is not null;
-        EditorIsEnabled = rule?.IsEnabled ?? false;
-        if (rule is null)
+        _initializingEditor = true;
+        try
         {
-            NewRequested?.Invoke();
-            IsCustom = false;
-            SelectedTargetId = null;
+            SelectedRuleId = rule?.Id;
+            _editorRule = rule;
+            IsImmediateEditing = rule is not null;
+            IsEditing = rule is not null;
+            EditorIsEnabled = rule?.IsEnabled ?? false;
+            if (rule is null)
+            {
+                NewRequested?.Invoke();
+                IsCustom = false;
+                SelectedTargetId = null;
+            }
+            else
+            {
+                SelectedTargetId = IsAvailableTarget(rule.TargetId) ? rule.TargetId : null;
+                IsCustom = rule.IsCustom;
+                foreach (var day in Weekdays) day.IsSelected = rule.DayKeys.Contains(day.Key);
+            }
+            EditorStartText = FormatTime(rule?.StartMinutes ?? start);
+            EditorEndText = FormatTime(rule?.EndMinutes ?? end);
+            ValidationMessage = string.Empty;
+            IsEditorOpen = true;
         }
-        else SelectedTargetId = IsAvailableTarget(rule.TargetId) ? rule.TargetId : null;
-        EditorStartText = FormatTime(rule?.StartMinutes ?? start);
-        EditorEndText = FormatTime(rule?.EndMinutes ?? end);
-        ValidationMessage = string.Empty;
-        IsEditorOpen = true;
+        finally { _initializingEditor = false; }
+        if (_editorRule is null && IsImmediateEditing) AutoSaveEditor();
     }
 
-    public void CancelEditor() { IsEditorOpen = false; _editorRule = null; }
+    public void CancelEditor() { IsEditorOpen = false; _editorRule = null; IsImmediateEditing = false; }
+
+    public void StartImmediateEditing()
+    {
+        IsImmediateEditing = true;
+        if (_editorRule is null) AutoSaveEditor();
+    }
+
+    public void AttachEditorRule(AutomaticRuleItemViewModel rule)
+    {
+        if (!IsEditorOpen || !IsImmediateEditing) return;
+        var identityChanged = _editorRule?.Id != rule.Id;
+        _editorRule = rule;
+        IsEditing = true;
+        if (identityChanged)
+        {
+            OnPropertyChanged(nameof(EditorRuleId));
+            SelectedRuleId = rule.Id;
+        }
+    }
+
+    private void AutoSaveEditor()
+    {
+        if (IsEditorOpen && IsImmediateEditing && !_initializingEditor && !_submittingEditor)
+            SubmitEditor(closeAfterSave: false);
+    }
 
     public void DeleteEditor()
     {
@@ -103,35 +146,50 @@ public sealed partial class AutomaticRuleModalViewModel
         if (rule is not null) DeleteRequested?.Invoke(rule);
     }
 
-    public bool SaveEditor()
+    public bool SaveEditor() => SubmitEditor(closeAfterSave: true);
+
+    private bool SubmitEditor(bool closeAfterSave)
     {
-        var legacyOvernight = _editorRule is not null && _editorRule.EndMinutes < _editorRule.StartMinutes;
-        if (!TryParseTime(EditorStartText, out var start) || !TryParseTime(EditorEndText, out var end)
-            || start == end || (!legacyOvernight && start > end) || start >= 1440)
+        if (_submittingEditor) return false;
+        _submittingEditor = true;
+        try
         {
-            ValidationMessage = "请输入有效时间（HH:mm），结束时间必须晚于开始时间";
-            return false;
+            var legacyOvernight = _editorRule is not null && _editorRule.EndMinutes < _editorRule.StartMinutes;
+            if (!TryParseTime(EditorStartText, out var start) || !TryParseTime(EditorEndText, out var end)
+                || start == end || (!legacyOvernight && start > end) || start >= 1440)
+            {
+                ValidationMessage = "请输入有效时间（HH:mm），结束时间必须晚于开始时间";
+                return false;
+            }
+            if ((end > start ? end - start : 1440 - start + end) > MaximumDurationMinutes)
+            {
+                ValidationMessage = "单条规则最长 12 小时";
+                return false;
+            }
+            var targetId = IsAvailableTarget(SelectedTargetId) ? SelectedTargetId : null;
+            SelectedTargetId = targetId;
+            var draft = new AutomaticRuleDraft(IsCustom,
+                (IsCustom ? Weekdays.Where(d => d.IsSelected) : Weekdays).ToArray(),
+                FormatTime(start), FormatTime(end), start, end, targetId, EditorIsEnabled);
+            ValidationMessage = ValidateRule?.Invoke(draft) ?? string.Empty;
+            if (ValidationMessage.Length > 0) return false;
+            if (_editorRule is { } existing && existing.IsEnabled == draft.IsEnabled &&
+                existing.IsCustom == draft.IsCustom && existing.StartMinutes == start && existing.EndMinutes == end &&
+                existing.TargetId == targetId && existing.DayKeys.SetEquals(draft.SelectedDays.Select(day => day.Key)))
+            {
+                if (closeAfterSave) CancelEditor();
+                return true;
+            }
+            if (CanSubmitRule?.Invoke(draft) == false)
+            {
+                ValidationMessage = string.Empty;
+                return false;
+            }
+            RuleSubmitted?.Invoke(this, draft);
+            if (closeAfterSave) CancelEditor();
+            return true;
         }
-        if ((end > start ? end - start : 1440 - start + end) > MaximumDurationMinutes)
-        {
-            ValidationMessage = "单条规则最长 12 小时";
-            return false;
-        }
-        var targetId = IsAvailableTarget(SelectedTargetId) ? SelectedTargetId : null;
-        SelectedTargetId = targetId;
-        var draft = new AutomaticRuleDraft(IsCustom,
-            (IsCustom ? Weekdays.Where(d => d.IsSelected) : Weekdays).ToArray(),
-            FormatTime(start), FormatTime(end), start, end, targetId, EditorIsEnabled);
-        ValidationMessage = ValidateRule?.Invoke(draft) ?? string.Empty;
-        if (ValidationMessage.Length > 0) return false;
-        if (CanSubmitRule?.Invoke(draft) == false)
-        {
-            ValidationMessage = string.Empty;
-            return false;
-        }
-        RuleSubmitted?.Invoke(this, draft);
-        CancelEditor();
-        return true;
+        finally { _submittingEditor = false; }
     }
 
     private bool IsAvailableTarget(string? targetId)
