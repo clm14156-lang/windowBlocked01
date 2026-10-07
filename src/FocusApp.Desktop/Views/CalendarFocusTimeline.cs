@@ -14,7 +14,7 @@ public sealed class CalendarFocusTimeline : FrameworkElement
     public static readonly DependencyProperty TimelineProperty = DependencyProperty.Register(
         nameof(Timeline), typeof(CalendarFocusTimelineViewModel), typeof(CalendarFocusTimeline),
         new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender,
-            (owner, _) => ((CalendarFocusTimeline)owner).CloseSessionToolTip()));
+            (owner, _) => ((CalendarFocusTimeline)owner).OnTimelineChanged()));
 
     public static readonly DependencyProperty FullDayStyleProperty = DependencyProperty.Register(
         nameof(FullDayStyle), typeof(bool), typeof(CalendarFocusTimeline),
@@ -32,6 +32,31 @@ public sealed class CalendarFocusTimeline : FrameworkElement
 
     private ToolTip? _sessionToolTip;
     private CalendarFocusTimelineSegment? _hoveredSegment;
+    private CalendarRecordInteractionState? _interactionState;
+
+    public CalendarRecordInteractionState? InteractionState
+    {
+        get => _interactionState;
+        set
+        {
+            if (ReferenceEquals(_interactionState, value)) return;
+            if (_interactionState is not null) _interactionState.Changed -= InteractionState_Changed;
+            _interactionState = value;
+            if (_interactionState is not null) _interactionState.Changed += InteractionState_Changed;
+            InvalidateVisual();
+        }
+    }
+
+    private void InteractionState_Changed(object? sender, EventArgs e) => InvalidateVisual();
+
+    private void OnTimelineChanged()
+    {
+        CloseSessionToolTip();
+        if (InteractionState?.SelectedRecord is { } selected &&
+            Timeline?.Segments.Any(segment => ReferenceEquals(segment.Record, selected)) != true)
+            InteractionState.ClearSelection();
+        InvalidateVisual();
+    }
 
     public CalendarFocusTimeline()
     {
@@ -59,6 +84,8 @@ public sealed class CalendarFocusTimeline : FrameworkElement
     {
         base.OnRender(drawingContext);
         if (ActualWidth <= 0 || ActualHeight <= 0) return;
+        // Transparent drawing enables hit testing around narrow time blocks without widening them.
+        drawingContext.DrawRectangle(Brushes.Transparent, null, new Rect(0, 0, ActualWidth, ActualHeight));
         var startHour = Timeline?.StartHour ?? (FullDayStyle || GoalHistoryStyle ? 0 : 8);
         var typeface = new Typeface(TryFindResource("FontFamilyEnglish") as FontFamily ?? new FontFamily("Segoe UI"),
             FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
@@ -96,19 +123,51 @@ public sealed class CalendarFocusTimeline : FrameworkElement
         if (Timeline is null) return;
         foreach (var segment in Timeline.Segments)
         {
+            if (FullDayStyle && !GoalHistoryStyle && InteractionState is { } activeState &&
+                (ReferenceEquals(segment.Record, activeState.HoveredRecord) || ReferenceEquals(segment.Record, activeState.SelectedRecord))) continue;
             // Never impose a minimum width: position and duration remain proportional to real timestamps.
             drawingContext.DrawRoundedRectangle(accentBrush, GoalHistoryStyle ? new Pen(Brushes.White, 0.6) : null,
                 SegmentBounds(segment), GoalHistoryStyle ? 3 : 1.5, GoalHistoryStyle ? 3 : 1.5);
         }
+        if (FullDayStyle && !GoalHistoryStyle && InteractionState is { } state)
+        {
+            foreach (var segment in Timeline.Segments.Where(segment =>
+                ReferenceEquals(segment.Record, state.HoveredRecord) || ReferenceEquals(segment.Record, state.SelectedRecord)))
+            {
+                var selected = ReferenceEquals(segment.Record, state.SelectedRecord);
+                var bounds = SegmentBounds(segment);
+                var center = bounds.Left + bounds.Width / 2;
+                var haloWidth = Math.Max(20, bounds.Width + 12);
+                var halo = new Rect(center - haloWidth / 2, bounds.Top - 6, haloWidth, bounds.Height + 10);
+                drawingContext.DrawRoundedRectangle(new SolidColorBrush(Color.FromArgb(selected ? (byte)42 : (byte)24, 255, 128, 0)), null, halo, 6, 6);
+                // The original duration width stays unchanged; the active mark gets only a subtle lift.
+                var active = new Rect(center - bounds.Width * 1.12 / 2, bounds.Top - 2, bounds.Width * 1.12, bounds.Height + 2);
+                drawingContext.DrawRoundedRectangle(new SolidColorBrush(selected ? Color.FromRgb(255, 128, 0) : Color.FromRgb(255, 158, 75)), null, active, 2, 2);
+            }
+        }
     }
 
-    // Drawing visuals do not create child controls, so hover uses the same proportional bounds as rendering.
+    // Use a larger hit area, resolving neighboring/overlapping areas to the closest real block.
     private CalendarFocusTimelineSegment? FindSessionAt(Point position)
     {
         if ((!FullDayStyle && !GoalHistoryStyle) || Timeline is null || AxisWidth <= 0 ||
-            position.Y < TrackTop || position.Y > TrackTop + TrackHeight) return null;
+            position.Y < TrackTop - (FullDayStyle && !GoalHistoryStyle ? 7 : 0) ||
+            position.Y > TrackTop + TrackHeight + (FullDayStyle && !GoalHistoryStyle ? 7 : 0)) return null;
+        if (FullDayStyle && !GoalHistoryStyle)
+        {
+            return Timeline.Segments.Where(segment => SegmentHitBounds(segment).Contains(position))
+                .OrderBy(segment => Math.Abs(position.X - (SegmentBounds(segment).Left + SegmentBounds(segment).Width / 2)))
+                .FirstOrDefault();
+        }
         return Timeline.Segments.LastOrDefault(segment =>
             SegmentBounds(segment).Contains(position));
+    }
+
+    private Rect SegmentHitBounds(CalendarFocusTimelineSegment segment)
+    {
+        var bounds = SegmentBounds(segment);
+        var width = Math.Max(24, bounds.Width);
+        return new Rect(bounds.Left + bounds.Width / 2 - width / 2, bounds.Top - 7, width, bounds.Height + 14);
     }
 
     private Rect SegmentBounds(CalendarFocusTimelineSegment segment) =>
@@ -123,10 +182,13 @@ public sealed class CalendarFocusTimeline : FrameworkElement
     private void UpdateSessionHover(Point position)
     {
         var segment = FindSessionAt(position);
+        Cursor = segment is null ? Cursors.Arrow : Cursors.Hand;
         if (ReferenceEquals(segment, _hoveredSegment)) return;
         CloseSessionToolTip();
         if (segment is null) return;
+        Cursor = Cursors.Hand;
         _hoveredSegment = segment;
+        if (FullDayStyle && !GoalHistoryStyle) InteractionState?.Hover(segment.Record);
         if (_sessionToolTip is null)
         {
             UserControl content = GoalHistoryStyle ? new GoalFocusTimelineToolTip() : new CalendarFocusTimelineToolTip();
@@ -173,9 +235,27 @@ public sealed class CalendarFocusTimeline : FrameworkElement
         CloseSessionToolTip();
     }
 
+    protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
+    {
+        base.OnMouseLeftButtonDown(e);
+        if (!FullDayStyle || GoalHistoryStyle || InteractionState is null) return;
+        UpdateSessionSelection(e.GetPosition(this));
+        e.Handled = true;
+    }
+
+    private void UpdateSessionSelection(Point position)
+    {
+        if (!FullDayStyle || GoalHistoryStyle || InteractionState is null) return;
+        var segment = FindSessionAt(position);
+        if (segment is null) InteractionState.ClearSelection();
+        else InteractionState.ToggleSelection(segment.Record);
+    }
+
     private void CloseSessionToolTip()
     {
         if (_sessionToolTip is not null) _sessionToolTip.IsOpen = false;
+        if (FullDayStyle && !GoalHistoryStyle && _hoveredSegment is { } segment) InteractionState?.Leave(segment.Record);
         _hoveredSegment = null;
+        Cursor = Cursors.Arrow;
     }
 }

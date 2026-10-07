@@ -26,7 +26,7 @@ public sealed class FocusTargetModalPresentationTests
             (string?)text.Attribute("Text") == "{DynamicResource FocusTargetTitle}"));
         Assert.Equal("20", (string?)title.Attribute("FontSize"));
         Assert.Equal("SemiBold", (string?)title.Attribute("FontWeight"));
-        Assert.Contains(modal.Descendants(Presentation + "TextBlock"), text =>
+        Assert.DoesNotContain(modal.Descendants(Presentation + "TextBlock"), text =>
             (string?)text.Attribute("Text") == "选择一个目标开始本次专注");
         Assert.DoesNotContain(modal.Descendants(Presentation + "Button"), button =>
             (string?)button.Attribute(Xaml + "Name") == "TargetModalCloseButton" ||
@@ -59,18 +59,15 @@ public sealed class FocusTargetModalPresentationTests
     {
         var modal = LoadModal();
         var cardStyle = FindStyle(modal, "TargetCardButton");
-        AssertSetter(cardStyle, "Height", "61");
+        AssertSetter(cardStyle, "Height", "48");
         AssertSetter(cardStyle, "Padding", "12,0");
         AssertSetter(cardStyle, "BorderThickness", "0");
         var cardSurface = Assert.Single(cardStyle.Descendants(Presentation + "Border").Where(border =>
             (string?)border.Attribute(Xaml + "Name") == "CardSurface"));
         Assert.Equal("10", (string?)cardSurface.Attribute("CornerRadius"));
         Assert.Equal("{TemplateBinding Padding}", (string?)cardSurface.Attribute("Padding"));
-        Assert.Contains(cardStyle.Descendants(Presentation + "DataTrigger"), trigger =>
-            (string?)trigger.Attribute("Binding") == "{Binding IsSelected}" &&
-            trigger.Descendants(Presentation + "Setter").Any(setter =>
-                (string?)setter.Attribute("Property") == "Background" &&
-                (string?)setter.Attribute("Value") == "#FFF5EF"));
+        Assert.DoesNotContain(cardStyle.Descendants(), element =>
+            (string?)element.Attribute("Binding") == "{Binding IsSelected}");
         Assert.DoesNotContain(cardStyle.Descendants(Presentation + "Setter"), setter =>
             (string?)setter.Attribute("Property") == "BorderBrush" &&
             (string?)setter.Attribute("Value") == "{DynamicResource AccentPrimary}");
@@ -88,8 +85,11 @@ public sealed class FocusTargetModalPresentationTests
         var selectionIndicator = Assert.Single(modal.Descendants(Presentation + "Border").Where(border =>
             (string?)border.Attribute(Xaml + "Name") == "TargetSelectionIndicator"));
         Assert.Null(selectionIndicator.Attribute("BorderBrush"));
-        Assert.Contains(selectionIndicator.Descendants(Presentation + "Ellipse"), ellipse =>
-            (string?)ellipse.Attribute("Fill") == "{DynamicResource AccentPrimary}");
+        Assert.Contains(selectionIndicator.Descendants(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("Property") == "Background" &&
+            (string?)setter.Attribute("Value") == "{DynamicResource AccentPrimary}");
+        Assert.Contains(selectionIndicator.Descendants(Presentation + "Path"), path =>
+            (string?)path.Attribute("Stroke") == "White");
         Assert.DoesNotContain(modal.Descendants(), element =>
             element.Name == Presentation + "RadioButton" || element.Name == Presentation + "CheckBox");
 
@@ -164,6 +164,32 @@ public sealed class FocusTargetModalPresentationTests
                 var scroll = (ScrollViewer)modal.FindName("TargetListScrollViewer");
                 Assert.Equal(0, scroll.ScrollableHeight);
                 SavePreview(modal, "target-picker-three");
+
+                model.ApplyState(targets.Take(5), [], "target-0");
+                modal.UpdateLayout();
+                Assert.Equal(0, scroll.ScrollableHeight);
+                var rows = Descendants<Button>(scroll).Where(button => button.DataContext is FocusTargetViewModel).ToArray();
+                Assert.Equal(5, rows.Length);
+                Assert.All(rows, row =>
+                {
+                    var top = row.TranslatePoint(new Point(), scroll).Y;
+                    Assert.True(top >= 0 && top + row.ActualHeight <= scroll.ViewportHeight);
+                });
+                var indicators = Descendants<Border>(scroll).Where(border => border.Name == "TargetSelectionIndicator").ToArray();
+                var firstRowColor = ((SolidColorBrush)rows[0].Background).Color;
+                var secondRowColor = ((SolidColorBrush)rows[1].Background).Color;
+                Assert.Equal(firstRowColor, secondRowColor);
+                Assert.Equal(Colors.White, firstRowColor);
+                Assert.Equal(Visibility.Visible, Descendants<System.Windows.Shapes.Path>(indicators[0]).Single().Visibility);
+                Assert.All(indicators.Skip(1), indicator => Assert.Equal(Visibility.Collapsed, Descendants<System.Windows.Shapes.Path>(indicator).Single().Visibility));
+                SavePreview(modal, "target-picker-five");
+                model.SelectTargetCommand.Execute(model.Targets[1]);
+                modal.UpdateLayout();
+                Assert.Equal(firstRowColor, ((SolidColorBrush)rows[0].Background).Color);
+                Assert.Equal(secondRowColor, ((SolidColorBrush)rows[1].Background).Color);
+                Assert.Equal(Visibility.Collapsed, Descendants<System.Windows.Shapes.Path>(indicators[0]).Single().Visibility);
+                Assert.Equal(Visibility.Visible, Descendants<System.Windows.Shapes.Path>(indicators[1]).Single().Visibility);
+                SavePreview(modal, "target-picker-selected-second");
 
                 model.ApplyState(targets, [], "target-0");
                 modal.UpdateLayout();

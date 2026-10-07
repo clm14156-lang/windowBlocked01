@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Globalization;
@@ -23,7 +23,6 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     private const int ExpandedTrendTickIntervalMinutes = 4 * 60;
     private const int PreferredMaximumTrendTickCount = 6;
     private const int MaximumSupportedTrendMinutes = 24 * 60;
-    private const double TrendCurveTension = 0.12;
     private StatisticsRangeOptionViewModel _selectedRange;
     private TrendDataPointViewModel? _hoveredPoint;
     private StatisticsTab _selectedTab = StatisticsTab.Overview;
@@ -960,7 +959,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     public int MonthlyFocusTargetHours => _monthlyFocusTargetHours ?? 0;
     public bool IsMonthlyFocusGoal => _focusGoalMode == FocusGoalMode.MonthlyTotal && HasMonthlyFocusTarget;
     public bool HasFocusGoal => HasDailyFixedFocusTarget || IsMonthlyFocusGoal;
-    public int MonthlyFocusRemainingDays => DateTime.DaysInMonth(DateTime.Today.Year, DateTime.Today.Month) - DateTime.Today.Day + 1;
+    public int MonthlyFocusRemainingDays => _focusGoalSettingsModal.RemainingDays;
     public int MonthlyFocusTodayRecommendationMinutes
     {
         get
@@ -970,7 +969,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
                 return 0;
             }
 
-            return Math.Max(0, MonthlyFocusTargetHours * 60 - CurrentMonthFocusMinutes) / MonthlyFocusRemainingDays;
+            return (int)(_focusGoalSettingsModal.GetDailyRequiredFocusHours(MonthlyFocusTargetHours) * 60);
         }
     }
 
@@ -999,15 +998,16 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     public string MonthlyFocusCompletedSummaryDisplay => $"本月 {FormatTargetDuration(CurrentMonthFocusMinutes)} / {MonthlyFocusTargetHours}小时";
     public string MonthlyFocusRemainingDaysSummaryDisplay => $"剩余{MonthlyFocusRemainingDays}天";
 
-    private int CurrentMonthFocusMinutes => GetRecordsForMonth(DateTime.Today).Sum(record => record.DurationMinutes);
+    private int CurrentMonthFocusMinutes => (int)GetCurrentMonthFocusDuration().TotalMinutes;
 
     public string MonthlyFocusTargetInput
     {
         get => _monthlyFocusTargetInput;
         set
         {
-            if (_monthlyFocusTargetInput == value) return;
-            _monthlyFocusTargetInput = value;
+            var normalizedValue = FocusGoalSettingsModalViewModel.NormalizeTargetHoursInput(value, _focusGoalSettingsModal.MonthlyTargetMaximumHours);
+            if (_monthlyFocusTargetInput == normalizedValue) return;
+            _monthlyFocusTargetInput = normalizedValue;
             OnPropertyChanged();
         }
     }
@@ -1637,12 +1637,13 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     private void SaveMonthlyFocusTarget()
     {
+        MonthlyFocusTargetInput = MonthlyFocusTargetInput;
         if (!int.TryParse(MonthlyFocusTargetInput, out var hours) || hours <= 0)
         {
             return;
         }
 
-        _monthlyFocusTargetHours = Math.Min(hours, 10000);
+        _monthlyFocusTargetHours = Math.Clamp(hours, 0, _focusGoalSettingsModal.MonthlyTargetMaximumHours);
         IsMonthlyFocusTargetPopupOpen = false;
         NotifyMonthlyFocusTargetChanged();
         MonthlyFocusTargetChanged?.Invoke(this, EventArgs.Empty);
@@ -1650,8 +1651,9 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     private void AdjustMonthlyFocusTarget(int delta)
     {
+        MonthlyFocusTargetInput = MonthlyFocusTargetInput;
         _ = int.TryParse(MonthlyFocusTargetInput, out var currentHours);
-        MonthlyFocusTargetInput = Math.Clamp(currentHours + delta, 1, 10000).ToString();
+        MonthlyFocusTargetInput = Math.Clamp(currentHours + delta, 1, _focusGoalSettingsModal.MonthlyTargetMaximumHours).ToString();
     }
 
     private void DeleteMonthlyFocusTarget()
@@ -2011,13 +2013,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(SelectedDayCompletedTaskSummary));
     }
 
-    public string TrendRangeTitle => $"{SelectedRange.Label}趋势";
-
-    public PointCollection TrendLinePoints { get; } = [];
-
-    public PathGeometry TrendCurveGeometry { get; private set; } = new();
-
-    public PathGeometry TrendAreaGeometry { get; private set; } = new();
+    public string TrendRangeTitle => $"{SelectedRange.Label}投入";
 
     public string PeriodTotalLabel => SelectedRange.Days == 30 ? "本月总计" : "本周总计";
 
@@ -2203,7 +2199,6 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
                 ? SelectedRange.Days == 7 ? SevenDayData : ThirtyDayData
                 : GetEmptyTrendData(SelectedRange.Days);
         TrendPoints.Clear();
-        TrendLinePoints.Clear();
         YAxisTicks.Clear();
         var maximumDataMinutes = data.Max(point => point.Minutes);
         var (scaleMaximumMinutes, tickIntervalMinutes) = CalculateTrendScale(maximumDataMinutes);
@@ -2215,10 +2210,11 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
                 MapTrendValueToY(value, scaleMaximumMinutes)));
         }
 
+        var slotWidth = ChartWidth / data.Length;
         for (var index = 0; index < data.Length; index++)
         {
             var item = data[index];
-            var x = data.Length == 1 ? ChartLeft + ChartWidth / 2 : ChartLeft + index * ChartWidth / (data.Length - 1);
+            var x = ChartLeft + (index + 0.5) * slotWidth;
             var y = MapTrendValueToY(item.Minutes, scaleMaximumMinutes);
             var point = new TrendDataPointViewModel(
                 item.Date,
@@ -2226,12 +2222,11 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
                 item.SessionCount,
                 x,
                 y,
-                data.Length == 7 || IsRepresentativeThirtyDayIndex(index, data.Length));
+                data.Length == 7 || IsRepresentativeThirtyDayIndex(index, data.Length),
+                Math.Min(32, slotWidth * 0.42));
             TrendPoints.Add(point);
-            TrendLinePoints.Add(new Point(x, y));
         }
 
-        UpdateTrendGeometry();
         RefreshPeriodFocusDistribution();
 
         var totalMinutes = data.Sum(point => point.Minutes);
@@ -2273,8 +2268,6 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(ComparisonMinutesValueDisplay));
         OnPropertyChanged(nameof(ComparisonOverviewDisplay));
         OnPropertyChanged(nameof(IsComparisonIncrease));
-        OnPropertyChanged(nameof(TrendCurveGeometry));
-        OnPropertyChanged(nameof(TrendAreaGeometry));
         OnPropertyChanged(nameof(YAxisTicks));
     }
 
@@ -2322,52 +2315,6 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
         var representativeIndex = (int)Math.Round(index * 6d / (count - 1), MidpointRounding.AwayFromZero);
         return index == (int)Math.Round(representativeIndex * (count - 1) / 6d, MidpointRounding.AwayFromZero);
-    }
-
-    private void UpdateTrendGeometry()
-    {
-        if (TrendLinePoints.Count == 0)
-        {
-            TrendCurveGeometry = new PathGeometry();
-            TrendAreaGeometry = new PathGeometry();
-            return;
-        }
-
-        var curveFigure = new PathFigure { StartPoint = TrendLinePoints[0], IsClosed = false, IsFilled = false };
-        for (var index = 0; index < TrendLinePoints.Count - 1; index++)
-        {
-            var previous = TrendLinePoints[Math.Max(index - 1, 0)];
-            var start = TrendLinePoints[index];
-            var end = TrendLinePoints[index + 1];
-            var next = TrendLinePoints[Math.Min(index + 2, TrendLinePoints.Count - 1)];
-            var segmentTop = Math.Min(start.Y, end.Y);
-            var segmentBottom = Math.Max(start.Y, end.Y);
-            var firstControlY = Math.Clamp(
-                start.Y + (end.Y - previous.Y) * TrendCurveTension,
-                segmentTop,
-                segmentBottom);
-            var secondControlY = Math.Clamp(
-                end.Y - (next.Y - start.Y) * TrendCurveTension,
-                segmentTop,
-                segmentBottom);
-
-            curveFigure.Segments.Add(new BezierSegment(
-                new Point(start.X + (end.X - previous.X) * TrendCurveTension, firstControlY),
-                new Point(end.X - (next.X - start.X) * TrendCurveTension, secondControlY),
-                end,
-                true));
-        }
-
-        TrendCurveGeometry = new PathGeometry([curveFigure]);
-        var areaFigure = new PathFigure { StartPoint = new Point(TrendLinePoints[0].X, TrendPlotBottom), IsClosed = true, IsFilled = true };
-        areaFigure.Segments.Add(new LineSegment(TrendLinePoints[0], true));
-        foreach (var segment in curveFigure.Segments)
-        {
-            areaFigure.Segments.Add(segment.Clone());
-        }
-
-        areaFigure.Segments.Add(new LineSegment(new Point(TrendLinePoints[^1].X, TrendPlotBottom), true));
-        TrendAreaGeometry = new PathGeometry([areaFigure]);
     }
 
     private static string FormatDuration(int totalMinutes)
@@ -2996,7 +2943,8 @@ public sealed class TrendDataPointViewModel : INotifyPropertyChanged
         int sessionCount,
         double chartX,
         double chartY,
-        bool isKeyPoint)
+        bool isKeyPoint,
+        double barWidth = 32)
     {
         Date = date;
         Minutes = minutes;
@@ -3004,6 +2952,7 @@ public sealed class TrendDataPointViewModel : INotifyPropertyChanged
         ChartX = chartX;
         ChartY = chartY;
         IsKeyPoint = isKeyPoint;
+        BarWidth = barWidth;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -3017,6 +2966,12 @@ public sealed class TrendDataPointViewModel : INotifyPropertyChanged
     public double ChartX { get; }
 
     public double ChartY { get; }
+
+    public double BarWidth { get; }
+
+    public double BarLeft => ChartX - BarWidth / 2;
+
+    public double BarHeight => Math.Max(0, 120 - ChartY);
 
     public double AxisLabelY => 128;
 

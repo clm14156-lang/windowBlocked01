@@ -25,7 +25,7 @@
                           X2="570"
                           Y1="0"
                           Y2="0"
-                          Stroke="{DynamicResource BorderPrimary}"
+                          Stroke="#F1F3F6"
                           StrokeDashArray="3,4"
                           StrokeThickness="1"
                           Opacity="1">
@@ -44,30 +44,29 @@
             </ItemsControl.ItemTemplate>
         </ItemsControl>
 
-        <Path Data="{Binding TrendAreaGeometry}"
-              IsHitTestVisible="False">
-            <Path.Fill>
-                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                    <GradientStop Offset="0" Color="#38FF7A00" />
-                    <GradientStop Offset="0.58" Color="#14FF7A00" />
-                    <GradientStop Offset="1" Color="#00FF7A00" />
-                </LinearGradientBrush>
-            </Path.Fill>
-        </Path>
-        <Path Data="{Binding TrendCurveGeometry}"
-              Stroke="{DynamicResource AccentPrimary}"
-              StrokeThickness="1.35"
-              StrokeLineJoin="Round"
-              StrokeStartLineCap="Round"
-              StrokeEndLineCap="Round"
-              IsHitTestVisible="False" />
+        <ItemsControl x:Name="TrendBars" IsHitTestVisible="False" ItemsSource="{Binding TrendPoints}">
+            <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+            <ItemsControl.ItemContainerStyle><Style TargetType="ContentPresenter"><Setter Property="Canvas.Left" Value="{Binding BarLeft}" /><Setter Property="Canvas.Top" Value="{Binding ChartY}" /></Style></ItemsControl.ItemContainerStyle>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="{x:Type vm:TrendDataPointViewModel}">
+                    <Border Width="{Binding BarWidth}" Height="{Binding BarHeight}" CornerRadius="5,5,0,0">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                <GradientStop Offset="0" Color="#FFAD61" />
+                                <GradientStop Offset="1" Color="#FFF1E5" />
+                            </LinearGradientBrush>
+                        </Border.Background>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
 
         <Line x:Name="TrendCrosshair"
               X1="{Binding HoveredPoint.ChartX}"
               X2="{Binding HoveredPoint.ChartX}"
               Y1="0"
               Y2="120"
-              Stroke="{DynamicResource BorderPrimary}"
+              Stroke="#E9EDF2"
               StrokeThickness="1"
               IsHitTestVisible="False">
             <Line.Style>

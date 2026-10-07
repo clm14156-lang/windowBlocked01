@@ -52,8 +52,9 @@ public sealed class CalendarVipLockedPresentationTests
                 Assert.Equal(page.ActualWidth - 32, layout.ActualWidth, 1);
                 Assert.InRange(layout.ActualHeight, page.ActualHeight - 64, page.ActualHeight - 62);
                 Assert.Equal(336, calendar.ActualWidth);
-                Assert.Equal(412, calendar.ActualHeight);
-                Assert.Equal(layout.ActualHeight - 424, summary.ActualHeight, 1);
+                Assert.Equal(layout.ActualHeight, calendar.ActualHeight, 1);
+                Assert.True(calendar.IsAncestorOf(summary));
+                Assert.True(summary.TranslatePoint(new Point(0, summary.ActualHeight), calendar).Y <= calendar.ActualHeight - 20);
                 Assert.Equal(layout.ActualWidth - 348, card.ActualWidth, 1);
                 Assert.Equal(layout.ActualHeight, card.ActualHeight, 1);
                 Assert.True(body.TranslatePoint(new Point(0, body.ActualHeight), card).Y <= card.ActualHeight - 20);

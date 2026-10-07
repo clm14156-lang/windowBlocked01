@@ -149,7 +149,7 @@ public sealed class GoalInvestmentTrendRedesignTests
     }
 
     [Fact]
-    public void ModalRendersCompactTrendAndMonthListSelection()
+    public void ModalRendersBarsSmallConditionalPoptipsAndAllRangeStates()
     {
         Exception? failure = null;
         var thread = new Thread(() =>
@@ -157,21 +157,16 @@ public sealed class GoalInvestmentTrendRedesignTests
             Window? window = null;
             try
             {
-                var model = new GoalInvestmentTrendViewModel(() => Now);
-                var session = new FocusSessionRecordViewModel(Now.Date.AddHours(12).AddMinutes(33),
-                    Now.Date.AddHours(13).AddMinutes(11), "goal", "window屏蔽软件", "查看自动屏蔽规则", 5,
-                    ["查看自动屏蔽规则", "修改启动屏蔽逻辑", "测试自动屏蔽功能", "整理需求文档", "检查按钮间距"])
-                {
-                    CompletedTaskIds = ["task0", "task1", "task2", "task3", "task4"]
-                };
-                var timestamp = new DateTimeOffset(Now.Date.AddHours(13), TimeSpan.Zero);
-                var children = Enumerable.Range(0, 5).Select(index => new LocalSubTaskDto(
-                    $"sub{index}", "task0", $"子任务{index}", true, index, timestamp, timestamp)).ToArray();
-                var task = new LocalTaskDto("task0", "goal", "查看自动屏蔽规则", true, 0, timestamp, timestamp)
-                {
-                    CompletedAtUtc = timestamp, SubTasks = children
-                };
-                model.ApplyState(Goal(), [session, Record(new DateTime(2026, 8, 12, 9, 0, 0), 30)], [task]);
+                var today = new DateTime(2026, 10, 7, 18, 0, 0);
+                var model = new GoalInvestmentTrendViewModel(() => today);
+                var durations = new[] { 45, 56, 40, 0, 35, 50, 25 };
+                var records = durations.Select((minutes, index) => new FocusSessionRecordViewModel(
+                    today.Date.AddDays(index - 6).AddHours(9), today.Date.AddDays(index - 6).AddHours(9).AddMinutes(minutes),
+                    "goal", "3213", "", 0)).Where(record => record.EndTime > record.StartTime).ToList();
+                records.Add(new FocusSessionRecordViewModel(new DateTime(2026, 9, 12, 9, 0, 0), new DateTime(2026, 9, 12, 9, 30, 0), "goal", "3213", "", 0));
+                var timestamp = new DateTimeOffset(today.Date.AddDays(-5).AddHours(10));
+                var tasks = Enumerable.Range(0, 3).Select(index => new LocalTaskDto($"done{index}", "goal", $"任务{index}", true, index, timestamp, timestamp) { CompletedAtUtc = timestamp }).ToArray();
+                model.ApplyState(new GoalOverviewItemViewModel("goal", "3213", "", "", false, false), records, tasks);
                 model.Open();
                 var modal = new GoalInvestmentTrendModal { DataContext = model };
                 foreach (var resource in new[] { "Colors", "Typography", "Strings", "Styles" })
@@ -181,106 +176,81 @@ public sealed class GoalInvestmentTrendRedesignTests
                 window.Show();
                 Pump();
                 var card = (Border)modal.FindName("TrendModalCard");
-                Assert.Equal(700, card.ActualWidth);
-                Assert.Equal(460, card.ActualHeight);
-                Assert.Equal(new Thickness(22, 24, 22, 24), card.Padding);
-                var metrics = (Grid)modal.FindName("InvestmentMetrics");
-                var heading = (StackPanel)modal.FindName("TrendSectionHeading");
-                var chartCard = (Border)modal.FindName("TrendChartCard");
-                var metricsTop = metrics.TranslatePoint(new Point(), card).Y;
-                var headingTop = heading.TranslatePoint(new Point(), card).Y;
-                var chartTop = chartCard.TranslatePoint(new Point(), card).Y;
-                Assert.InRange(metricsTop, 120, 124);
-                Assert.InRange(headingTop - metricsTop - metrics.ActualHeight, 16, 18);
-                Assert.InRange(chartTop - metricsTop, 145, 149);
-                Assert.InRange(chartTop + 28 - headingTop - heading.ActualHeight, 24, 34);
-                var sevenRange = Descendants<Button>(modal).Single(button => Equals(button.Content, "近7天"));
-                var thirtyRange = Descendants<Button>(modal).Single(button => Equals(button.Content, "近30天"));
-                var monthRange = (Button)modal.FindName("MonthRangeButton");
-                var orange = Color.FromRgb(0xFF, 0x7A, 0x00);
-                Assert.Equal(orange, ((SolidColorBrush)sevenRange.Foreground).Color);
-                Assert.NotEqual(orange, ((SolidColorBrush)thirtyRange.Foreground).Color);
-                SavePreview(card, "investment-compact");
-                model.SelectThirtyDaysCommand.Execute(null);
-                Pump();
-                Assert.Equal(orange, ((SolidColorBrush)thirtyRange.Foreground).Color);
-                Assert.NotEqual(orange, ((SolidColorBrush)sevenRange.Foreground).Color);
-                model.SelectSevenDaysCommand.Execute(null);
-                Pump();
+                var summary = (StackPanel)modal.FindName("InvestmentSummary");
+                var selector = (Border)modal.FindName("RangeSelectorSurface");
                 var chart = Descendants<GoalInvestmentTrendChart>(modal).Single();
-                var hoverGuide = (System.Windows.Shapes.Line)chart.FindName("HoverGuideLine");
-                Assert.Equal(Visibility.Collapsed, hoverGuide.Visibility);
-                var hovered = model.TrendPoints.Single(point => point.Date == Now.Date);
-                model.SetHoveredPointNearestTo(hovered.ChartX);
-                Pump();
                 var tooltip = (Border)modal.FindName("TrendTooltip");
+                var taskRow = (StackPanel)modal.FindName("TooltipTaskCount");
+                var guide = (System.Windows.Shapes.Line)chart.FindName("HoverGuideLine");
+                Assert.Equal(650, card.ActualWidth);
+                Assert.Equal(420, card.ActualHeight);
+                Assert.Equal(251, model.PeriodInvestment.TotalMinutes);
+                Assert.Equal("近7天投入 · 活跃6天", model.InvestmentSummary);
+                Assert.True(selector.TranslatePoint(new Point(), card).X > summary.TranslatePoint(new Point(summary.ActualWidth, 0), card).X);
+                Assert.True(chart.TranslatePoint(new Point(0, chart.ActualHeight), card).Y < card.ActualHeight - 24);
+                var bars = Descendants<Border>((ItemsControl)chart.FindName("TrendBars"))
+                    .Where(border => border.DataContext is GoalInvestmentTrendPointViewModel).ToArray();
+                Assert.Equal(7, bars.Length);
+                Assert.Equal(0, bars[3].ActualHeight);
+                Assert.False(tooltip.IsVisible);
+                Assert.Equal(Visibility.Collapsed, guide.Visibility);
+                SavePreview(card, "investment-bars");
+                var seven = Descendants<Button>(modal).Single(button => Equals(button.Content, "近7天"));
+                var thirty = Descendants<Button>(modal).Single(button => Equals(button.Content, "近30天"));
+                var orange = Color.FromRgb(0xFF, 0x7A, 0x00);
+                Assert.Equal(orange, ((SolidColorBrush)seven.Foreground).Color);
+                Assert.NotEqual(orange, ((SolidColorBrush)thirty.Foreground).Color);
+                var chartPosition = chart.TranslatePoint(new Point(), card);
+                var hovered = model.TrendPoints[1];
+                model.SetHoveredBarAt(new Point(hovered.ChartX, hovered.ChartY + 10));
+                Pump();
                 Assert.True(tooltip.IsVisible);
-                Assert.Equal(Visibility.Visible, hoverGuide.Visibility);
-                Assert.Equal(200, tooltip.ActualWidth);
-                Assert.Equal(200, tooltip.ActualHeight);
-                var tooltipBottom = tooltip.TranslatePoint(new Point(0, tooltip.ActualHeight), card).Y;
-                Assert.True(tooltipBottom <= chartTop + 11, $"Tooltip bottom {tooltipBottom}, chart top {chartTop}");
-                Assert.Equal(5, model.HoverDayTaskCount);
-                Assert.Equal(3, model.VisibleHoverDayTasks.Count());
-                SavePreview(card, "investment-tooltip");
-                model.ToggleAllHoverTasksCommand.Execute(null);
+                Assert.Equal(Visibility.Visible, guide.Visibility);
+                Assert.Equal(132, tooltip.ActualWidth);
+                Assert.Equal(82, tooltip.ActualHeight);
+                Assert.Equal(Visibility.Visible, taskRow.Visibility);
+                Assert.Equal("56 分钟", model.HoverDayDurationDisplay);
+                Assert.Equal("完成任务 3 项", model.HoverTaskCountDisplay);
+                var tipPoint = tooltip.TranslatePoint(new Point(), card);
+                Assert.InRange(tipPoint.X, 28, card.ActualWidth - 28 - tooltip.ActualWidth);
+                Assert.True(tipPoint.Y > 70);
+                Assert.True(tipPoint.Y + tooltip.ActualHeight < chartPosition.Y + hovered.ChartY);
+                Assert.Equal(chartPosition, chart.TranslatePoint(new Point(), card));
+                SavePreview(card, "investment-tooltip-tasks");
+                hovered = model.TrendPoints[0];
+                model.SetHoveredBarAt(new Point(hovered.ChartX, hovered.ChartY + 10));
                 Pump();
-                Assert.Equal(5, model.VisibleHoverDayTasks.Count());
-                Assert.True(((ScrollViewer)modal.FindName("TooltipTasksScroll")).ScrollableHeight > 0);
-                Assert.Equal(200, tooltip.ActualHeight);
-                SavePreview(card, "investment-tooltip-expanded");
-                var parent = model.HoverDayTasks.Single(item => item.Name == "查看自动屏蔽规则");
-                parent.ToggleSubTasksCommand.Execute(null);
+                Assert.Equal(62, tooltip.ActualHeight);
+                Assert.Equal(Visibility.Collapsed, taskRow.Visibility);
+                Assert.Equal("45 分钟", model.HoverDayDurationDisplay);
+                SavePreview(card, "investment-tooltip-duration");
+                var interaction = (Border)chart.FindName("TrendInteractionArea");
+                RaiseMouseEvent(interaction, UIElement.MouseLeaveEvent);
                 Pump();
-                Assert.Equal(3, parent.VisibleSubTasks.Count());
-                parent.ToggleAllSubTasksCommand.Execute(null);
-                Pump();
-                Assert.Equal(5, parent.VisibleSubTasks.Count());
-                Assert.True(((ScrollViewer)modal.FindName("TooltipTasksScroll")).ScrollableHeight > 0);
-                Assert.Equal(200, tooltip.ActualHeight);
-                SavePreview(card, "investment-subtasks-expanded");
-                var interactionArea = (Border)chart.FindName("TrendInteractionArea");
-                var bridge = (Border)modal.FindName("TrendHoverBridge");
-                Assert.True(bridge.IsVisible);
-                Assert.InRange(bridge.TranslatePoint(new Point(), card).Y, tooltipBottom - 6, tooltipBottom - 2);
-                RaiseMouseEvent(interactionArea, UIElement.MouseLeaveEvent);
-                Pump();
-                Assert.True(model.IsTooltipOpen);
-                RaiseMouseEvent(bridge, UIElement.MouseEnterEvent);
-                WaitForHoverDelay();
-                Assert.Equal(hovered.Date, model.HoveredPoint?.Date);
-                RaiseMouseEvent(bridge, UIElement.MouseLeaveEvent);
-                RaiseMouseEvent(tooltip, UIElement.MouseEnterEvent);
-                WaitForHoverDelay();
-                Assert.Equal(hovered.Date, model.HoveredPoint?.Date);
-                Assert.True(((ScrollViewer)modal.FindName("TooltipTasksScroll")).ScrollableHeight > 0);
-                RaiseMouseEvent(tooltip, UIElement.MouseLeaveEvent);
-                WaitForHoverDelay();
-                Assert.False(model.IsTooltipOpen);
-                Assert.Equal(Visibility.Collapsed, hoverGuide.Visibility);
-                model.SetHoveredPointNearestTo(hovered.ChartX);
-                RaiseMouseEvent(interactionArea, UIElement.MouseEnterEvent);
-                RaiseMouseEvent(interactionArea, UIElement.MouseLeaveEvent);
-                RaiseMouseEvent(interactionArea, UIElement.MouseEnterEvent);
-                WaitForHoverDelay();
-                Assert.True(model.IsTooltipOpen);
-                RaiseMouseEvent(interactionArea, UIElement.MouseLeaveEvent);
-                WaitForHoverDelay();
                 Assert.False(model.IsTooltipOpen);
                 Assert.False(tooltip.IsVisible);
-                Assert.Equal(Visibility.Collapsed, hoverGuide.Visibility);
+                Assert.Equal(Visibility.Collapsed, guide.Visibility);
+                model.SetHoveredPointNearestTo(hovered.ChartX);
+                model.SelectThirtyDaysCommand.Execute(null);
+                Pump();
+                Assert.False(model.IsTooltipOpen);
+                Assert.Equal(30, model.TrendPoints.Count);
+                Assert.Equal(orange, ((SolidColorBrush)thirty.Foreground).Color);
+                Assert.NotEqual(orange, ((SolidColorBrush)seven.Foreground).Color);
+                Assert.Equal("近30天投入 · 活跃7天", model.InvestmentSummary);
+                SavePreview(card, "investment-30days");
                 ((Button)modal.FindName("MonthRangeButton")).Command.Execute(null);
                 Pump();
-                var popup = (Popup)modal.FindName("MonthPickerPopup");
-                Assert.True(popup.IsOpen);
+                Assert.True(((Popup)modal.FindName("MonthPickerPopup")).IsOpen);
                 var months = (ItemsControl)modal.FindName("AvailableMonthList");
                 var monthButton = Descendants<Button>(months).First(button => button.DataContext is GoalInvestmentMonthOptionViewModel);
                 monthButton.Command.Execute(monthButton.CommandParameter);
                 Pump();
                 Assert.True(model.IsMonthRange);
-                Assert.Equal(orange, ((SolidColorBrush)monthRange.Foreground).Color);
-                Assert.NotEqual(orange, ((SolidColorBrush)sevenRange.Foreground).Color);
-                Assert.Equal("2026年9月投入", model.PeriodInvestmentTitle);
+                Assert.Equal(31, model.TrendPoints.Count);
+                Assert.Equal(orange, ((SolidColorBrush)((Button)modal.FindName("MonthRangeButton")).Foreground).Color);
+                Assert.Equal("2026年10月投入 · 活跃6天", model.InvestmentSummary);
+                SavePreview(card, "investment-month");
                 model.CloseCommand.Execute(null);
                 Pump();
                 Assert.False(modal.IsVisible);
@@ -296,14 +266,6 @@ public sealed class GoalInvestmentTrendRedesignTests
     private static void Pump() => Dispatcher.CurrentDispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
     private static void RaiseMouseEvent(UIElement element, RoutedEvent routedEvent) =>
         element.RaiseEvent(new MouseEventArgs(Mouse.PrimaryDevice, Environment.TickCount) { RoutedEvent = routedEvent });
-    private static void WaitForHoverDelay()
-    {
-        var frame = new DispatcherFrame();
-        var timer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(250) };
-        timer.Tick += (_, _) => { timer.Stop(); frame.Continue = false; };
-        timer.Start();
-        Dispatcher.PushFrame(frame);
-    }
     private static IEnumerable<T> Descendants<T>(DependencyObject parent) where T : DependencyObject
     {
         for (var i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)

@@ -3,7 +3,9 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              Width="270" Height="710" Background="White" FontFamily="Microsoft YaHei UI, Segoe UI"
              Foreground="#24262C" FontSize="13" UseLayoutRounding="True" SnapsToDevicePixels="True"
-             PreviewKeyDown="Drawer_PreviewKeyDown">
+             PreviewKeyDown="Drawer_PreviewKeyDown" PreviewMouseMove="Drawer_PreviewMouseMove"
+             PreviewMouseLeftButtonUp="Drawer_PreviewMouseLeftButtonUp" LostMouseCapture="Drawer_LostMouseCapture"
+             Unloaded="Drawer_Unloaded" DataContextChanged="Drawer_DataContextChanged">
     <UserControl.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries><ResourceDictionary Source="FocusTaskResources.xaml" /></ResourceDictionary.MergedDictionaries>
@@ -11,9 +13,13 @@
             <Setter Property="Width" Value="19"/><Setter Property="Height" Value="19"/>
             <Setter Property="Cursor" Value="Hand"/><Setter Property="FocusVisualStyle" Value="{x:Null}"/>
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="CheckBox">
-                <Border x:Name="CheckChrome" CornerRadius="10" BorderBrush="#BCC2CB" BorderThickness="1.2" Background="White">
+                <Border x:Name="CheckChrome" CornerRadius="3" BorderBrush="#BCC2CB" BorderThickness="1" Background="White">
+                    <Grid>
+                    <TextBlock x:Name="TaskNumber" Text="{Binding DrawerNumber}" FontSize="11" Foreground="#A9AFB9"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     <Path x:Name="Tick" Width="9" Height="7" Data="M 0,3 L 3,6 L 9,0" Stroke="White" StrokeThickness="1.5"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
+                    </Grid>
                 </Border>
                 <ControlTemplate.Triggers>
                     <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="CheckChrome" Property="BorderBrush" Value="#FF9D5F"/></Trigger>
@@ -21,6 +27,7 @@
                     <Trigger Property="IsChecked" Value="True">
                         <Setter TargetName="CheckChrome" Property="Background" Value="#ABB1BA"/><Setter TargetName="CheckChrome" Property="BorderBrush" Value="#ABB1BA"/>
                         <Setter TargetName="Tick" Property="Visibility" Value="Visible"/>
+                        <Setter TargetName="TaskNumber" Property="Visibility" Value="Collapsed"/>
                     </Trigger>
                 </ControlTemplate.Triggers>
             </ControlTemplate></Setter.Value></Setter>
@@ -79,7 +86,7 @@
             <Style.Triggers><Trigger Property="IsEnabled" Value="False"><Setter Property="Background" Value="#ECEEF1"/><Setter Property="Foreground" Value="#B2B8C2"/></Trigger></Style.Triggers>
         </Style>
         <DataTemplate x:Key="TaskRow">
-            <Grid x:Name="TaskRowSurface" Background="Transparent">
+            <Grid x:Name="TaskRowSurface" Background="Transparent" PreviewMouseLeftButtonDown="TaskRow_PreviewMouseLeftButtonDown">
                 <StackPanel Margin="18,14,14,15">
                     <Grid MinHeight="24">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="35" /><ColumnDefinition Width="*" /><ColumnDefinition Width="24" /></Grid.ColumnDefinitions>
@@ -107,7 +114,7 @@
                             </Path>
                         </StackPanel>
                     </Button>
-                    <Border Margin="45,10,0,0" BorderBrush="#E8EBF0" BorderThickness="1,0,0,0" Visibility="{Binding IsExpanded, Converter={StaticResource BoolVisibility}}">
+                    <Border Margin="45,10,0,0" Visibility="{Binding IsExpanded, Converter={StaticResource BoolVisibility}}">
                         <ItemsControl x:Name="InlineSubTaskList" Margin="14,0,0,0" ItemsSource="{Binding SortedSubTasks}">
                             <ItemsControl.ItemTemplate><DataTemplate>
                                 <Grid MinHeight="33"><Grid.ColumnDefinitions><ColumnDefinition Width="26" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
@@ -151,19 +158,12 @@
             </StackPanel>
             <ScrollViewer x:Name="TaskDrawerScrollViewer" Grid.Row="2" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
                 <StackPanel>
-                    <ItemsControl x:Name="DrawerTaskList" ItemsSource="{Binding Tasks}" ItemTemplate="{StaticResource TaskRow}" Visibility="{Binding HasPendingTasks, Converter={StaticResource BoolVisibility}}"/>
-                    <StackPanel x:Name="DrawerTodayCompletedSection" Visibility="{Binding HasTodayCompletedTasks, Converter={StaticResource BoolVisibility}}" Margin="0,24,0,0">
-                        <Grid Height="34" Margin="18,0,14,0">
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <Grid Width="15" Height="15" Margin="0,0,10,0"><Ellipse Fill="#7F8997"/><Path Width="8" Height="6" Data="M 0,2.5 L 3,5.5 L 8,0" Stroke="White" StrokeThickness="1.3" StrokeStartLineCap="Round" StrokeEndLineCap="Round" HorizontalAlignment="Center" VerticalAlignment="Center"/></Grid>
-                                <TextBlock Text="今日完成" FontSize="13" FontWeight="SemiBold" Foreground="#7B8593"/>
-                            </StackPanel>
-                            <Border Height="1" Background="#F0F1F4" VerticalAlignment="Bottom"/>
-                        </Grid>
-                        <ItemsControl x:Name="DrawerTodayCompletedTaskList" ItemsSource="{Binding TodayCompletedTasks}" ItemTemplate="{StaticResource TaskRow}"/>
-                    </StackPanel>
+                    <ItemsControl x:Name="DrawerTaskList" ItemsSource="{Binding VisibleTasks}" ItemTemplate="{StaticResource TaskRow}"/>
                 </StackPanel>
             </ScrollViewer>
+            <Canvas Grid.Row="2" IsHitTestVisible="False" ClipToBounds="True" Panel.ZIndex="1">
+                <Border x:Name="TaskInsertionLine" Canvas.Left="18" Height="1" Background="#DEE3EB" Visibility="Collapsed"/>
+            </Canvas>
             <StackPanel x:Name="DrawerEmptyState" Grid.Row="2" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,32"
                         Visibility="{Binding IsEmpty, Converter={StaticResource BoolVisibility}}" IsHitTestVisible="False">
                 <Image Width="142" Height="142" Opacity="0.65" Stretch="Uniform" Margin="0,0,0,16" RenderOptions.BitmapScalingMode="HighQuality"

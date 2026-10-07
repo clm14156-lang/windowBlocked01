@@ -65,15 +65,15 @@ public sealed class StatisticsSpacingTests
                 var monthly = (Border)page.FindName("CalendarMonthlySummary");
                 var daily = (Border)page.FindName("DailyFocusRecordCard");
                 AssertLeft(page, calendar);
-                AssertLeft(page, monthly);
                 AssertRight(page, daily);
                 AssertClose(contentTop, Position(calendar, page).Y);
-                foreach (var card in new[] { calendar, monthly, daily })
+                foreach (var card in new[] { calendar, daily })
                     Assert.Equal(new Thickness(20), card.Padding);
                 AssertClose(12, Position(daily, page).X - (Position(calendar, page).X + calendar.ActualWidth));
-                AssertGap(calendar, monthly, page, 12);
+                Assert.True(calendar.IsAncestorOf(monthly));
+                AssertClose(20, Position(monthly, page).X - Position(calendar, page).X - calendar.BorderThickness.Left);
                 AssertClose(Position(calendar, page).Y, Position(daily, page).Y);
-                AssertBottom(page, monthly);
+                AssertBottom(page, calendar);
                 AssertBottom(page, daily);
                 var vipAction = (Button)page.FindName("CalendarVipUnlockButton");
                 AssertClose(20, Position(daily, page).Y + daily.ActualHeight

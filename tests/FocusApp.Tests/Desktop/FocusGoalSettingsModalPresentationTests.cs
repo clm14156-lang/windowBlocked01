@@ -65,7 +65,7 @@ public sealed class FocusGoalSettingsModalPresentationTests
     }
 
     [Fact]
-    public void DailyInputAllowsTwoDigitsWhileMonthlyInputKeepsThree()
+    public void DailyInputAllowsTwoDigitsWhileMonthlyOversizedInputCanReachValidation()
     {
         var root = LoadModal();
         var dailyInput = Assert.Single(root.Descendants(Presentation + "TextBox").Where(textBox =>
@@ -74,7 +74,7 @@ public sealed class FocusGoalSettingsModalPresentationTests
             (string?)textBox.Attribute(Xaml + "Name") == "MonthlyTargetHoursInputBox"));
 
         Assert.Equal("2", (string?)dailyInput.Attribute("MaxLength"));
-        Assert.Equal("3", (string?)monthlyInput.Attribute("MaxLength"));
+        Assert.Equal("0", (string?)monthlyInput.Attribute("MaxLength"));
     }
 
     [Fact]

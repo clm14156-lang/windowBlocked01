@@ -32,15 +32,15 @@
         <Style x:Key="TrendRangeButton" TargetType="Button">
             <Setter Property="Height" Value="32"/><Setter Property="Padding" Value="12,0"/>
             <Setter Property="Background" Value="Transparent"/><Setter Property="BorderBrush" Value="Transparent"/><Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/><Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="#8D96A8"/><Setter Property="FontSize" Value="12"/>
             <Setter Property="Cursor" Value="Hand"/><Setter Property="FocusVisualStyle" Value="{x:Null}"/>
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
                 <Border x:Name="Surface" Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6">
                     <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" TextElement.Foreground="{TemplateBinding Foreground}"/>
                 </Border>
                 <ControlTemplate.Triggers>
-                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Surface" Property="Background" Value="#E9EDF2"/></Trigger>
-                    <Trigger Property="Tag" Value="{StaticResource SelectedRangeValue}"><Setter TargetName="Surface" Property="Background" Value="White"/><Setter TargetName="Surface" Property="BorderBrush" Value="#E7EAF0"/><Setter Property="Foreground" Value="{DynamicResource AccentPrimary}"/><Setter TargetName="Surface" Property="Effect"><Setter.Value><DropShadowEffect BlurRadius="7" ShadowDepth="1" Opacity="0.12"/></Setter.Value></Setter></Trigger>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Surface" Property="Background" Value="#EEF0F4"/></Trigger>
+                    <Trigger Property="Tag" Value="{StaticResource SelectedRangeValue}"><Setter TargetName="Surface" Property="Background" Value="#FFF7F0"/><Setter TargetName="Surface" Property="BorderBrush" Value="#E7EAF0"/><Setter Property="Foreground" Value="{DynamicResource AccentPrimary}"/></Trigger>
                 </ControlTemplate.Triggers>
             </ControlTemplate></Setter.Value></Setter>
         </Style>
@@ -78,183 +78,82 @@
             <Setter Property="Width" Value="5"/><Setter Property="MinWidth" Value="5"/><Setter Property="Opacity" Value="0.35"/>
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ScrollBar"><Grid Width="5"><Track x:Name="PART_Track" Margin="0,2" IsDirectionReversed="True" Orientation="{TemplateBinding Orientation}"><Track.DecreaseRepeatButton><RepeatButton Command="{x:Static ScrollBar.PageUpCommand}" CommandTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}" Background="Transparent" BorderThickness="0"/></Track.DecreaseRepeatButton><Track.Thumb><Thumb MinHeight="22"><Thumb.Template><ControlTemplate TargetType="Thumb"><Border Width="3" Background="#A8ADB7" CornerRadius="1.5"/></ControlTemplate></Thumb.Template></Thumb></Track.Thumb><Track.IncreaseRepeatButton><RepeatButton Command="{x:Static ScrollBar.PageDownCommand}" CommandTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}" Background="Transparent" BorderThickness="0"/></Track.IncreaseRepeatButton></Track></Grid></ControlTemplate></Setter.Value></Setter>
         </Style>
-        <Style x:Key="TooltipLinkButton" TargetType="Button">
-            <Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="0"/><Setter Property="HorizontalContentAlignment" Value="Left"/>
-            <Setter Property="Cursor" Value="Hand"/><Setter Property="FocusVisualStyle" Value="{x:Null}"/>
-        </Style>
-        <Style x:Key="TooltipThinScrollBar" TargetType="ScrollBar">
-            <Setter Property="Width" Value="5"/><Setter Property="Opacity" Value="0.42"/>
-            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ScrollBar">
-                <Grid Width="5"><Track x:Name="PART_Track" Margin="0,2" IsDirectionReversed="True" Orientation="{TemplateBinding Orientation}">
-                    <Track.DecreaseRepeatButton><RepeatButton Command="{x:Static ScrollBar.PageUpCommand}" CommandTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}" Background="Transparent" BorderThickness="0"/></Track.DecreaseRepeatButton>
-                    <Track.Thumb><Thumb MinHeight="18"><Thumb.Template><ControlTemplate TargetType="Thumb"><Border Width="3" Background="#A8ADB7" CornerRadius="1.5"/></ControlTemplate></Thumb.Template></Thumb></Track.Thumb>
-                    <Track.IncreaseRepeatButton><RepeatButton Command="{x:Static ScrollBar.PageDownCommand}" CommandTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}" Background="Transparent" BorderThickness="0"/></Track.IncreaseRepeatButton>
-                </Track></Grid>
-            </ControlTemplate></Setter.Value></Setter>
-        </Style>
     </UserControl.Resources>
-
     <Grid Background="{DynamicResource ModalScrim}" MouseDown="Overlay_MouseDown">
-        <Border x:Name="TrendModalCard" Width="700" Height="460" HorizontalAlignment="Center" VerticalAlignment="Center"
-                Padding="22,24" Background="White" BorderBrush="#E8E9EC" BorderThickness="1" CornerRadius="18" MouseDown="ModalCard_MouseDown">
-            <Border.Effect><DropShadowEffect BlurRadius="28" ShadowDepth="5" Direction="270" Opacity="0.12"/></Border.Effect>
+        <Border x:Name="TrendModalCard" Width="650" Height="420" HorizontalAlignment="Center" VerticalAlignment="Center"
+                Padding="28,24" Background="White" BorderBrush="#E8E9EC" BorderThickness="1" CornerRadius="18" MouseDown="ModalCard_MouseDown">
+            <Border.Effect><DropShadowEffect BlurRadius="24" ShadowDepth="4" Direction="270" Opacity="0.10"/></Border.Effect>
             <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="52"/><RowDefinition Height="46"/><RowDefinition Height="91"/>
-                    <RowDefinition Height="1"/><RowDefinition Height="55"/><RowDefinition/>
-                </Grid.RowDefinitions>
-                <Grid Grid.RowSpan="2">
-                    <Grid.RowDefinitions><RowDefinition Height="52"/><RowDefinition Height="46"/></Grid.RowDefinitions>
-                    <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                    <StackPanel VerticalAlignment="Top" Margin="0,0,12,0">
-                        <TextBlock Text="{Binding GoalName}" FontSize="22" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip="{Binding GoalRemark}"/>
-                        <TextBlock Text="投入趋势" FontSize="12" Foreground="{DynamicResource TextSecondary}" Margin="0,4,0,0"/>
-                    </StackPanel>
-                    <Button Grid.Column="1" Width="24" Height="24" Margin="0,0,-6,0" HorizontalAlignment="Right" VerticalAlignment="Top" Style="{StaticResource TrendQuietButton}" Command="{Binding CloseCommand}" AutomationProperties.Name="关闭投入趋势">
-                        <TextBlock Text="×" FontSize="22" Foreground="{DynamicResource TextWeak}"/>
-                    </Button>
-                    <StackPanel Grid.Row="1" VerticalAlignment="Center">
-                        <TextBlock Text="投入概览" FontSize="17" FontWeight="SemiBold"/>
-                        <TextBlock Text="{Binding OverviewSubtitle}" Margin="0,4,0,0" FontSize="11" Foreground="{DynamicResource TextSecondary}"/>
-                    </StackPanel>
-                    <Border x:Name="RangeSelectorSurface" Grid.Row="1" Grid.Column="1" Height="34" HorizontalAlignment="Right" VerticalAlignment="Center" Background="#F2F4F7" BorderBrush="#F2F4F7" BorderThickness="1" CornerRadius="9">
-                        <Grid>
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="72"/><ColumnDefinition Width="78"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                            <Button Content="近7天" Tag="{Binding IsSevenDaysRange}" Style="{StaticResource TrendRangeButton}" Command="{Binding SelectSevenDaysCommand}"/>
-                            <Button Grid.Column="1" Content="近30天" Tag="{Binding IsThirtyDaysRange}" Style="{StaticResource TrendRangeButton}" Command="{Binding SelectThirtyDaysCommand}"/>
-                            <Button x:Name="MonthRangeButton" Grid.Column="2" MinWidth="92" Tag="{Binding IsMonthRange}" Style="{StaticResource TrendRangeButton}" Command="{Binding SelectMonthModeCommand}">
-                                <StackPanel Orientation="Horizontal"><TextBlock Text="{Binding MonthButtonText}" FontSize="12" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/><TextBlock Text="&#xE70D;" FontFamily="Segoe MDL2 Assets" FontSize="9" Margin="7,3,0,0" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/></StackPanel>
-                            </Button>
-                            <Popup x:Name="MonthPickerPopup" Grid.Column="2" HorizontalOffset="-78" VerticalOffset="4" IsOpen="{Binding IsMonthMenuOpen, Mode=TwoWay}" Placement="Bottom" PlacementTarget="{Binding ElementName=MonthRangeButton}" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
-                                <Border x:Name="MonthPickerSurface" Width="180" Padding="6" Margin="8" Background="White" BorderBrush="#ECEEF1" BorderThickness="1" CornerRadius="9">
-                                    <Border.Effect><DropShadowEffect BlurRadius="16" ShadowDepth="3" Opacity="0.12"/></Border.Effect>
-                                    <StackPanel>
-                                        <Grid Height="32" Visibility="{Binding HasMultipleMonthYears, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                            <Grid.ColumnDefinitions><ColumnDefinition Width="30"/><ColumnDefinition/><ColumnDefinition Width="30"/></Grid.ColumnDefinitions>
-                                            <Button Content="‹" Style="{StaticResource TrendYearNavigationButton}" Command="{Binding PreviousMonthYearCommand}" AutomationProperties.Name="上一数据年份"/>
-                                            <TextBlock Grid.Column="1" Text="{Binding MonthPickerYearDisplay}" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource TextSecondary}"/>
-                                            <Button Grid.Column="2" Content="›" Style="{StaticResource TrendYearNavigationButton}" Command="{Binding NextMonthYearCommand}" AutomationProperties.Name="下一数据年份"/>
-                                        </Grid>
-                                        <ScrollViewer MaxHeight="192" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-                                            <ScrollViewer.Resources><Style TargetType="ScrollBar" BasedOn="{StaticResource TrendThinScrollBar}"/></ScrollViewer.Resources>
-                                            <ItemsControl x:Name="AvailableMonthList" ItemsSource="{Binding AvailableMonths}">
-                                                <ItemsControl.ItemTemplate><DataTemplate>
-                                                    <Button Content="{Binding Display}" Style="{StaticResource TrendMonthOptionButton}" Command="{Binding DataContext.SelectMonthCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}"/>
-                                                </DataTemplate></ItemsControl.ItemTemplate>
-                                            </ItemsControl>
-                                        </ScrollViewer>
-                                        <TextBlock x:Name="MonthPickerEmptyState" Text="暂无数据" FontSize="12" Foreground="{DynamicResource TextWeak}" HorizontalAlignment="Center" Margin="0,20">
-                                            <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding HasAvailableMonths}" Value="False"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
-                                        </TextBlock>
-                                    </StackPanel>
-                                </Border>
-                            </Popup>
-                        </Grid>
-                    </Border>
-                </Grid>
-
-                <Grid x:Name="InvestmentMetrics" Grid.Row="2">
-                    <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="1"/><ColumnDefinition/><ColumnDefinition Width="1"/><ColumnDefinition/></Grid.ColumnDefinitions>
-                    <Grid Grid.Column="0" Margin="0,0,12,0">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="52"/><ColumnDefinition/></Grid.ColumnDefinitions>
-                        <Border Width="44" Height="44" HorizontalAlignment="Left" Background="#FFF3EB" CornerRadius="22">
-                            <Grid Width="20" Height="20"><Ellipse Stroke="{DynamicResource AccentPrimary}" StrokeThickness="1.8"/><Path Data="M 10,4 L 10,10 L 15,12" Stroke="{DynamicResource AccentPrimary}" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/></Grid>
-                        </Border>
-                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                            <TextBlock Text="{Binding PeriodInvestmentTitle}" FontSize="12" Foreground="{DynamicResource TextSecondary}"/>
-                            <Viewbox Height="36" Margin="0,8,0,0" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left">
-                                <TextBlock x:Name="PeriodInvestmentValue"><Run Text="{Binding PeriodInvestment.HoursValue, Mode=OneWay}" FontSize="28" FontWeight="SemiBold"/><Run Text="{Binding PeriodInvestment.HoursUnitWithLeadingSpace, Mode=OneWay}" FontSize="12"/><Run Text="{Binding PeriodInvestment.MinutesValueWithLeadingSpace, Mode=OneWay}" FontSize="28" FontWeight="SemiBold"/><Run Text="{Binding PeriodInvestment.MinutesUnitWithLeadingSpace, Mode=OneWay}" FontSize="12"/></TextBlock>
-                            </Viewbox>
-                        </StackPanel>
-                    </Grid>
-                    <Border Grid.Column="1" Height="52" Background="#ECEEF2"/>
-                    <Grid Grid.Column="2" Margin="18,0,12,0">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="52"/><ColumnDefinition/></Grid.ColumnDefinitions>
-                        <Border Width="44" Height="44" HorizontalAlignment="Left" Background="#FFF3EB" CornerRadius="22"><Path Width="18" Height="20" Stretch="Uniform" Data="M 3,4 L 17,4 Q 19,4 19,6 L 19,18 Q 19,20 17,20 L 3,20 Q 1,20 1,18 L 1,6 Q 1,4 3,4 M 1,9 L 19,9 M 5,1 L 5,6 M 15,1 L 15,6" Stroke="{DynamicResource AccentPrimary}" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/></Border>
-                        <StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="活跃天数" FontSize="12" Foreground="{DynamicResource TextSecondary}"/><TextBlock x:Name="ActiveDaysValue" Margin="0,8,0,0"><Run Text="{Binding ActiveDays, Mode=OneWay}" FontSize="28" FontWeight="SemiBold"/><Run Text=" 天" FontSize="12"/></TextBlock></StackPanel>
-                    </Grid>
-                    <Border Grid.Column="3" Height="52" Background="#ECEEF2"/>
-                    <Grid Grid.Column="4" Margin="18,0,0,0">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="52"/><ColumnDefinition/></Grid.ColumnDefinitions>
-                        <Border Width="44" Height="44" HorizontalAlignment="Left" Background="#FFF3EB" CornerRadius="22"><Grid Width="19" Height="21"><Border Width="3" Height="8" HorizontalAlignment="Left" VerticalAlignment="Bottom" Background="{DynamicResource AccentPrimary}" CornerRadius="1.5"/><Border Width="3" Height="14" VerticalAlignment="Bottom" Background="{DynamicResource AccentPrimary}" CornerRadius="1.5"/><Border Width="3" Height="21" HorizontalAlignment="Right" Background="{DynamicResource AccentPrimary}" CornerRadius="1.5"/></Grid></Border>
-                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                            <TextBlock Text="平均时长" FontSize="12" Foreground="{DynamicResource TextSecondary}"/>
-                            <Viewbox Height="36" Margin="0,8,0,0" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left"><TextBlock x:Name="AverageInvestmentValue"><Run Text="{Binding AverageInvestment.HoursValue, Mode=OneWay}" FontSize="28" FontWeight="SemiBold"/><Run Text="{Binding AverageInvestment.HoursUnitWithLeadingSpace, Mode=OneWay}" FontSize="12"/><Run Text="{Binding AverageInvestment.MinutesValueWithLeadingSpace, Mode=OneWay}" FontSize="28" FontWeight="SemiBold"/><Run Text="{Binding AverageInvestment.MinutesUnitWithLeadingSpace, Mode=OneWay}" FontSize="12"/></TextBlock></Viewbox>
-                        </StackPanel>
-                    </Grid>
-                </Grid>
-
-                <Border Grid.Row="3" Background="#E8EBF0"/>
-                <StackPanel x:Name="TrendSectionHeading" Grid.Row="4" VerticalAlignment="Top" Margin="0,16,0,0">
-                    <TextBlock Text="投入趋势" FontSize="17" FontWeight="SemiBold"/>
-                    <TextBlock Text="{Binding TrendSubtitle}" Margin="0,4,0,0" FontSize="11" Foreground="{DynamicResource TextSecondary}"/>
+                <Grid.RowDefinitions><RowDefinition Height="60"/><RowDefinition Height="80"/><RowDefinition Height="30"/><RowDefinition/></Grid.RowDefinitions>
+                <StackPanel Margin="0,0,38,0">
+                    <TextBlock Text="{Binding GoalName}" FontSize="24" FontWeight="SemiBold" Foreground="#17202C" TextTrimming="CharacterEllipsis" ToolTip="{Binding GoalRemark}"/>
+                    <TextBlock Text="投入趋势" FontSize="13" Foreground="#8D96A8" Margin="0,4,0,0"/>
                 </StackPanel>
-                <Border x:Name="TrendChartCard" Grid.Row="5" Background="Transparent"><views:GoalInvestmentTrendChart x:Name="TrendChart" HorizontalAlignment="Center" VerticalAlignment="Top" HoverEntered="TrendChart_HoverEntered" HoverExited="TrendChart_HoverExited"/></Border>
-
-                <Border x:Name="TrendHoverBridge" Grid.RowSpan="6" Panel.ZIndex="5" Width="638" Height="12" Margin="8,251,0,0"
-                        HorizontalAlignment="Left" VerticalAlignment="Top" Background="Transparent"
-                        MouseEnter="TrendHoverBridge_MouseEnter" MouseLeave="TrendHoverBridge_MouseLeave" IsVisibleChanged="TrendHoverBridge_IsVisibleChanged">
-                    <Border.Style><Style TargetType="Border"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding IsTooltipOpen}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Border.Style>
-                </Border>
-
-                <Border x:Name="TrendTooltip" Grid.RowSpan="6" Panel.ZIndex="6" Width="200" Height="200" Padding="11,10" UseLayoutRounding="False"
-                        HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8,0,0,0" Background="White" BorderBrush="#E2E5EA"
-                        BorderThickness="1" CornerRadius="9" MouseEnter="TrendTooltip_MouseEnter" MouseLeave="TrendTooltip_MouseLeave" IsVisibleChanged="TrendTooltip_IsVisibleChanged">
-                    <Border.RenderTransform><TranslateTransform X="{Binding TooltipLeft}" Y="{Binding TooltipTop}"/></Border.RenderTransform>
-                    <Border.Effect><DropShadowEffect BlurRadius="12" ShadowDepth="3" Direction="270" Opacity="0.10"/></Border.Effect>
-                    <Border.Style><Style TargetType="Border"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding IsTooltipOpen}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Border.Style>
+                <Button Width="24" Height="24" Margin="0,0,-6,0" HorizontalAlignment="Right" VerticalAlignment="Top" Style="{StaticResource TrendQuietButton}" Command="{Binding CloseCommand}" AutomationProperties.Name="关闭投入趋势">
+                    <TextBlock Text="×" FontSize="22" Foreground="{DynamicResource TextWeak}"/>
+                </Button>
+                <StackPanel x:Name="InvestmentSummary" Grid.Row="1" HorizontalAlignment="Left">
+                    <TextBlock x:Name="InvestmentDuration" Foreground="#17202C" FontSize="44" FontWeight="SemiBold">
+                        <Run Text="{Binding PeriodInvestment.HoursValue, Mode=OneWay}"/>
+                        <Run Text="{Binding PeriodInvestment.HoursUnitWithLeadingSpace, Mode=OneWay}" FontSize="16" FontWeight="Normal"/>
+                        <Run Text="{Binding PeriodInvestment.MinutesValueWithLeadingSpace, Mode=OneWay}"/>
+                        <Run Text="{Binding PeriodInvestment.MinutesUnitWithLeadingSpace, Mode=OneWay}" FontSize="16" FontWeight="Normal"/>
+                    </TextBlock>
+                    <TextBlock Text="{Binding InvestmentSummary}" Margin="0,5,0,0" FontSize="12" Foreground="#8D96A8"/>
+                </StackPanel>
+                <Border x:Name="RangeSelectorSurface" Grid.Row="1" Height="34" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,8,0,0" Background="#F6F7F9" BorderBrush="#ECEEF2" BorderThickness="1" CornerRadius="9">
                     <Grid>
-                        <Grid.RowDefinitions><RowDefinition Height="45"/><RowDefinition Height="1"/><RowDefinition/></Grid.RowDefinitions>
-                        <StackPanel>
-                            <TextBlock Text="{Binding HoveredPoint.TooltipDateDisplay}" FontSize="14" FontWeight="SemiBold"/>
-                            <TextBlock Margin="0,3,0,0" FontSize="11" Foreground="{DynamicResource TextSecondary}">
-                                <Run Text="{Binding HoverDayDurationDisplay, Mode=OneWay}" Foreground="{DynamicResource AccentPrimary}"/><Run Text="专注  ·  完成 "/><Run Text="{Binding HoverDayTaskCount, Mode=OneWay}" Foreground="{DynamicResource AccentPrimary}"/><Run Text=" 项任务"/>
-                            </TextBlock>
-                        </StackPanel>
-                        <Border Grid.Row="1" Background="#ECEEF2"/>
-                        <ScrollViewer x:Name="TooltipTasksScroll" Grid.Row="2" Margin="0,5,0,0" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-                            <ScrollViewer.Resources>
-                                <Style TargetType="ScrollBar" BasedOn="{StaticResource TooltipThinScrollBar}"/>
-                            </ScrollViewer.Resources>
-                            <StackPanel>
-                                <ItemsControl x:Name="HoverCompletedTasks" ItemsSource="{Binding VisibleHoverDayTasks}">
-                                    <ItemsControl.ItemTemplate><DataTemplate DataType="{x:Type vm:TrendCompletedTaskViewModel}">
-                                        <StackPanel Margin="0,2,0,3">
-                                            <Grid MinHeight="24">
-                                                <Grid.ColumnDefinitions><ColumnDefinition Width="23"/><ColumnDefinition/><ColumnDefinition Width="16"/></Grid.ColumnDefinitions>
-                                                <Border Width="15" Height="15" HorizontalAlignment="Left" VerticalAlignment="Center" Background="{DynamicResource AccentPrimary}" CornerRadius="8">
-                                                    <Path Data="M 0,3 L 2,5 L 7,0" Stroke="White" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                </Border>
-                                                <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="11" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding Name}"/>
-                                                <Button Grid.Column="2" Style="{StaticResource TooltipLinkButton}" Command="{Binding ToggleSubTasksCommand}" Visibility="{Binding HasSubTasks, Converter={StaticResource BooleanToVisibilityConverter}}" AutomationProperties.Name="展开或收起子任务">
-                                                    <TextBlock FontSize="15" Foreground="{DynamicResource TextSecondary}"><TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Text" Value="›"/><Style.Triggers><DataTrigger Binding="{Binding IsExpanded}" Value="True"><Setter Property="Text" Value="⌄"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
-                                                </Button>
-                                            </Grid>
-                                            <TextBlock Text="{Binding SubTaskCountLabel}" Margin="23,-1,0,3" FontSize="10" Foreground="{DynamicResource TextWeak}" Visibility="{Binding HasSubTasks, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                            <StackPanel Margin="23,1,0,1" Visibility="{Binding IsExpanded, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                                <ItemsControl ItemsSource="{Binding VisibleSubTasks}">
-                                                    <ItemsControl.ItemTemplate><DataTemplate>
-                                                        <Grid MinHeight="21"><Grid.ColumnDefinitions><ColumnDefinition Width="19"/><ColumnDefinition/></Grid.ColumnDefinitions>
-                                                            <TextBlock Text="✓" FontSize="10" Foreground="{DynamicResource TextWeak}" VerticalAlignment="Center"/>
-                                                            <TextBlock Grid.Column="1" Text="{Binding}" FontSize="10" Foreground="{DynamicResource TextSecondary}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
-                                                        </Grid>
-                                                    </DataTemplate></ItemsControl.ItemTemplate>
-                                                </ItemsControl>
-                                                <Button Content="{Binding SubTaskOverflowLabel}" Command="{Binding ToggleAllSubTasksCommand}" Style="{StaticResource TooltipLinkButton}" Foreground="{DynamicResource TextSecondary}" FontSize="10" Margin="19,2,0,2" Visibility="{Binding HasSubTaskOverflow, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                            </StackPanel>
-                                        </StackPanel>
-                                    </DataTemplate></ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                                <Button Content="{Binding HoverTaskOverflowLabel}" Command="{Binding ToggleAllHoverTasksCommand}" Style="{StaticResource TooltipLinkButton}" Foreground="#3184D6" FontSize="11" Margin="23,3,0,4" Visibility="{Binding HasHoverTaskOverflow, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                <TextBlock Text="{Binding HoverEmptyState}" TextWrapping="Wrap" TextAlignment="Center" FontSize="11" Foreground="{DynamicResource TextWeak}" Margin="8,20">
-                                    <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding HasHoverDayTasks}" Value="False"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
-                                </TextBlock>
-                            </StackPanel>
-                        </ScrollViewer>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="72"/><ColumnDefinition Width="78"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <Button Content="近7天" Tag="{Binding IsSevenDaysRange}" Style="{StaticResource TrendRangeButton}" Command="{Binding SelectSevenDaysCommand}"/>
+                        <Button Grid.Column="1" Content="近30天" Tag="{Binding IsThirtyDaysRange}" Style="{StaticResource TrendRangeButton}" Command="{Binding SelectThirtyDaysCommand}"/>
+                        <Button x:Name="MonthRangeButton" Grid.Column="2" MinWidth="92" Tag="{Binding IsMonthRange}" Style="{StaticResource TrendRangeButton}" Command="{Binding SelectMonthModeCommand}">
+                            <StackPanel Orientation="Horizontal"><TextBlock Text="{Binding MonthButtonText}" FontSize="12" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/><TextBlock Text="&#xE70D;" FontFamily="Segoe MDL2 Assets" FontSize="9" Margin="7,3,0,0" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/></StackPanel>
+                        </Button>
+                        <Popup x:Name="MonthPickerPopup" Grid.Column="2" HorizontalOffset="-78" VerticalOffset="4" IsOpen="{Binding IsMonthMenuOpen, Mode=TwoWay}" Placement="Bottom" PlacementTarget="{Binding ElementName=MonthRangeButton}" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
+                            <Border x:Name="MonthPickerSurface" Width="180" Padding="6" Margin="8" Background="White" BorderBrush="#ECEEF1" BorderThickness="1" CornerRadius="9">
+                                <Border.Effect><DropShadowEffect BlurRadius="16" ShadowDepth="3" Opacity="0.12"/></Border.Effect>
+                                <StackPanel>
+                                    <Grid Height="32" Visibility="{Binding HasMultipleMonthYears, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="30"/><ColumnDefinition/><ColumnDefinition Width="30"/></Grid.ColumnDefinitions>
+                                        <Button Content="‹" Style="{StaticResource TrendYearNavigationButton}" Command="{Binding PreviousMonthYearCommand}" AutomationProperties.Name="上一数据年份"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding MonthPickerYearDisplay}" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource TextSecondary}"/>
+                                        <Button Grid.Column="2" Content="›" Style="{StaticResource TrendYearNavigationButton}" Command="{Binding NextMonthYearCommand}" AutomationProperties.Name="下一数据年份"/>
+                                    </Grid>
+                                    <ScrollViewer MaxHeight="192" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                                        <ScrollViewer.Resources><Style TargetType="ScrollBar" BasedOn="{StaticResource TrendThinScrollBar}"/></ScrollViewer.Resources>
+                                        <ItemsControl x:Name="AvailableMonthList" ItemsSource="{Binding AvailableMonths}">
+                                            <ItemsControl.ItemTemplate><DataTemplate>
+                                                <Button Content="{Binding Display}" Style="{StaticResource TrendMonthOptionButton}" Command="{Binding DataContext.SelectMonthCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}"/>
+                                            </DataTemplate></ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+                                    <TextBlock x:Name="MonthPickerEmptyState" Text="暂无数据" FontSize="12" Foreground="{DynamicResource TextWeak}" HorizontalAlignment="Center" Margin="0,20">
+                                        <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding HasAvailableMonths}" Value="False"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                                    </TextBlock>
+                                </StackPanel>
+                            </Border>
+                        </Popup>
                     </Grid>
                 </Border>
-
+                <Border x:Name="TrendChartCard" Grid.Row="3" Background="Transparent">
+                    <views:GoalInvestmentTrendChart x:Name="TrendChart" HorizontalAlignment="Center" VerticalAlignment="Top"/>
+                </Border>
+                <Canvas Grid.RowSpan="4" Panel.ZIndex="6" IsHitTestVisible="False">
+                    <Border x:Name="TrendTooltip" Canvas.Left="{Binding TooltipLeft}"
+                            Width="132" Height="{Binding TooltipHeight}" Padding="12,10" Background="White" BorderBrush="#F0F1F4" BorderThickness="1" CornerRadius="9"
+                            Visibility="{Binding IsTooltipOpen, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Border.RenderTransform><TransformGroup><TranslateTransform Y="{Binding TooltipTop}"/><TranslateTransform Y="170"/></TransformGroup></Border.RenderTransform>
+                        <Border.Effect><DropShadowEffect BlurRadius="16" ShadowDepth="3" Direction="270" Opacity="0.09"/></Border.Effect>
+                        <StackPanel>
+                            <TextBlock Text="{Binding HoveredPoint.TooltipDateDisplay}" FontSize="11" Foreground="#8D96A8"/>
+                            <TextBlock Text="{Binding HoverDayDurationDisplay}" Margin="0,4,0,0" FontSize="13" FontWeight="SemiBold" Foreground="#17202C"/>
+                            <StackPanel x:Name="TooltipTaskCount" Orientation="Horizontal" Margin="0,5,0,0" Visibility="{Binding HasHoverDayTasks, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <Grid Width="11" Height="11" Margin="0,0,5,0" VerticalAlignment="Center"><Ellipse Fill="#FFA45D"/><Path Data="M 2.5,5.5 L 4.5,7.5 L 8,3.5" Stroke="White" StrokeThickness="1.1" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/></Grid>
+                                <TextBlock Text="{Binding HoverTaskCountDisplay}" FontSize="10.5" Foreground="#677386"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </Canvas>
             </Grid>
         </Border>
     </Grid>

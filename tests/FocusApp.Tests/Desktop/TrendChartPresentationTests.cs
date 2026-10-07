@@ -10,14 +10,14 @@ public sealed class TrendChartPresentationTests
     private static readonly XNamespace Xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
 
     [Fact]
-    public void HorizontalGuideLines_UseFullOpacity()
+    public void HorizontalGuideLines_UseAQuietColorWithoutChangingPlotBounds()
     {
         var chart = XDocument.Load(Path.Combine(
             FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "TrendChart.xaml"));
         var guideLine = Assert.Single(chart.Descendants(Presentation + "Line").Where(line =>
             (string?)line.Attribute("StrokeDashArray") == "3,4"));
 
-        Assert.Equal("{DynamicResource BorderPrimary}", (string?)guideLine.Attribute("Stroke"));
+        Assert.Equal("#F1F3F6", (string?)guideLine.Attribute("Stroke"));
         Assert.Equal("1", (string?)guideLine.Attribute("Opacity"));
         Assert.Equal("8", (string?)guideLine.Attribute("X1"));
         Assert.Equal("570", (string?)guideLine.Attribute("X2"));

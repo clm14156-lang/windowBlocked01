@@ -87,8 +87,13 @@ public sealed class GoalFocusHistoryViewModel(Func<DateTime> now) : INotifyPrope
                 ? details.SubTasks.Select(child => new GoalHistorySubTaskViewModel(child.Title, child.IsCompleted)).ToArray()
                 : source?.SubTasks.OrderBy(child => child.SortOrder)
                     .Select(child => new GoalHistorySubTaskViewModel(child.Title, child.IsCompleted)).ToArray() ?? [];
+            var completedAt = snapshot?.CompletedAtUtc?.LocalDateTime
+                ?? (index < record.CompletedTaskTimes.Count ? record.CompletedTaskTimes[index] : null);
+            if (completedAt is null && source?.CompletedAtUtc?.LocalDateTime is { } sourceTime &&
+                sourceTime >= record.StartTime && sourceTime <= record.EndTime)
+                completedAt = sourceTime;
             return new GoalHistoryTaskViewModel(snapshot?.TaskNameSnapshot ?? name,
-                details?.Description ?? source?.Description ?? string.Empty, children);
+                details?.Description ?? source?.Description ?? string.Empty, children, completedAt);
         }).ToArray();
     }
 }
@@ -104,7 +109,6 @@ public sealed class GoalFocusDayViewModel : INotifyPropertyChanged
         DateDisplay = date == today ? $"今天 · {date:M月d日}" : date == today.AddDays(-1) ? $"昨天 · {date:M月d日}" : $"{date:M月d日}";
         var minutes = (int)TimeSpan.FromTicks(sessions.Sum(session => (session.Record.EndTime - session.Record.StartTime).Ticks)).TotalMinutes;
         SummaryDisplay = $"{new GoalInvestmentDurationViewModel(minutes).Display} · {sessions.Count}次专注";
-        Timeline = CalendarFocusTimelineViewModel.Create(date, sessions.Select(session => session.Record), fullDay: true);
         ToggleCommand = new RelayCommand<object>(_ => IsExpanded = !IsExpanded);
     }
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -112,7 +116,6 @@ public sealed class GoalFocusDayViewModel : INotifyPropertyChanged
     public string DateDisplay { get; }
     public string SummaryDisplay { get; }
     public IReadOnlyList<GoalFocusSessionViewModel> Sessions { get; }
-    public CalendarFocusTimelineViewModel Timeline { get; }
     public ICommand ToggleCommand { get; }
     public bool IsExpanded
     {
@@ -137,11 +140,13 @@ public sealed class GoalFocusSessionViewModel : INotifyPropertyChanged
     public string FocusDurationDisplay => $"专注 {DurationDisplay}";
     public string TimeRangeDisplay => Record.TimeRangeDisplay;
     public string DurationDisplay => Record.CalendarDurationDisplay;
+    public string SessionDetailsDisplay => $"{TimeRangeDisplay} · {DurationDisplay}";
+    public string TaskSummaryDisplay => string.Join(" · ", Tasks.Take(2).Select(task => task.Name)) + (Tasks.Count > 2 ? "…" : string.Empty);
     public IReadOnlyList<GoalHistoryTaskViewModel> Tasks { get; }
     public bool HasTasks => Tasks.Count > 0;
     public int TaskCount => Tasks.Count;
     public string TaskCountDisplay => $"{Tasks.Count}项任务";
-    public string TaskToggleDisplay => IsTasksExpanded ? $"收起{Tasks.Count}项历史任务" : $"查看{Tasks.Count}项历史任务";
+    public string TaskToggleDisplay => !HasTasks ? string.Empty : IsTasksExpanded ? $"收起{Tasks.Count}项历史任务" : $"查看{Tasks.Count}项历史任务";
     public ICommand ToggleTasksCommand { get; }
     public bool IsTasksExpanded
     {
@@ -155,10 +160,13 @@ public sealed class GoalFocusSessionViewModel : INotifyPropertyChanged
     }
 }
 
-public sealed record GoalHistoryTaskViewModel(string Name, string Description, IReadOnlyList<GoalHistorySubTaskViewModel> SubTasks)
+public sealed record GoalHistoryTaskViewModel(string Name, string Description, IReadOnlyList<GoalHistorySubTaskViewModel> SubTasks,
+    DateTime? CompletedAt = null)
 {
     public bool IsCompleted => true; // These entries are completed-task snapshots belonging to a session.
     public bool HasDescription => !string.IsNullOrWhiteSpace(Description);
     public bool HasSubTasks => SubTasks.Count > 0;
+    public string CompletedTimeDisplay => CompletedAt?.ToString("HH:mm") ?? string.Empty;
+    public bool HasCompletedTime => CompletedAt is not null;
 }
 public sealed record GoalHistorySubTaskViewModel(string Title, bool IsCompleted);

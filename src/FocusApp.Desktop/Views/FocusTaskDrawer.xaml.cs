@@ -61,6 +61,12 @@ public partial class FocusTaskDrawer : UserControl
     }
     private void Drawer_PreviewKeyDown(object sender, KeyEventArgs e)
     {
+        if (e.Key == Key.Escape && _dragRow is not null)
+        {
+            ResetTaskDrag();
+            e.Handled = true;
+            return;
+        }
         if (e.Key != Key.Escape || ViewModel is not { } vm) return;
         if (vm.IsCreating) vm.CancelCreationCommand.Execute(null);
         else if (vm.SelectedTask is { } task) vm.ToggleExpandedCommand.Execute(task);

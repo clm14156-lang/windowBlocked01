@@ -58,6 +58,7 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
     public event PropertyChangedEventHandler? PropertyChanged;
     public ObservableCollection<FocusTaskViewModel> Tasks { get; } = [];
     public ObservableCollection<FocusTaskViewModel> TodayCompletedTasks { get; } = [];
+    public ObservableCollection<FocusTaskViewModel> VisibleTasks { get; } = [];
     public ICommand ToggleCommand { get; }
     public ICommand CloseCommand { get; }
     public ICommand AddTaskCommand { get; }
@@ -142,12 +143,13 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
         var current = (_session.ActiveTarget?.Tasks.AsEnumerable() ?? []).ToArray();
         var pending = current.Where(item => !item.IsCompleted).ToArray();
         var completed = _session.CompletedTasks.OrderByDescending(item => item.CompletedAtUtc).ToArray();
-        var visible = pending.Concat(completed).ToArray();
+        var visible = current.Where(item => !item.IsCompleted || completed.Contains(item)).ToArray();
         if (SelectedTask is not null && !visible.Contains(SelectedTask)) SelectTask(null);
         if (_editingTask is not null && !visible.Contains(_editingTask)) CancelCreation();
         SyncTasks(Tasks, pending);
         SyncTasks(TodayCompletedTasks, completed);
-        for (var index = 0; index < pending.Length; index++) pending[index].DrawerNumber = index + 1;
+        SyncTasks(VisibleTasks, visible);
+        for (var index = 0; index < visible.Length; index++) visible[index].DrawerNumber = index + 1;
         var highlighted = _selectedTask is { IsCompleted: false } ? _selectedTask : pending.FirstOrDefault();
         foreach (var currentTask in current) currentTask.IsDrawerSelected = currentTask == highlighted;
         OnPropertyChanged(nameof(TaskProgress));
@@ -157,6 +159,20 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(HasPendingTasks));
         OnPropertyChanged(nameof(HasTodayCompletedTasks));
         OnPropertyChanged(nameof(IsEmpty));
+    }
+
+    public bool MoveTask(FocusTaskViewModel task, int destinationIndex)
+    {
+        if (!_session.IsFocusing || IsCreating || _session.ActiveTarget is not { } target ||
+            !VisibleTasks.Contains(task) || destinationIndex < 0 || destinationIndex >= VisibleTasks.Count)
+            return false;
+        var oldIndex = target.Tasks.IndexOf(task);
+        var newIndex = target.Tasks.IndexOf(VisibleTasks[destinationIndex]);
+        if (oldIndex < 0 || newIndex < 0 || oldIndex == newIndex) return false;
+        // Move the existing model so its details and disclosure state travel together.
+        // The session's collection subscription publishes the new persisted sort order.
+        target.Tasks.Move(oldIndex, newIndex);
+        return true;
     }
 
     private static void SyncTasks(ObservableCollection<FocusTaskViewModel> destination, FocusTaskViewModel[] desired)

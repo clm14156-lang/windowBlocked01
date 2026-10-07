@@ -3,7 +3,6 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Input;
-using System.Windows.Media;
 using FocusApp.Contracts;
 using FocusApp.Desktop.Services;
 
@@ -12,11 +11,11 @@ namespace FocusApp.Desktop.ViewModels;
 public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
 {
     internal const double PlotLeft = 44;
-    internal const double PlotRight = 610;
-    internal const double PlotTop = 28;
-    internal const double PlotBottom = 130;
-    private const double TooltipWidth = 200;
-    private const double ChartWidth = 638;
+    internal const double PlotRight = 586;
+    internal const double PlotTop = 20;
+    internal const double PlotBottom = 146;
+    public const double TooltipWidth = 132;
+    private const double ChartWidth = 592;
     private const double TooltipEdgeInset = 8;
     private const double TooltipGap = 12;
     private const double PlotWidth = PlotRight - PlotLeft;
@@ -34,7 +33,6 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
     private int _monthPickerYear;
     private DateTime _selectedDate;
     private GoalInvestmentTrendPointViewModel? _hoveredPoint;
-    private double _tooltipAnchorX;
     private bool _isOpen;
     private bool _isMonthMenuOpen;
     private bool _showAllHoverTasks;
@@ -89,8 +87,11 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
     public bool HasHoverDayFocus => HoveredPoint?.Minutes > 0;
     public string HoverEmptyState => HasHoverDayFocus ? "暂无完成任务" : "这一天没有专注记录，也没有完成任务";
     public int HoverDayTaskCount => HoverDayTasks.Count;
+    public string InvestmentSummary => $"{PeriodInvestmentTitle} · 活跃{ActiveDays}天";
+    public string HoverTaskCountDisplay => $"完成任务 {HoverDayTaskCount} 项";
     public string HoverDayDurationDisplay => (HoveredPoint?.Minutes ?? 0) switch
     {
+        >= 60 when HoveredPoint!.Minutes % 60 == 0 => $"{HoveredPoint.Minutes / 60} 小时",
         >= 60 => $"{HoveredPoint!.Minutes / 60} 小时 {HoveredPoint.Minutes % 60} 分钟",
         var minutes => $"{minutes} 分钟"
     };
@@ -154,8 +155,6 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
     public int ActiveDays { get; private set; }
     public GoalInvestmentDurationViewModel AverageInvestment { get; private set; } = new(0);
     public GoalInvestmentDurationViewModel TotalInvestment { get; private set; } = new(0);
-    public PathGeometry TrendCurveGeometry { get; private set; } = new();
-    public PathGeometry TrendAreaGeometry { get; private set; } = new();
     public GoalInvestmentTrendPointViewModel? HoveredPoint
     {
         get => _hoveredPoint;
@@ -169,6 +168,9 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(IsTooltipOpen));
             OnPropertyChanged(nameof(TooltipLeft));
             RefreshHoverDayTasks();
+            OnPropertyChanged(nameof(TooltipTop));
+            OnPropertyChanged(nameof(TooltipHeight));
+            OnPropertyChanged(nameof(TooltipBottom));
         }
     }
     public bool IsTooltipOpen => HoveredPoint is not null;
@@ -177,13 +179,15 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
         get
         {
             if (HoveredPoint is null) return 0;
-            var right = _tooltipAnchorX + TooltipGap;
-            var left = right + TooltipWidth <= ChartWidth - TooltipEdgeInset
-                ? right : _tooltipAnchorX - TooltipGap - TooltipWidth;
+            var left = HoveredPoint.ChartX + 24;
+            if (left + TooltipWidth > ChartWidth - TooltipEdgeInset) left = HoveredPoint.ChartX - 24 - TooltipWidth;
             return Math.Clamp(left, TooltipEdgeInset, ChartWidth - TooltipEdgeInset - TooltipWidth);
         }
     }
-    public double TooltipTop => 55;
+    // Coordinates are relative to the chart; the tip sits just above the bar.
+    public double TooltipTop => TooltipBottom - TooltipHeight;
+    public double TooltipHeight => HasHoverDayTasks ? 82 : 62;
+    public double TooltipBottom => (HoveredPoint?.ChartY ?? PlotBottom) - TooltipGap;
     public string SelectedDateTitle => $"{_selectedDate:M月d日}";
     public string SelectedDateSummary
     {
@@ -229,15 +233,20 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
 
     public void SetHoveredPointNearestTo(double chartX)
     {
-        if (TrendPoints.Count == 0 || chartX < PlotLeft - 12 || chartX > PlotRight + 12)
+        if (TrendPoints.Count == 0 || chartX < PlotLeft || chartX > PlotRight)
         {
             HoveredPoint = null;
             return;
         }
 
-        _tooltipAnchorX = chartX;
         HoveredPoint = TrendPoints.MinBy(point => Math.Abs(point.ChartX - chartX));
-        OnPropertyChanged(nameof(TooltipLeft));
+    }
+
+    public void SetHoveredBarAt(Point chartPosition)
+    {
+        var point = TrendPoints.MinBy(item => Math.Abs(item.ChartX - chartPosition.X));
+        HoveredPoint = point is not null && Math.Abs(point.ChartX - chartPosition.X) <= Math.Max(10, point.BarWidth / 2)
+            && chartPosition.Y >= point.ChartY - 5 && chartPosition.Y <= PlotBottom + 5 ? point : null;
     }
 
     public void ClearHoveredPoint() => HoveredPoint = null;
@@ -275,7 +284,7 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
         }
         foreach (var property in new[] { nameof(VisibleHoverDayTasks), nameof(HasHoverTaskOverflow),
                      nameof(HoverTaskOverflowLabel), nameof(HasHoverDayTasks), nameof(HasHoverDayFocus),
-                     nameof(HoverDayTaskCount), nameof(HoverDayDurationDisplay), nameof(HoverEmptyState) }) OnPropertyChanged(property);
+                     nameof(HoverDayTaskCount), nameof(HoverTaskCountDisplay), nameof(HoverDayDurationDisplay), nameof(HoverEmptyState) }) OnPropertyChanged(property);
     }
 
     public void SelectHoveredDate()
@@ -380,8 +389,7 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
             TrendPoints.Clear();
             YAxisTicks.Clear();
             SelectedDateRecords.Clear();
-            TrendCurveGeometry = new PathGeometry();
-            TrendAreaGeometry = new PathGeometry();
+            HoveredPoint = null;
             NotifyComputedProperties();
             return;
         }
@@ -438,14 +446,17 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
         var daily = Enumerable.Range(0, count)
             .Select(offset => (Date: firstDate.AddDays(offset), Minutes: GetInvestmentMinutes(firstDate.AddDays(offset))))
             .ToArray();
-        var maximum = Math.Max(60, (int)Math.Ceiling(daily.Max(item => item.Minutes) / 60d) * 60);
+        var dailyMaximum = daily.Max(item => item.Minutes);
+        var maximum = dailyMaximum <= 60 ? 60 : (int)Math.Ceiling(dailyMaximum / 120d) * 120;
         var labelStep = count <= 7 ? 1 : Math.Max(1, (int)Math.Ceiling((count - 1) / 5d));
+        var slotWidth = PlotWidth / count;
         for (var index = 0; index < daily.Length; index++)
         {
-            var x = count == 1 ? PlotLeft : PlotLeft + PlotWidth * index / (count - 1d);
+            var x = PlotLeft + slotWidth * (index + 0.5);
             var y = PlotBottom - daily[index].Minutes / (double)maximum * PlotHeight;
             var showLabel = index == 0 || index == count - 1 || index % labelStep == 0;
-            TrendPoints.Add(new GoalInvestmentTrendPointViewModel(daily[index].Date, daily[index].Minutes, x, y, showLabel));
+            TrendPoints.Add(new GoalInvestmentTrendPointViewModel(daily[index].Date, daily[index].Minutes, x, y, showLabel,
+                Math.Min(34, slotWidth * 0.44)));
         }
 
         foreach (var minutes in new[] { 0, maximum / 2, maximum }.Distinct())
@@ -453,11 +464,6 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
             var y = PlotBottom - minutes / (double)maximum * PlotHeight;
             YAxisTicks.Add(new GoalInvestmentTrendAxisTickViewModel(minutes, y));
         }
-
-        TrendCurveGeometry = BuildCurveGeometry(TrendPoints);
-        TrendAreaGeometry = BuildAreaGeometry(TrendPoints);
-        OnPropertyChanged(nameof(TrendCurveGeometry));
-        OnPropertyChanged(nameof(TrendAreaGeometry));
     }
 
     private void SelectDate(DateTime date)
@@ -493,34 +499,6 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
         return tasks;
     }
 
-    private static PathGeometry BuildCurveGeometry(IReadOnlyList<GoalInvestmentTrendPointViewModel> points)
-    {
-        if (points.Count == 0) return new PathGeometry();
-        var figure = new PathFigure { StartPoint = new Point(points[0].ChartX, points[0].ChartY), IsClosed = false };
-        for (var index = 1; index < points.Count; index++)
-        {
-            var previous = points[index - 1];
-            var current = points[index];
-            var handle = (current.ChartX - previous.ChartX) * 0.38;
-            figure.Segments.Add(new BezierSegment(
-                new Point(previous.ChartX + handle, previous.ChartY),
-                new Point(current.ChartX - handle, current.ChartY),
-                new Point(current.ChartX, current.ChartY), true));
-        }
-        return new PathGeometry([figure]);
-    }
-
-    private static PathGeometry BuildAreaGeometry(IReadOnlyList<GoalInvestmentTrendPointViewModel> points)
-    {
-        if (points.Count == 0) return new PathGeometry();
-        var curve = BuildCurveGeometry(points).Figures[0];
-        var figure = new PathFigure { StartPoint = curve.StartPoint, IsClosed = true };
-        foreach (var segment in curve.Segments) figure.Segments.Add(segment.Clone());
-        figure.Segments.Add(new LineSegment(new Point(points[^1].ChartX, PlotBottom), true));
-        figure.Segments.Add(new LineSegment(new Point(points[0].ChartX, PlotBottom), true));
-        return new PathGeometry([figure]);
-    }
-
     private void NotifyGoalProperties()
     {
         foreach (var property in new[] { nameof(GoalName), nameof(GoalRemark), nameof(GoalIconSource), nameof(HasGoalRemark) })
@@ -539,7 +517,7 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
         foreach (var property in new[]
                  {
                      nameof(PeriodInvestment), nameof(ActiveDays), nameof(AverageInvestment), nameof(TotalInvestment),
-                     nameof(PeriodInvestmentTitle),
+                     nameof(PeriodInvestmentTitle), nameof(InvestmentSummary),
                      nameof(TrendTitle), nameof(OverviewSubtitle), nameof(TrendSubtitle), nameof(MonthButtonText), nameof(SelectedMonthDisplay), nameof(SelectedDateTitle),
                      nameof(SelectedDateSummary), nameof(HasSelectedDateRecords)
                  })
@@ -586,19 +564,23 @@ public sealed class GoalInvestmentTrendPointViewModel : INotifyPropertyChanged
 {
     private bool _isHovered;
     private bool _isSelected;
-    public GoalInvestmentTrendPointViewModel(DateTime date, int minutes, double chartX, double chartY, bool showAxisLabel)
+    public GoalInvestmentTrendPointViewModel(DateTime date, int minutes, double chartX, double chartY, bool showAxisLabel, double barWidth = 34)
     {
         Date = date;
         Minutes = minutes;
         ChartX = chartX;
         ChartY = chartY;
         ShowAxisLabel = showAxisLabel;
+        BarWidth = barWidth;
     }
     public event PropertyChangedEventHandler? PropertyChanged;
     public DateTime Date { get; }
     public int Minutes { get; }
     public double ChartX { get; }
     public double ChartY { get; }
+    public double BarWidth { get; }
+    public double BarLeft => ChartX - BarWidth / 2;
+    public double BarHeight => Math.Max(0, GoalInvestmentTrendViewModel.PlotBottom - ChartY);
     public double AxisLabelY => GoalInvestmentTrendViewModel.PlotBottom + 10;
     public bool ShowAxisLabel { get; }
     public string AxisLabel => $"{Date:M/d}";
@@ -611,7 +593,7 @@ public sealed class GoalInvestmentTrendPointViewModel : INotifyPropertyChanged
 
 public sealed record GoalInvestmentTrendAxisTickViewModel(int Minutes, double ChartY)
 {
-    public string Label => new GoalInvestmentDurationViewModel(Minutes).Display;
+    public string Label => Minutes == 0 ? "0" : new GoalInvestmentDurationViewModel(Minutes).Display;
     public bool ShowGuideLine => Minutes > 0;
 }
 

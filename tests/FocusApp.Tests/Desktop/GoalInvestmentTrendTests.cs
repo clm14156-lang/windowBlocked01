@@ -16,30 +16,61 @@ public sealed class GoalInvestmentTrendTests
     private static readonly DateTime Now = new(2026, 9, 16, 18, 0, 0);
 
     [Fact]
-    public void TooltipUsesFixedVerticalPositionAndTracksMouseXWithinChartBounds()
+    public void TooltipAnchorsAboveTheHoveredBarAndStaysWithinChartBounds()
     {
         var model = new GoalInvestmentTrendViewModel(() => Now);
-        model.ApplyState(Goal("goal", null), []);
+        model.ApplyState(Goal("goal", null), [Record(Now.Date.AddHours(9), 56, "goal")]);
         model.Open();
-
-        model.SetHoveredPointNearestTo(44);
-        var firstPoint = model.HoveredPoint;
-        var firstLeft = model.TooltipLeft;
-        var fixedTop = model.TooltipTop;
-        Assert.Equal(55, fixedTop);
-        model.SetHoveredPointNearestTo(64);
-        Assert.Same(firstPoint, model.HoveredPoint);
-        Assert.Equal(firstLeft + 20, model.TooltipLeft);
-        Assert.Equal(fixedTop, model.TooltipTop);
-
-        model.SetHoveredPointNearestTo(610);
-        Assert.InRange(model.TooltipLeft, 8, 430);
-        Assert.True(model.TooltipLeft + 200 <= 630);
-        Assert.Equal(fixedTop, model.TooltipTop);
-        model.ClearHoveredPoint();
+        foreach (var point in new[] { model.TrendPoints[0], model.TrendPoints[^1] })
+        {
+            model.SetHoveredPointNearestTo(point.ChartX);
+            Assert.Same(point, model.HoveredPoint);
+            Assert.InRange(model.TooltipLeft, 8, 452);
+            Assert.True(model.TooltipLeft + GoalInvestmentTrendViewModel.TooltipWidth <= 584);
+            Assert.Equal(point.ChartY - 12, model.TooltipTop + model.TooltipHeight);
+            var left = model.TooltipLeft;
+            model.SetHoveredPointNearestTo(point.ChartX + 2);
+            Assert.Equal(left, model.TooltipLeft);
+        }
+        model.SetHoveredPointNearestTo(0);
+        Assert.False(model.IsTooltipOpen);
+        model.SetHoveredPointNearestTo(600);
         Assert.False(model.IsTooltipOpen);
     }
 
+    [Fact]
+    public void BarsKeepEvenSpacingAdaptToLongerRangesAndHoverOnlyTheirOwnBounds()
+    {
+        var model = new GoalInvestmentTrendViewModel(() => Now);
+        model.ApplyState(Goal("goal", null), [Record(Now.Date.AddHours(9), 56, "goal")]);
+        var point = model.TrendPoints[^1];
+        var step = model.TrendPoints[1].ChartX - model.TrendPoints[0].ChartX;
+        Assert.All(model.TrendPoints.Zip(model.TrendPoints.Skip(1)), pair => Assert.Equal(step, pair.Second.ChartX - pair.First.ChartX, 8));
+        Assert.All(model.TrendPoints, bar => { Assert.True(bar.BarLeft >= 44); Assert.True(bar.BarLeft + bar.BarWidth <= 586); Assert.InRange(bar.BarHeight, 0, 126); });
+        Assert.Equal(0, model.TrendPoints[0].BarHeight);
+        model.SetHoveredBarAt(new Point(point.ChartX, point.ChartY + point.BarHeight / 2));
+        Assert.Same(point, model.HoveredPoint);
+        model.SetHoveredBarAt(new Point(point.ChartX, point.ChartY - 10));
+        Assert.False(model.IsTooltipOpen);
+        model.SetHoveredBarAt(new Point(point.ChartX - step / 2, 140));
+        Assert.False(model.IsTooltipOpen);
+        var weekBarWidth = point.BarWidth;
+        model.SelectThirtyDaysCommand.Execute(null);
+        Assert.Equal(30, model.TrendPoints.Count);
+        Assert.All(model.TrendPoints, bar => Assert.True(bar.BarWidth < weekBarWidth));
+        Assert.InRange(model.TrendPoints.Count(bar => bar.ShowAxisLabel), 5, 7);
+        Assert.Equal(new[] { "0", "30分钟", "1小时" }, model.YAxisTicks.Select(tick => tick.Label));
+        model.SelectMonthCommand.Execute(model.AvailableMonths.Single());
+        Assert.Equal(30, model.TrendPoints.Count);
+        Assert.Equal("2026年9月投入 · 活跃1天", model.InvestmentSummary);
+        model.SetHoveredPointNearestTo(model.TrendPoints[^1].ChartX);
+        model.ApplyState(null, []);
+        Assert.False(model.IsTooltipOpen);
+        Assert.Empty(model.TrendPoints);
+        model.ApplyState(Goal("goal", null), [Record(Now.Date.AddHours(9), 121, "goal")]);
+        Assert.Equal(new[] { "0", "2小时", "4小时" }, model.YAxisTicks.Select(tick => tick.Label));
+        Assert.InRange(model.TrendPoints[^1].BarHeight, 0, 126);
+    }
     [Fact]
     public void FiltersCurrentGoalBuildsOnlyDataMonthsAndProjectsSelectedDayRecords()
     {
@@ -62,7 +93,7 @@ public sealed class GoalInvestmentTrendTests
         Assert.Equal("1小时30分钟", model.TotalInvestment.Display);
         Assert.Equal(new[] { "2026年9月", "2026年7月" }, model.AvailableMonths.Select(month => month.Display));
         Assert.Equal(3, model.YAxisTicks.Count);
-        Assert.Equal(28, model.YAxisTicks.Min(tick => tick.ChartY));
+        Assert.Equal(20, model.YAxisTicks.Min(tick => tick.ChartY));
         Assert.DoesNotContain(model.AvailableMonths, month => month.Month.Month == 8);
 
         var point = model.TrendPoints.Single(item => item.Date == new DateTime(2026, 9, 10));
@@ -85,7 +116,7 @@ public sealed class GoalInvestmentTrendTests
         model.SetHoveredPointNearestTo(emptyDay.ChartX);
         model.SelectHoveredDate();
         Assert.Equal(0, emptyDay.Minutes);
-        Assert.Equal(130, emptyDay.ChartY);
+        Assert.Equal(146, emptyDay.ChartY);
         Assert.True(emptyDay.IsSelected);
         Assert.True(emptyDay.IsMarkerVisible);
         Assert.False(point.IsSelected);
@@ -161,68 +192,31 @@ public sealed class GoalInvestmentTrendTests
     }
 
     [Fact]
-    public void ModalUsesThreeMetricsAndInteractiveTrendSummary()
+    public void ModalKeepsOneSummaryOneBarChartAndTheExistingRangeEntryPoints()
     {
         var root = FindRepositoryRoot();
         var modal = XDocument.Load(Path.Combine(root, "src", "FocusApp.Desktop", "Views", "GoalInvestmentTrendModal.xaml"));
         var card = modal.Descendants(Presentation + "Border").Single(element => (string?)element.Attribute(Xaml + "Name") == "TrendModalCard");
-        Assert.Equal("700", (string?)card.Attribute("Width"));
-        Assert.Equal("460", (string?)card.Attribute("Height"));
-        Assert.DoesNotContain(modal.Descendants(Presentation + "TextBlock"), element =>
-            (string?)element.Attribute("Text") == "累计投入");
-        Assert.Contains(modal.Descendants(Presentation + "TextBlock"), element => (string?)element.Attribute("Text") == "活跃天数");
-        Assert.Contains(modal.Descendants(Presentation + "TextBlock"), element => (string?)element.Attribute("Text") == "平均时长");
-        var trendChartCard = modal.Descendants(Presentation + "Border").Single(element => (string?)element.Attribute(Xaml + "Name") == "TrendChartCard");
-        Assert.Empty(trendChartCard.Descendants(Presentation + "TextBlock"));
-        Assert.Single(trendChartCard.Descendants().Where(element => element.Name.LocalName == "GoalInvestmentTrendChart"));
-        Assert.Contains(modal.Descendants(Presentation + "ItemsControl"), item => (string?)item.Attribute("ItemsSource") == "{Binding AvailableMonths}");
-        Assert.DoesNotContain(modal.Descendants(Presentation + "Grid"), item => (string?)item.Attribute(Xaml + "Name") == "InvestmentRecordsSection");
-        var rangeSelector = modal.Descendants(Presentation + "Border").Single(element => (string?)element.Attribute(Xaml + "Name") == "RangeSelectorSurface");
-        Assert.Equal("#F2F4F7", (string?)rangeSelector.Attribute("Background"));
-        Assert.Equal("9", (string?)rangeSelector.Attribute("CornerRadius"));
-        var rangeButtonStyle = modal.Descendants(Presentation + "Style").Single(element => (string?)element.Attribute(Xaml + "Key") == "TrendRangeButton");
-        Assert.DoesNotContain(rangeButtonStyle.Descendants(Presentation + "Setter"), setter =>
-            (string?)setter.Attribute("Property") == "Background" &&
-            (string?)setter.Attribute("Value") == "{DynamicResource AccentPrimary}");
-        Assert.Contains(rangeButtonStyle.Descendants(Presentation + "Trigger"), trigger =>
-            (string?)trigger.Attribute("Property") == "Tag" &&
-            trigger.Descendants(Presentation + "Setter").Any(setter =>
-                (string?)setter.Attribute("Property") == "Foreground" &&
-                (string?)setter.Attribute("Value") == "{DynamicResource AccentPrimary}"));
-        var monthPicker = modal.Descendants(Presentation + "Border").Single(element => (string?)element.Attribute(Xaml + "Name") == "MonthPickerSurface");
-        Assert.Null(monthPicker.Attribute("Height"));
-        Assert.Equal("180", (string?)monthPicker.Attribute("Width"));
-        Assert.Equal("9", (string?)monthPicker.Attribute("CornerRadius"));
+        Assert.Equal("650", (string?)card.Attribute("Width"));
+        Assert.Equal("420", (string?)card.Attribute("Height"));
+        var texts = modal.Descendants(Presentation + "TextBlock").Select(element => (string?)element.Attribute("Text")).ToArray();
+        Assert.Single(texts.Where(text => text == "投入趋势"));
+        foreach (var removed in new[] { "投入概览", "活跃天数", "平均时长", "{Binding OverviewSubtitle}", "{Binding TrendSubtitle}" }) Assert.DoesNotContain(removed, texts);
+        Assert.Contains("{Binding InvestmentSummary}", texts);
+        Assert.DoesNotContain(modal.Descendants(Presentation + "ItemsControl"), item => (string?)item.Attribute("ItemsSource") == "{Binding VisibleHoverDayTasks}");
+        Assert.Single(modal.Descendants(Presentation + "Popup"));
         var monthGrid = modal.Descendants(Presentation + "ItemsControl").Single(element => (string?)element.Attribute(Xaml + "Name") == "AvailableMonthList");
         Assert.Equal("{Binding AvailableMonths}", (string?)monthGrid.Attribute("ItemsSource"));
-        var emptyState = modal.Descendants(Presentation + "TextBlock").Single(element => (string?)element.Attribute(Xaml + "Name") == "MonthPickerEmptyState");
-        Assert.Equal("暂无数据", (string?)emptyState.Attribute("Text"));
-        Assert.Single(modal.Descendants(Presentation + "Popup"));
-
         var page = XDocument.Load(Path.Combine(root, "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
         var entry = page.Descendants(Presentation + "Button").Single(element => (string?)element.Attribute(Xaml + "Name") == "GoalInvestmentTrendButton");
         Assert.Equal("{Binding GoalInvestmentTrend.OpenCommand}", (string?)entry.Attribute("Command"));
-
         var mainWindow = XDocument.Load(Path.Combine(root, "src", "FocusApp.Desktop", "MainWindow.xaml"));
         var trendModal = mainWindow.Descendants().Single(element => element.Name.LocalName == "GoalInvestmentTrendModal");
         Assert.Equal("{Binding StatisticsPage.GoalInvestmentTrend}", (string?)trendModal.Attribute("DataContext"));
-
         var chart = XDocument.Load(Path.Combine(root, "src", "FocusApp.Desktop", "Views", "GoalInvestmentTrendChart.xaml"));
-        Assert.DoesNotContain(chart.Descendants(Presentation + "ItemsControl"), element =>
-            (string?)element.Attribute(Xaml + "Name") == "SelectedGuideLines");
-        var hoverGuide = chart.Descendants(Presentation + "Line")
-            .Single(element => (string?)element.Attribute(Xaml + "Name") == "HoverGuideLine");
-        Assert.Equal(
-            "{StaticResource TrendVerticalGuideLineStyle}",
-            (string?)hoverGuide.Element(Presentation + "Line.Style")?.Element(Presentation + "Style")?.Attribute("BasedOn"));
-        var tooltip = modal.Descendants(Presentation + "Border")
-            .Single(element => (string?)element.Attribute(Xaml + "Name") == "TrendTooltip");
-        Assert.Equal("200", (string?)tooltip.Attribute("Width"));
-        Assert.Equal("200", (string?)tooltip.Attribute("Height"));
-        Assert.Contains(tooltip.Descendants(Presentation + "ItemsControl"), items =>
-            (string?)items.Attribute("ItemsSource") == "{Binding VisibleHoverDayTasks}");
+        Assert.DoesNotContain(chart.Descendants(Presentation + "Path"), path => ((string?)path.Attribute("Data"))?.Contains("Geometry") == true);
+        Assert.Contains(chart.Descendants(Presentation + "ItemsControl"), item => (string?)item.Attribute(Xaml + "Name") == "TrendBars");
     }
-
     [Fact]
     public void ModalRendersAtTheRequestedSize()
     {
@@ -250,8 +244,8 @@ public sealed class GoalInvestmentTrendTests
                 modal.UpdateLayout();
 
                 var card = (FrameworkElement)modal.FindName("TrendModalCard");
-                Assert.Equal(700, card.ActualWidth);
-                Assert.Equal(460, card.ActualHeight);
+                Assert.Equal(650, card.ActualWidth);
+                Assert.Equal(420, card.ActualHeight);
 
                 var path = Environment.GetEnvironmentVariable("FOCUSAPP_GOAL_TREND_VISUAL_QA_PATH");
                 if (!string.IsNullOrWhiteSpace(path))

@@ -115,6 +115,11 @@ public partial class FocusGoalSettingsModal : UserControl
             {
                 viewModel.MonthlyTargetHoursInput = textBox.Text;
             }
+            if (textBox.Text != viewModel.MonthlyTargetHoursInput)
+            {
+                textBox.SetCurrentValue(TextBox.TextProperty, viewModel.MonthlyTargetHoursInput);
+                textBox.CaretIndex = textBox.Text.Length;
+            }
         }
         else if (viewModel.DailyTargetHoursInput != textBox.Text)
         {
@@ -171,7 +176,7 @@ public partial class FocusGoalSettingsModal : UserControl
         string.Equals(textBox.Tag?.ToString(), "Monthly", StringComparison.Ordinal);
 
     private static int GetMaximumInputLength(TextBox textBox) =>
-        IsMonthlyInput(textBox) ? 3 : 2;
+        IsMonthlyInput(textBox) ? int.MaxValue : 2;
 
     private static bool IsWithinTextBox(DependencyObject? source)
     {

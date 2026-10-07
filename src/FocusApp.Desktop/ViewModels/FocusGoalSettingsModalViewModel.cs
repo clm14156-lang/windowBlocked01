@@ -14,7 +14,6 @@ public enum FocusGoalMode
 public sealed class FocusGoalSettingsModalViewModel : INotifyPropertyChanged
 {
     private const int DailyTargetMaximumHours = 24;
-    private const int MonthlyTargetMaximumHours = 720;
 
     private bool _isOpen;
     private FocusGoalMode _mode = FocusGoalMode.DailyFixed;
@@ -159,12 +158,9 @@ public sealed class FocusGoalSettingsModalViewModel : INotifyPropertyChanged
         get => _monthlyTargetHours;
         private set
         {
-            if (!SetField(ref _monthlyTargetHours, value))
-            {
-                return;
-            }
-
-            MonthlyTargetHoursInput = FormatTargetHours(value);
+            var clampedValue = Math.Clamp(value, 0, MonthlyTargetMaximumHours);
+            SetField(ref _monthlyTargetHours, clampedValue);
+            SetField(ref _monthlyTargetHoursInput, FormatTargetHours(clampedValue), nameof(MonthlyTargetHoursInput));
             RefreshMonthlyProgress();
         }
     }
@@ -174,16 +170,15 @@ public sealed class FocusGoalSettingsModalViewModel : INotifyPropertyChanged
         get => _monthlyTargetHoursInput;
         set
         {
-            var normalizedValue = NormalizeTargetHoursInput(value, MonthlyTargetMaximumHours);
-            if (!SetField(ref _monthlyTargetHoursInput, normalizedValue))
-            {
-                return;
-            }
+            var maximumValue = MonthlyTargetMaximumHours;
+            var normalizedValue = NormalizeTargetHoursInput(value, maximumValue);
+            SetField(ref _monthlyTargetHoursInput, normalizedValue);
 
-            if (TryParseTargetHours(normalizedValue, MonthlyTargetMaximumHours, out var parsedValue))
+            if (TryParseTargetHours(normalizedValue, maximumValue, out var parsedValue))
             {
-                if (SetField(ref _monthlyTargetHours, parsedValue)) RefreshMonthlyProgress();
+                SetField(ref _monthlyTargetHours, parsedValue, nameof(MonthlyTargetHours));
             }
+            RefreshMonthlyProgress();
         }
     }
 
@@ -196,9 +191,30 @@ public sealed class FocusGoalSettingsModalViewModel : INotifyPropertyChanged
         }
     }
 
-    public double RemainingHours => Math.Max(0, MonthlyTargetHours - Math.Max(0, _monthlyCompletedFocusProvider().TotalHours));
+    public int MonthlyTargetMaximumHours => GetMonthlyProgress().MaximumHours;
 
-    public double DailyRequiredFocusHours => RemainingHours / RemainingDays;
+    public double RemainingHours => GetRemainingHours(MonthlyTargetHours, GetMonthlyProgress());
+
+    public double DailyRequiredFocusHours => GetDailyRequiredFocusHours(MonthlyTargetHours);
+
+    internal double GetDailyRequiredFocusHours(int targetHours)
+    {
+        var progress = GetMonthlyProgress();
+        return Math.Clamp(GetRemainingHours(targetHours, progress) / progress.RemainingDays, 0, 24);
+    }
+
+    private (int RemainingDays, double CompletedHours, int MaximumHours) GetMonthlyProgress()
+    {
+        var today = _localNowProvider().Date;
+        var remainingDays = DateTime.DaysInMonth(today.Year, today.Month) - today.Day + 1;
+        var completedHours = Math.Max(0, _monthlyCompletedFocusProvider().TotalHours);
+        // Targets are whole hours. Round down so the integer target stays physically achievable.
+        var maximumHours = (int)Math.Floor(completedHours + remainingDays * 24);
+        return (remainingDays, completedHours, maximumHours);
+    }
+
+    private static double GetRemainingHours(int targetHours, (int RemainingDays, double CompletedHours, int MaximumHours) progress) =>
+        Math.Max(0, Math.Min(targetHours, progress.MaximumHours) - progress.CompletedHours);
 
     public string MonthlyDailyRequirementDisplay => FormattableString.Invariant(
         $"按当前进度，每天约需 {DailyRequiredFocusHours:0.0} 小时");
@@ -207,6 +223,13 @@ public sealed class FocusGoalSettingsModalViewModel : INotifyPropertyChanged
 
     public void RefreshMonthlyProgress()
     {
+        var maximumValue = MonthlyTargetMaximumHours;
+        if (_monthlyTargetHours > maximumValue)
+        {
+            SetField(ref _monthlyTargetHours, maximumValue, nameof(MonthlyTargetHours));
+            SetField(ref _monthlyTargetHoursInput, FormatTargetHours(maximumValue), nameof(MonthlyTargetHoursInput));
+        }
+        OnPropertyChanged(nameof(MonthlyTargetMaximumHours));
         OnPropertyChanged(nameof(RemainingDays));
         OnPropertyChanged(nameof(RemainingHours));
         OnPropertyChanged(nameof(DailyRequiredFocusHours));
@@ -247,6 +270,7 @@ public sealed class FocusGoalSettingsModalViewModel : INotifyPropertyChanged
 
     public void CommitTargetHoursInput(bool isMonthly)
     {
+        if (isMonthly) RefreshMonthlyProgress();
         var input = isMonthly ? MonthlyTargetHoursInput : DailyTargetHoursInput;
         var currentValue = isMonthly ? MonthlyTargetHours : DailyTargetHours;
         var maximumValue = isMonthly ? MonthlyTargetMaximumHours : DailyTargetMaximumHours;
@@ -343,11 +367,18 @@ public sealed class FocusGoalSettingsModalViewModel : INotifyPropertyChanged
         return true;
     }
 
-    private static string NormalizeTargetHoursInput(string input, int maximumValue)
+    internal static string NormalizeTargetHoursInput(string input, int maximumValue)
     {
-        if (int.TryParse(input, NumberStyles.None, CultureInfo.InvariantCulture, out var value) && value > maximumValue)
+        if (input.Length > 0 && input.All(character => character is >= '0' and <= '9'))
         {
-            return FormatTargetHours(maximumValue);
+            // Compare digits before parsing, so even pasted values larger than Int32 clamp correctly.
+            var digits = input.TrimStart('0');
+            var maximumInput = FormatTargetHours(maximumValue);
+            if (digits.Length > maximumInput.Length ||
+                (digits.Length == maximumInput.Length && string.CompareOrdinal(digits, maximumInput) > 0))
+            {
+                return maximumInput;
+            }
         }
 
         return input;

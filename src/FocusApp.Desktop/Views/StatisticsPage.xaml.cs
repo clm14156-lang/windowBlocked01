@@ -166,6 +166,7 @@ public partial class StatisticsPage : UserControl
     public StatisticsPage()
     {
         InitializeComponent();
+        InitializeCalendarInteraction();
         CompletedTasksPopup.CustomPopupPlacementCallback = PlaceCompletedTasksPopup;
         PreviewMouseDown += CompletedTasksOutside_MouseDown;
         PreviewKeyDown += CompletedTasksPopover_KeyDown;
@@ -245,6 +246,7 @@ public partial class StatisticsPage : UserControl
 
     private void StatisticsPage_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
+        CalendarRecordInteraction.Clear();
         CompletedTasksButton.IsChecked = false;
         CloseDistributionTip();
         if (e.OldValue is StatisticsOverviewViewModel oldViewModel)
@@ -260,6 +262,8 @@ public partial class StatisticsPage : UserControl
 
     private void StatisticsViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (e.PropertyName is nameof(StatisticsOverviewViewModel.SelectedTab) or nameof(StatisticsOverviewViewModel.SelectedDateDisplay))
+            CalendarRecordInteraction.Clear();
         if (e.PropertyName is nameof(StatisticsOverviewViewModel.SelectedTab) or nameof(StatisticsOverviewViewModel.HasPeriodFocusDistribution))
             CloseDistributionTip();
         if (e.PropertyName is nameof(StatisticsOverviewViewModel.HasFocusGoal) or nameof(StatisticsOverviewViewModel.SelectedTab))

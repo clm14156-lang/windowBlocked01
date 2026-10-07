@@ -15,9 +15,13 @@
         <Border Background="White" BorderBrush="#E9ECF1" BorderThickness="1" CornerRadius="8" Padding="12,10" Margin="0,0,0,7">
             <Border.Effect><DropShadowEffect Color="#243047" Opacity="0.09" BlurRadius="12" ShadowDepth="2"/></Border.Effect>
             <StackPanel>
-                <TextBlock Text="{Binding CalendarTitle}" FontSize="12" FontWeight="SemiBold" Foreground="#202A38" TextWrapping="Wrap"/>
-                <TextBlock FontSize="11" Foreground="#8490A0" Margin="0,5,0,0" TextWrapping="Wrap">
-                    <Run Text="{Binding TimeRangeDisplay, Mode=OneWay}"/><Run Text="  ·  "/><Run Text="{Binding CalendarDurationDisplay, Mode=OneWay}"/>
+                <TextBlock Text="{Binding TimeRangeDisplay}" FontSize="11" Foreground="#778191" HorizontalAlignment="Center"/>
+                <TextBlock Text="{Binding CalendarDurationDisplay}" FontSize="12" Foreground="#454C57" Margin="0,3,0,0" HorizontalAlignment="Center"/>
+                <TextBlock Text="{Binding TaskName}" FontSize="11" Foreground="#778191" TextWrapping="Wrap" Margin="0,5,0,0" MaxWidth="220">
+                    <TextBlock.Style><Style TargetType="TextBlock"><Style.Triggers>
+                        <DataTrigger Binding="{Binding TaskName}" Value=""><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
+                        <DataTrigger Binding="{Binding TaskName}" Value="{x:Null}"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
+                    </Style.Triggers></Style></TextBlock.Style>
                 </TextBlock>
             </StackPanel>
         </Border>

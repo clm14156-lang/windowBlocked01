@@ -203,7 +203,7 @@
                         <Grid.ColumnDefinitions><ColumnDefinition Width="52" /><ColumnDefinition /><ColumnDefinition Width="52" /></Grid.ColumnDefinitions>
                         <Button VerticalAlignment="Top" Margin="0,10,0,0" AutomationProperties.Name="减少每月目标时长" Command="{Binding DecreaseMonthlyTargetCommand}" Content="−" Style="{StaticResource FocusGoalStepperButtonStyle}" />
                         <StackPanel Grid.Column="1" HorizontalAlignment="Center">
-                            <TextBox x:Name="MonthlyTargetHoursInputBox" Tag="Monthly" MaxLength="3" AutomationProperties.Name="每月目标小时数"
+                            <TextBox x:Name="MonthlyTargetHoursInputBox" Tag="Monthly" MaxLength="0" AutomationProperties.Name="每月目标小时数"
                                      Style="{StaticResource FocusGoalTargetHoursInputStyle}" Text="{Binding MonthlyTargetHoursInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                      TextChanged="TargetHoursInputBox_TextChanged" PreviewKeyDown="TargetHoursInputBox_PreviewKeyDown" PreviewTextInput="TargetHoursInputBox_PreviewTextInput"
                                      LostKeyboardFocus="TargetHoursInputBox_LostKeyboardFocus" DataObject.Pasting="TargetHoursInputBox_Pasting" />
