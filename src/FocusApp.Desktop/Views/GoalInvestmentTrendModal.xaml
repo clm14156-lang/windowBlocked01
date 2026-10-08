@@ -29,18 +29,30 @@
                 <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Surface" Property="Background" Value="#F5F6F8"/></Trigger><Trigger Property="IsPressed" Value="True"><Setter TargetName="Surface" Property="Background" Value="#ECEEF1"/></Trigger></ControlTemplate.Triggers>
             </ControlTemplate></Setter.Value></Setter>
         </Style>
+        <Style x:Key="TrendRangeLabel" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+            <Setter Property="FontFamily" Value="{Binding FontFamily, RelativeSource={RelativeSource AncestorType=Button}}"/>
+            <Setter Property="FontSize" Value="{Binding FontSize, RelativeSource={RelativeSource AncestorType=Button}}"/>
+            <Setter Property="FontWeight" Value="{Binding FontWeight, RelativeSource={RelativeSource AncestorType=Button}}"/>
+        </Style>
+        <DataTemplate x:Key="TrendRangeTextContent">
+            <TextBlock Text="{Binding}" Style="{StaticResource TrendRangeLabel}"/>
+        </DataTemplate>
         <Style x:Key="TrendRangeButton" TargetType="Button">
             <Setter Property="Height" Value="32"/><Setter Property="Padding" Value="12,0"/>
-            <Setter Property="Background" Value="Transparent"/><Setter Property="BorderBrush" Value="Transparent"/><Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Foreground" Value="#8D96A8"/><Setter Property="FontSize" Value="12"/>
+            <Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Foreground" Value="#9AA2AF"/><Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontFamily" Value="Segoe UI Variable, Microsoft YaHei UI, Segoe UI"/><Setter Property="FontWeight" Value="Normal"/>
             <Setter Property="Cursor" Value="Hand"/><Setter Property="FocusVisualStyle" Value="{x:Null}"/>
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
-                <Border x:Name="Surface" Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6">
+                <Border x:Name="Surface" Padding="{TemplateBinding Padding}" Background="Transparent">
                     <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" TextElement.Foreground="{TemplateBinding Foreground}"/>
                 </Border>
                 <ControlTemplate.Triggers>
-                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Surface" Property="Background" Value="#EEF0F4"/></Trigger>
-                    <Trigger Property="Tag" Value="{StaticResource SelectedRangeValue}"><Setter TargetName="Surface" Property="Background" Value="#FFF7F0"/><Setter TargetName="Surface" Property="BorderBrush" Value="#E7EAF0"/><Setter Property="Foreground" Value="{DynamicResource AccentPrimary}"/></Trigger>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter Property="Foreground" Value="#778294"/></Trigger>
+                    <Trigger Property="IsKeyboardFocused" Value="True"><Setter Property="Foreground" Value="#778294"/></Trigger>
+                    <Trigger Property="Tag" Value="{StaticResource SelectedRangeValue}"><Setter Property="Foreground" Value="{DynamicResource AccentPrimary}"/></Trigger>
+                    <Trigger Property="IsPressed" Value="True"><Setter TargetName="Surface" Property="Opacity" Value="0.8"/></Trigger>
                 </ControlTemplate.Triggers>
             </ControlTemplate></Setter.Value></Setter>
         </Style>
@@ -101,13 +113,16 @@
                     </TextBlock>
                     <TextBlock Text="{Binding InvestmentSummary}" Margin="0,5,0,0" FontSize="12" Foreground="#8D96A8"/>
                 </StackPanel>
-                <Border x:Name="RangeSelectorSurface" Grid.Row="1" Height="34" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,8,0,0" Background="#F6F7F9" BorderBrush="#ECEEF2" BorderThickness="1" CornerRadius="9">
+                <Border x:Name="RangeSelectorSurface" Grid.Row="1" Height="34" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,8,0,0" Background="Transparent" BorderThickness="0">
                     <Grid>
                         <Grid.ColumnDefinitions><ColumnDefinition Width="72"/><ColumnDefinition Width="78"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                        <Button Content="近7天" Tag="{Binding IsSevenDaysRange}" Style="{StaticResource TrendRangeButton}" Command="{Binding SelectSevenDaysCommand}"/>
-                        <Button Grid.Column="1" Content="近30天" Tag="{Binding IsThirtyDaysRange}" Style="{StaticResource TrendRangeButton}" Command="{Binding SelectThirtyDaysCommand}"/>
+                        <Button Content="近7天" ContentTemplate="{StaticResource TrendRangeTextContent}" Tag="{Binding IsSevenDaysRange}" Style="{StaticResource TrendRangeButton}" Command="{Binding SelectSevenDaysCommand}"/>
+                        <Button Grid.Column="1" Content="近30天" ContentTemplate="{StaticResource TrendRangeTextContent}" Tag="{Binding IsThirtyDaysRange}" Style="{StaticResource TrendRangeButton}" Command="{Binding SelectThirtyDaysCommand}"/>
                         <Button x:Name="MonthRangeButton" Grid.Column="2" MinWidth="92" Tag="{Binding IsMonthRange}" Style="{StaticResource TrendRangeButton}" Command="{Binding SelectMonthModeCommand}">
-                            <StackPanel Orientation="Horizontal"><TextBlock Text="{Binding MonthButtonText}" FontSize="12" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/><TextBlock Text="&#xE70D;" FontFamily="Segoe MDL2 Assets" FontSize="9" Margin="7,3,0,0" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/></StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding MonthButtonText}" Style="{StaticResource TrendRangeLabel}"/>
+                                <Path Data="M 0,0 L 4,4 L 8,0" Width="8" Height="4" Margin="7,0,0,0" VerticalAlignment="Center" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/>
+                            </StackPanel>
                         </Button>
                         <Popup x:Name="MonthPickerPopup" Grid.Column="2" HorizontalOffset="-78" VerticalOffset="4" IsOpen="{Binding IsMonthMenuOpen, Mode=TwoWay}" Placement="Bottom" PlacementTarget="{Binding ElementName=MonthRangeButton}" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
                             <Border x:Name="MonthPickerSurface" Width="180" Padding="6" Margin="8" Background="White" BorderBrush="#ECEEF1" BorderThickness="1" CornerRadius="9">

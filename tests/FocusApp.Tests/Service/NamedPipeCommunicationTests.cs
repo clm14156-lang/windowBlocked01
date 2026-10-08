@@ -467,6 +467,7 @@ public sealed class NamedPipeCommunicationTests
         var activeState = await client.SendAsync<EmptyPayload, LocalDataSnapshotDto>(
             IpcOperations.GetState, new EmptyPayload(), RequestTimeout);
         Assert.True(Assert.Single(activeState.Tasks).IsCompleted);
+        Assert.Equal(taskCompletedAt, Assert.Single(activeState.Tasks).CompletedAtUtc);
         Assert.Equal(
             taskCompletedAt,
             Assert.Single(Assert.Single(activeState.FocusSessions).CompletedTasks).CompletedAtUtc);

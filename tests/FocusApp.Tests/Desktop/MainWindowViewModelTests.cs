@@ -431,12 +431,13 @@ public sealed class MainWindowViewModelTests
         Assert.Equal(["25 minutes", "Custom"], viewModel.VisibleDurationOptions.Select(option => option.Label));
 
         viewModel.CustomTimeModal.SelectTimeCommand.Execute(viewModel.CustomTimeModal.CommonTimes.Single(option => option.Minutes == 50));
+        viewModel.CustomTimeModal.ConfirmCommand.Execute(null);
 
         Assert.Equal(["25 minutes", "50 minutes", "Custom"], viewModel.VisibleDurationOptions.Select(option => option.Label));
     }
 
     [Fact]
-    public void HomeSortsVisibleDurationsAfterAddingASmallerCustomTime()
+    public void HomeAppendsSmallerCustomTimeInSelectionOrder()
     {
         var custom = new HomeDurationOptionViewModel("Custom", "clock");
         var viewModel = new HomePageViewModel(
@@ -451,12 +452,12 @@ public sealed class MainWindowViewModelTests
         viewModel.CustomTimeModal.Minutes = 5;
         viewModel.CustomTimeModal.ConfirmCommand.Execute(null);
 
-        Assert.Equal([5, 60, 90, 180], viewModel.VisibleDurationOptions.Take(4).Select(option => option.Minutes));
+        Assert.Equal([60, 90, 180, 5], viewModel.VisibleDurationOptions.Take(4).Select(option => option.Minutes));
         Assert.Same(custom, viewModel.VisibleDurationOptions[^1]);
     }
 
     [Fact]
-    public void HomeSortsVisibleDurationsWhenApplyingPersistedPresets()
+    public void HomeRestoresSavedSelectionOrderRatherThanSortingByMinutes()
     {
         var custom = new HomeDurationOptionViewModel("Custom", "clock");
         var viewModel = new HomePageViewModel(
@@ -473,7 +474,7 @@ public sealed class MainWindowViewModelTests
             new LocalDurationPresetDto(Guid.NewGuid(), 5, true, true, 3)
         ]);
 
-        Assert.Equal([5, 60, 90, 180], viewModel.VisibleDurationOptions.Take(4).Select(option => option.Minutes));
+        Assert.Equal([60, 90, 180, 5], viewModel.VisibleDurationOptions.Take(4).Select(option => option.Minutes));
         Assert.Equal(5, viewModel.CurrentDurationOption.Minutes);
         Assert.Single(viewModel.DurationOptions.Where(option => option.IsCurrent));
         Assert.Same(custom, viewModel.VisibleDurationOptions[^1]);
@@ -500,16 +501,17 @@ public sealed class MainWindowViewModelTests
             new HomeDurationOptionViewModel("25", string.Empty, true, 25),
             new HomeDurationOptionViewModel("50", string.Empty, true, 50),
             new HomeDurationOptionViewModel("90", string.Empty, true, 90),
-            new HomeDurationOptionViewModel("903", string.Empty, true, 903),
-            new HomeDurationOptionViewModel("902", string.Empty, false, 902),
+            new HomeDurationOptionViewModel("180", string.Empty, true, 180),
+            new HomeDurationOptionViewModel("360", string.Empty, false, 360),
             new HomeDurationOptionViewModel("Custom", "clock")
         };
         var viewModel = new HomePageViewModel(options);
-        var newTime = viewModel.CustomTimeModal.CommonTimes.Single(option => option.Minutes == 902);
+        var newTime = viewModel.CustomTimeModal.CommonTimes.Single(option => option.Minutes == 360);
 
         viewModel.CustomTimeModal.SelectTimeCommand.Execute(newTime);
+        viewModel.CustomTimeModal.ConfirmCommand.Execute(null);
 
-        Assert.Equal(["50", "90", "902", "903", "Custom"], viewModel.VisibleDurationOptions.Select(option => option.Label));
+        Assert.Equal(["50", "90", "180", "360", "Custom"], viewModel.VisibleDurationOptions.Select(option => option.Label));
         Assert.True(newTime.IsSelected);
         Assert.True(newTime.IsCurrent);
         Assert.False(options[0].IsSelected);
@@ -542,6 +544,7 @@ public sealed class MainWindowViewModelTests
         var viewModel = new HomePageViewModel([first, second, custom]);
 
         viewModel.CustomTimeModal.SelectTimeCommand.Execute(first);
+        viewModel.CustomTimeModal.ConfirmCommand.Execute(null);
 
         Assert.False(first.IsSelected);
         Assert.Contains(first, viewModel.CustomTimeModal.CommonTimes);
@@ -551,9 +554,10 @@ public sealed class MainWindowViewModelTests
         Assert.Single(viewModel.DurationOptions.Where(option => option.IsCurrent));
 
         viewModel.CustomTimeModal.SelectTimeCommand.Execute(first);
+        viewModel.CustomTimeModal.ConfirmCommand.Execute(null);
 
         Assert.True(first.IsSelected);
-        Assert.Equal(["25", "50", "Custom"], viewModel.VisibleDurationOptions.Select(option => option.Label));
+        Assert.Equal(["50", "25", "Custom"], viewModel.VisibleDurationOptions.Select(option => option.Label));
     }
 
     [Fact]

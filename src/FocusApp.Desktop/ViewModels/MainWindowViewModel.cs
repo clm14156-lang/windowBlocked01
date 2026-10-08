@@ -38,6 +38,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private bool _serviceStateApplyScheduled;
     private int _pendingFocusTaskWrites;
     private int _pendingAutomaticRuleWrites;
+    private int _pendingDurationPresetWrites;
 
     public MainWindowViewModel(
         IEnumerable<NavigationItemViewModel> primaryNavigationItems,
@@ -586,7 +587,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         SettingsPage.ApplyLaunchAtStartupState(state.Settings.LaunchAtStartup);
         SettingsPage.ApplyWindowsNotificationsState(state.Settings.WindowsNotificationsEnabled);
         SettingsPage.ApplyFocusSoundState(state.Settings.FocusSoundEnabled);
-        HomePage.ApplyDurationPresets(state.DurationPresets);
+        if (_pendingDurationPresetWrites == 0) HomePage.ApplyDurationPresets(state.DurationPresets);
         ApplyFocusTaskState(state);
         StatisticsPage.ApplyState(state);
     }
@@ -1067,15 +1068,9 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             return;
         }
 
-        var presets = HomePage.DurationOptions
-            .Where(option => option.Icon.Length == 0)
-            .Select((option, index) => new LocalDurationPresetDto(
-                GetDurationId(option.Minutes),
-                option.Minutes,
-                option.IsSelected,
-                ReferenceEquals(option, HomePage.CurrentDurationOption),
-                index))
-            .ToArray();
+        var presets = HomePage.GetDurationPresets();
+        _pendingDurationPresetWrites++;
+        await _settingsPersistenceGate.WaitAsync();
         try
         {
             await ServiceConnection.ReplaceDurationPresetsAsync(new ReplaceDurationPresetsCommand(presets));
@@ -1083,10 +1078,13 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException)
         {
         }
+        finally
+        {
+            _settingsPersistenceGate.Release();
+            if (--_pendingDurationPresetWrites == 0 && ServiceConnection.State is { } state)
+                HomePage.ApplyDurationPresets(state.DurationPresets);
+        }
     }
-
-    private static Guid GetDurationId(int minutes)
-        => Guid.Parse($"00000000-0000-0000-0000-{minutes:D12}");
 
     private async void SettingsPage_WindowsNotificationsChanged(object? sender, bool enabled)
     {

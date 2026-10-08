@@ -200,6 +200,8 @@ public sealed class GoalInvestmentTrendRedesignTests
                 var orange = Color.FromRgb(0xFF, 0x7A, 0x00);
                 Assert.Equal(orange, ((SolidColorBrush)seven.Foreground).Color);
                 Assert.NotEqual(orange, ((SolidColorBrush)thirty.Foreground).Color);
+                var monthRange = (Button)modal.FindName("MonthRangeButton");
+                AssertRangeLabels(seven, thirty, monthRange, seven);
                 var chartPosition = chart.TranslatePoint(new Point(), card);
                 var hovered = model.TrendPoints[1];
                 model.SetHoveredBarAt(new Point(hovered.ChartX, hovered.ChartY + 10));
@@ -237,6 +239,7 @@ public sealed class GoalInvestmentTrendRedesignTests
                 Assert.Equal(30, model.TrendPoints.Count);
                 Assert.Equal(orange, ((SolidColorBrush)thirty.Foreground).Color);
                 Assert.NotEqual(orange, ((SolidColorBrush)seven.Foreground).Color);
+                AssertRangeLabels(seven, thirty, monthRange, thirty);
                 Assert.Equal("近30天投入 · 活跃7天", model.InvestmentSummary);
                 SavePreview(card, "investment-30days");
                 ((Button)modal.FindName("MonthRangeButton")).Command.Execute(null);
@@ -249,6 +252,7 @@ public sealed class GoalInvestmentTrendRedesignTests
                 Assert.True(model.IsMonthRange);
                 Assert.Equal(31, model.TrendPoints.Count);
                 Assert.Equal(orange, ((SolidColorBrush)((Button)modal.FindName("MonthRangeButton")).Foreground).Color);
+                AssertRangeLabels(seven, thirty, monthRange, monthRange);
                 Assert.Equal("2026年10月投入 · 活跃6天", model.InvestmentSummary);
                 SavePreview(card, "investment-month");
                 model.CloseCommand.Execute(null);
@@ -264,6 +268,19 @@ public sealed class GoalInvestmentTrendRedesignTests
         if (failure is not null) throw new InvalidOperationException("Investment modal rendering verification failed.", failure);
     }
     private static void Pump() => Dispatcher.CurrentDispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
+    private static void AssertRangeLabels(Button seven, Button thirty, Button month, Button selected)
+    {
+        foreach (var button in new[] { seven, thirty, month })
+        {
+            // Inspect the rendered text, not just Button.Foreground: implicit text styles can override inheritance.
+            var label = Descendants<TextBlock>(button).Single();
+            Assert.Equal(ReferenceEquals(button, selected) ? Color.FromRgb(0xFF, 0x7A, 0x00)
+                : Color.FromRgb(0x9A, 0xA2, 0xAF), ((SolidColorBrush)label.Foreground).Color);
+            Assert.Equal(13, label.FontSize);
+            Assert.Equal(FontWeights.Normal, label.FontWeight);
+            Assert.Equal(seven.FontFamily, label.FontFamily);
+        }
+    }
     private static void RaiseMouseEvent(UIElement element, RoutedEvent routedEvent) =>
         element.RaiseEvent(new MouseEventArgs(Mouse.PrimaryDevice, Environment.TickCount) { RoutedEvent = routedEvent });
     private static IEnumerable<T> Descendants<T>(DependencyObject parent) where T : DependencyObject

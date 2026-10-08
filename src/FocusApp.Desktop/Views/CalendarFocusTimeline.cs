@@ -33,6 +33,7 @@ public sealed class CalendarFocusTimeline : FrameworkElement
     private ToolTip? _sessionToolTip;
     private CalendarFocusTimelineSegment? _hoveredSegment;
     private CalendarRecordInteractionState? _interactionState;
+    private CalendarRecordPoptip? _recordPoptip;
 
     public CalendarRecordInteractionState? InteractionState
     {
@@ -47,22 +48,52 @@ public sealed class CalendarFocusTimeline : FrameworkElement
         }
     }
 
-    private void InteractionState_Changed(object? sender, EventArgs e) => InvalidateVisual();
+    private void InteractionState_Changed(object? sender, EventArgs e)
+    {
+        InvalidateVisual();
+        if (FullDayStyle && !GoalHistoryStyle) _recordPoptip?.Synchronize();
+    }
+
+    internal void SelectRecord(FocusSessionRecordViewModel record)
+    {
+        _recordPoptip ??= new CalendarRecordPoptip(this);
+        _recordPoptip.CancelPendingLeave();
+        InteractionState?.ToggleSelection(record);
+        _recordPoptip.Synchronize();
+    }
+    internal void EndTimelinePreview()
+    {
+        _hoveredSegment = null;
+        _recordPoptip?.CancelPendingLeave();
+        InteractionState?.HoverTimeline(null);
+    }
+    internal bool TryGetRecordBounds(FocusSessionRecordViewModel record, out Rect bounds)
+    {
+        var segment = Timeline?.Segments.FirstOrDefault(item => ReferenceEquals(item.Record, record));
+        bounds = segment is null ? Rect.Empty : SegmentBounds(segment);
+        return segment is not null;
+    }
+    internal void LeaveRecordPoptip(FocusSessionRecordViewModel record) => _recordPoptip?.Leave(record);
+    internal bool IsWithinRecordPoptip(DependencyObject source) => _recordPoptip?.Contains(source) == true;
+    internal void RepositionRecordPoptip() => _recordPoptip?.Reposition();
 
     private void OnTimelineChanged()
     {
         CloseSessionToolTip();
-        if (InteractionState?.SelectedRecord is { } selected &&
-            Timeline?.Segments.Any(segment => ReferenceEquals(segment.Record, selected)) != true)
-            InteractionState.ClearSelection();
+        _recordPoptip?.Reset();
+        if (InteractionState is { } state &&
+            (state.SelectedRecord is { } selected && Timeline?.Segments.Any(segment => ReferenceEquals(segment.Record, selected)) != true ||
+             state.HoveredTimelineRecord is { } hovered && Timeline?.Segments.Any(segment => ReferenceEquals(segment.Record, hovered)) != true))
+            state.Clear();
+        _recordPoptip?.Synchronize();
         InvalidateVisual();
     }
 
     public CalendarFocusTimeline()
     {
-        Unloaded += (_, _) => CloseSessionToolTip();
-        IsVisibleChanged += (_, _) => { if (!IsVisible) CloseSessionToolTip(); };
-        SizeChanged += (_, _) => CloseSessionToolTip();
+        Unloaded += (_, _) => { CloseSessionToolTip(); _recordPoptip?.Reset(); InteractionState?.Clear(); };
+        IsVisibleChanged += (_, _) => { if (!IsVisible) { CloseSessionToolTip(); _recordPoptip?.Close(); InteractionState?.Clear(); } };
+        SizeChanged += (_, _) => { CloseSessionToolTip(); _recordPoptip?.Reposition(); };
     }
 
     public CalendarFocusTimelineViewModel? Timeline
@@ -124,7 +155,7 @@ public sealed class CalendarFocusTimeline : FrameworkElement
         foreach (var segment in Timeline.Segments)
         {
             if (FullDayStyle && !GoalHistoryStyle && InteractionState is { } activeState &&
-                (ReferenceEquals(segment.Record, activeState.HoveredRecord) || ReferenceEquals(segment.Record, activeState.SelectedRecord))) continue;
+                (ReferenceEquals(segment.Record, activeState.HoveredTimelineRecord) || ReferenceEquals(segment.Record, activeState.SelectedRecord))) continue;
             // Never impose a minimum width: position and duration remain proportional to real timestamps.
             drawingContext.DrawRoundedRectangle(accentBrush, GoalHistoryStyle ? new Pen(Brushes.White, 0.6) : null,
                 SegmentBounds(segment), GoalHistoryStyle ? 3 : 1.5, GoalHistoryStyle ? 3 : 1.5);
@@ -132,14 +163,15 @@ public sealed class CalendarFocusTimeline : FrameworkElement
         if (FullDayStyle && !GoalHistoryStyle && InteractionState is { } state)
         {
             foreach (var segment in Timeline.Segments.Where(segment =>
-                ReferenceEquals(segment.Record, state.HoveredRecord) || ReferenceEquals(segment.Record, state.SelectedRecord)))
+                ReferenceEquals(segment.Record, state.HoveredTimelineRecord) || ReferenceEquals(segment.Record, state.SelectedRecord)))
             {
                 var selected = ReferenceEquals(segment.Record, state.SelectedRecord);
                 var bounds = SegmentBounds(segment);
                 var center = bounds.Left + bounds.Width / 2;
                 var haloWidth = Math.Max(20, bounds.Width + 12);
                 var halo = new Rect(center - haloWidth / 2, bounds.Top - 6, haloWidth, bounds.Height + 10);
-                drawingContext.DrawRoundedRectangle(new SolidColorBrush(Color.FromArgb(selected ? (byte)42 : (byte)24, 255, 128, 0)), null, halo, 6, 6);
+                drawingContext.DrawRoundedRectangle(new SolidColorBrush(selected ? Color.FromArgb(16, 255, 132, 31)
+                    : Color.FromRgb(247, 247, 248)), null, halo, 6, 6);
                 // The original duration width stays unchanged; the active mark gets only a subtle lift.
                 var active = new Rect(center - bounds.Width * 1.12 / 2, bounds.Top - 2, bounds.Width * 1.12, bounds.Height + 2);
                 drawingContext.DrawRoundedRectangle(new SolidColorBrush(selected ? Color.FromRgb(255, 128, 0) : Color.FromRgb(255, 158, 75)), null, active, 2, 2);
@@ -184,11 +216,23 @@ public sealed class CalendarFocusTimeline : FrameworkElement
         var segment = FindSessionAt(position);
         Cursor = segment is null ? Cursors.Arrow : Cursors.Hand;
         if (ReferenceEquals(segment, _hoveredSegment)) return;
+        if (FullDayStyle && !GoalHistoryStyle)
+        {
+            if (_hoveredSegment is { } old) LeaveRecordPoptip(old.Record);
+            _hoveredSegment = segment;
+            if (segment is not null)
+            {
+                _recordPoptip ??= new CalendarRecordPoptip(this);
+                _recordPoptip.CancelPendingLeave();
+                InteractionState?.HoverTimeline(segment.Record);
+                _recordPoptip?.Synchronize();
+            }
+            return;
+        }
         CloseSessionToolTip();
         if (segment is null) return;
         Cursor = Cursors.Hand;
         _hoveredSegment = segment;
-        if (FullDayStyle && !GoalHistoryStyle) InteractionState?.Hover(segment.Record);
         if (_sessionToolTip is null)
         {
             UserControl content = GoalHistoryStyle ? new GoalFocusTimelineToolTip() : new CalendarFocusTimelineToolTip();
@@ -232,6 +276,13 @@ public sealed class CalendarFocusTimeline : FrameworkElement
     protected override void OnMouseLeave(MouseEventArgs e)
     {
         base.OnMouseLeave(e);
+        if (FullDayStyle && !GoalHistoryStyle)
+        {
+            if (_hoveredSegment is { } segment) LeaveRecordPoptip(segment.Record);
+            _hoveredSegment = null;
+            Cursor = Cursors.Arrow;
+            return;
+        }
         CloseSessionToolTip();
     }
 
@@ -239,22 +290,21 @@ public sealed class CalendarFocusTimeline : FrameworkElement
     {
         base.OnMouseLeftButtonDown(e);
         if (!FullDayStyle || GoalHistoryStyle || InteractionState is null) return;
-        UpdateSessionSelection(e.GetPosition(this));
+        HandleSessionClick(e.GetPosition(this));
         e.Handled = true;
     }
 
-    private void UpdateSessionSelection(Point position)
+    private void HandleSessionClick(Point position)
     {
         if (!FullDayStyle || GoalHistoryStyle || InteractionState is null) return;
         var segment = FindSessionAt(position);
-        if (segment is null) InteractionState.ClearSelection();
-        else InteractionState.ToggleSelection(segment.Record);
+        if (segment is null) InteractionState.Clear();
     }
 
     private void CloseSessionToolTip()
     {
         if (_sessionToolTip is not null) _sessionToolTip.IsOpen = false;
-        if (FullDayStyle && !GoalHistoryStyle && _hoveredSegment is { } segment) InteractionState?.Leave(segment.Record);
+        if (FullDayStyle && !GoalHistoryStyle && _hoveredSegment is { } segment) InteractionState?.LeaveTimeline(segment.Record);
         _hoveredSegment = null;
         Cursor = Cursors.Arrow;
     }

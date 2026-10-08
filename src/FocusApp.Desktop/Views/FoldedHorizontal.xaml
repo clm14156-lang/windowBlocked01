@@ -6,7 +6,6 @@
              Background="Transparent" UseLayoutRounding="True" SnapsToDevicePixels="True">
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="TargetVisibilityConverter"/>
-        <views:RemainingToElapsedProgressConverter x:Key="ElapsedProgressConverter"/>
     </UserControl.Resources>
     <Border x:Name="CapsuleSurface" Background="#FCFCFD" BorderBrush="#E1E4E9" BorderThickness="1" CornerRadius="25" Padding="14,0">
         <Grid>
@@ -19,7 +18,7 @@
             </Grid.ColumnDefinitions>
             <views:CircularProgressRing x:Name="FoldedProgressRing" Width="30" Height="30" VerticalAlignment="Center" RingThickness="3.5"
                                         TrackBrush="#DCE0E5" ProgressBrush="{DynamicResource AccentPrimary}"
-                                        Progress="{Binding RemainingProgress, Converter={StaticResource ElapsedProgressConverter}}"/>
+                                        Progress="{Binding RemainingProgress, Mode=OneWay}"/>
             <TextBlock x:Name="FoldedCountdown" Grid.Column="2" Text="{Binding RemainingTimeDisplay}" FontFamily="{DynamicResource FontFamilyNumeric}"
                        FontSize="26" FontWeight="SemiBold" Foreground="#15171A" VerticalAlignment="Center" TextAlignment="Center" TextWrapping="NoWrap"/>
             <Border x:Name="TargetDivider" Grid.Column="3" Width="1" Height="22" Margin="12,0" VerticalAlignment="Center" Background="#DFE2E7"

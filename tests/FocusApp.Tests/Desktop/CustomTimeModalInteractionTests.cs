@@ -16,21 +16,22 @@ namespace FocusApp.Tests.Desktop;
 public sealed class CustomTimeModalInteractionTests
 {
     [Fact]
-    public void InputAndClicksRenderOneActiveButtonAndAllPointerStatesKeepTheCardFixed()
+    public void ClicksRenderUpToFourActiveButtonsAndAllPointerStatesKeepTheCardFixed()
     {
         RunSta(() =>
         {
-            var home = new HomePageViewModel([new("30", "", true, 30), new("60", "", true, 60),
-                new("90", "", true, 90), new("180", "", true, 180)]);
+            var home = new HomePageViewModel([new("30", "", true, 30), new("60", "", false, 60),
+                new("90", "", false, 90), new("180", "", false, 180), new("45", "", false, 45)]);
             var model = home.CustomTimeModal;
             model.Open();
+            model.SelectTimeCommand.Execute(model.CommonTimes[0]);
             var modal = new CustomTimeModal { DataContext = model };
             AddResources(modal);
             Layout(modal, 320, 420);
             var card = (Border)modal.FindName("CustomTimeCard");
             var items = (ItemsControl)modal.FindName("CommonTimeOptions");
             var buttons = Descendants<Button>(items).Where(button => Equals(button.Command, model.SelectTimeCommand)).ToArray();
-            Assert.Equal(4, buttons.Length);
+            Assert.Equal(5, buttons.Length);
             Assert.All(buttons, button =>
             {
                 Assert.Equal(Color.FromRgb(229, 229, 234), BrushColor(button.BorderBrush));
@@ -61,16 +62,28 @@ public sealed class CustomTimeModalInteractionTests
             AssertActive(first);
             Invoke(buttons[1]); Layout(modal, 320, 420);
             AssertActive(buttons[1]);
-            Assert.Equal(Color.FromRgb(229, 229, 234), BrushColor(first.BorderBrush));
-            Assert.Single(buttons.Where(button => button.Tag is true));
+            AssertActive(first);
+            Assert.Equal(2, buttons.Count(button => button.Tag is true));
             var input = (TextBox)modal.FindName("MinutesTextBox");
             input.Text = "90"; Layout(modal, 320, 420);
-            AssertActive(buttons[2]);
-            Assert.Single(buttons.Where(button => button.Tag is true));
+            Assert.False(buttons[2].Tag is true);
+            Assert.Equal(2, buttons.Count(button => button.Tag is true));
+            Invoke(buttons[2]); Invoke(buttons[3]); Layout(modal, 320, 420);
+            Assert.Equal(4, buttons.Count(button => button.Tag is true));
+            Assert.All(buttons.Take(4), AssertActive);
             Render(modal, "custom-time-active");
             input.Text = "45"; Layout(modal, 320, 420);
-            Assert.All(buttons, button => Assert.Equal(Color.FromRgb(229, 229, 234), BrushColor(button.BorderBrush)));
-            Assert.Empty(buttons.Where(button => button.Tag is true));
+            Assert.Equal(4, buttons.Count(button => button.Tag is true));
+            Invoke(buttons[4]); Layout(modal, 320, 420);
+            Assert.Equal([60, 90, 180, 45], model.SelectedMinutes);
+            Assert.Equal(Color.FromRgb(229, 229, 234), BrushColor(first.BorderBrush));
+            Assert.All(buttons.Skip(1), AssertActive);
+            Invoke(buttons[1]); Layout(modal, 320, 420);
+            Assert.Equal(3, buttons.Count(button => button.Tag is true));
+            Assert.Equal(Color.FromRgb(229, 229, 234), BrushColor(buttons[1].BorderBrush));
+            Invoke(buttons[1]); Layout(modal, 320, 420);
+            Assert.Equal([90, 180, 45, 60], model.SelectedMinutes);
+            Render(modal, "custom-time-multiple-selected");
             Assert.Equal(size, new Size(card.ActualWidth, card.ActualHeight));
             Assert.All(buttons, button =>
             {

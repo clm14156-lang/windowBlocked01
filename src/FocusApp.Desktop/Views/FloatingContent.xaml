@@ -66,7 +66,7 @@
                         <TextBlock x:Name="TotalTimeText" FontFamily="{DynamicResource FontFamilyNumeric}" FontSize="19" Foreground="#9BAAC0" Margin="10,0,0,6" VerticalAlignment="Bottom"><Run Text="/ "/><Run Text="{Binding TotalTimeDisplay, Mode=OneWay}"/></TextBlock>
                     </StackPanel>
                 </Viewbox>
-                <ProgressBar x:Name="FocusProgressBar" Grid.Row="2" Height="7" VerticalAlignment="Bottom" Minimum="0" Maximum="1" Value="{Binding FocusProgress, Mode=OneWay}" Foreground="{DynamicResource AccentPrimary}" Background="#DDE5F0">
+                <ProgressBar x:Name="FocusProgressBar" Grid.Row="2" Height="7" VerticalAlignment="Bottom" Minimum="0" Maximum="1" Value="{Binding RemainingProgress, Mode=OneWay}" Foreground="{DynamicResource AccentPrimary}" Background="#DDE5F0">
                     <ProgressBar.Template><ControlTemplate TargetType="ProgressBar"><Grid x:Name="PART_Track"><Border Background="{TemplateBinding Background}" CornerRadius="3.5"/><Border x:Name="PART_Indicator" HorizontalAlignment="Left" Background="{TemplateBinding Foreground}" CornerRadius="3.5"/></Grid></ControlTemplate></ProgressBar.Template>
                 </ProgressBar>
             </Grid>

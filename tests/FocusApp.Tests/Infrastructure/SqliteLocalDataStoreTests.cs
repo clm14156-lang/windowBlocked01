@@ -8,6 +8,75 @@ namespace FocusApp.Tests.Infrastructure;
 public sealed class SqliteLocalDataStoreTests
 {
     [Fact]
+    public async Task DurationMultiSelectionPersistsItsClickOrderAcrossDatabaseAndDesktopRestart()
+    {
+        using var database = new TemporaryDatabase();
+        var home = new FocusApp.Desktop.ViewModels.HomePageViewModel([new("30", "", true, 30),
+            new("60", "", false, 60), new("90", "", false, 90), new("180", "", false, 180), new("45", "", false, 45)]);
+        var modal = home.CustomTimeModal;
+        modal.Open();
+        foreach (var minutes in new[] { 180, 60, 90, 30, 30, 45 })
+            modal.SelectTimeCommand.Execute(modal.CommonTimes.Single(option => option.Minutes == minutes));
+        modal.ConfirmCommand.Execute(null);
+        Assert.Equal([60, 90, 30, 45], modal.SelectedMinutes);
+        var store = database.CreateStore();
+        var state = await store.LoadAsync();
+        await store.SaveSettingsAsync(state.Settings, home.GetDurationPresets().Select(preset =>
+            new LocalDurationPreset(preset.Id, preset.Minutes, preset.IsVisible, preset.IsCurrent, preset.SortOrder)).ToArray(), state.MonthlyFocusTargets);
+        var restored = await database.CreateStore().LoadAsync();
+        var restartedHome = new FocusApp.Desktop.ViewModels.HomePageViewModel([new("30", "", true, 30)]);
+        restartedHome.ApplyDurationPresets(restored.DurationPresets.Select(preset =>
+            new FocusApp.Contracts.LocalDurationPresetDto(preset.Id, preset.Minutes, preset.IsVisible, preset.IsCurrent, preset.SortOrder)));
+        restartedHome.CustomTimeModal.Open();
+        Assert.Equal([60, 90, 30, 45], restartedHome.CustomTimeModal.SelectedMinutes);
+        Assert.Equal([60, 90, 30, 45], restartedHome.VisibleDurationOptions.Where(option => option.Icon.Length == 0).Select(option => option.Minutes));
+        Assert.Equal(4, restartedHome.CustomTimeModal.CommonTimes.Count(option => option.IsSelectedInCustomTime));
+        restartedHome.CustomTimeModal.SelectTimeCommand.Execute(restartedHome.CustomTimeModal.CommonTimes.Single(option => option.Minutes == 180));
+        Assert.Equal([90, 30, 45, 180], restartedHome.CustomTimeModal.SelectedMinutes);
+    }
+
+    [Fact]
+    public async Task BatchTaskSnapshotsPreserveIdsAndCompletionTimeAfterShortSessionDiscardAndReopen()
+    {
+        using var database = new TemporaryDatabase();
+        var now = new DateTimeOffset(2026, 9, 18, 18, 53, 0, TimeSpan.Zero);
+        var target = new LocalTarget("batch-goal", "目标", false, 0, now, now);
+        var tasks = Enumerable.Range(0, 40).Select(index => new LocalTask(
+            $"batch-{index}", target.TargetId, "同名任务", false, index, now, now)).ToArray();
+        var store = database.CreateStore();
+        await store.SaveTargetAsync(target, tasks);
+        LocalFocusSession Session(LocalFocusSessionStatus status, int duration, IReadOnlyList<LocalFocusSessionTaskSnapshot> snapshots) => new(
+            Guid.NewGuid(), status, false, 1800, duration, now, now, now.AddMinutes(30),
+            status == LocalFocusSessionStatus.Completed ? now.AddSeconds(duration) : null,
+            status == LocalFocusSessionStatus.Completed ? FocusCompletionKind.EarlyEnd : null,
+            target.TargetId, target.Name, false, null, null, snapshots);
+        var snapshots = tasks.Take(37).Select((task, index) =>
+            new LocalFocusSessionTaskSnapshot(task.TaskId, task.Name, index) { CompletedAtUtc = now }).ToArray();
+        var shortSession = Session(LocalFocusSessionStatus.Focusing, 240, snapshots);
+        await store.SaveFocusSessionAsync(shortSession, snapshots.Select(task => task.TaskId).ToArray());
+        await store.DeleteFocusSessionAsync(shortSession.SessionId);
+        var state = await database.CreateStore().LoadAsync();
+        Assert.Empty(state.FocusSessions);
+        Assert.Equal(37, state.Tasks.Count(task => task.IsCompleted));
+        Assert.All(state.Tasks.Where(task => task.IsCompleted), task => Assert.Equal(now, task.CompletedAtUtc));
+
+        var emptySession = Session(LocalFocusSessionStatus.Completed, 1800, []);
+        await store.SaveFocusSessionAsync(emptySession);
+        var validSnapshots = tasks.Skip(37).Select((task, index) =>
+            new LocalFocusSessionTaskSnapshot(task.TaskId, task.Name, index) { CompletedAtUtc = now }).ToArray();
+        var validSession = Session(LocalFocusSessionStatus.Completed, 300, validSnapshots);
+        await store.SaveFocusSessionAsync(validSession, validSnapshots.Select(task => task.TaskId).ToArray());
+        state = await database.CreateStore().LoadAsync();
+        Assert.Equal(40, state.Tasks.Count(task => task.IsCompleted));
+        Assert.Empty(state.FocusSessions.Single(session => session.SessionId == emptySession.SessionId).CompletedTasks);
+        var saved = state.FocusSessions.Single(session => session.SessionId == validSession.SessionId).CompletedTasks;
+        Assert.Equal(3, saved.Select(task => task.TaskId).Distinct().Count());
+        Assert.DoesNotContain(saved, task => snapshots.Any(orphan => orphan.TaskId == task.TaskId));
+        Assert.All(saved, task => Assert.Equal(now, task.CompletedAtUtc));
+        Assert.All(state.Tasks, task => Assert.Equal(now, task.CompletedAtUtc));
+    }
+
+    [Fact]
     public async Task SessionTaskDetailsSurviveTaskDeletionAndVersionNineHistoryMigratesWithoutInventingDetails()
     {
         using var database = new TemporaryDatabase();

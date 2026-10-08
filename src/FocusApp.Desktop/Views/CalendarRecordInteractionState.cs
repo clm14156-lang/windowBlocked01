@@ -17,6 +17,7 @@ public sealed class CalendarRecordInteractionState
     public static void SetIsSelected(DependencyObject element, bool value) => element.SetValue(IsSelectedProperty, value);
 
     public FocusSessionRecordViewModel? HoveredRecord { get; private set; }
+    public FocusSessionRecordViewModel? HoveredTimelineRecord { get; private set; }
     public FocusSessionRecordViewModel? SelectedRecord { get; private set; }
     public event EventHandler? Changed;
 
@@ -34,20 +35,41 @@ public sealed class CalendarRecordInteractionState
 
     public void ToggleSelection(FocusSessionRecordViewModel record)
     {
-        SelectedRecord = ReferenceEquals(SelectedRecord, record) ? null : record;
+        if (ReferenceEquals(SelectedRecord, record))
+        {
+            // Consume the second click as deselection, including any stale hover preview.
+            Clear();
+            return;
+        }
+        SelectedRecord = record;
+        HoveredTimelineRecord = null;
         Changed?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void HoverTimeline(FocusSessionRecordViewModel? record)
+    {
+        if (ReferenceEquals(HoveredTimelineRecord, record)) return;
+        HoveredTimelineRecord = record;
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void LeaveTimeline(FocusSessionRecordViewModel record)
+    {
+        if (ReferenceEquals(HoveredTimelineRecord, record)) HoverTimeline(null);
     }
 
     public void ClearSelection()
     {
         if (SelectedRecord is null) return;
         SelectedRecord = null;
+        HoveredTimelineRecord = null;
         Changed?.Invoke(this, EventArgs.Empty);
     }
 
     public void Clear()
     {
         HoveredRecord = null;
+        HoveredTimelineRecord = null;
         SelectedRecord = null;
         Changed?.Invoke(this, EventArgs.Empty);
     }

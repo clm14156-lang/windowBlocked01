@@ -267,15 +267,19 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
                 await command.ExecuteNonQueryAsync(cancellationToken);
             }
 
+            var snapshotCompletionTimes = session.CompletedTasks.ToDictionary(
+                task => task.TaskId, task => task.CompletedAtUtc ?? session.CompletedAtUtc, StringComparer.Ordinal);
             foreach (var taskId in taskIdsToMark)
             {
                 await using var command = CreateCommand(connection, transaction, """
                     UPDATE tasks
                     SET is_completed = 1, updated_utc = $updated,
-                        completed_utc = COALESCE(completed_utc, $updated)
+                        completed_utc = COALESCE(completed_utc, $completed, $updated)
                     WHERE task_id = $taskId;
                     """);
                 command.Parameters.AddWithValue("$updated", FormatDateTime(DateTimeOffset.UtcNow));
+                command.Parameters.AddWithValue("$completed", FormatNullableDateTime(
+                    snapshotCompletionTimes.GetValueOrDefault(taskId)));
                 command.Parameters.AddWithValue("$taskId", taskId);
                 await command.ExecuteNonQueryAsync(cancellationToken);
             }

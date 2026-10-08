@@ -7,6 +7,7 @@ public sealed class HomeDurationOptionViewModel : INotifyPropertyChanged
 {
     private bool _isSelected;
     private bool _isCurrent;
+    private bool _isSelectedInCustomTime;
     private int _minutes;
 
     public HomeDurationOptionViewModel(string label, string icon, bool isSelected = false, int minutes = 25)
@@ -50,6 +51,17 @@ public sealed class HomeDurationOptionViewModel : INotifyPropertyChanged
             if (_isCurrent == value) return;
             _isCurrent = value;
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsCurrent)));
+        }
+    }
+
+    public bool IsSelectedInCustomTime
+    {
+        get => _isSelectedInCustomTime;
+        internal set
+        {
+            if (_isSelectedInCustomTime == value) return;
+            _isSelectedInCustomTime = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsSelectedInCustomTime)));
         }
     }
 

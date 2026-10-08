@@ -64,14 +64,17 @@ public partial class StatisticsPage
     private void UpdateCalendarRecordRow(Border row)
     {
         CalendarRecordInteractionState.SetIsHovered(row, row.DataContext is FocusSessionRecordViewModel hovered &&
-            ReferenceEquals(hovered, CalendarRecordInteraction.HoveredRecord));
+            (ReferenceEquals(hovered, CalendarRecordInteraction.HoveredRecord) ||
+             ReferenceEquals(hovered, CalendarRecordInteraction.HoveredTimelineRecord)));
         CalendarRecordInteractionState.SetIsSelected(row, row.DataContext is FocusSessionRecordViewModel selected &&
             ReferenceEquals(selected, CalendarRecordInteraction.SelectedRecord));
     }
 
     private void CalendarRecordRow_MouseEnter(object sender, MouseEventArgs e)
     {
-        if (sender is FrameworkElement { DataContext: FocusSessionRecordViewModel record }) CalendarRecordInteraction.Hover(record);
+        if (sender is not FrameworkElement { DataContext: FocusSessionRecordViewModel record }) return;
+        CalendarDayTimeline.EndTimelinePreview();
+        CalendarRecordInteraction.Hover(record);
     }
 
     private void CalendarRecordRow_MouseLeave(object sender, MouseEventArgs e)
@@ -82,27 +85,33 @@ public partial class StatisticsPage
     private void CalendarRecordRow_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         if (sender is not FrameworkElement { DataContext: FocusSessionRecordViewModel record } row) return;
-        CalendarRecordInteraction.ToggleSelection(record);
+        CalendarDayTimeline.SelectRecord(record);
         row.Focus();
         e.Handled = true;
     }
 
     private void CalendarRecordRow_KeyDown(object sender, KeyEventArgs e)
     {
-        if (e.Key is not (Key.Enter or Key.Space) || sender is not FrameworkElement { DataContext: FocusSessionRecordViewModel record }) return;
-        CalendarRecordInteraction.ToggleSelection(record);
+        if (e.Key is not (Key.Enter or Key.Space) || sender is not FrameworkElement { DataContext: FocusSessionRecordViewModel record } row) return;
+        CalendarDayTimeline.SelectRecord(record);
         e.Handled = true;
     }
 
     private void CalendarOutside_MouseDown(object sender, MouseButtonEventArgs e)
     {
         if (e.OriginalSource is not DependencyObject source) return;
+        if (CalendarDayTimeline.IsWithinRecordPoptip(source)) return;
         for (DependencyObject? element = source; element is not null;)
         {
             if (ReferenceEquals(element, CalendarDayTimeline) || element is Border row && _calendarRecordRows.Contains(row)) return;
             element = element is Visual or System.Windows.Media.Media3D.Visual3D
                 ? VisualTreeHelper.GetParent(element) : LogicalTreeHelper.GetParent(element);
         }
-        CalendarRecordInteraction.ClearSelection();
+        CalendarRecordInteraction.Clear();
+    }
+
+    private void CalendarRecords_ScrollChanged(object sender, ScrollChangedEventArgs e)
+    {
+        if (e.VerticalChange != 0 || e.HorizontalChange != 0) CalendarDayTimeline.RepositionRecordPoptip();
     }
 }

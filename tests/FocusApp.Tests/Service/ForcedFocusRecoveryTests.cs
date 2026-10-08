@@ -145,6 +145,10 @@ public sealed class ForcedFocusRecoveryTests
         using var directory = new TemporaryDirectory();
         var store = await CreateStoreAsync(directory.Path);
         var now = new DateTimeOffset(2026, 9, 2, 8, 0, 0, TimeSpan.Zero);
+        var target = new LocalTarget("short-goal", "目标", false, 0, now, now);
+        await store.SaveTargetAsync(target, [
+            new LocalTask("short-task-1", target.TargetId, "同名任务", false, 0, now, now),
+            new LocalTask("short-task-2", target.TargetId, "同名任务", false, 1, now, now)]);
         await using var coordinator = new ServiceStateCoordinator(
             store,
             new FakeAccessControlHost(),
@@ -172,13 +176,22 @@ public sealed class ForcedFocusRecoveryTests
             IpcOperations.StartNormalFocus,
             new StartNormalFocusCommand(session));
 
+        await SendAsync<UpdateFocusTasksCommand, MutationResult>(coordinator, IpcOperations.UpdateFocusTasks,
+            new UpdateFocusTasksCommand(sessionId, [
+                new("short-task-1", "同名任务", 0) { CompletedAtUtc = now },
+                new("short-task-2", "同名任务", 1) { CompletedAtUtc = now }]));
+
         var result = await SendAsync<DiscardNormalFocusCommand, MutationResult>(
             coordinator,
             IpcOperations.DiscardNormalFocus,
             new DiscardNormalFocusCommand(sessionId));
 
         Assert.Empty(result.State.FocusSessions);
-        Assert.Empty((await store.LoadAsync()).FocusSessions);
+        Assert.Equal(2, result.State.Tasks.Count);
+        Assert.All(result.State.Tasks, task => { Assert.True(task.IsCompleted); Assert.Equal(now, task.CompletedAtUtc); });
+        var saved = await store.LoadAsync();
+        Assert.Empty(saved.FocusSessions);
+        Assert.All(saved.Tasks, task => { Assert.True(task.IsCompleted); Assert.Equal(now, task.CompletedAtUtc); });
     }
 
     [Fact]

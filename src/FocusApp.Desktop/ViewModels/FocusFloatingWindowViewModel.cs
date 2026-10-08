@@ -40,8 +40,6 @@ public sealed class FocusFloatingWindowViewModel : INotifyPropertyChanged, IDisp
 
     public double RemainingProgress => _session.RemainingProgress;
 
-    public double FocusProgress => Math.Clamp(1 - RemainingProgress, 0, 1);
-
     public string TotalTimeDisplay => $"{_session.TotalFocusSeconds / 60:00}:{_session.TotalFocusSeconds % 60:00}";
 
     public IReadOnlyList<FocusTaskViewModel> PendingTasks => _session.PendingTasks.Where(task => !task.IsCompleted).ToArray();
@@ -94,7 +92,6 @@ public sealed class FocusFloatingWindowViewModel : INotifyPropertyChanged, IDisp
         {
             OnPropertyChanged(e.PropertyName);
         }
-        if (e.PropertyName == nameof(FocusSessionViewModel.RemainingProgress)) OnPropertyChanged(nameof(FocusProgress));
         if (e.PropertyName == nameof(FocusSessionViewModel.TotalFocusSeconds)) OnPropertyChanged(nameof(TotalTimeDisplay));
         if (e.PropertyName == nameof(FocusSessionViewModel.SessionCompletedTaskCount)) OnPropertyChanged(nameof(TaskProgressDisplay));
     }

@@ -551,7 +551,6 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         : $"{_selectedCalendarDay.Date:M月d日} · 共{SelectedDayCompletedTasks}项任务 · {SelectedDayCompletedTaskGroups.Count}个目标";
     public string SelectedDayCompletedTaskCountDisplay => $"{SelectedDayCompletedTasks}项";
     public bool HasSelectedDayCompletedTasks => SelectedDayCompletedTaskItems.Count > 0;
-
     public ObservableCollection<GoalOverviewItemViewModel> Goals { get; } = [];
     public bool ShowSetFocusGoal => !Goals.Any(goal => !goal.IsArchived && goal.GoalId != "goal-unassigned");
 
@@ -1861,36 +1860,34 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     private IReadOnlyList<CalendarCompletedTaskViewModel> GetCalendarCompletedTasks(DateTime date)
     {
-        // Canonical tasks include completions outside a focus session. Session snapshots
-        // preserve older history, including deleted tasks and missing completion times.
-        var canonicalTasks = _goalTaskSnapshot.Where(task => task.IsCompleted && task.CompletedAtUtc is not null).ToArray();
-        var knownCompletionIds = canonicalTasks
-            .Select(task => task.TaskId).ToHashSet(StringComparer.Ordinal);
-        var canonicalIds = canonicalTasks.Where(task => task.CompletedAtUtc?.LocalDateTime.Date == date.Date)
-            .Select(task => task.TaskId).ToHashSet(StringComparer.Ordinal);
+        // Calendar completions come exclusively from saved, valid focus-session history.
+        // A completed live task without such membership must not inflate this total.
         var items = new List<CalendarCompletedTaskViewModel>();
-        foreach (var task in _goalTaskSnapshot.Where(task => task.IsCompleted &&
-                     task.CompletedAtUtc?.LocalDateTime.Date == date.Date))
-        {
-            var goal = Goals.FirstOrDefault(goal => goal.GoalId == task.TargetId);
-            items.Add(new(task.Name, task.CompletedAtUtc?.LocalDateTime, task.TargetId,
-                goal?.Name ?? string.Empty, goal?.IconSource ?? TargetIconCatalog.GetIconSource(null), task.TaskId));
-        }
-
         var seenSnapshotIds = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var record in FocusSessionRecords.OrderByDescending(record => record.EndTime))
+        foreach (var record in FocusSessionRecords.Where(record => record.FocusDuration >= TimeSpan.FromMinutes(5))
+                     .OrderByDescending(record => record.EndTime))
         {
-            for (var index = 0; index < record.CompletedTaskNames.Count; index++)
+            var goal = Goals.FirstOrDefault(goal => goal.GoalId == record.GoalId);
+            void Add(string? id, string name, DateTime? completedAt)
             {
-                var id = index < record.CompletedTaskIds.Count ? record.CompletedTaskIds[index] : null;
-                var completedAt = index < record.CompletedTaskTimes.Count ? record.CompletedTaskTimes[index] : null;
-                if (id is not null && (canonicalIds.Contains(id) || completedAt is null && knownCompletionIds.Contains(id))) continue;
-                if ((completedAt ?? record.EndTime).Date != date.Date) continue;
-                if (id is not null && !seenSnapshotIds.Add(id)) continue;
-                var goal = Goals.FirstOrDefault(goal => goal.GoalId == record.GoalId);
-                items.Add(new(record.CompletedTaskNames[index], completedAt, record.GoalId,
+                if ((completedAt ?? record.EndTime).Date != date.Date) return;
+                if (id is not null && !seenSnapshotIds.Add(id)) return;
+                items.Add(new(name, completedAt, record.GoalId,
                     record.HasGoal ? goal?.Name ?? record.GoalName : string.Empty,
                     goal?.IconSource ?? record.IconSource, id));
+            }
+            if (record.CompletedTaskSnapshots.Count > 0)
+            {
+                foreach (var task in record.CompletedTaskSnapshots.OrderBy(task => task.SortOrder))
+                    Add(task.TaskId, task.TaskNameSnapshot, task.CompletedAtUtc?.LocalDateTime);
+            }
+            else
+            {
+                // Older saved sessions can lack detail snapshots; their explicit stored
+                // task names/IDs remain readable without consulting unrelated live tasks.
+                for (var index = 0; index < record.CompletedTaskNames.Count; index++)
+                    Add(record.CompletedTaskIds.ElementAtOrDefault(index), record.CompletedTaskNames[index],
+                        record.CompletedTaskTimes.ElementAtOrDefault(index));
             }
         }
         return items.OrderBy(item => item.CompletedAt is null).ThenBy(item => item.CompletedAt).ToArray();
@@ -1932,7 +1929,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         {
             TargetId = record.GoalId,
             TargetName = record.GoalName,
-            CompletedTaskIds = record.CompletedTaskNames
+            CompletedTaskIds = record.CompletedTaskIds
         });
 
     private static string GetWeekday(DateTime date) => new[] { "周日", "周一", "周二", "周三", "周四", "周五", "周六" }[(int)date.DayOfWeek];
@@ -2508,6 +2505,13 @@ public sealed class FocusSessionRecordViewModel : INotifyPropertyChanged
     public IReadOnlyList<string> CompletedTaskIds { get; init; } = [];
     public string IconSource { get; init; } = TargetIconCatalog.GetIconSource(null);
     public string CalendarTitle => HasGoal ? GoalName : "自由专注";
+    // Saved membership is authoritative; a completion timestamp never identifies a task.
+    public int CalendarCompletedTaskCount => FocusDuration < TimeSpan.FromMinutes(5) ? 0 : CompletedTaskSnapshots.Count > 0
+        ? CompletedTaskSnapshots.Select(task => task.TaskId).Distinct(StringComparer.Ordinal).Count()
+        : CompletedTaskIds.Count > 0 ? CompletedTaskIds.Distinct(StringComparer.Ordinal).Count() : CompletedTaskCount;
+    public bool HasCalendarCompletedTasks => CalendarCompletedTaskCount > 0;
+    public string CalendarCompletedTaskCountDisplay => $"{CalendarCompletedTaskCount}项";
+    public string CalendarPoptipSummaryDisplay => $"{TimeRangeDisplay} · {(DurationMinutes < 1 ? "<1" : DurationMinutes.ToString())}分钟";
     public string CalendarDurationDisplay => DurationMinutes < 1 ? "<1 分钟" : DurationMinutes < 60 ? $"{DurationMinutes} 分钟"
         : DurationMinutes % 60 == 0 ? $"{DurationMinutes / 60} 小时" : $"{DurationMinutes / 60} 小时 {DurationMinutes % 60} 分钟";
     private DateTime _startTime;
@@ -2594,6 +2598,9 @@ public sealed class FocusSessionRecordViewModel : INotifyPropertyChanged
             if (_completedTaskCount == value) return;
             _completedTaskCount = value;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(CalendarCompletedTaskCount));
+            OnPropertyChanged(nameof(HasCalendarCompletedTasks));
+            OnPropertyChanged(nameof(CalendarCompletedTaskCountDisplay));
         }
     }
     public TimeSpan? RecordedFocusDuration { get; init; }
@@ -2614,6 +2621,10 @@ public sealed class FocusSessionRecordViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(DurationMinutes));
         OnPropertyChanged(nameof(CompactDurationDisplay));
         OnPropertyChanged(nameof(CalendarDurationDisplay));
+        OnPropertyChanged(nameof(CalendarPoptipSummaryDisplay));
+        OnPropertyChanged(nameof(CalendarCompletedTaskCount));
+        OnPropertyChanged(nameof(HasCalendarCompletedTasks));
+        OnPropertyChanged(nameof(CalendarCompletedTaskCountDisplay));
     }
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
