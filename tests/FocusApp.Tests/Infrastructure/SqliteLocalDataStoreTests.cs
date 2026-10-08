@@ -29,10 +29,12 @@ public sealed class SqliteLocalDataStoreTests
             new FocusApp.Contracts.LocalDurationPresetDto(preset.Id, preset.Minutes, preset.IsVisible, preset.IsCurrent, preset.SortOrder)));
         restartedHome.CustomTimeModal.Open();
         Assert.Equal([60, 90, 30, 45], restartedHome.CustomTimeModal.SelectedMinutes);
-        Assert.Equal([60, 90, 30, 45], restartedHome.VisibleDurationOptions.Where(option => option.Icon.Length == 0).Select(option => option.Minutes));
+        Assert.Equal([30, 45, 60, 90], restartedHome.VisibleDurationOptions.Where(option => option.Icon.Length == 0).Select(option => option.Minutes));
+        Assert.Equal([30, 45, 60, 90, 180], restartedHome.CustomTimeModal.CommonTimes.Select(option => option.Minutes));
         Assert.Equal(4, restartedHome.CustomTimeModal.CommonTimes.Count(option => option.IsSelectedInCustomTime));
         restartedHome.CustomTimeModal.SelectTimeCommand.Execute(restartedHome.CustomTimeModal.CommonTimes.Single(option => option.Minutes == 180));
         Assert.Equal([90, 30, 45, 180], restartedHome.CustomTimeModal.SelectedMinutes);
+        Assert.Equal([30, 45, 90, 180], restartedHome.VisibleDurationOptions.Where(option => option.Icon.Length == 0).Select(option => option.Minutes));
     }
 
     [Fact]

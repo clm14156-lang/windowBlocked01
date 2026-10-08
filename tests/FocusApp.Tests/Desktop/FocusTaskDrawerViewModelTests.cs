@@ -34,7 +34,7 @@ public sealed class FocusTaskDrawerViewModelTests
         drawer.AddTaskCommand.Execute(null);
         Assert.True(drawer.IsCreating);
         Assert.False(drawer.IsEditingTask);
-        Assert.Equal("创建任务", drawer.CommitButtonText);
+        Assert.Equal("创建", drawer.CommitButtonText);
         Assert.False(drawer.CreateTaskCommand.CanExecute(null));
         drawer.DraftTitle = "  任务标题  ";
         drawer.Draft!.Description = "任务描述";
@@ -136,7 +136,7 @@ public sealed class FocusTaskDrawerViewModelTests
         Assert.Empty(task.ExportSubTasks());
         drawer.DeleteTaskCommand.Execute(task);
         Assert.Empty(session.ActiveTarget.Tasks);
-        Assert.Equal("0/0", drawer.TaskProgress);
+        Assert.Equal(string.Empty, drawer.TaskProgress);
         Assert.Null(drawer.SelectedTask);
     }
 
@@ -163,7 +163,7 @@ public sealed class FocusTaskDrawerViewModelTests
     }
 
     [Fact]
-    public void CompletedItemsMoveToBottomOfTheSameListAndUncheckingRestoresTheirOriginalOrder()
+    public void CompletionSinksItemsAndRestoringReturnsToTheEndOfThePendingQueue()
     {
         var session = CreateSession();
         var drawer = session.TaskDrawer;
@@ -178,11 +178,15 @@ public sealed class FocusTaskDrawerViewModelTests
         var original = session.ActiveTarget!.Tasks.ToArray();
         original[0].IsCompleted = true;
         original[2].IsCompleted = true;
-        Assert.Equal(new[] { original[1], original[0], original[2] }, drawer.Tasks);
+        Assert.Equal(new[] { original[1] }, drawer.Tasks);
+        Assert.Equal(new[] { original[0], original[2] }, drawer.TodayCompletedTasks);
         Assert.Equal("2/3", drawer.TaskProgress);
-        Assert.Equal(original, session.ActiveTarget.Tasks);
+        Assert.Equal(new[] { original[1], original[0], original[2] }, session.ActiveTarget.Tasks);
+        Assert.Equal(session.ActiveTarget.Tasks, drawer.VisibleTasks);
+        Assert.Equal(new[] { 1, 2, 3 }, drawer.VisibleTasks.Select(task => task.DrawerNumber));
         original[0].IsCompleted = false;
-        Assert.Equal(new[] { original[0], original[1], original[2] }, drawer.Tasks);
+        Assert.Equal(new[] { original[1], original[0] }, drawer.Tasks);
+        Assert.Equal(new[] { original[2] }, drawer.TodayCompletedTasks);
         Assert.Equal("1/3", drawer.TaskProgress);
         var children = original[0].SubTasks.ToArray();
         children[0].IsCompleted = true;
@@ -193,7 +197,116 @@ public sealed class FocusTaskDrawerViewModelTests
     }
 
     [Fact]
-    public void ANewFocusRoundDoesNotCarryOverThePreviousRoundsPendingTasks()
+    public void ReorderingMovesTheWholeTaskKeepsExpansionAndPublishesOneSave()
+    {
+        var session = CreateSession();
+        var target = session.ActiveTarget!;
+        var first = target.AddTask("第一项");
+        var second = target.AddTask("第二项");
+        var third = target.AddTask("第三项");
+        second.Description = "完整描述";
+        var now = DateTimeOffset.UtcNow;
+        var child = new FocusSubTaskViewModel(new LocalSubTaskDto("child", second.TaskId, "子任务", false, 0, now, now));
+        second.SubTasks.Add(child);
+        var drawer = session.TaskDrawer;
+        drawer.ToggleExpandedCommand.Execute(second);
+        third.IsCompleted = true;
+        var writes = 0;
+        FocusTaskViewModel[]? savedOrder = null;
+        session.TargetTasksChanged += (_, saved) => { writes++; savedOrder = saved.Tasks.ToArray(); };
+
+        Assert.True(drawer.MoveTask(second, 0));
+        Assert.Equal(new[] { second, first, third }, drawer.VisibleTasks);
+        Assert.Equal(drawer.VisibleTasks, target.Tasks);
+        Assert.Equal(drawer.VisibleTasks, savedOrder);
+        Assert.Equal(1, writes);
+        Assert.Equal(new[] { 1, 2, 3 }, drawer.VisibleTasks.Select(task => task.DrawerNumber));
+        Assert.True(second.IsExpanded);
+        Assert.Same(second, drawer.SelectedTask);
+        Assert.Equal("完整描述", second.Description);
+        Assert.Same(child, Assert.Single(second.SubTasks));
+        Assert.True(third.IsCompleted);
+        Assert.Equal("1/3", drawer.TaskProgress);
+
+        Assert.False(drawer.MoveTask(second, 2));
+        Assert.False(drawer.MoveTask(third, 0));
+        Assert.True(drawer.MoveTask(second, 1));
+        Assert.Equal(new[] { first, second, third }, drawer.VisibleTasks);
+        Assert.Equal(2, second.DrawerNumber);
+        Assert.True(second.IsExpanded);
+        Assert.Equal(2, writes);
+        Assert.False(drawer.MoveTask(second, 1));
+        Assert.False(drawer.MoveTask(second, -1));
+        Assert.False(drawer.MoveTask(second, 3));
+        Assert.False(drawer.MoveTask(new FocusTargetViewModel("其他目标").AddTask("外部任务"), 0));
+        Assert.Equal(2, writes);
+        child.IsCompleted = true;
+        Assert.Equal(3, writes); // Collection.Move must keep the existing detail subscription.
+    }
+
+    [Fact]
+    public void CompletionFreezesSortingAndRestorationReenablesItWithoutLosingDetails()
+    {
+        var session = CreateSession();
+        var target = session.ActiveTarget!;
+        var first = target.AddTask("第一项");
+        var middle = target.AddTask("第二项");
+        var last = target.AddTask("第三项");
+        middle.Description = "备注";
+        var drawer = session.TaskDrawer;
+        drawer.ToggleExpandedCommand.Execute(middle);
+        var writes = 0;
+        session.TargetTasksChanged += (_, _) => writes++;
+        session.ToggleTaskCompletedCommand.Execute(middle);
+        Assert.Equal(new[] { first, last, middle }, drawer.VisibleTasks);
+        Assert.Equal(drawer.VisibleTasks, target.Tasks);
+        Assert.Equal(1, writes);
+        Assert.True(middle.IsExpanded);
+        Assert.Equal("备注", middle.Description);
+        Assert.False(drawer.MoveTask(middle, 0));
+        Assert.False(drawer.MoveTask(first, 2));
+        Assert.True(drawer.MoveTask(last, 0));
+        Assert.Equal(new[] { last, first, middle }, drawer.VisibleTasks);
+        last.ApplyCompletion(true, middle.CompletedAtUtc!.Value.AddSeconds(1));
+        Assert.Equal(new[] { first, middle, last }, drawer.VisibleTasks);
+        Assert.False(drawer.MoveTask(last, 0));
+        session.ToggleTaskCompletedCommand.Execute(middle);
+        Assert.Equal(new[] { first, middle, last }, drawer.VisibleTasks);
+        Assert.Equal(new[] { first, middle }, drawer.Tasks);
+        Assert.True(drawer.MoveTask(middle, 0));
+        Assert.Equal(new[] { middle, first, last }, drawer.VisibleTasks);
+        Assert.Equal(1, middle.DrawerNumber);
+        Assert.True(middle.IsExpanded);
+        var created = target.AddTask("新任务");
+        Assert.Equal(new[] { middle, first, created, last }, target.Tasks);
+        Assert.Equal(target.Tasks, drawer.VisibleTasks);
+    }
+
+    [Fact]
+    public void ReorderingSkipsHistoricalCompletionsAndIsDisabledWhileEditingOrAfterFocus()
+    {
+        var session = CreateSession();
+        var target = session.ActiveTarget!;
+        var first = target.AddTask("第一项");
+        var hidden = target.AddTask("历史完成任务");
+        hidden.ApplyCompletion(true, DateTimeOffset.UtcNow.AddDays(-2));
+        var last = target.AddTask("最后一项");
+        var drawer = session.TaskDrawer;
+        Assert.Equal(new[] { first, last }, drawer.VisibleTasks);
+        Assert.True(drawer.MoveTask(last, 0));
+        Assert.Equal(new[] { last, first }, drawer.VisibleTasks);
+        Assert.Contains(hidden, target.Tasks);
+        Assert.Equal(new[] { 1, 2 }, drawer.VisibleTasks.Select(task => task.DrawerNumber));
+        drawer.EditTaskCommand.Execute(first);
+        Assert.False(drawer.MoveTask(first, 0));
+        drawer.CancelCreationCommand.Execute(null);
+        session.RequestEndCommand.Execute(null);
+        session.DiscardEndCommand.Execute(null);
+        Assert.False(drawer.MoveTask(first, 0));
+    }
+
+    [Fact]
+    public void ANewFocusRoundKeepsTheTargetsPendingTasksAndSeparatesTodaysCompletions()
     {
         var target = new FocusTargetViewModel("目标");
         var first = target.AddTask("上一轮任务", false);
@@ -203,23 +316,25 @@ public sealed class FocusTaskDrawerViewModelTests
         session.AdvancePreparationBy(TimeSpan.FromSeconds(5));
         Assert.Equal(2, session.TaskDrawer.Tasks.Count);
         second.IsCompleted = true;
-        Assert.Equal(new[] { first, second }, session.TaskDrawer.Tasks);
+        Assert.Equal(new[] { first }, session.TaskDrawer.Tasks);
+        Assert.Equal(new[] { second }, session.TaskDrawer.TodayCompletedTasks);
         Assert.Equal("1/2", session.TaskDrawer.TaskProgress);
 
         session.RequestEndCommand.Execute(null);
         session.ConfirmEndCommand.Execute(null);
         Assert.True(session.Start(30, target));
         session.AdvancePreparationBy(TimeSpan.FromSeconds(5));
-        Assert.Empty(session.TaskDrawer.Tasks);
-        Assert.Empty(session.PendingTasks);
-        Assert.Equal("0/0", session.TaskDrawer.TaskProgress);
+        Assert.Equal(first, Assert.Single(session.TaskDrawer.Tasks));
+        Assert.Equal(first, Assert.Single(session.PendingTasks));
+        Assert.Equal(second, Assert.Single(session.TaskDrawer.TodayCompletedTasks));
+        Assert.Equal("1/2", session.TaskDrawer.TaskProgress);
         Assert.Equal(2, target.Tasks.Count);
 
         session.TaskDrawer.AddTaskCommand.Execute(null);
         session.TaskDrawer.DraftTitle = "新一轮任务";
         session.TaskDrawer.CreateTaskCommand.Execute(null);
-        Assert.Equal("新一轮任务", Assert.Single(session.TaskDrawer.Tasks).Name);
-        Assert.Equal("0/1", session.TaskDrawer.TaskProgress);
+        Assert.Equal(new[] { "上一轮任务", "新一轮任务" }, session.TaskDrawer.Tasks.Select(task => task.Name));
+        Assert.Equal("1/3", session.TaskDrawer.TaskProgress);
     }
 
     [Fact]
@@ -243,7 +358,7 @@ public sealed class FocusTaskDrawerViewModelTests
         drawer.Draft!.Description = "未保存的备注";
         drawer.AddTaskCommand.Execute(null);
         Assert.False(drawer.IsEditingTask);
-        Assert.Equal("创建任务", drawer.CommitButtonText);
+        Assert.Equal("创建", drawer.CommitButtonText);
         Assert.Equal(string.Empty, second.Description);
         drawer.CancelCreationCommand.Execute(null);
         drawer.ToggleExpandedCommand.Execute(first);
@@ -279,6 +394,86 @@ public sealed class FocusTaskDrawerViewModelTests
         Assert.Equal(0, writes);
         Assert.Equal(0, widthChanges);
         Assert.Equal(remaining, session.RemainingFocusSeconds);
+    }
+
+    [Fact]
+    public void ProgressiveCreationSavesDetailsAndKeepsFocusRunning()
+    {
+        var session = CreateSession();
+        var drawer = session.TaskDrawer;
+        drawer.AddTaskCommand.Execute(null);
+        Assert.False(drawer.ShowAddDescription);
+        Assert.False(drawer.ShowAddSubTask);
+        Assert.False(drawer.IsDescriptionExpanded);
+        Assert.False(drawer.IsSubTasksExpanded);
+        drawer.DraftTitle = "   ";
+        Assert.False(drawer.CreateTaskCommand.CanExecute(null));
+        drawer.ExpandDescriptionCommand.Execute(null);
+        drawer.BeginSubTaskCommand.Execute(null);
+        Assert.False(drawer.IsDescriptionExpanded);
+        Assert.False(drawer.IsSubTasksExpanded);
+        drawer.DraftTitle = "  完成首页交互优化  ";
+        Assert.True(drawer.ShowAddDescription);
+        Assert.True(drawer.ShowAddSubTask);
+        Assert.True(drawer.CreateTaskCommand.CanExecute(null));
+        drawer.ExpandDescriptionCommand.Execute(null);
+        drawer.DraftDescription = new string('描', 201);
+        Assert.Equal(200, drawer.DraftDescription.Length);
+        Assert.Equal("200/200", drawer.DescriptionCountDisplay);
+        Assert.False(drawer.ShowAddDescription);
+        drawer.BeginSubTaskCommand.Execute(null);
+        Assert.True(drawer.IsSubTasksExpanded);
+        Assert.True(drawer.IsSubTaskInputVisible);
+        drawer.SubTaskInput = "已确认子任务";
+        drawer.AddSubTaskCommand.Execute(null);
+        Assert.False(drawer.IsSubTaskInputVisible);
+        Assert.True(drawer.ShowAddSubTask);
+        drawer.BeginSubTaskCommand.Execute(null);
+        drawer.SubTaskInput = "最后一项未按回车";
+        session.AdvanceOneSecond();
+        Assert.Equal(1, session.ElapsedFocusSeconds);
+        var writes = 0;
+        session.TargetTasksChanged += (_, _) => writes++;
+        drawer.CreateTaskCommand.Execute(null);
+        var task = Assert.Single(drawer.Tasks);
+        Assert.Equal("完成首页交互优化", task.Name);
+        Assert.Equal(200, task.Description.Length);
+        Assert.Equal(new[] { "已确认子任务", "最后一项未按回车" }, task.SubTasks.Select(item => item.Title));
+        Assert.Equal(1, writes);
+        Assert.False(drawer.IsCreating);
+        Assert.Null(drawer.Draft);
+        Assert.False(drawer.IsDescriptionExpanded);
+        Assert.False(drawer.IsSubTasksExpanded);
+        Assert.Equal("0/200", drawer.DescriptionCountDisplay);
+        session.AdvanceOneSecond();
+        Assert.Equal(2, session.ElapsedFocusSeconds);
+        Assert.False(session.IsEndConfirmationOpen);
+        drawer.AddTaskCommand.Execute(null);
+        Assert.False(drawer.ShowAddDescription);
+        Assert.False(drawer.IsSubTaskInputVisible);
+        Assert.Equal(string.Empty, drawer.DraftTitle);
+    }
+
+    [Fact]
+    public void CancellingDiscardsTheProgressiveDraftAndAllDisclosureState()
+    {
+        var session = CreateSession();
+        var drawer = session.TaskDrawer;
+        drawer.AddTaskCommand.Execute(null);
+        drawer.DraftTitle = "不会保存";
+        drawer.ExpandDescriptionCommand.Execute(null);
+        drawer.DraftDescription = "临时描述";
+        drawer.BeginSubTaskCommand.Execute(null);
+        drawer.SubTaskInput = "临时子任务";
+        drawer.CancelCreationCommand.Execute(null);
+        Assert.Empty(session.ActiveTarget!.Tasks);
+        drawer.AddTaskCommand.Execute(null);
+        Assert.False(drawer.IsDescriptionExpanded);
+        Assert.False(drawer.IsSubTasksExpanded);
+        Assert.False(drawer.IsSubTaskInputVisible);
+        Assert.Empty(drawer.Draft!.SubTasks);
+        Assert.Equal(string.Empty, drawer.DraftDescription);
+        Assert.Equal(string.Empty, drawer.SubTaskInput);
     }
 
     private static FocusSessionViewModel CreateSession()

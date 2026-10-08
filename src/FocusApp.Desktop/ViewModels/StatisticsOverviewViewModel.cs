@@ -546,11 +546,6 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     public bool HasSelectedDayDistributions => SelectedDayDistributions.Count > 0;
     public bool HasSelectedDayRecords => SelectedDayRecords.Count > 0;
     public IReadOnlyList<CalendarCompletedTaskViewModel> SelectedDayCompletedTaskItems { get; private set; } = [];
-    public IReadOnlyList<CalendarCompletedTaskGroupViewModel> SelectedDayCompletedTaskGroups { get; private set; } = [];
-    public string SelectedDayCompletedTaskSummary => _selectedCalendarDay is null ? string.Empty
-        : $"{_selectedCalendarDay.Date:M月d日} · 共{SelectedDayCompletedTasks}项任务 · {SelectedDayCompletedTaskGroups.Count}个目标";
-    public string SelectedDayCompletedTaskCountDisplay => $"{SelectedDayCompletedTasks}项";
-    public bool HasSelectedDayCompletedTasks => SelectedDayCompletedTaskItems.Count > 0;
     public ObservableCollection<GoalOverviewItemViewModel> Goals { get; } = [];
     public bool ShowSetFocusGoal => !Goals.Any(goal => !goal.IsArchived && goal.GoalId != "goal-unassigned");
 
@@ -1957,57 +1952,18 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         if (selectedDate is null)
         {
             SelectedDayCompletedTaskItems = [];
-            SelectedDayCompletedTaskGroups = [];
             NotifySelectedDayCompletedTasksChanged();
             return;
         }
 
         SelectedDayCompletedTaskItems = GetCalendarCompletedTasks(selectedDate.Value);
-        var durations = FocusStatisticsCalculator.GetSlices(GetCoreFocusSessionRecords())
-            .Where(slice => slice.StartsAt.Date == selectedDate.Value.Date)
-            .GroupBy(slice => string.IsNullOrWhiteSpace(slice.Record.TargetId) ? "goal-unassigned" : slice.Record.TargetId)
-            .ToDictionary(group => group.Key, group => TimeSpan.FromTicks(group.Sum(slice => slice.Duration.Ticks)), StringComparer.Ordinal);
-        var tasksById = _goalTaskSnapshot.ToDictionary(task => task.TaskId, StringComparer.Ordinal);
-        SelectedDayCompletedTaskGroups = SelectedDayCompletedTaskItems
-            .GroupBy(task => task.GoalId)
-            .Select(group =>
-            {
-                var goal = Goals.FirstOrDefault(item => item.GoalId == group.Key);
-                var entries = group.OrderByDescending(item => item.CompletedAt).Select(item =>
-                {
-                    var subTasks = item.TaskId is not null && tasksById.TryGetValue(item.TaskId, out var source)
-                        ? source.SubTasks.Where(subTask => subTask.IsCompleted).OrderBy(subTask => subTask.SortOrder)
-                            .Select(subTask => new CalendarCompletedSubTaskViewModel(subTask.Title, subTask.UpdatedAtUtc.LocalDateTime.ToString("HH:mm"))).ToArray()
-                        : [];
-                    return new CalendarCompletedTaskEntryViewModel(item.Name, item.TimeDisplay, subTasks);
-                }).ToArray();
-                durations.TryGetValue(group.Key, out var duration);
-                var minutes = (int)duration.TotalMinutes;
-                var durationDisplay = duration > TimeSpan.Zero && minutes == 0 ? "<1 分钟"
-                    : minutes >= 60 ? minutes % 60 == 0 ? $"{minutes / 60} 小时" : $"{minutes / 60} 小时 {minutes % 60} 分钟"
-                    : $"{minutes} 分钟";
-                var color = (Color)ColorConverter.ConvertFromString(goal?.IconColorHex ?? TargetIconCatalog.DefaultColorHex)!;
-                var goalName = group.Key == "goal-unassigned" ? "自由专注"
-                    : goal?.Name ?? group.First().GoalName;
-                return new CalendarCompletedTaskGroupViewModel(
-                    string.IsNullOrWhiteSpace(goalName) ? "未关联目标" : goalName,
-                    goal?.IconSource ?? group.First().GoalIconSource,
-                    new SolidColorBrush(Color.FromArgb(18, color.R, color.G, color.B)), durationDisplay, entries,
-                    group.Max(item => item.CompletedAt));
-            })
-            .OrderByDescending(group => group.LatestCompletion)
-            .ToArray();
         NotifySelectedDayCompletedTasksChanged();
     }
 
     private void NotifySelectedDayCompletedTasksChanged()
     {
-        OnPropertyChanged(nameof(HasSelectedDayCompletedTasks));
         OnPropertyChanged(nameof(SelectedDayCompletedTasks));
-        OnPropertyChanged(nameof(SelectedDayCompletedTaskCountDisplay));
         OnPropertyChanged(nameof(SelectedDayCompletedTaskItems));
-        OnPropertyChanged(nameof(SelectedDayCompletedTaskGroups));
-        OnPropertyChanged(nameof(SelectedDayCompletedTaskSummary));
     }
 
     public string TrendRangeTitle => $"{SelectedRange.Label}投入";
@@ -2452,49 +2408,6 @@ public sealed record CalendarCompletedTaskViewModel(
 {
     public string TimeDisplay => CompletedAt?.ToString("HH:mm") ?? "—";
     public bool HasGoal => !string.IsNullOrWhiteSpace(GoalName) && GoalId != "goal-unassigned";
-}
-
-public sealed record CalendarCompletedSubTaskViewModel(string Name, string TimeDisplay);
-
-public sealed class CalendarCompletedTaskEntryViewModel : INotifyPropertyChanged
-{
-    private bool _isExpanded;
-    public CalendarCompletedTaskEntryViewModel(string name, string timeDisplay, IReadOnlyList<CalendarCompletedSubTaskViewModel> subTasks)
-    {
-        Name = name;
-        TimeDisplay = timeDisplay;
-        SubTasks = subTasks;
-        ToggleSubTasksCommand = new RelayCommand<object>(_ => IsExpanded = !IsExpanded);
-    }
-
-    public event PropertyChangedEventHandler? PropertyChanged;
-    public string Name { get; }
-    public string TimeDisplay { get; }
-    public IReadOnlyList<CalendarCompletedSubTaskViewModel> SubTasks { get; }
-    public IEnumerable<CalendarCompletedSubTaskViewModel> VisibleSubTasks => _isExpanded ? SubTasks : SubTasks.Take(3);
-    public bool HasSubTasks => SubTasks.Count > 0;
-    public bool HasOverflow => SubTasks.Count > 3;
-    public string FoldLabel => _isExpanded ? "收起子任务" : $"···   还有 {SubTasks.Count - 3} 个子任务";
-    public ICommand ToggleSubTasksCommand { get; }
-    public bool IsExpanded
-    {
-        get => _isExpanded;
-        set
-        {
-            if (_isExpanded == value) return;
-            _isExpanded = value;
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsExpanded)));
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(VisibleSubTasks)));
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(FoldLabel)));
-        }
-    }
-}
-
-public sealed record CalendarCompletedTaskGroupViewModel(
-    string GoalName, string GoalIconSource, Brush IconBackground, string DurationDisplay,
-    IReadOnlyList<CalendarCompletedTaskEntryViewModel> Tasks, DateTime? LatestCompletion)
-{
-    public string TaskCountDisplay => $"{Tasks.Count}项";
 }
 
 public sealed class FocusSessionRecordViewModel : INotifyPropertyChanged

@@ -13,6 +13,22 @@ namespace FocusApp.Desktop.Views;
 
 public partial class StatisticsPage : UserControl
 {
+    internal static bool IsGoalNameTrimmed(TextBlock label)
+    {
+        if (string.IsNullOrEmpty(label.Text) || label.ActualWidth <= 0) return false;
+        var text = new FormattedText(label.Text,
+            label.Language.GetEquivalentCulture(),
+            label.FlowDirection, new Typeface(label.FontFamily, label.FontStyle, label.FontWeight, label.FontStretch),
+            label.FontSize, Brushes.Black, null, TextOptions.GetTextFormattingMode(label),
+            VisualTreeHelper.GetDpi(label).PixelsPerDip);
+        return text.WidthIncludingTrailingWhitespace > label.ActualWidth;
+    }
+
+    private void GoalListName_ToolTipOpening(object sender, ToolTipEventArgs e)
+    {
+        if (sender is TextBlock label && !IsGoalNameTrimmed(label)) e.Handled = true;
+    }
+
     private ToggleButton? _openGoalListMoreButton;
     private FrameworkElement? _distributionHoverRow;
     private ToolTip? _distributionTip;
@@ -80,85 +96,6 @@ public partial class StatisticsPage : UserControl
         _distributionHoverRow = null;
     }
 
-    private Window? _completedTasksOwner;
-
-    private void CompletedTasksPopup_Opened(object? sender, EventArgs e)
-    {
-        CompletedTasksListScroll.ScrollToTop();
-        _completedTasksOwner = Window.GetWindow(this);
-        if (_completedTasksOwner is { } owner)
-        {
-            owner.PreviewMouseDown += CompletedTasksOutside_MouseDown;
-            owner.PreviewKeyDown += CompletedTasksPopover_KeyDown;
-            owner.Deactivated += CompletedTasksOwner_Changed;
-            owner.LocationChanged += CompletedTasksOwner_Changed;
-            owner.SizeChanged += CompletedTasksOwner_SizeChanged;
-        }
-        Dispatcher.BeginInvoke(() => { if (CompletedTasksPopup.IsOpen) CompletedTasksPopoverSurface.Focus(); });
-    }
-
-    private void CompletedTasksPopup_Closed(object? sender, EventArgs e)
-    {
-        CompletedTasksButton.IsChecked = false;
-        if (_completedTasksOwner is { } owner)
-        {
-            owner.PreviewMouseDown -= CompletedTasksOutside_MouseDown;
-            owner.PreviewKeyDown -= CompletedTasksPopover_KeyDown;
-            owner.Deactivated -= CompletedTasksOwner_Changed;
-            owner.LocationChanged -= CompletedTasksOwner_Changed;
-            owner.SizeChanged -= CompletedTasksOwner_SizeChanged;
-        }
-        _completedTasksOwner = null;
-        CompletedTasksPopoverSurface.MaxHeight = 450;
-    }
-
-    private void CompletedTasksOutside_MouseDown(object sender, MouseButtonEventArgs e)
-    {
-        if (!CompletedTasksPopup.IsOpen || e.OriginalSource is not DependencyObject source) return;
-        if (IsWithin(source, CompletedTasksPopoverSurface) || IsWithin(source, CompletedTasksButton)) return;
-        CompletedTasksButton.IsChecked = false;
-    }
-
-    private static bool IsWithin(DependencyObject source, DependencyObject ancestor)
-    {
-        for (DependencyObject? item = source; item is not null;)
-        {
-            if (ReferenceEquals(item, ancestor)) return true;
-            item = item is Visual or System.Windows.Media.Media3D.Visual3D
-                ? VisualTreeHelper.GetParent(item) : LogicalTreeHelper.GetParent(item);
-        }
-        return false;
-    }
-
-    private void CompletedTasksPopover_KeyDown(object sender, KeyEventArgs e)
-    {
-        if (e.Key != Key.Escape || !CompletedTasksPopup.IsOpen) return;
-        CompletedTasksButton.IsChecked = false;
-        CompletedTasksButton.Focus();
-        e.Handled = true;
-    }
-
-    private void CompletedTasksOwner_Changed(object? sender, EventArgs e) => CompletedTasksButton.IsChecked = false;
-    private void CompletedTasksOwner_SizeChanged(object sender, SizeChangedEventArgs e) => CompletedTasksButton.IsChecked = false;
-
-    private CustomPopupPlacement[] PlaceCompletedTasksPopup(Size popupSize, Size targetSize, Point offset)
-    {
-        var bounds = _completedTasksOwner?.Content as FrameworkElement ?? this;
-        var origin = CompletedTasksButton.TranslatePoint(new Point(), bounds);
-        var below = Math.Max(0, bounds.ActualHeight - origin.Y - targetSize.Height - 4);
-        var above = Math.Max(0, origin.Y - 4);
-        var placeBelow = below >= popupSize.Height || (above < popupSize.Height && below >= above);
-        CompletedTasksPopoverSurface.MaxHeight = Math.Clamp((placeBelow ? below : above) - 12, 140, 450);
-        var left = Math.Clamp((targetSize.Width - popupSize.Width) / 2,
-            6 - origin.X, Math.Max(6 - origin.X, bounds.ActualWidth - origin.X - popupSize.Width - 6));
-        var pointerLeft = Math.Clamp(targetSize.Width / 2 - left - 15, 16, 266);
-        CompletedTasksTopPointer.Margin = new Thickness(pointerLeft, 0, 0, -1);
-        CompletedTasksBottomPointer.Margin = new Thickness(pointerLeft, -1, 0, 0);
-        CompletedTasksTopPointer.Visibility = placeBelow ? Visibility.Visible : Visibility.Collapsed;
-        CompletedTasksBottomPointer.Visibility = placeBelow ? Visibility.Collapsed : Visibility.Visible;
-        return [new CustomPopupPlacement(new Point(left, placeBelow ? targetSize.Height + 4 : -popupSize.Height - 4), PopupPrimaryAxis.None)];
-    }
-
     private const int WmNcHitTest = 0x0084;
     private static readonly IntPtr HitTestTransparent = new(-1);
     private HwndSource? _trendTooltipHwndSource;
@@ -167,9 +104,6 @@ public partial class StatisticsPage : UserControl
     {
         InitializeComponent();
         InitializeCalendarInteraction();
-        CompletedTasksPopup.CustomPopupPlacementCallback = PlaceCompletedTasksPopup;
-        PreviewMouseDown += CompletedTasksOutside_MouseDown;
-        PreviewKeyDown += CompletedTasksPopover_KeyDown;
         ConfigureFocusGoalTip(TodayFocusTargetStateProgress);
         ConfigureFocusGoalTip(TodayFocusMonthlyTargetStateProgress);
         DataContextChanged += StatisticsPage_DataContextChanged;
@@ -178,7 +112,6 @@ public partial class StatisticsPage : UserControl
         {
             CloseFocusGoalTips();
             CloseDistributionTip();
-            CompletedTasksButton.IsChecked = false;
             DetachTrendTooltipWindowHook();
         };
         TrendCard.SizeChanged += (_, _) => UpdateTooltipPlacement();
@@ -247,7 +180,6 @@ public partial class StatisticsPage : UserControl
     private void StatisticsPage_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
         CalendarRecordInteraction.Clear();
-        CompletedTasksButton.IsChecked = false;
         CloseDistributionTip();
         if (e.OldValue is StatisticsOverviewViewModel oldViewModel)
         {
@@ -268,8 +200,6 @@ public partial class StatisticsPage : UserControl
             CloseDistributionTip();
         if (e.PropertyName is nameof(StatisticsOverviewViewModel.HasFocusGoal) or nameof(StatisticsOverviewViewModel.SelectedTab))
             CloseFocusGoalTips();
-        if (e.PropertyName is nameof(StatisticsOverviewViewModel.SelectedTab) or nameof(StatisticsOverviewViewModel.SelectedDateDisplay))
-            CompletedTasksButton.IsChecked = false;
         if (e.PropertyName is nameof(StatisticsOverviewViewModel.HoveredPoint) or nameof(StatisticsOverviewViewModel.IsTooltipOpen))
         {
             Dispatcher.BeginInvoke(UpdateTooltipPlacement);

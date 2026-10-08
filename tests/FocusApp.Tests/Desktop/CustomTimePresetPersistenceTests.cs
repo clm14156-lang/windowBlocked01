@@ -13,7 +13,7 @@ namespace FocusApp.Tests.Desktop;
 public sealed class CustomTimePresetPersistenceTests
 {
     [Fact]
-    public void AddSendsOrderedPresetsAndAnOlderSaveResponseCannotReplaceANewerSelection()
+    public void SelectionSavesWithoutAddingAndAnOlderResponseCannotReplaceANewerSelection()
     {
         Exception? failure = null;
         var thread = new Thread(() =>
@@ -86,12 +86,11 @@ public sealed class CustomTimePresetPersistenceTests
                 home, statisticsPage: new StatisticsOverviewViewModel(false), serviceConnection: connection);
             var modal = home.CustomTimeModal;
             modal.Open();
-            Click(180); Click(60);
-            modal.ConfirmCommand.Execute(null);
+            Click(180);
             PumpUntil(() => commands.Count == 1);
+            Click(60);
             Click(30); Click(90); Click(45);
-            modal.ConfirmCommand.Execute(null);
-            Assert.Equal([180, 60, 90, 45], HomeMinutes());
+            Assert.Equal([45, 60, 90, 180], HomeMinutes());
             var refreshedOrders = new List<int[]>();
             home.PropertyChanged += (_, args) =>
             {
@@ -99,13 +98,26 @@ public sealed class CustomTimePresetPersistenceTests
                     refreshedOrders.Add(HomeMinutes().ToArray());
             };
             releaseFirstReply.TrySetResult();
-            PumpUntil(() => connection.State?.Revision == 3 && home.DurationOptions[0].Label.Contains("分钟"));
-            Assert.All(refreshedOrders, order => Assert.Equal(new[] { 180, 60, 90, 45 }, order));
-            Assert.Equal([30, 180, 60], commands.First().Presets.Where(preset => preset.IsVisible).Select(preset => preset.Minutes));
+            PumpUntil(() => connection.State?.Revision == 6 && home.DurationOptions[0].Label.Contains("分钟"));
+            Assert.All(refreshedOrders, order => Assert.Equal(new[] { 45, 60, 90, 180 }, order));
+            Assert.Equal([30, 180], commands.First().Presets.Where(preset => preset.IsVisible).Select(preset => preset.Minutes));
+            Assert.Equal(5, commands.Count);
             Assert.Equal([180, 60, 90, 45], commands.Last().Presets.OrderBy(preset => preset.SortOrder).Where(preset => preset.IsVisible).Select(preset => preset.Minutes));
-            Assert.Equal([180, 60, 90, 45], HomeMinutes());
+            Assert.Equal([45, 60, 90, 180], HomeMinutes());
             modal.CancelCommand.Execute(null); modal.Open();
             Assert.Equal([180, 60, 90, 45], modal.SelectedMinutes);
+            Assert.Equal([30, 45, 60, 90, 180], modal.CommonTimes.Select(option => option.Minutes));
+            Assert.Equal("0", modal.MinutesInput);
+            modal.MinutesInput = "55";
+            modal.ConfirmCommand.Execute(null);
+            PumpUntil(() => connection.State?.Revision == 7);
+            var added = Assert.Single(connection.State!.DurationPresets.Where(preset => preset.Minutes == 55));
+            Assert.False(added.IsVisible);
+            Assert.False(added.IsCurrent);
+            Assert.Equal([45, 60, 90, 180], HomeMinutes());
+            Assert.Equal([30, 45, 55, 60, 90, 180], modal.CommonTimes.Select(option => option.Minutes));
+            Assert.Equal("0", modal.MinutesInput);
+            Assert.False(home.FocusSession.IsFocusing);
             void Click(int minutes) => modal.SelectTimeCommand.Execute(modal.CommonTimes.Single(option => option.Minutes == minutes));
             IEnumerable<int> HomeMinutes() => home.VisibleDurationOptions.Where(option => option.Icon.Length == 0).Select(option => option.Minutes);
         }

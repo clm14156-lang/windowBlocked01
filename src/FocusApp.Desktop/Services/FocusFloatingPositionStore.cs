@@ -4,7 +4,14 @@ using System.Windows;
 
 namespace FocusApp.Desktop.Services;
 
-public sealed record FocusFloatingPosition(string MonitorName, double OffsetX, double OffsetY);
+public enum FocusFloatingDockEdge { Top, Bottom }
+
+public sealed record FocusFloatingDockPosition(FocusFloatingDockEdge Edge, double CenterOffsetX);
+
+public sealed record FocusFloatingPosition(string MonitorName, double OffsetX, double OffsetY)
+{
+    public FocusFloatingDockPosition? DockedPosition { get; init; }
+}
 
 public sealed record FloatingMonitorWorkArea(string Name, Rect WorkAreaPixels, double ScaleX, double ScaleY);
 

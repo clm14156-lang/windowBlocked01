@@ -166,7 +166,7 @@ public sealed class FocusSessionViewModelTests
     }
 
     [Fact]
-    public void EndConfirmation_KeepsCountingAndContinueDoesNotResetTime()
+    public void EndConfirmation_PausesAndContinueDoesNotResetTime()
     {
         var viewModel = CreateFocusingViewModel();
         Advance(viewModel, 3);
@@ -176,66 +176,49 @@ public sealed class FocusSessionViewModelTests
         Advance(viewModel, 5);
 
         Assert.True(viewModel.IsEndConfirmationOpen);
-        Assert.Equal(openedAt - 5, viewModel.RemainingFocusSeconds);
+        Assert.Equal(openedAt, viewModel.RemainingFocusSeconds);
 
         viewModel.ContinueFocusCommand.Execute(null);
         viewModel.AdvanceOneSecond();
 
         Assert.False(viewModel.IsEndConfirmationOpen);
-        Assert.Equal(openedAt - 6, viewModel.RemainingFocusSeconds);
+        Assert.Equal(openedAt - 1, viewModel.RemainingFocusSeconds);
     }
 
     [Theory]
-    [InlineData(138, false)]
-    [InlineData(299, true)]
-    public void EndConfirmation_ProgressAndCurrentThresholdChooseDiscardOrSave(int initialSeconds, bool crossThreshold)
+    [InlineData(138)]
+    [InlineData(299)]
+    [InlineData(300)]
+    public void EndConfirmation_UsesFrozenTimeForDiscardOrSave(int initialSeconds)
     {
-        var viewModel = CreateViewModel();
-        viewModel.Start(30);
-        Advance(viewModel, 5);
-        Advance(viewModel, initialSeconds);
+        var viewModel = CreateViewModel(); viewModel.Start(30); Advance(viewModel, 5); Advance(viewModel, initialSeconds);
+        var completions = 0; var discards = 0;
+        viewModel.CompletionRecorded += (_, _) => completions++;
+        viewModel.FocusDiscarded += (_, _) => discards++;
         viewModel.RequestEndCommand.Execute(null);
-        Assert.True(viewModel.IsShortEndConfirmation);
-        Assert.Equal(initialSeconds / 300d, viewModel.EndConfirmationProgress, 10);
-        var changed = new List<string?>();
-        viewModel.PropertyChanged += (_, e) => changed.Add(e.PropertyName);
-        if (crossThreshold)
-        {
-            viewModel.AdvanceOneSecond();
-            Assert.True(viewModel.IsNormalEndConfirmation);
-            Assert.Equal("5分0秒", viewModel.EndConfirmationElapsedDisplay);
-            Assert.Equal("5", viewModel.EndConfirmationMinutesDisplay);
-            Assert.Equal("0", viewModel.EndConfirmationSecondsDisplay);
-            Assert.Equal(1, viewModel.EndConfirmationProgress);
-            Assert.Contains(nameof(viewModel.EndConfirmationProgress), changed);
-            Assert.Contains(nameof(viewModel.EndConfirmationElapsedDisplay), changed);
-            Assert.Contains(nameof(viewModel.EndConfirmationMinutesDisplay), changed);
-            Assert.Contains(nameof(viewModel.EndConfirmationSecondsDisplay), changed);
-            Assert.Contains(nameof(viewModel.IsNormalEndConfirmation), changed);
-        }
+        var display = viewModel.EndConfirmationElapsedDisplay;
+        Advance(viewModel, 1000);
+        Assert.Equal(initialSeconds, viewModel.ElapsedFocusSeconds);
+        Assert.Equal(display, viewModel.EndConfirmationElapsedDisplay);
+        Assert.True(viewModel.IsActive); Assert.Equal(0, completions); Assert.Equal(0, discards);
+        Assert.Equal(initialSeconds < 300, viewModel.IsShortEndConfirmation);
         viewModel.EndConfirmedFocusCommand.Execute(null);
         Assert.Equal(FocusFlowStage.Idle, viewModel.Stage);
-        Assert.False(viewModel.IsEndConfirmationOpen);
-        if (crossThreshold) Assert.Equal(300, Assert.Single(viewModel.CompletionHistory).ActualDuration.TotalSeconds);
-        else Assert.Empty(viewModel.CompletionHistory);
+        if(initialSeconds < 300) { Assert.Empty(viewModel.CompletionHistory); Assert.Equal(1, discards); }
+        else { Assert.Equal(initialSeconds, Assert.Single(viewModel.CompletionHistory).ActualDuration.TotalSeconds); Assert.Equal(1, completions); }
         viewModel.EndConfirmedFocusCommand.Execute(null);
-        Assert.Equal(crossThreshold ? 1 : 0, viewModel.CompletionHistory.Count);
+        Assert.Equal(initialSeconds < 300 ? 0 : 1, completions);
     }
 
     [Fact]
-    public void EndConfirmation_NaturalCompletionDismissesDialogAndRecordsOnce()
+    public void EndConfirmation_PreventsNaturalCompletionUntilResumed()
     {
-        var viewModel = CreateViewModel();
-        viewModel.Start(6);
-        Advance(viewModel, 5);
-        Advance(viewModel, 359);
-        viewModel.RequestEndCommand.Execute(null);
-        Assert.True(viewModel.IsNormalEndConfirmation);
-        Assert.Equal(1, viewModel.EndConfirmationProgress);
-        viewModel.AdvanceOneSecond();
-        Assert.False(viewModel.IsEndConfirmationOpen);
-        Assert.Equal(FocusFlowStage.Completed, viewModel.Stage);
-        viewModel.EndConfirmedFocusCommand.Execute(null);
+        var viewModel = CreateViewModel(); viewModel.Start(6); Advance(viewModel, 5); Advance(viewModel, 359);
+        viewModel.RequestEndCommand.Execute(null); Advance(viewModel, 120);
+        Assert.True(viewModel.IsEndConfirmationOpen); Assert.Empty(viewModel.CompletionHistory);
+        Assert.Equal(1, viewModel.RemainingFocusSeconds);
+        viewModel.ContinueFocusCommand.Execute(null); viewModel.AdvanceOneSecond();
+        Assert.False(viewModel.IsEndConfirmationOpen); Assert.Equal(FocusFlowStage.Completed, viewModel.Stage);
         Assert.Equal(360, Assert.Single(viewModel.CompletionHistory).ActualDuration.TotalSeconds);
     }
 
@@ -835,7 +818,7 @@ public sealed class FocusSessionViewModelTests
     }
 
     [Fact]
-    public void MovePendingTask_KeepsTargetOrderButDoesNotCarryTasksIntoNextRound()
+    public void MovePendingTask_KeepsTargetOrderAcrossFocusRounds()
     {
         var target = new FocusTargetViewModel("写代码", ["整理需求", "完成交互", "编写测试"]);
         var viewModel = CreateViewModel();
@@ -853,7 +836,7 @@ public sealed class FocusSessionViewModelTests
         viewModel.Start(25, target);
         Advance(viewModel, 5);
 
-        Assert.Empty(viewModel.PendingTasks);
+        Assert.Equal(new[] { "编写测试", "整理需求", "完成交互" }, viewModel.PendingTasks.Select(task => task.Name));
     }
 
     [Fact]

@@ -162,7 +162,7 @@
                 </StackPanel>
             </ScrollViewer>
             <Canvas Grid.Row="2" IsHitTestVisible="False" ClipToBounds="True" Panel.ZIndex="1">
-                <Border x:Name="TaskInsertionLine" Canvas.Left="18" Height="1" Background="#DEE3EB" Visibility="Collapsed"/>
+                <Border x:Name="TaskInsertionLine" Canvas.Left="18" Height="1" Background="{DynamicResource AccentPrimary}" Visibility="Collapsed"/>
             </Canvas>
             <StackPanel x:Name="DrawerEmptyState" Grid.Row="2" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,32"
                         Visibility="{Binding IsEmpty, Converter={StaticResource BoolVisibility}}" IsHitTestVisible="False">

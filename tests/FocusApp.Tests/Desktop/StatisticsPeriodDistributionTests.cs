@@ -46,7 +46,7 @@ public sealed class StatisticsPeriodDistributionTests
         Assert.Equal(30, model.TrendPoints.Sum(day => day.Minutes));
         Assert.Equal("window屏蔽软件", Assert.Single(model.PeriodFocusDistributions).TargetName);
         model.SelectedRange = model.RangeOptions.Single(range => range.Days == 30);
-        Assert.Equal("近30天趋势", model.TrendRangeTitle);
+        Assert.Equal("近30天投入", model.TrendRangeTitle);
         Assert.Equal(180, model.PeriodFocusDistributionTotalMinutes);
         Assert.Equal("3小时", model.PeriodFocusDistributionTotalDisplay);
         Assert.Equal(180, model.TrendPoints.Sum(day => day.Minutes));
@@ -151,7 +151,7 @@ public sealed class StatisticsPeriodDistributionTests
                 model.FocusGoalSettingsModal.DeleteTargetCommand.Execute(null);
                 Pump();
                 Assert.True(((Grid)page.FindName("TodayFocusEmptyState")).IsVisible);
-                Assert.True(((Button)page.FindName("SetTodayFocusTargetButton")).IsVisible);
+                Assert.Equal(model.ShowSetFocusGoal, ((Button)page.FindName("SetTodayFocusTargetButton")).IsVisible);
             }
             catch (Exception exception) { failure = exception; }
             finally { window?.Close(); }

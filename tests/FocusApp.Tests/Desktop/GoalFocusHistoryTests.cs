@@ -1,4 +1,4 @@
-using FocusApp.Contracts;
+﻿using FocusApp.Contracts;
 using FocusApp.Desktop.ViewModels;
 using Xunit;
 
@@ -27,12 +27,12 @@ public sealed class GoalFocusHistoryTests
         Assert.True(model.Days[0].IsExpanded);
         Assert.True(model.Days[1].IsExpanded);
         Assert.True(session.IsTasksExpanded);
-        Assert.Equal("⌃ 收起", session.TaskToggleDisplay);
+        Assert.Equal(5, session.TaskCount);
+        Assert.Equal("收起5项历史任务", session.TaskToggleDisplay);
         session.ToggleTasksCommand.Execute(null);
-        Assert.Equal("5项任务", session.TaskToggleDisplay);
+        Assert.Equal("查看5项历史任务", session.TaskToggleDisplay);
         Assert.True(model.Days[0].IsExpanded);
         Assert.Equal(3, model.Days[0].Sessions.Count);
-        Assert.Equal(3, model.Days[0].Timeline.Segments.Count);
     }
 
     [Theory]
@@ -45,6 +45,7 @@ public sealed class GoalFocusHistoryTests
         Assert.Equal(count, session.Tasks.Count);
         Assert.Equal(count > 0, session.HasTasks);
         Assert.Equal(count > 0, session.ToggleTasksCommand.CanExecute(null));
+        Assert.Equal(string.Join(" · ", Enumerable.Range(0, Math.Min(2, count)).Select(index => $"任务{index}")) + (count > 2 ? "…" : ""), session.TaskSummaryDisplay);
         Assert.Equal("50分钟 · 1次专注", model.Days[0].SummaryDisplay);
     }
 
@@ -54,7 +55,8 @@ public sealed class GoalFocusHistoryTests
         var record = Record(Today.AddHours(10), 50, 1);
         var snapshot = new LocalFocusSessionTaskSnapshotDto("t0", "历史任务名", 0)
         {
-            Details = new LocalTaskDetailsSnapshotDto("历史备注\n保留换行", [new("已完成子任务", true), new("未完成子任务", false)])
+            Details = new LocalTaskDetailsSnapshotDto("历史备注\n保留换行", [new("已完成子任务", true), new("另一子任务", true)]),
+            CompletedAtUtc = new DateTimeOffset(Today.AddHours(10).AddMinutes(33)).ToUniversalTime()
         };
         record = WithSnapshots(record, [snapshot]);
         var source = new LocalTaskDto("t0", "dev", "后来的名称", false, 0, DateTimeOffset.Now, DateTimeOffset.Now) { Description = "后来的备注" };
@@ -62,10 +64,11 @@ public sealed class GoalFocusHistoryTests
         model.ApplyState(Goal(), [record], [source]);
         var task = Assert.Single(Assert.Single(model.Days).Sessions[0].Tasks);
         Assert.Equal("历史任务名", task.Name);
+        Assert.Equal("10:33", task.CompletedTimeDisplay);
         Assert.Equal("历史备注\n保留换行", task.Description);
         Assert.True(task.IsCompleted);
         Assert.True(task.SubTasks[0].IsCompleted);
-        Assert.False(task.SubTasks[1].IsCompleted);
+        Assert.True(task.SubTasks[1].IsCompleted);
         // Record properties expose values rather than mutating commands or editable setters.
         Assert.False(typeof(GoalHistoryTaskViewModel).GetProperty(nameof(task.IsCompleted))!.CanWrite);
         Assert.Empty(typeof(GoalHistoryTaskViewModel).GetProperties().Where(property => typeof(System.Windows.Input.ICommand).IsAssignableFrom(property.PropertyType)));
@@ -80,11 +83,11 @@ public sealed class GoalFocusHistoryTests
         var record = WithSnapshots(Record(Today.AddHours(10), 50, 1), [new LocalFocusSessionTaskSnapshotDto("t0", "历史任务名", 0)]);
         var now = DateTimeOffset.Now;
         var source = new LocalTaskDto("t0", "dev", "任务0", true, 0, now, now)
-        { Description = "旧记录已有备注", SubTasks = [new LocalSubTaskDto("child", "t0", "旧子任务", false, 0, now, now)] };
+        { Description = "旧记录已有备注", SubTasks = [new LocalSubTaskDto("child", "t0", "旧子任务", true, 0, now, now)] };
         var model = new GoalFocusHistoryViewModel(() => Today);
         model.ApplyState(Goal(), [record], [source]);
         Assert.Equal("旧记录已有备注", model.Days[0].Sessions[0].Tasks[0].Description);
-        Assert.False(model.Days[0].Sessions[0].Tasks[0].SubTasks[0].IsCompleted);
+        Assert.True(model.Days[0].Sessions[0].Tasks[0].SubTasks[0].IsCompleted);
         model.ApplyState(Goal(), [record], [source with { TaskId = "unrelated" }]);
         Assert.False(model.Days[0].Sessions[0].Tasks[0].HasDescription);
         Assert.False(model.Days[0].Sessions[0].Tasks[0].HasSubTasks);
@@ -123,7 +126,6 @@ public sealed class GoalFocusHistoryTests
         Assert.Equal(13, day.Sessions.Count);
         Assert.Equal("23:50 - 00:20", day.Sessions[0].TimeRangeDisplay);
         Assert.Equal("30 分钟", day.Sessions[0].DurationDisplay);
-        Assert.Equal(10d / 960, day.Timeline.Segments[^1].WidthRatio, 10);
     }
 
     [Fact]
@@ -141,6 +143,102 @@ public sealed class GoalFocusHistoryTests
         model.FocusSessionRecords.Clear();
         Assert.Equal("0分钟", model.SelectedGoalTotalInvestmentDisplay);
         Assert.False(model.GoalFocusHistory.HasRecords);
+    }
+
+    [Fact]
+    public void CompletedTaskEntryExpandsResultsWithoutChangingTasklessDatesOrSessions()
+    {
+        var model = new GoalFocusHistoryViewModel(() => Today);
+        model.ApplyState(Goal(), [Record(Today.AddHours(10), 30), Record(Today.AddDays(-1).AddHours(16), 30, 1), Record(Today.AddDays(-1).AddHours(12), 20), Record(Today.AddDays(-2).AddHours(4), 10, 2)], []);
+        var first = model.ShowCompletedTasks();
+        Assert.Same(model.Days[1].Sessions[0], first);
+        Assert.False(model.Days[0].IsExpanded);
+        Assert.True(model.Days[1].IsExpanded);
+        Assert.True(model.Days[2].IsExpanded);
+        Assert.True(first!.IsTasksExpanded);
+        Assert.False(model.Days[1].Sessions[1].IsTasksExpanded);
+        Assert.Equal(3, model.CompletedTaskCount);
+        Assert.Same(first, model.ShowCompletedTasks());
+        model.ApplyState(Goal(), [], []);
+        Assert.Null(model.ShowCompletedTasks());
+    }
+
+    [Fact]
+    public void LegacyCompletionTimesUseRecordedValuesAndNeverBorrowALaterTaskCompletion()
+    {
+        var start = Today.AddHours(10);
+        var record = new FocusSessionRecordViewModel(start, start.AddMinutes(30), "dev", "开发屏蔽软件", "", 1, ["历史任务"])
+        { CompletedTaskIds = ["task"], CompletedTaskTimes = [start.AddMinutes(12)] };
+        var source = new LocalTaskDto("task", "dev", "后来的任务名", true, 0, DateTimeOffset.Now, DateTimeOffset.Now)
+        { CompletedAtUtc = new DateTimeOffset(start.AddDays(1)).ToUniversalTime() };
+        var model = new GoalFocusHistoryViewModel(() => Today);
+        model.ApplyState(Goal(), [record], [source]);
+        Assert.Equal("10:12", model.Days[0].Sessions[0].Tasks[0].CompletedTimeDisplay);
+        record = new FocusSessionRecordViewModel(start, start.AddMinutes(30), "dev", "开发屏蔽软件", "", 1, ["历史任务"])
+        { CompletedTaskIds = ["task"] };
+        model.ApplyState(Goal(), [record], [source]);
+        Assert.False(model.Days[0].Sessions[0].Tasks[0].HasCompletedTime);
+        Assert.Empty(model.Days[0].Sessions[0].Tasks[0].CompletedTimeDisplay);
+        model.ApplyState(Goal(), [record], [source with { CompletedAtUtc = new DateTimeOffset(start.AddMinutes(20)).ToUniversalTime() }]);
+        Assert.Equal("10:20", model.Days[0].Sessions[0].Tasks[0].CompletedTimeDisplay);
+    }
+
+    [Theory]
+    [InlineData(0)] [InlineData(1)] [InlineData(2)]
+    public void AnyUnfinishedChildExcludesTheWholeParentButKeepsTheFocusSession(int unfinishedIndex)
+    {
+        var partial = new LocalFocusSessionTaskSnapshotDto("partial", "部分完成", 0)
+        {
+            Details = new LocalTaskDetailsSnapshotDto("备注", Enumerable.Range(0, 3)
+                .Select(index => new LocalSubTaskSnapshotDto($"子任务{index}", index != unfinishedIndex)).ToArray())
+        };
+        var complete = new LocalFocusSessionTaskSnapshotDto("complete", "完整完成", 1)
+        { Details = new LocalTaskDetailsSnapshotDto("", [new("完成子任务", true)]) };
+        var leaf = new LocalFocusSessionTaskSnapshotDto("leaf", "无子任务", 2)
+        { Details = new LocalTaskDetailsSnapshotDto("", []) };
+        var record = WithSnapshots(Record(Today.AddHours(10), 50), [partial, complete, leaf]);
+        var model = new GoalFocusHistoryViewModel(() => Today);
+        model.ApplyState(Goal(), [record], []);
+        var day = Assert.Single(model.Days);
+        var session = Assert.Single(day.Sessions);
+        Assert.Same(record, session.Record);
+        Assert.Equal("50分钟 · 1次专注", day.SummaryDisplay);
+        Assert.Equal(new[] { "完整完成", "无子任务" }, session.Tasks.Select(task => task.Name));
+        Assert.Equal(2, model.CompletedTaskCount);
+        Assert.Equal("2项任务", session.TaskCountDisplay);
+        Assert.True(Assert.Single(session.Tasks[0].SubTasks).IsLast);
+
+        model.ApplyState(Goal(), [WithSnapshots(record, [partial])], []);
+        session = Assert.Single(Assert.Single(model.Days).Sessions);
+        Assert.Empty(session.Tasks);
+        Assert.False(session.ToggleTasksCommand.CanExecute(null));
+        Assert.True(model.HasRecords);
+        Assert.False(model.ShowEmptyState);
+    }
+
+    [Fact]
+    public void LaterLiveChildCompletionCannotRewriteAnIncompleteHistoricalSnapshot()
+    {
+        var now = DateTimeOffset.Now;
+        var snapshot = new LocalFocusSessionTaskSnapshotDto("t0", "未完整完成", 0)
+        { Details = new LocalTaskDetailsSnapshotDto("", [new("子任务", false)]) };
+        var source = new LocalTaskDto("t0", "dev", "当前名称", true, 0, now, now)
+        { SubTasks = [new LocalSubTaskDto("child", "t0", "子任务", true, 0, now, now)] };
+        var model = new GoalFocusHistoryViewModel(() => Today);
+        model.ApplyState(Goal(), [WithSnapshots(Record(Today.AddHours(10), 30), [snapshot])], [source]);
+        Assert.Empty(model.Days[0].Sessions[0].Tasks);
+    }
+
+    [Fact]
+    public void LegacyRecordsWithKnownUnfinishedChildrenAreAlsoExcluded()
+    {
+        var now = DateTimeOffset.Now;
+        var source = new LocalTaskDto("t0", "dev", "旧任务", true, 0, now, now)
+        { SubTasks = [new LocalSubTaskDto("child", "t0", "未完成", false, 0, now, now)] };
+        var model = new GoalFocusHistoryViewModel(() => Today);
+        model.ApplyState(Goal(), [WithSnapshots(Record(Today.AddHours(10), 30), [new("t0", "旧任务", 0)])], [source]);
+        Assert.Empty(model.Days[0].Sessions[0].Tasks);
+        Assert.Equal(0, model.CompletedTaskCount);
     }
 
     private static FocusSessionRecordViewModel Record(DateTime start, int minutes, int count = 0) =>

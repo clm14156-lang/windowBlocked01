@@ -138,9 +138,25 @@ public sealed class FocusFloatingSnapCalculatorTests
         Assert.Equal(0, expandedTop.Top);
         Assert.Equal(workArea.Bottom, expandedBottom.Bottom);
         Assert.Equal(300, expandedTop.Width);
-        Assert.Equal(220, expandedBottom.Height);
+        Assert.Equal(115, expandedBottom.Height);
         Assert.True(expandedTop.Bottom <= workArea.Bottom);
         Assert.True(workArea.Contains(expandedBottom));
+    }
+
+    [Theory]
+    [InlineData(115)] [InlineData(189)] [InlineData(217)] [InlineData(245)]
+    public void GetExpandedBounds_UsesTheTaskDependentHeightAndStaysAnchoredOnBothEdges(double height)
+    {
+        var workArea = new Rect(-1920, -1080, 1920, 1040);
+        foreach (var state in new[] { FocusFloatingWindowState.FoldedTop, FocusFloatingWindowState.FoldedBottom })
+        {
+            var folded = new Rect(-1700, state == FocusFloatingWindowState.FoldedTop ? workArea.Top : workArea.Bottom - 50, 160, 50);
+            var expanded = FocusFloatingSnapCalculator.GetExpandedBounds(state, folded, workArea, height);
+            Assert.Equal(new Size(300, height), expanded.Size);
+            Assert.True(workArea.Contains(expanded));
+            if (state == FocusFloatingWindowState.FoldedTop) Assert.Equal(workArea.Top, expanded.Top);
+            else Assert.Equal(workArea.Bottom, expanded.Bottom);
+        }
     }
 
     [Fact]

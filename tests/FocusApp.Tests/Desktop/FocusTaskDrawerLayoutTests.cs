@@ -85,6 +85,14 @@ public sealed class FocusTaskDrawerLayoutTests
                 Assert.Equal(710, drawer.ActualHeight);
                 Assert.Equal(1070, layout.ActualWidth);
                 var card = Descendants(drawer).OfType<Grid>().Single(item => item.Name == "TaskRowSurface" && item.DataContext == task);
+                var mainCheck = Descendants(card).OfType<CheckBox>().First();
+                var chrome = (Border)mainCheck.Template.FindName("CheckChrome", mainCheck);
+                var number = (TextBlock)mainCheck.Template.FindName("TaskNumber", mainCheck);
+                Assert.Equal(new CornerRadius(3), chrome.CornerRadius);
+                Assert.Equal("1", number.Text);
+                Assert.Equal(11, number.FontSize);
+                Assert.Equal(HorizontalAlignment.Center, number.HorizontalAlignment);
+                Assert.Equal(VerticalAlignment.Center, number.VerticalAlignment);
                 var note = Descendants(card).OfType<TextBlock>().Single(item => item.Name == "InlineDescription");
                 Assert.True(note.IsVisible);
                 Assert.Equal(task.Description, note.Text);
@@ -101,10 +109,16 @@ public sealed class FocusTaskDrawerLayoutTests
                 Assert.True(childList.IsVisible);
                 Assert.Equal("收起", Descendants(toggle).OfType<TextBlock>().Single().Text);
                 Assert.Equal(2, childList.Items.Count);
+                Assert.Equal(new Thickness(0), ((Border)childList.Parent).BorderThickness);
+                Assert.True(CanDrag(note, card));
+                Assert.False(CanDrag(mainCheck, card));
+                Assert.False(CanDrag(Descendants(toggle).OfType<TextBlock>().Single(), card));
+                Assert.False(CanDrag(Descendants(childList).OfType<TextBlock>().First(), card));
                 Render("expanded");
 
                 var more = Descendants(card).OfType<Button>().Single(item => item.Name == "TaskMoreButton");
-                Assert.Equal(Visibility.Collapsed, more.Visibility);
+                Assert.False(CanDrag(more, card));
+                Assert.Equal(Visibility.Visible, more.Visibility);
                 more.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 var menu = more.ContextMenu!;
                 host.UpdateLayout();
@@ -123,13 +137,42 @@ public sealed class FocusTaskDrawerLayoutTests
 
                 vm.AddTaskCommand.Execute(null);
                 Render("creating");
+                host.UpdateLayout();
                 var scrim = (Border)drawer.FindName("TaskEditorScrim");
                 var editor = (Border)drawer.FindName("TaskEditorPanel");
                 Assert.True(scrim.IsVisible);
                 Assert.InRange(drawer.ActualWidth - scrim.ActualWidth, 0, 2);
-                Assert.Equal(3, Grid.GetRowSpan(scrim));
+                Assert.Equal(4, Grid.GetRowSpan(scrim));
                 Assert.Equal(1, Panel.GetZIndex(scrim));
                 Assert.Equal(2, Panel.GetZIndex((UIElement)editor.Parent));
+                Assert.False(((FrameworkElement)drawer.FindName("DraftDescriptionArea")).IsVisible);
+                Assert.False(((FrameworkElement)drawer.FindName("DraftSubTaskArea")).IsVisible);
+                Assert.False(((FrameworkElement)drawer.FindName("DraftAddDescriptionButton")).IsVisible);
+                Assert.False(((FrameworkElement)drawer.FindName("DraftAddSubTaskButton")).IsVisible);
+                Assert.False(((Button)drawer.FindName("DrawerCreateTaskButton")).IsEnabled);
+                var initialHeight = editor.ActualHeight;
+                var list = (ScrollViewer)drawer.FindName("TaskDrawerScrollViewer");
+                var underlyingListHeight = list.ActualHeight;
+                vm.DraftTitle = "完成首页交互优化";
+                host.UpdateLayout();
+                Assert.True(((FrameworkElement)drawer.FindName("DraftAddDescriptionButton")).IsVisible);
+                Assert.True(((FrameworkElement)drawer.FindName("DraftAddSubTaskButton")).IsVisible);
+                Assert.True(((Button)drawer.FindName("DrawerCreateTaskButton")).IsEnabled);
+                vm.ExpandDescriptionCommand.Execute(null);
+                vm.DraftDescription = "多行描述\n补充交互细节";
+                vm.BeginSubTaskCommand.Execute(null);
+                for (var i = 0; i < 20; i++) { vm.SubTaskInput = $"子任务 {i + 1}"; vm.AddSubTaskCommand.Execute(null); }
+                host.UpdateLayout();
+                Assert.True(((FrameworkElement)drawer.FindName("DraftDescriptionArea")).IsVisible);
+                Assert.True(((FrameworkElement)drawer.FindName("DraftSubTaskArea")).IsVisible);
+                Assert.True(editor.ActualHeight > initialHeight);
+                Assert.InRange(editor.ActualHeight, initialHeight, 500);
+                var contentScroll = (ScrollViewer)drawer.FindName("DraftContentScroll");
+                Assert.True(contentScroll.ScrollableHeight > 0);
+                Assert.Equal(underlyingListHeight, list.ActualHeight);
+                var footer = (Button)drawer.FindName("DrawerCreateTaskButton");
+                Assert.True(footer.TranslatePoint(new Point(), editor).Y + footer.ActualHeight <= editor.ActualHeight);
+                Render("progressive-full");
                 editor.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left)
                 {
                     RoutedEvent = UIElement.MouseLeftButtonDownEvent
@@ -144,12 +187,88 @@ public sealed class FocusTaskDrawerLayoutTests
 
                 task.IsCompleted = true;
                 host.UpdateLayout();
-                Assert.Equal(new[] { next, task }, vm.Tasks);
+                Assert.Equal(new[] { next }, vm.Tasks);
+                Assert.Equal(new[] { task }, vm.TodayCompletedTasks);
                 Assert.Equal("1/2", vm.TaskProgress);
-                Assert.True(note.IsVisible);
-                Assert.True(toggle.IsVisible);
-                Assert.Equal(2, ((ItemsControl)drawer.FindName("DrawerTaskList")).Items.Count);
+                var visibleList = (ItemsControl)drawer.FindName("DrawerTaskList");
+                Assert.Equal(new[] { next, task }, visibleList.Items.Cast<FocusTaskViewModel>());
+                Assert.Null(drawer.FindName("DrawerTodayCompletedSection"));
+                var completedCard = Descendants(visibleList).OfType<Grid>().Single(item => item.Name == "TaskRowSurface" && item.DataContext == task);
+                Assert.Equal(Visibility.Collapsed, number.Visibility);
+                Assert.Equal(Visibility.Visible, ((UIElement)mainCheck.Template.FindName("Tick", mainCheck)).Visibility);
+                Assert.True(Descendants(completedCard).OfType<TextBlock>().Single(item => item.Name == "InlineDescription").IsVisible);
+                Assert.True(Descendants(completedCard).OfType<Button>().Single(item => item.Name == "SubTaskToggle").IsVisible);
                 Render("completed");
+
+                // Exercise the same pointer lifecycle used by the routed mouse handlers.
+                // Coordinates are injected so the test doesn't move the user's mouse.
+                object? DragCall(string method, params object[] arguments) => typeof(FocusTaskDrawer)
+                    .GetMethod(method, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                    .Invoke(drawer, arguments);
+                var origin = completedCard.TranslatePoint(new Point(70, 20), list);
+                DragCall("PrepareTaskDrag", completedCard, completedCard, origin);
+                DragCall("UpdateTaskDrag", origin, MouseButtonState.Pressed);
+                Assert.Equal(0.72, completedCard.Opacity);
+                Assert.Equal(false, DragCall("CompleteTaskDrag", new Point(70, 2)));
+                Assert.Equal(new[] { next, task }, vm.VisibleTasks);
+
+                vm.ToggleTaskCompletedCommand.Execute(task);
+                vm.ToggleExpandedCommand.Execute(task);
+                host.UpdateLayout();
+                completedCard = Descendants(visibleList).OfType<Grid>().Single(item => item.Name == "TaskRowSurface" && item.DataContext == task);
+                origin = completedCard.TranslatePoint(new Point(70, 20), list);
+                var nextCard = Descendants(visibleList).OfType<Grid>().Single(item => item.Name == "TaskRowSurface" && item.DataContext == next);
+                var drop = nextCard.TranslatePoint(new Point(70, 2), list);
+                DragCall("PrepareTaskDrag", completedCard, completedCard, origin);
+                DragCall("UpdateTaskDrag", origin, MouseButtonState.Pressed);
+                Assert.Equal(1, completedCard.Opacity);
+                // Off-screen windows cannot capture the physical mouse; enter the
+                // post-capture feedback stage without changing the user's input.
+                DragCall("StartTaskDragFeedback");
+                DragCall("UpdateTaskDrag", drop, MouseButtonState.Pressed);
+                Assert.Equal(0.45, completedCard.Opacity);
+                var insertionLine = (Border)drawer.FindName("TaskInsertionLine");
+                Assert.Equal(Visibility.Visible, insertionLine.Visibility);
+                Assert.Equal(new[] { next, task }, vm.VisibleTasks);
+                Render("dragging");
+                Assert.Equal(true, DragCall("CompleteTaskDrag", drop));
+                host.UpdateLayout();
+                Assert.False(drawer.IsMouseCaptured);
+                Assert.Equal(Visibility.Collapsed, insertionLine.Visibility);
+                Assert.Equal(new[] { task, next }, vm.VisibleTasks);
+                Assert.Equal(new[] { 1, 2 }, vm.VisibleTasks.Select(item => item.DrawerNumber));
+                Assert.True(task.IsExpanded);
+                Assert.Equal("收起", task.DrawerSubTaskToggleLabel);
+                Assert.Equal(2, task.SubTasks.Count);
+                Assert.Equal(1, completedCard.Opacity);
+                Render("reordered");
+
+                completedCard = Descendants(visibleList).OfType<Grid>().Single(item => item.Name == "TaskRowSurface" && item.DataContext == task);
+                nextCard = Descendants(visibleList).OfType<Grid>().Single(item => item.Name == "TaskRowSurface" && item.DataContext == next);
+                var cancelPoint = nextCard.TranslatePoint(new Point(70, nextCard.ActualHeight - 2), list);
+                origin = completedCard.TranslatePoint(new Point(70, 20), list);
+                DragCall("PrepareTaskDrag", completedCard, completedCard, origin);
+                DragCall("StartTaskDragFeedback");
+                DragCall("UpdateTaskDrag", cancelPoint, MouseButtonState.Pressed);
+                Assert.Equal(Visibility.Visible, insertionLine.Visibility);
+                drawer.RaiseEvent(new MouseEventArgs(Mouse.PrimaryDevice, Environment.TickCount)
+                    { RoutedEvent = Mouse.LostMouseCaptureEvent, Source = drawer });
+                Assert.Equal(Visibility.Collapsed, insertionLine.Visibility);
+                Assert.Equal(new[] { task, next }, vm.VisibleTasks);
+                DragCall("PrepareTaskDrag", completedCard, completedCard, origin);
+                DragCall("StartTaskDragFeedback");
+                DragCall("UpdateTaskDrag", cancelPoint, MouseButtonState.Pressed);
+                Assert.Equal(true, DragCall("CompleteTaskDrag", new Point(-20, 2)));
+                Assert.Equal(new[] { task, next }, vm.VisibleTasks);
+                Assert.Equal(1, completedCard.Opacity);
+
+                DragCall("PrepareTaskDrag", completedCard, completedCard, origin);
+                DragCall("StartTaskDragFeedback");
+                task.IsCompleted = true; // Completion from another UI aborts an in-flight drag.
+                DragCall("UpdateTaskDrag", cancelPoint, MouseButtonState.Pressed);
+                Assert.Equal(false, DragCall("CompleteTaskDrag", cancelPoint));
+                Assert.Equal(new[] { next, task }, vm.VisibleTasks);
+                Assert.Equal(Visibility.Collapsed, insertionLine.Visibility);
             }
             catch (Exception exception) { failure = exception; }
             finally { host?.Close(); }
@@ -168,12 +287,13 @@ public sealed class FocusTaskDrawerLayoutTests
         var presentation = XNamespace.Get("http://schemas.microsoft.com/winfx/2006/xaml/presentation");
         Assert.Equal("270", (string?)document.Root!.Attribute("Width"));
         Assert.Equal("710", (string?)document.Root.Attribute("Height"));
-        Assert.DoesNotContain(document.Descendants(), item =>
-            (string?)item.Attribute(xaml + "Name") is "CompletedTasksToggle" or "DrawerCompletedTaskList");
+        Assert.DoesNotContain(document.Descendants(), item => (string?)item.Attribute(xaml + "Name") == "CompletedTasksToggle");
+        Assert.DoesNotContain(document.Descendants(), item => (string?)item.Attribute(xaml + "Name") is "DrawerTodayCompletedTaskList" or "DrawerTodayCompletedSection");
+        Assert.DoesNotContain(document.Descendants(presentation + "TextBlock"), item => (string?)item.Attribute("Text") == "今日完成");
         Assert.DoesNotContain(document.Descendants(), item => (string?)item.Attribute(xaml + "Name") is "TaskCard" or "InlineEditor" or "CreationSheet");
         Assert.Single(document.Descendants(presentation + "Border").Where(item => (string?)item.Attribute(xaml + "Name") == "TaskEditorPanel"));
         var scrim = Assert.Single(document.Descendants(presentation + "Border").Where(item => (string?)item.Attribute(xaml + "Name") == "TaskEditorScrim"));
-        Assert.Equal("3", (string?)scrim.Attribute("Grid.RowSpan"));
+        Assert.Equal("4", (string?)scrim.Attribute("Grid.RowSpan"));
         Assert.Equal("TaskEditorScrim_MouseLeftButtonDown", (string?)scrim.Attribute("MouseLeftButtonDown"));
         Assert.DoesNotContain(document.Descendants(presentation + "Border"), item => (string?)item.Attribute("Background") == "#FF791D");
         Assert.DoesNotContain(document.Descendants(presentation + "MenuItem"), item => (string?)item.Attribute("Header") is "编辑任务名称" or "编辑备注");
@@ -181,15 +301,33 @@ public sealed class FocusTaskDrawerLayoutTests
         var more = Assert.Single(document.Descendants(presentation + "Button").Where(item =>
             (string?)item.Attribute(xaml + "Name") == "TaskMoreButton"));
         Assert.Contains(more.Descendants(presentation + "Setter"), setter =>
-            (string?)setter.Attribute("Property") == "Visibility" && (string?)setter.Attribute("Value") == "Collapsed");
+            (string?)setter.Attribute("Property") == "Opacity" && (string?)setter.Attribute("Value") == "0.6");
         Assert.Contains(document.Descendants(presentation + "Trigger"), trigger =>
             (string?)trigger.Attribute("SourceName") == "TaskRowSurface" &&
             (string?)trigger.Attribute("Property") == "IsMouseOver" &&
             trigger.Elements(presentation + "Setter").Any(setter =>
                 (string?)setter.Attribute("TargetName") == "TaskMoreButton" &&
-                (string?)setter.Attribute("Property") == "Visibility" &&
-                (string?)setter.Attribute("Value") == "Visible"));
+                (string?)setter.Attribute("Property") == "Opacity" &&
+                (string?)setter.Attribute("Value") == "1"));
     }
+    private static bool CanDrag(DependencyObject source, FrameworkElement row) =>
+        (bool)typeof(FocusTaskDrawer).GetMethod("IsTaskDragSource", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!
+            .Invoke(null, [source, row])!;
+
+    [Theory]
+    [InlineData(-10, 0)]
+    [InlineData(29, 0)]
+    [InlineData(31, 1)]
+    [InlineData(179, 1)]
+    [InlineData(181, 2)]
+    [InlineData(340, 3)]
+    public void DropPositionsUseWholeBlockHeightsIncludingExpandedSubtasks(double pointer, int expected)
+    {
+        var insertion = (int)typeof(FocusTaskDrawer).GetMethod("FindInsertionIndex", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!
+            .Invoke(null, [pointer, new double[] { 0, 60, 300 }, new double[] { 60, 240, 60 }])!;
+        Assert.Equal(expected, insertion);
+    }
+
     private static string FindRepositoryRoot()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);

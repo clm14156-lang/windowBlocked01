@@ -349,9 +349,9 @@ public sealed class MainWindowViewModelTests
         Assert.False(custom.IsSelected);
         var added = Assert.Single(viewModel.DurationOptions.Where(option => option.Minutes == 90));
         Assert.Equal("90 分钟", added.Label);
-        Assert.True(added.IsSelected);
-        Assert.True(added.IsCurrent);
-        Assert.Same(added, viewModel.CurrentDurationOption);
+        Assert.False(added.IsSelected);
+        Assert.False(added.IsCurrent);
+        Assert.Same(first, viewModel.CurrentDurationOption);
         Assert.Single(viewModel.DurationOptions.Where(option => option.IsCurrent));
         Assert.Equal(1, changeCount);
 
@@ -360,7 +360,7 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
-    public void CustomDuration_OpensWithFiveMinutesAndValidatesBoundariesInRealTime()
+    public void CustomDuration_OpensWithZeroMinutesAndValidatesBoundariesInRealTime()
     {
         var viewModel = new HomePageViewModel(
             [
@@ -370,9 +370,9 @@ public sealed class MainWindowViewModelTests
 
         viewModel.CustomTimeModal.Open();
 
-        Assert.Equal("5", viewModel.CustomTimeModal.MinutesInput);
-        Assert.True(viewModel.CustomTimeModal.IsDurationValid);
-        Assert.True(viewModel.CustomTimeModal.ConfirmCommand.CanExecute(null));
+        Assert.Equal("0", viewModel.CustomTimeModal.MinutesInput);
+        Assert.False(viewModel.CustomTimeModal.IsDurationValid);
+        Assert.False(viewModel.CustomTimeModal.ConfirmCommand.CanExecute(null));
 
         viewModel.CustomTimeModal.MinutesInput = string.Empty;
         Assert.False(viewModel.CustomTimeModal.IsDurationValid);
@@ -407,7 +407,7 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
-    public void CustomDuration_SelectingCommonTimeUpdatesTheInput()
+    public void CustomDuration_SelectingCommonTimeLeavesTheInputUnchanged()
     {
         var common = new HomeDurationOptionViewModel("60", string.Empty, false, 60);
         var custom = new HomeDurationOptionViewModel("Custom", "clock");
@@ -416,8 +416,9 @@ public sealed class MainWindowViewModelTests
 
         viewModel.CustomTimeModal.SelectTimeCommand.Execute(common);
 
-        Assert.Equal("60", viewModel.CustomTimeModal.MinutesInput);
-        Assert.True(viewModel.CustomTimeModal.ConfirmCommand.CanExecute(null));
+        Assert.Equal("0", viewModel.CustomTimeModal.MinutesInput);
+        Assert.False(viewModel.CustomTimeModal.ConfirmCommand.CanExecute(null));
+        Assert.False(common.IsSelected);
     }
 
     [Fact]
@@ -451,13 +452,14 @@ public sealed class MainWindowViewModelTests
         viewModel.CustomTimeModal.Open();
         viewModel.CustomTimeModal.Minutes = 5;
         viewModel.CustomTimeModal.ConfirmCommand.Execute(null);
-
-        Assert.Equal([60, 90, 180, 5], viewModel.VisibleDurationOptions.Take(4).Select(option => option.Minutes));
+        Assert.Equal([60, 90, 180], viewModel.VisibleDurationOptions.Where(option => option.Icon.Length == 0).Select(option => option.Minutes));
+        viewModel.CustomTimeModal.SelectTimeCommand.Execute(viewModel.CustomTimeModal.CommonTimes.Single(option => option.Minutes == 5));
+        Assert.Equal([5, 60, 90, 180], viewModel.VisibleDurationOptions.Take(4).Select(option => option.Minutes));
         Assert.Same(custom, viewModel.VisibleDurationOptions[^1]);
     }
 
     [Fact]
-    public void HomeRestoresSavedSelectionOrderRatherThanSortingByMinutes()
+    public void HomeDisplaysNumericOrderWhileRestoringSavedSelectionAge()
     {
         var custom = new HomeDurationOptionViewModel("Custom", "clock");
         var viewModel = new HomePageViewModel(
@@ -474,7 +476,9 @@ public sealed class MainWindowViewModelTests
             new LocalDurationPresetDto(Guid.NewGuid(), 5, true, true, 3)
         ]);
 
-        Assert.Equal([60, 90, 180, 5], viewModel.VisibleDurationOptions.Take(4).Select(option => option.Minutes));
+        Assert.Equal([5, 60, 90, 180], viewModel.VisibleDurationOptions.Take(4).Select(option => option.Minutes));
+        viewModel.CustomTimeModal.Open();
+        Assert.Equal([60, 90, 180, 5], viewModel.CustomTimeModal.SelectedMinutes);
         Assert.Equal(5, viewModel.CurrentDurationOption.Minutes);
         Assert.Single(viewModel.DurationOptions.Where(option => option.IsCurrent));
         Assert.Same(custom, viewModel.VisibleDurationOptions[^1]);
@@ -494,7 +498,7 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
-    public void SelectingFifthCommonDurationRotatesOutOldestDisplayedDuration()
+    public void SelectingFifthCommonDurationRotatesOutOldestSelectedDuration()
     {
         var options = new[]
         {
@@ -557,7 +561,7 @@ public sealed class MainWindowViewModelTests
         viewModel.CustomTimeModal.ConfirmCommand.Execute(null);
 
         Assert.True(first.IsSelected);
-        Assert.Equal(["50", "25", "Custom"], viewModel.VisibleDurationOptions.Select(option => option.Label));
+        Assert.Equal(["25", "50", "Custom"], viewModel.VisibleDurationOptions.Select(option => option.Label));
     }
 
     [Fact]

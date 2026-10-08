@@ -10,7 +10,8 @@ namespace FocusApp.Desktop.ViewModels;
 public sealed class HomePageViewModel : INotifyPropertyChanged
 {
     private readonly HomeDurationOptionViewModel _customDurationOption;
-    private readonly List<HomeDurationOptionViewModel> _displayOrder = [];
+    // Keep selection age independent of the numerically sorted shortcuts and common-time list.
+    private readonly List<HomeDurationOptionViewModel> _selectionOrder = [];
     private HomeDurationOptionViewModel _currentDurationOption;
     private AutomaticRuleItemViewModel? _nextAutomaticRule;
     private DateTime _nextAutomaticStart;
@@ -60,7 +61,7 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
         foreach (var option in commonOptions.Where(option => option.IsSelected).Skip(4)) option.IsSelected = false;
         _currentDurationOption = commonOptions.FirstOrDefault(option => option.IsSelected) ?? commonOptions.FirstOrDefault() ?? _customDurationOption;
         _currentDurationOption.IsCurrent = true;
-        _displayOrder.AddRange(DurationOptions.Where(option => option.IsSelected && !ReferenceEquals(option, _customDurationOption)));
+        _selectionOrder.AddRange(DurationOptions.Where(option => option.IsSelected && !ReferenceEquals(option, _customDurationOption)));
 
         foreach (var option in DurationOptions)
         {
@@ -69,7 +70,7 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
         RefreshVisibleDurationOptions();
 
         CustomTimeModal = new CustomTimeModalViewModel(ConfirmCustomTime, commonOptions, SaveCommonTimeSelection, DeleteCommonTime,
-            () => _displayOrder.Where(option => option.IsSelected));
+            () => _selectionOrder.Where(option => option.IsSelected));
         FocusTargetModal = focusTargetModal ?? new FocusTargetModalViewModel();
         FocusTargetModal.StartFocusRequested += FocusTargetModal_StartFocusRequested;
         FocusSession = focusSession ?? new FocusSessionViewModel();
@@ -120,16 +121,16 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
                 option.PropertyChanged -= DurationOption_PropertyChanged;
                 DurationOptions.Remove(option);
             }
-            _displayOrder.Clear();
+            _selectionOrder.Clear();
             foreach (var preset in ordered)
             {
-                var option = new HomeDurationOptionViewModel($"{preset.Minutes} 分钟", string.Empty, preset.IsVisible && _displayOrder.Count < 4, preset.Minutes)
+                var option = new HomeDurationOptionViewModel($"{preset.Minutes} 分钟", string.Empty, preset.IsVisible && _selectionOrder.Count < 4, preset.Minutes)
                 {
                     IsCurrent = preset.IsCurrent
                 };
                 option.PropertyChanged += DurationOption_PropertyChanged;
                 DurationOptions.Insert(Math.Max(0, DurationOptions.Count - 1), option);
-                if (option.IsSelected) _displayOrder.Add(option);
+                if (option.IsSelected) _selectionOrder.Add(option);
             }
             var currentPreset = ordered.FirstOrDefault(preset => preset.IsCurrent) ?? ordered[0];
             SelectOnly(DurationOptions.First(option => option.Minutes == currentPreset.Minutes));
@@ -137,7 +138,7 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(DurationOptions));
             OnPropertyChanged(nameof(CurrentDurationOption));
             CustomTimeModal.CommonTimes.Clear();
-            foreach (var option in DurationOptions.Where(option => !ReferenceEquals(option, _customDurationOption)))
+            foreach (var option in DurationOptions.Where(option => !ReferenceEquals(option, _customDurationOption)).OrderBy(option => option.Minutes))
                 CustomTimeModal.CommonTimes.Add(option);
         }
         finally { _isApplyingPersistedDurations = false; }
@@ -431,9 +432,10 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
 
         var option = new HomeDurationOptionViewModel($"{minutes} 分钟", string.Empty, false, minutes);
         DurationOptions.Insert(Math.Max(0, DurationOptions.Count - 1), option);
-        CustomTimeModal.CommonTimes.Add(option);
+        CustomTimeModal.AddCommonTime(option);
         option.PropertyChanged += DurationOption_PropertyChanged;
         OnPropertyChanged(nameof(DurationOptions));
+        NotifyDurationOptionsChanged();
         return true;
     }
 
@@ -540,17 +542,17 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
         _isUpdatingDurationSelection = true;
         try
         {
-            _displayOrder.Clear();
+            _selectionOrder.Clear();
             foreach (var minutes in selectedMinutes.Distinct().Take(4))
             {
                 var option = DurationOptions.FirstOrDefault(item => item.Minutes == minutes && string.IsNullOrEmpty(item.Icon));
-                if (option is not null) _displayOrder.Add(option);
+                if (option is not null) _selectionOrder.Add(option);
             }
             foreach (var option in DurationOptions)
-                option.IsSelected = _displayOrder.Contains(option);
-            var current = _displayOrder.FirstOrDefault(option => option.Minutes == preferredMinutes)
-                ?? _displayOrder.FirstOrDefault(option => ReferenceEquals(option, _currentDurationOption))
-                ?? _displayOrder.FirstOrDefault();
+                option.IsSelected = _selectionOrder.Contains(option);
+            var current = _selectionOrder.FirstOrDefault(option => option.Minutes == preferredMinutes)
+                ?? _selectionOrder.FirstOrDefault(option => ReferenceEquals(option, _currentDurationOption))
+                ?? _selectionOrder.FirstOrDefault();
             if (current is not null) SelectOnly(current);
         }
         finally
@@ -566,11 +568,11 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
         var option = DurationOptions.FirstOrDefault(item => item.Minutes == minutes && !ReferenceEquals(item, _customDurationOption));
         if (option is null) return;
         DurationOptions.Remove(option);
-        _displayOrder.Remove(option);
+        _selectionOrder.Remove(option);
         option.PropertyChanged -= DurationOption_PropertyChanged;
         if (ReferenceEquals(option, _currentDurationOption))
         {
-            var current = _displayOrder.FirstOrDefault() ?? DurationOptions.FirstOrDefault(item => item.Icon.Length == 0);
+            var current = _selectionOrder.FirstOrDefault() ?? DurationOptions.FirstOrDefault(item => item.Icon.Length == 0);
             if (current is not null)
             {
                 _isUpdatingDurationSelection = true;
@@ -603,7 +605,7 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
     private void RefreshVisibleDurationOptions()
     {
         VisibleDurationOptions.Clear();
-        foreach (var option in _displayOrder.Where(item => item.IsSelected).Take(4))
+        foreach (var option in _selectionOrder.Where(item => item.IsSelected).Take(4).OrderBy(item => item.Minutes))
         {
             VisibleDurationOptions.Add(option);
         }
@@ -612,7 +614,8 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
     }
 
     public IReadOnlyList<LocalDurationPresetDto> GetDurationPresets()
-        => _displayOrder.Where(option => option.IsSelected)
+        // Persist selection age so FIFO replacement still works after a restart.
+        => _selectionOrder.Where(option => option.IsSelected)
             .Concat(DurationOptions.Where(option => option.Icon.Length == 0 && !option.IsSelected))
             .Select((option, index) => new LocalDurationPresetDto(
                 Guid.Parse($"00000000-0000-0000-0000-{option.Minutes:D12}"), option.Minutes, option.IsSelected,

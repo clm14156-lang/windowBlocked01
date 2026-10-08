@@ -8,7 +8,50 @@ namespace FocusApp.Tests.Desktop;
 public sealed class StatisticsOverviewViewModelTests
 {
     [Fact]
-    public void OverviewProgressTipUsesDailyRemainingOrMonthlyTotalAndRefreshesAfterEdits()
+    public void MonthlyGoalCapUsesRecordedActiveDurationAndClipsCrossMonthSessions()
+    {
+        var now = new DateTime(2026, 10, 22);
+        var model = new StatisticsOverviewViewModel(false, localNowProvider: () => now);
+        model.FocusSessionRecords.Add(new FocusSessionRecordViewModel(
+            new DateTime(2026, 10, 1, 8, 0, 0), new DateTime(2026, 10, 1, 20, 0, 0), "goal", "目标", "", 0)
+        { RecordedFocusDuration = TimeSpan.FromHours(9) });
+        model.FocusSessionRecords.Add(new FocusSessionRecordViewModel(
+            new DateTime(2026, 9, 30, 23, 0, 0), new DateTime(2026, 10, 1, 1, 0, 0), "goal", "目标", "", 0));
+        var modal = model.FocusGoalSettingsModal;
+        modal.SelectMonthlyModeCommand.Execute(null);
+        modal.MonthlyTargetHoursInput = "999";
+        Assert.Equal(250, modal.MonthlyTargetMaximumHours);
+        modal.SaveCommand.Execute(null);
+        Assert.Equal(250, model.MonthlyFocusTargetHours);
+        Assert.Equal(1440, model.MonthlyFocusTodayRecommendationMinutes);
+
+        now = new DateTime(2026, 11, 1);
+        modal.OpenCommand.Execute(null);
+        Assert.Equal(720, modal.MonthlyTargetMaximumHours);
+        Assert.Equal(250, modal.RemainingHours);
+        modal.MonthlyTargetHoursInput = "999";
+        modal.SaveCommand.Execute(null);
+        Assert.Equal(720, model.MonthlyFocusTargetHours);
+        Assert.Equal(1440, model.MonthlyFocusTodayRecommendationMinutes);
+    }
+
+    [Fact]
+    public void LegacyMonthlyInputCannotBypassTheDynamicCapOrSaveYesterdayLimit()
+    {
+        var now = new DateTime(2026, 10, 22);
+        var model = new StatisticsOverviewViewModel(false, localNowProvider: () => now);
+        model.MonthlyFocusTargetInput = "9999999999999999999999";
+        Assert.Equal("240", model.MonthlyFocusTargetInput);
+        model.IncreaseMonthlyFocusTargetCommand.Execute(null);
+        Assert.Equal("240", model.MonthlyFocusTargetInput);
+        now = now.AddDays(1);
+        model.SaveMonthlyFocusTargetCommand.Execute(null);
+        Assert.Equal(216, model.MonthlyFocusTargetHours);
+        Assert.Equal("216", model.MonthlyFocusTargetInput);
+    }
+
+    [Fact]
+    public void OverviewProgressTipShowsTodayAndCurrentMonthAndRefreshesAfterEdits()
     {
         var model = new StatisticsOverviewViewModel(false);
         var end = DateTime.Today.AddHours(20);
@@ -17,8 +60,8 @@ public sealed class StatisticsOverviewViewModelTests
         model.FocusGoalSettingsModal.DailyTargetHoursInput = "2";
         model.FocusGoalSettingsModal.SaveCommand.Execute(null);
         Assert.Equal("1小时50分钟 / 2小时", model.OverviewFocusGoalTodayDisplay);
-        Assert.Equal("剩余", model.OverviewFocusGoalDetailLabel);
-        Assert.Equal("10分钟", model.OverviewFocusGoalDetailDisplay);
+        Assert.Equal("本月", model.OverviewFocusGoalDetailLabel);
+        Assert.Equal("1小时50分钟", model.OverviewFocusGoalDetailDisplay);
         Assert.Equal(110 / 120d, model.OverviewFocusGoalProgressRatio);
 
         var previousMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1).AddDays(-1).AddHours(10);
@@ -26,7 +69,7 @@ public sealed class StatisticsOverviewViewModelTests
         model.FocusGoalSettingsModal.SelectMonthlyModeCommand.Execute(null);
         model.FocusGoalSettingsModal.MonthlyTargetHoursInput = "4";
         model.FocusGoalSettingsModal.SaveCommand.Execute(null);
-        Assert.Equal("1小时50分钟", model.OverviewFocusGoalTodayDisplay);
+        Assert.Equal($"1小时50分钟 / {model.MonthlyFocusTodayRecommendationDisplay}", model.OverviewFocusGoalTodayDisplay);
         Assert.Equal("本月", model.OverviewFocusGoalDetailLabel);
         Assert.Equal("1小时50分钟 / 4小时", model.OverviewFocusGoalDetailDisplay);
         Assert.Equal(110 / 240d, model.OverviewFocusGoalProgressRatio);
@@ -37,6 +80,38 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.Equal(1, model.OverviewFocusGoalProgressRatio);
         Assert.Contains(nameof(model.OverviewFocusGoalDetailDisplay), changes);
         Assert.Contains(nameof(model.OverviewFocusGoalProgressRatio), changes);
+    }
+
+    [Fact]
+    public void OverviewProgressTipClipsMonthBoundaryAndHidesMonthlyTargetInDailyMode()
+    {
+        var model = new StatisticsOverviewViewModel(false);
+        var firstDay = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+        var crossing = new FocusSessionRecordViewModel(firstDay.AddMinutes(-30), firstDay.AddMinutes(30), "goal", "目标", "", 0);
+        model.FocusSessionRecords.Add(crossing);
+        var prior = firstDay.AddDays(-2).AddHours(9);
+        model.FocusSessionRecords.Add(new FocusSessionRecordViewModel(prior, prior.AddHours(5), "goal", "目标", "", 0));
+        model.FocusGoalSettingsModal.DailyTargetHoursInput = "2";
+        model.FocusGoalSettingsModal.SaveCommand.Execute(null);
+        Assert.Equal("30分钟", model.OverviewFocusGoalMonthDurationDisplay);
+        Assert.Equal(string.Empty, model.OverviewFocusGoalMonthTargetDisplay);
+        Assert.Equal(" / 2小时", model.OverviewFocusGoalTodayTargetDisplay);
+        Assert.Equal("30分钟", model.OverviewFocusGoalDetailDisplay);
+        model.FocusGoalSettingsModal.SelectMonthlyModeCommand.Execute(null);
+        model.FocusGoalSettingsModal.MonthlyTargetHoursInput = "40";
+        model.FocusGoalSettingsModal.SaveCommand.Execute(null);
+        Assert.Equal(" / 40小时", model.OverviewFocusGoalMonthTargetDisplay);
+        Assert.Equal("30分钟 / 40小时", model.OverviewFocusGoalDetailDisplay);
+        var changes = new List<string?>();
+        model.PropertyChanged += (_, args) => changes.Add(args.PropertyName);
+        crossing.EndTime = firstDay.AddMinutes(45);
+        Assert.Equal("45分钟", model.OverviewFocusGoalMonthDurationDisplay);
+        Assert.Contains(nameof(model.OverviewFocusGoalMonthDurationDisplay), changes);
+        model.FocusGoalSettingsModal.SelectDailyModeCommand.Execute(null);
+        model.FocusGoalSettingsModal.SaveCommand.Execute(null);
+        Assert.Equal(string.Empty, model.OverviewFocusGoalMonthTargetDisplay);
+        Assert.Equal("45分钟", model.OverviewFocusGoalDetailDisplay);
+        Assert.Contains(nameof(model.OverviewFocusGoalMonthTargetDisplay), changes);
     }
 
     [Fact]
@@ -293,11 +368,10 @@ public sealed class StatisticsOverviewViewModelTests
         var viewModel = new StatisticsOverviewViewModel();
 
         Assert.Equal("近7天", viewModel.SelectedRange.Label);
-        Assert.Equal("近7天趋势", viewModel.TrendRangeTitle);
+        Assert.Equal("近7天投入", viewModel.TrendRangeTitle);
         Assert.Equal(7, viewModel.TrendPoints.Count);
-        Assert.Equal(7, viewModel.TrendLinePoints.Count);
-        Assert.Equal(8, viewModel.TrendPoints[0].ChartX);
-        Assert.Equal(570, viewModel.TrendPoints[^1].ChartX);
+        Assert.Equal(8 + 562d / 14, viewModel.TrendPoints[0].ChartX, 8);
+        Assert.Equal(570 - 562d / 14, viewModel.TrendPoints[^1].ChartX, 8);
         Assert.Equal(new[] { "24h", "20h", "16h", "12h", "8h", "4h", "0h" }, viewModel.YAxisTicks.Select(tick => tick.Label));
         Assert.Equal(7, viewModel.YAxisTicks.Count);
         Assert.All(
@@ -321,21 +395,17 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.True(viewModel.TrendPoints[3].ChartY < viewModel.YAxisTicks[1].ChartY);
         Assert.All(viewModel.TrendPoints.Select((point, index) => (point, index)), item =>
         {
-            Assert.Equal(item.point.ChartX, viewModel.TrendLinePoints[item.index].X);
-            Assert.Equal(item.point.ChartY, viewModel.TrendLinePoints[item.index].Y);
+            Assert.InRange(item.point.BarLeft, 8, 570 - item.point.BarWidth);
+            Assert.Equal(zeroHourTick.ChartY - item.point.ChartY, item.point.BarHeight, 8);
             Assert.Equal(128, item.point.AxisLabelY);
             Assert.False(item.point.IsMarkerVisible);
             Assert.False(item.point.IsValueLabelVisible);
             Assert.DoesNotContain('\n', item.point.DateLabel);
         });
-        var curveFigure = Assert.Single(viewModel.TrendCurveGeometry.Figures);
-        Assert.Equal(viewModel.TrendLinePoints[0], curveFigure.StartPoint);
-        Assert.Equal(
-            viewModel.TrendLinePoints.Skip(1),
-            curveFigure.Segments.Cast<BezierSegment>().Select(segment => segment.Point3));
-        var areaFigure = Assert.Single(viewModel.TrendAreaGeometry.Figures);
-        Assert.Equal(zeroHourTick.ChartY, areaFigure.StartPoint.Y);
-        Assert.Equal(zeroHourTick.ChartY, ((LineSegment)areaFigure.Segments[^1]).Point.Y);
+        Assert.All(viewModel.TrendPoints, point => Assert.Equal(32, point.BarWidth));
+        Assert.All(viewModel.TrendPoints.Zip(viewModel.TrendPoints.Skip(1)), pair =>
+            Assert.Equal(562d / 7, pair.Second.ChartX - pair.First.ChartX, 8));
+        Assert.Equal(0, viewModel.TrendPoints[0].BarHeight);
         Assert.Equal("14 小时 20 分钟", viewModel.PeriodTotalDisplay);
         Assert.Equal("14小时20分钟", viewModel.PeriodTotalOverviewDisplay);
         Assert.Equal("2小时2分钟", viewModel.AverageDurationOverviewDisplay);
@@ -354,9 +424,9 @@ public sealed class StatisticsOverviewViewModelTests
 
         viewModel.SelectedRange = viewModel.RangeOptions[1];
 
-        Assert.Equal("近30天趋势", viewModel.TrendRangeTitle);
+        Assert.Equal("近30天投入", viewModel.TrendRangeTitle);
         Assert.Equal(30, viewModel.TrendPoints.Count);
-        Assert.Equal(30, viewModel.TrendLinePoints.Count);
+        Assert.All(viewModel.TrendPoints, point => Assert.InRange(point.BarWidth, 0, 10));
         Assert.Equal("本月总计", viewModel.PeriodTotalLabel);
         Assert.Equal("较上月日均", viewModel.ComparisonLabel);
         Assert.Equal(7, viewModel.TrendPoints.Count(point => point.IsKeyPoint));

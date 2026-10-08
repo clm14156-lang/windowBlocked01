@@ -4,6 +4,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Xml.Linq;
+using System.Windows.Threading;
 using FocusApp.Desktop.ViewModels;
 using FocusApp.Desktop.Views;
 using Xunit;
@@ -89,7 +90,7 @@ public sealed class CreateGoalModalTests
     }
 
     [Fact]
-    public void DialogTogglesBetweenRequestedSizesAndPreservesOptionalFields()
+    public void DialogShowsLightweightInputsAndPreservesOptionalFields()
     {
         Exception? failure = null;
         var thread = new Thread(() =>
@@ -105,19 +106,15 @@ public sealed class CreateGoalModalTests
                 modal.Arrange(new Rect(0, 0, 800, 710));
                 modal.UpdateLayout();
                 var dialog = (Border)modal.FindName("DialogCard");
-                var fields = (StackPanel)modal.FindName("GoalMoreFields");
-                Assert.Equal(310, dialog.ActualWidth);
-                Assert.Equal(390, dialog.ActualHeight);
-                Assert.Equal(Visibility.Collapsed, fields.Visibility);
+                var remark = (TextBox)modal.FindName("NewGoalRemarkTextBox");
+                Assert.InRange(Math.Abs(310 - dialog.ActualWidth), 0, 0.5);
+                Assert.InRange(Math.Abs(328 - dialog.ActualHeight), 0, 0.5);
+                Assert.Equal(Visibility.Visible, remark.Visibility);
+                Assert.Null(modal.FindName("ToggleGoalMoreButton"));
                 Assert.Equal("创建新目标", viewModel.GoalDialogTitle);
                 Assert.Equal("0/50", viewModel.NameCharacterCountDisplay);
                 RenderState("collapsed");
 
-                viewModel.ToggleGoalMoreCommand.Execute(null);
-                modal.UpdateLayout();
-                Assert.Equal(480, dialog.ActualHeight);
-                Assert.Equal(Visibility.Visible, fields.Visibility);
-                Assert.Equal("收起更多", viewModel.GoalMoreToggleText);
                 viewModel.NewGoalRemark = "保留备注";
                 viewModel.SelectGoalColorCommand.Execute(viewModel.GoalColors[5]);
                 Assert.Equal(7, viewModel.GoalColors.Count);
@@ -137,9 +134,8 @@ public sealed class CreateGoalModalTests
                 viewModel.NewGoalName = "阅读";
                 RenderState("expanded");
 
-                viewModel.ToggleGoalMoreCommand.Execute(null);
                 modal.UpdateLayout();
-                Assert.Equal(390, dialog.ActualHeight);
+                Assert.InRange(Math.Abs(328 - dialog.ActualHeight), 0, 0.5);
                 Assert.Equal("保留备注", viewModel.NewGoalRemark);
                 viewModel.NewGoalName = new string('字', 51);
                 Assert.Equal("50/50", viewModel.NameCharacterCountDisplay);
@@ -149,7 +145,7 @@ public sealed class CreateGoalModalTests
                 Assert.EndsWith(".svg", goal.IconFileName);
                 viewModel.EditGoalCommand.Execute(goal);
                 Assert.Equal("#299BFA", viewModel.SelectedGoalColorHex);
-                Assert.False(viewModel.IsGoalMoreExpanded);
+                Assert.Equal("保留备注", viewModel.NewGoalRemark);
 
                 void RenderState(string state)
                 {
@@ -194,6 +190,79 @@ public sealed class CreateGoalModalTests
         thread.Start();
         Assert.True(thread.Join(TimeSpan.FromSeconds(10)));
         Assert.Null(failure);
+    }
+
+    [Fact]
+    public void RemarkGrowsToThreeRealLinesThenScrollsAndKeepsNewlinesAndCharacterLimits()
+    {
+        Exception? failure = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                var model = new StatisticsOverviewViewModel();
+                var modal = new CreateGoalModal { DataContext = model };
+                foreach (var resource in new[] { "Colors", "Typography", "Strings", "Styles" })
+                    modal.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri($"/FocusApp.Desktop;component/Resources/{resource}.xaml", UriKind.Relative) });
+                model.AddGoalCommand.Execute(null);
+                var card = (Border)modal.FindName("DialogCard");
+                var name = (TextBox)modal.FindName("NewGoalNameTextBox");
+                var remark = (TextBox)modal.FindName("NewGoalRemarkTextBox");
+                Layout(); Assert.Equal(328, model.GoalDialogHeight); Assert.Equal(20, remark.Height);
+                Assert.Equal(new Thickness(0), name.BorderThickness); Assert.Equal(new Thickness(0), remark.BorderThickness);
+                Assert.True(remark.AcceptsReturn); Assert.Equal(TextWrapping.Wrap, remark.TextWrapping);
+                model.NewGoalName = "学习英语";
+                remark.Text = "每天至少学习30分钟。"; Layout(); Assert.Equal(328, model.GoalDialogHeight);
+                remark.AppendText("\r\n"); Layout();
+                Assert.EndsWith("\r\n", model.NewGoalRemark); Assert.Equal(348, model.GoalDialogHeight);
+                remark.AppendText("重点练习口语和听力。\r\n坚持90天。"); Layout();
+                Assert.Equal(368, model.GoalDialogHeight); Assert.Equal(60, remark.Height);
+                remark.AppendText("\r\n第四行在输入区内部滚动。"); Layout();
+                Assert.Equal(368, model.GoalDialogHeight);
+                var scroll = Descendants(remark).OfType<ScrollViewer>().Single();
+                Assert.True(scroll.ScrollableHeight > 0); Assert.InRange(scroll.ViewportHeight, 59, 61);
+                var output = Environment.GetEnvironmentVariable("FOCUSAPP_CREATE_GOAL_QA_DIR");
+                Save("three-lines-scroll");
+                model.NewGoalRemark = new string('字', 151); Layout();
+                Assert.Equal(150, model.NewGoalRemark.Length); Assert.Equal("150/150", model.RemarkCharacterCountDisplay);
+                Assert.True(model.IsGoalRemarkAtLimit); Assert.True(model.CanCreateGoal);
+                Assert.True(remark.LineCount > 3); Assert.True(scroll.ScrollableHeight > 0); Assert.Equal(368, model.GoalDialogHeight);
+                Save("character-limit");
+                model.NewGoalRemark = "单行备注"; Layout(); Assert.Equal(328, model.GoalDialogHeight);
+                model.NewGoalRemark = "第一行\r\n第二行\r\n第三行"; Layout(); Save("three-lines");
+                model.ConfirmCreateGoalCommand.Execute(null);
+                var goal = model.SelectedGoal!; Assert.Equal("第一行\r\n第二行\r\n第三行", goal.Remark);
+                model.EditGoalCommand.Execute(goal); Layout(); Assert.Equal(368, model.GoalDialogHeight);
+                Assert.Equal(goal.Remark, remark.Text);
+                model.CancelCreateGoalCommand.Execute(null); model.AddGoalCommand.Execute(null); Layout();
+                Assert.Equal(328, model.GoalDialogHeight); Assert.Equal(string.Empty, model.NewGoalRemark);
+                Save("empty-lightweight");
+                void Layout()
+                {
+                    for (var pass = 0; pass < 3; pass++)
+                    {
+                        modal.Measure(new Size(800, 710)); modal.Arrange(new Rect(0, 0, 800, 710)); modal.UpdateLayout();
+                        modal.Dispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
+                    }
+                    Assert.InRange(Math.Abs(card.ActualWidth - 310), 0, 0.5);
+                    Assert.InRange(Math.Abs(card.ActualHeight - model.GoalDialogHeight), 0, 0.5);
+                }
+                void Save(string state)
+                {
+                    if (string.IsNullOrEmpty(output)) return;
+                    Directory.CreateDirectory(output);
+                    var bitmap = new System.Windows.Media.Imaging.RenderTargetBitmap(800, 710, 96, 96, PixelFormats.Pbgra32);
+                    bitmap.Render(modal);
+                    var origin = card.TranslatePoint(new Point(), modal);
+                    var crop = new System.Windows.Media.Imaging.CroppedBitmap(bitmap, new Int32Rect((int)Math.Round(origin.X), (int)Math.Round(origin.Y), (int)Math.Round(card.ActualWidth), (int)Math.Round(card.ActualHeight)));
+                    var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder(); encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(crop));
+                    using var stream = File.Create(Path.Combine(output, $"create-goal-{state}.png")); encoder.Save(stream);
+                }
+            }
+            catch (Exception exception) { failure = exception; }
+        });
+        thread.SetApartmentState(ApartmentState.STA); thread.Start();
+        Assert.True(thread.Join(TimeSpan.FromSeconds(20))); Assert.Null(failure);
     }
 
     [Fact]

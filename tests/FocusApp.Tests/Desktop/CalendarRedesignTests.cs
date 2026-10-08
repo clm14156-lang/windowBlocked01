@@ -55,7 +55,7 @@ public sealed class CalendarRedesignTests
         Assert.DoesNotContain(model.CalendarDays, day => day.IsSelected);
         Assert.Empty(model.SelectedDayRecords);
         Assert.Empty(model.SelectedDayDistributions);
-        Assert.Empty(model.SelectedDayCompletedTaskGroups);
+        Assert.Empty(model.SelectedDayCompletedTaskItems);
         model.FocusSessionRecords.Add(new FocusSessionRecordViewModel(Date(2), Date(2).AddSeconds(20), "a", "学习", "", 0));
         Assert.False(model.CalendarDays.Single(day => day.Date == Date(2).Date).CanSelect);
         model.FocusSessionRecords.Add(new FocusSessionRecordViewModel(Date(1).Date.AddMinutes(-5), Date(1).Date.AddMinutes(5), "a", "学习", "", 0));

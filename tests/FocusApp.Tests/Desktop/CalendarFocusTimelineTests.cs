@@ -76,14 +76,33 @@ public sealed class CalendarFocusTimelineTests
         Assert.Equal(2, model.SelectedDayRecords.Count);
         Assert.Equal(2, model.SelectedDayTimeline.Segments.Count);
         second.EndTime = second.StartTime.AddMinutes(50);
-        Assert.Equal(50d / 960, model.SelectedDayTimeline.Segments[1].WidthRatio, 10);
+        Assert.Equal(0, model.SelectedDayTimeline.StartHour);
+        Assert.Equal(50d / 1440, model.SelectedDayTimeline.Segments[1].WidthRatio, 10);
         Assert.Equal(60, model.SelectedDayMinutes);
         model.SelectCalendarDateCommand.Execute(model.CalendarDays.Single(item => item.Date.Date == day.AddDays(-1)));
-        Assert.Equal(40d / 960, Assert.Single(model.SelectedDayTimeline.Segments).WidthRatio, 10);
+        Assert.Equal(40d / 1440, Assert.Single(model.SelectedDayTimeline.Segments).WidthRatio, 10);
         Assert.Single(model.SelectedDayRecords);
         model.FocusSessionRecords.Clear();
         Assert.Empty(model.SelectedDayTimeline.Segments);
         Assert.Empty(model.SelectedDayRecords);
+    }
+
+    [Fact]
+    public void FullDayScaleStaysFixedForEmptyMorningEveningAndMidnightRecords()
+    {
+        var day = new DateTime(2026, 10, 1);
+        Assert.Equal(0, CalendarFocusTimelineViewModel.Create(day, [], fullDay: true).StartHour);
+        var records = new[] { Session(day.AddHours(1), 10), Session(day.AddHours(9).AddMinutes(35), 30),
+            Session(day.AddHours(21), 50), Session(day.AddHours(23).AddMinutes(50), 30) };
+        var timeline = CalendarFocusTimelineViewModel.Create(day, records, fullDay: true);
+        Assert.Equal(0, timeline.StartHour);
+        Assert.Equal(new[] { 60d / 1440, 575d / 1440, 1260d / 1440, 1430d / 1440 },
+            timeline.Segments.Select(segment => segment.StartRatio));
+        Assert.Equal(new[] { 10d / 1440, 30d / 1440, 50d / 1440, 10d / 1440 },
+            timeline.Segments.Select(segment => segment.WidthRatio));
+        Assert.Equal("23:50 - 00:20", timeline.Segments.Last().Record.TimeRangeDisplay);
+        Assert.Equal("30 分钟", timeline.Segments.Last().Record.CalendarDurationDisplay);
+        Assert.Equal(8, CalendarFocusTimelineViewModel.Create(day, [records[2]]).StartHour);
     }
 
     [Fact]

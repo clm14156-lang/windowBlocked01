@@ -90,9 +90,25 @@ public sealed class StatisticsMonthlyTargetPresentationTests
         {
             var tip = Named(page, "ToolTip", name);
             Assert.Equal("{StaticResource FocusGoalProgressTipStyle}", (string?)tip.Attribute("Style"));
-            Assert.Contains(tip.Descendants(Presentation + "TextBlock"), text => (string?)text.Attribute("Text") == "{Binding OverviewFocusGoalTodayDisplay}");
-            Assert.Contains(tip.Descendants(Presentation + "TextBlock"), text => (string?)text.Attribute("Text") == "{Binding OverviewFocusGoalDetailDisplay}");
+            Assert.Empty(tip.Elements());
         }
+    }
+
+    [Fact]
+    public void FocusGoalTipUsesCompactTwoRowTemplateAndRequestedIcons()
+    {
+        var page = LoadPage();
+        var style = page.Descendants(Presentation + "Style").Single(item => (string?)item.Attribute(Xaml + "Key") == "FocusGoalProgressTipStyle");
+        Assert.Contains(style.Elements(Presentation + "Setter"), setter => (string?)setter.Attribute("Property") == "Width" && (string?)setter.Attribute("Value") == "230");
+        Assert.Contains(style.Elements(Presentation + "Setter"), setter => (string?)setter.Attribute("Property") == "Height" && (string?)setter.Attribute("Value") == "100");
+        Assert.Empty(style.Descendants(Presentation + "Path"));
+        var content = page.Descendants(Presentation + "DataTemplate").Single(item => (string?)item.Attribute(Xaml + "Key") == "FocusGoalProgressTipContent");
+        Assert.Equal(new[] { "今日", "本月" }, content.Descendants(Presentation + "TextBlock").Where(text => text.Attribute("Text")?.Value is "今日" or "本月").Select(text => text.Attribute("Text")!.Value));
+        Assert.Contains(content.Descendants(Presentation + "Image"), image => image.Attribute("Source")!.Value.EndsWith("sun01.png"));
+        Assert.Contains(content.Descendants(Presentation + "Image"), image => image.Attribute("Source")!.Value.EndsWith("moon01.png"));
+        Assert.DoesNotContain(content.Descendants(Presentation + "TextBlock"), text => text.Attribute("Text")?.Value.Contains("剩余") == true);
+        foreach (var value in new[] { "TodayFocusDurationCompact", "OverviewFocusGoalTodayTargetDisplay", "OverviewFocusGoalMonthDurationDisplay", "OverviewFocusGoalMonthTargetDisplay" })
+            Assert.Contains(content.Descendants(Presentation + "TextBlock"), text => text.Attribute("Text")?.Value == $"{{Binding {value}}}");
     }
 
     [Fact]

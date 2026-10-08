@@ -13,6 +13,7 @@ public partial class FocusFloatingWindow : Window
     private readonly DispatcherTimer _collapseTimer;
     private readonly FocusFloatingWindowStateMachine _stateMachine = new();
     private Rect _foldedBounds;
+    private FocusFloatingDockPosition? _pendingDockedPosition;
     private bool _foldHoverArmed = true;
     private bool _isDragging;
     private DispatcherOperation? _sizeRefreshOperation;
@@ -32,6 +33,7 @@ public partial class FocusFloatingWindow : Window
         };
         _collapseTimer.Tick += CollapseTimer_Tick;
         DataContextChanged += Window_DataContextChanged;
+        Loaded += Window_Loaded;
     }
 
     public event EventHandler? ExpandRequested;
@@ -39,11 +41,54 @@ public partial class FocusFloatingWindow : Window
 
     public FocusFloatingPosition GetPositionForMemory()
     {
-        if (!_stateMachine.IsFolded) return MonitorWorkAreaProvider.CapturePosition(this);
+        if (!FocusFloatingSnapCalculator.IsFolded(_stateMachine.FoldedState))
+            return MonitorWorkAreaProvider.CapturePosition(this);
         var monitor = MonitorWorkAreaProvider.GetForWindow(this);
         var fullBounds = FocusFloatingSnapCalculator.GetExpandedBounds(_stateMachine.FoldedState,
             _foldedBounds, monitor.WorkArea, PreferredFloatingHeight);
-        return MonitorWorkAreaProvider.CapturePosition(this, fullBounds.TopLeft);
+        var anchor = MonitorWorkAreaProvider.CapturePosition(this,
+            new Point(_foldedBounds.Left + _foldedBounds.Width / 2, _foldedBounds.Top));
+        return MonitorWorkAreaProvider.CapturePosition(this, fullBounds.TopLeft) with
+        {
+            DockedPosition = new FocusFloatingDockPosition(
+                _stateMachine.FoldedState == FocusFloatingWindowState.FoldedTop
+                    ? FocusFloatingDockEdge.Top : FocusFloatingDockEdge.Bottom, anchor.OffsetX)
+        };
+    }
+
+    public void RestoreDockedState(FocusFloatingDockPosition? position)
+    {
+        if (position is null || !double.IsFinite(position.CenterOffsetX)) return;
+        var foldedState = position.Edge switch
+        {
+            FocusFloatingDockEdge.Top => FocusFloatingWindowState.FoldedTop,
+            FocusFloatingDockEdge.Bottom => FocusFloatingWindowState.FoldedBottom,
+            _ => FocusFloatingWindowState.Floating
+        };
+        if (!FocusFloatingSnapCalculator.IsFolded(foldedState)) return;
+        _collapseTimer.Stop();
+        _pendingDockedPosition = position;
+        _stateMachine.Fold(foldedState);
+        ShowFoldedContent();
+        Width = FoldedHorizontalView.GetPreferredWidth(DataContext as FocusFloatingWindowViewModel);
+        Height = FocusFloatingSnapCalculator.HorizontalHeight;
+        _foldHoverArmed = false;
+        if (IsLoaded) RestoreDockedBounds();
+    }
+
+    private void Window_Loaded(object sender, RoutedEventArgs e) => RestoreDockedBounds();
+
+    private void RestoreDockedBounds()
+    {
+        if (_pendingDockedPosition is not { } position) return;
+        // The native restore happens while hidden. Wait for Loaded, before the first
+        // rendered frame, so WPF coordinates reflect the restored monitor's DPI.
+        var monitor = MonitorWorkAreaProvider.GetForWindow(this);
+        var anchor = new Rect(monitor.WorkArea.Left + position.CenterOffsetX, monitor.WorkArea.Top, 0, 0);
+        _foldedBounds = FocusFloatingSnapCalculator.GetSnappedBounds(_stateMachine.FoldedState, anchor,
+            monitor.WorkArea, FoldedHorizontalView.GetPreferredWidth(DataContext as FocusFloatingWindowViewModel));
+        _pendingDockedPosition = null;
+        ApplyFoldedState(_stateMachine.FoldedState, armHover: false);
     }
 
     public FocusFloatingWindowState State => _stateMachine.State;
@@ -71,7 +116,7 @@ public partial class FocusFloatingWindow : Window
 
     private void RefreshFloatingSize()
     {
-        if (_stateMachine.IsFolded) return;
+        if (_isDragging || _stateMachine.IsFolded) return;
         if (!IsVisible)
         {
             Width = FocusFloatingSnapCalculator.FloatingWidth;
@@ -95,7 +140,8 @@ public partial class FocusFloatingWindow : Window
 
     private void RefreshFoldedBounds()
     {
-        if (!_stateMachine.IsFolded && !_stateMachine.IsExpandedFromFold) return;
+        if (_isDragging || _pendingDockedPosition is not null
+            || (!_stateMachine.IsFolded && !_stateMachine.IsExpandedFromFold)) return;
         var monitor = MonitorWorkAreaProvider.GetForWindow(this);
         _foldedBounds = FocusFloatingSnapCalculator.GetSnappedBounds(_stateMachine.FoldedState, _foldedBounds,
             monitor.WorkArea, FoldedHorizontalView.GetPreferredWidth(DataContext as FocusFloatingWindowViewModel));
@@ -139,8 +185,15 @@ public partial class FocusFloatingWindow : Window
         if (IsVisible && WindowState == WindowState.Normal)
         {
             var moved = completedDrag && GetCurrentBounds().TopLeft != dragStart;
-            EvaluateSnapAfterDrag();
-            if (moved) UserPositionChanged?.Invoke(this, EventArgs.Empty);
+            if (moved)
+            {
+                EvaluateSnapAfterDrag();
+                UserPositionChanged?.Invoke(this, EventArgs.Empty);
+            }
+            else if (_stateMachine.IsExpandedFromFold)
+            {
+                CollapseToFold();
+            }
         }
     }
 
@@ -233,18 +286,10 @@ public partial class FocusFloatingWindow : Window
     {
         if (_stateMachine.IsFolded)
         {
-            var monitor = MonitorWorkAreaProvider.GetForWindow(this);
-            var floatingBounds = GetFloatingBoundsAround(GetCurrentBounds(), monitor.WorkArea);
-            _stateMachine.Detach();
-            ShowFloatingContent();
-            ApplyBounds(floatingBounds);
-            return;
+            ExpandFromFold();
         }
-
-        if (_stateMachine.IsExpandedFromFold)
-        {
-            _stateMachine.Detach();
-        }
+        // Starting a gesture does not detach. Its completed position decides whether
+        // the user actually dragged away from an edge in EvaluateSnapAfterDrag.
     }
 
     private void ApplyFoldedState(FocusFloatingWindowState foldedState, bool armHover)
@@ -298,23 +343,12 @@ public partial class FocusFloatingWindow : Window
         Height = bounds.Height;
     }
 
-    private Rect GetFloatingBoundsAround(Rect sourceBounds, Rect workArea)
+    protected override void OnContentRendered(EventArgs e)
     {
-        var centerX = sourceBounds.Left + sourceBounds.Width / 2;
-        var centerY = sourceBounds.Top + sourceBounds.Height / 2;
-        var maximumLeft = workArea.Right - FocusFloatingSnapCalculator.FloatingWidth;
-        var maximumTop = workArea.Bottom - PreferredFloatingHeight;
-        var left = maximumLeft <= workArea.Left
-            ? workArea.Left
-            : Math.Clamp(centerX - FocusFloatingSnapCalculator.FloatingWidth / 2, workArea.Left, maximumLeft);
-        var top = maximumTop <= workArea.Top
-            ? workArea.Top
-            : Math.Clamp(centerY - PreferredFloatingHeight / 2, workArea.Top, maximumTop);
-        return new Rect(
-            left,
-            top,
-            FocusFloatingSnapCalculator.FloatingWidth,
-            PreferredFloatingHeight);
+        base.OnContentRendered(e);
+        // Returning starts folded even if the pointer already occupies that edge.
+        // Subsequent genuine hover entry keeps the existing expansion behavior.
+        if (_stateMachine.IsFolded) _foldHoverArmed = !IsMouseOver;
     }
 
     protected override void OnSourceInitialized(EventArgs e)

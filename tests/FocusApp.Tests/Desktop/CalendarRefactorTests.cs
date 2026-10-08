@@ -31,36 +31,19 @@ public sealed class CalendarRefactorTests
     }
 
     [Fact]
-    public void CalendarIncludesCanonicalTaskCompletionsOnSelectableDatesAndUsesLocalCompletionDate()
+    public void CalendarExcludesCanonicalCompletionsWithoutValidSessionMembership()
     {
         var model = new StatisticsOverviewViewModel(false);
-        var state = State(TaskData("当天任务", Local(18, 0, 5).ToUniversalTime()), TaskData("昨天任务", Local(17, 23, 55)),
-            TaskData("未记录时间", null), TaskData("尚未完成", Local(18)) with { IsCompleted = false });
-        model.ApplyState(state);
-        SelectDate(model, Local(18).Date);
-        Assert.Empty(model.SelectedDayCompletedTaskItems);
+        model.ApplyState(State(TaskData("当天任务", Local(18, 0, 5)), TaskData("昨天任务", Local(17, 23, 55))));
         foreach (var day in new[] { 16, 17, 18 })
             model.FocusSessionRecords.Add(new FocusSessionRecordViewModel(Local(day, 9).DateTime, Local(day, 9, 5).DateTime, "goal", "学习UE5", "", 0));
-        SelectDate(model, Local(18).Date);
-        Assert.Equal(1, model.SelectedDaySessionCount);
-        Assert.Equal(1, model.SelectedDayCompletedTasks);
-        var task = Assert.Single(model.SelectedDayCompletedTaskItems);
-        Assert.Equal("当天任务", task.Name);
-        Assert.Equal("00:05", task.TimeDisplay);
-        Assert.Equal("学习UE5", task.GoalName);
-        Assert.True(task.HasGoal);
-        Assert.Equal(model.Goals.Single().IconSource, task.GoalIconSource);
-        SelectDate(model, Local(17).Date);
-        Assert.Equal("昨天任务", Assert.Single(model.SelectedDayCompletedTaskItems).Name);
-        SelectDate(model, Local(16).Date);
-        Assert.False(model.HasSelectedDayCompletedTasks);
-        Assert.Empty(model.SelectedDayCompletedTaskItems);
-        model.ApplyState(state with { Tasks = [TaskData("刚完成", Local(16, 17, 8))] });
-        model.FocusSessionRecords.Add(new FocusSessionRecordViewModel(Local(16, 9).DateTime, Local(16, 9, 5).DateTime, "goal", "学习UE5", "", 0));
-        Assert.Equal("刚完成", Assert.Single(model.SelectedDayCompletedTaskItems).Name);
-        Assert.Equal("17:08", model.SelectedDayCompletedTaskItems.Single().TimeDisplay);
+        foreach (var day in new[] { 16, 17, 18 })
+        {
+            SelectDate(model, Local(day).Date);
+            Assert.Equal(0, model.SelectedDayCompletedTasks);
+            Assert.Empty(model.SelectedDayCompletedTaskItems);
+        }
     }
-
     [Fact]
     public void TaskSnapshotsKeepHistoricalDataWithoutDuplicateTasksOrInventedTimes()
     {
@@ -154,8 +137,8 @@ public sealed class CalendarRefactorTests
         var model = new StatisticsOverviewViewModel(false);
         var end = new DateTimeOffset(new DateTime(2026, 8, 31, 17, 8, 0));
         model.ApplyState(State(TaskData("上月任务", end), TaskData("本月任务", Local(1, 9, 10))));
-        model.FocusSessionRecords.Add(new FocusSessionRecordViewModel(end.DateTime.AddMinutes(-5), end.DateTime, "goal", "学习UE5", "", 0));
-        model.FocusSessionRecords.Add(new FocusSessionRecordViewModel(Local(1, 9).DateTime, Local(1, 9, 5).DateTime, "goal", "学习UE5", "", 0));
+        model.FocusSessionRecords.Add(new FocusSessionRecordViewModel(end.DateTime.AddMinutes(-5), end.DateTime, "goal", "学习UE5", "上月任务", 1) { CompletedTaskIds = ["上月任务"], CompletedTaskTimes = [end.DateTime] });
+        model.FocusSessionRecords.Add(new FocusSessionRecordViewModel(Local(1, 9).DateTime, Local(1, 9, 15).DateTime, "goal", "学习UE5", "本月任务", 1) { CompletedTaskIds = ["本月任务"], CompletedTaskTimes = [Local(1, 9, 10).DateTime] });
         SelectDate(model, Local(1).Date);
         Assert.Equal("本月任务", Assert.Single(model.SelectedDayCompletedTaskItems).Name);
         model.PreviousCalendarDayCommand.Execute(null);
@@ -167,7 +150,121 @@ public sealed class CalendarRefactorTests
     }
 
     [Fact]
-    public void CompletedTasksModalGroupsRealTasksAndCollapsesOverflowingSubTasks()
+    public void CompletedTaskMetricIsPassiveAndKeepsLiveStatistics()
+    {
+        RunPage(model =>
+        {
+            var tasks = Enumerable.Range(0, 12)
+                .Select(index => TaskData($"任务{index:00}", Local(18, 9, index))).ToArray();
+            model.ApplyState(State(tasks));
+            model.FocusSessionRecords.Add(new FocusSessionRecordViewModel(
+                Local(18, 9).DateTime, Local(18, 9, 32).DateTime, "goal", "学习UE5", "", 12,
+                tasks.Select(task => task.Name))
+            {
+                CompletedTaskIds = tasks.Select(task => task.TaskId).ToArray(),
+                CompletedTaskTimes = tasks.Select(task => task.CompletedAtUtc?.LocalDateTime).ToArray()
+            });
+            model.SelectCalendarCommand.Execute(null);
+            SelectDate(model, Local(18).Date);
+        }, (model, page) =>
+        {
+            var metric = (Grid)page.FindName("CalendarDayCompletedTaskMetric");
+            Assert.Null(page.FindName("CompletedTasksButton"));
+            Assert.Null(page.FindName("CompletedTasksPopup"));
+            Assert.Null(page.FindName("CalendarDayCompletedTaskChevron"));
+            Assert.Empty(Descendants<ButtonBase>(metric));
+            Assert.False(metric.Focusable);
+            Assert.Null(metric.Cursor);
+            var count = (TextBlock)page.FindName("CalendarDayCompletedTaskCount");
+            Assert.Equal(12, model.SelectedDayCompletedTasks);
+            Assert.Equal("12", ((System.Windows.Documents.Run)count.Inlines.FirstInline!).Text);
+            foreach (var element in new UIElement[]
+                { metric, (TextBlock)page.FindName("CalendarDayCompletedTaskTitle"), count })
+            {
+                var click = new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left)
+                    { RoutedEvent = UIElement.MouseLeftButtonDownEvent };
+                element.RaiseEvent(click);
+                Pump();
+                Assert.False(click.Handled);
+                Assert.DoesNotContain(Descendants<Popup>(page), popup => popup.IsOpen);
+                Assert.Equal(12, model.SelectedDayCompletedTasks);
+            }
+            SavePreview(page, "calendar-passive-completion-metric");
+            model.FocusSessionRecords.Clear();
+            Pump();
+            Assert.Equal(0, model.SelectedDayCompletedTasks);
+            Assert.Equal("0", ((System.Windows.Documents.Run)count.Inlines.FirstInline!).Text);
+            Assert.Equal(12, model.GoalCompletedTasks.TotalCount);
+        });
+    }
+
+    [Fact]
+    public void GoalNamesUseAvailableWidthInCurrentAndArchivedLists()
+    {
+        const string fittingName = "这是超过六字的目标";
+        const string longName = "Windows专注软件产品开发优化与交互设计完整目标名称";
+        RunPage(model =>
+        {
+            model.ApplyState(State() with
+            {
+                Targets = new[]
+                {
+                    new LocalTargetDto("short", fittingName, false, 0, Local(1), Local(18)),
+                    new LocalTargetDto("long", longName, false, 1, Local(1), Local(18)),
+                    new LocalTargetDto("archived-short", fittingName, true, 2, Local(1), Local(18)),
+                    new LocalTargetDto("archived-long", longName, true, 3, Local(1), Local(18))
+                }
+            });
+            model.SelectGoalsCommand.Execute(null);
+        }, (model, page) =>
+        {
+            var trimmed = typeof(StatisticsPage).GetMethod("IsGoalNameTrimmed",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+            foreach (var archived in new[] { false, true })
+            {
+                model.SelectGoalListCommand.Execute(archived ? "Archived" : "Current");
+                Pump();
+                var labels = Descendants<TextBlock>(page)
+                    .Where(label => label.Name == "GoalListName" && label.IsVisible).ToArray();
+                Assert.Equal(2, labels.Length);
+                var fitting = labels.Single(label => label.Text == fittingName);
+                var overflowing = labels.Single(label => label.Text == longName);
+                Assert.False((bool)trimmed.Invoke(null, new object[] { fitting })!);
+                Assert.True((bool)trimmed.Invoke(null, new object[] { overflowing })!);
+                Assert.Equal(longName, overflowing.ToolTip);
+                Assert.All(labels, label => Assert.Equal(TextWrapping.NoWrap, label.TextWrapping));
+                Assert.DoesNotContain(Descendants<TextBlock>(page),
+                    label => label.Name is "GoalTodayDurationText" or "GoalTotalDurationText");
+                var buttons = Descendants<Button>(page)
+                    .Where(button => button.Name == "GoalSelectionButton" && button.IsVisible).ToArray();
+                Assert.All(buttons, button => Assert.InRange(fitting.ActualWidth, button.ActualWidth - 61, button.ActualWidth - 57));
+                buttons.Single(button => button.DataContext == overflowing.DataContext).Command.Execute(overflowing.DataContext);
+                Pump();
+                Assert.Equal(longName, model.SelectedGoal!.Name);
+                SavePreview(page, archived ? "archived-goal-sidebar" : "current-goal-sidebar");
+                var fullWidth = overflowing.ActualWidth;
+                var more = Descendants<ToggleButton>(page).Single(button =>
+                    button.Name == "GoalListMoreButton" && button.DataContext == overflowing.DataContext);
+                more.IsChecked = true;
+                Pump();
+                Assert.Equal(fullWidth - 28, overflowing.ActualWidth, 1);
+                Assert.True(Descendants<Popup>(page).Single(popup =>
+                    popup.Name == "GoalListMorePopup" && popup.DataContext == overflowing.DataContext).IsOpen);
+                more.IsChecked = false;
+                Pump();
+                Assert.Equal(fullWidth, overflowing.ActualWidth, 1);
+            }
+            var window = Window.GetWindow(page);
+            var narrowWidth = Descendants<TextBlock>(page).Single(label => label.Name == "GoalListName" && label.Text == longName).ActualWidth;
+            window.Width += 240;
+            Pump();
+            // The sidebar stays fixed while names consume all of its available row width.
+            Assert.Equal(narrowWidth, Descendants<TextBlock>(page).Single(label => label.Name == "GoalListName" && label.Text == longName).ActualWidth, 1);
+        });
+    }
+
+    private static void RunPage(Action<StatisticsOverviewViewModel> arrange,
+        Action<StatisticsOverviewViewModel, StatisticsPage> verify)
     {
         Exception? failure = null;
         var thread = new Thread(() =>
@@ -177,90 +274,29 @@ public sealed class CalendarRefactorTests
             {
                 var model = new StatisticsOverviewViewModel(false);
                 model.SetUserAccess(true, true);
-                var tasks = Enumerable.Range(0, 12)
-                    .Select(index => TaskData($"任务{index:00}", Local(18, 10, index))).ToArray();
-                tasks[0] = tasks[0] with
-                {
-                    SubTasks = Enumerable.Range(1, 6).Select(index => new LocalSubTaskDto(
-                        $"sub-{index}", tasks[0].TaskId, $"子任务{index}", true, index,
-                        Local(18, 9), Local(18, 9, index))).ToArray()
-                };
-                var secondGoalTask = TaskData("另一目标的任务", Local(18, 11, 28), "goal-2");
-                var state = State([..tasks, secondGoalTask]) with
-                {
-                    Targets =
-                    [
-                        new LocalTargetDto("goal", "学习UE5", false, 0, Local(1), Local(18)),
-                        new LocalTargetDto("goal-2", "Windows 屏蔽软件", false, 1, Local(1), Local(18))
-                    ]
-                };
-                model.ApplyState(state);
-                model.SelectCalendarCommand.Execute(null);
-                SelectDate(model, Local(18).Date);
-                model.FocusSessionRecords.Add(new FocusSessionRecordViewModel(Local(18, 9).DateTime, Local(18, 9, 32).DateTime, "goal", "学习UE5", "", 0));
-                model.FocusSessionRecords.Add(new FocusSessionRecordViewModel(Local(18, 10, 45).DateTime, Local(18, 11, 32).DateTime, "goal-2", "Windows 屏蔽软件", "", 0));
+                arrange(model);
                 var page = new StatisticsPage { DataContext = model };
                 foreach (var resource in new[] { "Colors", "Typography", "Strings", "Styles" })
-                    page.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri($"/FocusApp.Desktop;component/Resources/{resource}.xaml", UriKind.Relative) });
-                window = new Window { Width = 760, Height = 710, Content = page, WindowStyle = WindowStyle.None, ShowInTaskbar = false, ShowActivated = false, Left = -32000, Top = -32000 };
+                    page.Resources.MergedDictionaries.Add(new ResourceDictionary
+                    {
+                        Source = new Uri($"/FocusApp.Desktop;component/Resources/{resource}.xaml", UriKind.Relative)
+                    });
+                window = new Window
+                {
+                    Width = 760, Height = 710, Content = page, WindowStyle = WindowStyle.None,
+                    ShowInTaskbar = false, ShowActivated = false, Left = -32000, Top = -32000
+                };
                 window.Show();
                 Pump();
-                var focusCard = (Border)page.FindName("CalendarDayMetrics");
-                Assert.Equal(104, focusCard.Height);
-                Assert.Equal("今日专注时长", ((TextBlock)page.FindName("CalendarDayFocusTitle")).Text);
-                var focusSummary = (TextBlock)page.FindName("CalendarDayCompletedTaskCount");
-                Assert.True(focusSummary.ActualWidth <= focusCard.ActualWidth);
-                var button = (ToggleButton)page.FindName("CompletedTasksButton");
-                button.IsChecked = true;
-                Pump();
-                var overlay = (Grid)page.FindName("CompletedTasksModalOverlay");
-                var modal = (Border)page.FindName("CompletedTasksModal");
-                var list = (ItemsControl)page.FindName("CompletedTasksList");
-                var scroll = (ScrollViewer)page.FindName("CompletedTasksListScroll");
-                Assert.Equal(Visibility.Visible, overlay.Visibility);
-                Assert.Equal(430, modal.Width);
-                Assert.Equal(450, modal.Height);
-                Assert.Equal(2, list.Items.Count);
-                Assert.Equal("9月18日 · 共13项任务 · 2个目标", model.SelectedDayCompletedTaskSummary);
-                Assert.Equal("32 分钟", model.SelectedDayCompletedTaskGroups.Single(group => group.GoalName == "学习UE5").DurationDisplay);
-                Assert.Equal("47 分钟", model.SelectedDayCompletedTaskGroups.Single(group => group.GoalName == "Windows 屏蔽软件").DurationDisplay);
-                var parent = model.SelectedDayCompletedTaskGroups.Single(group => group.GoalName == "学习UE5").Tasks.Single(task => task.Name == "任务00");
-                Assert.Equal(3, parent.VisibleSubTasks.Count());
-                Assert.Equal("···   还有 3 个子任务", parent.FoldLabel);
-                Assert.Equal("09:01", parent.VisibleSubTasks.First().TimeDisplay);
-                parent.ToggleSubTasksCommand.Execute(null);
-                Pump();
-                Assert.Equal(6, parent.VisibleSubTasks.Count());
-                Assert.Equal("收起子任务", parent.FoldLabel);
-                Assert.True(scroll.ScrollableHeight > 0);
-                SavePreview(page, "calendar-tasks-modal");
-                scroll.ScrollToBottom();
-                Pump();
-                SavePreview(page, "calendar-tasks-modal-children");
-                ((Button)page.FindName("CompletedTasksCloseButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-                Assert.False(button.IsChecked);
-                button.IsChecked = true;
-                Pump();
-                model.FocusSessionRecords.Add(new FocusSessionRecordViewModel(Local(17, 9).DateTime, Local(17, 9, 5).DateTime, "goal", "学习UE5", "", 0));
-                SelectDate(model, Local(17).Date);
-                Pump();
-                Assert.Equal(Visibility.Collapsed, overlay.Visibility);
-                Assert.False(button.IsChecked);
-                Assert.Empty(model.SelectedDayCompletedTaskGroups);
-                button.IsChecked = true;
-                Pump();
-                Assert.Equal(Visibility.Visible, ((TextBlock)page.FindName("CompletedTasksEmpty")).Visibility);
-                overlay.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice,
-                    PresentationSource.FromVisual(window)!, 0, Key.Escape) { RoutedEvent = Keyboard.PreviewKeyDownEvent });
-                Assert.False(button.IsChecked);
+                verify(model, page);
             }
             catch (Exception exception) { failure = exception; }
             finally { window?.Close(); }
         });
         thread.SetApartmentState(ApartmentState.STA);
         thread.Start();
-        Assert.True(thread.Join(TimeSpan.FromSeconds(20)), "Calendar UI verification timed out.");
-        if (failure is not null) throw new InvalidOperationException("Calendar UI verification failed.", failure);
+        Assert.True(thread.Join(TimeSpan.FromSeconds(20)), "Calendar/goal UI verification timed out.");
+        if (failure is not null) throw new InvalidOperationException("Calendar/goal UI verification failed.", failure);
     }
     private static void Pump() => Dispatcher.CurrentDispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
     private static IEnumerable<T> Descendants<T>(DependencyObject parent) where T : DependencyObject

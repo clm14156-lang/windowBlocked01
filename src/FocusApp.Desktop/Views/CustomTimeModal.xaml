@@ -137,7 +137,10 @@
                                 <Setter TargetName="PrimaryButtonBorder" Property="BorderBrush" Value="{DynamicResource AccentPressed}" />
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Opacity" Value="0.4" />
+                                <Setter TargetName="PrimaryButtonBorder" Property="Background" Value="{DynamicResource ControlPressedBackground}" />
+                                <Setter TargetName="PrimaryButtonBorder" Property="BorderBrush" Value="{DynamicResource ControlPressedBackground}" />
+                                <Setter Property="Foreground" Value="{DynamicResource DisabledText}" />
+                                <Setter Property="Cursor" Value="Arrow" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -194,6 +197,11 @@
                        Foreground="{DynamicResource TextPrimary}"
                        Text="{DynamicResource CustomTimeTitle}"
                        TextAlignment="Center" />
+
+            <Button x:Name="CloseCustomTimeButton" Canvas.Left="279" Canvas.Top="15"
+                    Width="26" Height="26" Content="×" FontSize="20" Command="{Binding CancelCommand}"
+                    ContentTemplate="{DynamicResource ThemedButtonTextContentTemplate}"
+                    AutomationProperties.Name="关闭" Style="{StaticResource CustomTimeEditButtonStyle}" />
 
             <TextBlock Canvas.Left="20"
                        Canvas.Top="63"
@@ -342,16 +350,9 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
 
-            <Button Canvas.Left="20"
+            <Button x:Name="AddCustomTimeButton" Canvas.Left="20"
                     Canvas.Top="364"
-                    Width="134"
-                    AutomationProperties.Name="{DynamicResource CustomTimeCancel}"
-                    Command="{Binding CancelCommand}"
-                    Content="{DynamicResource CustomTimeCancel}"
-                    Style="{StaticResource CustomTimeFooterButtonStyle}" />
-            <Button Canvas.Left="166"
-                    Canvas.Top="364"
-                    Width="134"
+                    Width="280"
                     AutomationProperties.Name="{DynamicResource CustomTimeConfirm}"
                     Command="{Binding ConfirmCommand}"
                     Style="{StaticResource CustomTimePrimaryButtonStyle}">

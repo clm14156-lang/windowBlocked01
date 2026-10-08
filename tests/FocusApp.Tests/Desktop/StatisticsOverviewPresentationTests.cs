@@ -16,7 +16,7 @@ public sealed class StatisticsOverviewPresentationTests
         var card = Assert.Single(page.Descendants(Presentation + "Border").Where(element =>
             (string?)element.Attribute(Xaml + "Name") == "CalendarDayMetrics"));
 
-        Assert.Equal("104", (string?)card.Attribute("Height"));
+        Assert.Equal("96", (string?)card.Attribute("Height"));
         Assert.Equal("Transparent", (string?)card.Attribute("Background"));
         Assert.Null(card.Attribute("CornerRadius"));
 
@@ -31,42 +31,34 @@ public sealed class StatisticsOverviewPresentationTests
         var durationRuns = duration.Elements(Presentation + "Run").ToArray();
         Assert.Equal(4, durationRuns.Length);
         Assert.Equal("{Binding SelectedDayHoursValueDisplay, Mode=OneWay}", (string?)durationRuns[0].Attribute("Text"));
-        Assert.Equal("36", (string?)durationRuns[0].Attribute("FontSize"));
-        Assert.Equal("SemiBold", (string?)durationRuns[0].Attribute("FontWeight"));
+        Assert.Equal("48", (string?)durationRuns[0].Attribute("FontSize"));
+        Assert.Equal("Bold", (string?)durationRuns[0].Attribute("FontWeight"));
         Assert.Equal("{Binding SelectedDayHoursUnitDisplay, Mode=OneWay}", (string?)durationRuns[1].Attribute("Text"));
-        Assert.Equal("13", (string?)durationRuns[1].Attribute("FontSize"));
+        Assert.Equal("15", (string?)durationRuns[1].Attribute("FontSize"));
         Assert.Equal("{Binding SelectedDayMinutesValueDisplay, Mode=OneWay}", (string?)durationRuns[2].Attribute("Text"));
-        Assert.Equal("36", (string?)durationRuns[2].Attribute("FontSize"));
-        Assert.Equal("SemiBold", (string?)durationRuns[2].Attribute("FontWeight"));
+        Assert.Equal("48", (string?)durationRuns[2].Attribute("FontSize"));
+        Assert.Equal("Bold", (string?)durationRuns[2].Attribute("FontWeight"));
         Assert.Equal(" 分钟", (string?)durationRuns[3].Attribute("Text"));
 
         Assert.DoesNotContain(card.Descendants(Presentation + "Image"), image =>
             ((string?)image.Attribute("Source"))?.Contains("clock_icon.png") == true);
-        var count = Assert.Single(card.Descendants(Presentation + "TextBlock").Where(element =>
-            (string?)element.Attribute(Xaml + "Name") == "CalendarDayFocusCount"));
-        Assert.Contains(count.Elements(Presentation + "Run"), run =>
-            (string?)run.Attribute("Text") == "{Binding SelectedDaySessionCount, Mode=OneWay}");
+        Assert.DoesNotContain(card.Descendants(), element => (string?)element.Attribute(Xaml + "Name") == "CalendarDayFocusCount");
+        Assert.DoesNotContain(card.Descendants(Presentation + "TextBlock"), element => (string?)element.Attribute("Text") == "查看完成任务");
 
-        var completedTasks = Assert.Single(card.Descendants(Presentation + "ToggleButton").Where(element =>
-            (string?)element.Attribute(Xaml + "Name") == "CompletedTasksButton"));
-        Assert.Contains(card.Descendants(Presentation + "Run"), run =>
+        var completedTasks = Assert.Single(card.Descendants(Presentation + "Grid").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "CalendarDayCompletedTaskMetric"));
+        Assert.Contains(completedTasks.Descendants(Presentation + "Run"), run =>
             (string?)run.Attribute("Text") == "{Binding SelectedDayCompletedTasks, Mode=OneWay}");
-        Assert.Single(completedTasks.Descendants(Presentation + "TextBlock").Where(element =>
-            (string?)element.Attribute(Xaml + "Name") == "CalendarDayCompletedTaskChevron" &&
-            (string?)element.Attribute("Text") == "›"));
-
-        Assert.DoesNotContain(page.Descendants(Presentation + "Popup"), element =>
-            (string?)element.Attribute(Xaml + "Name") == "CompletedTasksPopup");
-        var overlay = Assert.Single(page.Descendants(Presentation + "Grid").Where(element =>
-            (string?)element.Attribute(Xaml + "Name") == "CompletedTasksModalOverlay"));
-        Assert.Equal("{Binding IsChecked, ElementName=CompletedTasksButton, Converter={StaticResource BooleanToVisibilityConverter}}",
-            (string?)overlay.Attribute("Visibility"));
-        var modal = Assert.Single(overlay.Descendants(Presentation + "Border").Where(element =>
-            (string?)element.Attribute(Xaml + "Name") == "CompletedTasksModal"));
-        Assert.Equal("430", (string?)modal.Attribute("Width"));
-        Assert.Equal("450", (string?)modal.Attribute("Height"));
+        Assert.DoesNotContain(completedTasks.Descendants(), element =>
+            element.Name.LocalName is "Button" or "ToggleButton" or "ControlTemplate");
+        Assert.Null(completedTasks.Attribute("Cursor"));
+        var completedTitle = Assert.Single(completedTasks.Descendants(Presentation + "TextBlock").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "CalendarDayCompletedTaskTitle"));
+        Assert.Equal((string?)title.Attribute("FontSize"), (string?)completedTitle.Attribute("FontSize"));
+        Assert.Equal((string?)title.Attribute("Foreground"), (string?)completedTitle.Attribute("Foreground"));
+        Assert.DoesNotContain(page.Descendants(), element =>
+            (string?)element.Attribute(Xaml + "Name") is "CompletedTasksPopup" or "CalendarDayCompletedTaskChevron");
     }
-
     [Fact]
     public void SelectedCalendarDayUsesOrangeHighlightAndWhiteText()
     {
@@ -149,7 +141,7 @@ public sealed class StatisticsOverviewPresentationTests
     }
 
     [Fact]
-    public void GoalCreationUsesCollapsibleDialogAndDirectoryBackedIconPopover()
+    public void GoalCreationUsesLightweightDialogAndDirectoryBackedIconPopover()
     {
         var root = FindRepositoryRoot();
         var page = XDocument.Load(Path.Combine(
@@ -162,12 +154,12 @@ public sealed class StatisticsOverviewPresentationTests
 
         var dialog = Assert.Single(overlay.Elements(Presentation + "Border"));
         Assert.Equal("310", (string?)dialog.Attribute("Width"));
-        Assert.Equal("{Binding GoalDialogHeight, FallbackValue=390}", (string?)dialog.Attribute("Height"));
+        Assert.Equal("{Binding GoalDialogHeight, FallbackValue=328}", (string?)dialog.Attribute("Height"));
         Assert.DoesNotContain(dialog.Descendants(Presentation + "Image"), image =>
             (string?)image.Attribute("Source") == "{Binding SelectedTargetIcon.IconSource}");
         Assert.Contains(dialog.Descendants(Presentation + "TextBox"), textBox =>
             (string?)textBox.Attribute("Text") == "{Binding NewGoalName, UpdateSourceTrigger=PropertyChanged}" &&
-            (string?)textBox.Attribute("FontSize") == "13");
+            (string?)textBox.Attribute("FontSize") == "14");
         var quickIconLists = page.Descendants(Presentation + "ItemsControl").Where(items =>
             (string?)items.Attribute("ItemsSource") == "{Binding QuickTargetIcons}").ToArray();
         Assert.Single(quickIconLists);
@@ -358,12 +350,13 @@ public sealed class StatisticsOverviewPresentationTests
     }
 
     [Fact]
-    public void CalendarSeparatesTheMonthGridAndTwoMetricSummary()
+    public void CalendarContainsTheMonthGridAndTwoMetricSummaryInOneCard()
     {
         var page = XDocument.Load(Path.Combine(FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
         var calendar = Assert.Single(page.Descendants(Presentation + "Border").Where(item => (string?)item.Attribute(Xaml + "Name") == "CalendarCard"));
         var summary = Assert.Single(page.Descendants(Presentation + "Border").Where(item => (string?)item.Attribute(Xaml + "Name") == "CalendarMonthlySummary"));
-        Assert.DoesNotContain(calendar.Descendants(), item => item == summary);
+        Assert.Contains(calendar.Descendants(), item => item == summary);
+        Assert.Contains(calendar.Descendants(Presentation + "Border"), item => (string?)item.Attribute(Xaml + "Name") == "CalendarSummaryDivider");
         Assert.Null(calendar.Attribute("Height"));
         Assert.Equal("{StaticResource CardContentPadding}", (string?)calendar.Attribute("Padding"));
         foreach (var label in new[] { "本月概括", "总专注时长", "专注天数" })

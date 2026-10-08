@@ -77,6 +77,26 @@ public sealed class FocusFloatingPositionTests
         finally { File.Delete(path); }
     }
 
+    [Theory]
+    [InlineData(FocusFloatingDockEdge.Top)]
+    [InlineData(FocusFloatingDockEdge.Bottom)]
+    public void PositionStorePreservesDockedEdgeAndAnchorAndStillLoadsOlderPositionFiles(FocusFloatingDockEdge edge)
+    {
+        var path = Path.Combine(Path.GetTempPath(), "focus-dock-position-" + Guid.NewGuid().ToString("N") + ".json");
+        try
+        {
+            var position = new FocusFloatingPosition("secondary", 80, 120)
+            {
+                DockedPosition = new FocusFloatingDockPosition(edge, 240)
+            };
+            new FocusFloatingPositionStore(path).Save(position);
+            Assert.Equal(position, new FocusFloatingPositionStore(path).Load());
+            File.WriteAllText(path, "{\"MonitorName\":\"secondary\",\"OffsetX\":80,\"OffsetY\":120}");
+            Assert.Equal(new FocusFloatingPosition("secondary", 80, 120), new FocusFloatingPositionStore(path).Load());
+        }
+        finally { File.Delete(path); }
+    }
+
     [Fact]
     public void MainWindowRestoresSavedPositionAcrossExpandMinimizeAndNewFocusRounds()
     {
@@ -136,6 +156,95 @@ public sealed class FocusFloatingPositionTests
                 Assert.Equal(saved, store.Load());
                 Assert.InRange(Math.Abs(Floating().Left - first.Left), 0, 2);
                 Assert.InRange(Math.Abs(Floating().Top - first.Top), 0, 2);
+
+                void InvokeFloating(FocusFloatingWindow window, string method, params object[] args) => typeof(FocusFloatingWindow)
+                    .GetMethod(method, BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, args);
+                FocusMonitorArea Area(FocusFloatingWindow window) => (FocusMonitorArea)boundsProvider
+                    .GetMethod("GetForWindow")!.Invoke(null, [window])!;
+
+                // Recreate the native window on every main-window round trip. Test both
+                // edges, including a corner where expanded bounds clamp the horizontal position.
+                foreach (var edge in new[] { FocusFloatingWindowState.FoldedTop, FocusFloatingWindowState.FoldedBottom })
+                foreach (var nearLeft in new[] { false, true })
+                {
+                    var docked = Floating();
+                    var workArea = Area(docked).WorkArea;
+                    docked.Left = nearLeft ? workArea.Left : workArea.Left + workArea.Width / 2 - 150;
+                    docked.Top = edge == FocusFloatingWindowState.FoldedTop ? workArea.Top : workArea.Bottom - docked.Height;
+                    Pump();
+                    InvokeFloating(docked, "EvaluateSnapAfterDrag");
+                    Pump();
+                    Assert.Equal(edge, docked.State);
+
+                    // Simulate dragging a collapsed bar's body starting without movement:
+                    // its expanded visual must retain the attachment until drag completion.
+                    InvokeFloating(docked, "PrepareFloatingStateForDrag");
+                    Assert.Equal(FocusFloatingWindowState.ExpandedFromFold, docked.State);
+                    Assert.NotNull(docked.GetPositionForMemory().DockedPosition);
+                    InvokeFloating(docked, "CollapseToFold");
+                    Pump();
+
+                    for (var roundTrip = 0; roundTrip < 2; roundTrip++)
+                    {
+                        var expected = new Rect(docked.Left, docked.Top, docked.Width, docked.Height);
+                        var remainingProgress = session.RemainingProgress;
+                        InvokeFloating(docked, "ExpandFromFold");
+                        Pump();
+                        Assert.Equal(FocusFloatingWindowState.ExpandedFromFold, docked.State);
+                        var memory = docked.GetPositionForMemory();
+                        Assert.Equal(edge == FocusFloatingWindowState.FoldedTop ? FocusFloatingDockEdge.Top : FocusFloatingDockEdge.Bottom,
+                            memory.DockedPosition!.Edge);
+                        InvokeFloating(docked, "FloatingContentView_ExpandRequested", docked, EventArgs.Empty);
+                        Assert.True(main.IsVisible);
+                        Assert.Null(Floating());
+                        Assert.Equal(memory, store.Load());
+                        // Discard in-memory history once, proving the persisted state restores too.
+                        if (roundTrip == 1) typeof(MainWindow).GetField("_lastFloatingPosition", BindingFlags.NonPublic | BindingFlags.Instance)!
+                            .SetValue(main, null);
+                        Invoke("ShowFocusFloatingWindow", session);
+                        Pump();
+                        docked = Floating();
+                        Assert.NotNull(docked);
+                        Assert.Equal(edge, docked.State);
+                        Assert.True(Math.Abs(docked.Left - expected.Left) <= 2,
+                            $"{edge}, nearLeft={nearLeft}, trip={roundTrip}: expected {expected}, actual {new Rect(docked.Left, docked.Top, docked.Width, docked.Height)}, memory={memory}, area={Area(docked)}");
+                        Assert.InRange(Math.Abs(docked.Top - expected.Top), 0, 2);
+                        Assert.InRange(Math.Abs(docked.Width - expected.Width), 0, 1);
+                        Assert.Equal(50, docked.Height);
+                        Assert.Equal(Visibility.Visible, ((FoldedHorizontal)docked.FindName("FoldedHorizontalView")).Visibility);
+                        Assert.Equal(Visibility.Collapsed, ((FloatingContent)docked.FindName("FloatingContentView")).Visibility);
+                        Assert.Equal(remainingProgress, ((FocusFloatingWindowViewModel)docked.DataContext).RemainingProgress);
+                        // Restored attachment still expands and collapses normally on hover.
+                        docked.RaiseEvent(new System.Windows.Input.MouseEventArgs(System.Windows.Input.Mouse.PrimaryDevice, 0)
+                            { RoutedEvent = System.Windows.Input.Mouse.MouseEnterEvent });
+                        Assert.Equal(FocusFloatingWindowState.ExpandedFromFold, docked.State);
+                        InvokeFloating(docked, "CollapseToFold");
+                        Pump();
+                        Assert.Equal(edge, docked.State);
+                    }
+
+                    // Only an actual drag away from the snap region clears remembered docking.
+                    InvokeFloating(docked, "PrepareFloatingStateForDrag");
+                    Pump();
+                    Assert.NotNull(docked.GetPositionForMemory().DockedPosition);
+                    docked.Left = workArea.Left + workArea.Width / 2 - 150;
+                    docked.Top = workArea.Top + workArea.Height / 2 - docked.Height / 2;
+                    Pump();
+                    InvokeFloating(docked, "EvaluateSnapAfterDrag");
+                    Assert.Equal(FocusFloatingWindowState.Floating, docked.State);
+                    Assert.Null(docked.GetPositionForMemory().DockedPosition);
+                    Invoke("FocusFloatingWindow_UserPositionChanged", docked, EventArgs.Empty);
+                    var detachedPosition = store.Load();
+                    Assert.Null(detachedPosition!.DockedPosition);
+                    var detachedLeft = docked.Left;
+                    var detachedTop = docked.Top;
+                    Invoke("RestoreFromFocusFloatingWindow");
+                    Invoke("ShowFocusFloatingWindow", session);
+                    Pump();
+                    Assert.Equal(FocusFloatingWindowState.Floating, Floating().State);
+                    Assert.InRange(Math.Abs(Floating().Left - detachedLeft), 0, 2);
+                    Assert.InRange(Math.Abs(Floating().Top - detachedTop), 0, 2);
+                }
             }
             catch (Exception exception) { failure = exception; }
             finally { main?.Close(); app?.Shutdown(); File.Delete(path); }

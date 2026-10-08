@@ -30,7 +30,11 @@ public sealed class CustomTimeModalInteractionTests
             Layout(modal, 320, 420);
             var card = (Border)modal.FindName("CustomTimeCard");
             var items = (ItemsControl)modal.FindName("CommonTimeOptions");
-            var buttons = Descendants<Button>(items).Where(button => Equals(button.Command, model.SelectTimeCommand)).ToArray();
+            var renderedButtons = Descendants<Button>(items).Where(button => Equals(button.Command, model.SelectTimeCommand)).ToArray();
+            Assert.Equal(new[] { 30, 45, 60, 90, 180 }, renderedButtons.Select(button => ((HomeDurationOptionViewModel)button.CommandParameter).Minutes));
+            // Exercise the existing pointer-state sequence independently of the numerical layout.
+            var buttons = new[] { 30, 60, 90, 180, 45 }.Select(minutes => renderedButtons.Single(button =>
+                ((HomeDurationOptionViewModel)button.CommandParameter).Minutes == minutes)).ToArray();
             Assert.Equal(5, buttons.Length);
             Assert.All(buttons, button =>
             {
@@ -58,7 +62,7 @@ public sealed class CustomTimeModalInteractionTests
             Assert.Equal(Colors.White, BrushColor(first.Background));
 
             Invoke(first); Layout(modal, 320, 420);
-            Assert.Equal("30", ((TextBox)modal.FindName("MinutesTextBox")).Text);
+            Assert.Equal("0", ((TextBox)modal.FindName("MinutesTextBox")).Text);
             AssertActive(first);
             Invoke(buttons[1]); Layout(modal, 320, 420);
             AssertActive(buttons[1]);
@@ -83,6 +87,8 @@ public sealed class CustomTimeModalInteractionTests
             Assert.Equal(Color.FromRgb(229, 229, 234), BrushColor(buttons[1].BorderBrush));
             Invoke(buttons[1]); Layout(modal, 320, 420);
             Assert.Equal([90, 180, 45, 60], model.SelectedMinutes);
+            Assert.Equal("45", input.Text);
+            Assert.Equal(model.SelectedMinutes.OrderBy(minutes => minutes), home.VisibleDurationOptions.Where(option => option.Icon.Length == 0).Select(option => option.Minutes));
             Render(modal, "custom-time-multiple-selected");
             Assert.Equal(size, new Size(card.ActualWidth, card.ActualHeight));
             Assert.All(buttons, button =>
@@ -107,6 +113,87 @@ public sealed class CustomTimeModalInteractionTests
                 Assert.Same(Cursors.Hand, button.Cursor);
             }
             Assert.Contains(Descendants<TextBlock>(modal), text => text.Text == "添加");
+        });
+    }
+
+    [Fact]
+    public void CommonTimesWrapInNumericOrderAndClickingDoesNotMoveTheirButtons()
+    {
+        RunSta(() =>
+        {
+            var home = new HomePageViewModel(new[] { 455, 180, 50, 54, 60, 90, 30, 16, 5 }
+                .Select(minutes => new HomeDurationOptionViewModel(minutes.ToString(), "", minutes == 30, minutes)));
+            var model = home.CustomTimeModal;
+            model.Open();
+            var modal = new CustomTimeModal { DataContext = model };
+            AddResources(modal); Layout(modal, 320, 420);
+            var items = (ItemsControl)modal.FindName("CommonTimeOptions");
+            var expected = new[] { 5, 16, 30, 50, 54, 60, 90, 180, 455 };
+            var positions = Positions();
+            for (var index = 0; index < expected.Length; index++)
+            {
+                Assert.InRange(positions[expected[index]].X, index % 3 * 93 - 1, index % 3 * 93 + 1);
+                Assert.InRange(positions[expected[index]].Y, index / 3 * 48 - 1, index / 3 * 48 + 1);
+            }
+            foreach (var minutes in new[] { 30, 180, 60, 16, 5, 54, 16, 16 })
+            {
+                var button = Buttons().Single(button => ((HomeDurationOptionViewModel)button.CommandParameter).Minutes == minutes);
+                Invoke(button); Layout(modal, 320, 420);
+                Assert.Equal(positions, Positions());
+            }
+            Assert.Equal(new[] { 60, 5, 54, 16 }, model.SelectedMinutes);
+            Assert.Equal(new[] { 5, 16, 54, 60 }, home.VisibleDurationOptions.Where(option => option.Icon.Length == 0).Select(option => option.Minutes));
+            Render(modal, "common-time-numeric-order");
+            home.ApplyDurationPresets(home.GetDurationPresets());
+            Layout(modal, 320, 420);
+            Assert.Equal(positions, Positions());
+            model.CancelCommand.Execute(null); model.Open(); Layout(modal, 320, 420);
+            Assert.Equal(positions, Positions());
+            Assert.Equal(new[] { 60, 5, 54, 16 }, model.SelectedMinutes);
+            Button[] Buttons() => Descendants<Button>(items).Where(button => Equals(button.Command, model.SelectTimeCommand)).ToArray();
+            Dictionary<int, Point> Positions()
+            {
+                Assert.Equal(expected, Buttons().Select(button => ((HomeDurationOptionViewModel)button.CommandParameter).Minutes));
+                return Buttons().ToDictionary(button => ((HomeDurationOptionViewModel)button.CommandParameter).Minutes,
+                    button => button.TranslatePoint(new Point(), items));
+            }
+        });
+    }
+
+    [Fact]
+    public void AddRemainsVisibleAtFullWidthWithGrayDisabledStateAndAnIndependentCloseEntry()
+    {
+        RunSta(() =>
+        {
+            var home = new HomePageViewModel([new("30", "", true, 30)]);
+            var model = home.CustomTimeModal;
+            model.Open();
+            var modal = new CustomTimeModal { DataContext = model };
+            AddResources(modal); Layout(modal, 320, 420);
+            var add = (Button)modal.FindName("AddCustomTimeButton");
+            var close = (Button)modal.FindName("CloseCustomTimeButton");
+            Assert.Equal(280, add.ActualWidth);
+            Assert.Equal(Visibility.Visible, add.Visibility);
+            Assert.False(add.IsEnabled);
+            Assert.Equal(Color.FromRgb(234, 234, 237), BrushColor(Descendants<Border>(add).First().Background));
+            Assert.Single(Descendants<Button>(modal).Where(button => Equals(button.Command, model.CancelCommand)));
+            Assert.DoesNotContain(Descendants<TextBlock>(modal), text => text.Text == "取消");
+            Render(modal, "custom-time-disabled");
+            model.MinutesInput = "45"; Layout(modal, 320, 420);
+            Assert.True(add.IsEnabled);
+            Assert.Equal(Color.FromRgb(255, 122, 0), BrushColor(Descendants<Border>(add).First().Background));
+            Render(modal, "custom-time-add-ready");
+            Invoke(add); Layout(modal, 320, 420);
+            Assert.Equal("0", ((TextBox)modal.FindName("MinutesTextBox")).Text);
+            Assert.False(add.IsEnabled);
+            Assert.Equal([30], model.SelectedMinutes);
+            Assert.Single(model.CommonTimes.Where(option => option.Minutes == 45));
+            Assert.False(model.CommonTimes.Single(option => option.Minutes == 45).IsSelectedInCustomTime);
+            Assert.True(model.IsOpen);
+            Render(modal, "custom-time-added");
+            Invoke(close); Layout(modal, 320, 420);
+            Assert.False(model.IsOpen);
+            Assert.Equal([30], home.VisibleDurationOptions.Where(option => option.Icon.Length == 0).Select(option => option.Minutes));
         });
     }
 

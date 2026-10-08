@@ -15,14 +15,15 @@ public sealed class CustomTimeModalViewModel : INotifyPropertyChanged
     private readonly Action<int> _deleteTime;
     private readonly RelayCommand<object> _confirmCommand;
     private bool _isOpen;
-    private string _minutesInput = "5";
+    private string _minutesInput = "0";
 
     public CustomTimeModalViewModel(Func<int, bool> confirm, IEnumerable<HomeDurationOptionViewModel>? commonTimes = null,
         Action<IReadOnlyList<int>, int>? saveSelection = null, Action<int>? deleteTime = null,
         Func<IEnumerable<HomeDurationOptionViewModel>>? savedSelection = null)
     {
         _confirm = confirm;
-        CommonTimes = new ObservableCollection<HomeDurationOptionViewModel>(commonTimes ?? []);
+        CommonTimes = new ObservableCollection<HomeDurationOptionViewModel>(
+            (commonTimes ?? []).OrderBy(option => option.Minutes));
         CommonTimes.CollectionChanged += (_, _) => RefreshSelection();
         _saveSelection = saveSelection ?? ((_, _) => { });
         _savedSelection = savedSelection ?? (() => CommonTimes.Where(option => option.IsSelected));
@@ -51,6 +52,12 @@ public sealed class CustomTimeModalViewModel : INotifyPropertyChanged
     public ICommand SelectTimeCommand { get; }
 
     public ObservableCollection<HomeDurationOptionViewModel> CommonTimes { get; }
+
+    internal void AddCommonTime(HomeDurationOptionViewModel option)
+    {
+        var index = CommonTimes.TakeWhile(item => item.Minutes < option.Minutes).Count();
+        CommonTimes.Insert(index, option);
+    }
 
     public IReadOnlyList<int> SelectedMinutes => _selectedMinutes.AsReadOnly();
 
@@ -106,7 +113,7 @@ public sealed class CustomTimeModalViewModel : INotifyPropertyChanged
     {
         IsEditing = false;
         RestoreSelection();
-        Minutes = 5;
+        Minutes = 0;
         IsOpen = true;
     }
 
@@ -122,14 +129,7 @@ public sealed class CustomTimeModalViewModel : INotifyPropertyChanged
         var minutes = Minutes;
         if (minutes is < 5 or > 480) return;
         var isNewTime = CommonTimes.All(option => option.Minutes != minutes);
-        if (isNewTime)
-        {
-            if (!_confirm(minutes)) return;
-            AddSelection(minutes);
-        }
-        _saveSelection(_selectedMinutes.ToArray(), minutes);
-        RefreshSelection();
-        if (!isNewTime) return;
+        if (isNewTime && !_confirm(minutes)) return;
         Minutes = 0;
         InputResetRequested?.Invoke(this, EventArgs.Empty);
     }
@@ -137,8 +137,8 @@ public sealed class CustomTimeModalViewModel : INotifyPropertyChanged
     private void SelectTime(HomeDurationOptionViewModel? option)
     {
         if (option is null || IsEditing || !CommonTimes.Contains(option)) return;
-        Minutes = option.Minutes;
         if (!_selectedMinutes.Remove(option.Minutes)) AddSelection(option.Minutes);
+        _saveSelection(_selectedMinutes.ToArray(), option.Minutes);
         RefreshSelection();
     }
 

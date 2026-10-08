@@ -252,7 +252,9 @@ public partial class MainWindow : Window
         {
             DataContext = _focusFloatingViewModel
         };
-        MonitorWorkAreaProvider.RestorePosition(_focusFloatingWindow, this, _lastFloatingPosition ?? _floatingPositionStore.Load());
+        var savedPosition = _lastFloatingPosition ?? _floatingPositionStore.Load();
+        MonitorWorkAreaProvider.RestorePosition(_focusFloatingWindow, this, savedPosition);
+        _focusFloatingWindow.RestoreDockedState(savedPosition?.DockedPosition);
         _focusFloatingWindow.ExpandRequested += FocusFloatingWindow_ExpandRequested;
         _focusFloatingWindow.UserPositionChanged += FocusFloatingWindow_UserPositionChanged;
         _focusFloatingWindow.Closed += FocusFloatingWindow_Closed;
@@ -263,6 +265,11 @@ public partial class MainWindow : Window
     private void FocusFloatingWindow_UserPositionChanged(object? sender, EventArgs e)
     {
         if (sender is not FocusFloatingWindow window) return;
+        RememberFloatingPosition(window);
+    }
+
+    private void RememberFloatingPosition(FocusFloatingWindow window)
+    {
         _lastFloatingPosition = window.GetPositionForMemory();
         _floatingPositionStore.Save(_lastFloatingPosition);
     }
@@ -295,6 +302,7 @@ public partial class MainWindow : Window
     private void RestoreFromFocusFloatingWindow()
     {
         var floatingWindow = _focusFloatingWindow;
+        if (floatingWindow is not null) RememberFloatingPosition(floatingWindow);
         _focusFloatingWindow = null;
         _focusFloatingViewModel?.Dispose();
         _focusFloatingViewModel = null;

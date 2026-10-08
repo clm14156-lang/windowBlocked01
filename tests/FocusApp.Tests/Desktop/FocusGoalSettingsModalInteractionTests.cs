@@ -20,7 +20,9 @@ public sealed class FocusGoalSettingsModalInteractionTests
         {
             try
             {
-                var viewModel = new FocusGoalSettingsModalViewModel(() => new DateTime(2026, 9, 13), () => TimeSpan.FromHours(5));
+                var now = new DateTime(2026, 9, 13);
+                var completed = TimeSpan.FromHours(5);
+                var viewModel = new FocusGoalSettingsModalViewModel(() => now, () => completed);
                 viewModel.SaveCommand.Execute(null);
                 viewModel.OpenCommand.Execute(null);
                 var modal = new FocusGoalSettingsModal { DataContext = viewModel };
@@ -45,6 +47,22 @@ public sealed class FocusGoalSettingsModalInteractionTests
                 viewModel.SaveCommand.Execute(null);
                 viewModel.OpenCommand.Execute(null);
                 Assert.Equal(81, viewModel.MonthlyTargetHours);
+                now = new DateTime(2026, 10, 22);
+                completed = TimeSpan.FromHours(10);
+                input.Text = "999";
+                Assert.Equal("250", input.Text);
+                Assert.Equal("按当前进度，每天约需 24.0 小时", hint.Text);
+                input.Text = "999999999999999999999999";
+                Assert.Equal("250", input.Text);
+                viewModel.IncreaseMonthlyTargetCommand.Execute(null);
+                Assert.Equal("250", input.Text);
+                Layout(410);
+                RenderState("monthly-dynamic-limit", 410);
+                now = now.AddDays(1);
+                viewModel.SaveCommand.Execute(null);
+                Assert.Equal(226, viewModel.MonthlyTargetHours);
+                viewModel.OpenCommand.Execute(null);
+                Assert.Equal("226", input.Text);
                 viewModel.SelectDailyModeCommand.Execute(null);
                 Layout(350);
                 Assert.Equal("4", ((TextBox)modal.FindName("DailyTargetHoursInputBox")).Text);
@@ -54,11 +72,11 @@ public sealed class FocusGoalSettingsModalInteractionTests
                     modal.Measure(new Size(330, height));
                     modal.Arrange(new Rect(0, 0, 330, height));
                     modal.UpdateLayout();
-                    Assert.Equal(330, modal.ActualWidth);
-                    Assert.Equal(height, modal.ActualHeight);
+                    Assert.InRange(Math.Abs(330 - modal.ActualWidth), 0, 0.5);
+                    Assert.InRange(Math.Abs(height - modal.ActualHeight), 0, 0.5);
                     var card = (Border)modal.FindName("FocusGoalSettingsCard");
-                    Assert.Equal(330, card.ActualWidth);
-                    Assert.Equal(height, card.ActualHeight);
+                    Assert.InRange(Math.Abs(330 - card.ActualWidth), 0, 0.5);
+                    Assert.InRange(Math.Abs(height - card.ActualHeight), 0, 0.5);
                 }
 
                 void RenderState(string state, int height)

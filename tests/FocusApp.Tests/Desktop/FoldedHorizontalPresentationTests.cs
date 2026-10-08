@@ -29,7 +29,7 @@ public sealed class FoldedHorizontalPresentationTests
             Assert.Equal("179:45", countdown.Text);
             Assert.Equal(30, ring.ActualWidth);
             Assert.Equal(88, countdown.ActualWidth);
-            Assert.Equal(1 - freeModel.RemainingProgress, ring.Progress, 8);
+            Assert.Equal(freeModel.RemainingProgress, ring.Progress, 8);
             Assert.Equal(Visibility.Collapsed, divider.Visibility);
             Assert.Equal(Visibility.Collapsed, name.Visibility);
             var target = new FocusTargetViewModel("学习", ["唯一任务"]);
@@ -93,6 +93,10 @@ public sealed class FoldedHorizontalPresentationTests
                         new Rect(600, 0, 300, 220), SystemParameters.WorkArea, bar.GetPreferredWidth());
                     typeof(FocusFloatingWindow).GetField("_foldedBounds", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(window, bounds);
                     Invoke(window, "ApplyFoldedState", state, false);
+                    var remainingProgress = model.RemainingProgress;
+                    var ring = (CircularProgressRing)bar.FindName("FoldedProgressRing");
+                    Pump();
+                    Assert.Equal(remainingProgress, ring.Progress);
                     Assert.Equal(state, window.State);
                     Assert.InRange(window.Width, 185, 319);
                     Assert.Equal(50, window.Height);
@@ -100,10 +104,15 @@ public sealed class FoldedHorizontalPresentationTests
                     Pump();
                     Assert.Equal(320, window.Width);
                     Invoke(window, "ExpandFromFold");
+                    Pump();
+                    var floating = (FloatingContent)window.FindName("FloatingContentView");
+                    Assert.Equal(remainingProgress, ((ProgressBar)floating.FindName("FocusProgressBar")).Value);
                     Assert.Equal(FocusFloatingWindowState.ExpandedFromFold, window.State);
-                    Assert.Equal(new Size(300, 220), new Size(window.Width, window.Height));
+                    Assert.Equal(new Size(300, 115), new Size(window.Width, window.Height));
                     target.ApplyName("学习");
                     Invoke(window, "CollapseToFold");
+                    Pump();
+                    Assert.Equal(remainingProgress, ring.Progress);
                     Assert.Equal(state, window.State);
                     Assert.InRange(window.Width, 185, 319);
                     Assert.Equal(50, window.Height);
