@@ -24,8 +24,8 @@ public sealed class FocusTargetModalPresentationTests
         Assert.Equal("390", (string?)modal.Root.Attribute("Height"));
         var title = Assert.Single(modal.Descendants(Presentation + "TextBlock").Where(text =>
             (string?)text.Attribute("Text") == "{DynamicResource FocusTargetTitle}"));
-        Assert.Equal("20", (string?)title.Attribute("FontSize"));
-        Assert.Equal("SemiBold", (string?)title.Attribute("FontWeight"));
+        Assert.Equal("{DynamicResource DialogTitleFontSize}", (string?)title.Attribute("FontSize"));
+        Assert.Equal("{DynamicResource DialogTitleFontWeight}", (string?)title.Attribute("FontWeight"));
         Assert.DoesNotContain(modal.Descendants(Presentation + "TextBlock"), text =>
             (string?)text.Attribute("Text") == "选择一个目标开始本次专注");
         Assert.DoesNotContain(modal.Descendants(Presentation + "Button"), button =>
@@ -77,7 +77,7 @@ public sealed class FocusTargetModalPresentationTests
         var startStyle = FindStyle(modal, "TargetStartFocusButton");
         AssertSetter(startStyle, "Height", "46");
         AssertSetter(startStyle, "Foreground", "{DynamicResource WhiteText}");
-        AssertSetter(startStyle, "FontWeight", "SemiBold");
+        AssertSetter(startStyle, "FontWeight", "{DynamicResource ButtonFontWeight}");
         var startSurface = Assert.Single(startStyle.Descendants(Presentation + "Border").Where(border =>
             (string?)border.Attribute(Xaml + "Name") == "StartSurface"));
         Assert.Equal("12", (string?)startSurface.Attribute("CornerRadius"));

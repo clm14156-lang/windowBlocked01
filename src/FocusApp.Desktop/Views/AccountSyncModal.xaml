@@ -167,7 +167,7 @@
             <DropShadowEffect BlurRadius="30" Direction="270" Opacity="0.17" ShadowDepth="8" />
         </Border.Effect>
 
-        <Grid>
+        <Grid x:Name="CloseButtonHost">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="145" />
                 <ColumnDefinition Width="1" />
@@ -262,7 +262,9 @@
                         </Style>
                     </ScrollViewer.Style>
                     <ScrollViewer.Resources>
-                        <Style TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource AccountSyncThinScrollBarStyle}" />
+                        <Style TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource AccountSyncThinScrollBarStyle}">
+                            <Setter Property="Margin" Value="0,16,0,0" />
+                        </Style>
                     </ScrollViewer.Resources>
                     <StackPanel Margin="0,0,8,0">
                         <TextBlock FontSize="20" FontWeight="SemiBold" Text="{DynamicResource AccountSyncTitle}" />
@@ -889,6 +891,8 @@
                 </Grid>
 
             </Grid>
+            <Button x:Name="ModalCloseButton" Grid.ColumnSpan="3" AutomationProperties.Name="关闭账号与同步窗口"
+                    Command="{Binding CloseCommand}" Style="{DynamicResource ModalCloseButtonStyle}" />
         </Grid>
     </Border>
 </UserControl>

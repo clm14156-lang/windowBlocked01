@@ -64,7 +64,7 @@ public sealed class CalendarRecordPoptipTests
     }
 
     [Fact]
-    public void FixedWidthTrimsLongNamesAndCountsOnlyCompletedParents()
+    public void AdaptiveWidthTrimsLongNamesAndCountsOnlyCompletedParents()
     {
         Sta(() =>
         {
@@ -80,15 +80,15 @@ public sealed class CalendarRecordPoptipTests
             Assert.True(record.HasCalendarCompletedTasks);
             var view = new CalendarFocusTimelineToolTip { DataContext = record };
             Layout(view);
-            Assert.Equal(200, view.ActualWidth);
-            Assert.Equal(200, ((Border)view.FindName("PoptipSurface")).ActualWidth);
+            Assert.InRange(view.ActualWidth, 220, 240);
+            Assert.InRange(((PoptipChrome)view.FindName("PoptipSurface")).ActualWidth, 212, 232);
             var title = (TextBlock)view.FindName("GoalTitle");
             var names = Descendants<TextBlock>((ItemsControl)view.FindName("TaskRows")).Where(text => text.Name == "TaskName");
             Assert.All(names.Append(title), text =>
             {
                 Assert.Equal(TextTrimming.CharacterEllipsis, text.TextTrimming);
                 Assert.Equal(TextWrapping.NoWrap, text.TextWrapping);
-                Assert.InRange(text.ActualWidth, 1, 174);
+                Assert.InRange(text.ActualWidth, 1, 202);
                 Assert.True(text.ActualHeight < 24);
             });
             var unbound = new FocusSessionRecordViewModel(start, start.AddMinutes(24), "", "", "", 0);

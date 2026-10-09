@@ -200,6 +200,29 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         RefreshSelectedDayCompletedTasks();
     }
 
+    internal void ApplyTargetTaskState(FocusTargetViewModel target)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var previous = _isInitialized ? _goalTaskSnapshot : _pendingState?.Tasks ?? [];
+        var tasks = previous.Where(task => task.TargetId != target.TargetId)
+            .Concat(target.Tasks.Select((task, index) => new LocalTaskDto(
+                task.TaskId, target.TargetId, task.Name, task.IsCompleted, index, task.CreatedAtUtc, now)
+            {
+                CompletedAtUtc = task.CompletedAtUtc,
+                Description = task.Description,
+                SubTasks = task.ExportSubTasks()
+            })).ToArray();
+        if (!_isInitialized)
+        {
+            if (_pendingState is not null) _pendingState = _pendingState with { Tasks = tasks };
+            return;
+        }
+        _goalTaskSnapshot = tasks;
+        GoalCompletedTasks.ApplyState(SelectedGoal, _goalTaskSnapshot);
+        GoalFocusHistory.ApplyState(SelectedGoal, FocusSessionRecords, _goalTaskSnapshot);
+        RefreshSelectedDayCompletedTasks();
+    }
+
     /// <summary>
     /// Initializes chart and calendar data on first use. The desktop shell
     /// calls this after the statistics page becomes visible so cold startup

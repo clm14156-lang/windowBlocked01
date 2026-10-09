@@ -84,7 +84,7 @@
             <DropShadowEffect BlurRadius="28" Direction="270" Opacity="0.12" ShadowDepth="4" Color="#A9937D" />
         </Border.Effect>
 
-        <Grid>
+        <Grid x:Name="CloseButtonHost">
         <Grid x:Name="LifetimeMembershipContent" Margin="28,14,28,18">
             <Grid.Style>
                 <Style TargetType="{x:Type Grid}">
@@ -462,6 +462,8 @@
                 </Border>
             </UniformGrid>
         </Grid>
+            <Button x:Name="ModalCloseButton" AutomationProperties.Name="关闭会员中心弹窗"
+                    Command="{Binding CloseCommand}" Style="{DynamicResource ModalCloseButtonStyle}" />
         </Grid>
     </Border>
 </UserControl>

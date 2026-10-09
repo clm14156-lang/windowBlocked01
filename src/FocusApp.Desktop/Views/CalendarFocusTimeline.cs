@@ -111,6 +111,16 @@ public sealed class CalendarFocusTimeline : FrameworkElement
         new FrameworkPropertyMetadata(26d, FrameworkPropertyMetadataOptions.AffectsRender));
     public double TrackTop { get => (double)GetValue(TrackTopProperty); set => SetValue(TrackTopProperty, value); }
 
+    public static readonly DependencyProperty TickLabelFontSizeProperty = DependencyProperty.Register(
+        nameof(TickLabelFontSize), typeof(double), typeof(CalendarFocusTimeline),
+        new FrameworkPropertyMetadata(10d, FrameworkPropertyMetadataOptions.AffectsRender));
+    public double TickLabelFontSize { get => (double)GetValue(TickLabelFontSizeProperty); set => SetValue(TickLabelFontSizeProperty, value); }
+
+    public static readonly DependencyProperty TickLabelFontWeightProperty = DependencyProperty.Register(
+        nameof(TickLabelFontWeight), typeof(FontWeight), typeof(CalendarFocusTimeline),
+        new FrameworkPropertyMetadata(FontWeights.Normal, FrameworkPropertyMetadataOptions.AffectsRender));
+    public FontWeight TickLabelFontWeight { get => (FontWeight)GetValue(TickLabelFontWeightProperty); set => SetValue(TickLabelFontWeightProperty, value); }
+
     protected override void OnRender(DrawingContext drawingContext)
     {
         base.OnRender(drawingContext);
@@ -119,7 +129,7 @@ public sealed class CalendarFocusTimeline : FrameworkElement
         drawingContext.DrawRectangle(Brushes.Transparent, null, new Rect(0, 0, ActualWidth, ActualHeight));
         var startHour = Timeline?.StartHour ?? (FullDayStyle || GoalHistoryStyle ? 0 : 8);
         var typeface = new Typeface(TryFindResource("FontFamilyEnglish") as FontFamily ?? new FontFamily("Segoe UI"),
-            FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
+            FontStyles.Normal, TickLabelFontWeight, FontStretches.Normal);
         var labelBrush = TryFindResource("TextWeak") as Brush ?? Brushes.Gray;
         var trackBrush = FullDayStyle ? new SolidColorBrush(Color.FromRgb(246, 247, 249))
             : TryFindResource("SurfaceTertiary") as Brush ?? new SolidColorBrush(Color.FromRgb(239, 240, 243));
@@ -136,7 +146,7 @@ public sealed class CalendarFocusTimeline : FrameworkElement
         {
             var x = AxisLeft + (hour - startHour) / (double)(24 - startHour) * AxisWidth;
             var label = new FormattedText(FullDayStyle && !GoalHistoryStyle ? $"{hour:00}" : $"{hour:00}:00", CultureInfo.CurrentCulture,
-                FlowDirection.LeftToRight, typeface, 10, labelBrush, VisualTreeHelper.GetDpi(this).PixelsPerDip);
+                FlowDirection.LeftToRight, typeface, TickLabelFontSize, labelBrush, VisualTreeHelper.GetDpi(this).PixelsPerDip);
             drawingContext.DrawText(label, new Point(Math.Clamp(x - label.Width / 2, 0, Math.Max(0, ActualWidth - label.Width)), 0));
             if (GoalHistoryStyle)
                 drawingContext.DrawEllipse(new SolidColorBrush(Color.FromRgb(205, 210, 220)), null,

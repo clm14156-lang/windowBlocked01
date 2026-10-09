@@ -54,15 +54,15 @@
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Grid.Column="0"
                                            VerticalAlignment="Center"
-                                           FontSize="15"
-                                           FontWeight="Medium"
+                                           FontSize="{DynamicResource BodyMediumFontSize}"
+                                           FontWeight="{DynamicResource BodyMediumFontWeight}"
                                            Foreground="{DynamicResource TextPrimary}"
                                            Text="{TemplateBinding Content}" />
                                 <TextBlock Grid.Column="1"
                                            Margin="0,0,10,0"
                                            VerticalAlignment="Center"
-                                           FontSize="13"
-                                           FontWeight="Normal"
+                                           FontSize="{DynamicResource BodyFontSize}"
+                                           FontWeight="{DynamicResource BodyFontWeight}"
                                            Foreground="{DynamicResource TextSecondary}"
                                            Text="{TemplateBinding Tag}" />
                                 <TextBlock Grid.Column="2"
@@ -88,16 +88,16 @@
             <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
             <Setter Property="BorderBrush" Value="{DynamicResource BorderPrimary}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="FontSize" Value="13" />
-            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="FontSize" Value="{DynamicResource ButtonFontSize}" />
+            <Setter Property="FontWeight" Value="{DynamicResource ButtonFontWeight}" />
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
         </Style>
 
         <Style x:Key="ExportPrimaryButtonStyle" TargetType="{x:Type Button}" BasedOn="{StaticResource ExportPlainButtonStyle}">
             <Setter Property="Height" Value="42" />
             <Setter Property="Background" Value="{DynamicResource FocusButtonBackground}" />
-            <Setter Property="FontSize" Value="13" />
-            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="FontSize" Value="{DynamicResource ButtonEmphasisFontSize}" />
+            <Setter Property="FontWeight" Value="{DynamicResource ButtonEmphasisFontWeight}" />
             <Setter Property="Foreground" Value="{DynamicResource WhiteText}" />
             <Setter Property="Template">
                 <Setter.Value>
@@ -106,6 +106,7 @@
                             <ContentPresenter HorizontalAlignment="Center"
                                               VerticalAlignment="Center"
                                               TextElement.Foreground="{TemplateBinding Foreground}"
+                                              TextElement.FontSize="{TemplateBinding FontSize}"
                                               TextElement.FontWeight="{TemplateBinding FontWeight}" />
                         </Border>
                         <ControlTemplate.Triggers>
@@ -173,6 +174,7 @@
                 BorderThickness="1"
                 CornerRadius="18">
             <Border.Effect><DropShadowEffect BlurRadius="24" Direction="270" Opacity="0.16" ShadowDepth="7" /></Border.Effect>
+            <Grid x:Name="CloseButtonHost">
             <Grid Margin="20,18">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="78" />
@@ -187,12 +189,9 @@
                         <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="30" Foreground="{DynamicResource AccentPrimary}" Text="&#xE898;" />
                     </Border>
                     <StackPanel Grid.Column="1" Margin="10,0,34,0" VerticalAlignment="Center">
-                        <TextBlock FontSize="17" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource ExportRecordsTitle}" />
-                        <TextBlock Margin="0,6,0,0" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource ExportRecordsSubtitle}" />
+                        <TextBlock FontSize="{DynamicResource DialogTitleFontSize}" FontWeight="{DynamicResource DialogTitleFontWeight}" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource ExportRecordsTitle}" />
+                        <TextBlock Margin="0,6,0,0" FontSize="{DynamicResource SecondaryFontSize}" FontWeight="{DynamicResource SecondaryFontWeight}" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource ExportRecordsSubtitle}" />
                     </StackPanel>
-                    <Button Grid.Column="1" Width="30" Height="30" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-2,-3,0" AutomationProperties.Name="关闭导出弹窗" Command="{Binding CloseCommand}" Style="{StaticResource ExportPlainButtonStyle}">
-                        <TextBlock FontFamily="Segoe MDL2 Assets" FontSize="13" Foreground="{DynamicResource TextSecondary}" Text="&#xE8BB;" />
-                    </Button>
                 </Grid>
 
                 <Border Grid.Row="1" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" CornerRadius="12">
@@ -218,16 +217,16 @@
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <TextBlock VerticalAlignment="Center"
-                                       FontSize="15"
-                                       FontWeight="Medium"
+                                       FontSize="{DynamicResource BodyMediumFontSize}"
+                                       FontWeight="{DynamicResource BodyMediumFontWeight}"
                                        Foreground="{DynamicResource TextPrimary}"
                                        Text="{DynamicResource ExportRecordsFileFormat}" />
                             <TextBlock Grid.Column="1"
                                        Margin="0,0,10,0"
                                        VerticalAlignment="Center"
-                                       FontSize="13"
+                                       FontSize="{DynamicResource BodyFontSize}"
                                        Foreground="{DynamicResource TextSecondary}"
-                                       Text="{DynamicResource ExportRecordsExcel}" />
+                                       FontWeight="{DynamicResource BodyFontWeight}" Text="{DynamicResource ExportRecordsExcel}" />
                         </Grid>
                         <Border Grid.Row="3" Margin="18,0" Background="{DynamicResource BorderPrimary}" />
                         <Button x:Name="IncludedContentOptionButton"
@@ -241,18 +240,21 @@
                 </Border>
 
                 <Grid Grid.Row="3">
-                    <TextBlock HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextTertiary}" Text="{DynamicResource ExportRecordsPrivacyHint}" />
+                    <TextBlock HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="{DynamicResource SecondaryFontSize}" FontWeight="{DynamicResource SecondaryFontWeight}" Foreground="{DynamicResource TextTertiary}" Text="{DynamicResource ExportRecordsPrivacyHint}" />
                     <Grid HorizontalAlignment="Right">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="72" /><ColumnDefinition Width="8" /><ColumnDefinition Width="80" /></Grid.ColumnDefinitions>
                         <Button Grid.Column="0" AutomationProperties.Name="取消导出" Command="{Binding CancelCommand}" Content="{DynamicResource ExportRecordsCancel}" Style="{StaticResource ExportSecondaryButtonStyle}" />
                         <Button Grid.Column="2" AutomationProperties.Name="导出" Command="{Binding ExportCommand}" Style="{StaticResource ExportPrimaryButtonStyle}">
-                            <TextBlock FontSize="13"
-                                       FontWeight="Medium"
+                            <TextBlock FontSize="{Binding FontSize, RelativeSource={RelativeSource AncestorType=Button}}"
+                                       FontWeight="{Binding FontWeight, RelativeSource={RelativeSource AncestorType=Button}}"
                                        Foreground="{DynamicResource WhiteText}"
                                        Text="{DynamicResource ExportRecordsExport}" />
                         </Button>
                     </Grid>
                 </Grid>
+            </Grid>
+                <Button x:Name="ModalCloseButton" AutomationProperties.Name="关闭导出弹窗"
+                        Command="{Binding CloseCommand}" Style="{DynamicResource ModalCloseButtonStyle}" />
             </Grid>
         </Border>
 
@@ -270,10 +272,10 @@
                 <Border.Effect><DropShadowEffect BlurRadius="18" Direction="270" Opacity="0.14" ShadowDepth="4" /></Border.Effect>
                 <StackPanel>
                     <RadioButton GroupName="ExportTimeRange" IsChecked="{Binding IsCurrentMonthSelected, Mode=TwoWay}" Style="{StaticResource ExportRadioOptionStyle}">
-                        <StackPanel><TextBlock FontSize="13" FontWeight="Medium" Text="{DynamicResource ExportRecordsCurrentMonth}" /><TextBlock Margin="0,4,0,0" FontSize="12" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource ExportRecordsCurrentMonthHint}" /></StackPanel>
+                        <StackPanel><TextBlock FontSize="{DynamicResource BodyFontSize}" FontWeight="{DynamicResource BodyFontWeight}" Text="{DynamicResource ExportRecordsCurrentMonth}" /><TextBlock Margin="0,4,0,0" FontSize="{DynamicResource SecondaryFontSize}" Foreground="{DynamicResource TextSecondary}" FontWeight="{DynamicResource SecondaryFontWeight}" Text="{DynamicResource ExportRecordsCurrentMonthHint}" /></StackPanel>
                     </RadioButton>
                     <RadioButton GroupName="ExportTimeRange" IsChecked="{Binding IsAllRecordsSelected, Mode=TwoWay}" Style="{StaticResource ExportRadioOptionStyle}">
-                        <StackPanel><TextBlock FontSize="13" FontWeight="Medium" Text="{DynamicResource ExportRecordsAllRecords}" /><TextBlock Margin="0,4,0,0" FontSize="12" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource ExportRecordsAllRecordsHint}" /></StackPanel>
+                        <StackPanel><TextBlock FontSize="{DynamicResource BodyFontSize}" FontWeight="{DynamicResource BodyFontWeight}" Text="{DynamicResource ExportRecordsAllRecords}" /><TextBlock Margin="0,4,0,0" FontSize="{DynamicResource SecondaryFontSize}" Foreground="{DynamicResource TextSecondary}" FontWeight="{DynamicResource SecondaryFontWeight}" Text="{DynamicResource ExportRecordsAllRecordsHint}" /></StackPanel>
                     </RadioButton>
                 </StackPanel>
             </Border>
@@ -294,10 +296,10 @@
                 <Grid>
                     <Grid.RowDefinitions><RowDefinition Height="68" /><RowDefinition Height="68" /><RowDefinition Height="*" /></Grid.RowDefinitions>
                     <CheckBox Grid.Row="0" IsChecked="{Binding IncludeFocusRecords, Mode=TwoWay}" Style="{StaticResource ExportCheckOptionStyle}">
-                        <StackPanel><TextBlock FontSize="13" FontWeight="Medium" Text="{DynamicResource ExportRecordsFocusRecords}" /><TextBlock Margin="0,4,0,0" FontSize="12" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource ExportRecordsFocusRecordsHint}" /></StackPanel>
+                        <StackPanel><TextBlock FontSize="{DynamicResource BodyFontSize}" FontWeight="{DynamicResource BodyFontWeight}" Text="{DynamicResource ExportRecordsFocusRecords}" /><TextBlock Margin="0,4,0,0" FontSize="{DynamicResource SecondaryFontSize}" Foreground="{DynamicResource TextSecondary}" FontWeight="{DynamicResource SecondaryFontWeight}" Text="{DynamicResource ExportRecordsFocusRecordsHint}" /></StackPanel>
                     </CheckBox>
                     <CheckBox Grid.Row="1" IsChecked="{Binding IncludeTaskDetails, Mode=TwoWay}" Style="{StaticResource ExportCheckOptionStyle}">
-                        <StackPanel><TextBlock FontSize="13" FontWeight="Medium" Text="{DynamicResource ExportRecordsTaskDetails}" /><TextBlock Margin="0,4,0,0" FontSize="12" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource ExportRecordsTaskDetailsHint}" /></StackPanel>
+                        <StackPanel><TextBlock FontSize="{DynamicResource BodyFontSize}" FontWeight="{DynamicResource BodyFontWeight}" Text="{DynamicResource ExportRecordsTaskDetails}" /><TextBlock Margin="0,4,0,0" FontSize="{DynamicResource SecondaryFontSize}" Foreground="{DynamicResource TextSecondary}" FontWeight="{DynamicResource SecondaryFontWeight}" Text="{DynamicResource ExportRecordsTaskDetailsHint}" /></StackPanel>
                     </CheckBox>
                     <Button Grid.Row="2" Height="38" Margin="4,8,4,0" VerticalAlignment="Bottom" Command="{Binding CompleteIncludedContentCommand}" Content="{DynamicResource ExportRecordsDone}" Style="{StaticResource ExportSecondaryButtonStyle}" />
                 </Grid>

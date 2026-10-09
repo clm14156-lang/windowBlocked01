@@ -23,7 +23,7 @@ public sealed class StatisticsOverviewPresentationTests
         var title = Assert.Single(card.Descendants(Presentation + "TextBlock").Where(element =>
             (string?)element.Attribute(Xaml + "Name") == "CalendarDayFocusTitle"));
         Assert.Equal("今日专注时长", (string?)title.Attribute("Text"));
-        Assert.Equal("12", (string?)title.Attribute("FontSize"));
+        Assert.Equal("{DynamicResource SecondaryFontSize}", (string?)title.Attribute("FontSize"));
         Assert.Equal("{DynamicResource TextSecondary}", (string?)title.Attribute("Foreground"));
 
         var duration = Assert.Single(card.Descendants(Presentation + "TextBlock").Where(element =>
@@ -31,13 +31,13 @@ public sealed class StatisticsOverviewPresentationTests
         var durationRuns = duration.Elements(Presentation + "Run").ToArray();
         Assert.Equal(4, durationRuns.Length);
         Assert.Equal("{Binding SelectedDayHoursValueDisplay, Mode=OneWay}", (string?)durationRuns[0].Attribute("Text"));
-        Assert.Equal("48", (string?)durationRuns[0].Attribute("FontSize"));
-        Assert.Equal("Bold", (string?)durationRuns[0].Attribute("FontWeight"));
+        Assert.Equal("{DynamicResource DataValueHeroFontSize}", (string?)durationRuns[0].Attribute("FontSize"));
+        Assert.Equal("{DynamicResource DataValueHeroFontWeight}", (string?)durationRuns[0].Attribute("FontWeight"));
         Assert.Equal("{Binding SelectedDayHoursUnitDisplay, Mode=OneWay}", (string?)durationRuns[1].Attribute("Text"));
-        Assert.Equal("15", (string?)durationRuns[1].Attribute("FontSize"));
+        Assert.Equal("{DynamicResource BodyFontSize}", (string?)durationRuns[1].Attribute("FontSize"));
         Assert.Equal("{Binding SelectedDayMinutesValueDisplay, Mode=OneWay}", (string?)durationRuns[2].Attribute("Text"));
-        Assert.Equal("48", (string?)durationRuns[2].Attribute("FontSize"));
-        Assert.Equal("Bold", (string?)durationRuns[2].Attribute("FontWeight"));
+        Assert.Equal("{DynamicResource DataValueHeroFontSize}", (string?)durationRuns[2].Attribute("FontSize"));
+        Assert.Equal("{DynamicResource DataValueHeroFontWeight}", (string?)durationRuns[2].Attribute("FontWeight"));
         Assert.Equal(" 分钟", (string?)durationRuns[3].Attribute("Text"));
 
         Assert.DoesNotContain(card.Descendants(Presentation + "Image"), image =>
@@ -79,7 +79,7 @@ public sealed class StatisticsOverviewPresentationTests
 
         var durationText = Assert.Single(button.Descendants(Presentation + "TextBlock").Where(element =>
             (string?)element.Attribute(Xaml + "Name") == "DayDurationText"));
-        Assert.Equal("12", (string?)durationText.Attribute("FontSize"));
+        Assert.Equal("{DynamicResource CaptionFontSize}", (string?)durationText.Attribute("FontSize"));
 
         var selectedTrigger = Assert.Single(button.Descendants(Presentation + "DataTrigger").Where(trigger =>
             (string?)trigger.Attribute("Binding") == "{Binding IsSelected}" &&

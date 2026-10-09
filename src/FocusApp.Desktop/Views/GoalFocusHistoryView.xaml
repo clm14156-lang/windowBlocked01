@@ -93,8 +93,8 @@
                     <StackPanel>
                         <Button Height="38" Command="{Binding ToggleCommand}" Style="{StaticResource HistoryDayButtonStyle}" AutomationProperties.Name="{Binding DateDisplay}">
                             <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="19"/></Grid.ColumnDefinitions>
-                                <TextBlock Text="{Binding DateDisplay}" VerticalAlignment="Center" FontSize="14" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}"/>
-                                <TextBlock Grid.Column="1" Text="{Binding SummaryDisplay}" VerticalAlignment="Center" FontSize="11" Margin="8,0,8,0">
+                                <TextBlock Text="{Binding DateDisplay}" VerticalAlignment="Center" FontSize="{DynamicResource SectionTitleFontSize}" FontWeight="{DynamicResource SectionTitleFontWeight}" Foreground="{DynamicResource TextPrimary}"/>
+                                <TextBlock Grid.Column="1" Text="{Binding SummaryDisplay}" VerticalAlignment="Center" FontSize="{DynamicResource SecondaryFontSize}" FontWeight="{DynamicResource SecondaryFontWeight}" Margin="8,0,8,0">
                                     <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Foreground" Value="{DynamicResource TextWeak}"/>
                                         <Style.Triggers><DataTrigger Binding="{Binding IsExpanded}" Value="True"><Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/></DataTrigger></Style.Triggers>
                                     </Style></TextBlock.Style>
@@ -112,11 +112,13 @@
                                             <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="18"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                                 <Ellipse x:Name="SessionBullet" Width="8" Height="8" Fill="{DynamicResource AccentPrimary}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,4,0,0"/>
                                                 <StackPanel Grid.Column="1" Margin="0,0,12,0">
-                                                    <TextBlock x:Name="SessionTaskSummary" Text="{Binding TaskSummaryDisplay}" FontSize="12" FontWeight="Medium" Foreground="#454C57" TextTrimming="CharacterEllipsis" Visibility="{Binding HasTasks, Converter={StaticResource HistoryVisibility}}"/>
-                                                    <TextBlock x:Name="SessionDetails" Text="{Binding SessionDetailsDisplay}" FontSize="11" Foreground="{DynamicResource TextSecondary}">
+                                                    <TextBlock x:Name="SessionTaskSummary" Text="{Binding TaskSummaryDisplay}" FontSize="{DynamicResource BodyFontSize}" FontWeight="{DynamicResource BodyFontWeight}" Foreground="#454C57" TextTrimming="CharacterEllipsis" Visibility="{Binding HasTasks, Converter={StaticResource HistoryVisibility}}"/>
+                                                    <TextBlock x:Name="SessionDetails" Text="{Binding SessionDetailsDisplay}" Foreground="{DynamicResource TextSecondary}">
                                                         <TextBlock.Style><Style TargetType="TextBlock">
+                                                            <Setter Property="FontSize" Value="{DynamicResource SecondaryFontSize}"/>
+                                                            <Setter Property="FontWeight" Value="{DynamicResource SecondaryFontWeight}"/>
                                                             <Setter Property="Margin" Value="0,4,0,0"/>
-                                                            <Style.Triggers><DataTrigger Binding="{Binding HasTasks}" Value="False"><Setter Property="Margin" Value="0"/></DataTrigger></Style.Triggers>
+                                                            <Style.Triggers><DataTrigger Binding="{Binding HasTasks}" Value="False"><Setter Property="FontSize" Value="{DynamicResource BodyFontSize}"/><Setter Property="Margin" Value="0"/></DataTrigger></Style.Triggers>
                                                         </Style></TextBlock.Style>
                                                     </TextBlock>
                                                 </StackPanel>
@@ -141,7 +143,7 @@
                                                               StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                     </Border>
                                                     <StackPanel Grid.Column="1" Margin="0,0,12,0">
-                                                        <TextBlock Text="{Binding Name}" FontSize="11.5" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}" TextWrapping="Wrap"/>
+                                                        <TextBlock Text="{Binding Name}" FontSize="{DynamicResource BodyFontSize}" FontWeight="{DynamicResource BodyFontWeight}" Foreground="{DynamicResource TextPrimary}" TextWrapping="Wrap"/>
                                                         <TextBlock Text="{Binding Description}" FontSize="11" Foreground="{DynamicResource TextWeak}" TextWrapping="Wrap" LineHeight="17" Margin="0,4,0,4" Visibility="{Binding HasDescription, Converter={StaticResource HistoryVisibility}}"/>
                                                     </StackPanel>
                                                     <ItemsControl x:Name="HistorySubTasks" Grid.Row="1" Grid.ColumnSpan="2" ItemsSource="{Binding SubTasks}" Margin="0,4,12,0" Visibility="{Binding HasSubTasks, Converter={StaticResource HistoryVisibility}}">
@@ -158,11 +160,11 @@
                                                                     <Path Width="7" Height="5" Data="M 0,2.5 L 2.5,5 L 7,0" Stretch="Fill" Stroke="{DynamicResource AccentPrimary}" StrokeThickness="1.2"
                                                                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                                 </Grid>
-                                                                <TextBlock Grid.Column="2" Grid.RowSpan="2" Text="{Binding Title}" FontSize="11" Foreground="{DynamicResource TextWeak}" TextWrapping="Wrap" Margin="0,1,0,4"/>
+                                                                <TextBlock Grid.Column="2" Grid.RowSpan="2" Text="{Binding Title}" FontSize="{DynamicResource BodyFontSize}" FontWeight="{DynamicResource BodyFontWeight}" Foreground="{DynamicResource TextWeak}" TextWrapping="Wrap" Margin="0,1,0,4"/>
                                                             </Grid>
                                                         </DataTemplate></ItemsControl.ItemTemplate>
                                                     </ItemsControl>
-                                                    <TextBlock x:Name="HistoryTaskCompletionTime" Grid.Column="2" Text="{Binding CompletedTimeDisplay}" FontSize="10.5" Foreground="{DynamicResource TextWeak}" VerticalAlignment="Top" Margin="0,1,0,0" Visibility="{Binding HasCompletedTime, Converter={StaticResource HistoryVisibility}}"/>
+                                                    <TextBlock x:Name="HistoryTaskCompletionTime" Grid.Column="2" Text="{Binding CompletedTimeDisplay}" FontSize="{DynamicResource SecondaryFontSize}" FontWeight="{DynamicResource SecondaryFontWeight}" Foreground="{DynamicResource TextWeak}" VerticalAlignment="Top" Margin="0,1,0,0" Visibility="{Binding HasCompletedTime, Converter={StaticResource HistoryVisibility}}"/>
                                                 </Grid>
                                             </DataTemplate></ItemsControl.ItemTemplate>
                                         </ItemsControl>

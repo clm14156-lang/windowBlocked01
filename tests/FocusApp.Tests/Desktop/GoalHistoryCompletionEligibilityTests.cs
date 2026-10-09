@@ -44,26 +44,39 @@ public sealed class GoalHistoryCompletionEligibilityTests
         }
 
         focus.ToggleTaskCompletedCommand.Execute(parent);
-        var partialSnapshot = Assert.Single(captured);
+        Assert.False(parent.IsCompleted);
+        Assert.Null(parent.CompletedAtUtc);
+        Assert.Empty(captured);
+        var partialDetails = parent.CaptureHistoryDetails();
         Project();
         Assert.Equal(0, history.CompletedTaskCount);
         parent.SubTasks[0].IsCompleted = true;
         Project();
         Assert.Equal(0, history.CompletedTaskCount);
         parent.SubTasks[1].IsCompleted = true;
+        Assert.False(parent.IsCompleted);
+        Assert.Empty(captured);
+        focus.ToggleTaskCompletedCommand.Execute(parent);
         var fullSnapshot = Assert.Single(captured);
         Project();
         Assert.Equal(1, history.CompletedTaskCount);
         Assert.All(Assert.Single(history.Days[0].Sessions[0].Tasks).SubTasks, child => Assert.True(child.IsCompleted));
-        Assert.False(partialSnapshot.Details!.SubTasks[1].IsCompleted);
+        Assert.False(partialDetails.SubTasks[1].IsCompleted);
 
         parent.SubTasks[1].IsCompleted = false;
         Project();
         Assert.Equal(0, history.CompletedTaskCount);
         Assert.True(fullSnapshot.Details!.SubTasks[1].IsCompleted);
-        focus.ToggleTaskCompletedCommand.Execute(parent);
         Assert.Empty(captured);
         Assert.False(parent.IsCompleted);
+        Assert.Null(parent.CompletedAtUtc);
+        Assert.Contains(parent, focus.PendingTasks);
+        Assert.DoesNotContain(parent, focus.CompletedTasks);
+        Assert.Equal(0, focus.SessionCompletedTaskCount);
+        Assert.Equal("0/1", focus.TaskDrawer.TaskProgress);
+        parent.SubTasks[1].IsCompleted = true;
+        Assert.False(parent.IsCompleted);
+        Assert.Empty(captured);
     }
 
     [Fact]

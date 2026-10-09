@@ -10,8 +10,8 @@
             <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
-            <Setter Property="FontSize" Value="12" />
-            <Setter Property="FontWeight" Value="Normal" />
+            <Setter Property="FontSize" Value="{DynamicResource SecondaryMediumFontSize}" />
+            <Setter Property="FontWeight" Value="{DynamicResource SecondaryMediumFontWeight}" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Template">
@@ -65,8 +65,8 @@
             <Setter Property="Background" Value="{DynamicResource AccentPrimary}" />
             <Setter Property="Foreground" Value="{DynamicResource WhiteText}" />
             <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="FontSize" Value="16" />
-            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontSize" Value="{DynamicResource ButtonFontSize}" />
+            <Setter Property="FontWeight" Value="{DynamicResource ButtonFontWeight}" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Template">
@@ -145,8 +145,8 @@
 
             <Grid Grid.Row="0">
                 <TextBlock VerticalAlignment="Center"
-                           FontSize="20"
-                           FontWeight="SemiBold"
+                           FontSize="{DynamicResource DialogTitleFontSize}"
+                           FontWeight="{DynamicResource DialogTitleFontWeight}"
                            Foreground="{DynamicResource TextPrimary}"
                            Text="{DynamicResource FocusTargetTitle}" />
                 <Button HorizontalAlignment="Right"
@@ -154,7 +154,9 @@
                         AutomationProperties.Name="{DynamicResource FocusTargetManage}"
                         Command="{Binding ManageTargetsCommand}"
                         Style="{StaticResource TargetManagementButton}">
-                    <TextBlock Text="{DynamicResource FocusTargetManage}" />
+                    <TextBlock FontSize="{Binding FontSize, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
+                               FontWeight="{Binding FontWeight, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
+                               Text="{DynamicResource FocusTargetManage}" />
                 </Button>
             </Grid>
 
@@ -232,8 +234,8 @@
                                         <TextBlock Grid.Column="1"
                                                    Margin="3,0,8,0"
                                                    VerticalAlignment="Center"
-                                                   FontSize="14"
-                                                   FontWeight="Normal"
+                                                   FontSize="{DynamicResource BodyFontSize}"
+                                                   FontWeight="{DynamicResource BodyFontWeight}"
                                                    Foreground="{DynamicResource TextPrimary}"
                                                    Text="{Binding Name}"
                                                    TextTrimming="CharacterEllipsis" />
@@ -285,6 +287,7 @@
                         IsEnabled="{Binding CanStartFocus}"
                         Style="{StaticResource TargetStartFocusButton}">
                     <TextBlock x:Name="StartFocusButtonText"
+                               FontSize="{Binding FontSize, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
                                FontWeight="{Binding FontWeight, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
                                Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
                                Text="{DynamicResource FocusTargetStartFocus}" />

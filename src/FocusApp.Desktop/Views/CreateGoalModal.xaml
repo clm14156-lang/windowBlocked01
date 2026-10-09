@@ -22,7 +22,8 @@
         </Style>
         <Style x:Key="GoalModalTextInputStyle" TargetType="TextBox">
             <Setter Property="Padding" Value="0"/><Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/><Setter Property="FontSize" Value="14"/>
+            <Setter Property="BorderThickness" Value="0"/><Setter Property="FontSize" Value="{DynamicResource BodyFontSize}"/>
+            <Setter Property="FontWeight" Value="{DynamicResource BodyFontWeight}"/>
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
             <Setter Property="CaretBrush" Value="{DynamicResource AccentPrimary}"/>
             <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
@@ -82,8 +83,8 @@
             <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
-            <Setter Property="FontSize" Value="13" />
-            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="FontSize" Value="{DynamicResource ButtonFontSize}" />
+            <Setter Property="FontWeight" Value="{DynamicResource ButtonFontWeight}" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Template">
@@ -107,8 +108,8 @@
             <Setter Property="Background" Value="#FF762A" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Foreground" Value="{DynamicResource WhiteText}" />
-            <Setter Property="FontSize" Value="13" />
-            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontSize" Value="{DynamicResource ButtonFontSize}" />
+            <Setter Property="FontWeight" Value="{DynamicResource ButtonFontWeight}" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Template">
@@ -133,47 +134,46 @@
         <Grid x:Name="CreateGoalDialogOverlay" Panel.ZIndex="100" Background="#66000000" MouseDown="Overlay_MouseDown"
               TextElement.FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI"
               Visibility="{Binding IsCreateGoalDialogOpen, Converter={StaticResource BooleanToVisibilityConverter}}">
-            <Border x:Name="DialogCard" Width="310" Height="{Binding GoalDialogHeight, FallbackValue=328}" Padding="20,18"
+            <Border x:Name="DialogCard" Width="310" Height="{Binding GoalDialogHeight, FallbackValue=328}"
                     HorizontalAlignment="Center" VerticalAlignment="Center" Background="{DynamicResource SurfacePrimary}"
                     BorderBrush="#E3E3E8" BorderThickness="1" CornerRadius="14">
                 <Border.Effect><DropShadowEffect BlurRadius="24" Direction="270" Opacity="0.16" ShadowDepth="5" /></Border.Effect>
-                <Grid x:Name="DialogContentGrid">
+                <Grid x:Name="CloseButtonHost">
+                <Grid x:Name="DialogContentGrid" Margin="20,18">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="42"/><RowDefinition Height="Auto"/><RowDefinition Height="72"/>
                         <RowDefinition Height="78"/><RowDefinition Height="34"/>
                     </Grid.RowDefinitions>
-                    <TextBlock FontSize="19" FontWeight="SemiBold" Text="{Binding GoalDialogTitle}"/>
-                    <Button Width="24" Height="24" HorizontalAlignment="Right" VerticalAlignment="Top" Padding="0" Content="×" FontSize="22"
-                            AutomationProperties.Name="关闭目标弹窗" Command="{Binding CancelCreateGoalCommand}" Style="{StaticResource CreateGoalSecondaryButtonStyle}"/>
+                    <TextBlock FontSize="{DynamicResource DialogTitleFontSize}" FontWeight="{DynamicResource DialogTitleFontWeight}" Text="{Binding GoalDialogTitle}"/>
                     <StackPanel Grid.Row="1" x:Name="GoalInformationInputs">
                         <Grid Height="32"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="44"/></Grid.ColumnDefinitions>
-                            <TextBox x:Name="NewGoalNameTextBox" AutomationProperties.Name="目标名称" MaxLength="50" FontSize="14" FontWeight="Medium"
+                            <TextBox x:Name="NewGoalNameTextBox" AutomationProperties.Name="目标名称" MaxLength="50"
                                      IsVisibleChanged="NewGoalNameTextBox_IsVisibleChanged" PreviewKeyDown="NewGoalNameTextBox_PreviewKeyDown"
                                      Style="{StaticResource GoalModalTextInputStyle}" Text="{Binding NewGoalName, UpdateSourceTrigger=PropertyChanged}"/>
-                            <TextBlock VerticalAlignment="Center" IsHitTestVisible="False" Foreground="{DynamicResource TextWeak}" FontSize="13" Text="请输入目标名称...">
+                            <TextBlock VerticalAlignment="Center" IsHitTestVisible="False" Foreground="{DynamicResource TextWeak}" FontSize="{DynamicResource BodyFontSize}" FontWeight="{DynamicResource BodyFontWeight}" Text="请输入目标名称...">
                                 <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding NewGoalName}" Value=""><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
                             </TextBlock>
-                            <TextBlock Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="10" Foreground="{DynamicResource TextWeak}" Text="{Binding NameCharacterCountDisplay}"/>
+                            <TextBlock Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="{DynamicResource CaptionFontSize}" FontWeight="{DynamicResource CaptionFontWeight}" Foreground="{DynamicResource TextWeak}" Text="{Binding NameCharacterCountDisplay}"/>
                         </Grid>
                         <Border Height="1" Background="#F0F1F3" Margin="0,4,0,7"/>
                         <Grid x:Name="GoalRemarkContainer"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="44"/></Grid.ColumnDefinitions>
                             <TextBox x:Name="NewGoalRemarkTextBox" AutomationProperties.Name="备注" MaxLength="150" AcceptsReturn="True" TextWrapping="Wrap"
                                      Height="{Binding GoalRemarkInputHeight}" VerticalContentAlignment="Top" VerticalScrollBarVisibility="Visible" HorizontalScrollBarVisibility="Disabled"
-                                     TextBlock.LineHeight="20" TextBlock.LineStackingStrategy="BlockLineHeight" FontSize="12" Foreground="{DynamicResource TextSecondary}"
+                                     TextBlock.LineHeight="20" TextBlock.LineStackingStrategy="BlockLineHeight" Foreground="{DynamicResource TextSecondary}"
                                      TextChanged="NewGoalRemarkTextBox_TextChanged" SizeChanged="NewGoalRemarkTextBox_SizeChanged"
                                      Style="{StaticResource GoalModalTextInputStyle}" Text="{Binding NewGoalRemark, UpdateSourceTrigger=PropertyChanged}">
                                 <TextBox.Resources><Style TargetType="ScrollBar" BasedOn="{StaticResource GoalModalScrollBarStyle}"/></TextBox.Resources>
                             </TextBox>
-                            <TextBlock VerticalAlignment="Top" IsHitTestVisible="False" FontSize="12" Foreground="{DynamicResource TextWeak}" Text="添加备注（可选）..." LineHeight="20" LineStackingStrategy="BlockLineHeight">
+                            <TextBlock VerticalAlignment="Top" IsHitTestVisible="False" FontSize="{DynamicResource BodyFontSize}" FontWeight="{DynamicResource BodyFontWeight}" Foreground="{DynamicResource TextWeak}" Text="添加备注（可选）..." LineHeight="20" LineStackingStrategy="BlockLineHeight">
                                 <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding NewGoalRemark}" Value=""><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
                             </TextBlock>
-                            <TextBlock Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,3,0,0" FontSize="10" Text="{Binding RemarkCharacterCountDisplay}">
+                            <TextBlock Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,3,0,0" FontSize="{DynamicResource CaptionFontSize}" FontWeight="{DynamicResource CaptionFontWeight}" Text="{Binding RemarkCharacterCountDisplay}">
                                 <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Foreground" Value="{DynamicResource TextWeak}"/><Style.Triggers><DataTrigger Binding="{Binding IsGoalRemarkAtLimit}" Value="True"><Setter Property="Foreground" Value="{DynamicResource AccentPrimary}"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
                             </TextBlock>
                         </Grid>
                     </StackPanel>
                     <StackPanel Grid.Row="2" Margin="0,16,0,0">
-                        <TextBlock Margin="0,0,0,6" FontSize="13" FontWeight="Medium" Text="图标" />
+                        <TextBlock Margin="0,0,0,6" FontSize="{DynamicResource SectionTitleFontSize}" FontWeight="{DynamicResource SectionTitleFontWeight}" Text="图标" />
                         <Grid>
                             <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="38" /></Grid.ColumnDefinitions>
                             <ItemsControl ItemTemplate="{StaticResource TargetIconChoiceTemplate}" ItemsSource="{Binding QuickTargetIcons}">
@@ -186,7 +186,7 @@
                         </Grid>
                     </StackPanel>
                     <StackPanel Grid.Row="3" Margin="0,10,0,0">
-                        <TextBlock Margin="0,0,0,6" FontSize="13" FontWeight="Medium" Text="颜色" />
+                        <TextBlock Margin="0,0,0,6" FontSize="{DynamicResource SectionTitleFontSize}" FontWeight="{DynamicResource SectionTitleFontWeight}" Text="颜色" />
                         <ItemsControl x:Name="GoalColorChoices" ItemsSource="{Binding GoalColors}">
                             <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="7" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate><DataTemplate>
@@ -207,9 +207,12 @@
                         </ItemsControl>
                     </StackPanel>
                     <StackPanel Grid.Row="4" HorizontalAlignment="Right" VerticalAlignment="Bottom" Orientation="Horizontal">
-                        <Button Width="68" Command="{Binding CancelCreateGoalCommand}" Style="{StaticResource CreateGoalSecondaryButtonStyle}"><TextBlock Text="取消" Foreground="{DynamicResource TextSecondary}" /></Button>
-                        <Button Width="102" Margin="16,0,0,0" Command="{Binding ConfirmCreateGoalCommand}" IsEnabled="{Binding CanCreateGoal}" Style="{StaticResource CreateGoalPrimaryButtonStyle}"><TextBlock Text="{Binding GoalDialogConfirmText}" Foreground="#FFFFFF" /></Button>
+                        <Button Width="68" Command="{Binding CancelCreateGoalCommand}" Style="{StaticResource CreateGoalSecondaryButtonStyle}"><TextBlock Text="取消" Foreground="{DynamicResource TextSecondary}" FontSize="{Binding FontSize, RelativeSource={RelativeSource AncestorType=Button}}" FontWeight="{Binding FontWeight, RelativeSource={RelativeSource AncestorType=Button}}" /></Button>
+                        <Button Width="102" Margin="16,0,0,0" Command="{Binding ConfirmCreateGoalCommand}" IsEnabled="{Binding CanCreateGoal}" Style="{StaticResource CreateGoalPrimaryButtonStyle}"><TextBlock Text="{Binding GoalDialogConfirmText}" Foreground="#FFFFFF" FontSize="{Binding FontSize, RelativeSource={RelativeSource AncestorType=Button}}" FontWeight="{Binding FontWeight, RelativeSource={RelativeSource AncestorType=Button}}" /></Button>
                     </StackPanel>
+                </Grid>
+                    <Button x:Name="ModalCloseButton" AutomationProperties.Name="关闭目标弹窗"
+                            Command="{Binding CancelCreateGoalCommand}" Style="{DynamicResource ModalCloseButtonStyle}" />
                 </Grid>
             </Border>
         </Grid>

@@ -666,7 +666,8 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             var state = ServiceConnection.State;
             var target = state?.Targets.FirstOrDefault(item => item.TargetId == source.TargetId);
             var task = state?.Tasks.FirstOrDefault(item => item.TaskId == source.TaskId && item.TargetId == source.TargetId);
-            if (state is null || target is null || task is not { IsCompleted: true }) return false;
+            if (state is null || target is null || task is null ||
+                !TaskCompletionPolicy.IsCompleted(task.IsCompleted, task.SubTasks.Select(child => child.IsCompleted))) return false;
             ApplyCompletedTaskToFocus(task, delete);
             var now = DateTimeOffset.UtcNow;
             var tasks = state.Tasks.Where(item => item.TargetId == source.TargetId && item.TaskId != source.TaskId)
@@ -706,7 +707,12 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     private async void FocusSession_TargetChanged(object? sender, FocusTargetViewModel target)
     {
-        if (ServiceConnection is null || !ServiceConnection.IsConnected) return;
+        if (ServiceConnection is null)
+        {
+            StatisticsPage.ApplyTargetTaskState(target);
+            return;
+        }
+        if (!ServiceConnection.IsConnected) return;
         _pendingFocusTaskWrites++;
         try
         {

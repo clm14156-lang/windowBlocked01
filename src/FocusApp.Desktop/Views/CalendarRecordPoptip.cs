@@ -95,7 +95,7 @@ internal sealed class CalendarRecordPoptip
         if (_adorner is null || Content.DataContext is not FocusSessionRecordViewModel record ||
             !_timeline.TryGetRecordBounds(record, out var bounds)) return;
         var root = (FrameworkElement)_adorner.AdornedElement;
-        Content.Measure(new Size(200, double.PositiveInfinity));
+        Content.Measure(new Size(PoptipChrome.MaximumWidth, double.PositiveInfinity));
         var size = Content.DesiredSize;
         var point = _timeline.TranslatePoint(bounds.TopLeft, root);
         var center = point.X + bounds.Width / 2;
@@ -103,10 +103,11 @@ internal sealed class CalendarRecordPoptip
         // The timeline is the only anchor. Never flip underneath it or toward a row.
         var availableHeight = Math.Max(0, point.Y + 2);
         Content.FitAboveTimeline(availableHeight);
-        Content.Measure(new Size(200, availableHeight));
+        Content.Measure(new Size(PoptipChrome.MaximumWidth, availableHeight));
         size = Content.DesiredSize;
+        x = Math.Clamp(center - size.Width / 2, 0, Math.Max(0, root.ActualWidth - size.Width));
         var y = Math.Max(0, point.Y - size.Height + 2);
-        Content.PointerLeft = Math.Clamp(center - x - 7, 5, Math.Max(5, size.Width - 19));
+        Content.PointerLeft = PoptipChrome.PointerLeftForAnchor(center - x, size.Width);
         _adorner.Position = new(x, y);
         _adorner.InvalidateMeasure();
     }
@@ -156,7 +157,7 @@ internal sealed class CalendarRecordPoptip
             => (_visuals.Count > 0 ? new[] { _content } : []).GetEnumerator();
         protected override Size MeasureOverride(Size available)
         {
-            _content.Measure(new Size(200, double.PositiveInfinity));
+            _content.Measure(new Size(PoptipChrome.MaximumWidth, double.PositiveInfinity));
             return AdornedElement.RenderSize;
         }
         protected override Size ArrangeOverride(Size size)

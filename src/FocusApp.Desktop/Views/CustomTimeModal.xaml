@@ -20,8 +20,8 @@
             <Setter Property="BorderBrush" Value="{DynamicResource BorderPrimary}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Foreground" Value="{DynamicResource TextUnit}" />
-            <Setter Property="FontSize" Value="16" />
-            <Setter Property="FontWeight" Value="Normal" />
+            <Setter Property="FontSize" Value="{DynamicResource BodyMediumFontSize}" />
+            <Setter Property="FontWeight" Value="{DynamicResource BodyMediumFontWeight}" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="ContentTemplate" Value="{DynamicResource ThemedButtonTextContentTemplate}" />
             <Setter Property="FocusVisualStyle" Value="{StaticResource CustomTimeFocusVisualStyle}" />
@@ -80,8 +80,8 @@
             <Setter Property="BorderBrush" Value="{DynamicResource BorderPrimary}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-            <Setter Property="FontSize" Value="14" />
-            <Setter Property="FontWeight" Value="Normal" />
+            <Setter Property="FontSize" Value="{DynamicResource ButtonFontSize}" />
+            <Setter Property="FontWeight" Value="{DynamicResource ButtonFontWeight}" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="ContentTemplate" Value="{DynamicResource ThemedButtonTextContentTemplate}" />
             <Setter Property="FocusVisualStyle" Value="{StaticResource CustomTimeFocusVisualStyle}" />
@@ -115,7 +115,6 @@
             <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
             <Setter Property="Foreground" Value="{DynamicResource WhiteText}" />
             <Setter Property="ContentTemplate" Value="{x:Null}" />
-            <Setter Property="FontWeight" Value="Medium" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type Button}">
@@ -153,8 +152,8 @@
             <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
-            <Setter Property="FontSize" Value="14" />
-            <Setter Property="FontWeight" Value="Normal" />
+            <Setter Property="FontSize" Value="{DynamicResource SecondaryMediumFontSize}" />
+            <Setter Property="FontWeight" Value="{DynamicResource SecondaryMediumFontWeight}" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="FocusVisualStyle" Value="{StaticResource CustomTimeFocusVisualStyle}" />
             <Setter Property="Template">
@@ -192,29 +191,29 @@
         <Canvas>
             <TextBlock Canvas.Top="23"
                        Width="318"
-                       FontSize="20"
-                       FontWeight="Medium"
+                       FontSize="{DynamicResource DialogTitleFontSize}"
+                       FontWeight="{DynamicResource DialogTitleFontWeight}"
                        Foreground="{DynamicResource TextPrimary}"
                        Text="{DynamicResource CustomTimeTitle}"
                        TextAlignment="Center" />
 
             <Button x:Name="CloseCustomTimeButton" Canvas.Left="279" Canvas.Top="15"
-                    Width="26" Height="26" Content="×" FontSize="20" Command="{Binding CancelCommand}"
+                    Width="26" Height="26" Content="×" FontSize="20" FontWeight="Normal" Command="{Binding CancelCommand}"
                     ContentTemplate="{DynamicResource ThemedButtonTextContentTemplate}"
                     AutomationProperties.Name="关闭" Style="{StaticResource CustomTimeEditButtonStyle}" />
 
             <TextBlock Canvas.Left="20"
                        Canvas.Top="63"
-                       FontSize="14"
-                       FontWeight="Normal"
+                       FontSize="{DynamicResource SectionTitleFontSize}"
+                       FontWeight="{DynamicResource SectionTitleFontWeight}"
                        Foreground="{DynamicResource TextPrimary}"
                        Text="{DynamicResource CustomTimeDurationLabel}" />
 
             <TextBlock Canvas.Left="198"
                        Canvas.Top="64"
                        Width="102"
-                       FontSize="12"
-                       FontWeight="Normal"
+                       FontSize="{DynamicResource SecondaryFontSize}"
+                       FontWeight="{DynamicResource SecondaryFontWeight}"
                        Foreground="{DynamicResource TextSecondary}"
                        IsHitTestVisible="False"
                        Text="{DynamicResource CustomTimeDurationRange}"
@@ -236,9 +235,9 @@
                              Padding="0"
                              Background="{DynamicResource TransparentBrush}"
                              BorderThickness="0"
-                             FontFamily="Segoe UI Variable Display"
-                             FontSize="38"
-                             FontWeight="Normal"
+                             FontFamily="{DynamicResource FontFamilyNumeric}"
+                             FontSize="{DynamicResource TimerFontSize}"
+                             FontWeight="{DynamicResource TimerMediumFontWeight}"
                              Foreground="{DynamicResource TextPrimary}"
                              MaxLength="3"
                              DataObject.Pasting="MinutesTextBox_Pasting"
@@ -250,8 +249,8 @@
                     <TextBlock Margin="0,0,18,0"
                                HorizontalAlignment="Right"
                                VerticalAlignment="Center"
-                               FontSize="14"
-                               FontWeight="Normal"
+                               FontSize="{DynamicResource BodyFontSize}"
+                               FontWeight="{DynamicResource BodyFontWeight}"
                                Foreground="{DynamicResource TextSecondary}"
                                Text="{DynamicResource CustomTimeUnit}" />
                 </Grid>
@@ -265,8 +264,8 @@
 
             <TextBlock Canvas.Left="20"
                        Canvas.Top="186"
-                       FontSize="15"
-                       FontWeight="Medium"
+                       FontSize="{DynamicResource SectionTitleFontSize}"
+                       FontWeight="{DynamicResource SectionTitleFontWeight}"
                        Foreground="{DynamicResource TextPrimary}"
                        Text="{DynamicResource CustomTimeCommonLabel}" />
 
@@ -283,6 +282,8 @@
                 </Button.Style>
                 <StackPanel Orientation="Horizontal">
                     <TextBlock VerticalAlignment="Center"
+                               FontSize="{Binding FontSize, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
+                               FontWeight="{Binding FontWeight, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
                                Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
                                Text="编辑" />
                     <TextBlock Margin="5,0,0,0"
@@ -333,7 +334,7 @@
                                     Command="{Binding DataContext.DeleteTimeCommand, RelativeSource={RelativeSource AncestorType={x:Type ItemsControl}}}"
                                     CommandParameter="{Binding}"
                                     Content="×"
-                                    FontSize="10">
+                                    FontSize="10" FontWeight="Normal">
                                 <Button.Style>
                                     <Style TargetType="{x:Type Button}" BasedOn="{StaticResource CustomTimeQuickButtonStyle}">
                                         <Setter Property="Visibility" Value="Collapsed" />
@@ -356,7 +357,9 @@
                     AutomationProperties.Name="{DynamicResource CustomTimeConfirm}"
                     Command="{Binding ConfirmCommand}"
                     Style="{StaticResource CustomTimePrimaryButtonStyle}">
-                <TextBlock Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
+                <TextBlock FontSize="{Binding FontSize, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
+                           FontWeight="{Binding FontWeight, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
+                           Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
                            Text="{DynamicResource CustomTimeConfirm}" />
             </Button>
         </Canvas>

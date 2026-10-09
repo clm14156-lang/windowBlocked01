@@ -1,9 +1,13 @@
 using System.Xml.Linq;
 using System.Reflection;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Threading;
 using FocusApp.Desktop.ViewModels;
 using FocusApp.Desktop.Views;
+using FocusApp.Desktop.Services;
+using FocusApp.Desktop.Models;
 using Xunit;
 
 namespace FocusApp.Tests.Desktop;
@@ -38,7 +42,8 @@ public sealed class BlockedAccessNotificationPresentationTests
         var card = Assert.Single(window.Elements(Presentation + "Border"));
         Assert.Equal("RootCard", (string?)card.Attribute(Xaml + "Name"));
         Assert.Equal("12", (string?)card.Attribute("CornerRadius"));
-        var gradient = Assert.Single(card.Descendants(Presentation + "LinearGradientBrush"));
+        var gradient = Assert.Single(card.Element(Presentation + "Border.Background")!
+            .Elements(Presentation + "LinearGradientBrush"));
         Assert.Equal(
             ["#50545A", "#40454A", "#3C4146"],
             gradient.Elements(Presentation + "GradientStop").Select(stop => (string?)stop.Attribute("Color")));
@@ -174,6 +179,180 @@ public sealed class BlockedAccessNotificationPresentationTests
         Assert.True(thread.Join(TimeSpan.FromSeconds(5)), "The WPF notification runtime check timed out.");
 
         Assert.Null(failure);
+    }
+
+    [Fact]
+    public void WebsiteMenu_PausesTimeoutAndExecutesBothActionsAtItsFixedRuntimeSize()
+    {
+        Exception? failure = null;
+        var thread = new Thread(() =>
+        {
+            BlockedAccessNotificationWindow? window = null;
+            try
+            {
+                foreach (var suppress in new[] { false, true })
+                {
+                    var suppressed = false;
+                    window = new BlockedAccessNotificationWindow
+                    {
+                        DataContext = new BlockedAccessNotificationViewModel("Example","example.com","Website","当前网站",()=>suppressed=true)
+                    };
+                    window.Resources.MergedDictionaries.Add(new ResourceDictionary
+                    {
+                        Source = new Uri("/FocusApp.Desktop;component/Resources/Strings.xaml",UriKind.Relative)
+                    });
+                    window.Show();
+                    PumpFor(TimeSpan.FromMilliseconds(220));
+                    var more = (Button)window.FindName("MoreActionsButton");
+                    var popup = (Popup)window.FindName("ActionsPopup");
+                    var timer = (DispatcherTimer)typeof(BlockedAccessNotificationWindow)
+                        .GetField("_autoCloseTimer",BindingFlags.Instance|BindingFlags.NonPublic)!.GetValue(window)!;
+                    timer.Interval = TimeSpan.FromMilliseconds(40);
+                    Click(more);
+                    Assert.True(popup.IsOpen);
+                    Assert.False(timer.IsEnabled);
+                    InvokeMouseLifecycleHandler(window,"Window_MouseLeave");
+                    PumpFor(TimeSpan.FromMilliseconds(80));
+                    Assert.True(window.IsVisible);
+                    Assert.True(popup.IsOpen);
+                    Assert.False(timer.IsEnabled);
+                    var surface = (Border)popup.Child;
+                    Assert.Equal(155,surface.Width);
+                    Assert.Equal(90,surface.Height);
+                    var pixelTolerance = 1 / System.Windows.Media.VisualTreeHelper.GetDpi(surface).DpiScaleX;
+                    Assert.InRange(Math.Abs(155-surface.ActualWidth),0,pixelTolerance);
+                    Assert.InRange(Math.Abs(90-surface.ActualHeight),0,pixelTolerance);
+                    var title = (TextBlock)window.FindName("BlockedAccessTitle");
+                    var surfaceDpi = System.Windows.Media.VisualTreeHelper.GetDpi(surface);
+                    var titleDpi = System.Windows.Media.VisualTreeHelper.GetDpi(title);
+                    var popupBounds = new Rect(surface.PointToScreen(new Point()),new Size(surface.ActualWidth*surfaceDpi.DpiScaleX,surface.ActualHeight*surfaceDpi.DpiScaleY));
+                    var titleBounds = new Rect(title.PointToScreen(new Point()),new Size(title.ActualWidth*titleDpi.DpiScaleX,title.ActualHeight*titleDpi.DpiScaleY));
+                    Assert.False(popupBounds.IntersectsWith(titleBounds),"The edge-positioned menu must not cover the Toast title.");
+                    Assert.False(popup.StaysOpen);
+                    Assert.Equal(PlacementMode.Custom,popup.Placement);
+                    if (!suppress && Environment.GetEnvironmentVariable("FOCUSAPP_BLOCKED_TOAST_QA_DIRECTORY") is { Length: > 0 } qaDirectory)
+                    {
+                        Directory.CreateDirectory(qaDirectory);
+                        SaveVisual((FrameworkElement)window.Content,Path.Combine(qaDirectory,"toast.png"));
+                        SaveVisual(surface,Path.Combine(qaDirectory,"actions.png"));
+                    }
+                    Click(more);
+                    Assert.False(popup.IsOpen);
+                    InvokeMouseLifecycleHandler(window,"Window_MouseLeave");
+                    Assert.True(timer.IsEnabled);
+                    Click(more);
+                    Assert.True(popup.IsOpen);
+                    Assert.False(timer.IsEnabled);
+
+                    foreach (var name in new[] { "DismissNotificationButton", "SuppressSessionButton" })
+                    {
+                        var item = (Button)window.FindName(name);
+                        var hoverKey = (DependencyPropertyKey)typeof(UIElement).GetField("IsMouseOverPropertyKey",BindingFlags.Static|BindingFlags.NonPublic)!.GetValue(null)!;
+                        item.SetValue(hoverKey,true);
+                        var chrome = (Border)item.Template.FindName("MenuItemChrome",item);
+                        Assert.Equal("#FF565C63",((System.Windows.Media.SolidColorBrush)chrome.Background).Color.ToString());
+                        item.SetValue(hoverKey,false);
+                    }
+                    popup.IsOpen = false; // Also exercises the external-dismiss lifecycle.
+                    InvokeMouseLifecycleHandler(window,"Window_MouseLeave");
+                    Assert.True(timer.IsEnabled);
+                    Click(more);
+                    var selected = (Button)window.FindName(suppress ? "SuppressSessionButton" : "DismissNotificationButton");
+                    Click(selected);
+                    Assert.False(window.IsVisible);
+                    Assert.False(popup.IsOpen);
+                    Assert.False(timer.IsEnabled);
+                    Assert.Equal(suppress,suppressed);
+                    window = null;
+                }
+            }
+            catch (Exception exception) { failure=exception; }
+            finally { window?.Close(); }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        Assert.True(thread.Join(TimeSpan.FromSeconds(6)));
+        Assert.Null(failure);
+    }
+
+    [Fact]
+    public void NotificationHost_FiltersMutedWebsitesAndRestoresThemForNextFocus()
+    {
+        Exception? failure = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                var focus = new FocusSessionViewModel(runTimer:false);
+                focus.Start(1);
+                BlockedAccessNotificationService.SetFocusSession(focus);
+                var website = new BlockedAccessNotificationData("Example","example.com","Website");
+                BlockedAccessNotificationService.Show(website);
+                var first = Assert.IsType<BlockedAccessNotificationWindow>(ActiveNotification());
+                var firstModel = Assert.IsType<BlockedAccessNotificationViewModel>(first.DataContext);
+                firstModel.CloseCommand.Execute(null);
+                Assert.Null(ActiveNotification());
+                BlockedAccessNotificationService.Show(website);
+                var next = Assert.IsType<BlockedAccessNotificationWindow>(ActiveNotification());
+                Assert.NotSame(first,next);
+                PumpFor(TimeSpan.FromMilliseconds(220));
+                Click((Button)next.FindName("MoreActionsButton"));
+                Assert.True(next.IsActionsOpen);
+                BlockedAccessNotificationService.Show(website with { Address="other.example.com" });
+                Assert.Same(next,ActiveNotification());
+                var nextModel = Assert.IsType<BlockedAccessNotificationViewModel>(next.DataContext);
+                nextModel.SuppressForSessionCommand.Execute(null);
+                Assert.Null(ActiveNotification());
+                BlockedAccessNotificationService.Show(website);
+                Assert.Null(ActiveNotification());
+                BlockedAccessNotificationService.Show(new BlockedAccessNotificationData("Editor","editor.exe","Application"));
+                var application = Assert.IsType<BlockedAccessNotificationWindow>(ActiveNotification());
+                Assert.False(Assert.IsType<BlockedAccessNotificationViewModel>(application.DataContext).IsWebsite);
+                application.Close();
+                for(var i=0;i<65;i++) focus.AdvanceOneSecond();
+                Assert.True(focus.IsCompleted);
+                focus.Start(1);
+                BlockedAccessNotificationService.Show(website);
+                Assert.NotNull(ActiveNotification());
+            }
+            catch (Exception exception) { failure=exception; }
+            finally
+            {
+                ActiveNotification()?.Close();
+                BlockedAccessNotificationService.SetFocusSession(null);
+            }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        Assert.True(thread.Join(TimeSpan.FromSeconds(6)));
+        Assert.Null(failure);
+    }
+
+    private static BlockedAccessNotificationWindow? ActiveNotification() =>
+        (BlockedAccessNotificationWindow?)typeof(BlockedAccessNotificationService)
+            .GetField("_activeWindow",BindingFlags.Static|BindingFlags.NonPublic)!.GetValue(null);
+
+    private static void Click(Button button) => typeof(ButtonBase)
+        .GetMethod("OnClick",BindingFlags.Instance|BindingFlags.NonPublic)!.Invoke(button,null);
+
+    private static void SaveVisual(FrameworkElement visual,string path)
+    {
+        var bitmap = new System.Windows.Media.Imaging.RenderTargetBitmap(
+            (int)Math.Ceiling(visual.ActualWidth),(int)Math.Ceiling(visual.ActualHeight),96,96,System.Windows.Media.PixelFormats.Pbgra32);
+        bitmap.Render(visual);
+        var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
+        encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap));
+        using var stream = File.Create(path);
+        encoder.Save(stream);
+    }
+
+    private static void PumpFor(TimeSpan duration)
+    {
+        var frame = new DispatcherFrame();
+        var timer = new DispatcherTimer { Interval=duration };
+        timer.Tick += (_,_)=> { timer.Stop(); frame.Continue=false; };
+        timer.Start();
+        Dispatcher.PushFrame(frame);
     }
 
     private static void WaitForWindowToAutoClose(BlockedAccessNotificationWindow window)

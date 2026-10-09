@@ -11,8 +11,8 @@
         <Style x:Key="FocusGoalSegmentButtonStyle" TargetType="Button">
             <Setter Property="Margin" Value="3" /><Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderBrush" Value="Transparent" /><Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Foreground" Value="#858B99" /><Setter Property="FontSize" Value="13" />
-            <Setter Property="FontWeight" Value="Medium" /><Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Foreground" Value="#858B99" /><Setter Property="FontSize" Value="{DynamicResource BodyMediumFontSize}" />
+            <Setter Property="FontWeight" Value="{DynamicResource BodyMediumFontWeight}" /><Setter Property="Cursor" Value="Hand" />
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
                 <Border x:Name="SegmentChrome" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
@@ -54,7 +54,7 @@
         <Style x:Key="FocusGoalSecondaryButtonStyle" TargetType="Button">
             <Setter Property="Height" Value="42" /><Setter Property="Background" Value="#F0F1F4" />
             <Setter Property="BorderThickness" Value="0" /><Setter Property="Foreground" Value="#34373F" />
-            <Setter Property="FontSize" Value="14" /><Setter Property="FontWeight" Value="Normal" />
+            <Setter Property="FontSize" Value="{DynamicResource ButtonFontSize}" /><Setter Property="FontWeight" Value="{DynamicResource ButtonFontWeight}" />
             <Setter Property="Cursor" Value="Hand" /><Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
                 <Border x:Name="SecondaryChrome" Background="{TemplateBinding Background}" CornerRadius="14">
@@ -69,7 +69,8 @@
         </Style>
         <Style x:Key="FocusGoalPrimaryButtonStyle" TargetType="Button" BasedOn="{StaticResource FocusGoalSecondaryButtonStyle}">
             <Setter Property="Background" Value="#FF7928" /><Setter Property="Foreground" Value="#FFFFFF" />
-            <Setter Property="FontWeight" Value="Normal" />
+            <Setter Property="FontSize" Value="{DynamicResource ButtonEmphasisFontSize}" />
+            <Setter Property="FontWeight" Value="{DynamicResource ButtonEmphasisFontWeight}" />
         </Style>
         <Style x:Key="FocusGoalDangerMenuItemStyle" TargetType="Button">
             <Setter Property="Height" Value="34" /><Setter Property="Padding" Value="10,0" />
@@ -91,8 +92,8 @@
             <Grid.RowDefinitions><RowDefinition Height="66" /><RowDefinition Height="54" /><RowDefinition Height="*" /><RowDefinition Height="58" /></Grid.RowDefinitions>
             <Grid Grid.Row="0">
                 <StackPanel>
-                    <TextBlock FontSize="24" FontWeight="SemiBold" Foreground="#1D1D1F" Text="专注目标" />
-                    <TextBlock Margin="0,5,0,0" FontSize="13" Foreground="#9197A4" Text="设置你的专注节奏" />
+                    <TextBlock FontSize="{DynamicResource DialogTitleFontSize}" FontWeight="{DynamicResource DialogTitleFontWeight}" Foreground="#1D1D1F" Text="专注目标" />
+                    <TextBlock Margin="0,5,0,0" FontSize="{DynamicResource SecondaryFontSize}" FontWeight="{DynamicResource SecondaryFontWeight}" Foreground="#9197A4" Text="设置你的专注节奏" />
                 </StackPanel>
                 <Button x:Name="FocusGoalMoreButton"
                         Width="38"
@@ -170,7 +171,7 @@
                                 <Ellipse Canvas.Left="5" Canvas.Top="5" Width="10" Height="10" Stroke="#8B91A0" StrokeThickness="1.5" />
                                 <Path Data="M 10,0 L 10,2 M 10,18 L 10,20 M 0,10 L 2,10 M 18,10 L 20,10 M 3,3 L 4.5,4.5 M 15.5,15.5 L 17,17 M 3,17 L 4.5,15.5 M 15.5,4.5 L 17,3" Stroke="#8B91A0" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
                             </Canvas>
-                            <TextBlock VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Text="每日固定" />
+                            <TextBlock VerticalAlignment="Center" FontSize="{Binding FontSize, RelativeSource={RelativeSource AncestorType=Button}}" FontWeight="{Binding FontWeight, RelativeSource={RelativeSource AncestorType=Button}}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Text="每日固定" />
                         </StackPanel>
                     </Button>
                     <Button x:Name="MonthlyTotalModeButton" Grid.Column="1" Command="{Binding SelectMonthlyModeCommand}">
@@ -179,7 +180,7 @@
                         </Style.Triggers></Style></Button.Style>
                         <StackPanel Orientation="Horizontal">
                             <Path Width="18" Height="20" Margin="0,0,8,0" Data="M 3,18 L 3,13 M 9,18 L 9,8 M 15,18 L 15,3" Stroke="#8B91A0" StrokeThickness="3" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
-                            <TextBlock VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Text="每月总目标" />
+                            <TextBlock VerticalAlignment="Center" FontSize="{Binding FontSize, RelativeSource={RelativeSource AncestorType=Button}}" FontWeight="{Binding FontWeight, RelativeSource={RelativeSource AncestorType=Button}}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Text="每月总目标" />
                         </StackPanel>
                     </Button>
                 </Grid>
@@ -193,7 +194,7 @@
                                  Style="{StaticResource FocusGoalTargetHoursInputStyle}" Text="{Binding DailyTargetHoursInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                  TextChanged="TargetHoursInputBox_TextChanged" PreviewKeyDown="TargetHoursInputBox_PreviewKeyDown" PreviewTextInput="TargetHoursInputBox_PreviewTextInput"
                                  LostKeyboardFocus="TargetHoursInputBox_LostKeyboardFocus" DataObject.Pasting="TargetHoursInputBox_Pasting" />
-                        <TextBlock HorizontalAlignment="Center" FontSize="14" Foreground="#9197A4" Text="小时 / 天" />
+                        <TextBlock HorizontalAlignment="Center" FontSize="{DynamicResource BodyFontSize}" FontWeight="{DynamicResource BodyFontWeight}" Foreground="#9197A4" Text="小时 / 天" />
                     </StackPanel>
                     <Button Grid.Column="2" VerticalAlignment="Top" Margin="0,10,0,0" AutomationProperties.Name="增加每日目标时长" Command="{Binding IncreaseDailyTargetCommand}" Content="+" Style="{StaticResource FocusGoalStepperButtonStyle}" />
                 </Grid>
@@ -207,7 +208,7 @@
                                      Style="{StaticResource FocusGoalTargetHoursInputStyle}" Text="{Binding MonthlyTargetHoursInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                      TextChanged="TargetHoursInputBox_TextChanged" PreviewKeyDown="TargetHoursInputBox_PreviewKeyDown" PreviewTextInput="TargetHoursInputBox_PreviewTextInput"
                                      LostKeyboardFocus="TargetHoursInputBox_LostKeyboardFocus" DataObject.Pasting="TargetHoursInputBox_Pasting" />
-                            <TextBlock HorizontalAlignment="Center" FontSize="14" Foreground="#9197A4" Text="小时 / 月" />
+                            <TextBlock HorizontalAlignment="Center" FontSize="{DynamicResource BodyFontSize}" FontWeight="{DynamicResource BodyFontWeight}" Foreground="#9197A4" Text="小时 / 月" />
                         </StackPanel>
                         <Button Grid.Column="2" VerticalAlignment="Top" Margin="0,10,0,0" AutomationProperties.Name="增加每月目标时长" Command="{Binding IncreaseMonthlyTargetCommand}" Content="+" Style="{StaticResource FocusGoalStepperButtonStyle}" />
                     </Grid>
@@ -221,8 +222,8 @@
                                 </Canvas>
                             </Viewbox>
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                <TextBlock x:Name="MonthlyDailyRequirementText" FontSize="11.5" FontWeight="Medium" Foreground="#33363F" Text="{Binding MonthlyDailyRequirementDisplay, Mode=OneWay}" />
-                                <TextBlock Margin="0,6,0,0" FontSize="11" Foreground="#9297A4" Text="坚持下去，你可以达成目标！" />
+                                <TextBlock x:Name="MonthlyDailyRequirementText" FontSize="{DynamicResource BodyFontSize}" FontWeight="{DynamicResource BodyFontWeight}" Foreground="#33363F" Text="{Binding MonthlyDailyRequirementDisplay, Mode=OneWay}" />
+                                <TextBlock Margin="0,6,0,0" FontSize="{DynamicResource SecondaryFontSize}" FontWeight="{DynamicResource SecondaryFontWeight}" Foreground="#9297A4" Text="坚持下去，你可以达成目标！" />
                             </StackPanel>
                         </Grid>
                     </Border>

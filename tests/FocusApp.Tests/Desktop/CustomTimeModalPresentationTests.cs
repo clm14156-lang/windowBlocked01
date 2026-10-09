@@ -14,7 +14,7 @@ public sealed class CustomTimeModalPresentationTests
         Assert.Contains(root.Descendants(presentation + "TextBlock"), element =>
             (string?)element.Attribute("Text") == "{DynamicResource CustomTimeDurationRange}" &&
             (string?)element.Attribute("Foreground") == "{DynamicResource TextSecondary}" &&
-            (string?)element.Attribute("FontSize") == "12");
+            (string?)element.Attribute("FontSize") == "{DynamicResource SecondaryFontSize}");
         Assert.Contains(root.Descendants(presentation + "TextBox"), element =>
             (string?)element.Attribute("Text") == "{Binding MinutesInput, UpdateSourceTrigger=PropertyChanged}" &&
             (string?)element.Attribute("MaxLength") == "3" &&

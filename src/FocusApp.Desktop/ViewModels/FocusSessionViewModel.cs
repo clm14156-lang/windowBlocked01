@@ -168,7 +168,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         {
             var task = target.Tasks.FirstOrDefault(item => item.TaskId == source.TaskId);
             if (task is null)
-                task = target.AddTask(source.TaskId, source.Name, source.IsCompleted, createdAtUtc: source.CreatedAtUtc, completedAtUtc: source.CompletedAtUtc);
+                task = target.AddTask(source.TaskId, source.Name, false, createdAtUtc: source.CreatedAtUtc);
             else task.ApplyName(source.Name);
             task.ApplyDetails(source);
         }
@@ -1383,6 +1383,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
                 if (completedTask is not null)
                 {
                     task.ApplyCompletion(true, completedTask.CompletedAtUtc ?? GetCurrentUtc());
+                    if (!task.IsCompleted) continue;
                     _sessionCompletedTaskSet.Add(task);
                     SessionCompletedTasks.Add(task);
                 }

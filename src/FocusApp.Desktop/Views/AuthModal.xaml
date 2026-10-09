@@ -123,6 +123,7 @@
             BorderThickness="1"
             CornerRadius="16"
             MouseDown="AuthCard_MouseDown">
+        <Grid x:Name="CloseButtonHost">
         <Grid Margin="28,0">
             <Grid x:Name="LoginPanel" TextElement.FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI">
                 <Grid.Style>
@@ -347,10 +348,12 @@
                         VerticalAlignment="Top"
                         AutomationProperties.Name="{DynamicResource AuthLoginAction}"
                         Command="{Binding LoginCommand}"
+                        FontSize="{DynamicResource ButtonEmphasisFontSize}"
+                        FontWeight="{DynamicResource ButtonEmphasisFontWeight}"
                         Style="{StaticResource AuthPrimaryButtonStyle}">
                     <TextBlock Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
-                               FontSize="13"
-                               FontWeight="Medium"
+                               FontSize="{Binding FontSize, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
+                               FontWeight="{Binding FontWeight, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
                                Text="{DynamicResource AuthLoginAction}" />
                 </Button>
                 <TextBlock Margin="0,326,0,0"
@@ -956,6 +959,9 @@
                                    Text="{DynamicResource AuthRegisterAction}" />
                 </Button>
             </Grid>
+        </Grid>
+            <Button x:Name="ModalCloseButton" AutomationProperties.Name="关闭账号登录弹窗"
+                    Command="{Binding CloseCommand}" Style="{DynamicResource ModalCloseButtonStyle}" />
         </Grid>
     </Border>
 </UserControl>

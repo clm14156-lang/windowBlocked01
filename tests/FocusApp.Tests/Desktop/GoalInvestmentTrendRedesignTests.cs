@@ -277,7 +277,7 @@ public sealed class GoalInvestmentTrendRedesignTests
             Assert.Equal(ReferenceEquals(button, selected) ? Color.FromRgb(0xFF, 0x7A, 0x00)
                 : Color.FromRgb(0x9A, 0xA2, 0xAF), ((SolidColorBrush)label.Foreground).Color);
             Assert.Equal(13, label.FontSize);
-            Assert.Equal(FontWeights.Normal, label.FontWeight);
+            Assert.Equal(ReferenceEquals(button, selected) ? FontWeights.Medium : FontWeights.Normal, label.FontWeight);
             Assert.Equal(seven.FontFamily, label.FontFamily);
         }
     }

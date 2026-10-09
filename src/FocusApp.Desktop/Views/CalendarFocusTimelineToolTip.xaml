@@ -1,9 +1,14 @@
 <UserControl x:Class="FocusApp.Desktop.Views.CalendarFocusTimelineToolTip"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             x:Name="Root" FontFamily="Microsoft YaHei UI" UseLayoutRounding="True"
-             Width="200" MinWidth="200" MaxWidth="200">
+             xmlns:views="clr-namespace:FocusApp.Desktop.Views"
+             x:Name="Root" FontFamily="{DynamicResource FontFamilyPrimary}" UseLayoutRounding="True"
+             MaxWidth="240">
     <UserControl.Resources>
+      <ResourceDictionary>
+        <ResourceDictionary.MergedDictionaries>
+            <ResourceDictionary Source="/FocusApp.Desktop;component/Resources/PoptipStyles.xaml" />
+        </ResourceDictionary.MergedDictionaries>
         <Style x:Key="TaskScrollBar" TargetType="ScrollBar">
             <Setter Property="Width" Value="4"/>
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ScrollBar">
@@ -16,14 +21,15 @@
         </Style>
         <Style x:Key="MoreLinkStyle" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="#8993A2"/>
+            <Setter Property="Foreground" Value="{StaticResource PoptipSecondaryBrush}"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="0"/>
             <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontSize" Value="{DynamicResource SecondaryFontSize}"/>
+            <Setter Property="FontWeight" Value="{DynamicResource SecondaryFontWeight}"/>
             <Setter Property="HorizontalAlignment" Value="Left"/>
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
-                <TextBlock Text="{TemplateBinding Content}" FontSize="{TemplateBinding FontSize}"
+                <TextBlock Text="{TemplateBinding Content}" FontSize="{TemplateBinding FontSize}" FontWeight="{TemplateBinding FontWeight}"
                            Foreground="{TemplateBinding Foreground}" VerticalAlignment="Center"/>
             </ControlTemplate></Setter.Value></Setter>
             <Style.Triggers>
@@ -32,20 +38,17 @@
                 <Trigger Property="IsKeyboardFocused" Value="True"><Setter Property="Foreground" Value="#FF8000"/></Trigger>
             </Style.Triggers>
         </Style>
+          </ResourceDictionary>
     </UserControl.Resources>
-    <Grid Margin="0,8,0,8">
-        <Border x:Name="PoptipSurface" Background="White" BorderBrush="#E9EDF2" BorderThickness="1"
-                CornerRadius="10" Padding="12,10" Margin="0,7,0,7">
-            <Border.Effect><DropShadowEffect Color="#243047" Opacity="0.07" BlurRadius="12" ShadowDepth="2"/></Border.Effect>
+<views:PoptipChrome x:Name="PoptipSurface" Style="{StaticResource PoptipSurfaceStyle}"
+                        PointerLeft="{Binding PointerLeft, ElementName=Root}">
             <StackPanel x:Name="PoptipLayout">
-                <TextBlock x:Name="GoalTitle" Text="{Binding Record.GoalName}" FontSize="13" FontWeight="SemiBold"
-                           Foreground="#202A38" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" Margin="0,0,0,5">
-                    <TextBlock.Style><Style TargetType="TextBlock"><Style.Triggers>
+                <TextBlock x:Name="GoalTitle" Text="{Binding Record.GoalName}" Margin="0,0,0,4">
+                    <TextBlock.Style><Style TargetType="TextBlock" BasedOn="{StaticResource PoptipPrimaryTextStyle}"><Style.Triggers>
                         <DataTrigger Binding="{Binding Record.HasGoal}" Value="False"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
                     </Style.Triggers></Style></TextBlock.Style>
                 </TextBlock>
-                <TextBlock x:Name="TimeSummary" Text="{Binding Record.CalendarPoptipSummaryDisplay}"
-                           FontSize="11" Foreground="#7C8696" TextWrapping="NoWrap"/>
+                <TextBlock x:Name="TimeSummary" Text="{Binding Record.CalendarPoptipSummaryDisplay}" Style="{StaticResource PoptipSecondaryTextStyle}"/>
                 <StackPanel x:Name="CompletedContent">
                     <StackPanel.Style><Style TargetType="StackPanel"><Style.Triggers>
                         <DataTrigger Binding="{Binding HasTasks}" Value="False"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
@@ -71,8 +74,8 @@
                                         <Path x:Name="CompletionTick" Data="M 4,8 L 6.7,10.5 L 12,5.5" Stroke="White" StrokeThickness="1.6"
                                               StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/>
                                     </Grid>
-                                    <TextBlock x:Name="TaskName" Grid.Column="2" Text="{Binding Name}" FontSize="12" FontWeight="Medium"
-                                               Foreground="#354052" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
+                                    <TextBlock x:Name="TaskName" Grid.Column="2" Text="{Binding Name}" Style="{StaticResource PoptipPrimaryTextStyle}"
+                                               VerticalAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
                                 </Grid>
                                 <DataTemplate.Triggers>
                                     <DataTrigger Binding="{Binding IsSubTask}" Value="False">
@@ -87,9 +90,9 @@
                                         <Setter TargetName="CompletionIcon" Property="Width" Value="14"/>
                                         <Setter TargetName="CompletionIcon" Property="Height" Value="14"/>
                                         <Setter TargetName="CompletionTick" Property="RenderTransform"><Setter.Value><ScaleTransform ScaleX="0.875" ScaleY="0.875"/></Setter.Value></Setter>
-                                        <Setter TargetName="TaskName" Property="FontSize" Value="11"/>
-                                        <Setter TargetName="TaskName" Property="FontWeight" Value="Normal"/>
-                                        <Setter TargetName="TaskName" Property="Foreground" Value="#8993A2"/>
+                                        <Setter TargetName="TaskName" Property="FontSize" Value="{DynamicResource SecondaryFontSize}"/>
+                                        <Setter TargetName="TaskName" Property="FontWeight" Value="{DynamicResource SecondaryFontWeight}"/>
+                                        <Setter TargetName="TaskName" Property="Foreground" Value="{StaticResource PoptipSecondaryBrush}"/>
                                     </DataTrigger>
                                     <DataTrigger Binding="{Binding IsLastChild}" Value="True">
                                         <Setter TargetName="HierarchyLine" Property="Height" Value="14"/>
@@ -112,10 +115,5 @@
                     </Grid>
                 </StackPanel>
             </StackPanel>
-        </Border>
-        <Canvas Height="8" VerticalAlignment="Bottom" IsHitTestVisible="False">
-            <Path x:Name="BottomPointer" Canvas.Left="{Binding PointerLeft, ElementName=Root}" Width="14" Height="8"
-                  Data="M 0,0 L 7,7 L 14,0" Fill="White" Stroke="#E9EDF2" StrokeThickness="1"/>
-        </Canvas>
-    </Grid>
+    </views:PoptipChrome>
 </UserControl>

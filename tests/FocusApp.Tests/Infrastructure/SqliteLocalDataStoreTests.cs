@@ -8,6 +8,82 @@ namespace FocusApp.Tests.Infrastructure;
 public sealed class SqliteLocalDataStoreTests
 {
     [Fact]
+    public async Task TaskCompletionIsNormalizedOnSaveReopenAndLegacyRepair()
+    {
+        using var database = new TemporaryDatabase();
+        var now = DateTimeOffset.UtcNow;
+        var target = new LocalTarget("goal", "目标", false, 0, now, now);
+        var invalid = new LocalTask("invalid", target.TargetId, "1阿1331", true, 0, now, now)
+        {
+            CompletedAtUtc = now,
+            SubTasks = Enumerable.Range(0, 3).Select(index =>
+                new LocalSubTask($"child-{index}", "invalid", "子任务", false, index, now, now)).ToArray()
+        };
+        var valid = new LocalTask("valid", target.TargetId, "完整任务", true, 1, now, now)
+        {
+            CompletedAtUtc = now,
+            SubTasks = [new("done-child", "valid", "已完成子任务", true, 0, now, now)]
+        };
+        var plain = new LocalTask("plain", target.TargetId, "无子任务", true, 2, now, now) { CompletedAtUtc = now };
+        var pending = valid with { TaskId = "pending", IsCompleted = false,
+            SubTasks = [valid.SubTasks[0] with { Id = "pending-child", TaskId = "pending" }] };
+        await database.CreateStore().SaveTargetAsync(target, [invalid, valid, plain, pending]);
+        var state = await database.CreateStore().LoadAsync();
+        Assert.Equal(2, state.Tasks.Count(task => task.IsCompleted));
+        Assert.All(state.Tasks.Where(task => !task.IsCompleted), task => Assert.Null(task.CompletedAtUtc));
+        Assert.Equal(invalid.SubTasks, state.Tasks.Single(task => task.TaskId == invalid.TaskId).SubTasks);
+
+        // Simulate a database written by the old version, then check that repair reaches storage.
+        await using var connection = new SqliteConnection($"Data Source={database.Path}");
+        await connection.OpenAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = "UPDATE tasks SET is_completed = 1, completed_utc = $time WHERE task_id = 'invalid';";
+        command.Parameters.AddWithValue("$time", now.ToString("O"));
+        await command.ExecuteNonQueryAsync();
+        state = await database.CreateStore().LoadAsync();
+        Assert.False(state.Tasks.Single(task => task.TaskId == "invalid").IsCompleted);
+        Assert.Equal(2, state.Tasks.Count(task => task.IsCompleted));
+        command.CommandText = "SELECT COUNT(*) FROM tasks WHERE task_id = 'invalid' AND is_completed = 0 AND completed_utc IS NULL;";
+        Assert.Equal(1L, (long)(await command.ExecuteScalarAsync())!);
+
+        // A stale parent flag cannot survive restoring a child, even after restarting.
+        await database.CreateStore().SaveTargetAsync(target, [valid with
+        {
+            SubTasks = [valid.SubTasks[0] with { IsCompleted = false }]
+        }]);
+        var reopened = Assert.Single((await database.CreateStore().LoadAsync()).Tasks);
+        Assert.False(reopened.IsCompleted);
+        Assert.Null(reopened.CompletedAtUtc);
+        Assert.False(Assert.Single(reopened.SubTasks).IsCompleted);
+    }
+
+    [Fact]
+    public async Task FocusSessionTaskMarkingCannotCompleteAParentWithPendingChildren()
+    {
+        using var database = new TemporaryDatabase();
+        var now = DateTimeOffset.UtcNow;
+        var target = new LocalTarget("goal", "目标", false, 0, now, now);
+        var tasks = new[]
+        {
+            new LocalTask("partial", "goal", "未完成子任务", false, 0, now, now)
+            { SubTasks = [new("a", "partial", "子任务", false, 0, now, now)] },
+            new LocalTask("full", "goal", "已完成子任务", false, 1, now, now)
+            { SubTasks = [new("b", "full", "子任务", true, 0, now, now)] },
+            new LocalTask("plain", "goal", "无子任务", false, 2, now, now)
+        };
+        var store = database.CreateStore();
+        await store.SaveTargetAsync(target, tasks);
+        var session = new LocalFocusSession(Guid.NewGuid(), LocalFocusSessionStatus.Completed, false, 60, 60,
+            now, now, now.AddMinutes(1), now.AddMinutes(1), FocusCompletionKind.Natural,
+            target.TargetId, target.Name, false, null, null, []);
+        await store.SaveFocusSessionAsync(session, tasks.Select(task => task.TaskId).ToArray());
+        var state = await database.CreateStore().LoadAsync();
+        Assert.False(state.Tasks.Single(task => task.TaskId == "partial").IsCompleted);
+        Assert.Null(state.Tasks.Single(task => task.TaskId == "partial").CompletedAtUtc);
+        Assert.Equal(2, state.Tasks.Count(task => task.IsCompleted));
+    }
+
+    [Fact]
     public async Task DurationMultiSelectionPersistsItsClickOrderAcrossDatabaseAndDesktopRestart()
     {
         using var database = new TemporaryDatabase();

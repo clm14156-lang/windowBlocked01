@@ -127,6 +127,11 @@ public sealed class FocusTaskDrawerViewModelTests
         Assert.Equal(3, saves);
         Assert.Equal("子任务 · 0/1", task.SubTaskProgress);
         task.IsCompleted = true;
+        Assert.False(task.IsCompleted);
+        Assert.Equal("0/1", drawer.TaskProgress);
+        Assert.Empty(session.SessionCompletedTasks);
+        task.SubTasks[0].IsCompleted = true;
+        task.IsCompleted = true;
         Assert.Equal("1/1", drawer.TaskProgress);
         Assert.Single(session.SessionCompletedTasks);
         drawer.EditTaskCommand.Execute(task);
@@ -176,6 +181,8 @@ public sealed class FocusTaskDrawerViewModelTests
             drawer.CreateTaskCommand.Execute(null);
         }
         var original = session.ActiveTarget!.Tasks.ToArray();
+        foreach (var task in new[] { original[0], original[2] })
+            foreach (var child in task.SubTasks) child.IsCompleted = true;
         original[0].IsCompleted = true;
         original[2].IsCompleted = true;
         Assert.Equal(new[] { original[1] }, drawer.Tasks);
@@ -189,6 +196,7 @@ public sealed class FocusTaskDrawerViewModelTests
         Assert.Equal(new[] { original[2] }, drawer.TodayCompletedTasks);
         Assert.Equal("1/3", drawer.TaskProgress);
         var children = original[0].SubTasks.ToArray();
+        foreach (var child in children) child.IsCompleted = false;
         children[0].IsCompleted = true;
         Assert.Equal(new[] { children[1], children[2], children[0] }, original[0].SortedSubTasks);
         Assert.Equal(children.Select(item => item.Id), original[0].ExportSubTasks().Select(item => item.Id));

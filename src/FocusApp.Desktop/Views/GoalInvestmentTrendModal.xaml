@@ -6,7 +6,7 @@
              xmlns:vm="clr-namespace:FocusApp.Desktop.ViewModels"
              UseLayoutRounding="True" SnapsToDevicePixels="True" Focusable="True"
              TextElement.FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI"
-             TextElement.FontSize="13" TextElement.FontWeight="Normal"
+             TextElement.FontSize="{DynamicResource BodyFontSize}" TextElement.FontWeight="{DynamicResource BodyFontWeight}"
              KeyboardNavigation.TabNavigation="Cycle" PreviewKeyDown="Modal_PreviewKeyDown"
              IsVisibleChanged="Modal_IsVisibleChanged">
     <UserControl.Style>
@@ -16,9 +16,6 @@
         <sys:Boolean x:Key="SelectedRangeValue">True</sys:Boolean>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
         <Style TargetType="{x:Type TextBlock}">
-            <Setter Property="FontFamily" Value="Segoe UI Variable, Microsoft YaHei UI, Segoe UI"/>
-            <Setter Property="FontSize" Value="13"/>
-            <Setter Property="FontWeight" Value="Normal"/>
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
         </Style>
         <Style x:Key="TrendQuietButton" TargetType="Button">
@@ -41,8 +38,8 @@
         <Style x:Key="TrendRangeButton" TargetType="Button">
             <Setter Property="Height" Value="32"/><Setter Property="Padding" Value="12,0"/>
             <Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Foreground" Value="#9AA2AF"/><Setter Property="FontSize" Value="13"/>
-            <Setter Property="FontFamily" Value="Segoe UI Variable, Microsoft YaHei UI, Segoe UI"/><Setter Property="FontWeight" Value="Normal"/>
+            <Setter Property="Foreground" Value="#9AA2AF"/><Setter Property="FontSize" Value="{DynamicResource BodyFontSize}"/>
+            <Setter Property="FontFamily" Value="Segoe UI Variable, Microsoft YaHei UI, Segoe UI"/><Setter Property="FontWeight" Value="{DynamicResource BodyFontWeight}"/>
             <Setter Property="Cursor" Value="Hand"/><Setter Property="FocusVisualStyle" Value="{x:Null}"/>
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
                 <Border x:Name="Surface" Padding="{TemplateBinding Padding}" Background="Transparent">
@@ -51,7 +48,7 @@
                 <ControlTemplate.Triggers>
                     <Trigger Property="IsMouseOver" Value="True"><Setter Property="Foreground" Value="#778294"/></Trigger>
                     <Trigger Property="IsKeyboardFocused" Value="True"><Setter Property="Foreground" Value="#778294"/></Trigger>
-                    <Trigger Property="Tag" Value="{StaticResource SelectedRangeValue}"><Setter Property="Foreground" Value="{DynamicResource AccentPrimary}"/></Trigger>
+                    <Trigger Property="Tag" Value="{StaticResource SelectedRangeValue}"><Setter Property="Foreground" Value="{DynamicResource AccentPrimary}"/><Setter Property="FontWeight" Value="{DynamicResource BodyMediumFontWeight}"/></Trigger>
                     <Trigger Property="IsPressed" Value="True"><Setter TargetName="Surface" Property="Opacity" Value="0.8"/></Trigger>
                 </ControlTemplate.Triggers>
             </ControlTemplate></Setter.Value></Setter>
@@ -98,20 +95,20 @@
             <Grid>
                 <Grid.RowDefinitions><RowDefinition Height="60"/><RowDefinition Height="80"/><RowDefinition Height="30"/><RowDefinition/></Grid.RowDefinitions>
                 <StackPanel Margin="0,0,38,0">
-                    <TextBlock Text="{Binding GoalName}" FontSize="24" FontWeight="SemiBold" Foreground="#17202C" TextTrimming="CharacterEllipsis" ToolTip="{Binding GoalRemark}"/>
-                    <TextBlock Text="投入趋势" FontSize="13" Foreground="#8D96A8" Margin="0,4,0,0"/>
+                    <TextBlock Text="{Binding GoalName}" FontSize="{DynamicResource DialogTitleFontSize}" FontWeight="{DynamicResource DialogTitleFontWeight}" Foreground="#17202C" TextTrimming="CharacterEllipsis" ToolTip="{Binding GoalRemark}"/>
+                    <TextBlock Text="投入趋势" FontSize="{DynamicResource SecondaryFontSize}" FontWeight="{DynamicResource SecondaryFontWeight}" Foreground="#8D96A8" Margin="0,4,0,0"/>
                 </StackPanel>
                 <Button Width="24" Height="24" Margin="0,0,-6,0" HorizontalAlignment="Right" VerticalAlignment="Top" Style="{StaticResource TrendQuietButton}" Command="{Binding CloseCommand}" AutomationProperties.Name="关闭投入趋势">
                     <TextBlock Text="×" FontSize="22" Foreground="{DynamicResource TextWeak}"/>
                 </Button>
                 <StackPanel x:Name="InvestmentSummary" Grid.Row="1" HorizontalAlignment="Left">
-                    <TextBlock x:Name="InvestmentDuration" Foreground="#17202C" FontSize="44" FontWeight="SemiBold">
+                    <TextBlock x:Name="InvestmentDuration" Foreground="#17202C" FontSize="{DynamicResource DataValueDisplayFontSize}" FontWeight="{DynamicResource DataValueDisplayFontWeight}">
                         <Run Text="{Binding PeriodInvestment.HoursValue, Mode=OneWay}"/>
-                        <Run Text="{Binding PeriodInvestment.HoursUnitWithLeadingSpace, Mode=OneWay}" FontSize="16" FontWeight="Normal"/>
+                        <Run Text="{Binding PeriodInvestment.HoursUnitWithLeadingSpace, Mode=OneWay}" FontSize="{DynamicResource BodyFontSize}" FontWeight="{DynamicResource BodyFontWeight}"/>
                         <Run Text="{Binding PeriodInvestment.MinutesValueWithLeadingSpace, Mode=OneWay}"/>
-                        <Run Text="{Binding PeriodInvestment.MinutesUnitWithLeadingSpace, Mode=OneWay}" FontSize="16" FontWeight="Normal"/>
+                        <Run Text="{Binding PeriodInvestment.MinutesUnitWithLeadingSpace, Mode=OneWay}" FontSize="{DynamicResource BodyFontSize}" FontWeight="{DynamicResource BodyFontWeight}"/>
                     </TextBlock>
-                    <TextBlock Text="{Binding InvestmentSummary}" Margin="0,5,0,0" FontSize="12" Foreground="#8D96A8"/>
+                    <TextBlock Text="{Binding InvestmentSummary}" Margin="0,5,0,0" FontSize="{DynamicResource SecondaryFontSize}" FontWeight="{DynamicResource SecondaryFontWeight}" Foreground="#8D96A8"/>
                 </StackPanel>
                 <Border x:Name="RangeSelectorSurface" Grid.Row="1" Height="34" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,8,0,0" Background="Transparent" BorderThickness="0">
                     <Grid>

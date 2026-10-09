@@ -56,7 +56,7 @@ public sealed class TrendChartPresentationTests
         Assert.Equal("False", (string?)tooltip.Attribute("Focusable"));
         Assert.Equal("TrendTooltipPopup_Opened", (string?)tooltip.Attribute("Opened"));
         Assert.Equal("TrendTooltipPopup_Closed", (string?)tooltip.Attribute("Closed"));
-        var tooltipRoot = Assert.Single(tooltip.Elements(Presentation + "Border"));
+        var tooltipRoot = Assert.Single(tooltip.Elements(XNamespace.Get("clr-namespace:FocusApp.Desktop.Views") + "PoptipChrome"));
         Assert.Equal("False", (string?)tooltipRoot.Attribute("IsHitTestVisible"));
         Assert.Equal("False", (string?)tooltipRoot.Attribute("Focusable"));
         var date = Assert.Single(tooltip.Descendants(Presentation + "TextBlock").Where(text =>
@@ -64,13 +64,9 @@ public sealed class TrendChartPresentationTests
         var duration = Assert.Single(tooltip.Descendants(Presentation + "TextBlock").Where(text =>
             (string?)text.Attribute("Text") == "{Binding TooltipDurationDisplay}"));
 
-        Assert.Equal("12", (string?)date.Attribute("FontSize"));
-        Assert.Equal("Normal", (string?)date.Attribute("FontWeight"));
-        Assert.Equal("{DynamicResource TextUnit}", (string?)date.Attribute("Foreground"));
-        Assert.Equal("15", (string?)duration.Attribute("FontSize"));
-        Assert.Equal("Medium", (string?)duration.Attribute("FontWeight"));
-        Assert.Equal("{DynamicResource AccentPrimary}", (string?)duration.Attribute("Foreground"));
-        Assert.Equal("0,5,0,0", (string?)duration.Attribute("Margin"));
+        Assert.Equal("{StaticResource PoptipSecondaryTextStyle}", (string?)date.Attribute("Style"));
+        Assert.Equal("{StaticResource PoptipAccentTextStyle}", (string?)duration.Attribute("Style"));
+        Assert.Equal("0,4,0,0", (string?)duration.Attribute("Margin"));
     }
 
     [Fact]

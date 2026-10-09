@@ -169,8 +169,14 @@ public sealed class BlockingPagePresentationTests
                     (string?)setter.Attribute("Value") == "Collapsed"));
         }
 
-        Assert.Single(modal.Descendants(Presentation + "Button").Where(button =>
-            (string?)button.Attribute("Command") == "{Binding CloseCommand}"));
+        var closeButtons = modal.Descendants(Presentation + "Button").Where(button =>
+            (string?)button.Attribute("Command") == "{Binding CloseCommand}").ToArray();
+        Assert.Equal(2, closeButtons.Length);
+        Assert.Contains(closeButtons, button =>
+            (string?)button.Attribute("AutomationProperties.Name") == "{DynamicResource BlockingModalCancel}");
+        Assert.Contains(closeButtons, button =>
+            (string?)button.Attribute(Xaml + "Name") == "ModalCloseButton" &&
+            (string?)button.Attribute("Style") == "{DynamicResource ModalCloseButtonStyle}");
         Assert.Single(modal.Descendants(Presentation + "Button").Where(button =>
             (string?)button.Attribute("Command") == "{Binding SaveCommand}"));
         Assert.Contains(modal.Descendants(Presentation + "Setter"), setter =>

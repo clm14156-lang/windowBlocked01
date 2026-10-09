@@ -12,10 +12,20 @@ namespace FocusApp.Desktop.Services;
 public static class BlockedAccessNotificationService
 {
     private static BlockedAccessNotificationWindow? _activeWindow;
+    private static BlockedAccessNotificationSessionScope? _sessionScope;
+
+    public static void SetFocusSession(FocusSessionViewModel? focusSession)
+    {
+        _sessionScope?.Dispose();
+        _sessionScope = focusSession is null ? null : new BlockedAccessNotificationSessionScope(focusSession);
+    }
 
     public static void Show(BlockedAccessNotificationData data)
     {
         ArgumentNullException.ThrowIfNull(data);
+
+        if (_sessionScope?.ShouldShow(data.Type) == false || _activeWindow?.IsActionsOpen == true)
+            return;
 
         _activeWindow?.Close();
 
@@ -24,11 +34,14 @@ public static class BlockedAccessNotificationService
             : "BlockedAccessNotificationApplicationKind";
         var targetKindDisplay = Application.Current?.TryFindResource(targetKindResourceKey) as string
             ?? data.Type;
+        var scope = _sessionScope;
+        var sessionToken = scope?.CurrentSessionToken;
         var viewModel = new BlockedAccessNotificationViewModel(
             data.Name,
             data.Address,
             data.Type,
-            targetKindDisplay);
+            targetKindDisplay,
+            sessionToken is null ? null : () => scope!.SuppressWebsiteNotifications(sessionToken));
         var window = new BlockedAccessNotificationWindow
         {
             DataContext = viewModel

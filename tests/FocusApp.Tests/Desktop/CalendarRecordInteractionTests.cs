@@ -78,11 +78,11 @@ public sealed class CalendarRecordInteractionTests
                 Assert.Equal("开发屏蔽软件", ((TextBlock)content.FindName("GoalTitle")).Text);
                 Assert.Equal("14:09 - 14:39 · 30分钟", ((TextBlock)content.FindName("TimeSummary")).Text);
                 Assert.Same(PresentationSource.FromVisual(page), PresentationSource.FromVisual(content));
-                Assert.Equal(200, content.ActualWidth);
+                Assert.InRange(content.ActualWidth, 1, PoptipChrome.MaximumWidth);
                 void AboveBlock(int index)
                 {
                     Pump(page);
-                    var pointer = content.TranslatePoint(new Point(content.PointerLeft + 7, content.ActualHeight - 8), timeline);
+                    var pointer = content.TranslatePoint(new Point(content.PointerLeft + PoptipChrome.ShadowInset + PoptipChrome.PointerWidth / 2, content.ActualHeight - PoptipChrome.ShadowInset), timeline);
                     Assert.InRange(Math.Abs(pointer.X - Center(index).X), 0, 1);
                     Assert.True(pointer.Y < timeline.TrackTop);
                 }

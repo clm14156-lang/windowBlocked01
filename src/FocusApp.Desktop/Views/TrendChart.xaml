@@ -129,8 +129,8 @@
                     <TextBlock Width="58"
                                Margin="-29,0,0,0"
                                TextAlignment="Center"
-                               FontSize="12"
-                               FontWeight="Normal"
+                               FontSize="{DynamicResource CaptionFontSize}"
+                               FontWeight="{DynamicResource CaptionFontWeight}"
                                Foreground="{DynamicResource TextSecondary}"
                                Text="{Binding DateLabel}">
                         <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding IsDateLabelVisible}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></TextBlock.Style>

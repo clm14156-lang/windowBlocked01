@@ -133,6 +133,7 @@
             BorderThickness="1"
             CornerRadius="12"
             MouseDown="ModalCard_MouseDown">
+        <Grid x:Name="CloseButtonHost">
         <Grid Margin="24,18">
             <Grid.RowDefinitions>
                 <RowDefinition Height="28" />
@@ -293,6 +294,9 @@
                     </Button.Style>
                 </Button>
             </StackPanel>
+        </Grid>
+            <Button x:Name="ModalCloseButton" AutomationProperties.Name="关闭网站弹窗"
+                    Command="{Binding CloseCommand}" Style="{DynamicResource ModalCloseButtonStyle}" />
         </Grid>
     </Border>
 </UserControl>

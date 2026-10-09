@@ -5,12 +5,108 @@
     <FontFamily x:Key="FontFamilyEnglish">Segoe UI Variable Text</FontFamily>
     <FontFamily x:Key="FontFamilyNumeric">Segoe UI Variable Display</FontFamily>
 
+    <!-- Semantic sizes. Each key uses a typed value so WPF retains it in compiled dictionaries. -->
     <system:Double x:Key="PageTitleFontSize">20</system:Double>
-    <system:Double x:Key="SectionTitleFontSize">16</system:Double>
-    <system:Double x:Key="CardTitleFontSize">15</system:Double>
-    <system:Double x:Key="BodyFontSize">14</system:Double>
+    <system:Double x:Key="DialogTitleFontSize">17</system:Double>
+    <system:Double x:Key="SectionTitleFontSize">15</system:Double>
+    <system:Double x:Key="BodyFontSize">13</system:Double>
+    <system:Double x:Key="BodyMediumFontSize">13</system:Double>
+    <system:Double x:Key="ButtonFontSize">13</system:Double>
+    <system:Double x:Key="ButtonEmphasisFontSize">14</system:Double>
     <system:Double x:Key="SecondaryFontSize">12</system:Double>
-    <system:Double x:Key="PrimaryActionFontSize">24</system:Double>
+    <system:Double x:Key="SecondaryMediumFontSize">12</system:Double>
+    <system:Double x:Key="CaptionFontSize">11</system:Double>
+    <system:Double x:Key="DataValueFontSize">24</system:Double>
+    <system:Double x:Key="DataValueLargeFontSize">32</system:Double>
+    <system:Double x:Key="DataValueDisplayFontSize">40</system:Double>
+    <system:Double x:Key="DataValueHeroFontSize">50</system:Double>
+    <system:Double x:Key="TimerFontSize">32</system:Double>
+    <system:Double x:Key="TimerUnitFontSize">16</system:Double>
+    <system:Double x:Key="TimerConfirmationFontSize">36</system:Double>
+
+    <!-- WPF weight names: Normal=400, Medium=500, SemiBold=600. -->
+    <FontWeight x:Key="FontWeightRegular">Normal</FontWeight>
+    <FontWeight x:Key="FontWeightMedium">Medium</FontWeight>
+    <FontWeight x:Key="FontWeightSemiBold">SemiBold</FontWeight>
+    <FontWeight x:Key="FontWeightBold">Bold</FontWeight>
+    <FontWeight x:Key="PageTitleFontWeight">SemiBold</FontWeight>
+    <FontWeight x:Key="DialogTitleFontWeight">SemiBold</FontWeight>
+    <FontWeight x:Key="SectionTitleFontWeight">Medium</FontWeight>
+    <FontWeight x:Key="BodyFontWeight">Normal</FontWeight>
+    <FontWeight x:Key="BodyMediumFontWeight">Medium</FontWeight>
+    <FontWeight x:Key="ButtonFontWeight">Medium</FontWeight>
+    <FontWeight x:Key="ButtonEmphasisFontWeight">SemiBold</FontWeight>
+    <FontWeight x:Key="SecondaryFontWeight">Normal</FontWeight>
+    <FontWeight x:Key="SecondaryMediumFontWeight">Medium</FontWeight>
+    <FontWeight x:Key="CaptionFontWeight">Normal</FontWeight>
+    <FontWeight x:Key="DataValueFontWeight">SemiBold</FontWeight>
+    <FontWeight x:Key="DataValueLargeFontWeight">SemiBold</FontWeight>
+    <FontWeight x:Key="DataValueDisplayFontWeight">SemiBold</FontWeight>
+    <FontWeight x:Key="DataValueHeroFontWeight">Bold</FontWeight>
+    <FontWeight x:Key="TimerFontWeight">SemiBold</FontWeight>
+    <FontWeight x:Key="TimerMediumFontWeight">Medium</FontWeight>
+    <FontWeight x:Key="TimerUnitFontWeight">Medium</FontWeight>
+
+    <!-- Compatibility for existing references; new code should use semantic keys. -->
+    <system:Double x:Key="CardTitleFontSize">15</system:Double>
+    <system:Double x:Key="PrimaryActionFontSize">13</system:Double>
+
+    <!-- Typography styles only set size and weight; local font families remain available. -->
+    <Style x:Key="PageTitleTextStyle" TargetType="{x:Type TextBlock}">
+        <Setter Property="FontSize" Value="{DynamicResource PageTitleFontSize}" />
+        <Setter Property="FontWeight" Value="{DynamicResource PageTitleFontWeight}" />
+    </Style>
+    <Style x:Key="DialogTitleTextStyle" TargetType="{x:Type TextBlock}">
+        <Setter Property="FontSize" Value="{DynamicResource DialogTitleFontSize}" />
+        <Setter Property="FontWeight" Value="{DynamicResource DialogTitleFontWeight}" />
+    </Style>
+    <Style x:Key="SectionTitleTextStyle" TargetType="{x:Type TextBlock}">
+        <Setter Property="FontSize" Value="{DynamicResource SectionTitleFontSize}" />
+        <Setter Property="FontWeight" Value="{DynamicResource SectionTitleFontWeight}" />
+    </Style>
+    <Style x:Key="BodyTextStyle" TargetType="{x:Type TextBlock}">
+        <Setter Property="FontSize" Value="{DynamicResource BodyFontSize}" />
+        <Setter Property="FontWeight" Value="{DynamicResource BodyFontWeight}" />
+    </Style>
+    <Style x:Key="BodyMediumTextStyle" TargetType="{x:Type TextBlock}">
+        <Setter Property="FontSize" Value="{DynamicResource BodyMediumFontSize}" />
+        <Setter Property="FontWeight" Value="{DynamicResource BodyMediumFontWeight}" />
+    </Style>
+    <Style x:Key="ButtonTextStyle" TargetType="{x:Type TextBlock}">
+        <Setter Property="FontSize" Value="{DynamicResource ButtonFontSize}" />
+        <Setter Property="FontWeight" Value="{DynamicResource ButtonFontWeight}" />
+    </Style>
+    <Style x:Key="SecondaryTextStyle" TargetType="{x:Type TextBlock}">
+        <Setter Property="FontSize" Value="{DynamicResource SecondaryFontSize}" />
+        <Setter Property="FontWeight" Value="{DynamicResource SecondaryFontWeight}" />
+    </Style>
+    <Style x:Key="SecondaryMediumTextStyle" TargetType="{x:Type TextBlock}">
+        <Setter Property="FontSize" Value="{DynamicResource SecondaryMediumFontSize}" />
+        <Setter Property="FontWeight" Value="{DynamicResource SecondaryMediumFontWeight}" />
+    </Style>
+    <Style x:Key="CaptionTextStyle" TargetType="{x:Type TextBlock}">
+        <Setter Property="FontSize" Value="{DynamicResource CaptionFontSize}" />
+        <Setter Property="FontWeight" Value="{DynamicResource CaptionFontWeight}" />
+    </Style>
+    <Style x:Key="DataValueTextStyle" TargetType="{x:Type TextBlock}">
+        <Setter Property="FontSize" Value="{DynamicResource DataValueFontSize}" />
+        <Setter Property="FontWeight" Value="{DynamicResource DataValueFontWeight}" />
+    </Style>
+    <Style x:Key="DataValueDisplayTextStyle" TargetType="{x:Type TextBlock}">
+        <Setter Property="FontSize" Value="{DynamicResource DataValueDisplayFontSize}" />
+        <Setter Property="FontWeight" Value="{DynamicResource DataValueDisplayFontWeight}" />
+    </Style>
+    <Style x:Key="TimerTextStyle" TargetType="{x:Type TextBlock}">
+        <Setter Property="FontSize" Value="{DynamicResource TimerFontSize}" />
+        <Setter Property="FontWeight" Value="{DynamicResource TimerFontWeight}" />
+    </Style>
+    <Style x:Key="TimerMediumTextStyle" TargetType="{x:Type TextBlock}" BasedOn="{StaticResource TimerTextStyle}">
+        <Setter Property="FontWeight" Value="{DynamicResource TimerMediumFontWeight}" />
+    </Style>
+    <Style x:Key="ButtonTypographyStyle" TargetType="{x:Type Button}">
+        <Setter Property="FontSize" Value="{DynamicResource ButtonFontSize}" />
+        <Setter Property="FontWeight" Value="{DynamicResource ButtonFontWeight}" />
+    </Style>
 
     <Thickness x:Key="PageHorizontalPadding">40,0</Thickness>
     <Thickness x:Key="PageTopPadding">0,28,0,0</Thickness>

@@ -153,14 +153,13 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
             {
                 task.ApplyName(source.Name);
                 task.ApplyCreatedAt(source.CreatedAtUtc);
-                task.ApplyCompletion(source.IsCompleted, source.CompletedAtUtc);
             }
             else
             {
                 task = target.AddTask(
                     source.TaskId,
                     source.Name,
-                    source.IsCompleted,
+                    false,
                     createdAtUtc: source.CreatedAtUtc,
                     completedAtUtc: source.CompletedAtUtc);
             }

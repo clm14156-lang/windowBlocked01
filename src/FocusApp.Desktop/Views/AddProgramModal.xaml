@@ -10,8 +10,9 @@
             <Setter Property="BorderBrush" Value="{DynamicResource BorderPrimary}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-            <Setter Property="FontSize" Value="14" />
-            <Setter Property="FontWeight" Value="Normal" />
+            <Setter Property="FontSize" Value="{DynamicResource ButtonFontSize}" />
+            <Setter Property="FontWeight" Value="{DynamicResource ButtonFontWeight}" />
+            <Setter Property="ContentTemplate" Value="{StaticResource ThemedButtonTextContentTemplate}" />
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Template">
                 <Setter.Value>
@@ -126,9 +127,11 @@
     <Border Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource OverlayBorder}"
             BorderThickness="1" CornerRadius="18" MouseDown="ModalCard_MouseDown">
         <Grid>
-            <TextBlock Margin="28,25,0,0" VerticalAlignment="Top" FontSize="20" FontWeight="SemiBold"
+            <TextBlock Margin="28,25,0,0" VerticalAlignment="Top"
+                       FontSize="{DynamicResource DialogTitleFontSize}" FontWeight="{DynamicResource DialogTitleFontWeight}"
                        Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource BlockingAddProgramModalTitle}" />
-            <TextBlock Margin="28,58,0,0" VerticalAlignment="Top" FontSize="13" FontWeight="Normal"
+            <TextBlock Margin="28,58,0,0" VerticalAlignment="Top"
+                       FontSize="{DynamicResource SecondaryFontSize}" FontWeight="{DynamicResource SecondaryFontWeight}"
                        Foreground="{DynamicResource TextTertiary}" Text="{DynamicResource BlockingAddProgramModalDescription}" />
             <Button Width="30" Height="30" Margin="0,17,20,0" HorizontalAlignment="Right" VerticalAlignment="Top"
                     AutomationProperties.Name="{DynamicResource BlockingModalClose}" Command="{Binding CloseCommand}"
@@ -181,7 +184,8 @@
             <StackPanel Margin="30,164,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Orientation="Horizontal">
                 <TextBlock VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="15"
                            Foreground="{DynamicResource TextSecondary}" Text="&#xE823;" />
-                <TextBlock Margin="9,0,0,0" VerticalAlignment="Center" FontSize="14" FontWeight="Medium"
+                <TextBlock Margin="9,0,0,0" VerticalAlignment="Center"
+                           FontSize="{DynamicResource SectionTitleFontSize}" FontWeight="{DynamicResource SectionTitleFontWeight}"
                            Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource BlockingRecentProgramsTitle}" />
             </StackPanel>
 
@@ -236,13 +240,16 @@
                                         </Grid>
                                     </Border>
                                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                        <TextBlock FontSize="13.5" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}"
+                                        <TextBlock FontSize="{DynamicResource BodyMediumFontSize}" FontWeight="{DynamicResource BodyMediumFontWeight}"
+                                                   Foreground="{DynamicResource TextPrimary}"
                                                    Text="{Binding DisplayName}" />
-                                        <TextBlock Margin="0,3,0,0" FontSize="11.5" Foreground="{DynamicResource TextTertiary}"
+                                        <TextBlock Margin="0,3,0,0" FontSize="{DynamicResource SecondaryFontSize}"
+                                                   FontWeight="{DynamicResource SecondaryFontWeight}" Foreground="{DynamicResource TextTertiary}"
                                                    Text="{Binding ExePath}" TextTrimming="CharacterEllipsis" ToolTip="{Binding ExePath}" />
                                     </StackPanel>
                                     <TextBlock Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center"
-                                               FontSize="11.5" Foreground="{DynamicResource TextTertiary}"
+                                               FontSize="{DynamicResource CaptionFontSize}" FontWeight="{DynamicResource CaptionFontWeight}"
+                                               Foreground="{DynamicResource TextTertiary}"
                                                Text="{Binding LastRunTimeDisplay}" />
                                 </Grid>
                             </DataTemplate>
@@ -276,8 +283,11 @@
                         Style="{StaticResource ProgramModalSecondaryButtonStyle}" />
                 <Button Width="100" Height="42" Margin="14,0,0,0"
                         AutomationProperties.Name="{DynamicResource BlockingModalSave}" Command="{Binding SaveCommand}"
-                        Style="{StaticResource AuthPrimaryButtonStyle}">
-                    <TextBlock FontSize="14" FontWeight="Normal" Foreground="{DynamicResource WhiteText}"
+                        Style="{StaticResource AuthPrimaryButtonStyle}"
+                        FontSize="{DynamicResource ButtonFontSize}" FontWeight="{DynamicResource ButtonFontWeight}">
+                    <TextBlock FontSize="{Binding FontSize, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
+                               FontWeight="{Binding FontWeight, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
+                               Foreground="{DynamicResource WhiteText}"
                                Text="{DynamicResource BlockingModalSave}" />
                 </Button>
             </StackPanel>

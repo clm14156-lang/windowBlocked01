@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using FocusApp.Contracts;
+using FocusApp.Core;
 
 namespace FocusApp.Desktop.ViewModels;
 
@@ -50,7 +51,8 @@ public sealed class GoalCompletedTasksViewModel : INotifyPropertyChanged
     {
         var changedGoal = _goalId != goal?.GoalId;
         _goalId = goal?.GoalId;
-        _tasks = tasks.Where(task => task.TargetId == _goalId && task.IsCompleted)
+        _tasks = tasks.Where(task => task.TargetId == _goalId &&
+                TaskCompletionPolicy.IsCompleted(task.IsCompleted, task.SubTasks.Select(child => child.IsCompleted)))
             .GroupBy(task => task.TaskId).Select(group => group.First()).ToArray();
         if (changedGoal)
         {

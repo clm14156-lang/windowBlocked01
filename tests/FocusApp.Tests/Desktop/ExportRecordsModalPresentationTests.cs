@@ -20,13 +20,13 @@ public sealed class ExportRecordsModalPresentationTests
 
         var title = Assert.Single(modal.Descendants(Presentation + "TextBlock").Where(text =>
             (string?)text.Attribute("Text") == "{DynamicResource ExportRecordsTitle}"));
-        Assert.Equal("17", (string?)title.Attribute("FontSize"));
-        Assert.Equal("SemiBold", (string?)title.Attribute("FontWeight"));
+        Assert.Equal("{DynamicResource DialogTitleFontSize}", (string?)title.Attribute("FontSize"));
+        Assert.Equal("{DynamicResource DialogTitleFontWeight}", (string?)title.Attribute("FontWeight"));
 
         var subtitle = Assert.Single(modal.Descendants(Presentation + "TextBlock").Where(text =>
             (string?)text.Attribute("Text") == "{DynamicResource ExportRecordsSubtitle}"));
-        Assert.Equal("12", (string?)subtitle.Attribute("FontSize"));
-        Assert.Equal("Normal", (string?)subtitle.Attribute("FontWeight"));
+        Assert.Equal("{DynamicResource SecondaryFontSize}", (string?)subtitle.Attribute("FontSize"));
+        Assert.Equal("{DynamicResource SecondaryFontWeight}", (string?)subtitle.Attribute("FontWeight"));
 
         var optionStyle = Assert.Single(modal.Descendants(Presentation + "Style").Where(style =>
             (string?)style.Attribute(Xaml + "Key") == "ExportOptionButtonStyle"));
@@ -41,14 +41,14 @@ public sealed class ExportRecordsModalPresentationTests
 
         var optionTitle = Assert.Single(optionTemplate.Descendants(Presentation + "TextBlock").Where(text =>
             (string?)text.Attribute("Text") == "{TemplateBinding Content}"));
-        Assert.Equal("15", (string?)optionTitle.Attribute("FontSize"));
-        Assert.Equal("Medium", (string?)optionTitle.Attribute("FontWeight"));
+        Assert.Equal("{DynamicResource BodyMediumFontSize}", (string?)optionTitle.Attribute("FontSize"));
+        Assert.Equal("{DynamicResource BodyMediumFontWeight}", (string?)optionTitle.Attribute("FontWeight"));
         Assert.Equal("Center", (string?)optionTitle.Attribute("VerticalAlignment"));
 
         var optionValue = Assert.Single(optionTemplate.Descendants(Presentation + "TextBlock").Where(text =>
             (string?)text.Attribute("Text") == "{TemplateBinding Tag}"));
-        Assert.Equal("13", (string?)optionValue.Attribute("FontSize"));
-        Assert.Equal("Normal", (string?)optionValue.Attribute("FontWeight"));
+        Assert.Equal("{DynamicResource BodyFontSize}", (string?)optionValue.Attribute("FontSize"));
+        Assert.Equal("{DynamicResource BodyFontWeight}", (string?)optionValue.Attribute("FontWeight"));
         Assert.Equal("0,0,10,0", (string?)optionValue.Attribute("Margin"));
         Assert.Equal("Center", (string?)optionValue.Attribute("VerticalAlignment"));
 
@@ -73,7 +73,7 @@ public sealed class ExportRecordsModalPresentationTests
 
         var privacyHint = Assert.Single(modal.Descendants(Presentation + "TextBlock").Where(text =>
             (string?)text.Attribute("Text") == "{DynamicResource ExportRecordsPrivacyHint}"));
-        Assert.Equal("12", (string?)privacyHint.Attribute("FontSize"));
+        Assert.Equal("{DynamicResource SecondaryFontSize}", (string?)privacyHint.Attribute("FontSize"));
         Assert.Equal("{DynamicResource TextTertiary}", (string?)privacyHint.Attribute("Foreground"));
 
         var options = modal.Descendants(Presentation + "Button").Where(button =>

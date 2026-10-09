@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -57,11 +57,18 @@ public partial class StatisticsPage : UserControl
             var left = Math.Clamp((target.Width - size.Width) / 2,
                 -rowLeft, Math.Max(-rowLeft, ActualWidth - rowLeft - size.Width));
             ((PeriodFocusDistributionToolTip)_distributionTip.Content).PointerLeft =
-                Math.Clamp(target.Width / 2 - left - 6, 12, size.Width - 24);
+                PoptipChrome.PointerLeftForAnchor(target.Width / 2 - left, size.Width);
             return [new CustomPopupPlacement(new Point(left, -size.Height - 8), PopupPrimaryAxis.Horizontal),
                 new CustomPopupPlacement(new Point(left, target.Height + 8), PopupPrimaryAxis.Horizontal)];
         };
         _distributionTip.IsOpen = true;
+        Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() =>
+        {
+            if (_distributionTip.IsOpen && ReferenceEquals(_distributionHoverRow, row) &&
+                _distributionTip.Content is PeriodFocusDistributionToolTip content &&
+                PresentationSource.FromVisual(content) is not null)
+                content.PointerOnTop = content.PointToScreen(new Point()).Y > row.PointToScreen(new Point()).Y;
+        }));
     }
 
     private void PeriodDistributionRow_MouseLeave(object sender, MouseEventArgs e)
@@ -243,8 +250,9 @@ public partial class StatisticsPage : UserControl
         var point = TrendChartControl.TranslatePoint(
             new Point(viewModel.HoveredPoint.ChartX, viewModel.HoveredPoint.ChartY),
             TrendCard);
-        const double tooltipWidth = 150;
-        const double tooltipHeight = 58;
+        TrendTooltipSurface.Measure(new Size(Math.Min(PoptipChrome.MaximumWidth, TrendCard.ActualWidth), double.PositiveInfinity));
+        var tooltipWidth = TrendTooltipSurface.DesiredSize.Width;
+        var tooltipHeight = TrendTooltipSurface.DesiredSize.Height;
         var x = Math.Clamp(point.X - tooltipWidth / 2, 0, Math.Max(0, TrendCard.ActualWidth - tooltipWidth));
         var y = point.Y - tooltipHeight - 8;
         if (y < 0)
@@ -253,6 +261,8 @@ public partial class StatisticsPage : UserControl
         }
 
         y = Math.Clamp(y, 0, Math.Max(0, TrendCard.ActualHeight - tooltipHeight));
+        TrendTooltipSurface.PointerOnTop = y >= point.Y;
+        TrendTooltipSurface.PointerLeft = PoptipChrome.PointerLeftForAnchor(point.X - x, tooltipWidth);
         viewModel.SetTooltipOffsets(x, y);
     }
 

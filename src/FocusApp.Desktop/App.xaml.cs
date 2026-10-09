@@ -66,6 +66,7 @@ public partial class App : Application
             new StatisticsOverviewViewModel(useSampleData: false, deferInitialization: true),
             _serviceConnection,
             new AudioService());
+        BlockedAccessNotificationService.SetFocusSession(mainViewModel.HomePage.FocusSession);
         _accessControlBridge = new DesktopAccessControlBridge(
             mainViewModel.HomePage.FocusSession,
             mainViewModel.BlockingPage,
@@ -91,6 +92,7 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        BlockedAccessNotificationService.SetFocusSession(null);
         _focusSessionBridge?.Dispose();
         _accessControlBridge?.Dispose();
         if (_serviceConnection is not null)

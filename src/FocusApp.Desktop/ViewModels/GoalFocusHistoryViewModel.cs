@@ -2,6 +2,7 @@
 using System.ComponentModel;
 using System.Windows.Input;
 using FocusApp.Contracts;
+using FocusApp.Core;
 
 namespace FocusApp.Desktop.ViewModels;
 
@@ -97,7 +98,7 @@ public sealed class GoalFocusHistoryViewModel(Func<DateTime> now) : INotifyPrope
                 completedAt = sourceTime;
             return new GoalHistoryTaskViewModel(snapshot?.TaskNameSnapshot ?? name,
                 details?.Description ?? source?.Description ?? string.Empty, children, completedAt);
-        }).Where(task => task.SubTasks.All(child => child.IsCompleted)).ToArray();
+        }).Where(task => TaskCompletionPolicy.IsCompleted(true, task.SubTasks.Select(child => child.IsCompleted))).ToArray();
     }
 }
 

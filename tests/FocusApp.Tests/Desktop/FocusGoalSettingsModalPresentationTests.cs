@@ -78,12 +78,12 @@ public sealed class FocusGoalSettingsModalPresentationTests
     }
 
     [Fact]
-    public void FooterButtonStylesUseNormalFontWeight()
+    public void FooterButtonStylesUseGlobalCancelAndEmphasizedSaveWeights()
     {
         var root = LoadModal();
 
-        Assert.Equal("Normal", GetSetterValue(root, "FocusGoalSecondaryButtonStyle", "FontWeight"));
-        Assert.Equal("Normal", GetSetterValue(root, "FocusGoalPrimaryButtonStyle", "FontWeight"));
+        Assert.Equal("{DynamicResource ButtonFontWeight}", GetSetterValue(root, "FocusGoalSecondaryButtonStyle", "FontWeight"));
+        Assert.Equal("{DynamicResource ButtonEmphasisFontWeight}", GetSetterValue(root, "FocusGoalPrimaryButtonStyle", "FontWeight"));
     }
 
     [Fact]

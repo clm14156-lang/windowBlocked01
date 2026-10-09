@@ -76,7 +76,7 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
                 sessionApplicationRules,
                 cancellationToken);
             var targets = await LoadTargetsAsync(connection, cancellationToken);
-            var tasks = await LoadTasksAsync(connection, cancellationToken);
+            var tasks = await LoadNormalizedTasksAsync(connection, cancellationToken);
             var websiteRules = await LoadWebsiteRulesAsync(connection, cancellationToken);
             var applicationRules = await LoadApplicationRulesAsync(connection, cancellationToken);
             var automaticRules = await LoadAutomaticRulesAsync(connection, cancellationToken);
@@ -269,8 +269,12 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
 
             var snapshotCompletionTimes = session.CompletedTasks.ToDictionary(
                 task => task.TaskId, task => task.CompletedAtUtc ?? session.CompletedAtUtc, StringComparer.Ordinal);
+            var tasksById = taskIdsToMark.Length == 0 ? new Dictionary<string, LocalTask>() :
+                (await LoadTasksAsync(connection, cancellationToken, transaction)).ToDictionary(task => task.TaskId);
             foreach (var taskId in taskIdsToMark)
             {
+                if (!tasksById.TryGetValue(taskId, out var task) ||
+                    !TaskCompletionPolicy.IsCompleted(true, task.SubTasks.Select(child => child.IsCompleted))) continue;
                 await using var command = CreateCommand(connection, transaction, """
                     UPDATE tasks
                     SET is_completed = 1, updated_utc = $updated,
@@ -475,6 +479,28 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
         }, cancellationToken);
     }
 
+    private static async Task<IReadOnlyList<LocalTask>> LoadNormalizedTasksAsync(
+        SqliteConnection connection, CancellationToken cancellationToken)
+    {
+        await using var transaction = (SqliteTransaction)await connection.BeginTransactionAsync(cancellationToken);
+        var tasks = await LoadTasksAsync(connection, cancellationToken, transaction);
+        var normalizedTasks = tasks.Select(TaskCompletionPolicy.Normalize).ToArray();
+        for (var index = 0; index < tasks.Count; index++)
+        {
+            if (normalizedTasks[index] == tasks[index]) continue;
+            normalizedTasks[index] = normalizedTasks[index] with { UpdatedAtUtc = DateTimeOffset.UtcNow };
+            await using var command = CreateCommand(connection, transaction, """
+                UPDATE tasks SET is_completed = 0, completed_utc = NULL, updated_utc = $updated
+                WHERE task_id = $taskId;
+                """);
+            command.Parameters.AddWithValue("$updated", FormatDateTime(normalizedTasks[index].UpdatedAtUtc));
+            command.Parameters.AddWithValue("$taskId", tasks[index].TaskId);
+            await command.ExecuteNonQueryAsync(cancellationToken);
+        }
+        await transaction.CommitAsync(cancellationToken);
+        return normalizedTasks;
+    }
+
     private async Task ExecuteWriteAsync(
         Func<SqliteConnection, SqliteTransaction, Task> operation,
         CancellationToken cancellationToken)
@@ -625,6 +651,7 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
         LocalTask task,
         CancellationToken cancellationToken)
     {
+        task = TaskCompletionPolicy.Normalize(task);
         await using var command = CreateCommand(connection, transaction, """
             INSERT INTO tasks (
                 task_id, target_id, name, is_completed, sort_order, created_utc, updated_utc, completed_utc, description)
@@ -847,11 +874,13 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
 
     private static async Task<IReadOnlyList<LocalTask>> LoadTasksAsync(
         SqliteConnection connection,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        SqliteTransaction? transaction = null)
     {
         var subTasks = new Dictionary<string, List<LocalSubTask>>(StringComparer.Ordinal);
         await using (var subCommand = connection.CreateCommand())
         {
+            subCommand.Transaction = transaction;
             subCommand.CommandText = "SELECT id, task_id, title, is_completed, sort_order, created_utc, updated_utc FROM subtasks ORDER BY task_id, sort_order, id;";
             await using var subReader = await subCommand.ExecuteReaderAsync(cancellationToken);
             while (await subReader.ReadAsync(cancellationToken))
@@ -865,6 +894,7 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
         }
         var values = new List<LocalTask>();
         await using var command = connection.CreateCommand();
+        command.Transaction = transaction;
         command.CommandText = """
             SELECT task_id, target_id, name, is_completed, sort_order, created_utc, updated_utc, completed_utc, description
             FROM tasks ORDER BY target_id, sort_order, task_id;

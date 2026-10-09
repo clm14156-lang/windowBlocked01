@@ -22,6 +22,52 @@
         WindowStartupLocation="Manual"
         WindowStyle="None">
     <Window.Resources>
+        <Style x:Key="NotificationMoreButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="32" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template"><Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="MoreHitArea" Background="{TemplateBinding Background}" CornerRadius="8">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <Ellipse Width="3" Height="3" Fill="#C4C8CE" />
+                            <Ellipse Width="3" Height="3" Margin="3,0" Fill="#C4C8CE" />
+                            <Ellipse Width="3" Height="3" Fill="#C4C8CE" />
+                        </StackPanel>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="MoreHitArea" Property="Background" Value="#5A6067" /></Trigger>
+                        <Trigger Property="IsPressed" Value="True"><Setter TargetName="MoreHitArea" Property="Opacity" Value="0.68" /></Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value></Setter>
+            <Setter Property="Visibility" Value="Collapsed" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsWebsite}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="NotificationMenuItemStyle" TargetType="Button">
+            <Setter Property="Padding" Value="8,0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="#F5F6F8" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template"><Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="MenuItemChrome" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" CornerRadius="6">
+                        <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="Stretch" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="MenuItemChrome" Property="Background" Value="#565C63" /></Trigger>
+                        <Trigger Property="IsEnabled" Value="False"><Setter TargetName="MenuItemChrome" Property="Opacity" Value="0.45" /></Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value></Setter>
+        </Style>
         <Style x:Key="NotificationCloseButtonStyle" TargetType="Button">
             <Setter Property="Width" Value="32" />
             <Setter Property="Height" Value="32" />
@@ -53,6 +99,9 @@
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsWebsite}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger>
+            </Style.Triggers>
         </Style>
     </Window.Resources>
 
@@ -111,6 +160,52 @@
                         AutomationProperties.Name="{DynamicResource BlockedAccessNotificationClose}"
                         Command="{Binding CloseCommand}"
                         Style="{StaticResource NotificationCloseButtonStyle}" />
+                <Button x:Name="MoreActionsButton" Grid.Column="3" Margin="0,-2,-6,0"
+                        AutomationProperties.Name="{DynamicResource BlockedAccessNotificationMore}"
+                        Click="MoreActionsButton_Click" Style="{StaticResource NotificationMoreButtonStyle}" />
+                <Popup x:Name="ActionsPopup" Grid.Column="3"
+                       Placement="Custom" PlacementTarget="{Binding ElementName=MoreActionsButton}"
+                       CustomPopupPlacementCallback="ActionsPopup_Placement"
+                       DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}"
+                       AllowsTransparency="True" StaysOpen="False"
+                       Opened="ActionsPopup_Opened" Closed="ActionsPopup_Closed"
+                       Mouse.PreviewMouseDownOutsideCapturedElement="ActionsPopup_MouseDownOutside">
+                    <Border x:Name="ActionsPoptip" Width="155" Height="90" Padding="3"
+                            BorderBrush="#656B72" BorderThickness="1" CornerRadius="9"
+                            TextElement.FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                <GradientStop Color="#494F55" Offset="0" />
+                                <GradientStop Color="#3C4146" Offset="1" />
+                            </LinearGradientBrush>
+                        </Border.Background>
+                        <Grid>
+                            <Grid.RowDefinitions><RowDefinition /><RowDefinition Height="1" /><RowDefinition /></Grid.RowDefinitions>
+                            <Button x:Name="DismissNotificationButton" Command="{Binding CloseCommand}"
+                                    AutomationProperties.Name="{DynamicResource BlockedAccessNotificationDismiss}" Style="{StaticResource NotificationMenuItemStyle}">
+                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="22" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                                    <Grid Width="15" Height="15" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                        <Ellipse Stroke="#F5F6F8" StrokeThickness="1.3" />
+                                        <Path Data="M 2,2 L 13,13" Stroke="#F5F6F8" StrokeThickness="1.3" />
+                                    </Grid>
+                                    <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="13" FontWeight="Normal"
+                                               Foreground="#F5F6F8" Text="{DynamicResource BlockedAccessNotificationDismiss}" />
+                                </Grid>
+                            </Button>
+                            <Border Grid.Row="1" Margin="7,0" Background="#656B72" />
+                            <Button x:Name="SuppressSessionButton" Grid.Row="2" Command="{Binding SuppressForSessionCommand}"
+                                    AutomationProperties.Name="{DynamicResource BlockedAccessNotificationSuppressSession}" Style="{StaticResource NotificationMenuItemStyle}">
+                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="22" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                                    <Path Width="15" Height="16" HorizontalAlignment="Left" VerticalAlignment="Center" Stretch="Uniform"
+                                          Data="M 8,1 L 8,3 M 4,4 Q 8,0 12,4 L 12,10 L 14,13 L 2,13 L 4,10 L 4,7 M 6,15 Q 8,17 10,15 M 1,1 L 15,16"
+                                          Stroke="#F5F6F8" StrokeThickness="1.3" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                                    <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="13" FontWeight="Normal"
+                                               Foreground="#F5F6F8" Text="{DynamicResource BlockedAccessNotificationSuppressSession}" />
+                                </Grid>
+                            </Button>
+                        </Grid>
+                    </Border>
+                </Popup>
             </Grid>
 
             <TextBlock Grid.Row="2"

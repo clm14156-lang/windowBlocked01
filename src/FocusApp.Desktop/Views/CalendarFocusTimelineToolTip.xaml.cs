@@ -18,12 +18,12 @@ public partial class CalendarFocusTimelineToolTip : UserControl
 
     public CalendarRecordPoptipViewModel? PoptipModel => PoptipLayout.DataContext as CalendarRecordPoptipViewModel;
     public static readonly DependencyProperty PointerLeftProperty = DependencyProperty.Register(
-        nameof(PointerLeft), typeof(double), typeof(CalendarFocusTimelineToolTip), new PropertyMetadata(90d));
+        nameof(PointerLeft), typeof(double), typeof(CalendarFocusTimelineToolTip), new PropertyMetadata(double.NaN));
     public double PointerLeft { get => (double)GetValue(PointerLeftProperty); set => SetValue(PointerLeftProperty, value); }
     public void FitAboveTimeline(double availableHeight)
     {
         MaxHeight = double.PositiveInfinity;
-        Measure(new Size(200, double.PositiveInfinity));
+        Measure(new Size(PoptipChrome.MaximumWidth, double.PositiveInfinity));
         if (PoptipModel is { HasTasks: true } model)
         {
             // Fit complete rows above the axis, keeping the remaining count accurate.

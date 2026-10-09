@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using FocusApp.Desktop.Services;
 using FocusApp.Contracts;
+using FocusApp.Core;
 
 namespace FocusApp.Desktop.ViewModels;
 
@@ -275,6 +276,8 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
 
     private void NotifyDetailsChanged()
     {
+        if (!_applyingDetails)
+            ApplyCompletion(_isCompleted, _completedAtUtc);
         if (!HasSubTasks) IsExpanded = false;
         OnPropertyChanged(nameof(SortedSubTasks));
         OnPropertyChanged(nameof(SubTaskProgress));
@@ -310,6 +313,8 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
                     if (oldIndex != index) SubTasks.Move(oldIndex, index);
                 }
             }
+            // Judge the incoming parent state only after all child updates are applied.
+            ApplyCompletion(source.IsCompleted, source.CompletedAtUtc);
         }
         finally { _applyingDetails = false; }
     }
@@ -424,6 +429,8 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
 
     public void ApplyCompletion(bool isCompleted, DateTimeOffset? completedAtUtc)
     {
+        var requestedCompletion = isCompleted;
+        isCompleted = TaskCompletionPolicy.IsCompleted(isCompleted, SubTasks.Select(child => child.IsCompleted));
         var normalizedCompletedAtUtc = isCompleted
             ? completedAtUtc?.ToUniversalTime()
             : null;
@@ -431,6 +438,8 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
         var completedAtChanged = _completedAtUtc != normalizedCompletedAtUtc;
         if (!completionChanged && !completedAtChanged)
         {
+            // A checkbox toggles before its command runs; reapply the rejected state to the binding.
+            if (requestedCompletion != isCompleted) OnPropertyChanged(nameof(IsCompleted));
             return;
         }
 
@@ -441,7 +450,7 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(CompletedAtUtc));
             OnPropertyChanged(nameof(CompletedTimeDisplay));
         }
-        if (completionChanged) OnPropertyChanged(nameof(IsCompleted));
+        if (completionChanged || requestedCompletion != isCompleted) OnPropertyChanged(nameof(IsCompleted));
     }
 
     public bool IsNew

@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
@@ -15,6 +16,8 @@ public partial class BlockedAccessNotificationWindow : Window
 
     private readonly DispatcherTimer _autoCloseTimer;
     private bool _isClosing;
+
+    public bool IsActionsOpen => ActionsPopup.IsOpen;
 
     public BlockedAccessNotificationWindow()
     {
@@ -56,7 +59,7 @@ public partial class BlockedAccessNotificationWindow : Window
 
     private void Window_MouseLeave(object sender, MouseEventArgs e)
     {
-        if (!_isClosing)
+        if (!_isClosing && !IsActionsOpen)
         {
             RestartAutoCloseTimer();
         }
@@ -65,14 +68,46 @@ public partial class BlockedAccessNotificationWindow : Window
     private void AutoCloseTimer_Tick(object? sender, EventArgs e)
     {
         _autoCloseTimer.Stop();
+        if (IsActionsOpen) return;
         BeginAutoCloseAnimation();
     }
 
     private void RestartAutoCloseTimer()
     {
         _autoCloseTimer.Stop();
+        if (_isClosing || IsActionsOpen) return;
         _autoCloseTimer.Start();
     }
+
+    private void MoreActionsButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (!_isClosing) ActionsPopup.IsOpen = !ActionsPopup.IsOpen;
+    }
+
+    private void ActionsPopup_Opened(object? sender, EventArgs e) => _autoCloseTimer.Stop();
+
+    private void ActionsPopup_Closed(object? sender, EventArgs e)
+    {
+        if (!_isClosing && !IsMouseOver) RestartAutoCloseTimer();
+    }
+
+    private void ActionsPopup_MouseDownOutside(object sender, MouseButtonEventArgs e)
+    {
+        var position = e.GetPosition(MoreActionsButton);
+        if (new Rect(MoreActionsButton.RenderSize).Contains(position))
+        {
+            // Consume the same click that dismisses the popup, so it cannot reopen it.
+            ActionsPopup.IsOpen = false;
+            e.Handled = true;
+        }
+    }
+
+    private CustomPopupPlacement[] ActionsPopup_Placement(Size popupSize, Size targetSize, Point offset)
+        => [
+            new(new Point(targetSize.Width + 6, targetSize.Height + 4), PopupPrimaryAxis.Horizontal),
+            new(new Point(targetSize.Width - popupSize.Width, -popupSize.Height - 6), PopupPrimaryAxis.Vertical),
+            new(new Point(targetSize.Width - popupSize.Width, targetSize.Height + 4), PopupPrimaryAxis.Vertical)
+        ];
 
     private void BeginShowAnimation()
     {
@@ -113,6 +148,7 @@ public partial class BlockedAccessNotificationWindow : Window
 
     private void Window_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
+        ActionsPopup.IsOpen = false;
         if (e.OldValue is BlockedAccessNotificationViewModel oldViewModel)
         {
             oldViewModel.CloseRequested -= ViewModel_CloseRequested;
@@ -128,6 +164,7 @@ public partial class BlockedAccessNotificationWindow : Window
     {
         _isClosing = true;
         _autoCloseTimer.Stop();
+        ActionsPopup.IsOpen = false;
         Close();
     }
 
@@ -135,6 +172,7 @@ public partial class BlockedAccessNotificationWindow : Window
     {
         _isClosing = true;
         _autoCloseTimer.Stop();
+        ActionsPopup.IsOpen = false;
         _autoCloseTimer.Tick -= AutoCloseTimer_Tick;
         if (DataContext is BlockedAccessNotificationViewModel viewModel)
         {
