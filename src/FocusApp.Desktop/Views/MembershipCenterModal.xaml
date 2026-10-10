@@ -227,10 +227,10 @@
                 <Border Style="{StaticResource MembershipBenefitCard}">
                     <Grid Margin="13,8">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="54" /><ColumnDefinition /></Grid.ColumnDefinitions>
-                        <Border Style="{StaticResource MembershipBenefitIcon}"><TextBlock Style="{StaticResource MembershipBenefitGlyph}" Text="&#xE790;" /></Border>
+                        <Border Style="{StaticResource MembershipBenefitIcon}"><TextBlock Style="{StaticResource MembershipBenefitGlyph}" Text="&#xE8D4;" /></Border>
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                            <TextBlock Style="{StaticResource MembershipBenefitTitle}" Text="{DynamicResource MembershipBenefitThemes}" />
-                            <TextBlock Style="{StaticResource MembershipBenefitHint}" Text="{DynamicResource MembershipBenefitThemesHint}" />
+                            <TextBlock Style="{StaticResource MembershipBenefitTitle}" Text="{DynamicResource MembershipBenefitGoalDetails}" />
+                            <TextBlock Style="{StaticResource MembershipBenefitHint}" Text="{DynamicResource MembershipBenefitGoalDetailsHint}" />
                         </StackPanel>
                     </Grid>
                 </Border>
@@ -443,10 +443,10 @@
                 <Border Style="{StaticResource AnnualMembershipBenefitCard}">
                     <Grid Margin="13,8">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="54" /><ColumnDefinition /></Grid.ColumnDefinitions>
-                        <Border Style="{StaticResource MembershipBenefitIcon}"><TextBlock Style="{StaticResource MembershipBenefitGlyph}" Text="&#xE790;" /></Border>
+                        <Border Style="{StaticResource MembershipBenefitIcon}"><TextBlock Style="{StaticResource MembershipBenefitGlyph}" Text="&#xE8D4;" /></Border>
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                            <TextBlock Style="{StaticResource MembershipBenefitTitle}" Text="{DynamicResource MembershipBenefitThemes}" />
-                            <TextBlock Style="{StaticResource MembershipBenefitHint}" Text="{DynamicResource MembershipBenefitThemesHint}" />
+                            <TextBlock Style="{StaticResource MembershipBenefitTitle}" Text="{DynamicResource MembershipBenefitGoalDetails}" />
+                            <TextBlock Style="{StaticResource MembershipBenefitHint}" Text="{DynamicResource MembershipBenefitGoalDetailsHint}" />
                         </StackPanel>
                     </Grid>
                 </Border>

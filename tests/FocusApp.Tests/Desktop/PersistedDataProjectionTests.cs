@@ -64,7 +64,7 @@ public sealed class PersistedDataProjectionTests
             [new LocalFocusSessionTaskSnapshotDto("task-1", "整理需求", 0)]);
         var state = new LocalDataSnapshotDto(
             1, [session], [target], [], [], [], [],
-            new LocalAppSettingsDto(false, true, true, true, false, false, "Orange", target.TargetId, now),
+            new LocalAppSettingsDto(false, true, true, true, false, false, target.TargetId, now),
             [], []);
         var viewModel = new StatisticsOverviewViewModel(useSampleData: false);
 
@@ -85,7 +85,7 @@ public sealed class PersistedDataProjectionTests
             IconFileName = "code.png"
         };
         var settings = new LocalAppSettingsDto(
-            false, true, true, true, false, false, "Orange", target.TargetId, now)
+            false, true, true, true, false, false, target.TargetId, now)
         {
             RecentTargetIconsJson = "[\"music.png\",\"code.png\",\"music.png\"]"
         };
@@ -111,7 +111,7 @@ public sealed class PersistedDataProjectionTests
         };
         var state = new LocalDataSnapshotDto(
             1, [], [target], [], [], [], [],
-            new LocalAppSettingsDto(false, true, true, true, false, false, "Orange", null, now),
+            new LocalAppSettingsDto(false, true, true, true, false, false, null, now),
             [], []);
         var viewModel = new StatisticsOverviewViewModel(useSampleData: false);
 
@@ -131,7 +131,7 @@ public sealed class PersistedDataProjectionTests
             false, null, null, []);
         var state = new LocalDataSnapshotDto(
             1, [session], [], [], [], [], [],
-            new LocalAppSettingsDto(false, true, true, true, false, false, "Orange", null, now),
+            new LocalAppSettingsDto(false, true, true, true, false, false, null, now),
             [], []);
         var viewModel = new StatisticsOverviewViewModel(useSampleData: false);
 
@@ -155,7 +155,7 @@ public sealed class PersistedDataProjectionTests
             false, null, null, []);
         var state = new LocalDataSnapshotDto(
             1, [session], [first, second], [], [], [], [],
-            new LocalAppSettingsDto(false, true, true, true, false, false, "Orange", null, now),
+            new LocalAppSettingsDto(false, true, true, true, false, false, null, now),
             [], []);
         var viewModel = new StatisticsOverviewViewModel(useSampleData: false);
         viewModel.ApplyState(state);
@@ -185,7 +185,7 @@ public sealed class PersistedDataProjectionTests
         var task = new LocalTaskDto("task-1", second.TargetId, "下一步", false, 0, now, now);
         var state = new LocalDataSnapshotDto(
             1, [], [first, second], [task], [], [], [],
-            new LocalAppSettingsDto(false, true, true, true, false, false, "Orange", second.TargetId, now),
+            new LocalAppSettingsDto(false, true, true, true, false, false, second.TargetId, now),
             [], []);
         var viewModel = new StatisticsOverviewViewModel(useSampleData: false);
         viewModel.ApplyState(state);

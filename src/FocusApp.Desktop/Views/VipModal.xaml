@@ -167,10 +167,10 @@
                     <Grid Margin="9,7,4,7">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition /></Grid.ColumnDefinitions>
                         <Border Width="27" Height="27" Background="{DynamicResource AccentTint}" CornerRadius="14">
-                            <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="{DynamicResource AccentPrimary}" Text="&#xE790;" />
+                            <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="{DynamicResource AccentPrimary}" Text="&#xE8D4;" />
                         </Border>
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                            <TextBlock FontSize="12" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource VipBenefitThemes}" />
+                            <TextBlock FontSize="12" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource VipBenefitGoalDetails}" />
                         </StackPanel>
                     </Grid>
                 </Border>

@@ -20,7 +20,7 @@ public sealed class CalendarRefactorTests
         new(id, goal, id, true, 0, Local(1), Local(18)) { CompletedAtUtc = completedAt };
     private static LocalDataSnapshotDto State(params LocalTaskDto[] tasks) => new(
         1, [], [new LocalTargetDto("goal", "学习UE5", false, 0, Local(1), Local(18))], tasks, [], [], [],
-        new LocalAppSettingsDto(false, true, true, true, false, false, "Orange", "goal", Local(18)), [], []);
+        new LocalAppSettingsDto(false, true, true, true, false, false, "goal", Local(18)), [], []);
     private static void SelectDate(StatisticsOverviewViewModel model, DateTime date)
     {
         while (model.CalendarMonth.Year * 12 + model.CalendarMonth.Month < date.Year * 12 + date.Month)

@@ -356,7 +356,7 @@ public sealed class NamedPipeCommunicationTests
             60,
             true,
             0);
-        var settings = new LocalAppSettingsDto(true, true, true, false, true, false, "Dark", target.TargetId, now);
+        var settings = new LocalAppSettingsDto(true, true, true, false, true, false, target.TargetId, now);
         var preset = new LocalDurationPresetDto(Guid.NewGuid(), 45, true, true, 0);
         var monthlyTarget = new LocalMonthlyFocusTargetDto(new DateOnly(2026, 8, 1), 1200);
 

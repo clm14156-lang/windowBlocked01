@@ -32,7 +32,7 @@ public sealed class CustomTimePresetPersistenceTests
         SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(Dispatcher.CurrentDispatcher));
         var now = DateTimeOffset.UtcNow;
         var state = new LocalDataSnapshotDto(1, [], [], [], [], [], [],
-            new LocalAppSettingsDto(false, true, true, true, false, false, "Orange", null, now), [], []);
+            new LocalAppSettingsDto(false, true, true, true, false, false, null, now), [], []);
         var commands = new ConcurrentQueue<ReplaceDurationPresetsCommand>();
         var releaseFirstReply = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var pipeName = "duration-preset-" + Guid.NewGuid().ToString("N");

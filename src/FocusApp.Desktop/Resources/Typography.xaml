@@ -23,6 +23,7 @@
     <system:Double x:Key="TimerFontSize">32</system:Double>
     <system:Double x:Key="TimerUnitFontSize">16</system:Double>
     <system:Double x:Key="TimerConfirmationFontSize">36</system:Double>
+    <system:Double x:Key="CompletionTimeFontSize">80</system:Double>
 
     <!-- WPF weight names: Normal=400, Medium=500, SemiBold=600. -->
     <FontWeight x:Key="FontWeightRegular">Normal</FontWeight>
@@ -46,6 +47,7 @@
     <FontWeight x:Key="TimerFontWeight">SemiBold</FontWeight>
     <FontWeight x:Key="TimerMediumFontWeight">Medium</FontWeight>
     <FontWeight x:Key="TimerUnitFontWeight">Medium</FontWeight>
+    <FontWeight x:Key="CompletionTimeFontWeight">Bold</FontWeight>
 
     <!-- Compatibility for existing references; new code should use semantic keys. -->
     <system:Double x:Key="CardTitleFontSize">15</system:Double>

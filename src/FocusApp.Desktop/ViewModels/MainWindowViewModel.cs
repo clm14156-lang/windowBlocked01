@@ -62,8 +62,6 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         HomePage = homePage;
         StatisticsPage = statisticsPage ?? new StatisticsOverviewViewModel();
         StatisticsPage.SetUserAccess(IsLoggedIn, IsVipMember);
-        ThemePanel.SetUserAccess(IsLoggedIn, IsVipMember);
-        ThemePanel.VipRequested += (_, _) => OpenVip();
         SettingsPage = settingsPage ?? new SettingsPageViewModel([], []);
         BlockingPage = blockingPage ?? new BlockingPageViewModel([], [], "Added websites: {0}", "Added applications: {0}");
         ServiceConnection = serviceConnection;
@@ -120,7 +118,6 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         OpenAccountSyncCommand = new RelayCommand<object>(_ => OpenAccountSync());
         OpenVipCommand = new RelayCommand<object>(_ => OpenVip());
         LogoutCommand = new RelayCommand<object>(_ => Logout());
-        ToggleThemePanelCommand = new RelayCommand<object>(_ => ThemePanel.Toggle());
     }
 
     private void WebsiteModal_WebsiteAddressValidationFailed(object? sender, EventArgs e)
@@ -144,7 +141,6 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     public ICommand LogoutCommand { get; }
 
-    public ICommand ToggleThemePanelCommand { get; }
 
     public AuthModalViewModel AuthModal { get; }
 
@@ -154,7 +150,6 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     public MembershipCenterViewModel MembershipCenter { get; } = new();
 
-    public ThemePanelViewModel ThemePanel { get; } = new();
 
     public bool IsCompletionReminderVisible
     {
@@ -303,7 +298,6 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             _isLoggedIn = value;
             OnPropertyChanged();
             StatisticsPage.SetUserAccess(IsLoggedIn, IsVipMember);
-            ThemePanel.SetUserAccess(IsLoggedIn, IsVipMember);
             SettingsPage.SetUserAccess(IsLoggedIn, IsVipMember);
             HomePage.SetUserAccess(IsLoggedIn, IsVipMember);
         }
@@ -340,7 +334,6 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(IsAnnualMember));
             OnPropertyChanged(nameof(IsLifetimeMember));
             StatisticsPage.SetUserAccess(IsLoggedIn, IsVipMember);
-            ThemePanel.SetUserAccess(IsLoggedIn, IsVipMember);
             SettingsPage.SetUserAccess(IsLoggedIn, IsVipMember);
             HomePage.SetUserAccess(IsLoggedIn, IsVipMember);
         }

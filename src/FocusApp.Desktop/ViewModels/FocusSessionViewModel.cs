@@ -164,18 +164,24 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             string.IsNullOrWhiteSpace(source.Name) || source.SubTasks.Count > 20) return false;
         var wasApplying = _applyingAuthoritativeSession;
         _applyingAuthoritativeSession = true;
+        var completionChanged = false;
         try
         {
             var task = target.Tasks.FirstOrDefault(item => item.TaskId == source.TaskId);
             if (task is null)
                 task = target.AddTask(source.TaskId, source.Name, false, createdAtUtc: source.CreatedAtUtc);
             else task.ApplyName(source.Name);
+            var wasCompleted = task.IsCompleted;
             task.ApplyDetails(source);
+            CompleteFromSubTasks(task);
+            completionChanged = wasCompleted != task.IsCompleted;
         }
         finally { _applyingAuthoritativeSession = wasApplying; }
         NormalizeFocusTaskOrder();
         RefreshTaskGroups();
         TargetTasksChanged?.Invoke(this, target);
+        if (IsServiceOwnedForcedSession && completionChanged)
+            AuthoritativeTasksChanged?.Invoke(this, EventArgs.Empty);
         return true;
     }
 
@@ -1113,15 +1119,26 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     {
         if (!_applyingAuthoritativeSession && ActiveTarget is not null)
         {
+            if (IsFocusing && sender is FocusTaskViewModel { IsUpdatingDetails: true } changedTask)
+                CompleteFromSubTasks(changedTask);
             TargetTasksChanged?.Invoke(this, ActiveTarget);
             if (IsServiceOwnedForcedSession && sender is FocusTaskViewModel task &&
-                _sessionCompletedTaskSet.Contains(task))
+                (task.CompletionChangedWithDetails || _sessionCompletedTaskSet.Contains(task)))
                 AuthoritativeTasksChanged?.Invoke(this, EventArgs.Empty);
         }
     }
 
+    private void CompleteFromSubTasks(FocusTaskViewModel task)
+    {
+        // Keep manual completion for plain tasks and preserve the first completion time.
+        if (!task.HasSubTasks) return;
+        var completed = task.SubTasks.All(child => child.IsCompleted);
+        task.ApplyCompletion(completed, completed ? task.CompletedAtUtc ?? GetCurrentUtc() : null);
+    }
+
     private void Task_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+        var updatingDetails = sender is FocusTaskViewModel { IsUpdatingDetails: true };
         if (e.PropertyName == nameof(FocusTaskViewModel.IsCompleted) && sender is FocusTaskViewModel changedTask)
         {
             NormalizeFocusTaskOrder();
@@ -1150,7 +1167,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             nameof(FocusTaskViewModel.IsEditing))
         {
             RefreshTaskGroups();
-            if (!_applyingAuthoritativeSession &&
+            if (!_applyingAuthoritativeSession && !updatingDetails &&
                 (e.PropertyName is nameof(FocusTaskViewModel.IsCompleted) or nameof(FocusTaskViewModel.Name)) &&
                 ActiveTarget is not null)
             {
@@ -1158,7 +1175,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             }
         }
 
-        if (!_applyingAuthoritativeSession && IsServiceOwnedForcedSession &&
+        if (!_applyingAuthoritativeSession && !updatingDetails && IsServiceOwnedForcedSession &&
             (e.PropertyName == nameof(FocusTaskViewModel.IsCompleted) ||
              e.PropertyName == nameof(FocusTaskViewModel.Name) &&
              sender is FocusTaskViewModel renamedTask &&

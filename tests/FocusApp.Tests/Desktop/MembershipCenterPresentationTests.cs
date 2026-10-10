@@ -49,7 +49,7 @@ public sealed class MembershipCenterPresentationTests
                 (string?)element.Attribute("Style") == "{StaticResource MembershipBenefitGlyph}")
             .Select(element => (string?)element.Attribute("Text"))
             .ToArray();
-        Assert.Equal(new[] { "\uE72E", "\uEA18", "\uE8A5", "\uE9D2", "\uE790", "\uE753" }, glyphs);
+        Assert.Equal(new[] { "\uE72E", "\uEA18", "\uE8A5", "\uE9D2", "\uE8D4", "\uE753" }, glyphs);
 
         var strings = XDocument.Load(Path.Combine(
             repositoryRoot, "src", "FocusApp.Desktop", "Resources", "Strings.xaml"));
@@ -112,7 +112,7 @@ public sealed class MembershipCenterPresentationTests
                 (string?)element.Attribute("Style") == "{StaticResource MembershipBenefitGlyph}")
             .Select(element => (string?)element.Attribute("Text"))
             .ToArray();
-        Assert.Equal(new[] { "\uE72E", "\uEA18", "\uE8A5", "\uE9D2", "\uE790", "\uE753" }, glyphs);
+        Assert.Equal(new[] { "\uE72E", "\uEA18", "\uE8A5", "\uE9D2", "\uE8D4", "\uE753" }, glyphs);
     }
 
     [Fact]

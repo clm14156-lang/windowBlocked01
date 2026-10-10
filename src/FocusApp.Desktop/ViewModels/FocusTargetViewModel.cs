@@ -221,6 +221,9 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
     public event PropertyChangedEventHandler? PropertyChanged;
     public event EventHandler? DetailsChanged;
 
+    internal bool IsUpdatingDetails { get; private set; }
+    internal bool CompletionChangedWithDetails { get; private set; }
+
     public ObservableCollection<FocusSubTaskViewModel> SubTasks { get; } = [];
 
     // Keep the stored order intact so unchecking an item restores its original position.
@@ -276,16 +279,27 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
 
     private void NotifyDetailsChanged()
     {
-        if (!_applyingDetails)
-            ApplyCompletion(_isCompleted, _completedAtUtc);
-        if (!HasSubTasks) IsExpanded = false;
-        OnPropertyChanged(nameof(SortedSubTasks));
-        OnPropertyChanged(nameof(SubTaskProgress));
-        OnPropertyChanged(nameof(CanAddSubTask));
-        OnPropertyChanged(nameof(DrawerSubTaskToggleLabel));
-        OnPropertyChanged(nameof(HasSubTasks));
-        OnPropertyChanged(nameof(HasExpandedSubTasks));
-        if (!_applyingDetails) DetailsChanged?.Invoke(this, EventArgs.Empty);
+        // Publish child edits and any resulting parent completion as one details update.
+        IsUpdatingDetails = true;
+        CompletionChangedWithDetails = false;
+        try
+        {
+            if (!_applyingDetails)
+                ApplyCompletion(_isCompleted, _completedAtUtc);
+            if (!HasSubTasks) IsExpanded = false;
+            OnPropertyChanged(nameof(SortedSubTasks));
+            OnPropertyChanged(nameof(SubTaskProgress));
+            OnPropertyChanged(nameof(CanAddSubTask));
+            OnPropertyChanged(nameof(DrawerSubTaskToggleLabel));
+            OnPropertyChanged(nameof(HasSubTasks));
+            OnPropertyChanged(nameof(HasExpandedSubTasks));
+            if (!_applyingDetails) DetailsChanged?.Invoke(this, EventArgs.Empty);
+        }
+        finally
+        {
+            IsUpdatingDetails = false;
+            CompletionChangedWithDetails = false;
+        }
     }
 
     internal void ApplyDetails(LocalTaskDto source)
@@ -445,6 +459,7 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
 
         _isCompleted = isCompleted;
         _completedAtUtc = normalizedCompletedAtUtc;
+        if (IsUpdatingDetails && completionChanged) CompletionChangedWithDetails = true;
         if (completedAtChanged)
         {
             OnPropertyChanged(nameof(CompletedAtUtc));

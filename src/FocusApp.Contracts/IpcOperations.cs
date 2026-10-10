@@ -331,7 +331,6 @@ public sealed record LocalAppSettingsDto(
     bool FocusSoundEnabled,
     bool AutomaticBlockingEnabled,
     bool ForcedModeRequested,
-    string SelectedThemeKey,
     string? SelectedTargetId,
     DateTimeOffset UpdatedAtUtc)
 {

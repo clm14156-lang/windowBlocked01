@@ -143,7 +143,7 @@ public sealed class CalendarRedesignTests
                 model.ApplyState(new LocalDataSnapshotDto(1, [],
                     [new LocalTargetDto("a", "window屏蔽软件", false, 0, now, now),
                      new LocalTargetDto("b", "减肥到150斤", false, 1, now, now)], [], [], [], [],
-                    new LocalAppSettingsDto(false, true, true, true, false, false, "Orange", "a", now), [], []));
+                    new LocalAppSettingsDto(false, true, true, true, false, false, "a", now), [], []));
                 model.SetUserAccess(true, true);
                 model.SelectCalendarCommand.Execute(null);
                 AddSession(model, 2, 38);

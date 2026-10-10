@@ -118,7 +118,7 @@ public sealed class FocusExportDataServiceTests
             [],
             [],
             [],
-            new LocalAppSettingsDto(false, true, true, true, false, false, "Orange", null, DateTimeOffset.UtcNow),
+            new LocalAppSettingsDto(false, true, true, true, false, false, null, DateTimeOffset.UtcNow),
             [],
             []);
 }

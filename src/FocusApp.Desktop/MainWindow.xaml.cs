@@ -110,72 +110,16 @@ public partial class MainWindow : Window
     {
         if (e.OldValue is MainWindowViewModel oldViewModel)
         {
-            oldViewModel.ThemePanel.ThemeSelected -= ThemePanel_ThemeSelected;
             oldViewModel.HomePage.FocusSession.PropertyChanged -= FocusSession_PropertyChanged;
             oldViewModel.PropertyChanged -= MainViewModel_PropertyChanged;
         }
 
         if (e.NewValue is MainWindowViewModel newViewModel)
         {
-            newViewModel.ThemePanel.ThemeSelected += ThemePanel_ThemeSelected;
             newViewModel.HomePage.FocusSession.PropertyChanged += FocusSession_PropertyChanged;
             newViewModel.PropertyChanged += MainViewModel_PropertyChanged;
             ShowCurrentPage(newViewModel);
         }
-    }
-
-    private static void ThemePanel_ThemeSelected(object? sender, string themeKey)
-    {
-        var (accent, start, end) = themeKey switch
-        {
-            "Blue" => ("#3989EF", "#64ACFF", "#2875DF"),
-            "Cyan" => ("#39C4CC", "#65DBDF", "#20AAB7"),
-            "Dark" => ("#303030", "#4A4A4A", "#161616"),
-            "Warm" => ("#FF7A68", "#FF6678", "#FFB15E"),
-            "Sky" => ("#438BF1", "#3983F4", "#8FD5FF"),
-            "Dream" => ("#8A60EE", "#7352EE", "#D99DEA"),
-            "Fresh" => ("#31BFB7", "#2AC3C9", "#91E7B0"),
-            "Starry" => ("#5F48B8", "#6F55C8", "#14255C"),
-            "Mountain" => ("#C98269", "#D49AAF", "#8D513E"),
-            "Forest" => ("#32745A", "#79A28E", "#174D33"),
-            "Snow" => ("#5B9DCF", "#4FADE6", "#AACFE8"),
-            "Moon" => ("#286497", "#4E8DC0", "#072D58"),
-            _ => ("#FF7A00", "#FFB43A", "#FF6900")
-        };
-
-        var accentColor = ParseColor(accent);
-        var startColor = ParseColor(start);
-        var endColor = ParseColor(end);
-        var resources = Application.Current.Resources;
-
-        resources["AccentPrimary"] = new SolidColorBrush(accentColor);
-        resources["AccentHover"] = new SolidColorBrush(startColor);
-        resources["AccentPressed"] = new SolidColorBrush(endColor);
-        resources["AccentTint"] = new SolidColorBrush(Color.FromArgb(28, accentColor.R, accentColor.G, accentColor.B));
-        resources["AccentShadowColor"] = accentColor;
-        resources["FocusButtonBackground"] = CreateGradient(startColor, endColor);
-        resources["FocusButtonHoverBackground"] = CreateGradient(startColor, accentColor);
-        resources["FocusButtonPressedBackground"] = new SolidColorBrush(endColor);
-        resources["FocusNoTaskEndButtonText"] = themeKey == "Orange"
-            ? new SolidColorBrush(ParseColor("#B2A399"))
-            : resources["TextTertiary"];
-    }
-
-    private static Color ParseColor(string value)
-    {
-        return (Color)ColorConverter.ConvertFromString(value);
-    }
-
-    private static LinearGradientBrush CreateGradient(Color start, Color end)
-    {
-        return new LinearGradientBrush(
-            new GradientStopCollection
-            {
-                new(start, 0),
-                new(end, 1)
-            },
-            new Point(0, 0),
-            new Point(1, 1));
     }
 
     private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -200,14 +144,6 @@ public partial class MainWindow : Window
         }
 
         return false;
-    }
-
-    private void ThemeButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (DataContext is ViewModels.MainWindowViewModel viewModel)
-        {
-            viewModel.ToggleThemePanelCommand.Execute(null);
-        }
     }
 
     private void MinimizeButton_Click(object sender, RoutedEventArgs e)
@@ -683,14 +619,6 @@ public partial class MainWindow : Window
         if (viewModel.HomePage.CustomTimeModal.IsOpen && !CustomTimeModalControl.IsMouseOver)
         {
             viewModel.HomePage.CustomTimeModal.CancelCommand.Execute(null);
-        }
-
-        if (viewModel.ThemePanel.IsOpen &&
-            !viewModel.VipModal.IsOpen &&
-            !ThemePanelControl.IsMouseOver &&
-            !ThemeButton.IsMouseOver)
-        {
-            viewModel.ThemePanel.CloseCommand.Execute(null);
         }
 
         if (viewModel.IsAccountPanelOpen &&

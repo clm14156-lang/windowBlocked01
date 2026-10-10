@@ -60,7 +60,6 @@ internal static class LocalDataContractMapper
             source.FocusSoundEnabled,
             source.AutomaticBlockingEnabled,
             source.ForcedModeRequested,
-            source.SelectedThemeKey,
             source.SelectedTargetId,
             source.UpdatedAtUtc)
         {
@@ -179,7 +178,6 @@ internal static class LocalDataContractMapper
             source.FocusSoundEnabled,
             source.AutomaticBlockingEnabled,
             source.ForcedModeRequested,
-            source.SelectedThemeKey,
             source.SelectedTargetId,
             source.UpdatedAtUtc)
         {

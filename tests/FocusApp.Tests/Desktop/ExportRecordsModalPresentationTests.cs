@@ -23,10 +23,9 @@ public sealed class ExportRecordsModalPresentationTests
         Assert.Equal("{DynamicResource DialogTitleFontSize}", (string?)title.Attribute("FontSize"));
         Assert.Equal("{DynamicResource DialogTitleFontWeight}", (string?)title.Attribute("FontWeight"));
 
-        var subtitle = Assert.Single(modal.Descendants(Presentation + "TextBlock").Where(text =>
-            (string?)text.Attribute("Text") == "{DynamicResource ExportRecordsSubtitle}"));
-        Assert.Equal("{DynamicResource SecondaryFontSize}", (string?)subtitle.Attribute("FontSize"));
-        Assert.Equal("{DynamicResource SecondaryFontWeight}", (string?)subtitle.Attribute("FontWeight"));
+        Assert.DoesNotContain(modal.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "{DynamicResource ExportRecordsSubtitle}" ||
+            (string?)text.Attribute("Text") == "\uE898");
 
         var optionStyle = Assert.Single(modal.Descendants(Presentation + "Style").Where(style =>
             (string?)style.Attribute(Xaml + "Key") == "ExportOptionButtonStyle"));
@@ -71,10 +70,8 @@ public sealed class ExportRecordsModalPresentationTests
         Assert.Equal(2, separators.Length);
         Assert.All(separators, separator => Assert.Equal("18,0", (string?)separator.Attribute("Margin")));
 
-        var privacyHint = Assert.Single(modal.Descendants(Presentation + "TextBlock").Where(text =>
-            (string?)text.Attribute("Text") == "{DynamicResource ExportRecordsPrivacyHint}"));
-        Assert.Equal("{DynamicResource SecondaryFontSize}", (string?)privacyHint.Attribute("FontSize"));
-        Assert.Equal("{DynamicResource TextTertiary}", (string?)privacyHint.Attribute("Foreground"));
+        Assert.DoesNotContain(modal.Descendants(Presentation + "TextBlock"), text =>
+            (string?)text.Attribute("Text") == "{DynamicResource ExportRecordsPrivacyHint}");
 
         var options = modal.Descendants(Presentation + "Button").Where(button =>
             (string?)button.Attribute("AutomationProperties.Name") is "时间范围" or "文件格式" or "包含内容").ToArray();

@@ -118,7 +118,6 @@ public sealed record LocalAppSettings(
     bool FocusSoundEnabled,
     bool AutomaticBlockingEnabled,
     bool ForcedModeRequested,
-    string SelectedThemeKey,
     string? SelectedTargetId,
     DateTimeOffset UpdatedAtUtc)
 {
@@ -131,7 +130,6 @@ public sealed record LocalAppSettings(
         true,
         false,
         false,
-        "Orange",
         null,
         DateTimeOffset.UnixEpoch);
 }

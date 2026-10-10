@@ -329,7 +329,7 @@ public sealed class StatisticsOverviewViewModelTests
         Assert.All(viewModel.TrendPoints, point => Assert.Equal(0, point.Minutes));
         var emptyState = new LocalDataSnapshotDto(
             1, [], [], [], [], [], [],
-            new LocalAppSettingsDto(false, true, true, true, false, false, "Orange", null, DateTimeOffset.UtcNow),
+            new LocalAppSettingsDto(false, true, true, true, false, false, null, DateTimeOffset.UtcNow),
             [], []);
 
         viewModel.ApplyState(emptyState);
@@ -970,7 +970,7 @@ public sealed class StatisticsOverviewViewModelTests
     {
         var viewModel = new StatisticsOverviewViewModel(useSampleData: false);
         viewModel.ApplyState(new LocalDataSnapshotDto(1, [], [], [], [], [], [],
-            new LocalAppSettingsDto(false, true, true, true, false, false, "Orange", null, DateTimeOffset.UtcNow), [], []));
+            new LocalAppSettingsDto(false, true, true, true, false, false, null, DateTimeOffset.UtcNow), [], []));
         var today = DateTime.Today;
         viewModel.FocusSessionRecords.Add(new FocusSessionRecordViewModel(today.AddHours(8), today.AddHours(9).AddMinutes(20), "goal-model", "建模", string.Empty, 0));
         viewModel.FocusSessionRecords.Add(new FocusSessionRecordViewModel(today.AddHours(9).AddMinutes(30), today.AddHours(9).AddMinutes(50), "goal-model", "建模", string.Empty, 0));

@@ -318,8 +318,8 @@
                            Source="/FocusApp.Desktop;component/Assets/Images/Illustrations/focus_aixin.png"
                            Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality" />
                     <StackPanel Grid.Column="2">
-                        <TextBlock Text="{DynamicResource FocusCompletedTitle}" FontSize="26" FontWeight="SemiBold" Foreground="#0B1B2A" />
-                        <TextBlock Text="{DynamicResource FocusCompletionSubtitle}" FontSize="17" Foreground="#7A8797" Margin="0,4,0,0" />
+                        <TextBlock Text="{DynamicResource FocusCompletedTitle}" FontSize="{DynamicResource PageTitleFontSize}" FontWeight="{DynamicResource PageTitleFontWeight}" Foreground="#0B1B2A" />
+                        <TextBlock Text="{DynamicResource FocusCompletionSubtitle}" FontSize="{DynamicResource BodyFontSize}" FontWeight="{DynamicResource BodyFontWeight}" Foreground="#7A8797" Margin="0,4,0,0" />
                     </StackPanel>
                 </Grid>
 
@@ -342,7 +342,7 @@
                     </Grid>
                     <Viewbox Grid.Row="2" Width="440" Height="100" Stretch="Uniform" StretchDirection="DownOnly">
                         <TextBlock x:Name="CompletionTime" Text="{Binding CompletedTimeDisplay, Mode=OneWay}"
-                                   FontFamily="{DynamicResource FontFamilyNumeric}" FontSize="88" FontWeight="Bold"
+                                   FontFamily="{DynamicResource FontFamilyNumeric}" FontSize="{DynamicResource CompletionTimeFontSize}" FontWeight="{DynamicResource CompletionTimeFontWeight}"
                                    LineHeight="100" LineStackingStrategy="BlockLineHeight"
                                    Foreground="#071827" TextAlignment="Center" />
                     </Viewbox>
@@ -357,11 +357,11 @@
                                RenderOptions.BitmapScalingMode="HighQuality"
                                Source="{Binding ActiveTarget.IconSource, Mode=OneWay, Converter={x:Static views:TargetIconSourceConverter.Instance}, ConverterParameter=#65758B}" />
                         <TextBlock Grid.Column="2" MaxWidth="407" VerticalAlignment="Center"
-                                   Text="{Binding TargetName, Mode=OneWay}" FontSize="20" Foreground="#65758B"
+                                   Text="{Binding TargetName, Mode=OneWay}" FontSize="{DynamicResource BodyMediumFontSize}" FontWeight="{DynamicResource BodyMediumFontWeight}" Foreground="#65758B"
                                    TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" ToolTip="{Binding TargetName}" />
                     </Grid>
                     <TextBlock x:Name="CompletionStatistics" Grid.Row="6" HorizontalAlignment="Center" VerticalAlignment="Center"
-                               FontSize="18" Foreground="#7A8797">
+                               FontSize="{DynamicResource SecondaryFontSize}" FontWeight="{DynamicResource SecondaryFontWeight}" Foreground="#7A8797">
                         <Run Text="{DynamicResource FocusCompletionTodayPrefix}" /><Run Text="{Binding TodayFocusCount, Mode=OneWay}" /><Run Text="{DynamicResource FocusCompletionTodaySuffix}" /><Run Text="   ·   " /><Run Text="{DynamicResource FocusCompletionTotalPrefix}" /><Run Text="{Binding CompletionTodayTotalDisplay, Mode=OneWay}" />
                     </TextBlock>
                 </Grid>
@@ -376,7 +376,7 @@
                                 <views:SvgIcon Width="20" Height="20" Margin="0,0,10,0" VerticalAlignment="Center"
                                                FillOverride="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
                                                Source="/FocusApp.Desktop;component/Assets/Icons/Common/reset.svg" />
-                                <TextBlock Text="{DynamicResource FocusAgainShort}" FontSize="16" VerticalAlignment="Center"
+                                <TextBlock Text="{DynamicResource FocusAgainShort}" FontSize="{DynamicResource ButtonFontSize}" FontWeight="{DynamicResource ButtonFontWeight}" VerticalAlignment="Center"
                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
                             </StackPanel>
                         </Button>
@@ -388,7 +388,7 @@
                                 <views:SvgIcon Width="20" Height="20" Margin="0,0,10,0" VerticalAlignment="Center"
                                                FillOverride="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
                                                Source="/FocusApp.Desktop;component/Assets/Icons/Common/home.svg" />
-                                <TextBlock Text="{DynamicResource FocusReturnHome}" FontSize="16" VerticalAlignment="Center"
+                                <TextBlock Text="{DynamicResource FocusReturnHome}" FontSize="{DynamicResource ButtonFontSize}" FontWeight="{DynamicResource ButtonFontWeight}" VerticalAlignment="Center"
                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
                             </StackPanel>
                         </Button>

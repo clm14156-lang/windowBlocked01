@@ -38,7 +38,7 @@ public sealed class TaskCompletionConsistencyTests
             Assert.False(parent.IsCompleted);
             Assert.False(checkbox.IsChecked);
             parent.SubTasks[0].IsCompleted = true;
-            checkbox.InvokeClick();
+            Dispatcher.CurrentDispatcher.Invoke(() => { }, DispatcherPriority.DataBind);
             Assert.True(parent.IsCompleted);
             Assert.True(checkbox.IsChecked);
             parent.SubTasks[0].IsCompleted = false;
@@ -128,6 +128,6 @@ public sealed class TaskCompletionConsistencyTests
         parent.SubTasks.RemoveAt(1);
         Assert.False(parent.IsCompleted);
     }
-    private static LocalDataSnapshotDto Snapshot(IReadOnlyList<LocalTaskDto> tasks)=>new(1,[],[new LocalTargetDto("g","目标",false,0,Day,Day)],tasks,[],[],[],new LocalAppSettingsDto(false,true,true,true,false,false,"Orange","g",Day),[],[]);
+    private static LocalDataSnapshotDto Snapshot(IReadOnlyList<LocalTaskDto> tasks)=>new(1,[],[new LocalTargetDto("g","目标",false,0,Day,Day)],tasks,[],[],[],new LocalAppSettingsDto(false,true,true,true,false,false,"g",Day),[],[]);
     private static void Sta(Action action){Exception? error=null;var thread=new Thread(()=>{try{action();}catch(Exception exception){error=exception;}});thread.SetApartmentState(ApartmentState.STA);thread.Start();Assert.True(thread.Join(TimeSpan.FromSeconds(25)));if(error is not null)throw new InvalidOperationException("Goal completed task check failed",error);}
 }
