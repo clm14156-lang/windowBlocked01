@@ -5,6 +5,7 @@
              Foreground="#24262C" FontSize="{DynamicResource BodyFontSize}" FontWeight="{DynamicResource BodyFontWeight}" UseLayoutRounding="True" SnapsToDevicePixels="True"
              PreviewKeyDown="Drawer_PreviewKeyDown" PreviewMouseMove="Drawer_PreviewMouseMove"
              PreviewMouseLeftButtonUp="Drawer_PreviewMouseLeftButtonUp" LostMouseCapture="Drawer_LostMouseCapture"
+             Loaded="Drawer_Loaded" IsVisibleChanged="Drawer_IsVisibleChanged"
              Unloaded="Drawer_Unloaded" DataContextChanged="Drawer_DataContextChanged">
     <UserControl.Resources>
         <ResourceDictionary>
@@ -15,7 +16,7 @@
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="CheckBox">
                 <Border x:Name="CheckChrome" CornerRadius="3" BorderBrush="#BCC2CB" BorderThickness="1" Background="White">
                     <Grid>
-                    <TextBlock x:Name="TaskNumber" Text="{Binding DrawerNumber}" FontSize="{DynamicResource CaptionFontSize}" FontWeight="{DynamicResource CaptionFontWeight}" Foreground="#A9AFB9"
+                    <TextBlock x:Name="TaskNumber" Text="{Binding DrawerNumber}" FontSize="10" FontWeight="{DynamicResource CaptionFontWeight}" Foreground="#A9AFB9"
                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     <Path x:Name="Tick" Width="9" Height="7" Data="M 0,3 L 3,6 L 9,0" Stroke="White" StrokeThickness="1.5"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
@@ -90,7 +91,7 @@
                 <StackPanel Margin="18,14,14,15">
                     <Grid MinHeight="24">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="35" /><ColumnDefinition Width="*" /><ColumnDefinition Width="24" /></Grid.ColumnDefinitions>
-                        <CheckBox IsChecked="{Binding IsCompleted, Mode=OneWay}" Command="{Binding DataContext.ToggleTaskCompletedCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
+                        <CheckBox x:Name="TaskCompletionCheck" IsChecked="{Binding IsCompleted, Mode=OneWay}" Command="{Binding DataContext.ToggleTaskCompletedCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
                                   HorizontalAlignment="Left" VerticalAlignment="Center" Style="{StaticResource DrawerTaskCheck}" AutomationProperties.Name="切换任务完成状态" />
                         <TextBlock x:Name="TaskTitle" Grid.Column="1" VerticalAlignment="Center" Text="{Binding Name}" FontSize="{DynamicResource BodyMediumFontSize}" FontWeight="{DynamicResource BodyMediumFontWeight}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" Style="{StaticResource CompletedTitle}" />
                         <Button x:Name="TaskMoreButton" Grid.Column="2" Width="24" Height="24" VerticalAlignment="Center" Content="···" FontSize="17" AutomationProperties.Name="更多任务操作" Click="TaskMoreButton_Click">
@@ -115,11 +116,11 @@
                         </StackPanel>
                     </Button>
                     <Border Margin="45,10,0,0" Visibility="{Binding IsExpanded, Converter={StaticResource BoolVisibility}}">
-                        <ItemsControl x:Name="InlineSubTaskList" Margin="14,0,0,0" ItemsSource="{Binding SortedSubTasks}">
+                        <ItemsControl x:Name="InlineSubTaskList" Margin="14,0,0,0" ItemsSource="{Binding SubTasks}">
                             <ItemsControl.ItemTemplate><DataTemplate>
-                                <Grid MinHeight="33"><Grid.ColumnDefinitions><ColumnDefinition Width="26" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                    <CheckBox IsChecked="{Binding IsCompleted, Mode=TwoWay}" Style="{StaticResource CircleCheck}" VerticalAlignment="Center" AutomationProperties.Name="切换子任务完成状态" />
-                                    <TextBlock Grid.Column="1" VerticalAlignment="Center" Text="{Binding Title}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" FontSize="11.5" Style="{StaticResource CompletedTitle}" />
+                                <Grid x:Name="SubTaskRow" MinHeight="33" Loaded="SubTaskRow_Loaded" Unloaded="SubTaskRow_Unloaded" DataContextChanged="SubTaskRow_DataContextChanged"><Grid.ColumnDefinitions><ColumnDefinition Width="26" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                    <CheckBox x:Name="SubTaskCompletionCheck" IsChecked="{Binding IsCompleted, Mode=TwoWay}" Style="{StaticResource CircleCheck}" VerticalAlignment="Center" AutomationProperties.Name="切换子任务完成状态" />
+                                    <TextBlock x:Name="SubTaskTitle" Grid.Column="1" VerticalAlignment="Center" Text="{Binding Title}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" FontSize="11.5" Style="{StaticResource CompletedTitle}" />
                                 </Grid>
                             </DataTemplate></ItemsControl.ItemTemplate>
                         </ItemsControl>

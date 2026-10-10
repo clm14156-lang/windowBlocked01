@@ -121,6 +121,7 @@
                               Opacity="0.08"
                               ShadowDepth="3" />
         </Border.Effect>
+        <Grid x:Name="CloseButtonHost">
         <Grid Margin="26,22,26,18">
             <Grid.RowDefinitions>
                 <RowDefinition Height="26" />
@@ -160,6 +161,9 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
             </ScrollViewer>
+        </Grid>
+            <Button x:Name="ModalCloseButton" AutomationProperties.Name="关闭已屏蔽内容弹窗"
+                    Command="{Binding CloseCommand}" Style="{DynamicResource ModalCloseButtonStyle}" />
         </Grid>
     </Border>
 </UserControl>

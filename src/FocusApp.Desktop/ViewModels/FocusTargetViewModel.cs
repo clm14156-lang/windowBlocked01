@@ -302,6 +302,19 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
         }
     }
 
+    internal void CompleteSubTasks()
+    {
+        // Batch the child checks so the session publishes one completion and one save.
+        var wasApplying = _applyingDetails;
+        _applyingDetails = true;
+        try
+        {
+            foreach (var child in SubTasks) child.IsCompleted = true;
+        }
+        finally { _applyingDetails = wasApplying; }
+        NotifyDetailsChanged();
+    }
+
     internal void ApplyDetails(LocalTaskDto source)
     {
         _applyingDetails = true;

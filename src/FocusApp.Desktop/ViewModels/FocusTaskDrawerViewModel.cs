@@ -21,6 +21,7 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
     private FocusTaskViewModel? _draft;
     private FocusTaskViewModel? _editingTask;
     private FocusTaskViewModel? _selectedTask;
+    private readonly HashSet<FocusTaskViewModel> _exitingTasks = [];
 
     public FocusTaskDrawerViewModel(FocusSessionViewModel session)
     {
@@ -56,6 +57,8 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
+    public event EventHandler<TaskCompletionPresentationEventArgs>? CompletionAnimationRequested;
+    public event EventHandler<FocusTaskViewModel>? CompletionAnimationCancelled;
     public ObservableCollection<FocusTaskViewModel> Tasks { get; } = [];
     public ObservableCollection<FocusTaskViewModel> TodayCompletedTasks { get; } = [];
     public ObservableCollection<FocusTaskViewModel> VisibleTasks { get; } = [];
@@ -79,7 +82,7 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
         private set
         {
             if (!Set(ref _isOpen, value)) return;
-            if (!value) { CancelCreation(); SelectTask(null); }
+            if (!value) { FinishCompletionAnimations(); CancelCreation(); SelectTask(null); }
             _session.NotifyTaskDrawerChanged();
         }
     }
@@ -130,7 +133,7 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
     }
     public string SubTaskCountDisplay => $"{_draft?.SubTasks.Count ?? 0}/20";
     public bool CanEnterSubTask => _draft?.SubTasks.Count < 20;
-    public bool HasPendingTasks => Tasks.Count > 0;
+    public bool HasPendingTasks => Tasks.Count > 0 || _exitingTasks.Count > 0;
     public bool HasTodayCompletedTasks => TodayCompletedTasks.Count > 0;
     public bool IsEmpty => !HasPendingTasks && !HasTodayCompletedTasks;
     public int TotalTaskCount => Tasks.Count + TodayCompletedTasks.Count;
@@ -143,13 +146,34 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
         var current = (_session.ActiveTarget?.Tasks.AsEnumerable() ?? []).ToArray();
         var pending = current.Where(item => !item.IsCompleted).ToArray();
         var completed = _session.CompletedTasks.OrderBy(item => item.CompletedAtUtc).ToArray();
-        var visible = pending.Concat(completed).ToArray();
+        foreach (var task in _exitingTasks.Where(task => !completed.Contains(task) || !_session.IsFocusing).ToArray())
+        {
+            _exitingTasks.Remove(task);
+            CompletionAnimationCancelled?.Invoke(this, task);
+        }
+        // The persisted state and counts change immediately. Only the drawer's visual order waits.
+        if (IsOpen && _session.IsFocusing && CompletionAnimationRequested is not null)
+            foreach (var task in completed.Where(task => Tasks.Contains(task)).ToArray())
+            {
+                if (!_exitingTasks.Add(task)) continue;
+                var request = new TaskCompletionPresentationEventArgs(task);
+                CompletionAnimationRequested.Invoke(this, request);
+                if (!request.Handled) _exitingTasks.Remove(task);
+            }
+        var visible = pending.Concat(completed.Where(task => !_exitingTasks.Contains(task))).ToList();
+        var previous = VisibleTasks.ToArray();
+        for (var index = 0; index < previous.Length; index++)
+        {
+            if (!_exitingTasks.Contains(previous[index])) continue;
+            var preceding = previous.Take(index).Count(task => pending.Contains(task) || _exitingTasks.Contains(task));
+            visible.Insert(Math.Min(preceding, visible.Count), previous[index]);
+        }
         if (SelectedTask is not null && !visible.Contains(SelectedTask)) SelectTask(null);
         if (_editingTask is not null && !visible.Contains(_editingTask)) CancelCreation();
         SyncTasks(Tasks, pending);
         SyncTasks(TodayCompletedTasks, completed);
-        SyncTasks(VisibleTasks, visible);
-        for (var index = 0; index < visible.Length; index++) visible[index].DrawerNumber = index + 1;
+        SyncTasks(VisibleTasks, visible.ToArray());
+        for (var index = 0; index < visible.Count; index++) visible[index].DrawerNumber = index + 1;
         var highlighted = _selectedTask is { IsCompleted: false } ? _selectedTask : pending.FirstOrDefault();
         foreach (var currentTask in current) currentTask.IsDrawerSelected = currentTask == highlighted;
         OnPropertyChanged(nameof(TaskProgress));
@@ -159,6 +183,24 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(HasPendingTasks));
         OnPropertyChanged(nameof(HasTodayCompletedTasks));
         OnPropertyChanged(nameof(IsEmpty));
+    }
+
+    public void FinishCompletionAnimation(FocusTaskViewModel task)
+    {
+        if (!_exitingTasks.Remove(task)) return;
+        // Remove only the finished container: other simultaneous exits retain their animation clocks.
+        VisibleTasks.Remove(task);
+        RefreshTasks();
+    }
+
+    public void FinishCompletionAnimations()
+    {
+        foreach (var task in _exitingTasks.ToArray())
+        {
+            _exitingTasks.Remove(task);
+            CompletionAnimationCancelled?.Invoke(this, task);
+        }
+        RefreshTasks();
     }
 
     public bool MoveTask(FocusTaskViewModel task, int destinationIndex)
@@ -330,4 +372,10 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
         return true;
     }
     private void OnPropertyChanged([CallerMemberName] string? name = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+}
+
+public sealed class TaskCompletionPresentationEventArgs(FocusTaskViewModel task) : EventArgs
+{
+    public FocusTaskViewModel Task { get; } = task;
+    public bool Handled { get; set; }
 }

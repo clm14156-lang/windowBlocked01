@@ -2,8 +2,11 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              Width="300" Height="{Binding WindowHeight}"
-             Background="Transparent" UseLayoutRounding="True" SnapsToDevicePixels="True">
+             Background="Transparent" UseLayoutRounding="True" SnapsToDevicePixels="True"
+             Loaded="Content_Loaded" Unloaded="Content_Unloaded" DataContextChanged="Content_DataContextChanged" IsVisibleChanged="Content_IsVisibleChanged">
     <UserControl.Resources>
+        <ResourceDictionary>
+        <ResourceDictionary.MergedDictionaries><ResourceDictionary Source="FocusTaskResources.xaml" /></ResourceDictionary.MergedDictionaries>
         <BooleanToVisibilityConverter x:Key="TaskVisibility"/>
         <Style x:Key="FloatingPlainButton" TargetType="Button">
             <Setter Property="Width" Value="24"/><Setter Property="Height" Value="24"/>
@@ -45,6 +48,14 @@
                 </Border>
             </ControlTemplate></Setter.Value></Setter>
         </Style>
+        <Style x:Key="FloatingSubTaskTitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13"/><Setter Property="Foreground" Value="#3C485B"/>
+            <Setter Property="VerticalAlignment" Value="Center"/><Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+            <Style.Triggers><DataTrigger Binding="{Binding IsCompleted}" Value="True">
+                <Setter Property="TextDecorations" Value="Strikethrough"/><Setter Property="Foreground" Value="#7D8CA2"/>
+            </DataTrigger></Style.Triggers>
+        </Style>
+        </ResourceDictionary>
     </UserControl.Resources>
     <Border x:Name="FloatingSurface" BorderBrush="#E6ECF3" BorderThickness="1" CornerRadius="22">
         <Border.Background><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Offset="0" Color="#FDFEFF"/><GradientStop Offset="1" Color="#F7FAFE"/></LinearGradientBrush></Border.Background>
@@ -70,26 +81,35 @@
                     <ProgressBar.Template><ControlTemplate TargetType="ProgressBar"><Grid x:Name="PART_Track"><Border Background="{TemplateBinding Background}" CornerRadius="3.5"/><Border x:Name="PART_Indicator" HorizontalAlignment="Left" Background="{TemplateBinding Foreground}" CornerRadius="3.5"/></Grid></ControlTemplate></ProgressBar.Template>
                 </ProgressBar>
             </Grid>
-            <Border x:Name="TaskDisplayBorder" Grid.Row="1" Background="Transparent" Visibility="{Binding HasCurrentTask, Converter={StaticResource TaskVisibility}}">
+            <Border x:Name="TaskDisplayBorder" Grid.Row="1" Background="Transparent" Height="{Binding TaskAreaHeight}" ClipToBounds="True" Visibility="{Binding HasDisplayedTasks, Converter={StaticResource TaskVisibility}}">
                 <Grid>
                     <Grid.RowDefinitions><RowDefinition Height="16"/><RowDefinition Height="1"/><RowDefinition Height="10"/><RowDefinition Height="18"/><RowDefinition Height="1"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                     <Border Grid.Row="1" Background="#E6ECF4"/>
                     <StackPanel Grid.Row="3" Orientation="Horizontal">
                         <TextBlock Text="当前任务" FontSize="13" FontWeight="SemiBold" Foreground="#263347" VerticalAlignment="Center"/>
-                        <Border Background="#EDF2F8" CornerRadius="9" Padding="9,0" Margin="11,0,0,0">
-                            <TextBlock x:Name="TaskProgressText" Text="{Binding TaskProgressDisplay}" FontFamily="{DynamicResource FontFamilyNumeric}" FontSize="11" Foreground="#7D8CA2" VerticalAlignment="Center"/>
-                        </Border>
                     </StackPanel>
                     <ScrollViewer x:Name="TaskScrollViewer" Grid.Row="5" Height="{Binding TaskListHeight}" HorizontalScrollBarVisibility="Disabled" CanContentScroll="False">
                         <ScrollViewer.Style><Style TargetType="ScrollViewer"><Setter Property="VerticalScrollBarVisibility" Value="Disabled"/><Style.Triggers><DataTrigger Binding="{Binding HasTaskOverflow}" Value="True"><Setter Property="VerticalScrollBarVisibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></ScrollViewer.Style>
                         <ScrollViewer.Resources><Style TargetType="ScrollBar" BasedOn="{StaticResource FloatingTaskScrollBar}"/></ScrollViewer.Resources>
-                        <ItemsControl x:Name="PendingTaskList" ItemsSource="{Binding PendingTasks}">
+                        <ItemsControl x:Name="PendingTaskList" ItemsSource="{Binding VisibleTasks}">
                             <ItemsControl.ItemTemplate><DataTemplate>
+                                <Grid x:Name="FloatingTaskRow" ClipToBounds="True">
+                                <Grid.RowDefinitions><RowDefinition Height="28"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                                 <Grid Height="28" Margin="0,0,7,0"><Grid.ColumnDefinitions><ColumnDefinition Width="20"/><ColumnDefinition Width="12"/><ColumnDefinition/></Grid.ColumnDefinitions>
-                                    <CheckBox Style="{StaticResource FloatingTaskCheckBox}" IsChecked="{Binding IsCompleted, Mode=OneWay}"
+                                    <CheckBox x:Name="ParentTaskCheck" Style="{StaticResource FloatingTaskCheckBox}" IsChecked="{Binding IsCompleted, Mode=OneWay}"
                                               Command="{Binding DataContext.ToggleTaskCompletedCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}" CommandParameter="{Binding}"
                                               AutomationProperties.Name="{Binding Name}" ToolTip="{DynamicResource FocusFloatingCompleteTask}"/>
-                                    <TextBlock Grid.Column="2" Text="{Binding Name}" FontSize="13" Foreground="#3C485B" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding Name}"/>
+                                    <TextBlock x:Name="ParentTaskTitle" Grid.Column="2" Text="{Binding Name}" FontSize="13" FontWeight="Medium" Foreground="#3C485B" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding Name}"/>
+                                </Grid>
+                                <ItemsControl x:Name="SubTaskList" Grid.Row="1" Margin="32,0,7,0" ItemsSource="{Binding SubTasks}">
+                                    <ItemsControl.ItemTemplate><DataTemplate>
+                                        <Grid x:Name="FloatingChildRow" Height="28" Loaded="ChildRow_Loaded" Unloaded="ChildRow_Unloaded" DataContextChanged="ChildRow_DataContextChanged"><Grid.ColumnDefinitions><ColumnDefinition Width="20"/><ColumnDefinition Width="12"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                            <CheckBox x:Name="SubTaskCheck" Style="{StaticResource CircleCheck}" VerticalAlignment="Center"
+                                                      IsChecked="{Binding IsCompleted, Mode=TwoWay}" AutomationProperties.Name="{Binding Title}" ToolTip="{Binding Title}"/>
+                                            <TextBlock x:Name="SubTaskTitle" Grid.Column="2" Text="{Binding Title}" Style="{StaticResource FloatingSubTaskTitle}" ToolTip="{Binding Title}"/>
+                                        </Grid>
+                                    </DataTemplate></ItemsControl.ItemTemplate>
+                                </ItemsControl>
                                 </Grid>
                             </DataTemplate></ItemsControl.ItemTemplate>
                         </ItemsControl>

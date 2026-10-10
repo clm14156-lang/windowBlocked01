@@ -74,15 +74,18 @@ public sealed class ThemedTextButtonTemplateTests
 
         var targetText = Assert.Single(ruleTemplate.Descendants(Presentation + "TextBlock")
             .Where(element => (string?)element.Attribute("Text") == "{Binding TargetDisplayText}"));
-        Assert.Equal("13", (string?)targetText.Attribute("FontSize"));
-        Assert.Equal("Medium", (string?)targetText.Attribute("FontWeight"));
-        Assert.Equal("{DynamicResource TextPrimary}", (string?)targetText.Attribute("Foreground"));
+        Assert.Equal("{DynamicResource BodyMediumFontSize}", (string?)targetText.Attribute("FontSize"));
+        Assert.Equal("{DynamicResource BodyMediumFontWeight}", (string?)targetText.Attribute("FontWeight"));
+        Assert.Contains("HasDisplayTarget", (string?)targetText.Attribute("Visibility"));
 
         var scheduleText = Assert.Single(ruleTemplate.Descendants(Presentation + "TextBlock")
-            .Where(element => (string?)element.Attribute("Text") == "{Binding ScheduleDisplayText}"));
-        Assert.Equal("12", (string?)scheduleText.Attribute("FontSize"));
-        Assert.Equal("Normal", (string?)scheduleText.Attribute("FontWeight"));
-        Assert.Equal("{DynamicResource TextSecondary}", (string?)scheduleText.Attribute("Foreground"));
+            .Where(element => (string?)element.Attribute("Text") == "{Binding TimeRangeText}"));
+        AssertStyleSetter(scheduleText.Descendants(Presentation + "Style").Single(), "FontSize", "{DynamicResource BodyMediumFontSize}");
+        var repeatText = Assert.Single(ruleTemplate.Descendants(Presentation + "TextBlock")
+            .Where(element => (string?)element.Attribute("Text") == "{Binding ScheduleRepeatDisplayText}"));
+        Assert.Equal("{DynamicResource SecondaryFontSize}", (string?)repeatText.Attribute("FontSize"));
+        Assert.Equal("{DynamicResource SecondaryFontWeight}", (string?)repeatText.Attribute("FontWeight"));
+        Assert.Equal("CharacterEllipsis", (string?)repeatText.Attribute("TextTrimming"));
 
         var editButton = Assert.Single(ruleTemplate.Descendants(Presentation + "Button").Where(button =>
             ((string?)button.Attribute("Command"))?.Contains("EditRuleCommand", StringComparison.Ordinal) == true));

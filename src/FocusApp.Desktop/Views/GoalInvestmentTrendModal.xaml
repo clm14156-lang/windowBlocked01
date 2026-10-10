@@ -18,14 +18,6 @@
         <Style TargetType="{x:Type TextBlock}">
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
         </Style>
-        <Style x:Key="TrendQuietButton" TargetType="Button">
-            <Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Cursor" Value="Hand"/><Setter Property="FocusVisualStyle" Value="{x:Null}"/>
-            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
-                <Border x:Name="Surface" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" CornerRadius="7"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
-                <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Surface" Property="Background" Value="#F5F6F8"/></Trigger><Trigger Property="IsPressed" Value="True"><Setter TargetName="Surface" Property="Background" Value="#ECEEF1"/></Trigger></ControlTemplate.Triggers>
-            </ControlTemplate></Setter.Value></Setter>
-        </Style>
         <Style x:Key="TrendRangeLabel" TargetType="TextBlock">
             <Setter Property="Foreground" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
             <Setter Property="FontFamily" Value="{Binding FontFamily, RelativeSource={RelativeSource AncestorType=Button}}"/>
@@ -90,17 +82,15 @@
     </UserControl.Resources>
     <Grid Background="{DynamicResource ModalScrim}" MouseDown="Overlay_MouseDown">
         <Border x:Name="TrendModalCard" Width="650" Height="420" HorizontalAlignment="Center" VerticalAlignment="Center"
-                Padding="28,24" Background="White" BorderBrush="#E8E9EC" BorderThickness="1" CornerRadius="18" MouseDown="ModalCard_MouseDown">
+                Background="White" BorderBrush="#E8E9EC" BorderThickness="1" CornerRadius="18" MouseDown="ModalCard_MouseDown">
             <Border.Effect><DropShadowEffect BlurRadius="24" ShadowDepth="4" Direction="270" Opacity="0.10"/></Border.Effect>
-            <Grid>
+            <Grid x:Name="CloseButtonHost">
+            <Grid Margin="28,24">
                 <Grid.RowDefinitions><RowDefinition Height="60"/><RowDefinition Height="80"/><RowDefinition Height="30"/><RowDefinition/></Grid.RowDefinitions>
                 <StackPanel Margin="0,0,38,0">
                     <TextBlock Text="{Binding GoalName}" FontSize="{DynamicResource DialogTitleFontSize}" FontWeight="{DynamicResource DialogTitleFontWeight}" Foreground="#17202C" TextTrimming="CharacterEllipsis" ToolTip="{Binding GoalRemark}"/>
                     <TextBlock Text="投入趋势" FontSize="{DynamicResource SecondaryFontSize}" FontWeight="{DynamicResource SecondaryFontWeight}" Foreground="#8D96A8" Margin="0,4,0,0"/>
                 </StackPanel>
-                <Button Width="24" Height="24" Margin="0,0,-6,0" HorizontalAlignment="Right" VerticalAlignment="Top" Style="{StaticResource TrendQuietButton}" Command="{Binding CloseCommand}" AutomationProperties.Name="关闭投入趋势">
-                    <TextBlock Text="×" FontSize="22" Foreground="{DynamicResource TextWeak}"/>
-                </Button>
                 <StackPanel x:Name="InvestmentSummary" Grid.Row="1" HorizontalAlignment="Left">
                     <TextBlock x:Name="InvestmentDuration" Foreground="#17202C" FontSize="{DynamicResource DataValueDisplayFontSize}" FontWeight="{DynamicResource DataValueDisplayFontWeight}">
                         <Run Text="{Binding PeriodInvestment.HoursValue, Mode=OneWay}"/>
@@ -166,6 +156,9 @@
                         </StackPanel>
                     </Border>
                 </Canvas>
+            </Grid>
+                <Button x:Name="ModalCloseButton" Style="{DynamicResource ModalCloseButtonStyle}"
+                        Command="{Binding CloseCommand}" AutomationProperties.Name="关闭投入趋势" />
             </Grid>
         </Border>
     </Grid>

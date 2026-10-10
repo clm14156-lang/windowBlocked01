@@ -698,11 +698,16 @@ public sealed class AutomaticRuleItemViewModel : INotifyPropertyChanged
 
     public string TimeRangeText => _timeRangeText;
 
-    public string TargetDisplayText => string.IsNullOrWhiteSpace(_targetName) ? "无目标" : _targetName;
+    public bool HasDisplayTarget => !string.IsNullOrWhiteSpace(TargetId) && !string.IsNullOrWhiteSpace(_targetName);
 
-    public string ScheduleDisplayText => _isCustom
-        ? $"{_timeRangeText} （{_repeatText}）"
-        : _timeRangeText;
+    public string TargetDisplayText => HasDisplayTarget ? _targetName! : string.Empty;
+
+    public bool HasScheduleRepeat => _isCustom && !string.IsNullOrWhiteSpace(_repeatText);
+
+    public string ScheduleRepeatDisplayText => HasScheduleRepeat ? $"（{_repeatText}）" : string.Empty;
+
+    public string ScheduleDisplayText => HasScheduleRepeat
+        ? $"{_timeRangeText} {ScheduleRepeatDisplayText}" : _timeRangeText;
 
     public HashSet<string> DayKeys { get; }
 
@@ -723,6 +728,7 @@ public sealed class AutomaticRuleItemViewModel : INotifyPropertyChanged
         _targetName = string.IsNullOrEmpty(targetId) ? null : targetName;
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(TargetId)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(TargetDisplayText)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasDisplayTarget)));
     }
 
     public void Update(
@@ -744,6 +750,8 @@ public sealed class AutomaticRuleItemViewModel : INotifyPropertyChanged
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(RepeatText)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(TimeRangeText)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ScheduleDisplayText)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasScheduleRepeat)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ScheduleRepeatDisplayText)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DayKeys)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(StartMinutes)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(EndMinutes)));

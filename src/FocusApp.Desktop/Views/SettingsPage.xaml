@@ -381,7 +381,7 @@
                                 <ItemsControl x:Name="AutomaticRulesList" ItemsSource="{Binding AutomaticRules}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <Border Height="44"
+                                            <Border x:Name="AutomaticRuleRow" Height="44"
                                                     Margin="14,0"
                                                     CornerRadius="7"
                                                     MouseEnter="AutomaticRuleRow_MouseEnter">
@@ -400,14 +400,8 @@
                                                     </Grid.ColumnDefinitions>
                                                     <Border Grid.ColumnSpan="4" Height="1" VerticalAlignment="Top" Background="{DynamicResource BorderPrimary}" />
                                                     <Grid Grid.ColumnSpan="2">
-                                                        <Grid.Style>
-                                                            <Style TargetType="{x:Type Grid}">
-                                                                <Setter Property="Opacity" Value="1" />
-                                                                <Style.Triggers><DataTrigger Binding="{Binding IsEnabled}" Value="False"><Setter Property="Opacity" Value="0.58" /></DataTrigger></Style.Triggers>
-                                                            </Style>
-                                                        </Grid.Style>
                                                         <Grid.ColumnDefinitions><ColumnDefinition Width="18" /><ColumnDefinition /></Grid.ColumnDefinitions>
-                                                        <Ellipse Grid.Column="0" Width="7" Height="7" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                                        <Ellipse x:Name="RuleStatusDot" Grid.Column="0" Width="7" Height="7" HorizontalAlignment="Left" VerticalAlignment="Center">
                                                             <Ellipse.Style>
                                                                 <Style TargetType="{x:Type Ellipse}">
                                                                     <Setter Property="Fill" Value="{DynamicResource AccentPrimary}" />
@@ -416,8 +410,45 @@
                                                             </Ellipse.Style>
                                                         </Ellipse>
                                                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                                            <TextBlock FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" Text="{Binding TargetDisplayText}" TextTrimming="CharacterEllipsis" />
-                                                            <TextBlock Margin="0,2,0,0" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextSecondary}" Text="{Binding ScheduleDisplayText}" TextTrimming="CharacterEllipsis" />
+                                                            <TextBlock x:Name="RuleTargetText" FontSize="{DynamicResource BodyMediumFontSize}" FontWeight="{DynamicResource BodyMediumFontWeight}"
+                                                                       Text="{Binding TargetDisplayText}" TextTrimming="CharacterEllipsis"
+                                                                       Visibility="{Binding HasDisplayTarget, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                                <TextBlock.Style><Style TargetType="TextBlock">
+                                                                    <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+                                                                    <Style.Triggers><DataTrigger Binding="{Binding IsEnabled}" Value="False"><Setter Property="Foreground" Value="{DynamicResource TextWeak}" /></DataTrigger></Style.Triggers>
+                                                                </Style></TextBlock.Style>
+                                                            </TextBlock>
+                                                            <Grid x:Name="RuleScheduleLine" ClipToBounds="True">
+                                                                <Grid.Style><Style TargetType="Grid">
+                                                                    <Setter Property="Margin" Value="0" />
+                                                                    <Style.Triggers><DataTrigger Binding="{Binding HasDisplayTarget}" Value="True"><Setter Property="Margin" Value="0,2,0,0" /></DataTrigger></Style.Triggers>
+                                                                </Style></Grid.Style>
+                                                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                                                <TextBlock x:Name="RuleTimeText" Text="{Binding TimeRangeText}" VerticalAlignment="Center">
+                                                                    <TextBlock.Style><Style TargetType="TextBlock">
+                                                                        <Setter Property="FontSize" Value="{DynamicResource BodyMediumFontSize}" />
+                                                                        <Setter Property="FontWeight" Value="{DynamicResource BodyMediumFontWeight}" />
+                                                                        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding HasDisplayTarget}" Value="True">
+                                                                                <Setter Property="FontSize" Value="{DynamicResource SecondaryFontSize}" />
+                                                                                <Setter Property="FontWeight" Value="{DynamicResource SecondaryFontWeight}" />
+                                                                                <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+                                                                            </DataTrigger>
+                                                                            <DataTrigger Binding="{Binding IsEnabled}" Value="False"><Setter Property="Foreground" Value="{DynamicResource TextWeak}" /></DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style></TextBlock.Style>
+                                                                </TextBlock>
+                                                                <TextBlock x:Name="RuleRepeatText" Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center"
+                                                                           Text="{Binding ScheduleRepeatDisplayText}" TextTrimming="CharacterEllipsis"
+                                                                           FontSize="{DynamicResource SecondaryFontSize}" FontWeight="{DynamicResource SecondaryFontWeight}"
+                                                                           Visibility="{Binding HasScheduleRepeat, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                                    <TextBlock.Style><Style TargetType="TextBlock">
+                                                                        <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+                                                                        <Style.Triggers><DataTrigger Binding="{Binding IsEnabled}" Value="False"><Setter Property="Foreground" Value="{DynamicResource TextWeak}" /></DataTrigger></Style.Triggers>
+                                                                    </Style></TextBlock.Style>
+                                                                </TextBlock>
+                                                            </Grid>
                                                         </StackPanel>
                                                     </Grid>
                                                     <ToggleButton Grid.Column="2"

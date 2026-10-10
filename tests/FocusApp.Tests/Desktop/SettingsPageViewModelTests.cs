@@ -19,7 +19,7 @@ public sealed class SettingsPageViewModelTests
 
         Assert.Equal(2, viewModel.AutomaticRules.Count);
         Assert.Equal("每天", viewModel.AutomaticRules[0].RepeatText);
-        Assert.Equal("无目标", viewModel.AutomaticRules[0].TargetDisplayText);
+        Assert.Empty(viewModel.AutomaticRules[0].TargetDisplayText);
         Assert.Equal("09:00 – 12:00", viewModel.AutomaticRules[0].ScheduleDisplayText);
         Assert.False(viewModel.AutomaticRules[0].IsEnabled);
         Assert.Equal("周一 / 周三", viewModel.AutomaticRules[1].RepeatText);
@@ -48,7 +48,7 @@ public sealed class SettingsPageViewModelTests
 
         Assert.Equal("学习ue5", viewModel.AutomaticRules[0].TargetDisplayText);
         Assert.Equal("13:00 – 15:00 （周一 / 周二 / 周三）", viewModel.AutomaticRules[0].ScheduleDisplayText);
-        Assert.Equal("无目标", viewModel.AutomaticRules[1].TargetDisplayText);
+        Assert.Empty(viewModel.AutomaticRules[1].TargetDisplayText);
         Assert.Equal("16:00 – 17:00", viewModel.AutomaticRules[1].ScheduleDisplayText);
     }
 

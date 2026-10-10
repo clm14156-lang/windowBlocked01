@@ -133,11 +133,9 @@
             <TextBlock Margin="28,58,0,0" VerticalAlignment="Top"
                        FontSize="{DynamicResource SecondaryFontSize}" FontWeight="{DynamicResource SecondaryFontWeight}"
                        Foreground="{DynamicResource TextTertiary}" Text="{DynamicResource BlockingAddProgramModalDescription}" />
-            <Button Width="30" Height="30" Margin="0,17,20,0" HorizontalAlignment="Right" VerticalAlignment="Top"
+            <Button x:Name="ModalCloseButton"
                     AutomationProperties.Name="{DynamicResource BlockingModalClose}" Command="{Binding CloseCommand}"
-                    Style="{StaticResource WindowChromeButtonStyle}">
-                <TextBlock FontFamily="Segoe MDL2 Assets" FontSize="13" Text="&#xE8BB;" />
-            </Button>
+                    Style="{DynamicResource ModalCloseButtonStyle}" />
 
             <Grid Height="46" Margin="28,94,28,0" VerticalAlignment="Top">
                 <Grid.ColumnDefinitions>

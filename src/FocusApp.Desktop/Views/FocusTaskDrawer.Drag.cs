@@ -181,6 +181,15 @@ public partial class FocusTaskDrawer
     {
         if (e.OriginalSource == this) ResetTaskDrag();
     }
-    private void Drawer_Unloaded(object sender, RoutedEventArgs e) => ResetTaskDrag();
-    private void Drawer_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e) => ResetTaskDrag();
+    private void Drawer_Unloaded(object sender, RoutedEventArgs e)
+    {
+        ResetTaskDrag();
+        DetachCompletionPresentation();
+    }
+    private void Drawer_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        ResetTaskDrag();
+        DetachCompletionPresentation();
+        if (IsLoaded) AttachCompletionPresentation();
+    }
 }

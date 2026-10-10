@@ -377,15 +377,16 @@
     </Style>
 
     <Style x:Key="ModalCloseButtonStyle" TargetType="{x:Type Button}">
+        <Setter Property="UseLayoutRounding" Value="False" />
         <Setter Property="Width" Value="32" />
         <Setter Property="Height" Value="32" />
         <Setter Property="HorizontalAlignment" Value="Right" />
         <Setter Property="VerticalAlignment" Value="Top" />
-        <Setter Property="Margin" Value="0,12,12,0" />
+        <Setter Property="Margin" Value="0,18,18,0" />
         <Setter Property="Padding" Value="0" />
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="BorderThickness" Value="0" />
-        <Setter Property="Foreground" Value="#8A8F98" />
+        <Setter Property="Foreground" Value="#9CA3AF" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="FocusVisualStyle" Value="{x:Null}" />
         <Setter Property="Template">
@@ -394,7 +395,8 @@
                     <Border x:Name="ModalCloseChrome"
                             Background="{TemplateBinding Background}"
                             CornerRadius="8">
-                        <Path x:Name="ModalCloseIcon" Width="16" Height="16"
+                        <Path x:Name="ModalCloseIcon" Width="14" Height="14"
+                              UseLayoutRounding="False" SnapsToDevicePixels="False"
                               HorizontalAlignment="Center" VerticalAlignment="Center"
                               Data="M 0,0 L 14,14 M 14,0 L 0,14" Stretch="Uniform"
                               Stroke="{TemplateBinding Foreground}" StrokeThickness="1.5"
@@ -403,7 +405,7 @@
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="ModalCloseChrome" Property="Background" Value="#F3F4F6" />
-                            <Setter Property="Foreground" Value="#444444" />
+                            <Setter Property="Foreground" Value="#606873" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

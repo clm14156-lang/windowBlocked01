@@ -981,6 +981,18 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         RefreshTaskGroups();
     }
 
+    internal void CompleteTaskAndSubTasks(FocusTaskViewModel? task)
+    {
+        if (!IsFocusing || _applyingAuthoritativeSession || task is null || task.IsCompleted ||
+            ActiveTarget is not { } target || !target.Tasks.Contains(task)) return;
+        if (task.HasSubTasks)
+        {
+            CloseTaskMenus();
+            task.CompleteSubTasks();
+        }
+        else ToggleTaskCompleted(task);
+    }
+
     private void ToggleTaskCompleted(FocusTaskViewModel? task)
     {
         if (task is null)
