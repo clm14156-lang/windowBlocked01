@@ -335,6 +335,7 @@ public sealed record LocalAppSettingsDto(
     DateTimeOffset UpdatedAtUtc)
 {
     public string RecentTargetIconsJson { get; init; } = "[]";
+    public string FocusTheme { get; init; } = "System";
 }
 
 public sealed record LocalDurationPresetDto(Guid Id, int Minutes, bool IsVisible, bool IsCurrent, int SortOrder);

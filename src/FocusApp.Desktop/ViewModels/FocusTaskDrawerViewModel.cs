@@ -57,6 +57,7 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
+    public FocusSessionViewModel Session => _session;
     public event EventHandler<TaskCompletionPresentationEventArgs>? CompletionAnimationRequested;
     public event EventHandler<FocusTaskViewModel>? CompletionAnimationCancelled;
     public ObservableCollection<FocusTaskViewModel> Tasks { get; } = [];

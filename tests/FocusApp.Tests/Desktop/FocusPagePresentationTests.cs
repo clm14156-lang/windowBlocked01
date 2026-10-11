@@ -6,6 +6,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using FocusApp.Desktop.ViewModels;
 using FocusApp.Desktop.Views;
+using FocusApp.Desktop.Services;
 using Xunit;
 
 namespace FocusApp.Tests.Desktop;
@@ -14,37 +15,40 @@ namespace FocusApp.Tests.Desktop;
 public sealed class FocusPagePresentationTests
 {
     [Theory]
-    [InlineData(0, 0, FocusGreetingState.LateNight, "夜深了", "已经很晚了，做完记得休息。", "focus_yeshenle.png")]
-    [InlineData(4, 59, FocusGreetingState.LateNight, "夜深了", "已经很晚了，做完记得休息。", "focus_yeshenle.png")]
-    [InlineData(5, 0, FocusGreetingState.Morning, "早上好", "慢慢开始，进入今天的节奏。", "focus_sun.png")]
-    [InlineData(11, 59, FocusGreetingState.Morning, "早上好", "慢慢开始，进入今天的节奏。", "focus_sun.png")]
-    [InlineData(12, 0, FocusGreetingState.Afternoon, "下午好", "稳住节奏，继续往前一点。", "focus_sun.png")]
-    [InlineData(17, 59, FocusGreetingState.Afternoon, "下午好", "稳住节奏，继续往前一点。", "focus_sun.png")]
-    [InlineData(18, 0, FocusGreetingState.Evening, "晚上好", "辛苦了，再坚持一会儿。", "focus_yewan.png")]
-    [InlineData(22, 59, FocusGreetingState.Evening, "晚上好", "辛苦了，再坚持一会儿。", "focus_yewan.png")]
-    [InlineData(23, 0, FocusGreetingState.LateNight, "夜深了", "已经很晚了，做完记得休息。", "focus_yeshenle.png")]
-    public void GreetingUsesLocalTimeBoundaries(int hour, int minute, FocusGreetingState state, string title, string subtitle, string icon)
+    [InlineData(0, 0, FocusGreetingState.LateNight, "夜深了", "focus_yeshenle.png")]
+    [InlineData(4, 59, FocusGreetingState.LateNight, "夜深了", "focus_yeshenle.png")]
+    [InlineData(5, 0, FocusGreetingState.Morning, "早上好", "focus_sun.png")]
+    [InlineData(11, 59, FocusGreetingState.Morning, "早上好", "focus_sun.png")]
+    [InlineData(12, 0, FocusGreetingState.Afternoon, "下午好", "focus_sun.png")]
+    [InlineData(17, 59, FocusGreetingState.Afternoon, "下午好", "focus_sun.png")]
+    [InlineData(18, 0, FocusGreetingState.Evening, "晚上好", "focus_yewan.png")]
+    [InlineData(22, 59, FocusGreetingState.Evening, "晚上好", "focus_yewan.png")]
+    [InlineData(23, 0, FocusGreetingState.LateNight, "夜深了", "focus_yeshenle.png")]
+    public void GreetingUsesLocalTimeBoundaries(int hour, int minute, FocusGreetingState state, string title, string icon)
     {
         var model = new FocusSessionViewModel(() => new DateTime(2026, 10, 2, hour, minute, 0), runTimer: false);
         model.Start(30);
+        model.AdvancePreparationBy(TimeSpan.FromSeconds(5));
         Assert.Equal(state, model.GreetingState);
         Assert.Equal(title, model.GreetingTitle);
-        Assert.Equal(subtitle, model.GreetingSubtitle);
+        Assert.False(string.IsNullOrWhiteSpace(model.GreetingSubtitle));
         Assert.EndsWith(icon, model.GreetingIconSource);
     }
 
     [Fact]
-    public void GreetingIsCapturedForEachRoundWithoutChangingMidSession()
+    public void GreetingChangesTogetherAtTimeBoundaryAndOnReentry()
     {
         var now = new DateTime(2026, 10, 2, 11, 59, 0);
         var model = new FocusSessionViewModel(() => now, runTimer: false);
         model.Start(30);
         model.AdvancePreparationBy(TimeSpan.FromSeconds(5));
         now = now.AddMinutes(1);
-        Assert.Equal(FocusGreetingState.Morning, model.GreetingState);
+        model.AdvanceOneSecond();
+        Assert.Equal(FocusGreetingState.Afternoon, model.GreetingState);
         model.RequestEndCommand.Execute(null);
         model.EndConfirmedFocusCommand.Execute(null);
         model.Start(30);
+        model.AdvancePreparationBy(TimeSpan.FromSeconds(5));
         Assert.Equal(FocusGreetingState.Afternoon, model.GreetingState);
         Assert.Equal(1800, model.RemainingFocusSeconds);
     }
@@ -78,7 +82,7 @@ public sealed class FocusPagePresentationTests
                     var bounds = Bounds(countdown, view);
                     if (countdownBounds is null) countdownBounds = bounds;
                     else Assert.Equal(countdownBounds.Value, bounds);
-                    Assert.True(((StackPanel)view.FindName("FocusInProgressStatus")).IsVisible);
+                    Assert.Null(view.FindName("FocusInProgressStatus"));
                     Assert.Equal(hasTarget, ((Grid)view.FindName("FocusTargetRegion")).IsVisible);
                     Assert.Equal(forced, ((StackPanel)view.FindName("FocusForceNotice")).IsVisible);
                     var end = (Button)view.FindName("FocusEndActionButton");
@@ -103,7 +107,7 @@ public sealed class FocusPagePresentationTests
                         var icon = Assert.IsType<DrawingImage>(((Image)view.FindName("FocusTargetIcon")).Source);
                         var drawing = Assert.IsType<DrawingGroup>(icon.Drawing);
                         Assert.All(drawing.Children.OfType<GeometryDrawing>().Where(item => item.Brush is SolidColorBrush brush && brush.Color.A > 0), item =>
-                            Assert.Equal(Color.FromRgb(0x65, 0x75, 0x8B), ((SolidColorBrush)item.Brush).Color));
+                            Assert.Equal(Color.FromRgb(0x5D, 0x7F, 0xA6), ((SolidColorBrush)item.Brush).Color));
                         var label = Descendants<TextBlock>(tasks).Single(text => text.Inlines.OfType<Run>().Count() == 4);
                         Assert.Equal("查看任务（0）", label.Text);
                         target!.AddTask("检查当前任务");
@@ -148,6 +152,119 @@ public sealed class FocusPagePresentationTests
                 }
             }
             finally { window.Close(); }
+        });
+    }
+
+    [Fact]
+    public void WindowRestoreAndViewRebindingKeepGreetingStable()
+    {
+        RunSta(() =>
+        {
+            var directory = Path.Combine(Path.GetTempPath(), "FocusApp.GreetingRestoreTests", Guid.NewGuid().ToString("N"));
+            var path = Path.Combine(directory, "FocusGreetings.txt");
+            var provider = new FocusGreetingProvider(path);
+            File.WriteAllText(path, "[下午好]\n第一句\n第二句\n");
+            var model = new FocusSessionViewModel(() => new DateTime(2026, 10, 11, 14, 0, 0), false, provider);
+            model.Start(30);
+            model.AdvancePreparationBy(TimeSpan.FromSeconds(5));
+            var view = CreateView();
+            view.DataContext = model;
+            var window = CreateWindow(view);
+            try
+            {
+                window.Show();
+                Pump();
+                var selected = model.GreetingSubtitle;
+                var changed = 0;
+                model.PropertyChanged += (_, args) => { if (args.PropertyName == nameof(model.GreetingSubtitle)) changed++; };
+                File.WriteAllText(path, "[下午好]\n下次进入才读取\n");
+                window.WindowState = WindowState.Minimized;
+                window.WindowState = WindowState.Normal;
+                window.Hide();
+                window.Show();
+                view.DataContext = null;
+                view.DataContext = model;
+                model.AdvanceOneSecond();
+                Pump();
+                Assert.Equal(selected, model.GreetingSubtitle);
+                Assert.Equal(selected, ((TextBlock)view.FindName("FocusGreetingSubtitle")).Text);
+                Assert.Equal(0, changed);
+            }
+            finally
+            {
+                window.Close();
+                Directory.Delete(directory, recursive: true);
+            }
+        });
+    }
+
+    [Fact]
+    public void AllDefaultGreetingsFitAndLongCustomTextPreservesPageLayout()
+    {
+        RunSta(() =>
+        {
+            var directory = Path.Combine(Path.GetTempPath(), "FocusApp.GreetingLayoutTests", Guid.NewGuid().ToString("N"));
+            var path = Path.Combine(directory, "FocusGreetings.txt");
+            var provider = new FocusGreetingProvider(path);
+            var defaults = Enum.GetValues<FocusGreetingState>().ToDictionary(state => state, state => provider.GetGreetings(state).ToArray());
+            var view = CreateView();
+            var window = CreateWindow(view);
+            try
+            {
+                window.Show();
+                Rect? countdownBounds = null;
+                foreach (var (state, hour, title) in new[]
+                {
+                    (FocusGreetingState.Morning, 8, "早上好"),
+                    (FocusGreetingState.Afternoon, 14, "下午好"),
+                    (FocusGreetingState.Evening, 20, "晚上好"),
+                    (FocusGreetingState.LateNight, 1, "夜深了")
+                })
+                foreach (var text in defaults[state])
+                {
+                    File.WriteAllText(path, $"[{title}]\n{text}\n", new System.Text.UTF8Encoding(false));
+                    var model = new FocusSessionViewModel(() => new DateTime(2026, 10, 11, hour, 0, 0), false, provider);
+                    model.Start(30);
+                    model.AdvancePreparationBy(TimeSpan.FromSeconds(5));
+                    view.DataContext = model;
+                    Pump();
+                    var subtitle = (TextBlock)view.FindName("FocusGreetingSubtitle");
+                    Assert.Equal(text, subtitle.Text);
+                    Assert.Equal(new Point(92, 40), ((Grid)view.FindName("FocusGreeting")).TranslatePoint(new Point(52, 0), view));
+                    Assert.InRange(Bounds(subtitle, view).Right, 0, 760);
+                    var measured = new FormattedText(text, System.Globalization.CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
+                        new Typeface(subtitle.FontFamily, subtitle.FontStyle, subtitle.FontWeight, subtitle.FontStretch),
+                        subtitle.FontSize, subtitle.Foreground, VisualTreeHelper.GetDpi(subtitle).PixelsPerDip);
+                    Assert.True(measured.WidthIncludingTrailingWhitespace <= subtitle.ActualWidth + 1, $"Default greeting was truncated: {text}");
+                    var bounds = Bounds((TextBlock)view.FindName("FocusCountdown"), view);
+                    countdownBounds ??= bounds;
+                    Assert.Equal(countdownBounds.Value, bounds);
+                    SavePreview(view, "focus-default-greeting-" + state);
+                }
+
+                var longText = new string('长', 200);
+                File.WriteAllText(path, $"[下午好]\n{longText}\n");
+                var longModel = new FocusSessionViewModel(() => new DateTime(2026, 10, 11, 14, 0, 0), false, provider);
+                longModel.Start(30);
+                longModel.AdvancePreparationBy(TimeSpan.FromSeconds(5));
+                view.DataContext = longModel;
+                Pump();
+                var longSubtitle = (TextBlock)view.FindName("FocusGreetingSubtitle");
+                Assert.Equal(longText, longSubtitle.Text);
+                Assert.Equal(TextTrimming.CharacterEllipsis, longSubtitle.TextTrimming);
+                Assert.Equal(TextWrapping.NoWrap, longSubtitle.TextWrapping);
+                Assert.InRange(Bounds(longSubtitle, view).Right, 0, 760);
+                Assert.Equal(countdownBounds ?? throw new InvalidOperationException("No default greeting was checked."),
+                    Bounds((TextBlock)view.FindName("FocusCountdown"), view));
+                Assert.Equal(800, view.ActualWidth);
+                Assert.Equal(710, view.ActualHeight);
+                SavePreview(view, "focus-long-custom-greeting");
+            }
+            finally
+            {
+                window.Close();
+                Directory.Delete(directory, recursive: true);
+            }
         });
     }
 

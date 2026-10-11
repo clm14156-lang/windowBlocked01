@@ -3,10 +3,15 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:views="clr-namespace:FocusApp.Desktop.Views"
              xmlns:local="clr-namespace:FocusApp.Desktop.Views"
+             views:FocusThemeScope.IsDark="{Binding IsDarkFocusTheme}"
              Background="{DynamicResource SurfacePrimary}"
              UseLayoutRounding="True"
              SnapsToDevicePixels="True">
     <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="../Resources/FocusTheme.Light.xaml" />
+            </ResourceDictionary.MergedDictionaries>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <local:PositiveIntToVisibilityConverter x:Key="PositiveIntToVisibilityConverter" />
         <TranslateTransform x:Key="FocusFlowCenterShift" X="11" />
@@ -227,12 +232,43 @@
             </Style.Triggers>
         </Style>
 
+        <Style x:Key="FocusChromeButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="40" />
+            <Setter Property="Height" Value="40" />
+            <Setter Property="Margin" Value="2,0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+            <Setter Property="FontFamily" Value="Segoe MDL2 Assets" />
+            <Setter Property="FontSize" Value="16" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+                <Border x:Name="ChromeSurface" Background="{TemplateBinding Background}" CornerRadius="8">
+                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+                <ControlTemplate.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ChromeSurface" Property="Background" Value="{DynamicResource ControlHoverBackground}" /></Trigger>
+                    <Trigger Property="IsPressed" Value="True"><Setter TargetName="ChromeSurface" Property="Background" Value="{DynamicResource ControlPressedBackground}" /></Trigger>
+                    <MultiDataTrigger>
+                        <MultiDataTrigger.Conditions>
+                            <Condition Binding="{Binding IsFocusing}" Value="True" />
+                            <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource Self}}" Value="True" />
+                        </MultiDataTrigger.Conditions>
+                        <Setter TargetName="ChromeSurface" Property="Background" Value="{DynamicResource FocusChromeHoverBrush}" />
+                    </MultiDataTrigger>
+                    <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.4" /></Trigger>
+                </ControlTemplate.Triggers>
+            </ControlTemplate></Setter.Value></Setter>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsFocusing}" Value="True"><Setter Property="Foreground" Value="{DynamicResource FocusCountdownBrush}" /></DataTrigger>
+            </Style.Triggers>
+        </Style>
+
         <Style x:Key="FocusFooterActionStyle" TargetType="{x:Type Button}">
             <Setter Property="Height" Value="36"/>
             <Setter Property="Padding" Value="12,0"/>
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Foreground" Value="#697789"/>
+            <Setter Property="Foreground" Value="{DynamicResource FocusFooterBrush}"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
@@ -240,7 +276,7 @@
                     <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 </Border>
                 <ControlTemplate.Triggers>
-                    <Trigger Property="IsMouseOver" Value="True"><Setter Property="Foreground" Value="#394555"/></Trigger>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter Property="Foreground" Value="{DynamicResource FocusFooterHoverBrush}"/></Trigger>
                     <Trigger Property="IsPressed" Value="True"><Setter Property="Opacity" Value="0.65"/></Trigger>
                 </ControlTemplate.Triggers>
             </ControlTemplate></Setter.Value></Setter>
@@ -396,80 +432,96 @@
                 </StackPanel>
             </Grid>
         </DataTemplate>
+        </ResourceDictionary>
     </UserControl.Resources>
 
     <Grid Background="{DynamicResource SurfacePrimary}">
         <Image x:Name="FocusBackground" Panel.ZIndex="-1" IsHitTestVisible="False"
-               Source="/FocusApp.Desktop;component/Assets/Images/Illustrations/foucus_background02.png"
+               Source="{DynamicResource FocusSceneBackground}"
                Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"
                Visibility="{Binding IsFocusing, Converter={StaticResource BooleanToVisibilityConverter}}"/>
         <Grid Height="48" Panel.ZIndex="1"
               VerticalAlignment="Top"
-              Background="{DynamicResource SurfacePrimary}"
               MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+            <Grid.Style><Style TargetType="Grid">
+                <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
+                <Style.Triggers><DataTrigger Binding="{Binding IsFocusing}" Value="True"><Setter Property="Background" Value="Transparent" /></DataTrigger></Style.Triggers>
+            </Style></Grid.Style>
             <StackPanel Margin="0,4,8,4" HorizontalAlignment="Right" Orientation="Horizontal">
                 <Button AutomationProperties.Name="{DynamicResource HomeMinimizeButton}"
                         Click="MinimizeButton_Click"
-                        Style="{DynamicResource WindowChromeButtonStyle}">
-                    <TextBlock FontFamily="Segoe MDL2 Assets" FontSize="14" Text="&#xE921;" />
+                        Style="{StaticResource FocusChromeButtonStyle}">
+                    <TextBlock FontFamily="Segoe MDL2 Assets" FontSize="14" Text="&#xE921;" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
                 </Button>
                 <Button AutomationProperties.Name="{DynamicResource HomeCloseButton}"
                         Click="CloseButton_Click"
-                        Style="{DynamicResource WindowChromeButtonStyle}">
-                    <TextBlock FontFamily="Segoe MDL2 Assets" FontSize="14" Text="&#xE8BB;" />
+                        Style="{StaticResource FocusChromeButtonStyle}">
+                    <TextBlock FontFamily="Segoe MDL2 Assets" FontSize="14" Text="&#xE8BB;" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
                 </Button>
             </StackPanel>
         </Grid>
 
-        <Grid x:Name="FocusingView" Margin="0,48,0,0" Background="Transparent" MouseDown="TargetMode_MouseDown"
+        <Grid x:Name="FocusingView" Background="Transparent" MouseDown="TargetMode_MouseDown"
               Visibility="{Binding IsFocusing, Converter={StaticResource BooleanToVisibilityConverter}}">
-            <Grid x:Name="FocusGreeting" Margin="64,40,0,0" HorizontalAlignment="Left" VerticalAlignment="Top">
-                <Grid.ColumnDefinitions><ColumnDefinition Width="48"/><ColumnDefinition Width="18"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+            <Grid x:Name="FocusGreeting" Margin="40,40,0,0" HorizontalAlignment="Left" VerticalAlignment="Top">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="40"/><ColumnDefinition Width="12"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                 <Image x:Name="FocusGreetingIcon" Width="56" Height="56" VerticalAlignment="Top" Margin="0,-6,0,0"
                        Source="{Binding GreetingIconSource}" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality" IsHitTestVisible="False"/>
                 <StackPanel Grid.Column="2">
-                    <TextBlock x:Name="FocusGreetingTitle" Text="{Binding GreetingTitle}" FontSize="{DynamicResource PageTitleFontSize}" FontWeight="{DynamicResource PageTitleFontWeight}" Foreground="#202A34"/>
-                    <TextBlock x:Name="FocusGreetingSubtitle" Text="{Binding GreetingSubtitle}" FontSize="{DynamicResource SecondaryFontSize}" FontWeight="{DynamicResource SecondaryFontWeight}" Margin="0,7,0,0" Foreground="#7A8290"/>
+                    <TextBlock x:Name="FocusGreetingTitle" Text="{Binding GreetingTitle}" FontSize="{DynamicResource PageTitleFontSize}" FontWeight="{DynamicResource PageTitleFontWeight}" Foreground="{DynamicResource FocusTitleBrush}"/>
+                    <TextBlock x:Name="FocusGreetingSubtitle" Text="{Binding GreetingSubtitle}" FontSize="{DynamicResource SecondaryFontSize}" FontWeight="{DynamicResource SecondaryFontWeight}" Margin="0,7,0,0" Foreground="{DynamicResource FocusSubtitleBrush}"
+                               MaxWidth="668" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
                 </StackPanel>
             </Grid>
             <Grid IsHitTestVisible="False">
-                <Grid.RowDefinitions><RowDefinition Height="0.42*"/><RowDefinition Height="214"/><RowDefinition Height="0.58*"/></Grid.RowDefinitions>
-                <StackPanel x:Name="FocusCenter" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Top">
+                <StackPanel x:Name="FocusCenter" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,128,0,0">
                     <Viewbox Width="440" Height="116" Stretch="Uniform" StretchDirection="DownOnly">
                         <TextBlock x:Name="FocusCountdown" Text="{Binding RemainingTimeDisplay}" FontFamily="{DynamicResource FontFamilyNumeric}"
-                                   FontSize="100" FontWeight="Normal" Foreground="#111820" TextAlignment="Center"/>
+                                   FontSize="100" FontWeight="Normal" Foreground="{DynamicResource FocusCountdownBrush}" TextAlignment="Center"/>
                     </Viewbox>
                     <Grid x:Name="FocusTargetRegion" HorizontalAlignment="Center" Height="30" Margin="0,8,0,0" MaxWidth="440"
                           Visibility="{Binding HasTarget, Converter={StaticResource BooleanToVisibilityConverter}}">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="24"/><ColumnDefinition Width="10"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                         <Image x:Name="FocusTargetIcon" Width="23" Height="23" VerticalAlignment="Center" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"
-                               Source="{Binding ActiveTarget.IconSource, Mode=OneWay, Converter={x:Static views:TargetIconSourceConverter.Instance}, ConverterParameter=#65758B}"/>
+                               >
+                            <Image.Source><MultiBinding Converter="{x:Static views:TargetIconSourceConverter.Instance}">
+                                <Binding Path="ActiveTarget.IconSource" Mode="OneWay" />
+                                <Binding ElementName="FocusTargetName" Path="Foreground" />
+                            </MultiBinding></Image.Source>
+                        </Image>
                         <TextBlock x:Name="FocusTargetName" Grid.Column="2" MaxWidth="406" VerticalAlignment="Center" Text="{Binding TargetName, Mode=OneWay}"
-                                   FontSize="{DynamicResource SectionTitleFontSize}" FontWeight="{DynamicResource SectionTitleFontWeight}" Foreground="#65758B" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" ToolTip="{Binding TargetName}"/>
+                                   FontSize="{DynamicResource SectionTitleFontSize}" FontWeight="{DynamicResource SectionTitleFontWeight}" Foreground="{DynamicResource FocusTargetBrush}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" ToolTip="{Binding TargetName}"/>
                     </Grid>
-                    <StackPanel x:Name="FocusInProgressStatus" HorizontalAlignment="Center" Orientation="Horizontal">
-                        <StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Margin" Value="0,20,0,0"/><Style.Triggers>
-                            <DataTrigger Binding="{Binding HasTarget}" Value="True"><Setter Property="Margin" Value="0,30,0,0"/></DataTrigger>
-                        </Style.Triggers></Style></StackPanel.Style>
-                        <Ellipse Width="12" Height="12" Margin="0,0,12,0" VerticalAlignment="Center" Fill="{DynamicResource AccentPrimary}"/>
-                        <TextBlock Text="{DynamicResource FocusInProgress}" FontSize="{DynamicResource BodyMediumFontSize}" FontWeight="{DynamicResource BodyMediumFontWeight}" Foreground="{DynamicResource AccentPrimary}"/>
-                    </StackPanel>
                 </StackPanel>
             </Grid>
-            <StackPanel x:Name="FocusFooter" Margin="48,0,48,44" VerticalAlignment="Bottom">
+            <Image x:Name="FocusCharacterShadow" Source="{DynamicResource FocusSceneShadow}" Width="288" Height="36"
+                   HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,540,0,0" Stretch="Uniform"
+                   IsHitTestVisible="False" RenderOptions.BitmapScalingMode="HighQuality" />
+            <Image x:Name="FocusCharacter" Source="{DynamicResource FocusSceneBoy}" Width="240" Height="240"
+                   HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,326,0,0" Stretch="Uniform"
+                   IsHitTestVisible="False" RenderOptions.BitmapScalingMode="HighQuality" />
+            <Image x:Name="FocusLeafLeft" Source="{DynamicResource FocusSceneLeafLeft}" Width="70" Height="70"
+                   HorizontalAlignment="Left" VerticalAlignment="Top" Margin="154,438,0,0" Stretch="Uniform"
+                   IsHitTestVisible="False" RenderOptions.BitmapScalingMode="HighQuality" RenderTransformOrigin="0.5,0.5">
+                <Image.RenderTransform><RotateTransform Angle="90" /></Image.RenderTransform>
+            </Image>
+            <Image x:Name="FocusLeafRight" Source="{DynamicResource FocusSceneLeafRight}" Width="70" Height="70"
+                   HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,236,96,0" Stretch="Uniform"
+                   IsHitTestVisible="False" RenderOptions.BitmapScalingMode="HighQuality" />
+            <StackPanel x:Name="FocusFooter" Margin="40,0,40,20" VerticalAlignment="Bottom">
                 <StackPanel x:Name="FocusForceNotice" Orientation="Horizontal" HorizontalAlignment="Center" IsHitTestVisible="False"
                             Visibility="{Binding ShowForceNotice, Converter={StaticResource BooleanToVisibilityConverter}}">
                     <StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Margin" Value="0,0,0,16"/><Style.Triggers>
                         <DataTrigger Binding="{Binding ShowFocusActions}" Value="False"><Setter Property="Margin" Value="0"/></DataTrigger>
                     </Style.Triggers></Style></StackPanel.Style>
                     <Grid Width="15" Height="15" VerticalAlignment="Center" Margin="0,0,10,0">
-                        <Ellipse Stroke="#8190A3" StrokeThickness="1.4"/>
-                        <Ellipse Width="1.8" Height="1.8" Fill="#8190A3" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,3,0,0"/>
-                        <Path Data="M 7.5,7 L 7.5,11" Stroke="#8190A3" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                        <Ellipse Stroke="{DynamicResource FocusNoticeBrush}" StrokeThickness="1.4"/>
+                        <Ellipse Width="1.8" Height="1.8" Fill="{DynamicResource FocusNoticeBrush}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,3,0,0"/>
+                        <Path Data="M 7.5,7 L 7.5,11" Stroke="{DynamicResource FocusNoticeBrush}" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
                     </Grid>
-                    <TextBlock Text="{DynamicResource FocusForcedModeStatus}" FontSize="14" Foreground="#8190A3" VerticalAlignment="Center"/>
+                    <TextBlock Text="{DynamicResource FocusForcedModeStatus}" FontSize="14" Foreground="{DynamicResource FocusNoticeBrush}" VerticalAlignment="Center"/>
                 </StackPanel>
-                <Border x:Name="FocusFooterRule" Height="1" Background="#EDEEF1" Margin="0,0,0,18"
+                <Border x:Name="FocusFooterRule" Height="1" Background="{DynamicResource FocusRuleBrush}" Margin="0,0,0,18"
                         Visibility="{Binding ShowFocusActions, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                 <StackPanel x:Name="FocusFooterActions" Orientation="Horizontal" HorizontalAlignment="Center"
                             Visibility="{Binding ShowFocusActions, Converter={StaticResource BooleanToVisibilityConverter}}">
@@ -483,7 +535,7 @@
                                        Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
                         </StackPanel>
                     </Button>
-                    <Border x:Name="FocusActionDivider" Height="26" Width="1" Margin="18,0" VerticalAlignment="Center" Background="#E6E8ED"
+                    <Border x:Name="FocusActionDivider" Height="26" Width="1" Margin="18,0" VerticalAlignment="Center" Background="{DynamicResource FocusDividerBrush}"
                             Visibility="{Binding ShowFocusActionDivider, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                     <Button x:Name="FocusViewTasksButton" Click="ViewTasksButton_Click" Style="{StaticResource FocusFooterActionStyle}"
                             AutomationProperties.Name="{DynamicResource FocusViewTasks}"

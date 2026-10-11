@@ -77,6 +77,15 @@
     <system:String x:Key="NavigationStatisticsIcon">&#xE9D2;</system:String>
     <system:String x:Key="NavigationSettingsIcon">&#xE713;</system:String>
     <system:String x:Key="SettingsGeneralSection">常规设置</system:String>
+    <system:String x:Key="SettingsFocusAppearanceSection">专注外观</system:String>
+    <system:String x:Key="SettingsFocusCharacter">专注角色</system:String>
+    <system:String x:Key="SettingsFocusCharacterDescription">选择专注期间显示的角色</system:String>
+    <system:String x:Key="SettingsFocusCharacterPreview">短发男生</system:String>
+    <system:String x:Key="SettingsFocusTheme">专注期间主题</system:String>
+    <system:String x:Key="SettingsFocusThemeDescription">设置专注页面的颜色主题</system:String>
+    <system:String x:Key="SettingsFocusThemeLight">浅色</system:String>
+    <system:String x:Key="SettingsFocusThemeDark">暗色</system:String>
+    <system:String x:Key="SettingsFocusThemeSystem">跟随系统</system:String>
     <system:String x:Key="SettingsDataSection">数据与应用</system:String>
     <system:String x:Key="SettingsLaunchAtStartup">开机自启动</system:String>
     <system:String x:Key="SettingsLaunchAtStartupDescription">在系统启动时自动运行应用</system:String>

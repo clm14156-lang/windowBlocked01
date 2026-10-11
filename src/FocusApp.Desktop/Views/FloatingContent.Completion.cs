@@ -20,16 +20,17 @@ public partial class FloatingContent
     internal Func<bool> CompletionAnimationPreference { get; set; } = () => SystemParameters.ClientAreaAnimation;
     private Color FloatingAccentColor => ((SolidColorBrush)FindResource("AccentPrimary")).Color;
 
-    private void Content_Loaded(object sender, RoutedEventArgs e) => AttachCompletionPresentation();
-    private void Content_Unloaded(object sender, RoutedEventArgs e) => DetachCompletionPresentation();
+    private void Content_Loaded(object sender, RoutedEventArgs e) { AttachCompletionPresentation(); AttachCreationPresentation(); }
+    private void Content_Unloaded(object sender, RoutedEventArgs e) { DetachCreationPresentation(); DetachCompletionPresentation(); }
     private void Content_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
+        DetachCreationPresentation();
         DetachCompletionPresentation();
-        if (IsLoaded) AttachCompletionPresentation();
+        if (IsLoaded) { AttachCompletionPresentation(); AttachCreationPresentation(); }
     }
     private void Content_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
-        if (!(bool)e.NewValue) FinishFeedback();
+        if (!(bool)e.NewValue) { CancelCreationPresentation(); FinishFeedback(); }
     }
     private void AttachCompletionPresentation()
     {

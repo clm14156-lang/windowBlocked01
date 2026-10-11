@@ -122,6 +122,7 @@ public sealed record LocalAppSettings(
     DateTimeOffset UpdatedAtUtc)
 {
     public string RecentTargetIconsJson { get; init; } = "[]";
+    public FocusThemeMode FocusTheme { get; init; } = FocusThemeMode.System;
 
     public static LocalAppSettings Default { get; } = new(
         false,

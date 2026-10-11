@@ -18,7 +18,7 @@ public partial class FloatingContent : UserControl
     {
         while (source is not null)
         {
-            if (source is ButtonBase || ReferenceEquals(source, TaskDisplayBorder))
+            if (source is ButtonBase or TextBox || ReferenceEquals(source, TaskDisplayBorder) || ReferenceEquals(source, TaskCreationArea))
             {
                 return true;
             }

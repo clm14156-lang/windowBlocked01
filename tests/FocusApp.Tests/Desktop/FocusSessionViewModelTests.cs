@@ -78,7 +78,7 @@ public sealed class FocusSessionViewModelTests
 
         Assert.Equal(FocusFlowStage.Focusing, viewModel.Stage);
         Assert.Equal(50, viewModel.RemainingFocusSeconds);
-        Assert.Equal(FocusGreetingState.Evening, viewModel.GreetingState);
+        Assert.Equal(FocusGreetingState.LateNight, viewModel.GreetingState);
         viewModel.ApplyAuthoritativeSession(session with { SessionId = Guid.NewGuid(), Status = LocalFocusSessionStatusDto.Focusing }, nowUtc: now.AddSeconds(15));
         Assert.Equal(FocusGreetingState.LateNight, viewModel.GreetingState);
     }

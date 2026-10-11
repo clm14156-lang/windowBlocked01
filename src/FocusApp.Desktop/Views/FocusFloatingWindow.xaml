@@ -13,6 +13,7 @@
         WindowStartupLocation="Manual"
         WindowStyle="None"
         PreviewMouseLeftButtonDown="Window_PreviewMouseLeftButtonDown"
+        PreviewKeyDown="Window_PreviewKeyDown"
         MouseEnter="Window_MouseEnter"
         MouseLeave="Window_MouseLeave"
         UseLayoutRounding="True"

@@ -2,6 +2,7 @@
              x:Name="SettingsPageRoot"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:core="clr-namespace:FocusApp.Core;assembly=FocusApp.Core"
              Background="{DynamicResource BackgroundPrimary}"
              FontFamily="{DynamicResource FontFamilyPrimary}"
              UseLayoutRounding="True"
@@ -317,6 +318,60 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <Style x:Key="SettingsAppearanceIconStyle" TargetType="{x:Type Border}">
+            <Setter Property="Width" Value="34" />
+            <Setter Property="Height" Value="34" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Background" Value="{DynamicResource BackgroundSecondary}" />
+            <Setter Property="CornerRadius" Value="17" />
+        </Style>
+        <Style x:Key="SettingsAppearanceRowStyle" TargetType="{x:Type Button}">
+            <Setter Property="Height" Value="63" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border x:Name="RowBackground" Background="{TemplateBinding Background}" CornerRadius="10,10,0,0">
+                            <ContentPresenter HorizontalAlignment="Stretch" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="RowBackground" Property="Background" Value="#FBFBFC" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="SettingsAppearanceSelectorStyle" TargetType="{x:Type ToggleButton}">
+            <Setter Property="Height" Value="34" />
+            <Setter Property="Width" Value="110" />
+            <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderPrimary}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ToggleButton}">
+                        <Border x:Name="SelectorBorder" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="7">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="SelectorBorder" Property="Background" Value="#F9FAFB" /></Trigger>
+                            <Trigger Property="IsChecked" Value="True"><Setter TargetName="SelectorBorder" Property="Background" Value="#F3F4F6" /></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="SettingsAppearanceMenuItemStyle" TargetType="{x:Type Button}" BasedOn="{StaticResource SettingsRuleMenuItemStyle}">
+            <Setter Property="ContentTemplate" Value="{x:Null}" />
+            <Setter Property="FontFamily" Value="{DynamicResource FontFamilyPrimary}" />
+        </Style>
     </UserControl.Resources>
 
     <Grid>
@@ -615,6 +670,108 @@
                                              StrokeThickness="1"
                                              Visibility="Collapsed" />
                                 </Grid>
+                            </Popup>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <TextBlock Height="20" Margin="0,25,0,0" Style="{DynamicResource SectionTitleTextStyle}" Foreground="{DynamicResource TextUnit}" Text="{DynamicResource SettingsFocusAppearanceSection}">
+                    <TextBlock.RenderTransform><TranslateTransform X="1" Y="-4" /></TextBlock.RenderTransform>
+                </TextBlock>
+                <!-- Character selection remains a preview; the theme selector uses the saved focus setting. -->
+                <Border x:Name="FocusAppearanceCard" Margin="0,6,0,0" Background="{DynamicResource SurfacePrimary}" BorderBrush="{StaticResource SettingsHairlineBrush}" BorderThickness="1" CornerRadius="10">
+                    <StackPanel>
+                        <Button x:Name="FocusCharacterPreview" Style="{StaticResource SettingsAppearanceRowStyle}" AutomationProperties.Name="{DynamicResource SettingsFocusCharacter}">
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="64" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="66" /></Grid.ColumnDefinitions>
+                                <Border Style="{StaticResource SettingsAppearanceIconStyle}">
+                                    <Path Width="20" Height="20" Stretch="Uniform" Stroke="{DynamicResource TextSecondary}" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Data="M 10,1 A 4,4 0 1 1 10,9 A 4,4 0 1 1 10,1 M 2,20 L 2,18 C 2,8 18,8 18,18 L 18,20" />
+                                </Border>
+                                <StackPanel Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{DynamicResource BodyMediumTextStyle}" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource SettingsFocusCharacter}" />
+                                    <TextBlock Margin="0,2,0,0" Style="{DynamicResource SecondaryTextStyle}" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource SettingsFocusCharacterDescription}" />
+                                </StackPanel>
+                                <TextBlock Grid.Column="2" VerticalAlignment="Center" Style="{DynamicResource BodyTextStyle}" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource SettingsFocusCharacterPreview}" />
+                                <TextBlock Grid.Column="3" HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{DynamicResource TextSecondary}" Text="&#xE76C;" />
+                            </Grid>
+                        </Button>
+                        <Border Height="1" Margin="14,0" Background="{StaticResource SettingsHairlineBrush}" />
+                        <Grid Height="63">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="64" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                            <Border Style="{StaticResource SettingsAppearanceIconStyle}">
+                                <Path Width="20" Height="20" Stretch="Uniform" Stroke="{DynamicResource TextSecondary}" StrokeThickness="1.5" StrokeLineJoin="Round" Data="M 6,1 L 1,4 L 3,9 L 6,7 L 6,20 L 16,20 L 16,7 L 19,9 L 21,4 L 16,1 C 15,5 7,5 6,1 Z" />
+                            </Border>
+                            <StackPanel Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center">
+                                <TextBlock Style="{DynamicResource BodyMediumTextStyle}" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource SettingsFocusTheme}" />
+                                <TextBlock Margin="0,2,0,0" Style="{DynamicResource SecondaryTextStyle}" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource SettingsFocusThemeDescription}" />
+                            </StackPanel>
+                            <ToggleButton x:Name="FocusThemePreviewSelector" Grid.Column="2" Margin="0,0,23,0" VerticalAlignment="Center" Style="{StaticResource SettingsAppearanceSelectorStyle}" AutomationProperties.Name="{DynamicResource SettingsFocusTheme}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Foreground="{DynamicResource TextPrimary}">
+                                        <TextBlock.Style><Style TargetType="TextBlock">
+                                            <Setter Property="FontSize" Value="{DynamicResource BodyFontSize}" />
+                                            <Setter Property="FontWeight" Value="{DynamicResource BodyFontWeight}" />
+                                            <Setter Property="Text" Value="{DynamicResource SettingsFocusThemeSystem}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding FocusTheme}" Value="{x:Static core:FocusThemeMode.Light}"><Setter Property="Text" Value="{DynamicResource SettingsFocusThemeLight}" /></DataTrigger>
+                                                <DataTrigger Binding="{Binding FocusTheme}" Value="{x:Static core:FocusThemeMode.Dark}"><Setter Property="Text" Value="{DynamicResource SettingsFocusThemeDark}" /></DataTrigger>
+                                            </Style.Triggers>
+                                        </Style></TextBlock.Style>
+                                    </TextBlock>
+                                    <Path Width="10" Height="5" Margin="12,0,0,0" VerticalAlignment="Center" Stroke="{DynamicResource TextSecondary}" StrokeThickness="1.5" Data="M 0,0 L 5,5 L 10,0" />
+                                </StackPanel>
+                            </ToggleButton>
+                            <Popup x:Name="FocusThemePreviewPopup" Grid.Column="2" Placement="Bottom" PlacementTarget="{Binding ElementName=FocusThemePreviewSelector}" HorizontalOffset="-74" VerticalOffset="2" AllowsTransparency="True" StaysOpen="False" IsOpen="{Binding IsChecked, ElementName=FocusThemePreviewSelector, Mode=TwoWay}">
+                                <Border Margin="10" Width="184" Padding="4" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" CornerRadius="8" TextElement.FontFamily="{DynamicResource FontFamilyPrimary}">
+                                    <Border.Effect><DropShadowEffect BlurRadius="16" ShadowDepth="3" Opacity="0.12" /></Border.Effect>
+                                    <StackPanel>
+                                        <Button x:Name="FocusThemeLightOption" Command="{Binding SelectFocusThemeCommand}" CommandParameter="{x:Static core:FocusThemeMode.Light}"
+                                                Click="FocusThemeOption_Click" AutomationProperties.Name="{DynamicResource SettingsFocusThemeLight}">
+                                            <Button.Style><Style TargetType="Button" BasedOn="{StaticResource SettingsAppearanceMenuItemStyle}">
+                                                <Style.Triggers><DataTrigger Binding="{Binding FocusTheme}" Value="{x:Static core:FocusThemeMode.Light}"><Setter Property="Background" Value="#F3F4F6" /></DataTrigger></Style.Triggers>
+                                            </Style></Button.Style>
+                                            <Grid Width="152">
+                                                <TextBlock VerticalAlignment="Center" Style="{DynamicResource BodyTextStyle}" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource SettingsFocusThemeLight}" />
+                                                <Path Width="12" Height="9" HorizontalAlignment="Right" VerticalAlignment="Center" Stroke="#606873" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="M 0,4 L 4,8 L 11,1">
+                                                    <Path.Style><Style TargetType="Path">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                        <Style.Triggers><DataTrigger Binding="{Binding FocusTheme}" Value="{x:Static core:FocusThemeMode.Light}"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers>
+                                                    </Style></Path.Style>
+                                                </Path>
+                                            </Grid>
+                                        </Button>
+                                        <Button x:Name="FocusThemeDarkOption" Command="{Binding SelectFocusThemeCommand}" CommandParameter="{x:Static core:FocusThemeMode.Dark}"
+                                                Click="FocusThemeOption_Click" AutomationProperties.Name="{DynamicResource SettingsFocusThemeDark}">
+                                            <Button.Style><Style TargetType="Button" BasedOn="{StaticResource SettingsAppearanceMenuItemStyle}">
+                                                <Style.Triggers><DataTrigger Binding="{Binding FocusTheme}" Value="{x:Static core:FocusThemeMode.Dark}"><Setter Property="Background" Value="#F3F4F6" /></DataTrigger></Style.Triggers>
+                                            </Style></Button.Style>
+                                            <Grid Width="152">
+                                                <TextBlock VerticalAlignment="Center" Style="{DynamicResource BodyTextStyle}" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource SettingsFocusThemeDark}" />
+                                                <Path Width="12" Height="9" HorizontalAlignment="Right" VerticalAlignment="Center" Stroke="#606873" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="M 0,4 L 4,8 L 11,1">
+                                                    <Path.Style><Style TargetType="Path">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                        <Style.Triggers><DataTrigger Binding="{Binding FocusTheme}" Value="{x:Static core:FocusThemeMode.Dark}"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers>
+                                                    </Style></Path.Style>
+                                                </Path>
+                                            </Grid>
+                                        </Button>
+                                        <Button x:Name="FocusThemeSystemOption" Command="{Binding SelectFocusThemeCommand}" CommandParameter="{x:Static core:FocusThemeMode.System}"
+                                                Click="FocusThemeOption_Click" AutomationProperties.Name="{DynamicResource SettingsFocusThemeSystem}">
+                                            <Button.Style><Style TargetType="Button" BasedOn="{StaticResource SettingsAppearanceMenuItemStyle}">
+                                                <Style.Triggers><DataTrigger Binding="{Binding FocusTheme}" Value="{x:Static core:FocusThemeMode.System}"><Setter Property="Background" Value="#F3F4F6" /></DataTrigger></Style.Triggers>
+                                            </Style></Button.Style>
+                                            <Grid Width="152">
+                                                <TextBlock VerticalAlignment="Center" Style="{DynamicResource BodyTextStyle}" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource SettingsFocusThemeSystem}" />
+                                                <Path Width="12" Height="9" HorizontalAlignment="Right" VerticalAlignment="Center" Stroke="#606873" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="M 0,4 L 4,8 L 11,1">
+                                                    <Path.Style><Style TargetType="Path">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                        <Style.Triggers><DataTrigger Binding="{Binding FocusTheme}" Value="{x:Static core:FocusThemeMode.System}"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers>
+                                                    </Style></Path.Style>
+                                                </Path>
+                                            </Grid>
+                                        </Button>
+                                    </StackPanel>
+                                </Border>
                             </Popup>
                         </Grid>
                     </StackPanel>

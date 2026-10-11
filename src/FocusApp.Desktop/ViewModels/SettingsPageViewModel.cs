@@ -26,6 +26,7 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
     private string _ruleLimitToastTitle = "无法创建屏蔽规则";
     private string _ruleLimitToastMessage = string.Empty;
     private readonly Func<DateTime> _clock;
+    private FocusThemeMode _focusTheme = FocusThemeMode.System;
 
     public SettingsPageViewModel(
         IEnumerable<SettingsToggleItemViewModel> toggleItems,
@@ -47,6 +48,12 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
         ExportRecordsModal = exportRecordsModal ?? new ExportRecordsModalViewModel();
         _dailyLabel = dailyLabel;
         ActivateEntryCommand = new RelayCommand<SettingsEntryItemViewModel>(ActivateEntry);
+        SelectFocusThemeCommand = new RelayCommand<object>(value =>
+        {
+            if (value is not FocusThemeMode mode || !Enum.IsDefined(mode) || FocusTheme == mode) return;
+            ApplyFocusThemeState(mode);
+            FocusThemeChanged?.Invoke(this, mode);
+        });
         OpenRuleModalCommand = new RelayCommand<object>(_ => OpenCreateRule());
         DeleteRuleCommand = new RelayCommand<AutomaticRuleItemViewModel>(DeleteRule);
         ToggleRuleCommand = new RelayCommand<AutomaticRuleItemViewModel>(ToggleRule);
@@ -98,6 +105,17 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public event EventHandler? RulesChanged;
+    public event EventHandler<FocusThemeMode>? FocusThemeChanged;
+    public ICommand SelectFocusThemeCommand { get; }
+    public FocusThemeMode FocusTheme => _focusTheme;
+
+    public void ApplyFocusThemeState(FocusThemeMode mode)
+    {
+        mode = Enum.IsDefined(mode) ? mode : FocusThemeMode.System;
+        if (_focusTheme == mode) return;
+        _focusTheme = mode;
+        OnPropertyChanged(nameof(FocusTheme));
+    }
 
     public event Action<AutomaticRuleItemViewModel>? AutomaticRuleFocusRequested;
 

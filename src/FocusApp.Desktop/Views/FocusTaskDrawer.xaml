@@ -1,32 +1,37 @@
 <UserControl x:Class="FocusApp.Desktop.Views.FocusTaskDrawer"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             Width="270" Height="710" Background="White" FontFamily="{DynamicResource FontFamilyPrimary}"
-             Foreground="#24262C" FontSize="{DynamicResource BodyFontSize}" FontWeight="{DynamicResource BodyFontWeight}" UseLayoutRounding="True" SnapsToDevicePixels="True"
+             xmlns:views="clr-namespace:FocusApp.Desktop.Views"
+             views:FocusThemeScope.IsDark="{Binding Session.IsDarkFocusTheme}"
+             Width="270" Height="710" Background="{DynamicResource FocusDrawerSurface}" FontFamily="{DynamicResource FontFamilyPrimary}"
+             Foreground="{DynamicResource FocusTaskBodyText}" FontSize="{DynamicResource BodyFontSize}" FontWeight="{DynamicResource BodyFontWeight}" UseLayoutRounding="True" SnapsToDevicePixels="True"
              PreviewKeyDown="Drawer_PreviewKeyDown" PreviewMouseMove="Drawer_PreviewMouseMove"
              PreviewMouseLeftButtonUp="Drawer_PreviewMouseLeftButtonUp" LostMouseCapture="Drawer_LostMouseCapture"
              Loaded="Drawer_Loaded" IsVisibleChanged="Drawer_IsVisibleChanged"
              Unloaded="Drawer_Unloaded" DataContextChanged="Drawer_DataContextChanged">
     <UserControl.Resources>
         <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries><ResourceDictionary Source="FocusTaskResources.xaml" /></ResourceDictionary.MergedDictionaries>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="FocusTaskResources.xaml" />
+                <ResourceDictionary Source="../Resources/FocusTheme.Light.xaml" />
+            </ResourceDictionary.MergedDictionaries>
         <Style x:Key="DrawerTaskCheck" TargetType="CheckBox">
             <Setter Property="Width" Value="19"/><Setter Property="Height" Value="19"/>
             <Setter Property="Cursor" Value="Hand"/><Setter Property="FocusVisualStyle" Value="{x:Null}"/>
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="CheckBox">
-                <Border x:Name="CheckChrome" CornerRadius="3" BorderBrush="#BCC2CB" BorderThickness="1" Background="White">
+                <Border x:Name="CheckChrome" CornerRadius="3" BorderBrush="{DynamicResource FocusTaskCheckBorder}" BorderThickness="1" Background="{DynamicResource FocusTaskSurface}">
                     <Grid>
-                    <TextBlock x:Name="TaskNumber" Text="{Binding DrawerNumber}" FontSize="10" FontWeight="{DynamicResource CaptionFontWeight}" Foreground="#A9AFB9"
+                    <TextBlock x:Name="TaskNumber" Text="{Binding DrawerNumber}" FontSize="10" FontWeight="{DynamicResource CaptionFontWeight}" Foreground="{DynamicResource FocusTaskNumberText}"
                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    <Path x:Name="Tick" Width="9" Height="7" Data="M 0,3 L 3,6 L 9,0" Stroke="White" StrokeThickness="1.5"
+                    <Path x:Name="Tick" Width="9" Height="7" Data="M 0,3 L 3,6 L 9,0" Stroke="{DynamicResource FocusTaskTickWhite}" StrokeThickness="1.5"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
                     </Grid>
                 </Border>
                 <ControlTemplate.Triggers>
-                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="CheckChrome" Property="BorderBrush" Value="#FF9D5F"/></Trigger>
-                    <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="CheckChrome" Property="BorderBrush" Value="#FF9D5F"/></Trigger>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="CheckChrome" Property="BorderBrush" Value="{DynamicResource FocusTaskCheckHover}"/></Trigger>
+                    <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="CheckChrome" Property="BorderBrush" Value="{DynamicResource FocusTaskCheckHover}"/></Trigger>
                     <Trigger Property="IsChecked" Value="True">
-                        <Setter TargetName="CheckChrome" Property="Background" Value="#ABB1BA"/><Setter TargetName="CheckChrome" Property="BorderBrush" Value="#ABB1BA"/>
+                        <Setter TargetName="CheckChrome" Property="Background" Value="{DynamicResource FocusTaskCompletedCheck}"/><Setter TargetName="CheckChrome" Property="BorderBrush" Value="{DynamicResource FocusTaskCompletedCheck}"/>
                         <Setter TargetName="Tick" Property="Visibility" Value="Visible"/>
                         <Setter TargetName="TaskNumber" Property="Visibility" Value="Collapsed"/>
                     </Trigger>
@@ -34,7 +39,7 @@
             </ControlTemplate></Setter.Value></Setter>
         </Style>
         <Style x:Key="DrawerCloseButtonStyle" TargetType="Button" BasedOn="{StaticResource PlainButton}">
-            <Setter Property="Width" Value="32"/><Setter Property="Height" Value="32"/><Setter Property="Foreground" Value="#A0A7B2"/>
+            <Setter Property="Width" Value="32"/><Setter Property="Height" Value="32"/><Setter Property="Foreground" Value="{DynamicResource FocusTaskCloseText}"/>
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
                 <Border x:Name="CloseSurface" Background="Transparent" CornerRadius="8" RenderTransformOrigin="0.5,0.5">
                     <Border.RenderTransform><ScaleTransform/></Border.RenderTransform>
@@ -42,63 +47,63 @@
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 </Border>
                 <ControlTemplate.Triggers>
-                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="CloseSurface" Property="Background" Value="#F5F6F8"/><Setter Property="Foreground" Value="#707986"/></Trigger>
-                    <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="CloseSurface" Property="Background" Value="#F5F6F8"/></Trigger>
-                    <Trigger Property="IsPressed" Value="True"><Setter TargetName="CloseSurface" Property="Background" Value="#EBEEF2"/><Setter TargetName="CloseSurface" Property="RenderTransform"><Setter.Value><ScaleTransform ScaleX="0.94" ScaleY="0.94"/></Setter.Value></Setter></Trigger>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="CloseSurface" Property="Background" Value="{DynamicResource FocusTaskCloseHover}"/><Setter Property="Foreground" Value="{DynamicResource FocusTaskCloseHoverText}"/></Trigger>
+                    <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="CloseSurface" Property="Background" Value="{DynamicResource FocusTaskCloseHover}"/></Trigger>
+                    <Trigger Property="IsPressed" Value="True"><Setter TargetName="CloseSurface" Property="Background" Value="{DynamicResource FocusTaskClosePressed}"/><Setter TargetName="CloseSurface" Property="RenderTransform"><Setter.Value><ScaleTransform ScaleX="0.94" ScaleY="0.94"/></Setter.Value></Setter></Trigger>
                 </ControlTemplate.Triggers>
             </ControlTemplate></Setter.Value></Setter>
         </Style>
         <Style x:Key="DrawerAddTaskButtonStyle" TargetType="Button" BasedOn="{StaticResource PlainButton}">
             <Setter Property="Width" Value="42"/><Setter Property="Height" Value="42"/>
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
-                <Border x:Name="CreateSurface" Background="White" BorderBrush="#FFAF7A" BorderThickness="1" CornerRadius="21" RenderTransformOrigin="0.5,0.5">
+                <Border x:Name="CreateSurface" Background="{DynamicResource FocusTaskSurface}" BorderBrush="{DynamicResource FocusTaskAddBorder}" BorderThickness="1" CornerRadius="21" RenderTransformOrigin="0.5,0.5">
                     <Border.RenderTransform><ScaleTransform/></Border.RenderTransform>
-                    <Path Width="14" Height="14" Data="M 0,7 L 14,7 M 7,0 L 7,14" Stroke="#FF9650" StrokeThickness="1.5"
+                    <Path Width="14" Height="14" Data="M 0,7 L 14,7 M 7,0 L 7,14" Stroke="{DynamicResource FocusTaskAddIcon}" StrokeThickness="1.5"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 </Border>
                 <ControlTemplate.Triggers>
-                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="CreateSurface" Property="Background" Value="#FFF7F0"/><Setter TargetName="CreateSurface" Property="BorderBrush" Value="#FF9C5B"/></Trigger>
-                    <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="CreateSurface" Property="Background" Value="#FFF7F0"/></Trigger>
-                    <Trigger Property="IsPressed" Value="True"><Setter TargetName="CreateSurface" Property="Background" Value="#FFF0E5"/><Setter TargetName="CreateSurface" Property="RenderTransform"><Setter.Value><ScaleTransform ScaleX="0.94" ScaleY="0.94"/></Setter.Value></Setter></Trigger>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="CreateSurface" Property="Background" Value="{DynamicResource FocusTaskAddHover}"/><Setter TargetName="CreateSurface" Property="BorderBrush" Value="{DynamicResource FocusTaskAddHoverBorder}"/></Trigger>
+                    <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="CreateSurface" Property="Background" Value="{DynamicResource FocusTaskAddHover}"/></Trigger>
+                    <Trigger Property="IsPressed" Value="True"><Setter TargetName="CreateSurface" Property="Background" Value="{DynamicResource FocusTaskAddPressed}"/><Setter TargetName="CreateSurface" Property="RenderTransform"><Setter.Value><ScaleTransform ScaleX="0.94" ScaleY="0.94"/></Setter.Value></Setter></Trigger>
                 </ControlTemplate.Triggers>
             </ControlTemplate></Setter.Value></Setter>
             <Style.Triggers><DataTrigger Binding="{Binding IsCreating}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers>
         </Style>
         <Style x:Key="DraftActionButton" TargetType="Button" BasedOn="{StaticResource PlainButton}">
             <Setter Property="Height" Value="30"/><Setter Property="FontSize" Value="11.5"/>
-            <Setter Property="Foreground" Value="#929AA7"/><Setter Property="Padding" Value="3,0"/>
+            <Setter Property="Foreground" Value="{DynamicResource FocusTaskDraftActionText}"/><Setter Property="Padding" Value="3,0"/>
         </Style>
         <Style x:Key="DraftSubTaskCheck" TargetType="CheckBox" BasedOn="{StaticResource CircleCheck}">
             <Setter Property="Width" Value="15"/><Setter Property="Height" Value="15"/>
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="CheckBox">
-                <Border x:Name="DraftCheckSurface" Background="White" BorderBrush="#BAC2CD" BorderThickness="1" CornerRadius="3">
-                    <Path x:Name="DraftTick" Visibility="Collapsed" Width="8" Height="6" Data="M 0,3 L 3,6 L 8,0" Stroke="White" StrokeThickness="1.3" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                <Border x:Name="DraftCheckSurface" Background="{DynamicResource FocusTaskSurface}" BorderBrush="{DynamicResource FocusTaskDraftCheckBorder}" BorderThickness="1" CornerRadius="3">
+                    <Path x:Name="DraftTick" Visibility="Collapsed" Width="8" Height="6" Data="M 0,3 L 3,6 L 8,0" Stroke="{DynamicResource FocusTaskTickWhite}" StrokeThickness="1.3" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 </Border>
                 <ControlTemplate.Triggers><Trigger Property="IsChecked" Value="True">
-                    <Setter TargetName="DraftCheckSurface" Property="Background" Value="#FF9144"/>
-                    <Setter TargetName="DraftCheckSurface" Property="BorderBrush" Value="#FF9144"/>
+                    <Setter TargetName="DraftCheckSurface" Property="Background" Value="{DynamicResource FocusTaskProgressAccent}"/>
+                    <Setter TargetName="DraftCheckSurface" Property="BorderBrush" Value="{DynamicResource FocusTaskProgressAccent}"/>
                     <Setter TargetName="DraftTick" Property="Visibility" Value="Visible"/>
                 </Trigger></ControlTemplate.Triggers>
             </ControlTemplate></Setter.Value></Setter>
         </Style>
         <Style x:Key="DraftCreateButton" TargetType="Button" BasedOn="{StaticResource SheetButton}">
-            <Setter Property="Background" Value="#FF781A"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="{DynamicResource FocusTaskCreateAccent}"/><Setter Property="Foreground" Value="{DynamicResource FocusTaskTickWhite}"/>
             <Setter Property="FontWeight" Value="Medium"/>
-            <Style.Triggers><Trigger Property="IsEnabled" Value="False"><Setter Property="Background" Value="#ECEEF1"/><Setter Property="Foreground" Value="#B2B8C2"/></Trigger></Style.Triggers>
+            <Style.Triggers><Trigger Property="IsEnabled" Value="False"><Setter Property="Background" Value="{DynamicResource FocusTaskDisabledSurface}"/><Setter Property="Foreground" Value="{DynamicResource FocusTaskDisabledText}"/></Trigger></Style.Triggers>
         </Style>
         <DataTemplate x:Key="TaskRow">
-            <Grid x:Name="TaskRowSurface" Background="Transparent" PreviewMouseLeftButtonDown="TaskRow_PreviewMouseLeftButtonDown">
+            <Grid x:Name="TaskRowSurface" Background="{DynamicResource FocusTaskCard}" PreviewMouseLeftButtonDown="TaskRow_PreviewMouseLeftButtonDown">
                 <StackPanel Margin="18,14,14,15">
                     <Grid MinHeight="24">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="35" /><ColumnDefinition Width="*" /><ColumnDefinition Width="24" /></Grid.ColumnDefinitions>
                         <CheckBox x:Name="TaskCompletionCheck" IsChecked="{Binding IsCompleted, Mode=OneWay}" Command="{Binding DataContext.ToggleTaskCompletedCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
                                   HorizontalAlignment="Left" VerticalAlignment="Center" Style="{StaticResource DrawerTaskCheck}" AutomationProperties.Name="切换任务完成状态" />
                         <TextBlock x:Name="TaskTitle" Grid.Column="1" VerticalAlignment="Center" Text="{Binding Name}" FontSize="{DynamicResource BodyMediumFontSize}" FontWeight="{DynamicResource BodyMediumFontWeight}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" Style="{StaticResource CompletedTitle}" />
-                        <Button x:Name="TaskMoreButton" Grid.Column="2" Width="24" Height="24" VerticalAlignment="Center" Content="···" FontSize="17" AutomationProperties.Name="更多任务操作" Click="TaskMoreButton_Click">
+                        <Button x:Name="TaskMoreButton" Tag="{Binding DataContext.Session.IsDarkFocusTheme, RelativeSource={RelativeSource AncestorType=UserControl}}" Grid.Column="2" Width="24" Height="24" VerticalAlignment="Center" Content="···" FontSize="17" AutomationProperties.Name="更多任务操作" Click="TaskMoreButton_Click">
                             <Button.Style><Style TargetType="Button" BasedOn="{StaticResource PlainButton}"><Setter Property="Opacity" Value="0.6"/><Style.Triggers><DataTrigger Binding="{Binding ContextMenu.IsOpen, RelativeSource={RelativeSource Self}}" Value="True"><Setter Property="Opacity" Value="1"/></DataTrigger></Style.Triggers></Style></Button.Style>
-                            <Button.ContextMenu><ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
-                                <MenuItem Header="编辑任务" Click="EditTaskMenu_Click" Foreground="#424955">
-                                    <MenuItem.Icon><Path Width="14" Height="14" Data="M 2,11 L 2,14 L 5,14 L 13,6 L 10,3 Z M 10,3 L 12,1 L 15,4 L 13,6" Stroke="#424955" StrokeThickness="1.4" Fill="Transparent" StrokeLineJoin="Round" /></MenuItem.Icon>
+                            <Button.ContextMenu><ContextMenu views:FocusThemeScope.IsDark="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource Self}}" DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                                <MenuItem Header="编辑任务" Click="EditTaskMenu_Click" Foreground="{DynamicResource FocusTaskMenuItemText}">
+                                    <MenuItem.Icon><Path Width="14" Height="14" Data="M 2,11 L 2,14 L 5,14 L 13,6 L 10,3 Z M 10,3 L 12,1 L 15,4 L 13,6" Stroke="{DynamicResource FocusTaskMenuItemText}" StrokeThickness="1.4" Fill="Transparent" StrokeLineJoin="Round" /></MenuItem.Icon>
                                 </MenuItem>
                                 <Separator />
                                 <MenuItem Header="删除任务" Foreground="#E35B58" Click="DeleteTaskMenu_Click">
@@ -107,10 +112,10 @@
                             </ContextMenu></Button.ContextMenu>
                         </Button>
                     </Grid>
-                    <TextBlock x:Name="InlineDescription" Margin="35,5,2,0" Text="{Binding Description}" FontSize="{DynamicResource SecondaryFontSize}" FontWeight="{DynamicResource SecondaryFontWeight}" Foreground="#9299A6" TextWrapping="Wrap" LineHeight="18" MaxHeight="36" TextTrimming="CharacterEllipsis" Visibility="{Binding HasDescription, Converter={StaticResource BoolVisibility}}" />
-                    <Button x:Name="SubTaskToggle" Margin="35,9,0,0" Padding="10,0" Height="25" HorizontalAlignment="Left" Background="#F2F3F5" Style="{StaticResource PlainButton}" Command="{Binding DataContext.ToggleExpandedCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Visibility="{Binding HasSubTasks, Converter={StaticResource BoolVisibility}}" AutomationProperties.Name="展开或收起子任务">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center"><TextBlock Text="{Binding DrawerSubTaskToggleLabel}" FontSize="{DynamicResource SecondaryMediumFontSize}" FontWeight="{DynamicResource SecondaryMediumFontWeight}" Foreground="#838B98" />
-                            <Path Width="6" Height="9" Margin="7,0,0,0" VerticalAlignment="Center" Data="M 0,0 L 5,4.5 L 0,9" Stroke="#9299A6" StrokeThickness="1.3" StrokeStartLineCap="Round" StrokeEndLineCap="Round">
+                    <TextBlock x:Name="InlineDescription" Margin="35,5,2,0" Text="{Binding Description}" FontSize="{DynamicResource SecondaryFontSize}" FontWeight="{DynamicResource SecondaryFontWeight}" Foreground="{DynamicResource FocusTaskDescriptionText}" TextWrapping="Wrap" LineHeight="18" MaxHeight="36" TextTrimming="CharacterEllipsis" Visibility="{Binding HasDescription, Converter={StaticResource BoolVisibility}}" />
+                    <Button x:Name="SubTaskToggle" Margin="35,9,0,0" Padding="10,0" Height="25" HorizontalAlignment="Left" Background="{DynamicResource FocusTaskSubTaskSurface}" Style="{StaticResource PlainButton}" Command="{Binding DataContext.ToggleExpandedCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Visibility="{Binding HasSubTasks, Converter={StaticResource BoolVisibility}}" AutomationProperties.Name="展开或收起子任务">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center"><TextBlock Text="{Binding DrawerSubTaskToggleLabel}" FontSize="{DynamicResource SecondaryMediumFontSize}" FontWeight="{DynamicResource SecondaryMediumFontWeight}" Foreground="{DynamicResource FocusTaskSubTaskLabel}" />
+                            <Path Width="6" Height="9" Margin="7,0,0,0" VerticalAlignment="Center" Data="M 0,0 L 5,4.5 L 0,9" Stroke="{DynamicResource FocusTaskDescriptionText}" StrokeThickness="1.3" StrokeStartLineCap="Round" StrokeEndLineCap="Round">
                                 <Path.Style><Style TargetType="Path"><Style.Triggers><DataTrigger Binding="{Binding IsExpanded}" Value="True"><Setter Property="RenderTransform"><Setter.Value><RotateTransform Angle="90" CenterX="3" CenterY="4.5" /></Setter.Value></Setter></DataTrigger></Style.Triggers></Style></Path.Style>
                             </Path>
                         </StackPanel>
@@ -126,7 +131,7 @@
                         </ItemsControl>
                     </Border>
                 </StackPanel>
-                <Border VerticalAlignment="Bottom" Height="1" Margin="18,0,14,0" Background="#EEF0F2" />
+                <Border VerticalAlignment="Bottom" Height="1" Margin="18,0,14,0" Background="{DynamicResource FocusTaskRowDivider}" />
             </Grid>
             <DataTemplate.Triggers>
                 <Trigger SourceName="TaskRowSurface" Property="IsMouseOver" Value="True"><Setter TargetName="TaskMoreButton" Property="Opacity" Value="1"/></Trigger>
@@ -136,26 +141,26 @@
         </DataTemplate>
         </ResourceDictionary>
     </UserControl.Resources>
-    <Border BorderBrush="#E9EBEF" BorderThickness="1,0,0,0" Background="White">
+    <Border BorderBrush="{DynamicResource FocusTaskBorder}" BorderThickness="1,0,0,0" Background="{DynamicResource FocusDrawerSurface}">
         <Grid>
             <Grid.RowDefinitions><RowDefinition Height="60" /><RowDefinition Height="Auto"/><RowDefinition /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-            <Border BorderBrush="#F0F1F4" Margin="18,0,14,0">
+            <Border BorderBrush="{DynamicResource FocusTaskDivider}" Margin="18,0,14,0">
                 <Border.Style><Style TargetType="Border"><Setter Property="BorderThickness" Value="0"/><Style.Triggers><DataTrigger Binding="{Binding HasPendingTasks}" Value="False"><Setter Property="BorderThickness" Value="0,0,0,1"/></DataTrigger></Style.Triggers></Style></Border.Style>
                 <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="32" /></Grid.ColumnDefinitions>
-                    <TextBlock x:Name="DrawerTitle" VerticalAlignment="Center" Text="当前专注" FontSize="{DynamicResource DialogTitleFontSize}" FontWeight="{DynamicResource DialogTitleFontWeight}" Foreground="#252C37"/>
+                    <TextBlock x:Name="DrawerTitle" VerticalAlignment="Center" Text="当前专注" FontSize="{DynamicResource DialogTitleFontSize}" FontWeight="{DynamicResource DialogTitleFontWeight}" Foreground="{DynamicResource FocusTaskTitleText}"/>
                     <Button x:Name="DrawerCloseButton" Grid.Column="1" Style="{StaticResource DrawerCloseButtonStyle}" Command="{Binding CloseCommand}" AutomationProperties.Name="关闭任务面板" />
                 </Grid>
             </Border>
             <StackPanel x:Name="DrawerTaskProgress" Grid.Row="1" Margin="18,8,18,0" Visibility="{Binding HasPendingTasks, Converter={StaticResource BoolVisibility}}">
-                <TextBlock Text="{Binding TaskProgressDisplay}" FontSize="{DynamicResource SecondaryFontSize}" FontWeight="{DynamicResource SecondaryFontWeight}" Foreground="#929BA8"/>
-                <ProgressBar x:Name="DrawerTaskProgressBar" Height="6" Margin="0,10,0,14" Minimum="0" Maximum="1" Value="{Binding TaskProgressRatio, Mode=OneWay}" Foreground="#FF9144" Background="#F3F1F0" BorderThickness="0">
+                <TextBlock Text="{Binding TaskProgressDisplay}" FontSize="{DynamicResource SecondaryFontSize}" FontWeight="{DynamicResource SecondaryFontWeight}" Foreground="{DynamicResource FocusTaskProgressText}"/>
+                <ProgressBar x:Name="DrawerTaskProgressBar" Height="6" Margin="0,10,0,14" Minimum="0" Maximum="1" Value="{Binding TaskProgressRatio, Mode=OneWay}" Foreground="{DynamicResource FocusTaskProgressAccent}" Background="{DynamicResource FocusTaskProgressTrack}" BorderThickness="0">
                     <ProgressBar.Template><ControlTemplate TargetType="ProgressBar">
                         <Grid><Border CornerRadius="3" Background="{TemplateBinding Background}"/>
                             <Grid x:Name="PART_Track"><Border x:Name="PART_Indicator" HorizontalAlignment="Left" CornerRadius="3" Background="{TemplateBinding Foreground}"/></Grid>
                         </Grid>
                     </ControlTemplate></ProgressBar.Template>
                 </ProgressBar>
-                <Border Height="1" Background="#F0F1F4"/>
+                <Border Height="1" Background="{DynamicResource FocusTaskDivider}"/>
             </StackPanel>
             <ScrollViewer x:Name="TaskDrawerScrollViewer" Grid.Row="2" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
                 <StackPanel>
@@ -163,14 +168,20 @@
                 </StackPanel>
             </ScrollViewer>
             <Canvas Grid.Row="2" IsHitTestVisible="False" ClipToBounds="True" Panel.ZIndex="1">
-                <Border x:Name="TaskInsertionLine" Canvas.Left="18" Height="1" Background="{DynamicResource AccentPrimary}" Visibility="Collapsed"/>
+                <Border x:Name="TaskInsertionLine" Canvas.Left="18" Height="1" Background="{DynamicResource FocusTaskSelectedAccent}" Visibility="Collapsed"/>
             </Canvas>
             <StackPanel x:Name="DrawerEmptyState" Grid.Row="2" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,32"
                         Visibility="{Binding IsEmpty, Converter={StaticResource BoolVisibility}}" IsHitTestVisible="False">
                 <Image Width="142" Height="142" Opacity="0.65" Stretch="Uniform" Margin="0,0,0,16" RenderOptions.BitmapScalingMode="HighQuality"
                        Source="/FocusApp.Desktop;component/Assets/Images/Illustrations/todolist_empty.png"/>
-                <TextBlock Text="暂无任务" FontSize="16" Foreground="#646D7A" HorizontalAlignment="Center"/>
-                <TextBlock Text="添加任务后，专注更有方向" FontSize="12" Foreground="#9BA3AE" Margin="0,9,0,0" HorizontalAlignment="Center"/>
+                <TextBlock Text="暂无任务" FontSize="16" Foreground="{DynamicResource FocusTaskEmptyText}" HorizontalAlignment="Center"/>
+                <StackPanel x:Name="DrawerEmptyShortcutHint" Orientation="Horizontal" Margin="0,9,0,0" HorizontalAlignment="Center">
+                    <TextBlock Text="按" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource FocusTaskShortcutText}" VerticalAlignment="Center"/>
+                    <Border x:Name="DrawerTabKeycap" Margin="6,0" Padding="6,1" MinWidth="30" Height="22" Background="{DynamicResource FocusTaskKeycapSurface}" BorderBrush="{DynamicResource FocusTaskKeycapBorder}" BorderThickness="1" CornerRadius="5">
+                        <TextBlock Text="Tab" FontFamily="{DynamicResource FontFamilyEnglish}" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource FocusTaskShortcutText}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <TextBlock Text="快速添加任务" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource FocusTaskShortcutText}" VerticalAlignment="Center"/>
+                </StackPanel>
             </StackPanel>
             <Border x:Name="TaskEditorScrim" Grid.RowSpan="4" Panel.ZIndex="1" Background="#280F172A"
                     Visibility="{Binding IsCreating, Converter={StaticResource BoolVisibility}}"
@@ -180,7 +191,7 @@
                         Style="{StaticResource DrawerAddTaskButtonStyle}" Command="{Binding AddTaskCommand}" AutomationProperties.Name="创建任务" ToolTip="添加任务"/>
             </Grid>
             <Grid Grid.RowSpan="4" Panel.ZIndex="2" VerticalAlignment="Bottom">
-                <Border x:Name="TaskEditorPanel" Background="White" BorderBrush="#E9EBEF" BorderThickness="0,1,0,0" CornerRadius="14,14,0,0"
+                <Border x:Name="TaskEditorPanel" Background="{DynamicResource FocusTaskSurface}" BorderBrush="{DynamicResource FocusTaskBorder}" BorderThickness="0,1,0,0" CornerRadius="14,14,0,0"
                         MaxHeight="500" MinHeight="150" VerticalAlignment="Bottom" Padding="18,14,18,16"
                         Visibility="{Binding IsCreating, Converter={StaticResource BoolVisibility}}" IsVisibleChanged="TaskEditorPanel_IsVisibleChanged">
                     <Border.RenderTransform><TranslateTransform /></Border.RenderTransform>
@@ -193,27 +204,27 @@
                                 <Grid>
                                     <TextBox x:Name="DraftTaskTitleInput" Height="34" FontSize="17" FontWeight="Medium" Style="{StaticResource BorderlessInput}"
                                              Text="{Binding DraftTitle, UpdateSourceTrigger=PropertyChanged}" KeyDown="DraftTaskTitleInput_KeyDown" AutomationProperties.Name="任务名称" />
-                                    <TextBlock VerticalAlignment="Center" Text="要做什么？" FontSize="18" Foreground="#929AA7" IsHitTestVisible="False">
+                                    <TextBlock VerticalAlignment="Center" Text="要做什么？" FontSize="18" Foreground="{DynamicResource FocusTaskDraftActionText}" IsHitTestVisible="False">
                                         <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding DraftTitle}" Value=""><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
                                     </TextBlock>
                                 </Grid>
-                                <Border x:Name="DraftDescriptionArea" CornerRadius="7" Background="#FAFAFB" Padding="8,8,8,6" Margin="0,10,0,0"
+                                <Border x:Name="DraftDescriptionArea" CornerRadius="7" Background="{DynamicResource FocusTaskKeycapSurface}" Padding="8,8,8,6" Margin="0,10,0,0"
                                         Visibility="{Binding IsDescriptionExpanded, Converter={StaticResource BoolVisibility}}">
                                     <StackPanel>
                                         <Grid>
                                             <TextBox x:Name="DraftTaskDescriptionInput" MinHeight="42" MaxHeight="90" MaxLength="200" VerticalContentAlignment="Top" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
-                                                     FontSize="11.5" Foreground="#69717E" Style="{StaticResource BorderlessInput}" Text="{Binding DraftDescription, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="任务描述，最多200字"/>
-                                            <TextBlock Text="添加描述…" FontSize="11.5" Foreground="#A5ABB5" IsHitTestVisible="False">
+                                                     FontSize="11.5" Foreground="{DynamicResource FocusTaskDraftText}" Style="{StaticResource BorderlessInput}" Text="{Binding DraftDescription, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="任务描述，最多200字"/>
+                                            <TextBlock Text="添加描述…" FontSize="11.5" Foreground="{DynamicResource FocusTaskSecondaryText}" IsHitTestVisible="False">
                                                 <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding DraftDescription}" Value=""><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
                                             </TextBlock>
                                         </Grid>
-                                        <TextBlock x:Name="DraftDescriptionCount" Text="{Binding DescriptionCountDisplay}" FontSize="10" Foreground="#969EAA" HorizontalAlignment="Right" Margin="0,4,0,0"/>
+                                        <TextBlock x:Name="DraftDescriptionCount" Text="{Binding DescriptionCountDisplay}" FontSize="10" Foreground="{DynamicResource FocusTaskDraftCounter}" HorizontalAlignment="Right" Margin="0,4,0,0"/>
                                     </StackPanel>
                                 </Border>
                                 <StackPanel x:Name="DraftSubTaskArea" Margin="0,12,0,0" Visibility="{Binding IsSubTasksExpanded, Converter={StaticResource BoolVisibility}}">
                                     <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                                        <TextBlock Text="子任务" FontSize="11.5" Foreground="#454B55"/>
-                                        <TextBlock Text="{Binding SubTaskCountDisplay}" FontSize="11" Foreground="#959CAA" Margin="7,0,0,0"/>
+                                        <TextBlock Text="子任务" FontSize="11.5" Foreground="{DynamicResource FocusTaskDraftTitleText}"/>
+                                        <TextBlock Text="{Binding SubTaskCountDisplay}" FontSize="11" Foreground="{DynamicResource FocusTaskDraftPlaceholder}" Margin="7,0,0,0"/>
                                     </StackPanel>
                                     <ItemsControl x:Name="DraftSubTaskList" ItemsSource="{Binding Draft.SubTasks}">
                                         <ItemsControl.ItemTemplate><DataTemplate>
@@ -226,10 +237,10 @@
                                     </ItemsControl>
                                     <Grid x:Name="DraftSubTaskInputArea" Height="32" Visibility="{Binding IsSubTaskInputVisible, Converter={StaticResource BoolVisibility}}" IsEnabled="{Binding CanEnterSubTask}">
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="25"/><ColumnDefinition Width="*"/><ColumnDefinition Width="24"/></Grid.ColumnDefinitions>
-                                        <Border Width="16" Height="16" CornerRadius="4" BorderBrush="#BDC4CE" BorderThickness="1" VerticalAlignment="Center" HorizontalAlignment="Left"/>
+                                        <Border Width="16" Height="16" CornerRadius="4" BorderBrush="{DynamicResource FocusTaskNewSubTaskBorder}" BorderThickness="1" VerticalAlignment="Center" HorizontalAlignment="Left"/>
                                         <Grid Grid.Column="1">
                                             <TextBox x:Name="DraftSubTaskInput" Style="{StaticResource BorderlessInput}" FontSize="11.5" Text="{Binding SubTaskInput, UpdateSourceTrigger=PropertyChanged}" KeyDown="DraftSubTaskInput_KeyDown" AutomationProperties.Name="输入子任务，按回车添加"/>
-                                            <TextBlock Text="子任务名称" Foreground="#A0A6B0" FontSize="11.5" VerticalAlignment="Center" IsHitTestVisible="False">
+                                            <TextBlock Text="子任务名称" Foreground="{DynamicResource FocusTaskPlaceholder}" FontSize="11.5" VerticalAlignment="Center" IsHitTestVisible="False">
                                                 <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding SubTaskInput}" Value=""><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
                                             </TextBlock>
                                         </Grid>
@@ -239,17 +250,17 @@
                                 <WrapPanel Margin="-3,10,0,0">
                                     <Button x:Name="DraftAddDescriptionButton" Style="{StaticResource DraftActionButton}" Margin="0,0,14,0"
                                             Visibility="{Binding ShowAddDescription, Converter={StaticResource BoolVisibility}}" Command="{Binding ExpandDescriptionCommand}" Click="DraftAddDescriptionButton_Click">
-                                        <StackPanel Orientation="Horizontal"><TextBlock Text="+" FontSize="17" Foreground="#6F7A89" Margin="0,0,6,0"/><TextBlock Text="添加描述" Foreground="#929AA7" VerticalAlignment="Center"/></StackPanel>
+                                        <StackPanel Orientation="Horizontal"><TextBlock Text="+" FontSize="17" Foreground="{DynamicResource FocusTaskActionIcon}" Margin="0,0,6,0"/><TextBlock Text="添加描述" Foreground="{DynamicResource FocusTaskDraftActionText}" VerticalAlignment="Center"/></StackPanel>
                                     </Button>
                                     <Button x:Name="DraftAddSubTaskButton" Style="{StaticResource DraftActionButton}" IsEnabled="{Binding CanEnterSubTask}"
                                             Visibility="{Binding ShowAddSubTask, Converter={StaticResource BoolVisibility}}" Command="{Binding BeginSubTaskCommand}" Click="DraftAddSubTaskButton_Click">
-                                        <StackPanel Orientation="Horizontal"><TextBlock Text="+" FontSize="17" Foreground="#6F7A89" Margin="0,0,6,0"/><TextBlock Text="添加子任务" Foreground="#929AA7" VerticalAlignment="Center"/></StackPanel>
+                                        <StackPanel Orientation="Horizontal"><TextBlock Text="+" FontSize="17" Foreground="{DynamicResource FocusTaskActionIcon}" Margin="0,0,6,0"/><TextBlock Text="添加子任务" Foreground="{DynamicResource FocusTaskDraftActionText}" VerticalAlignment="Center"/></StackPanel>
                                     </Button>
                                 </WrapPanel>
                             </StackPanel>
                         </ScrollViewer>
                         <StackPanel Grid.Row="2" HorizontalAlignment="Right" Orientation="Horizontal" Margin="0,18,0,0">
-                            <Button Width="46" Height="32" Command="{Binding CancelCreationCommand}" Foreground="#717987" FontSize="12" Style="{StaticResource PlainButton}"><TextBlock Text="取消" Foreground="#717987" FontSize="12"/></Button>
+                            <Button Width="46" Height="32" Command="{Binding CancelCreationCommand}" Foreground="{DynamicResource FocusTaskCancelText}" FontSize="12" Style="{StaticResource PlainButton}"><TextBlock Text="取消" Foreground="{DynamicResource FocusTaskCancelText}" FontSize="12"/></Button>
                             <Button x:Name="DrawerCreateTaskButton" MinWidth="62" Padding="12,0" Height="32" Margin="8,0,0,0" Command="{Binding CreateTaskCommand}" Content="{Binding CommitButtonText}" Style="{StaticResource DraftCreateButton}"/>
                         </StackPanel>
                     </Grid>

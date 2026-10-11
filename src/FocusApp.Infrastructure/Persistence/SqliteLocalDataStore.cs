@@ -420,9 +420,9 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
                     singleton_id, launch_at_startup, floating_window_enabled,
                     windows_notifications_enabled, focus_sound_enabled,
                     automatic_blocking_enabled, forced_mode_requested,
-                    selected_target_id, updated_utc, recent_target_icons_json)
+                    selected_target_id, updated_utc, recent_target_icons_json, focus_theme)
                 VALUES (1, $launch, $floating, $notifications, $sound, $automatic,
-                    $forced, $target, $updated, $recentIcons)
+                    $forced, $target, $updated, $recentIcons, $focusTheme)
                 ON CONFLICT(singleton_id) DO UPDATE SET
                     launch_at_startup = excluded.launch_at_startup,
                     floating_window_enabled = excluded.floating_window_enabled,
@@ -432,7 +432,8 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
                     forced_mode_requested = excluded.forced_mode_requested,
                     selected_target_id = excluded.selected_target_id,
                     updated_utc = excluded.updated_utc,
-                    recent_target_icons_json = excluded.recent_target_icons_json;
+                    recent_target_icons_json = excluded.recent_target_icons_json,
+                    focus_theme = excluded.focus_theme;
                 """))
             {
                 command.Parameters.AddWithValue("$launch", ToInteger(settings.LaunchAtStartup));
@@ -444,6 +445,7 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
                 command.Parameters.AddWithValue("$target", (object?)settings.SelectedTargetId ?? DBNull.Value);
                 command.Parameters.AddWithValue("$updated", FormatDateTime(settings.UpdatedAtUtc));
                 command.Parameters.AddWithValue("$recentIcons", NormalizeRecentTargetIconsJson(settings.RecentTargetIconsJson));
+                command.Parameters.AddWithValue("$focusTheme", settings.FocusTheme.ToString());
                 await command.ExecuteNonQueryAsync(cancellationToken);
             }
 
@@ -1006,7 +1008,7 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
         command.CommandText = """
             SELECT launch_at_startup, floating_window_enabled, windows_notifications_enabled,
                    focus_sound_enabled, automatic_blocking_enabled, forced_mode_requested,
-                   selected_target_id, updated_utc, recent_target_icons_json
+                   selected_target_id, updated_utc, recent_target_icons_json, focus_theme
             FROM app_settings WHERE singleton_id = 1;
             """;
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
@@ -1025,7 +1027,9 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
             reader.IsDBNull(6) ? null : reader.GetString(6),
             ParseDateTime(reader.GetString(7)))
         {
-            RecentTargetIconsJson = NormalizeRecentTargetIconsJson(reader.GetString(8))
+            RecentTargetIconsJson = NormalizeRecentTargetIconsJson(reader.GetString(8)),
+            FocusTheme = Enum.TryParse<FocusThemeMode>(reader.GetString(9), out var theme) && Enum.IsDefined(theme)
+                ? theme : FocusThemeMode.System
         };
     }
 

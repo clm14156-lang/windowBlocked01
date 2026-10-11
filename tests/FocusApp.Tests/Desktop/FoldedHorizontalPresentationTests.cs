@@ -13,7 +13,7 @@ namespace FocusApp.Tests.Desktop;
 public sealed class FoldedHorizontalPresentationTests
 {
     [Fact]
-    public void FoldedBarFitsBothTargetStatesAndPreservesCountdownSpaceWhenNamesGrow()
+    public void FoldedBarFitsBothTaskStatesAndPreservesCountdownSpaceWhenNamesGrow()
     {
         RunOnSta(() =>
         {
@@ -23,8 +23,8 @@ public sealed class FoldedHorizontalPresentationTests
             Layout(bar);
             var countdown = (TextBlock)bar.FindName("FoldedCountdown");
             var ring = (CircularProgressRing)bar.FindName("FoldedProgressRing");
-            var divider = (Border)bar.FindName("TargetDivider");
-            var name = (TextBlock)bar.FindName("FoldedTargetName");
+            var divider = (Border)bar.FindName("TaskDivider");
+            var name = (TextBlock)bar.FindName("FoldedTaskName");
             Assert.Equal(new Size(160, 50), bar.RenderSize);
             Assert.Equal("179:45", countdown.Text);
             Assert.Equal(30, ring.ActualWidth);
@@ -40,13 +40,16 @@ public sealed class FoldedHorizontalPresentationTests
             Assert.InRange(shortWidth, 185, 319);
             Assert.Equal(50, bar.ActualHeight);
             Assert.Equal(Visibility.Visible, divider.Visibility);
-            Assert.Equal("学习", name.Text);
+            Assert.Equal("唯一任务", name.Text);
             var shortName = new FormattedText(name.Text, System.Globalization.CultureInfo.CurrentUICulture,
                 name.FlowDirection, new Typeface(name.FontFamily, name.FontStyle, name.FontWeight, name.FontStretch),
                 name.FontSize, name.Foreground, VisualTreeHelper.GetDpi(name).PixelsPerDip);
             Assert.True(shortName.Width <= name.ActualWidth);
             var timePosition = countdown.TranslatePoint(new Point(), bar);
             target.ApplyName("学习 UE5 今天完成关卡制作并检查所有自动屏蔽规则与交互细节");
+            Layout(bar);
+            Assert.Equal(shortWidth, bar.ActualWidth);
+            Rename(target.Tasks[0], "学习 UE5 今天完成关卡制作并检查所有自动屏蔽规则与交互细节");
             Layout(bar);
             Assert.Equal(320, bar.ActualWidth);
             Assert.Equal(50, bar.ActualHeight);
@@ -63,8 +66,9 @@ public sealed class FoldedHorizontalPresentationTests
             Layout(bar);
             Assert.True(goalModel.HasTarget);
             Assert.False(goalModel.HasCurrentTask);
-            Assert.Equal(Visibility.Visible, name.Visibility);
-            Assert.Equal(320, bar.ActualWidth);
+            Assert.Equal(Visibility.Collapsed, name.Visibility);
+            Assert.Equal(Visibility.Collapsed, divider.Visibility);
+            Assert.Equal(160, bar.ActualWidth);
             bar.DataContext = freeModel;
             Layout(bar);
             Assert.Equal(160, bar.ActualWidth);
@@ -72,11 +76,11 @@ public sealed class FoldedHorizontalPresentationTests
     }
 
     [Fact]
-    public void WindowResizesForRenamedOrReplacedTargetsAndRestoresBarAfterHoverExpansion()
+    public void WindowResizesForRenamedTasksAndRestoresBarAfterHoverExpansion()
     {
         RunOnSta(() =>
         {
-            var target = new FocusTargetViewModel("学习", []);
+            var target = new FocusTargetViewModel("学习", ["唯一任务"]);
             using var model = CreateModel(target);
             using var freeModel = CreateModel();
             var window = new FocusFloatingWindow { DataContext = model, Left = 600, Top = 0 };
@@ -86,7 +90,7 @@ public sealed class FoldedHorizontalPresentationTests
                 var bar = (FoldedHorizontal)window.FindName("FoldedHorizontalView");
                 foreach (var state in new[] { FocusFloatingWindowState.FoldedTop, FocusFloatingWindowState.FoldedBottom })
                 {
-                    target.ApplyName("学习");
+                    Rename(target.Tasks[0], "任务");
                     window.DataContext = model;
                     Pump();
                     var bounds = FocusFloatingSnapCalculator.GetSnappedBounds(state,
@@ -100,7 +104,7 @@ public sealed class FoldedHorizontalPresentationTests
                     Assert.Equal(state, window.State);
                     Assert.InRange(window.Width, 185, 319);
                     Assert.Equal(50, window.Height);
-                    target.ApplyName("学习 UE5 今天完成关卡制作并检查所有自动屏蔽规则");
+                    Rename(target.Tasks[0], "学习 UE5 今天完成关卡制作并检查所有自动屏蔽规则");
                     Pump();
                     Assert.Equal(320, window.Width);
                     Invoke(window, "ExpandFromFold");
@@ -108,8 +112,8 @@ public sealed class FoldedHorizontalPresentationTests
                     var floating = (FloatingContent)window.FindName("FloatingContentView");
                     Assert.Equal(remainingProgress, ((ProgressBar)floating.FindName("FocusProgressBar")).Value);
                     Assert.Equal(FocusFloatingWindowState.ExpandedFromFold, window.State);
-                    Assert.Equal(new Size(300, 115), new Size(window.Width, window.Height));
-                    target.ApplyName("学习");
+                    Assert.Equal(new Size(300, model.WindowHeight), new Size(window.Width, window.Height));
+                    Rename(target.Tasks[0], "任务");
                     Invoke(window, "CollapseToFold");
                     Pump();
                     Assert.Equal(remainingProgress, ring.Progress);
@@ -152,6 +156,11 @@ public sealed class FoldedHorizontalPresentationTests
 
     private static void Invoke(FocusFloatingWindow window, string method, params object[] arguments)
         => typeof(FocusFloatingWindow).GetMethod(method, BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(window, arguments);
+
+    private static void Rename(FocusTaskViewModel task, string name)
+    {
+        task.BeginEdit(); task.EditName = name; task.CommitEdit();
+    }
 
     private static void Pump() => Dispatcher.CurrentDispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
 

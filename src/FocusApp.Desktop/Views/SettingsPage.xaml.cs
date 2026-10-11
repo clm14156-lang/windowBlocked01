@@ -161,6 +161,9 @@ public partial class SettingsPage : UserControl
         ForcedModeVipGuidePopup.IsOpen = false;
     }
 
+    private void FocusThemeOption_Click(object sender, RoutedEventArgs e) =>
+        FocusThemePreviewSelector.IsChecked = false;
+
     private void RuleMenuItem_Click(object sender, RoutedEventArgs e)
     {
         if (sender is Button { Tag: ToggleButton moreButton })

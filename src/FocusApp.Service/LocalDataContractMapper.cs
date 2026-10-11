@@ -63,7 +63,9 @@ internal static class LocalDataContractMapper
             source.SelectedTargetId,
             source.UpdatedAtUtc)
         {
-            RecentTargetIconsJson = source.RecentTargetIconsJson
+            RecentTargetIconsJson = source.RecentTargetIconsJson,
+            FocusTheme = Enum.TryParse<FocusThemeMode>(source.FocusTheme, out var theme) && Enum.IsDefined(theme)
+                ? theme : FocusThemeMode.System
         };
 
     public static LocalDurationPreset ToCore(LocalDurationPresetDto source)
@@ -181,7 +183,8 @@ internal static class LocalDataContractMapper
             source.SelectedTargetId,
             source.UpdatedAtUtc)
         {
-            RecentTargetIconsJson = source.RecentTargetIconsJson
+            RecentTargetIconsJson = source.RecentTargetIconsJson,
+            FocusTheme = source.FocusTheme.ToString()
         };
 
     private static LocalDurationPresetDto ToDto(LocalDurationPreset source)

@@ -6,6 +6,7 @@ using System.Windows.Input;
 using System.Windows.Threading;
 using FocusApp.Contracts;
 using FocusApp.Core;
+using FocusApp.Desktop.Services;
 
 namespace FocusApp.Desktop.ViewModels;
 
@@ -37,6 +38,10 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     private bool _isCompletedTasksExpanded;
     private bool _isForcedModeActive;
     private FocusGreetingState _greetingState;
+    private string _greetingSubtitle = string.Empty;
+    private readonly FocusGreetingProvider _greetings;
+    private FocusThemeMode _focusTheme = FocusThemeMode.System;
+    private bool _isDarkFocusTheme;
     private readonly HashSet<FocusTaskViewModel> _sessionCompletedTaskSet = [];
     private readonly List<FocusSessionRecord> _completionHistory = [];
     private FocusSessionRecord? _lastRecordedCompletion;
@@ -49,9 +54,11 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     private bool _isExternalStarting;
     private Action? _cancelExternalStarting;
 
-    public FocusSessionViewModel(Func<DateTime>? nowProvider = null, bool runTimer = true)
+    public FocusSessionViewModel(Func<DateTime>? nowProvider = null, bool runTimer = true,
+        FocusGreetingProvider? greetings = null)
     {
         _nowProvider = nowProvider ?? (() => DateTime.Now);
+        _greetings = greetings ?? new FocusGreetingProvider();
         RefreshGreeting();
         _engine = new FocusSessionEngine(_nowProvider);
         _timer = new DispatcherTimer(DispatcherPriority.Normal)
@@ -262,6 +269,8 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             }
 
             _stage = value;
+            // This is page navigation; window restore/float operations never change Stage.
+            if (value == FocusFlowStage.Focusing) RefreshGreeting(enteringPage: true);
             if (value != FocusFlowStage.Focusing) TaskDrawer.Close();
             OnPropertyChanged();
             OnPropertyChanged(nameof(IsActive));
@@ -305,6 +314,31 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     public bool ShowFocusActionDivider => ShowEndFocus && ShowTaskButton;
 
     public FocusGreetingState GreetingState => _greetingState;
+    public FocusThemeMode FocusTheme => _focusTheme;
+    public bool IsDarkFocusTheme => _isDarkFocusTheme;
+
+    public void ApplyFocusTheme(FocusThemeMode mode)
+    {
+        mode = Enum.IsDefined(mode) ? mode : FocusThemeMode.System;
+        if (_focusTheme == mode) return;
+        _focusTheme = mode;
+        OnPropertyChanged(nameof(FocusTheme));
+        RefreshFocusTheme();
+    }
+
+    public void RefreshFocusAppearance()
+    {
+        if (IsFocusing) RefreshGreeting();
+    }
+
+    private void RefreshFocusTheme()
+    {
+        var dark = FocusTheme == FocusThemeMode.Dark || FocusTheme == FocusThemeMode.System &&
+            GreetingState is FocusGreetingState.Evening or FocusGreetingState.LateNight;
+        if (_isDarkFocusTheme == dark) return;
+        _isDarkFocusTheme = dark;
+        OnPropertyChanged(nameof(IsDarkFocusTheme));
+    }
     public string GreetingTitle => GreetingState switch
     {
         FocusGreetingState.Morning => "早上好",
@@ -312,13 +346,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         FocusGreetingState.Evening => "晚上好",
         _ => "夜深了"
     };
-    public string GreetingSubtitle => GreetingState switch
-    {
-        FocusGreetingState.Morning => "慢慢开始，进入今天的节奏。",
-        FocusGreetingState.Afternoon => "稳住节奏，继续往前一点。",
-        FocusGreetingState.Evening => "辛苦了，再坚持一会儿。",
-        _ => "已经很晚了，做完记得休息。"
-    };
+    public string GreetingSubtitle => _greetingSubtitle;
     public string GreetingIconSource => "/FocusApp.Desktop;component/Assets/Images/Illustrations/" + (GreetingState switch
     {
         FocusGreetingState.Morning or FocusGreetingState.Afternoon => "focus_sun.png",
@@ -326,15 +354,23 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         _ => "focus_yeshenle.png"
     });
 
-    private void RefreshGreeting()
+    private void RefreshGreeting(bool enteringPage = false)
     {
-        _greetingState = _nowProvider().Hour switch
+        var state = _nowProvider().Hour switch
         {
             >= 5 and < 12 => FocusGreetingState.Morning,
             >= 12 and < 18 => FocusGreetingState.Afternoon,
             >= 18 and < 23 => FocusGreetingState.Evening,
             _ => FocusGreetingState.LateNight
         };
+        if (!enteringPage && state == _greetingState && _greetingSubtitle.Length > 0) return;
+        if (enteringPage) _greetings.Reload();
+        _greetingState = state;
+        // Initialize off-page bindings without counting this as a displayed selection.
+        _greetingSubtitle = !enteringPage && _greetingSubtitle.Length == 0
+            ? _greetings.GetGreetings(state)[0]
+            : _greetings.Select(state);
+        RefreshFocusTheme();
         OnPropertyChanged(nameof(GreetingState));
         OnPropertyChanged(nameof(GreetingTitle));
         OnPropertyChanged(nameof(GreetingSubtitle));
@@ -525,7 +561,6 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         _preparationProgress = 0;
         _sessionTarget = target;
         ActiveTarget = target;
-        RefreshGreeting();
         IsForcedModeActive = true;
         _isExternalStarting = true;
         _cancelExternalStarting = cancel;
@@ -567,7 +602,6 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             minutes,
             forcedMode,
             target is null ? null : new FocusSessionTargetContext(target.TargetId, target.Name));
-        RefreshGreeting();
         _lastRecordedCompletion = null;
         SyncFromEngine();
         ActiveTarget = target;
@@ -605,7 +639,6 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         var isSameSession = _authoritativeSessionId == session.SessionId;
         if (!isSameSession)
         {
-            RefreshGreeting();
             _timer.Stop();
             _preparationStopwatch.Reset();
             _focusStopwatch.Reset();
@@ -653,6 +686,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             _applyingAuthoritativeSession = false;
         }
         RefreshAuthoritativeTime(nowUtc ?? DateTimeOffset.UtcNow);
+        if (IsFocusing) RefreshGreeting();
 
         if (session.Status == LocalFocusSessionStatusDto.Completed)
         {
@@ -672,6 +706,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
 
     public void AdvanceOneSecond()
     {
+        if (IsFocusing) RefreshGreeting();
         RefreshTaskGroupsIfLocalDateChanged();
         if (_authoritativeSession is not null &&
             _authoritativeSession.Status != LocalFocusSessionStatusDto.Completed)
@@ -743,6 +778,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
 
     private void OnTimerTick()
     {
+        if (IsFocusing) RefreshGreeting();
         RefreshTaskGroupsIfLocalDateChanged();
         if (_isExternalStarting && _authoritativeSession is null)
         {

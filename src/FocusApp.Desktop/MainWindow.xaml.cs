@@ -54,6 +54,23 @@ public partial class MainWindow : Window
         DataContextChanged += MainWindow_DataContextChanged;
         Closed += MainWindow_Closed;
         SizeChanged += MainWindow_SizeChanged;
+        PreviewKeyDown += EmptyTaskDrawer_PreviewKeyDown;
+    }
+
+    private void EmptyTaskDrawer_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (!IsActive || e.Key != Key.Tab ||
+            DataContext is not MainWindowViewModel { CurrentPage: NavigationPage.Home } model ||
+            !model.HomePage.FocusSession.IsFocusing || model.HomePage.FocusSession.IsEndConfirmationOpen)
+            return;
+
+        // Only the focus surface, drawer, or window itself participates; modal and popup routes do not.
+        var source = e.OriginalSource as DependencyObject;
+        if (!ReferenceEquals(source, this) && FindVisualAncestor<FocusFlowView>(source) is null &&
+            !ReferenceEquals(FindVisualAncestor<FocusTaskDrawer>(source), FocusTaskDrawerPanel))
+            return;
+
+        FocusTaskDrawerPanel.TryBeginEmptyStateCreation(e);
     }
 
     private void MainWindow_SizeChanged(object sender, SizeChangedEventArgs e)

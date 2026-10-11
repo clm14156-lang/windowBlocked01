@@ -5,7 +5,7 @@
              MinWidth="160" MaxWidth="320" Height="50"
              Background="Transparent" UseLayoutRounding="True" SnapsToDevicePixels="True">
     <UserControl.Resources>
-        <BooleanToVisibilityConverter x:Key="TargetVisibilityConverter"/>
+        <BooleanToVisibilityConverter x:Key="TaskVisibilityConverter"/>
     </UserControl.Resources>
     <Border x:Name="CapsuleSurface" Background="#FCFCFD" BorderBrush="#E1E4E9" BorderThickness="1" CornerRadius="25" Padding="14,0">
         <Grid>
@@ -21,11 +21,11 @@
                                         Progress="{Binding RemainingProgress, Mode=OneWay}"/>
             <TextBlock x:Name="FoldedCountdown" Grid.Column="2" Text="{Binding RemainingTimeDisplay}" FontFamily="{DynamicResource FontFamilyNumeric}"
                        FontSize="26" FontWeight="SemiBold" Foreground="#15171A" VerticalAlignment="Center" TextAlignment="Center" TextWrapping="NoWrap"/>
-            <Border x:Name="TargetDivider" Grid.Column="3" Width="1" Height="22" Margin="12,0" VerticalAlignment="Center" Background="#DFE2E7"
-                    Visibility="{Binding HasTarget, Converter={StaticResource TargetVisibilityConverter}}"/>
-            <TextBlock x:Name="FoldedTargetName" Grid.Column="4" Text="{Binding TargetName}" FontFamily="{DynamicResource FontFamilyPrimary}"
+            <Border x:Name="TaskDivider" Grid.Column="3" Width="1" Height="22" Margin="12,0" VerticalAlignment="Center" Background="#DFE2E7"
+                    Visibility="{Binding HasCurrentTask, Converter={StaticResource TaskVisibilityConverter}}"/>
+            <TextBlock x:Name="FoldedTaskName" Grid.Column="4" Text="{Binding CurrentTaskName}" FontFamily="{DynamicResource FontFamilyPrimary}"
                        FontSize="14" Foreground="#9B9FA8" VerticalAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
-                       Visibility="{Binding HasTarget, Converter={StaticResource TargetVisibilityConverter}}"/>
+                       Visibility="{Binding HasCurrentTask, Converter={StaticResource TaskVisibilityConverter}}"/>
         </Grid>
     </Border>
 </UserControl>

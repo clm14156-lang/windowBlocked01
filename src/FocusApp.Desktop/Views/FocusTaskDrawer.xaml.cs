@@ -61,6 +61,7 @@ public partial class FocusTaskDrawer : UserControl
     }
     private void Drawer_PreviewKeyDown(object sender, KeyEventArgs e)
     {
+        if (TryBeginEmptyStateCreation(e)) return;
         if (e.Key == Key.Escape && _dragRow is not null)
         {
             ResetTaskDrag();
@@ -72,6 +73,33 @@ public partial class FocusTaskDrawer : UserControl
         else if (vm.SelectedTask is { } task) vm.ToggleExpandedCommand.Execute(task);
         else vm.CloseCommand.Execute(null);
         e.Handled = true;
+    }
+
+    internal bool TryBeginEmptyStateCreation(KeyEventArgs e)
+    {
+        if (e.Handled || e.Key != Key.Tab || e.IsRepeat || Keyboard.Modifiers != ModifierKeys.None ||
+            !IsVisible || ViewModel is not { IsOpen: true, IsEmpty: true, IsCreating: false } vm)
+            return false;
+        if (Window.GetWindow(this)?.DataContext is MainWindowViewModel main &&
+            (main.CurrentPage != NavigationPage.Home || !main.HomePage.FocusSession.IsFocusing ||
+             main.HomePage.FocusSession.IsEndConfirmationOpen))
+            return false;
+
+        // Preserve text editing and editable selector navigation, including nested template elements.
+        var source = e.OriginalSource as DependencyObject ?? Keyboard.FocusedElement as DependencyObject;
+        while (source is not null)
+        {
+            if (source is TextBoxBase or PasswordBox or ComboBox { IsEditable: true }) return false;
+            source = source is ContentElement content
+                ? ContentOperations.GetParent(content) ?? (content as FrameworkContentElement)?.Parent
+                : source is Visual or System.Windows.Media.Media3D.Visual3D
+                    ? VisualTreeHelper.GetParent(source)
+                    : LogicalTreeHelper.GetParent(source);
+        }
+
+        vm.AddTaskCommand.Execute(null);
+        // The existing editor visibility handler focuses the title input.
+        return e.Handled = vm.IsCreating;
     }
     private void EditTaskMenu_Click(object sender, RoutedEventArgs e)
     {

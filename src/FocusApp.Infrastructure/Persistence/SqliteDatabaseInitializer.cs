@@ -7,7 +7,7 @@ internal sealed class SqliteDatabaseInitializer(
     string databasePath,
     SqliteLocalDataStoreOptions options)
 {
-    public const int CurrentSchemaVersion = 11;
+    public const int CurrentSchemaVersion = 12;
 
     private const string MigrationV1 = """
         CREATE TABLE focus_sessions (
@@ -320,6 +320,7 @@ internal sealed class SqliteDatabaseInitializer(
             9 => MigrationV9,
             10 => "ALTER TABLE focus_session_tasks ADD COLUMN details_snapshot_json TEXT NULL;",
             11 => "ALTER TABLE app_settings DROP COLUMN selected_theme_key;",
+            12 => "ALTER TABLE app_settings ADD COLUMN focus_theme TEXT NOT NULL DEFAULT 'System' CHECK (focus_theme IN ('System', 'Light', 'Dark'));",
             _ => throw new InvalidOperationException($"缺少数据库版本 {targetVersion} 的迁移。")
         };
 

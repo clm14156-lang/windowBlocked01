@@ -167,6 +167,13 @@ public static class FocusFloatingSnapCalculator
         => state is FocusFloatingWindowState.FoldedTop
             or FocusFloatingWindowState.FoldedBottom;
 
+    public static Rect GetFloatingBounds(Point origin, Rect workArea, double height)
+    {
+        height = Math.Clamp(height, FloatingHeight, ViewModels.FocusFloatingWindowViewModel.MaximumWindowHeight);
+        return new Rect(Clamp(origin.X, workArea.Left, workArea.Right - FloatingWidth),
+            Clamp(origin.Y, workArea.Top, workArea.Bottom - height), FloatingWidth, height);
+    }
+
     private static double Clamp(double value, double minimum, double maximum)
         => maximum <= minimum ? minimum : Math.Clamp(value, minimum, maximum);
 

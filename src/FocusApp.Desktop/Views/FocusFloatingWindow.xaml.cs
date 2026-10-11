@@ -19,6 +19,7 @@ public partial class FocusFloatingWindow : Window
     private DispatcherOperation? _sizeRefreshOperation;
     private DispatcherOperation? _positionRefreshOperation;
     private HwndSource? _windowSource;
+    private Point? _creationPosition;
 
     private double PreferredFloatingHeight => (DataContext as FocusFloatingWindowViewModel)?.WindowHeight
         ?? FocusFloatingWindowViewModel.EmptyWindowHeight;
@@ -42,7 +43,9 @@ public partial class FocusFloatingWindow : Window
     public FocusFloatingPosition GetPositionForMemory()
     {
         if (!FocusFloatingSnapCalculator.IsFolded(_stateMachine.FoldedState))
-            return MonitorWorkAreaProvider.CapturePosition(this);
+            return _creationPosition is { } position
+                ? MonitorWorkAreaProvider.CapturePosition(this, position)
+                : MonitorWorkAreaProvider.CapturePosition(this);
         var monitor = MonitorWorkAreaProvider.GetForWindow(this);
         var fullBounds = FocusFloatingSnapCalculator.GetExpandedBounds(_stateMachine.FoldedState,
             _foldedBounds, monitor.WorkArea, PreferredFloatingHeight);
@@ -103,7 +106,16 @@ public partial class FocusFloatingWindow : Window
 
     private void Model_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(FocusFloatingWindowViewModel.HasTarget) or nameof(FocusFloatingWindowViewModel.TargetName))
+        if (e.PropertyName == nameof(FocusFloatingWindowViewModel.IsCreatingTask))
+        {
+            if ((DataContext as FocusFloatingWindowViewModel)?.IsCreatingTask == true)
+            {
+                _collapseTimer.Stop();
+                if (IsVisible && !_stateMachine.IsExpandedFromFold) _creationPosition ??= GetCurrentBounds().TopLeft;
+            }
+            else if (_stateMachine.IsExpandedFromFold && !IsMouseOver) _collapseTimer.Start();
+        }
+        if (e.PropertyName is nameof(FocusFloatingWindowViewModel.HasCurrentTask) or nameof(FocusFloatingWindowViewModel.CurrentTaskName))
             RefreshFoldedBounds();
         if (e.PropertyName == nameof(FocusFloatingWindowViewModel.WindowHeight)
             && _sizeRefreshOperation?.Status != DispatcherOperationStatus.Pending)
@@ -131,11 +143,15 @@ public partial class FocusFloatingWindow : Window
             return;
         }
         var bounds = GetCurrentBounds();
-        var left = Math.Clamp(bounds.Left, monitor.WorkArea.Left,
-            Math.Max(monitor.WorkArea.Left, monitor.WorkArea.Right - FocusFloatingSnapCalculator.FloatingWidth));
-        var top = Math.Clamp(bounds.Top, monitor.WorkArea.Top,
-            Math.Max(monitor.WorkArea.Top, monitor.WorkArea.Bottom - PreferredFloatingHeight));
-        ApplyBounds(new Rect(left, top, FocusFloatingSnapCalculator.FloatingWidth, PreferredFloatingHeight));
+        var origin = _creationPosition ?? bounds.TopLeft;
+        ApplyBounds(FocusFloatingSnapCalculator.GetFloatingBounds(origin, monitor.WorkArea, PreferredFloatingHeight));
+        if ((DataContext as FocusFloatingWindowViewModel) is { IsCreatingTask: false, CreationHeight: 0 }) _creationPosition = null;
+    }
+
+    private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (IsActive && FloatingContentView.IsVisible && !_stateMachine.IsFolded)
+            FloatingContentView.HandleCreationKey(e);
     }
 
     private void RefreshFoldedBounds()
@@ -188,12 +204,15 @@ public partial class FocusFloatingWindow : Window
             if (moved)
             {
                 EvaluateSnapAfterDrag();
+                if ((DataContext as FocusFloatingWindowViewModel)?.IsCreatingTask == true && !_stateMachine.IsFolded)
+                    _creationPosition = GetCurrentBounds().TopLeft;
                 UserPositionChanged?.Invoke(this, EventArgs.Empty);
             }
-            else if (_stateMachine.IsExpandedFromFold)
+            else if (_stateMachine.IsExpandedFromFold && (DataContext as FocusFloatingWindowViewModel)?.IsCreatingTask != true)
             {
                 CollapseToFold();
             }
+            else if (!FloatingContentView.IsKeyboardFocusWithin) FloatingContentView.Focus();
         }
     }
 
@@ -214,7 +233,7 @@ public partial class FocusFloatingWindow : Window
             return;
         }
 
-        if (_stateMachine.IsExpandedFromFold && !_isDragging)
+        if (_stateMachine.IsExpandedFromFold && !_isDragging && (DataContext as FocusFloatingWindowViewModel)?.IsCreatingTask != true)
         {
             _collapseTimer.Stop();
             _collapseTimer.Start();
@@ -224,7 +243,7 @@ public partial class FocusFloatingWindow : Window
     private void CollapseTimer_Tick(object? sender, EventArgs e)
     {
         _collapseTimer.Stop();
-        if (!_isDragging && _stateMachine.IsExpandedFromFold && !IsMouseOver)
+        if (!_isDragging && _stateMachine.IsExpandedFromFold && !IsMouseOver && (DataContext as FocusFloatingWindowViewModel)?.IsCreatingTask != true)
         {
             CollapseToFold();
         }

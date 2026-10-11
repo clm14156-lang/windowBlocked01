@@ -11,7 +11,7 @@ using FocusApp.Desktop.Services;
 namespace FocusApp.Desktop.Views;
 
 /// <summary>Loads target SVG artwork as a scalable WPF drawing, optionally tinted by its URI fragment.</summary>
-public sealed class TargetIconSourceConverter : IValueConverter
+public sealed class TargetIconSourceConverter : IValueConverter, IMultiValueConverter
 {
     public static TargetIconSourceConverter Instance { get; } = new();
     private static readonly ConcurrentDictionary<string, ImageSource> Cache = new();
@@ -28,6 +28,12 @@ public sealed class TargetIconSourceConverter : IValueConverter
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
         Binding.DoNothing;
+
+    public object? Convert(object[] values, Type targetType, object parameter, CultureInfo culture) =>
+        Convert(values[0], targetType, (values.ElementAtOrDefault(1) as SolidColorBrush)?.Color.ToString() ?? "#65758B", culture);
+
+    public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture) =>
+        targetTypes.Select(_ => Binding.DoNothing).ToArray();
 
     private static ImageSource? Load(string source)
     {

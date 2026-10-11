@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              Width="300" Height="{Binding WindowHeight}"
              Background="Transparent" UseLayoutRounding="True" SnapsToDevicePixels="True"
+             Focusable="True" FocusVisualStyle="{x:Null}" PreviewKeyDown="Content_PreviewKeyDown"
              Loaded="Content_Loaded" Unloaded="Content_Unloaded" DataContextChanged="Content_DataContextChanged" IsVisibleChanged="Content_IsVisibleChanged">
     <UserControl.Resources>
         <ResourceDictionary>
@@ -60,7 +61,7 @@
     <Border x:Name="FloatingSurface" BorderBrush="#E6ECF3" BorderThickness="1" CornerRadius="22">
         <Border.Background><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Offset="0" Color="#FDFEFF"/><GradientStop Offset="1" Color="#F7FAFE"/></LinearGradientBrush></Border.Background>
         <Grid Margin="19,15,19,17">
-            <Grid.RowDefinitions><RowDefinition Height="81"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+            <Grid.RowDefinitions><RowDefinition Height="81"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
             <Grid x:Name="TimerArea">
                 <Grid.RowDefinitions><RowDefinition Height="23"/><RowDefinition Height="47"/><RowDefinition Height="11"/></Grid.RowDefinitions>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -116,6 +117,26 @@
                     </ScrollViewer>
                 </Grid>
             </Border>
+            <Grid x:Name="TaskCreationArea" Grid.Row="2" Height="{Binding CreationHeight}" ClipToBounds="True">
+                <Grid.Style><Style TargetType="Grid"><Style.Triggers><DataTrigger Binding="{Binding CreationHeight}" Value="0"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></Grid.Style>
+                <Border x:Name="TaskCreationSurface" Height="32" Margin="0,12,0,0" VerticalAlignment="Top" Background="#F7FAFE" BorderThickness="1" CornerRadius="7">
+                    <Border.Style><Style TargetType="Border"><Setter Property="BorderBrush" Value="#E1E7EF"/><Style.Triggers>
+                        <DataTrigger Binding="{Binding IsKeyboardFocusWithin, ElementName=TaskTitleInput}" Value="True"><Setter Property="BorderBrush" Value="#FFAD70"/></DataTrigger>
+                    </Style.Triggers></Style></Border.Style>
+                    <Grid Margin="9,0">
+                        <TextBox x:Name="TaskTitleInput" Text="{Binding TaskTitle, UpdateSourceTrigger=PropertyChanged}"
+                                 IsEnabled="{Binding IsCreatingTask}" FontFamily="{DynamicResource FontFamilyPrimary}" FontSize="13" FontWeight="Normal"
+                                 Foreground="#3C485B" CaretBrush="{DynamicResource AccentPrimary}" Background="Transparent" BorderThickness="0"
+                                 VerticalContentAlignment="Center" Padding="0" AcceptsReturn="False" AcceptsTab="False" AutomationProperties.Name="任务名称"
+                                 InputMethod.IsInputMethodEnabled="True">
+                            <TextBox.Template><ControlTemplate TargetType="TextBox"><ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled"/></ControlTemplate></TextBox.Template>
+                        </TextBox>
+                        <TextBlock Text="输入任务名称…" FontFamily="{DynamicResource FontFamilyPrimary}" FontSize="13" FontWeight="Normal" Foreground="#9BAAC0" VerticalAlignment="Center" IsHitTestVisible="False">
+                            <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding TaskTitle}" Value=""><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                        </TextBlock>
+                    </Grid>
+                </Border>
+            </Grid>
         </Grid>
     </Border>
 </UserControl>

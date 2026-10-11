@@ -21,6 +21,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Config\FocusGreetings.txt" LogicalName="FocusApp.Desktop.Config.FocusGreetings.txt" />
+    <Resource Include="Assets\Images\focusPage\*.png" />
     <Content Include="Assets\Audio\focus.mp3">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>

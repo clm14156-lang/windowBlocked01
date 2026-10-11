@@ -7,6 +7,45 @@ namespace FocusApp.Tests.Infrastructure;
 
 public sealed class SqliteLocalDataStoreTests
 {
+    [Theory]
+    [InlineData(FocusThemeMode.System)]
+    [InlineData(FocusThemeMode.Light)]
+    [InlineData(FocusThemeMode.Dark)]
+    public async Task FocusThemeSurvivesDatabaseReopen(FocusThemeMode mode)
+    {
+        using var database = new TemporaryDatabase();
+        var settings = LocalAppSettings.Default with { FocusTheme = mode };
+        await database.CreateStore().SaveSettingsAsync(settings, [], []);
+        Assert.Equal(settings, (await database.CreateStore().LoadAsync()).Settings);
+    }
+
+    [Fact]
+    public async Task VersionElevenAddsDefaultFocusThemeWithoutLosingUserData()
+    {
+        using var database = new TemporaryDatabase();
+        var now = DateTimeOffset.UtcNow;
+        var target = new LocalTarget("goal", "保留目标", false, 0, now, now);
+        var task = new LocalTask("task", target.TargetId, "保留任务", true, 0, now, now);
+        var settings = new LocalAppSettings(true, false, true, false, true, false, target.TargetId, now)
+        { RecentTargetIconsJson = "[\"code.svg\"]" };
+        await database.CreateStore().SaveTargetAsync(target, [task]);
+        await database.CreateStore().SaveSettingsAsync(settings, [], []);
+        var before = await database.CreateStore().LoadAsync();
+        await using (var connection = new SqliteConnection($"Data Source={database.Path}"))
+        {
+            await connection.OpenAsync();
+            await using var command = connection.CreateCommand();
+            command.CommandText = "ALTER TABLE app_settings DROP COLUMN focus_theme; PRAGMA user_version = 11;";
+            await command.ExecuteNonQueryAsync();
+        }
+        var after = await database.CreateStore().LoadAsync();
+        Assert.Equal(12, await ReadUserVersionAsync(database.Path));
+        Assert.Equal(FocusThemeMode.System, after.Settings.FocusTheme);
+        Assert.Equal(before.Settings, after.Settings);
+        Assert.Equal(before.Targets, after.Targets);
+        Assert.Equal(before.Tasks, after.Tasks);
+    }
+
     [Fact]
     public async Task AutomaticallyCompletedFocusTaskAndRestoredChildSurviveReopen()
     {
@@ -81,7 +120,7 @@ public sealed class SqliteLocalDataStoreTests
             await connection.OpenAsync();
             await using var command = connection.CreateCommand();
             command.CommandText = """
-                ALTER TABLE app_settings ADD COLUMN selected_theme_key TEXT NOT NULL DEFAULT 'Orange';
+                ALTER TABLE app_settings DROP COLUMN focus_theme; ALTER TABLE app_settings ADD COLUMN selected_theme_key TEXT NOT NULL DEFAULT 'Orange';
                 UPDATE app_settings SET selected_theme_key = $theme;
                 PRAGMA user_version = 10;
                 """;
@@ -90,7 +129,7 @@ public sealed class SqliteLocalDataStoreTests
         }
 
         var migrated = await database.CreateStore().LoadAsync();
-        Assert.Equal(11, await ReadUserVersionAsync(database.Path));
+        Assert.Equal(12, await ReadUserVersionAsync(database.Path));
         Assert.False(await ColumnExistsAsync(database.Path, "app_settings", "selected_theme_key"));
         Assert.Equal(before.Settings, migrated.Settings);
         Assert.Equal(before.Targets, migrated.Targets);
@@ -275,13 +314,13 @@ public sealed class SqliteLocalDataStoreTests
         {
             await connection.OpenAsync();
             await using var command = connection.CreateCommand();
-            command.CommandText = "ALTER TABLE focus_session_tasks DROP COLUMN details_snapshot_json; ALTER TABLE app_settings ADD COLUMN selected_theme_key TEXT NOT NULL DEFAULT 'Orange'; PRAGMA user_version = 9;";
+            command.CommandText = "ALTER TABLE focus_session_tasks DROP COLUMN details_snapshot_json; ALTER TABLE app_settings DROP COLUMN focus_theme; ALTER TABLE app_settings ADD COLUMN selected_theme_key TEXT NOT NULL DEFAULT 'Orange'; PRAGMA user_version = 9;";
             await command.ExecuteNonQueryAsync();
         }
         persisted = Assert.Single(Assert.Single((await database.CreateStore().LoadAsync()).FocusSessions).CompletedTasks);
         Assert.Equal("当时的名称", persisted.TaskNameSnapshot);
         Assert.Null(persisted.Details);
-        Assert.Equal(11, await ReadUserVersionAsync(database.Path));
+        Assert.Equal(12, await ReadUserVersionAsync(database.Path));
     }
 
     [Fact]
@@ -357,7 +396,7 @@ public sealed class SqliteLocalDataStoreTests
         {
             await connection.OpenAsync();
             await using var command = connection.CreateCommand();
-            command.CommandText = "DROP TABLE subtasks; ALTER TABLE tasks DROP COLUMN description; ALTER TABLE focus_session_tasks DROP COLUMN details_snapshot_json; ALTER TABLE app_settings ADD COLUMN selected_theme_key TEXT NOT NULL DEFAULT 'Orange'; PRAGMA user_version = 8;";
+            command.CommandText = "DROP TABLE subtasks; ALTER TABLE tasks DROP COLUMN description; ALTER TABLE focus_session_tasks DROP COLUMN details_snapshot_json; ALTER TABLE app_settings DROP COLUMN focus_theme; ALTER TABLE app_settings ADD COLUMN selected_theme_key TEXT NOT NULL DEFAULT 'Orange'; PRAGMA user_version = 8;";
             await command.ExecuteNonQueryAsync();
         }
         var migrated = Assert.Single((await database.CreateStore().LoadAsync()).Tasks);
@@ -366,7 +405,7 @@ public sealed class SqliteLocalDataStoreTests
         Assert.Equal(now, migrated.CompletedAtUtc);
         Assert.Equal(string.Empty, migrated.Description);
         Assert.Empty(migrated.SubTasks);
-        Assert.Equal(11, await ReadUserVersionAsync(database.Path));
+        Assert.Equal(12, await ReadUserVersionAsync(database.Path));
     }
 
     [Fact]
@@ -394,7 +433,7 @@ public sealed class SqliteLocalDataStoreTests
         await store.InitializeAsync();
         var snapshot = await store.LoadAsync();
 
-        Assert.Equal(11, await ReadUserVersionAsync(database.Path));
+        Assert.Equal(12, await ReadUserVersionAsync(database.Path));
         Assert.Empty(snapshot.FocusSessions);
         Assert.Empty(snapshot.Targets);
         Assert.Empty(snapshot.Tasks);
@@ -433,7 +472,7 @@ public sealed class SqliteLocalDataStoreTests
 
         await database.CreateStore().InitializeAsync();
 
-        Assert.Equal(11, await ReadUserVersionAsync(database.Path));
+        Assert.Equal(12, await ReadUserVersionAsync(database.Path));
         Assert.True(await TableExistsAsync(database.Path, "focus_session_website_rules"));
         Assert.True(await TableExistsAsync(database.Path, "focus_session_application_rules"));
         Assert.True(await ColumnExistsAsync(database.Path, "targets", "icon_file_name"));
@@ -709,14 +748,14 @@ public sealed class SqliteLocalDataStoreTests
         {
             await connection.OpenAsync();
             await using var command = connection.CreateCommand();
-            command.CommandText = "DROP TABLE subtasks; ALTER TABLE tasks DROP COLUMN description; ALTER TABLE targets DROP COLUMN icon_color_hex; ALTER TABLE focus_session_tasks DROP COLUMN details_snapshot_json; ALTER TABLE app_settings ADD COLUMN selected_theme_key TEXT NOT NULL DEFAULT 'Orange'; PRAGMA user_version = 7;";
+            command.CommandText = "DROP TABLE subtasks; ALTER TABLE tasks DROP COLUMN description; ALTER TABLE targets DROP COLUMN icon_color_hex; ALTER TABLE focus_session_tasks DROP COLUMN details_snapshot_json; ALTER TABLE app_settings DROP COLUMN focus_theme; ALTER TABLE app_settings ADD COLUMN selected_theme_key TEXT NOT NULL DEFAULT 'Orange'; PRAGMA user_version = 7;";
             await command.ExecuteNonQueryAsync();
         }
         var migrated = Assert.Single((await database.CreateStore().LoadAsync()).Targets);
         Assert.Equal("旧目标", migrated.Name);
         Assert.Equal("study.png", migrated.IconFileName);
         Assert.Null(migrated.IconColorHex);
-        Assert.Equal(11, await ReadUserVersionAsync(database.Path));
+        Assert.Equal(12, await ReadUserVersionAsync(database.Path));
     }
 
     [Fact]

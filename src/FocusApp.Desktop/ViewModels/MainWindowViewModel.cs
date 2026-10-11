@@ -39,6 +39,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private int _pendingFocusTaskWrites;
     private int _pendingAutomaticRuleWrites;
     private int _pendingDurationPresetWrites;
+    private int _pendingFocusThemeWrites;
 
     public MainWindowViewModel(
         IEnumerable<NavigationItemViewModel> primaryNavigationItems,
@@ -74,6 +75,10 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         SettingsPage.LaunchAtStartupChanged += SettingsPage_LaunchAtStartupChanged;
         SettingsPage.WindowsNotificationsChanged += SettingsPage_WindowsNotificationsChanged;
         SettingsPage.FocusSoundChanged += SettingsPage_FocusSoundChanged;
+        SettingsPage.FocusThemeChanged += SettingsPage_FocusThemeChanged;
+        if (ServiceConnection?.State is { } initialState)
+            SettingsPage.ApplyFocusThemeState(ParseFocusTheme(initialState.Settings.FocusTheme));
+        HomePage.FocusSession.ApplyFocusTheme(SettingsPage.FocusTheme);
         SettingsPage.RulesChanged += SettingsPage_RulesChanged;
         BlockingPage.WebsiteModal.WebsiteAddressValidationFailed += WebsiteModal_WebsiteAddressValidationFailed;
         HomePage.DurationOptionsChanged += HomePage_DurationOptionsChanged;
@@ -101,7 +106,11 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         {
             Interval = TimeSpan.FromSeconds(1)
         };
-        _automaticBlockingTimer.Tick += (_, _) => StateCoordinator.EvaluateAutomaticBlocking();
+        _automaticBlockingTimer.Tick += (_, _) =>
+        {
+            StateCoordinator.EvaluateAutomaticBlocking();
+            HomePage.FocusSession.RefreshFocusAppearance();
+        };
         _automaticBlockingTimer.Start();
         _focusResultToastTimer = new DispatcherTimer(DispatcherPriority.Normal)
         {
@@ -580,6 +589,11 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         SettingsPage.ApplyLaunchAtStartupState(state.Settings.LaunchAtStartup);
         SettingsPage.ApplyWindowsNotificationsState(state.Settings.WindowsNotificationsEnabled);
         SettingsPage.ApplyFocusSoundState(state.Settings.FocusSoundEnabled);
+        if (_pendingFocusThemeWrites == 0)
+        {
+            SettingsPage.ApplyFocusThemeState(ParseFocusTheme(state.Settings.FocusTheme));
+            HomePage.FocusSession.ApplyFocusTheme(SettingsPage.FocusTheme);
+        }
         if (_pendingDurationPresetWrites == 0) HomePage.ApplyDurationPresets(state.DurationPresets);
         ApplyFocusTaskState(state);
         StatisticsPage.ApplyState(state);
@@ -1045,6 +1059,22 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
                 state.DurationPresets,
                 targets);
         });
+    }
+
+    private static FocusThemeMode ParseFocusTheme(string value) =>
+        Enum.TryParse<FocusThemeMode>(value, out var theme) && Enum.IsDefined(theme) ? theme : FocusThemeMode.System;
+
+    private async void SettingsPage_FocusThemeChanged(object? sender, FocusThemeMode mode)
+    {
+        HomePage.FocusSession.ApplyFocusTheme(mode);
+        _pendingFocusThemeWrites++;
+        try
+        {
+            await PersistSettingsAsync(state => new SaveSettingsCommand(
+                state.Settings with { FocusTheme = mode.ToString(), UpdatedAtUtc = DateTimeOffset.UtcNow },
+                state.DurationPresets, state.MonthlyFocusTargets));
+        }
+        finally { _pendingFocusThemeWrites--; }
     }
 
     private async Task PersistSettingsAsync(Func<LocalDataSnapshotDto, SaveSettingsCommand> createCommand)

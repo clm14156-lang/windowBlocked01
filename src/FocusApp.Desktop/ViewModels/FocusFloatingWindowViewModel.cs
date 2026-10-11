@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
+using FocusApp.Contracts;
 
 namespace FocusApp.Desktop.ViewModels;
 
@@ -24,6 +25,13 @@ public sealed class FocusFloatingWindowViewModel : INotifyPropertyChanged, IDisp
     private readonly Dictionary<string, FocusTaskViewModel> _exitingTasks = [];
     private double? _presentationListHeight;
     private double _presentationHeaderHeight = TaskHeaderHeight;
+    public const double TaskCreationHeight = 44;
+    private bool _isCreatingTask;
+    private bool _isSubmittingTask;
+    private string _taskTitle = string.Empty;
+    private string? _creationTargetId;
+    private double _creationHeight;
+    private double? _creationTaskAreaHeight;
 
     public FocusFloatingWindowViewModel(FocusSessionViewModel session)
     {
@@ -42,6 +50,8 @@ public sealed class FocusFloatingWindowViewModel : INotifyPropertyChanged, IDisp
     public event PropertyChangedEventHandler? PropertyChanged;
     public event EventHandler<TaskCompletionPresentationEventArgs>? CompletionAnimationRequested;
     public event EventHandler<FocusTaskViewModel>? CompletionAnimationCancelled;
+    public event EventHandler? TaskCreationStateChanged;
+    public event EventHandler<FocusTaskViewModel>? TaskCreated;
     public ObservableCollection<FocusTaskViewModel> VisibleTasks { get; } = [];
 
     public string RemainingTimeDisplay => _session.RemainingTimeDisplay;
@@ -61,15 +71,92 @@ public sealed class FocusFloatingWindowViewModel : INotifyPropertyChanged, IDisp
 
     public int TaskRowCount => PendingTasks.Sum(task => 1 + task.SubTasks.Count);
 
-    public bool HasTaskOverflow => VisibleTasks.Sum(task => 1 + task.SubTasks.Count) > VisibleTaskLimit;
+    public bool HasTaskOverflow => VisibleTasks.Sum(task => 1 + task.SubTasks.Count) * TaskRowHeight > AvailableTaskListHeight;
 
-    public double TaskListHeight => _presentationListHeight ?? Math.Min(VisibleTaskLimit,
-        VisibleTasks.Sum(task => 1 + task.SubTasks.Count)) * TaskRowHeight;
+    private double AvailableTaskListHeight => TaskRowHeight * VisibleTaskLimit - CreationHeight;
+
+    public double TaskListHeight => Math.Min(AvailableTaskListHeight, _presentationListHeight ??
+        VisibleTasks.Sum(task => 1 + task.SubTasks.Count) * TaskRowHeight);
 
     public bool HasDisplayedTasks => VisibleTasks.Count > 0;
 
-    public double WindowHeight => EmptyWindowHeight + (HasDisplayedTasks ? _presentationHeaderHeight + TaskListHeight : 0);
-    public double TaskAreaHeight => WindowHeight - EmptyWindowHeight;
+    public double WindowHeight => EmptyWindowHeight + TaskAreaHeight + CreationHeight;
+    public double NaturalTaskAreaHeight => HasDisplayedTasks ? _presentationHeaderHeight + TaskListHeight : 0;
+    internal double GetTaskAreaHeightForCreation(double creationHeight) => HasDisplayedTasks
+        ? _presentationHeaderHeight + Math.Min(TaskRowHeight * VisibleTaskLimit - creationHeight,
+            _presentationListHeight ?? VisibleTasks.Sum(task => 1 + task.SubTasks.Count) * TaskRowHeight) : 0;
+    public double TaskAreaHeight => _creationTaskAreaHeight ?? NaturalTaskAreaHeight;
+    public double CreationHeight => _creationHeight;
+    public bool IsCreatingTask => _isCreatingTask;
+    public string TaskTitle
+    {
+        get => _taskTitle;
+        set
+        {
+            if (_taskTitle == value) return;
+            _taskTitle = value ?? string.Empty;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool BeginTaskCreation()
+    {
+        if (_isDisposed || !IsFocusing || !HasTarget || IsCreatingTask || _isSubmittingTask) return false;
+        _creationTargetId = _session.ActiveTarget!.TargetId;
+        TaskTitle = string.Empty;
+        _isCreatingTask = true;
+        OnPropertyChanged(nameof(IsCreatingTask));
+        RefreshCreationPresentation();
+        return true;
+    }
+
+    public bool SubmitTaskCreation()
+    {
+        if (_isDisposed || _isSubmittingTask || !IsCreatingTask || !IsFocusing ||
+            _session.ActiveTarget is not { } target || target.TargetId != _creationTargetId ||
+            string.IsNullOrWhiteSpace(TaskTitle)) return false;
+        _isSubmittingTask = true;
+        // Keep the existing area while the shared save publishes its collection changes.
+        _creationTaskAreaHeight = TaskAreaHeight;
+        try
+        {
+            var now = DateTimeOffset.UtcNow;
+            var source = new LocalTaskDto(Guid.NewGuid().ToString("N"), target.TargetId,
+                TaskTitle.Trim(), false, target.Tasks.Count, now, now);
+            if (!_session.SaveDrawerTask(source)) { _creationTaskAreaHeight = null; return false; }
+            CancelTaskCreation();
+            TaskCreated?.Invoke(this, target.Tasks.Single(task => task.TaskId == source.TaskId));
+            return true;
+        }
+        finally { _isSubmittingTask = false; }
+    }
+
+    public void CancelTaskCreation()
+    {
+        if (!IsCreatingTask) return;
+        _isCreatingTask = false;
+        _creationTargetId = null;
+        TaskTitle = string.Empty;
+        OnPropertyChanged(nameof(IsCreatingTask));
+        RefreshCreationPresentation();
+    }
+
+    private void RefreshCreationPresentation()
+    {
+        if (TaskCreationStateChanged is { } handler) handler.Invoke(this, EventArgs.Empty);
+        else SetCreationPresentation(IsCreatingTask ? TaskCreationHeight : 0);
+    }
+
+    public void SetCreationPresentation(double height, double? taskAreaHeight = null)
+    {
+        _creationHeight = Math.Clamp(height, 0, TaskCreationHeight);
+        _creationTaskAreaHeight = taskAreaHeight;
+        OnPropertyChanged(nameof(CreationHeight));
+        OnPropertyChanged(nameof(TaskListHeight));
+        OnPropertyChanged(nameof(HasTaskOverflow));
+        OnPropertyChanged(nameof(TaskAreaHeight));
+        OnPropertyChanged(nameof(WindowHeight));
+    }
 
     public void SetCompletionPresentationHeight(double listHeight, double headerHeight)
     {
@@ -162,6 +249,7 @@ public sealed class FocusFloatingWindowViewModel : INotifyPropertyChanged, IDisp
             return;
         }
 
+        CancelTaskCreation();
         _isDisposed = true;
         FinishCompletionAnimations();
         _session.PropertyChanged -= Session_PropertyChanged;
@@ -174,6 +262,7 @@ public sealed class FocusFloatingWindowViewModel : INotifyPropertyChanged, IDisp
     {
         if (e.PropertyName == nameof(FocusSessionViewModel.ActiveTarget))
         {
+            CancelTaskCreation();
             SubscribeTarget();
             OnPropertyChanged(nameof(HasTarget));
             OnPropertyChanged(nameof(TargetName));
@@ -184,7 +273,11 @@ public sealed class FocusFloatingWindowViewModel : INotifyPropertyChanged, IDisp
             or nameof(FocusSessionViewModel.IsFocusing))
         {
             OnPropertyChanged(e.PropertyName);
-            if (e.PropertyName == nameof(FocusSessionViewModel.IsFocusing)) NotifyPendingTasksChanged();
+            if (e.PropertyName == nameof(FocusSessionViewModel.IsFocusing))
+            {
+                if (!IsFocusing) CancelTaskCreation();
+                NotifyPendingTasksChanged();
+            }
         }
         if (e.PropertyName == nameof(FocusSessionViewModel.TotalFocusSeconds)) OnPropertyChanged(nameof(TotalTimeDisplay));
         if (e.PropertyName == nameof(FocusSessionViewModel.SessionCompletedTaskCount)) OnPropertyChanged(nameof(TaskProgressDisplay));
