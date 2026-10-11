@@ -1936,6 +1936,17 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     private FocusDailySummary GetDailySummary(DateTime date) =>
         FocusStatisticsCalculator.GetDailySummaries(GetCoreFocusSessionRecords(), date, 1)[0];
 
+    internal FocusDailySummary GetCompletionDailySummary(DateTime date, FocusSessionRecord? current)
+    {
+        var records = GetCoreFocusSessionRecords().ToList();
+        // The local result can arrive before its persisted snapshot. Include it
+        // until the statistics source contains the same completed focus interval.
+        if (current is not null && !records.Any(record =>
+                record.CompletedAt == current.CompletedAt && record.ActualDuration == current.ActualDuration))
+            records.Add(current);
+        return FocusCompletionStatistics.Summarize(records, date);
+    }
+
     private IEnumerable<FocusSessionRecord> GetCoreFocusSessionRecords() => FocusSessionRecords.Select(record =>
         new FocusSessionRecord(
             record.EndTime - record.StartTime,

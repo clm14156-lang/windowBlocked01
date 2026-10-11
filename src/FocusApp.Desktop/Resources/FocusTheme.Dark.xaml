@@ -74,8 +74,11 @@
     <SolidColorBrush x:Key="FocusTaskSelectedAccent" Color="#809ED6" />
     <SolidColorBrush x:Key="FocusTaskDisabledAccent" Color="#40597F" />
     <BitmapImage x:Key="FocusSceneBackground" UriSource="/FocusApp.Desktop;component/Assets/Images/focusPage/focus_dark.png" />
+    <BitmapImage x:Key="FocusCompletionCheck" UriSource="/FocusApp.Desktop;component/Assets/Images/focusPage/gouxuan.png" />
     <BitmapImage x:Key="FocusSceneBoy" UriSource="/FocusApp.Desktop;component/Assets/Images/focusPage/dark_boy01.png" />
     <BitmapImage x:Key="FocusSceneShadow" UriSource="/FocusApp.Desktop;component/Assets/Images/focusPage/dark_shadow.png" />
-    <BitmapImage x:Key="FocusSceneLeafLeft" UriSource="/FocusApp.Desktop;component/Assets/Images/focusPage/dark_yezi01.png" />
-    <BitmapImage x:Key="FocusSceneLeafRight" UriSource="/FocusApp.Desktop;component/Assets/Images/focusPage/dark_yezi02.png" />
+    <x:Array x:Key="FocusSceneLeaves" Type="{x:Type ImageSource}">
+        <BitmapImage UriSource="/FocusApp.Desktop;component/Assets/Images/focusPage/dark_yezi01.png" />
+        <BitmapImage UriSource="/FocusApp.Desktop;component/Assets/Images/focusPage/dark_yezi02.png" />
+    </x:Array>
 </ResourceDictionary>

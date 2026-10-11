@@ -38,7 +38,7 @@ public sealed class FocusThemePresentationTests
                 session.TaskDrawer.ToggleCommand.Execute(null);
                 host.Show();
                 Pump(host);
-                var layoutNames = new[] { "FocusGreeting", "FocusCenter", "FocusCountdown", "FocusTargetRegion", "FocusCharacter", "FocusCharacterShadow", "FocusLeafLeft", "FocusLeafRight", "FocusFooter", "FocusFooterActions" };
+                var layoutNames = new[] { "FocusGreeting", "FocusCenter", "FocusCountdown", "FocusTargetRegion", "FocusCharacter", "FocusCharacterShadow", "FocusLeaves", "FocusFooter", "FocusFooterActions" };
                 var firstBounds = layoutNames.ToDictionary(name => name, name => Bounds((FrameworkElement)focus.FindName(name), focus));
                 Assert.Null(focus.FindName("FocusInProgressStatus"));
                 Assert.Equal(new Point(40, 40), firstBounds["FocusGreeting"].TopLeft);
@@ -64,13 +64,17 @@ public sealed class FocusThemePresentationTests
                     Assert.Equal(3, session.PendingTasks.Count);
                     var expectedPrefix = dark ? "dark" : "white";
                     Assert.EndsWith(dark ? "focus_dark.png" : "focus_white.png", ((Image)focus.FindName("FocusBackground")).Source.ToString());
-                    foreach (var (name, file) in new[] { ("FocusCharacter", "_boy01.png"), ("FocusCharacterShadow", "_shadow.png"), ("FocusLeafLeft", "_yezi01.png"), ("FocusLeafRight", "_yezi02.png") })
+                    foreach (var (name, file) in new[] { ("FocusCharacter", "_boy01.png"), ("FocusCharacterShadow", "_shadow.png") })
                     {
                         var image = (Image)focus.FindName(name);
                         Assert.EndsWith(expectedPrefix + file, image.Source.ToString());
                         Assert.Equal(Stretch.Uniform, image.Stretch);
                         Assert.True(((BitmapSource)image.Source).PixelWidth > 0);
                     }
+                    var leaves = (FocusLeafLayer)focus.FindName("FocusLeaves");
+                    Assert.False(leaves.IsHitTestVisible);
+                    Assert.Equal(dark ? 2 : 3, leaves.Sources!.Length);
+                    Assert.All(leaves.Sources, source => Assert.Contains(expectedPrefix + "_yezi", source.ToString()));
                     Assert.Equal(dark ? Color.FromRgb(0xFC, 0xFD, 0xFF) : Color.FromRgb(0x06, 0x1C, 0x31),
                         ((SolidColorBrush)((TextBlock)focus.FindName("FocusCountdown")).Foreground).Color);
                     Assert.Equal(dark ? Color.FromRgb(0xF5, 0xF8, 0xFF) : Color.FromRgb(0x24, 0x26, 0x2C),

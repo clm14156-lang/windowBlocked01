@@ -54,6 +54,8 @@ public sealed class FocusFloatingWindowViewModel : INotifyPropertyChanged, IDisp
     public event EventHandler<FocusTaskViewModel>? TaskCreated;
     public ObservableCollection<FocusTaskViewModel> VisibleTasks { get; } = [];
 
+    public FocusSessionViewModel Session => _session;
+
     public string RemainingTimeDisplay => _session.RemainingTimeDisplay;
 
     public bool HasTarget => _session.HasTarget;

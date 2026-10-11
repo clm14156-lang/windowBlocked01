@@ -7,6 +7,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using FocusApp.Contracts;
+using FocusApp.Core;
 using FocusApp.Desktop.ViewModels;
 using FocusApp.Desktop.Views;
 using Xunit;
@@ -16,6 +17,40 @@ namespace FocusApp.Tests.Desktop;
 [Collection("Calendar UI")]
 public sealed class FocusFloatingCompletionAnimationTests
 {
+    [Theory]
+    [InlineData(FocusThemeMode.Light)]
+    [InlineData(FocusThemeMode.Dark)]
+    public void CompletionFeedbackUsesThemeColorsAndRestoresResourcesAfterSwitching(FocusThemeMode mode)
+    {
+        Sta(() =>
+        {
+            var (session, target) = Session(2);
+            session.ApplyFocusTheme(mode);
+            using var host = new Host(session);
+            var parent = target.Tasks[0];
+            var row = host.Row(parent);
+            var child = Descendants<Grid>(row).First(item => item.Name == "FloatingChildRow");
+            var title = Find<TextBlock>(child, "SubTaskTitle");
+            var pending = ((SolidColorBrush)host.View.FindResource("FloatingTaskTextBrush")).Color;
+            Click(Check(child, "SubTaskCheck")); PumpFor(25);
+            Assert.Equal(pending, ((SolidColorBrush)title.Foreground).Color);
+            session.ApplyFocusTheme(mode == FocusThemeMode.Dark ? FocusThemeMode.Light : FocusThemeMode.Dark);
+            PumpFor(300);
+            Assert.Equal(((SolidColorBrush)host.View.FindResource("FloatingCompletedTaskBrush")).Color, ((SolidColorBrush)title.Foreground).Color);
+            parent.SubTasks[0].IsCompleted = false; PumpFor(25);
+            Assert.Equal(((SolidColorBrush)host.View.FindResource("FloatingTaskTextBrush")).Color, ((SolidColorBrush)title.Foreground).Color);
+            var saves = 0;
+            session.TargetTasksChanged += (_, _) => saves++;
+            var parentTitle = Find<TextBlock>(row, "ParentTaskTitle");
+            pending = ((SolidColorBrush)host.View.FindResource("FloatingTaskTextBrush")).Color;
+            Click(Check(row, "ParentTaskCheck")); PumpFor(25);
+            Assert.Equal(pending, ((SolidColorBrush)parentTitle.Foreground).Color);
+            PumpUntil(() => !host.Model.VisibleTasks.Contains(parent));
+            Assert.Equal(1, saves);
+            Assert.Equal(1, session.SessionCompletedTaskCount);
+        });
+    }
+
     [Fact]
     public void PresentationLeasesUseTaskIdsWithoutDelayingOrRepeatingBusinessOperations()
     {

@@ -22,7 +22,7 @@ public sealed class FocusCompletionTypographyPresentationTests
         Assert.Contains(template.Descendants(Presentation + "TextBlock"), element =>
             (string?)element.Attribute("Text") == "{DynamicResource FocusCompletedTitle}");
         Assert.Contains(template.Descendants(Presentation + "TextBlock"), element =>
-            (string?)element.Attribute("Text") == "{DynamicResource FocusCompletionSubtitle}");
+            (string?)element.Attribute("Text") == "{Binding CompletionSubtitle}");
         Assert.Contains(template.Descendants(Presentation + "TextBlock"), element =>
             (string?)element.Attribute("Text") == "{Binding CompletedTimeDisplay, Mode=OneWay}");
         var target = Assert.Single(template.Descendants(Presentation + "Grid").Where(element =>
@@ -32,10 +32,7 @@ public sealed class FocusCompletionTypographyPresentationTests
             (string?)element.Attribute("Text") == "{Binding TargetName, Mode=OneWay}");
         var statistics = Assert.Single(template.Descendants(Presentation + "TextBlock").Where(element =>
             (string?)element.Attribute(Xaml + "Name") == "CompletionStatistics"));
-        Assert.Contains(statistics.Descendants(Presentation + "Run"), run =>
-            (string?)run.Attribute("Text") == "{Binding TodayFocusCount, Mode=OneWay}");
-        Assert.Contains(statistics.Descendants(Presentation + "Run"), run =>
-            (string?)run.Attribute("Text") == "{Binding CompletionTodayTotalDisplay, Mode=OneWay}");
+        Assert.Equal("{Binding CompletionTodayStatistics, Mode=OneWay}", (string?)statistics.Attribute("Text"));
 
         var buttons = template.Descendants(Presentation + "Button").ToArray();
         Assert.Equal(2, buttons.Length);
@@ -46,17 +43,15 @@ public sealed class FocusCompletionTypographyPresentationTests
             buttons.SelectMany(button => button.Descendants(Views + "SvgIcon"))
                 .Select(icon => Path.GetFileName((string?)icon.Attribute("Source"))).ToArray());
 
-        foreach (var name in new[] { "TargetCompletionView", "NoTargetCompletionView" })
-        {
-            var completion = Assert.Single(view.Descendants(Presentation + "Grid").Where(element =>
-                (string?)element.Attribute(Xaml + "Name") == name));
-            Assert.Contains(completion.Descendants(Presentation + "ContentControl"), element =>
-                (string?)element.Attribute("ContentTemplate") == "{StaticResource FocusCompletionDetails}");
-            var background = Assert.Single(completion.Descendants(Presentation + "Image"));
-            Assert.Equal("/FocusApp.Desktop;component/Assets/Images/Illustrations/foucus_background02.png", (string?)background.Attribute("Source"));
-            Assert.DoesNotContain(completion.Descendants(Presentation + "ItemsControl"), items =>
-                (string?)items.Attribute("ItemsSource") == "{Binding SessionCompletedTasks}");
-        }
+        var completion = Assert.Single(view.Descendants(Presentation + "ContentControl").Where(element =>
+            (string?)element.Attribute("ContentTemplate") == "{StaticResource FocusCompletionDetails}"));
+        Assert.Equal("{Binding IsCompleted, Converter={StaticResource BooleanToVisibilityConverter}}", (string?)completion.Attribute("Visibility"));
+        Assert.DoesNotContain(template.Descendants(Presentation + "ItemsControl"), items =>
+            (string?)items.Attribute("ItemsSource") == "{Binding SessionCompletedTasks}");
+        var countdowns = view.Descendants(Presentation + "TextBlock").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") is "FocusCountdown" or "CompletionTime").ToArray();
+        Assert.Equal(2, countdowns.Length);
+        Assert.All(countdowns, element => Assert.Equal("{StaticResource FocusCountdownTextStyle}", (string?)element.Attribute("Style")));
         Assert.DoesNotContain(template.Descendants(Presentation + "Button"), button =>
             (string?)button.Attribute("Command") == "{Binding ToggleCompletedTasksCommand}");
     }

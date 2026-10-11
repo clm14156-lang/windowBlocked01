@@ -21,13 +21,12 @@ public sealed class FocusNoTaskPresentationTests
         Assert.DoesNotContain(focus.Descendants(), element => element.Name.LocalName == "CircularProgressRing");
         var background = Assert.Single(view.Descendants(Presentation + "Image").Where(element =>
             (string?)element.Attribute(Xaml + "Name") == "FocusBackground"));
-        Assert.Equal("/FocusApp.Desktop;component/Assets/Images/Illustrations/foucus_background02.png", (string?)background.Attribute("Source"));
+        Assert.Equal("{DynamicResource FocusSceneBackground}", (string?)background.Attribute("Source"));
         Assert.Equal("False", (string?)background.Attribute("IsHitTestVisible"));
         Assert.Equal("UniformToFill", (string?)background.Attribute("Stretch"));
         var countdown = Assert.Single(focus.Descendants(Presentation + "TextBlock").Where(element =>
             (string?)element.Attribute("Text") == "{Binding RemainingTimeDisplay}"));
-        Assert.Equal("100", (string?)countdown.Attribute("FontSize"));
-        Assert.Contains(focus.Descendants(Presentation + "TextBlock"), element => (string?)element.Attribute("Text") == "{DynamicResource FocusInProgress}");
+        Assert.Equal("{StaticResource FocusCountdownTextStyle}", (string?)countdown.Attribute("Style"));
         Assert.DoesNotContain(focus.Descendants(Presentation + "TextBlock"), element => (string?)element.Attribute("Text") == "{DynamicResource FocusNoTaskAtmosphere}");
     }
     [Theory]
@@ -46,29 +45,20 @@ public sealed class FocusNoTaskPresentationTests
     }
 
     [Fact]
-    public void NoTargetCompletion_UsesSharedCompletionDesignWithSoftBackground()
+    public void NoTargetCompletion_UsesSharedCompletionDesignAndCollapsesTargetRow()
     {
         var root = FindRepositoryRoot();
         var view = XDocument.Load(Path.Combine(
             root, "src", "FocusApp.Desktop", "Views", "FocusFlowView.xaml"));
 
-        var completion = Assert.Single(view.Descendants(Presentation + "Grid").Where(element =>
-            (string?)element.Attribute(Xaml + "Name") == "NoTargetCompletionView"));
-        Assert.Contains(completion.Descendants(Presentation + "Condition"), condition =>
-            (string?)condition.Attribute("Binding") == "{Binding IsCompleted}" &&
-            (string?)condition.Attribute("Value") == "True");
-        Assert.Contains(completion.Descendants(Presentation + "Condition"), condition =>
-            (string?)condition.Attribute("Binding") == "{Binding HasTarget}" &&
-            (string?)condition.Attribute("Value") == "False");
-
-        var background = Assert.Single(completion.Descendants(Presentation + "Image").Where(element =>
-            (string?)element.Attribute(Xaml + "Name") == "NoTargetCompletionBackground"));
-        Assert.Equal(
-            "/FocusApp.Desktop;component/Assets/Images/Illustrations/foucus_background02.png",
-            (string?)background.Attribute("Source"));
-
-        Assert.Contains(completion.Descendants(Presentation + "ContentControl"), element =>
-            (string?)element.Attribute("ContentTemplate") == "{StaticResource FocusCompletionDetails}");
+        var completion = Assert.Single(view.Descendants(Presentation + "ContentControl").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "CompletionView"));
+        Assert.Equal("{Binding IsCompleted, Converter={StaticResource BooleanToVisibilityConverter}}", (string?)completion.Attribute("Visibility"));
+        Assert.Equal("{StaticResource FocusCompletionDetails}", (string?)completion.Attribute("ContentTemplate"));
+        var target = Assert.Single(view.Descendants(Presentation + "Grid").Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == "CompletionTarget"));
+        Assert.Equal(Presentation + "StackPanel", target.Parent!.Name);
+        Assert.Equal("{Binding HasTarget, Converter={StaticResource BooleanToVisibilityConverter}}", (string?)target.Attribute("Visibility"));
     }
 
     [Fact]

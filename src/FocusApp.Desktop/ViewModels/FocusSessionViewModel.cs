@@ -39,6 +39,8 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     private bool _isForcedModeActive;
     private FocusGreetingState _greetingState;
     private string _greetingSubtitle = string.Empty;
+    private string _completionSubtitle = string.Empty;
+    private Func<DateTime, FocusSessionRecord?, FocusDailySummary>? _completionStatisticsProvider;
     private readonly FocusGreetingProvider _greetings;
     private FocusThemeMode _focusTheme = FocusThemeMode.System;
     private bool _isDarkFocusTheme;
@@ -271,6 +273,12 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             _stage = value;
             // This is page navigation; window restore/float operations never change Stage.
             if (value == FocusFlowStage.Focusing) RefreshGreeting(enteringPage: true);
+            if (value == FocusFlowStage.Completed)
+            {
+                _completionSubtitle = FocusCompletionMessages.Select(_completionSubtitle);
+                OnPropertyChanged(nameof(CompletionSubtitle));
+                RefreshCompletionStatistics();
+            }
             if (value != FocusFlowStage.Focusing) TaskDrawer.Close();
             OnPropertyChanged();
             OnPropertyChanged(nameof(IsActive));
@@ -333,6 +341,9 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
 
     private void RefreshFocusTheme()
     {
+        // A result keeps the theme that was actually displayed at the end of focus.
+        // Updated preferences apply when the next focus page is entered.
+        if (IsCompleted) return;
         var dark = FocusTheme == FocusThemeMode.Dark || FocusTheme == FocusThemeMode.System &&
             GreetingState is FocusGreetingState.Evening or FocusGreetingState.LateNight;
         if (_isDarkFocusTheme == dark) return;
@@ -387,6 +398,27 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     }
 
     public bool IsCompleted => Stage == FocusFlowStage.Completed;
+
+    public string CompletionSubtitle => _completionSubtitle;
+
+    public string CompletionTodayStatistics
+    {
+        get
+        {
+            var date = _completedAt == default ? _nowProvider().Date : _completedAt.Date;
+            var summary = _completionStatisticsProvider?.Invoke(date, LastCompletion)
+                ?? FocusCompletionStatistics.Summarize(_completionHistory, date);
+            return $"今日累计 {summary.FocusMinutes} 分钟 · 完成 {summary.SessionCount} 次";
+        }
+    }
+
+    internal void SetCompletionStatisticsProvider(Func<DateTime, FocusSessionRecord?, FocusDailySummary>? provider)
+    {
+        _completionStatisticsProvider = provider;
+        RefreshCompletionStatistics();
+    }
+
+    internal void RefreshCompletionStatistics() => OnPropertyChanged(nameof(CompletionTodayStatistics));
 
     public bool IsHomeConfigurationEnabled => !IsPreparing;
 
@@ -914,6 +946,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(TodayTotalMinutes));
         OnPropertyChanged(nameof(TodayFocusCount));
         OnPropertyChanged(nameof(CompletionTodayTotalDisplay));
+        RefreshCompletionStatistics();
         OnPropertyChanged(nameof(CompletedAtDisplay));
         Stage = FocusFlowStage.Completed;
     }
@@ -1357,6 +1390,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(TodayTotalMinutes));
             OnPropertyChanged(nameof(TodayFocusCount));
             OnPropertyChanged(nameof(CompletionTodayTotalDisplay));
+            RefreshCompletionStatistics();
             OnPropertyChanged(nameof(CompletedAtDisplay));
             OnPropertyChanged(nameof(LastCompletion));
             OnPropertyChanged(nameof(CompletionHistory));
@@ -1504,6 +1538,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(TodayTotalMinutes));
         OnPropertyChanged(nameof(TodayFocusCount));
         OnPropertyChanged(nameof(CompletionTodayTotalDisplay));
+        RefreshCompletionStatistics();
         OnPropertyChanged(nameof(CompletedAtDisplay));
         OnPropertyChanged(nameof(LastCompletion));
         OnPropertyChanged(nameof(CompletionHistory));

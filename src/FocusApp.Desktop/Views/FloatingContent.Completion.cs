@@ -18,6 +18,8 @@ public partial class FloatingContent
     private CompletionAnimation? _headerAnimation;
     private bool _renderingSubscribed;
     internal Func<bool> CompletionAnimationPreference { get; set; } = () => SystemParameters.ClientAreaAnimation;
+    private Color FloatingTaskColor => ((SolidColorBrush)FindResource("FloatingTaskTextBrush")).Color;
+    private Color FloatingCompletedTaskColor => ((SolidColorBrush)FindResource("FloatingCompletedTaskBrush")).Color;
     private Color FloatingAccentColor => ((SolidColorBrush)FindResource("AccentPrimary")).Color;
 
     private void Content_Loaded(object sender, RoutedEventArgs e) { AttachCompletionPresentation(); AttachCreationPresentation(); }
@@ -86,7 +88,7 @@ public partial class FloatingContent
             FindCompletionElement<TextBlock>(row, "ParentTaskTitle") is not { } title) return;
         check.GetBindingExpression(CheckBox.IsCheckedProperty)?.UpdateTarget();
         var animation = CreateCompletionFeedback(check, title, parent: true,
-            Color.FromRgb(0x3C, 0x48, 0x5B), Color.FromRgb(0x7D, 0x8C, 0xA2), accentColor: FloatingAccentColor);
+            FloatingTaskColor, FloatingCompletedTaskColor, accentColor: FloatingAccentColor);
         _parentAnimations.Add(e.Task.TaskId, animation);
         // The business state is already complete; ignore further input during its visual exit.
         animation.Set(row, IsEnabledProperty, false);
@@ -171,7 +173,7 @@ public partial class FloatingContent
                 FindCompletionElement<TextBlock>(row, "SubTaskTitle") is not { } title) return;
             check.GetBindingExpression(CheckBox.IsCheckedProperty)?.UpdateTarget();
             var animation = CreateCompletionFeedback(check, title, parent: false,
-                Color.FromRgb(0x3C, 0x48, 0x5B), Color.FromRgb(0x7D, 0x8C, 0xA2), accentChild: true, accentColor: FloatingAccentColor);
+                FloatingTaskColor, FloatingCompletedTaskColor, accentChild: true, accentColor: FloatingAccentColor);
             feedback.Animation = animation;
             animation.Storyboard.Duration = TimeSpan.FromMilliseconds(250);
             animation.Storyboard.Completed += (_, _) =>
