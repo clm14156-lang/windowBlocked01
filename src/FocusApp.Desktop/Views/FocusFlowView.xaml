@@ -455,6 +455,8 @@
                Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"
                Visibility="{Binding IsFullScreenVisible, Converter={StaticResource BooleanToVisibilityConverter}}"/>
         <views:FocusLeafLayer x:Name="FocusLeaves" Sources="{DynamicResource FocusSceneLeaves}" IsActive="{Binding IsFocusing}"
+                             TotalFocusSeconds="{Binding TotalFocusSeconds}" RemainingFocusSeconds="{Binding RemainingFocusSeconds}"
+                             WeatherBrush="{DynamicResource FocusWeatherBrush}"
                              IsHitTestVisible="False" ClipToBounds="True"/>
         <Grid Height="48" Panel.ZIndex="1"
               VerticalAlignment="Top"

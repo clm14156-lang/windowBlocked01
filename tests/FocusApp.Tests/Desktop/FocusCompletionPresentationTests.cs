@@ -51,7 +51,7 @@ public sealed class FocusCompletionPresentationTests
                 Assert.False(((Image)view.FindName("FocusCharacter")).IsVisible);
                 Assert.False(((Image)view.FindName("FocusCharacterShadow")).IsVisible);
                 var leaves = (FocusLeafLayer)view.FindName("FocusLeaves");
-                Assert.False(leaves.IsActive); Assert.Empty(leaves.Children.Cast<Image>());
+                Assert.False(leaves.IsActive); Assert.False(leaves.Particles.HasParticles); Assert.False(leaves.IsRendering);
                 var background = (Image)view.FindName("FocusBackground");
                 Assert.True(background.IsVisible); Assert.Same(originalBackground, background.Source);
                 Assert.Equal(new Size(800, 710), view.RenderSize);

@@ -77,9 +77,10 @@
     <BitmapImage x:Key="FocusCompletionCheck" UriSource="/FocusApp.Desktop;component/Assets/Images/Illustrations/focus_gouxuan.png" />
     <BitmapImage x:Key="FocusSceneBoy" UriSource="/FocusApp.Desktop;component/Assets/Images/focusPage/white_boy01.png" />
     <BitmapImage x:Key="FocusSceneShadow" UriSource="/FocusApp.Desktop;component/Assets/Images/focusPage/white_shadow.png" />
+    <SolidColorBrush x:Key="FocusWeatherBrush" Color="#648BAB" />
     <x:Array x:Key="FocusSceneLeaves" Type="{x:Type ImageSource}">
-        <BitmapImage UriSource="/FocusApp.Desktop;component/Assets/Images/focusPage/white_yezi01.png" />
-        <BitmapImage UriSource="/FocusApp.Desktop;component/Assets/Images/focusPage/white_yezi02.png" />
-        <BitmapImage UriSource="/FocusApp.Desktop;component/Assets/Images/focusPage/white_yezi03.png" />
+        <BitmapImage CacheOption="OnLoad" DecodePixelWidth="64" UriSource="/FocusApp.Desktop;component/Assets/Images/focusPage/white_yezi01.png" />
+        <BitmapImage CacheOption="OnLoad" DecodePixelWidth="64" UriSource="/FocusApp.Desktop;component/Assets/Images/focusPage/white_yezi02.png" />
+        <BitmapImage CacheOption="OnLoad" DecodePixelWidth="64" UriSource="/FocusApp.Desktop;component/Assets/Images/focusPage/white_yezi03.png" />
     </x:Array>
 </ResourceDictionary>

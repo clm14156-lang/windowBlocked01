@@ -77,8 +77,9 @@
     <BitmapImage x:Key="FocusCompletionCheck" UriSource="/FocusApp.Desktop;component/Assets/Images/focusPage/gouxuan.png" />
     <BitmapImage x:Key="FocusSceneBoy" UriSource="/FocusApp.Desktop;component/Assets/Images/focusPage/dark_boy01.png" />
     <BitmapImage x:Key="FocusSceneShadow" UriSource="/FocusApp.Desktop;component/Assets/Images/focusPage/dark_shadow.png" />
+    <SolidColorBrush x:Key="FocusWeatherBrush" Color="#A7CCFF" />
     <x:Array x:Key="FocusSceneLeaves" Type="{x:Type ImageSource}">
-        <BitmapImage UriSource="/FocusApp.Desktop;component/Assets/Images/focusPage/dark_yezi01.png" />
-        <BitmapImage UriSource="/FocusApp.Desktop;component/Assets/Images/focusPage/dark_yezi02.png" />
+        <BitmapImage CacheOption="OnLoad" DecodePixelWidth="64" UriSource="/FocusApp.Desktop;component/Assets/Images/focusPage/dark_yezi01.png" />
+        <BitmapImage CacheOption="OnLoad" DecodePixelWidth="64" UriSource="/FocusApp.Desktop;component/Assets/Images/focusPage/dark_yezi02.png" />
     </x:Array>
 </ResourceDictionary>

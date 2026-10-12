@@ -11,6 +11,7 @@ public partial class FocusFlowView : UserControl
     public FocusFlowView()
     {
         InitializeComponent();
+        FocusLeaves.SetScene(FocusBackground, FocusFooterRule, FocusFooter);
     }
 
     public event EventHandler? MinimizeRequested;
