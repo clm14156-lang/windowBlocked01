@@ -85,7 +85,7 @@ public sealed class CalendarVipLockedPresentationTests
                 Pump();
                 Assert.False(locked.IsVisible);
                 Assert.True(content.IsVisible);
-                Assert.True(((Grid)page.FindName("CalendarPopulatedContent")).IsVisible);
+                Assert.True(((Grid)page.FindName("DailyFocusRecordContent")).IsVisible);
                 Assert.Equal(layout.ActualWidth - 348, card.ActualWidth, 1);
                 model.NextCalendarMonthCommand.Execute(null);
                 Pump();

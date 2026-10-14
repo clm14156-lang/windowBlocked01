@@ -39,7 +39,9 @@ public sealed class FocusThemePresentationTests
                 host.Show();
                 Pump(host);
                 var layoutNames = new[] { "FocusGreeting", "FocusCenter", "FocusCountdown", "FocusTargetRegion", "FocusCharacter", "FocusCharacterShadow", "FocusLeaves", "FocusFooter", "FocusFooterActions" };
-                var firstBounds = layoutNames.ToDictionary(name => name, name => Bounds((FrameworkElement)focus.FindName(name), focus));
+                var firstBounds = layoutNames.ToDictionary(name => name, name => name == "FocusCharacter"
+                    ? LayoutInformation.GetLayoutSlot((FrameworkElement)focus.FindName(name))
+                    : Bounds((FrameworkElement)focus.FindName(name), focus));
                 Assert.Null(focus.FindName("FocusInProgressStatus"));
                 Assert.Equal(new Point(40, 40), firstBounds["FocusGreeting"].TopLeft);
                 Assert.Equal(128, firstBounds["FocusCenter"].Top);
@@ -57,7 +59,9 @@ public sealed class FocusThemePresentationTests
                     Assert.Equal(270, drawer.ActualWidth);
                     Assert.Equal(710, drawer.ActualHeight);
                     foreach (var name in layoutNames)
-                        Assert.Equal(firstBounds[name], Bounds((FrameworkElement)focus.FindName(name), focus));
+                        Assert.Equal(firstBounds[name], name == "FocusCharacter"
+                            ? LayoutInformation.GetLayoutSlot((FrameworkElement)focus.FindName(name))
+                            : Bounds((FrameworkElement)focus.FindName(name), focus));
                     Assert.Equal(cardBounds, cards.Select(card => Bounds(card, drawer)).ToArray());
                     Assert.Equal(remaining, session.RemainingFocusSeconds);
                     Assert.Equal(greeting, session.GreetingSubtitle);
@@ -82,7 +86,7 @@ public sealed class FocusThemePresentationTests
                     Assert.Equal(dark ? (byte)0x40 : (byte)0, ((SolidColorBrush)cards[0].Background).Color.A);
                     var drawing = Assert.IsType<DrawingImage>(((Image)focus.FindName("FocusTargetIcon")).Source);
                     var targetColor = ((SolidColorBrush)((TextBlock)focus.FindName("FocusTargetName")).Foreground).Color;
-                    Assert.Equal(dark ? Color.FromRgb(0xA7, 0xCC, 0xFF) : Color.FromRgb(0x5D, 0x7F, 0xA6), targetColor);
+                    Assert.Equal(dark ? Color.FromRgb(0xE6, 0xF0, 0xFF) : Color.FromRgb(0x5D, 0x7F, 0xA6), targetColor);
                     Assert.All(((DrawingGroup)drawing.Drawing).Children.OfType<GeometryDrawing>().Where(item => item.Brush is SolidColorBrush brush && brush.Color.A > 0),
                         item => Assert.Equal(targetColor, ((SolidColorBrush)item.Brush).Color));
                     SavePreview(focus, dark ? "focus-dark" : "focus-light");

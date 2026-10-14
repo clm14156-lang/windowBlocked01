@@ -1,4 +1,12 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <SolidColorBrush x:Key="FocusEndDialogBackground" Color="#FFFEFD" />
+    <SolidColorBrush x:Key="FocusEndDialogBorder" Color="#E9EDF2" />
+    <SolidColorBrush x:Key="FocusEndTitleBrush" Color="#101722" />
+    <SolidColorBrush x:Key="FocusEndSecondaryBrush" Color="#737B88" />
+    <SolidColorBrush x:Key="FocusAgainCancelBorder" Color="#D5DAE3" />
+    <SolidColorBrush x:Key="FocusEndWarningBackground" Color="#FFF3E9" />
+    <SolidColorBrush x:Key="FocusEndWarningIconBrush" Color="#FF983E" />
+    <SolidColorBrush x:Key="FocusEndWarningTextBrush" Color="#6F7785" />
     <SolidColorBrush x:Key="FocusTitleBrush" Color="#061B30" />
     <SolidColorBrush x:Key="FocusSubtitleBrush" Color="#5D7FA6" />
     <SolidColorBrush x:Key="FocusCountdownBrush" Color="#061C31" />
@@ -50,6 +58,10 @@
     <SolidColorBrush x:Key="FocusTaskKeycapSurface" Color="#FAFAFB" />
     <SolidColorBrush x:Key="FocusTaskCreateAccent" Color="#FF781A" />
     <SolidColorBrush x:Key="FocusTaskProgressAccent" Color="#FF9144" />
+    <LinearGradientBrush x:Key="FocusTaskProgressFill" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#FFA12D" Offset="0" />
+        <GradientStop Color="#FF8816" Offset="1" />
+    </LinearGradientBrush>
     <SolidColorBrush x:Key="FocusTaskAddIcon" Color="#FF9650" />
     <SolidColorBrush x:Key="FocusTaskAddHoverBorder" Color="#FF9C5B" />
     <SolidColorBrush x:Key="FocusTaskCheckHover" Color="#FF9D5F" />

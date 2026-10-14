@@ -833,7 +833,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             Navigate(homeNavigationItem);
         }
 
-        ShowFocusResultToast(e);
+        CloseFocusResultToast();
     }
 
     private void ShowFocusResultToast(FocusResultReturnedHomeEventArgs result)

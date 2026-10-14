@@ -138,13 +138,17 @@ public sealed class CalendarRecordPoptipTests
             foreach (var resource in new[] { "Colors", "Typography", "Strings", "Styles" })
                 page.Resources.MergedDictionaries.Add(new ResourceDictionary
                     { Source = new Uri($"/FocusApp.Desktop;component/Resources/{resource}.xaml", UriKind.Relative) });
-            var window = new Window { Width = 900, Height = 740, Content = page, ShowActivated = false,
+            page.Margin = new Thickness(0, 220, 0, 0); // Reserve the legacy poptip's available space above the axis.
+            var legacyHost = new Grid();
+            legacyHost.Children.Add(page);
+            var window = new Window { Width = 900, Height = 1000, Content = legacyHost, ShowActivated = false,
                 ShowInTaskbar = false, WindowStyle = WindowStyle.None, Left = -32000, Top = -32000 };
             try
             {
                 window.Show();
                 Pump(page);
                 var timeline = (CalendarFocusTimeline)page.FindName("CalendarDayTimeline");
+                timeline.InlineRecordDetails = false; // Preserve the legacy mode used by other timeline consumers.
                 var row = Descendants<Border>(page).Single(item => item.Name == "CalendarRecordRow");
                 row.RaiseEvent(new MouseEventArgs(Mouse.PrimaryDevice, 0) { RoutedEvent = Mouse.MouseEnterEvent });
                 Assert.Null(page.CalendarRecordInteraction.HoveredTimelineRecord);

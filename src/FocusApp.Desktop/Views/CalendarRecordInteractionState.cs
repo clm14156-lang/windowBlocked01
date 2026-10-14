@@ -46,6 +46,14 @@ public sealed class CalendarRecordInteractionState
         Changed?.Invoke(this, EventArgs.Empty);
     }
 
+    public void Select(FocusSessionRecordViewModel record)
+    {
+        if (ReferenceEquals(SelectedRecord, record)) return;
+        SelectedRecord = record;
+        HoveredTimelineRecord = null;
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
+
     public void HoverTimeline(FocusSessionRecordViewModel? record)
     {
         if (ReferenceEquals(HoveredTimelineRecord, record)) return;

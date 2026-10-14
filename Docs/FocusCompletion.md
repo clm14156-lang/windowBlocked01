@@ -19,10 +19,17 @@
 两处大倒计时共用 `FocusCountdownTextStyle`：`Segoe UI Variable Display`、100px、Normal，
 Viewbox 同为 440×116，行高及文本度量沿用默认设置。深浅色分别使用原专注页的倒计时文字颜色。
 
+完成页的时间、目标名称和今日累计数据放在独立的 `CompletionSummary` 中，
+时间相对原布局上移 36 个逻辑像素，目标行高度为 26，目标与统计之间的外边距为 6；
+三项内容的字体、字号和颜色及上方勾选图标的位置保持原样。
+主窗口的原 1 像素浅色外框在 `IsFullScreenVisible` 为 True（专注中、已完成）时收起，
+使背景覆盖窗口边缘；返回普通页面后恢复外框。
+
 ## 完成图标与信息
 
 - 浅色继续使用 `Illustrations/focus_gouxuan.png`。
 - 暗色使用指定的 `focusPage/gouxuan.png`，确认其为带透明通道的 600×600 PNG。
+- 暗色完成图片显示为 128×128，保持 256×150 的原占位区域和图标中心，缩小图片不会移动下方信息组。
 - 两张图片均等比显示，暗色不再绘制任何额外圆环、光晕或装饰；素材自身的光晕和圆点保留。
 - 目标行使用现有 `internet.svg` 地球图标及原 `TargetIconSourceConverter`，图标随文字颜色适配主题。
 - 目标名称使用单行省略及原提示文本。目标行与统计行放在同一 StackPanel 中；无目标时整行（包括行间距）Collapsed，统计直接移到目标行位置。

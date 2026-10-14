@@ -2,11 +2,14 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="clr-namespace:FocusApp.Desktop.ViewModels"
-             Width="592" Height="188"
+             Width="642" Height="188"
              TextElement.FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI"
              TextElement.FontSize="{DynamicResource BodyFontSize}" TextElement.FontWeight="{DynamicResource BodyFontWeight}"
              UseLayoutRounding="True" SnapsToDevicePixels="True">
     <UserControl.Resources>
+        <SolidColorBrush x:Key="TrendAxisTextBrush" Color="#6E6E73"/>
+        <SolidColorBrush x:Key="TrendAxisLineBrush" Color="#D3D7E0"/>
+        <SolidColorBrush x:Key="TrendGridLineBrush" Color="#E6E8EE"/>
         <Style TargetType="{x:Type TextBlock}">
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
         </Style>
@@ -19,6 +22,8 @@
         </Style>
     </UserControl.Resources>
     <Grid ClipToBounds="False">
+        <Line X1="48" X2="48" Y1="20" Y2="146" Stroke="{StaticResource TrendAxisLineBrush}" StrokeThickness="1" IsHitTestVisible="False"/>
+        <Line x:Name="TrendBaseline" X1="48" X2="636" Y1="146" Y2="146" Stroke="{StaticResource TrendAxisLineBrush}" StrokeThickness="1" IsHitTestVisible="False"/>
         <ItemsControl IsHitTestVisible="False" ItemsSource="{Binding YAxisTicks}">
             <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
             <ItemsControl.ItemContainerStyle>
@@ -26,10 +31,10 @@
             </ItemsControl.ItemContainerStyle>
             <ItemsControl.ItemTemplate>
                 <DataTemplate DataType="{x:Type vm:GoalInvestmentTrendAxisTickViewModel}">
-                    <Canvas Width="592" Height="1">
-                        <TextBlock Canvas.Left="0" Canvas.Top="-7" Width="38" TextAlignment="Right" FontSize="{DynamicResource CaptionFontSize}" FontWeight="{DynamicResource CaptionFontWeight}" Foreground="#8D96A8" Text="{Binding Label}"/>
-                        <Line X1="44" X2="586" StrokeThickness="1">
-                            <Line.Style><Style TargetType="Line"><Setter Property="Stroke" Value="#F1F3F6"/><Setter Property="StrokeDashArray" Value="3,4"/><Style.Triggers><DataTrigger Binding="{Binding ShowGuideLine}" Value="False"><Setter Property="Stroke" Value="#E9EDF2"/><Setter Property="StrokeDashArray" Value="0"/></DataTrigger></Style.Triggers></Style></Line.Style>
+                    <Canvas Width="642" Height="1">
+                        <TextBlock Canvas.Left="0" Canvas.Top="-8" Width="40" TextAlignment="Right" FontSize="{DynamicResource SecondaryFontSize}" FontWeight="{DynamicResource SecondaryFontWeight}" Foreground="{StaticResource TrendAxisTextBrush}" Text="{Binding Label}"/>
+                        <Line X1="48" X2="636" StrokeThickness="1">
+                            <Line.Style><Style TargetType="Line"><Setter Property="Stroke" Value="{StaticResource TrendGridLineBrush}"/><Setter Property="StrokeDashArray" Value="3,4"/><Style.Triggers><DataTrigger Binding="{Binding ShowGuideLine}" Value="False"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></Line.Style>
                         </Line>
                     </Canvas>
                 </DataTemplate>
@@ -40,8 +45,8 @@
             <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
             <ItemsControl.ItemContainerStyle><Style TargetType="ContentPresenter"><Setter Property="Canvas.Left" Value="{Binding BarLeft}"/><Setter Property="Canvas.Top" Value="{Binding ChartY}"/></Style></ItemsControl.ItemContainerStyle>
             <ItemsControl.ItemTemplate><DataTemplate DataType="{x:Type vm:GoalInvestmentTrendPointViewModel}">
-                <Border Width="{Binding BarWidth}" Height="{Binding BarHeight}" CornerRadius="5,5,3,3">
-                    <Border.Background><LinearGradientBrush StartPoint="0,0" EndPoint="0,1"><GradientStop Offset="0" Color="#FFAD61"/><GradientStop Offset="1" Color="#FFF1E5"/></LinearGradientBrush></Border.Background>
+                <Border Width="{Binding BarWidth}" Height="{Binding BarHeight}" CornerRadius="5,5,0,0">
+                    <Border.Background><LinearGradientBrush StartPoint="0,0" EndPoint="0,1"><GradientStop Offset="0" Color="#FFA45D"/><GradientStop Offset="1" Color="#FFEBDD"/></LinearGradientBrush></Border.Background>
                 </Border>
             </DataTemplate></ItemsControl.ItemTemplate>
         </ItemsControl>
@@ -69,14 +74,14 @@
             <ItemsControl.ItemContainerStyle><Style TargetType="ContentPresenter"><Setter Property="Canvas.Left" Value="{Binding ChartX}"/><Setter Property="Canvas.Top" Value="{Binding AxisLabelY}"/></Style></ItemsControl.ItemContainerStyle>
             <ItemsControl.ItemTemplate>
                 <DataTemplate DataType="{x:Type vm:GoalInvestmentTrendPointViewModel}">
-                    <TextBlock Width="50" Margin="-25,0,0,0" TextAlignment="Center" FontSize="{DynamicResource CaptionFontSize}" FontWeight="{DynamicResource CaptionFontWeight}" Foreground="#8D96A8" Text="{Binding AxisLabel}">
+                    <TextBlock Width="50" Margin="-25,0,0,0" TextAlignment="Center" FontSize="{DynamicResource SecondaryFontSize}" FontWeight="{DynamicResource SecondaryFontWeight}" Foreground="{StaticResource TrendAxisTextBrush}" Text="{Binding AxisLabel}">
                         <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding ShowAxisLabel}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
                     </TextBlock>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>
 
-        <Border x:Name="TrendInteractionArea" Width="542" Height="141" Margin="44,10,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Panel.ZIndex="4" Background="Transparent"
+        <Border x:Name="TrendInteractionArea" Width="588" Height="141" Margin="48,10,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Panel.ZIndex="4" Background="Transparent"
                 MouseMove="InteractionArea_MouseMove" MouseLeave="InteractionArea_MouseLeave"/>
     </Grid>
 </UserControl>

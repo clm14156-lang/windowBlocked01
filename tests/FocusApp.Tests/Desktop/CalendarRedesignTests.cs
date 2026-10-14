@@ -200,7 +200,7 @@ public sealed class CalendarRedesignTests
                 Assert.Equal(System.Windows.Input.Cursors.Arrow, emptyDay.Cursor);
                 Assert.False(emptyDay.Command.CanExecute(emptyDay.CommandParameter));
                 Assert.Equal(45, model.SelectedDayMinutes);
-                Assert.True(((Grid)page.FindName("CalendarPopulatedContent")).IsVisible);
+                Assert.True(((Grid)page.FindName("DailyFocusRecordContent")).IsVisible);
                 Assert.Null(page.FindName("DailyDistributionEmptyState"));
                 Assert.False(((StackPanel)page.FindName("CalendarRecordsEmptyState")).IsVisible);
                 Assert.True(((CalendarFocusTimeline)page.FindName("CalendarDayTimeline")).IsVisible);
@@ -210,8 +210,8 @@ public sealed class CalendarRedesignTests
                 Assert.Equal(Visibility.Collapsed, emptyDurationText.Visibility);
                 Assert.Equal(((SolidColorBrush)page.FindResource("DisabledText")).Color, ((SolidColorBrush)emptyDateText.Foreground).Color);
                 Assert.Equal(0, ((SolidColorBrush)emptyBackground.Background).Color.A);
-                var focusCard = (Border)page.FindName("CalendarDayMetrics");
-                Assert.Equal(Colors.Transparent, ((SolidColorBrush)focusCard.Background).Color);
+                var focusCard = (Grid)page.FindName("CalendarDayHeader");
+                Assert.Null(page.FindName("CalendarDayMetrics"));
                 Assert.Empty(Descendants<Image>(focusCard));
                 var monthly = (Border)page.FindName("CalendarMonthlySummary");
                 foreach (var label in new[] { "总专注时长", "专注天数" })
@@ -226,7 +226,7 @@ public sealed class CalendarRedesignTests
                 model.NextCalendarMonthCommand.Execute(null);
                 Pump();
                 Assert.False(model.HasMonthlyFocusData);
-                Assert.True(((Grid)page.FindName("CalendarPopulatedContent")).IsVisible);
+                Assert.True(((Grid)page.FindName("DailyFocusRecordContent")).IsVisible);
                 Assert.Empty(((CalendarFocusTimeline)page.FindName("CalendarDayTimeline")).Timeline!.Segments);
                 Assert.True(((StackPanel)page.FindName("CalendarRecordsEmptyState")).IsVisible);
                 Assert.True(((Border)page.FindName("CalendarMonthlySummary")).IsVisible);

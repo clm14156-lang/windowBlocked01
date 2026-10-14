@@ -68,18 +68,20 @@
                 <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter Property="Opacity" Value="0.8"/></Trigger></ControlTemplate.Triggers>
             </ControlTemplate></Setter.Value></Setter>
         </Style>
-        <Style x:Key="HistorySessionButtonStyle" TargetType="Button">
-            <Setter Property="Padding" Value="8,12,0,12"/><Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/><Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="FocusVisualStyle" Value="{x:Null}"/><Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Style x:Key="HistoryTaskPillButtonStyle" TargetType="Button">
+            <Setter Property="Padding" Value="10,2"/><Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="#E7EBEF"/><Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Cursor" Value="Hand"/><Setter Property="FocusVisualStyle" Value="{x:Null}"/>
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
-                <Border x:Name="SessionSurface" Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}"><ContentPresenter/></Border>
+                <Border x:Name="PillSurface" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="11" Padding="{TemplateBinding Padding}">
+                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
                 <ControlTemplate.Triggers>
-                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="SessionSurface" Property="Background" Value="#FAFBFC"/></Trigger>
-                    <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="SessionSurface" Property="Background" Value="#FAFBFC"/></Trigger>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="PillSurface" Property="Background" Value="#F8F9FA"/></Trigger>
+                    <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="PillSurface" Property="Background" Value="#F8F9FA"/></Trigger>
+                    <Trigger Property="IsPressed" Value="True"><Setter Property="Opacity" Value="0.65"/></Trigger>
                 </ControlTemplate.Triggers>
             </ControlTemplate></Setter.Value></Setter>
-            <Style.Triggers><DataTrigger Binding="{Binding HasTasks}" Value="False"><Setter Property="Cursor" Value="Arrow"/></DataTrigger></Style.Triggers>
         </Style>
     </UserControl.Resources>
     <Grid>
@@ -104,72 +106,85 @@
                                 </Path>
                             </Grid>
                         </Button>
-                        <ItemsControl ItemsSource="{Binding Sessions}" Visibility="{Binding IsExpanded, Converter={StaticResource HistoryVisibility}}" Margin="10,2,0,7">
+                        <ItemsControl ItemsSource="{Binding Sessions}" Visibility="{Binding IsExpanded, Converter={StaticResource HistoryVisibility}}" Margin="10,2,0,4">
                             <ItemsControl.ItemTemplate><DataTemplate>
-                                <Border x:Name="SessionListRow" BorderBrush="#F6F7F9" BorderThickness="0,0,0,1">
-                                    <StackPanel>
-                                        <Button x:Name="SessionSummaryButton" Command="{Binding ToggleTasksCommand}" IsEnabled="{Binding HasTasks}" IsTabStop="{Binding HasTasks}" Style="{StaticResource HistorySessionButtonStyle}" AutomationProperties.Name="{Binding SessionDetailsDisplay}" AutomationProperties.HelpText="{Binding TaskToggleDisplay}">
-                                            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="18"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                                <Ellipse x:Name="SessionBullet" Width="8" Height="8" Fill="{DynamicResource AccentPrimary}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,4,0,0"/>
-                                                <StackPanel Grid.Column="1" Margin="0,0,12,0">
-                                                    <TextBlock x:Name="SessionTaskSummary" Text="{Binding TaskSummaryDisplay}" FontSize="{DynamicResource BodyMediumFontSize}" FontWeight="{DynamicResource BodyMediumFontWeight}" Foreground="{DynamicResource TextPrimary}" TextTrimming="CharacterEllipsis" Visibility="{Binding HasTasks, Converter={StaticResource HistoryVisibility}}"/>
-                                                    <TextBlock x:Name="SessionDetails" Text="{Binding SessionDetailsDisplay}" Foreground="{DynamicResource TextSecondary}">
-                                                        <TextBlock.Style><Style TargetType="TextBlock">
-                                                            <Setter Property="FontSize" Value="{DynamicResource SecondaryFontSize}"/>
-                                                            <Setter Property="FontWeight" Value="{DynamicResource SecondaryFontWeight}"/>
-                                                            <Setter Property="Margin" Value="0,4,0,0"/>
-                                                            <Style.Triggers><DataTrigger Binding="{Binding HasTasks}" Value="False"><Setter Property="Margin" Value="0"/></DataTrigger></Style.Triggers>
-                                                        </Style></TextBlock.Style>
-                                                    </TextBlock>
-                                                </StackPanel>
-                                                <Border x:Name="SessionTaskPill" Grid.Column="2" Padding="10,5" Background="#F3F5F7" CornerRadius="12" VerticalAlignment="Center" Visibility="{Binding HasTasks, Converter={StaticResource HistoryVisibility}}">
+                                <StackPanel>
+                                    <Border x:Name="SessionListRow">
+                                        <Grid Margin="4,2,6,2">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="26"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions><RowDefinition Height="24"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                            <Border x:Name="ContinuousIncomingLine" Width="1.5" Background="{DynamicResource AccentPrimary}" Margin="0,-2,0,20"
+                                                    IsHitTestVisible="False" Visibility="{Binding ConnectsFromPrevious, Converter={StaticResource HistoryVisibility}}"/>
+                                            <Border x:Name="ContinuousOutgoingLine" Grid.RowSpan="2" Width="1.5" Background="{DynamicResource AccentPrimary}" Margin="0,20,0,-2"
+                                                    IsHitTestVisible="False" Visibility="{Binding ConnectsToNext, Converter={StaticResource HistoryVisibility}}"/>
+                                            <Ellipse x:Name="SessionBullet" Width="12" Height="12" Fill="{DynamicResource AccentPrimary}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            <Border x:Name="SessionConnector" Grid.Row="1" Width="1.5" Background="{DynamicResource AccentPrimary}" Margin="0,1,0,1" Visibility="{Binding IsTasksExpanded, Converter={StaticResource HistoryVisibility}}"/>
+                                            <Grid Grid.Column="1">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                                <TextBlock x:Name="SessionTimeRange" Text="{Binding TimeRangeDisplay}" MinWidth="110" FontFamily="{DynamicResource FontFamilyEnglish}" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center" ToolTip="{Binding SessionDetailsDisplay}"/>
+                                                <Button x:Name="SessionTaskPill" Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center" Style="{StaticResource HistoryTaskPillButtonStyle}"
+                                                        Command="{Binding ToggleTasksCommand}" Visibility="{Binding HasTasks, Converter={StaticResource HistoryVisibility}}"
+                                                        AutomationProperties.Name="{Binding TaskToggleDisplay}">
                                                     <StackPanel Orientation="Horizontal">
-                                                        <TextBlock Text="{Binding TaskCountDisplay}" FontSize="{DynamicResource SecondaryMediumFontSize}" FontWeight="{DynamicResource SecondaryMediumFontWeight}" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center"/>
-                                                        <Path Width="4" Height="7" Margin="7,0,0,0" Data="M 0,0 L 4,3.5 L 0,7" Stroke="{DynamicResource TextSecondary}" StrokeThickness="1.1" StrokeStartLineCap="Round" StrokeEndLineCap="Round" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5">
-                                                            <Path.Style><Style TargetType="Path"><Style.Triggers><DataTrigger Binding="{Binding IsTasksExpanded}" Value="True"><Setter Property="RenderTransform"><Setter.Value><RotateTransform Angle="90"/></Setter.Value></Setter></DataTrigger></Style.Triggers></Style></Path.Style>
+                                                        <TextBlock Text="{Binding TaskCountDisplay}" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center"/>
+                                                        <Path Width="7" Height="4" Margin="8,0,0,0" Data="M 0,0 L 3.5,3.5 L 7,0" Stroke="{DynamicResource TextSecondary}" StrokeThickness="1.1" StrokeStartLineCap="Round" StrokeEndLineCap="Round" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5">
+                                                            <Path.Style><Style TargetType="Path"><Style.Triggers><DataTrigger Binding="{Binding IsTasksExpanded}" Value="True"><Setter Property="RenderTransform"><Setter.Value><RotateTransform Angle="180"/></Setter.Value></Setter></DataTrigger></Style.Triggers></Style></Path.Style>
                                                         </Path>
                                                     </StackPanel>
-                                                </Border>
+                                                </Button>
                                             </Grid>
-                                        </Button>
-                                        <ItemsControl x:Name="SessionTaskDetails" ItemsSource="{Binding Tasks}" Margin="26,0,0,12" Visibility="{Binding IsTasksExpanded, Converter={StaticResource HistoryVisibility}}">
-                                            <ItemsControl.ItemTemplate><DataTemplate>
-                                                <Grid x:Name="HistoryParentTask" Margin="0,4,0,6">
-                                                    <Grid.ColumnDefinitions><ColumnDefinition Width="20"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-                                                    <Border x:Name="HistoryParentCompletionMark" Width="16" Height="16" CornerRadius="3"
-                                                            Background="{DynamicResource AccentPrimary}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,1,0,0" IsHitTestVisible="False">
-                                                        <Path Width="9" Height="6" Data="M 0,3 L 3,6 L 9,0" Stretch="Fill" Stroke="White" StrokeThickness="1.4"
-                                                              StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            <ItemsControl x:Name="SessionTaskDetails" Grid.Row="1" Grid.Column="1" ItemsSource="{Binding Tasks}" Margin="4,2,0,0" Visibility="{Binding IsTasksExpanded, Converter={StaticResource HistoryVisibility}}">
+                                                <ItemsControl.ItemTemplate><DataTemplate>
+                                                    <Border BorderBrush="#F3F4F6" BorderThickness="0,0,0,1" Padding="0,1,0,2">
+                                                        <Grid x:Name="HistoryParentTask">
+                                                            <Grid.ColumnDefinitions><ColumnDefinition Width="24"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                                            <Grid.RowDefinitions><RowDefinition Height="24"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                                            <Border x:Name="HistoryParentCompletionMark" Width="16" Height="16" CornerRadius="3" Background="{DynamicResource AccentPrimary}" HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False">
+                                                                <Path Width="9" Height="6" Data="M 0,3 L 3,6 L 9,0" Stretch="Fill" Stroke="White" StrokeThickness="1.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                            </Border>
+                                                            <TextBlock x:Name="HistoryParentTaskName" Grid.Column="1" Text="{Binding Name}" FontSize="12" Foreground="#A0A2A7" TextDecorations="Strikethrough" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" ToolTip="{Binding Description}"/>
+                                                            <ItemsControl x:Name="HistorySubTasks" Grid.Row="1" Grid.ColumnSpan="2" ItemsSource="{Binding SubTasks}" Margin="0,2,0,0" Visibility="{Binding HasSubTasks, Converter={StaticResource HistoryVisibility}}">
+                                                                <ItemsControl.ItemTemplate><DataTemplate>
+                                                                    <Grid x:Name="HistorySubTask" MinHeight="26">
+                                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="24"/><ColumnDefinition Width="24"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                                                        <Grid.RowDefinitions><RowDefinition Height="13"/><RowDefinition/></Grid.RowDefinitions>
+                                                                        <Border x:Name="TaskHierarchySpineTop" Width="1" Background="#E5E8EC" HorizontalAlignment="Left" Margin="8,0,0,0" IsHitTestVisible="False"/>
+                                                                        <Border x:Name="TaskHierarchySpineBottom" Grid.Row="1" Width="1" Background="#E5E8EC" HorizontalAlignment="Left" Margin="8,0,0,0" IsHitTestVisible="False" Visibility="{Binding IsLast, Converter={StaticResource HistoryInverseVisibility}}"/>
+                                                                        <Border x:Name="TaskHierarchyBranch" Grid.RowSpan="2" Height="1" Background="#E5E8EC" VerticalAlignment="Top" Margin="8,13,4,0" IsHitTestVisible="False"/>
+                                                                        <Grid x:Name="HistorySubTaskCompletionMark" Grid.Column="1" Grid.RowSpan="2" Width="16" Height="16" HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False">
+                                                                            <Ellipse x:Name="HistorySubTaskCircle" Stroke="{DynamicResource AccentPrimary}" StrokeThickness="1.2" Fill="Transparent"/>
+                                                                            <Path x:Name="HistorySubTaskTick" Width="8" Height="5" Data="M 0,2.5 L 2.5,5 L 8,0" Stretch="Fill" Stroke="White" StrokeThickness="1.3" Visibility="Collapsed" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                                        </Grid>
+                                                                        <TextBlock x:Name="HistorySubTaskName" Grid.Column="2" Grid.RowSpan="2" Text="{Binding Title}" FontSize="12" Foreground="{DynamicResource TextSecondary}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                                                    </Grid>
+                                                                    <DataTemplate.Triggers>
+                                                                        <DataTrigger Binding="{Binding IsCompleted}" Value="True">
+                                                                            <Setter TargetName="HistorySubTaskCircle" Property="Fill" Value="{DynamicResource AccentPrimary}"/>
+                                                                            <Setter TargetName="HistorySubTaskTick" Property="Visibility" Value="Visible"/>
+                                                                            <Setter TargetName="HistorySubTaskName" Property="Foreground" Value="#A0A2A7"/>
+                                                                            <Setter TargetName="HistorySubTaskName" Property="TextDecorations" Value="Strikethrough"/>
+                                                                        </DataTrigger>
+                                                                    </DataTemplate.Triggers>
+                                                                </DataTemplate></ItemsControl.ItemTemplate>
+                                                            </ItemsControl>
+                                                        </Grid>
                                                     </Border>
-                                                    <StackPanel Grid.Column="1" Margin="0,0,12,0">
-                                                        <TextBlock Text="{Binding Name}" FontSize="{DynamicResource BodyMediumFontSize}" FontWeight="{DynamicResource BodyMediumFontWeight}" Foreground="#454C57" TextWrapping="Wrap"/>
-                                                        <TextBlock Text="{Binding Description}" FontSize="{DynamicResource SecondaryFontSize}" FontWeight="{DynamicResource SecondaryFontWeight}" Foreground="{DynamicResource TextWeak}" TextWrapping="Wrap" LineHeight="17" Margin="0,4,0,4" Visibility="{Binding HasDescription, Converter={StaticResource HistoryVisibility}}"/>
-                                                    </StackPanel>
-                                                    <ItemsControl x:Name="HistorySubTasks" Grid.Row="1" Grid.ColumnSpan="2" ItemsSource="{Binding SubTasks}" Margin="0,4,12,0" Visibility="{Binding HasSubTasks, Converter={StaticResource HistoryVisibility}}">
-                                                        <ItemsControl.ItemTemplate><DataTemplate>
-                                                            <Grid x:Name="HistorySubTask" MinHeight="20">
-                                                                <Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="22"/><ColumnDefinition/></Grid.ColumnDefinitions>
-                                                                <Grid.RowDefinitions><RowDefinition Height="10"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-                                                                <Border x:Name="TaskHierarchySpineTop" Width="1" Background="#E5E8EC" HorizontalAlignment="Left" Margin="8,0,0,0" IsHitTestVisible="False"/>
-                                                                <Border x:Name="TaskHierarchySpineBottom" Grid.Row="1" Width="1" Background="#E5E8EC" HorizontalAlignment="Left" Margin="8,0,0,0" IsHitTestVisible="False"
-                                                                        Visibility="{Binding IsLast, Converter={StaticResource HistoryInverseVisibility}}"/>
-                                                                <Border x:Name="TaskHierarchyBranch" Grid.RowSpan="2" Height="1" Background="#E5E8EC" VerticalAlignment="Top" Margin="8,9,4,0" IsHitTestVisible="False"/>
-                                                                <Grid x:Name="HistorySubTaskCompletionMark" Grid.Column="1" Grid.RowSpan="2" Width="14" Height="14" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,3,0,0" IsHitTestVisible="False">
-                                                                    <Ellipse Stroke="{DynamicResource AccentPrimary}" StrokeThickness="1.2" Fill="Transparent"/>
-                                                                    <Path Width="7" Height="5" Data="M 0,2.5 L 2.5,5 L 7,0" Stretch="Fill" Stroke="{DynamicResource AccentPrimary}" StrokeThickness="1.2"
-                                                                          StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                                </Grid>
-                                                                <TextBlock Grid.Column="2" Grid.RowSpan="2" Text="{Binding Title}" FontSize="{DynamicResource BodyFontSize}" FontWeight="{DynamicResource BodyFontWeight}" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" Margin="0,1,0,4"/>
-                                                            </Grid>
-                                                        </DataTemplate></ItemsControl.ItemTemplate>
-                                                    </ItemsControl>
-                                                    <TextBlock x:Name="HistoryTaskCompletionTime" Grid.Column="2" Text="{Binding CompletedTimeDisplay}" FontSize="{DynamicResource SecondaryFontSize}" FontWeight="{DynamicResource SecondaryFontWeight}" Foreground="{DynamicResource TextWeak}" VerticalAlignment="Top" Margin="0,1,0,0" Visibility="{Binding HasCompletedTime, Converter={StaticResource HistoryVisibility}}"/>
-                                                </Grid>
-                                            </DataTemplate></ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                    </StackPanel>
-                                </Border>
+                                                </DataTemplate></ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </Grid>
+                                    </Border>
+                                    <Grid x:Name="ContinuousRecordSpacing" Height="8" Margin="4,0,6,0"
+                                          Visibility="{Binding ConnectsToNext, Converter={StaticResource HistoryVisibility}}">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="26"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                        <Border x:Name="ContinuousSpacingLine" Width="1.5" Background="{DynamicResource AccentPrimary}" IsHitTestVisible="False"/>
+                                    </Grid>
+                                    <Grid x:Name="SessionGap" Height="24" Margin="4,0,6,0" Visibility="{Binding HasGap, Converter={StaticResource HistoryVisibility}}">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="26"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                        <Border Width="1.5" Background="#E3E7EC" Margin="0,2,0,2"/>
+                                        <Ellipse Width="9" Height="9" Fill="#C7CFD8" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding GapDisplay}" FontSize="11" Foreground="#A3AAB5" VerticalAlignment="Center"/>
+                                    </Grid>
+                                </StackPanel>
                             </DataTemplate></ItemsControl.ItemTemplate>
                         </ItemsControl>
                         <Border Height="1" Background="#F3F4F6" Visibility="{Binding IsExpanded, Converter={StaticResource HistoryInverseVisibility}}"/>

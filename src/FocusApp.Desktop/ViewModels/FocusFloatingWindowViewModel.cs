@@ -16,7 +16,7 @@ public sealed class FocusFloatingWindowViewModel : INotifyPropertyChanged, IDisp
     public const double EmptyWindowHeight = 115;
     public const double TaskHeaderHeight = 46;
     public const double TaskRowHeight = 28;
-    public const int VisibleTaskLimit = 3;
+    public const int VisibleTaskLimit = 5;
     public const double MaximumWindowHeight = EmptyWindowHeight + TaskHeaderHeight + TaskRowHeight * VisibleTaskLimit;
     private readonly FocusSessionViewModel _session;
     private readonly HashSet<FocusTaskViewModel> _subscribedTasks = [];

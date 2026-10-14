@@ -150,7 +150,7 @@ public sealed class CalendarRefactorTests
     }
 
     [Fact]
-    public void CompletedTaskMetricIsPassiveAndKeepsLiveStatistics()
+    public void InlineTaskDetailsAreReadOnlyAndKeepLiveStatistics()
     {
         RunPage(model =>
         {
@@ -168,32 +168,25 @@ public sealed class CalendarRefactorTests
             SelectDate(model, Local(18).Date);
         }, (model, page) =>
         {
-            var metric = (Grid)page.FindName("CalendarDayCompletedTaskMetric");
-            Assert.Null(page.FindName("CompletedTasksButton"));
+            Assert.Null(page.FindName("CalendarDayCompletedTaskMetric"));
             Assert.Null(page.FindName("CompletedTasksPopup"));
-            Assert.Null(page.FindName("CalendarDayCompletedTaskChevron"));
-            Assert.Empty(Descendants<ButtonBase>(metric));
-            Assert.False(metric.Focusable);
-            Assert.Null(metric.Cursor);
-            var count = (TextBlock)page.FindName("CalendarDayCompletedTaskCount");
             Assert.Equal(12, model.SelectedDayCompletedTasks);
-            Assert.Equal("12", ((System.Windows.Documents.Run)count.Inlines.FirstInline!).Text);
-            foreach (var element in new UIElement[]
-                { metric, (TextBlock)page.FindName("CalendarDayCompletedTaskTitle"), count })
-            {
-                var click = new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left)
-                    { RoutedEvent = UIElement.MouseLeftButtonDownEvent };
-                element.RaiseEvent(click);
-                Pump();
-                Assert.False(click.Handled);
-                Assert.DoesNotContain(Descendants<Popup>(page), popup => popup.IsOpen);
-                Assert.Equal(12, model.SelectedDayCompletedTasks);
-            }
-            SavePreview(page, "calendar-passive-completion-metric");
+            var entry = Assert.Single(model.SelectedDayRecordEntries);
+            Assert.Equal("32分钟 · 12个任务", entry.SummaryDisplay);
+            entry.IsExpanded = true;
+            Pump();
+            var view = Assert.Single(Descendants<CalendarDayRecordView>(page));
+            Assert.Empty(Descendants<ButtonBase>(view));
+            Assert.Empty(Descendants<System.Windows.Controls.CheckBox>(view));
+            Assert.Equal(12, entry.Tasks.Count);
+            Assert.All(entry.Tasks, task => Assert.True(task.IsCompleted));
+            Assert.DoesNotContain(Descendants<Popup>(page), popup => popup.IsOpen);
+            Assert.Equal(12, model.SelectedDayCompletedTasks);
+            SavePreview(page, "calendar-readonly-inline-tasks");
             model.FocusSessionRecords.Clear();
             Pump();
             Assert.Equal(0, model.SelectedDayCompletedTasks);
-            Assert.Equal("0", ((System.Windows.Documents.Run)count.Inlines.FirstInline!).Text);
+            Assert.Empty(model.SelectedDayRecordEntries);
             Assert.Equal(12, model.GoalCompletedTasks.TotalCount);
         });
     }

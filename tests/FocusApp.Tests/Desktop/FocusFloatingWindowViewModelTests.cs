@@ -96,8 +96,10 @@ public sealed class FocusFloatingWindowViewModelTests
     [InlineData(1, 189)]
     [InlineData(2, 217)]
     [InlineData(3, 245)]
-    [InlineData(4, 245)]
-    [InlineData(20, 245)]
+    [InlineData(4, 273)]
+    [InlineData(5, 301)]
+    [InlineData(6, 301)]
+    [InlineData(20, 301)]
     public void Adapter_SizesTheWindowByPendingTasksAndKeepsEveryTaskAvailableForScrolling(int count, double height)
     {
         var target = new FocusTargetViewModel("学习", Enumerable.Range(0, count).Select(index => $"任务 {index + 1}"));
@@ -105,7 +107,8 @@ public sealed class FocusFloatingWindowViewModelTests
         Assert.Equal(count, model.PendingTasks.Count);
         Assert.All(model.PendingTasks, task => Assert.False(task.IsCompleted));
         Assert.Equal(height, model.WindowHeight);
-        Assert.Equal(Math.Min(3, count) * 28, model.TaskListHeight);
+        Assert.Equal(Math.Min(5, count) * 28, model.TaskListHeight);
+        Assert.Equal(count > 5, model.HasTaskOverflow);
         Assert.Equal($"0 / {count}", model.TaskProgressDisplay);
         Assert.Equal("60:00", model.TotalTimeDisplay);
     }
@@ -202,13 +205,13 @@ public sealed class FocusFloatingWindowViewModelTests
         for (var index = 0; index < 20; index++)
             parent.SubTasks.Add(new(new LocalSubTaskDto(index.ToString(), parent.TaskId, "子任务", false, index, now, now)));
         Assert.Equal(21, model.TaskRowCount);
-        Assert.Equal(245, model.WindowHeight);
+        Assert.Equal(301, model.WindowHeight);
         Assert.True(model.HasTaskOverflow);
         Assert.Contains(nameof(model.WindowHeight), changes);
         parent.SubTasks[0].IsCompleted = true;
         Assert.False(parent.IsCompleted);
         Assert.Equal(21, model.TaskRowCount);
-        Assert.Equal(245, model.WindowHeight);
+        Assert.Equal(301, model.WindowHeight);
         while (parent.SubTasks.Count > 1) parent.SubTasks.RemoveAt(0);
         Assert.Equal(2, model.TaskRowCount);
         Assert.Equal(217, model.WindowHeight);

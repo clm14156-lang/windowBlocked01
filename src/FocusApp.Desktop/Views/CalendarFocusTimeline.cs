@@ -22,6 +22,13 @@ public sealed class CalendarFocusTimeline : FrameworkElement
             (owner, _) => ((CalendarFocusTimeline)owner).CloseSessionToolTip()));
     public bool FullDayStyle { get => (bool)GetValue(FullDayStyleProperty); set => SetValue(FullDayStyleProperty, value); }
 
+    // The calendar expands tasks inside the record list; other timeline consumers keep their poptips.
+    public static readonly DependencyProperty InlineRecordDetailsProperty = DependencyProperty.Register(
+        nameof(InlineRecordDetails), typeof(bool), typeof(CalendarFocusTimeline),
+        new PropertyMetadata(false, (owner, _) => ((CalendarFocusTimeline)owner).ResetSessionToolTip()));
+    public bool InlineRecordDetails { get => (bool)GetValue(InlineRecordDetailsProperty); set => SetValue(InlineRecordDetailsProperty, value); }
+    public event EventHandler<FocusSessionRecordViewModel>? RecordSelected;
+
     public static readonly DependencyProperty GoalHistoryStyleProperty = DependencyProperty.Register(
         nameof(GoalHistoryStyle), typeof(bool), typeof(CalendarFocusTimeline),
         new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.AffectsRender,
@@ -56,6 +63,11 @@ public sealed class CalendarFocusTimeline : FrameworkElement
 
     internal void SelectRecord(FocusSessionRecordViewModel record)
     {
+        if (InlineRecordDetails)
+        {
+            InteractionState?.Select(record);
+            return;
+        }
         _recordPoptip ??= new CalendarRecordPoptip(this);
         _recordPoptip.CancelPendingLeave();
         InteractionState?.ToggleSelection(record);
@@ -63,6 +75,7 @@ public sealed class CalendarFocusTimeline : FrameworkElement
     }
     internal void EndTimelinePreview()
     {
+        if (InlineRecordDetails) CloseSessionToolTip();
         _hoveredSegment = null;
         _recordPoptip?.CancelPendingLeave();
         InteractionState?.HoverTimeline(null);
@@ -226,7 +239,7 @@ public sealed class CalendarFocusTimeline : FrameworkElement
         var segment = FindSessionAt(position);
         Cursor = segment is null ? Cursors.Arrow : Cursors.Hand;
         if (ReferenceEquals(segment, _hoveredSegment)) return;
-        if (FullDayStyle && !GoalHistoryStyle)
+        if (FullDayStyle && !GoalHistoryStyle && !InlineRecordDetails)
         {
             if (_hoveredSegment is { } old) LeaveRecordPoptip(old.Record);
             _hoveredSegment = segment;
@@ -243,6 +256,21 @@ public sealed class CalendarFocusTimeline : FrameworkElement
         if (segment is null) return;
         Cursor = Cursors.Hand;
         _hoveredSegment = segment;
+        if (InlineRecordDetails)
+        {
+            InteractionState?.HoverTimeline(segment.Record);
+            _sessionToolTip ??= new ToolTip
+            {
+                PlacementTarget = this, Placement = PlacementMode.Top,
+                StaysOpen = true, IsHitTestVisible = false,
+                Padding = new Thickness(10, 6, 10, 6), Background = Brushes.White,
+                BorderBrush = new SolidColorBrush(Color.FromRgb(232, 235, 240)), BorderThickness = new Thickness(1)
+            };
+            _sessionToolTip.Content = segment.Record.CalendarPoptipSummaryDisplay;
+            _sessionToolTip.PlacementRectangle = SegmentBounds(segment);
+            _sessionToolTip.IsOpen = true;
+            return;
+        }
         if (_sessionToolTip is null)
         {
             UserControl content = GoalHistoryStyle ? new GoalFocusTimelineToolTip() : new CalendarFocusTimelineToolTip();
@@ -286,7 +314,7 @@ public sealed class CalendarFocusTimeline : FrameworkElement
     protected override void OnMouseLeave(MouseEventArgs e)
     {
         base.OnMouseLeave(e);
-        if (FullDayStyle && !GoalHistoryStyle)
+        if (FullDayStyle && !GoalHistoryStyle && !InlineRecordDetails)
         {
             if (_hoveredSegment is { } segment) LeaveRecordPoptip(segment.Record);
             _hoveredSegment = null;
@@ -309,6 +337,12 @@ public sealed class CalendarFocusTimeline : FrameworkElement
         if (!FullDayStyle || GoalHistoryStyle || InteractionState is null) return;
         var segment = FindSessionAt(position);
         if (segment is null) InteractionState.Clear();
+        else if (InlineRecordDetails)
+        {
+            CloseSessionToolTip();
+            InteractionState.Select(segment.Record);
+            RecordSelected?.Invoke(this, segment.Record);
+        }
     }
 
     private void CloseSessionToolTip()

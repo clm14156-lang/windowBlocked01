@@ -18,6 +18,8 @@ public sealed class FocusFloatingPositionTests
     [InlineData(115)]
     [InlineData(217)]
     [InlineData(245)]
+    [InlineData(273)]
+    [InlineData(301)]
     public void FirstAppearanceCentersTheEntireExistingWindowInTheWorkArea(double height)
     {
         var bounds = FocusFloatingPositionCalculator.Resolve(null, [Primary], Primary, new Size(300, height));

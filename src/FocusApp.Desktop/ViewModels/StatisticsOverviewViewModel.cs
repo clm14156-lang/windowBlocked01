@@ -563,6 +563,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     public string PeriodFocusDistributionEmptyTitle => SelectedRange.Days == 7 ? "近七天没有专注记录" : $"{SelectedRange.Label}没有专注记录";
 
     public ObservableCollection<FocusSessionRecordViewModel> SelectedDayRecords { get; } = [];
+    public IReadOnlyList<CalendarDayRecordViewModel> SelectedDayRecordEntries { get; private set; } = [];
     public CalendarFocusTimelineViewModel SelectedDayTimeline { get; private set; } = CalendarFocusTimelineViewModel.Create(DateTime.Today, [], fullDay: true);
     public ObservableCollection<CalendarTimeDistributionViewModel> SelectedDayDistributions { get; } = [];
     public bool HasSelectedDayFocusData => SelectedDayMinutes > 0 || SelectedDayRecords.Count > 0;
@@ -851,10 +852,13 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     public string CalendarMonthDisplay => $"{_calendarMonth:yyyy年M月}";
 
     public string SelectedDateDisplay => _selectedCalendarDay is null ? "本月暂无专注" : $"{_selectedCalendarDay.Date:M月d日} · {GetWeekday(_selectedCalendarDay.Date)}";
+    public string SelectedDayDateDisplay => _selectedCalendarDay is null ? "本月暂无专注" : $"{_selectedCalendarDay.Date:M月d日}";
+    public string SelectedDayWeekdayDisplay => _selectedCalendarDay is null ? string.Empty : GetWeekday(_selectedCalendarDay.Date);
 
     public bool IsReturnToTodayVisible => _selectedCalendarDay?.Date.Date != DateTime.Today;
 
     public string SelectedDayDurationDisplay => FormatDuration(SelectedDayMinutes);
+    public string SelectedDayCompactDurationDisplay => SelectedDayDurationDisplay.Replace(" ", string.Empty);
 
     public string SelectedDayHoursValueDisplay => SelectedDayMinutes >= 60
         ? (SelectedDayMinutes / 60).ToString()
@@ -1777,13 +1781,18 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             SelectedDayRecords.Add(record);
         }
         OnPropertyChanged(nameof(HasSelectedDayRecords));
+        SelectedDayRecordEntries = CalendarDayRecordViewModel.Create(SelectedDayRecords);
+        OnPropertyChanged(nameof(SelectedDayRecordEntries));
         SelectedDayTimeline = CalendarFocusTimelineViewModel.Create(date, SelectedDayRecords, fullDay: true);
         OnPropertyChanged(nameof(SelectedDayTimeline));
 
         RefreshSelectedDayCompletedTasks();
         OnPropertyChanged(nameof(SelectedDateDisplay));
+        OnPropertyChanged(nameof(SelectedDayDateDisplay));
+        OnPropertyChanged(nameof(SelectedDayWeekdayDisplay));
         OnPropertyChanged(nameof(IsReturnToTodayVisible));
         OnPropertyChanged(nameof(SelectedDayDurationDisplay));
+        OnPropertyChanged(nameof(SelectedDayCompactDurationDisplay));
         OnPropertyChanged(nameof(SelectedDayHoursValueDisplay));
         OnPropertyChanged(nameof(SelectedDayHoursUnitDisplay));
         OnPropertyChanged(nameof(SelectedDayMinutesValueDisplay));

@@ -83,7 +83,7 @@ public sealed class GoalInvestmentTrendRedesignTests
     }
 
     [Fact]
-    public void ThreeMetricsFollowRangeAndClipCrossMonthDurations()
+    public void RangeMetricsAggregateDailyTotalsAndClipCrossMonthDurations()
     {
         var model = new GoalInvestmentTrendViewModel(() => Now);
         model.ApplyState(Goal(),
@@ -99,6 +99,8 @@ public sealed class GoalInvestmentTrendRedesignTests
         Assert.Equal(90, model.PeriodInvestment.TotalMinutes);
         Assert.Equal(2, model.ActiveDays);
         Assert.Equal(30, model.AverageInvestment.TotalMinutes);
+        Assert.Equal(45, model.DailyAverageInvestment.TotalMinutes);
+        Assert.Equal(60, model.LongestDayInvestment.TotalMinutes);
         var changed = new List<string>();
         model.PropertyChanged += (_, args) => changed.Add(args.PropertyName!);
         model.SelectThirtyDaysCommand.Execute(null);
@@ -106,19 +108,65 @@ public sealed class GoalInvestmentTrendRedesignTests
         Assert.Equal(210, model.PeriodInvestment.TotalMinutes);
         Assert.Equal(5, model.ActiveDays);
         Assert.Equal(42, model.AverageInvestment.TotalMinutes);
+        Assert.Equal(42, model.DailyAverageInvestment.TotalMinutes);
+        Assert.Equal(60, model.LongestDayInvestment.TotalMinutes);
+        Assert.Contains(nameof(model.DailyAverageInvestment), changed);
+        Assert.Contains(nameof(model.LongestDayInvestment), changed);
         Assert.Contains(nameof(model.ActiveDays), changed);
         Assert.Contains(nameof(model.AverageInvestment), changed);
         model.SelectMonthCommand.Execute(model.AvailableMonths.Single(month => month.Month.Month == 9));
         Assert.Equal(180, model.PeriodInvestment.TotalMinutes);
         Assert.Equal(4, model.ActiveDays);
         Assert.Equal(36, model.AverageInvestment.TotalMinutes);
+        Assert.Equal(45, model.DailyAverageInvestment.TotalMinutes);
+        Assert.Equal(60, model.LongestDayInvestment.TotalMinutes);
         model.SelectMonthCommand.Execute(model.AvailableMonths.Single(month => month.Month.Month == 7));
         Assert.Equal(20, model.PeriodInvestment.TotalMinutes);
         Assert.Equal(1, model.ActiveDays);
         Assert.Equal(20, model.AverageInvestment.TotalMinutes);
+        Assert.Equal(20, model.DailyAverageInvestment.TotalMinutes);
+        Assert.Equal(20, model.LongestDayInvestment.TotalMinutes);
         model.ApplyState(null, []);
         Assert.Equal(0, model.ActiveDays);
         Assert.Equal(0, model.AverageInvestment.TotalMinutes);
+        Assert.Equal(0, model.DailyAverageInvestment.TotalMinutes);
+        Assert.Equal(0, model.LongestDayInvestment.TotalMinutes);
+    }
+
+    [Fact]
+    public void FourSummaryCardsUseActiveDaysAndCombinedDailySessionsForTheSelectedRange()
+    {
+        var today = new DateTime(2026, 10, 14, 18, 0, 0);
+        var model = new GoalInvestmentTrendViewModel(() => today);
+        model.ApplyState(Goal(),
+        [
+            Record(today.Date.AddDays(-4).AddHours(9), 24),
+            Record(today.Date.AddDays(-3).AddHours(9), 28),
+            Record(today.Date.AddDays(-2).AddHours(9), 40),
+            Record(today.Date.AddDays(-2).AddHours(14), 44),
+            Record(today.Date.AddDays(-1).AddHours(9), 20),
+            Record(new DateTime(2026, 9, 20, 9, 0, 0), 45),
+            new FocusSessionRecordViewModel(today.AddHours(-4), today, "other", "其他目标", "", 0)
+        ]);
+        Assert.Equal(156, model.PeriodInvestment.TotalMinutes);
+        Assert.Equal(4, model.ActiveDays);
+        Assert.Equal(39, model.DailyAverageInvestment.TotalMinutes);
+        Assert.Equal(84, model.LongestDayInvestment.TotalMinutes);
+        model.SelectThirtyDaysCommand.Execute(null);
+        Assert.Equal(201, model.PeriodInvestment.TotalMinutes);
+        Assert.Equal(5, model.ActiveDays);
+        Assert.Equal(40, model.DailyAverageInvestment.TotalMinutes);
+        Assert.Equal(84, model.LongestDayInvestment.TotalMinutes);
+        model.SelectMonthCommand.Execute(model.AvailableMonths.Single(month => month.Month.Month == 9));
+        Assert.Equal(45, model.PeriodInvestment.TotalMinutes);
+        Assert.Equal(1, model.ActiveDays);
+        Assert.Equal(45, model.DailyAverageInvestment.TotalMinutes);
+        Assert.Equal(45, model.LongestDayInvestment.TotalMinutes);
+        model.ApplyState(Goal(), []);
+        Assert.Equal(0, model.PeriodInvestment.TotalMinutes);
+        Assert.Equal(0, model.ActiveDays);
+        Assert.Equal(0, model.DailyAverageInvestment.TotalMinutes);
+        Assert.Equal(0, model.LongestDayInvestment.TotalMinutes);
     }
 
     [Fact]
@@ -176,17 +224,30 @@ public sealed class GoalInvestmentTrendRedesignTests
                 window.Show();
                 Pump();
                 var card = (Border)modal.FindName("TrendModalCard");
-                var summary = (StackPanel)modal.FindName("InvestmentSummary");
+                var summary = (Grid)modal.FindName("InvestmentSummary");
                 var selector = (Border)modal.FindName("RangeSelectorSurface");
                 var chart = Descendants<GoalInvestmentTrendChart>(modal).Single();
                 var tooltip = (Border)modal.FindName("TrendTooltip");
                 var taskRow = (StackPanel)modal.FindName("TooltipTaskCount");
                 var guide = (System.Windows.Shapes.Line)chart.FindName("HoverGuideLine");
-                Assert.Equal(650, card.ActualWidth);
-                Assert.Equal(420, card.ActualHeight);
+                Assert.Equal(700, card.ActualWidth);
+                Assert.Equal(448, card.ActualHeight);
                 Assert.Equal(251, model.PeriodInvestment.TotalMinutes);
                 Assert.Equal("近7天投入 · 活跃6天", model.InvestmentSummary);
-                Assert.True(selector.TranslatePoint(new Point(), card).X > summary.TranslatePoint(new Point(summary.ActualWidth, 0), card).X);
+                Assert.True(selector.TranslatePoint(new Point(0, selector.ActualHeight), card).Y < summary.TranslatePoint(new Point(), card).Y);
+                var metrics = new[] { "PeriodInvestmentCard", "DailyAverageInvestmentCard", "ActiveDaysCard", "LongestDayInvestmentCard" }
+                    .Select(name => (Border)modal.FindName(name)).ToArray();
+                Assert.All(metrics, metric => Assert.Equal(84, metric.ActualHeight));
+                Assert.All(metrics, metric => Assert.InRange(Math.Abs(metric.ActualWidth - metrics[0].ActualWidth), 0, 0.7));
+                foreach (var metric in new[] { metrics[0], metrics[1], metrics[3] })
+                {
+                    var value = Descendants<TextBlock>(metric).Single(text => text.Inlines.Count == 4);
+                    Assert.False(string.Concat(value.Inlines.OfType<System.Windows.Documents.Run>().Select(run => run.Text)).StartsWith(' '));
+                }
+                for (var index = 1; index < metrics.Length; index++)
+                    Assert.InRange(metrics[index].TranslatePoint(new Point(), summary).X - metrics[index - 1].TranslatePoint(new Point(metrics[index - 1].ActualWidth, 0), summary).X, 7.3, 8.7);
+                Assert.Equal(42, model.DailyAverageInvestment.TotalMinutes);
+                Assert.Equal(56, model.LongestDayInvestment.TotalMinutes);
                 Assert.True(chart.TranslatePoint(new Point(0, chart.ActualHeight), card).Y < card.ActualHeight - 24);
                 var bars = Descendants<Border>((ItemsControl)chart.FindName("TrendBars"))
                     .Where(border => border.DataContext is GoalInvestmentTrendPointViewModel).ToArray();
@@ -275,7 +336,7 @@ public sealed class GoalInvestmentTrendRedesignTests
             // Inspect the rendered text, not just Button.Foreground: implicit text styles can override inheritance.
             var label = Descendants<TextBlock>(button).Single();
             Assert.Equal(ReferenceEquals(button, selected) ? Color.FromRgb(0xFF, 0x7A, 0x00)
-                : Color.FromRgb(0x9A, 0xA2, 0xAF), ((SolidColorBrush)label.Foreground).Color);
+                : Color.FromRgb(0x6E, 0x6E, 0x73), ((SolidColorBrush)label.Foreground).Color);
             Assert.Equal(13, label.FontSize);
             Assert.Equal(ReferenceEquals(button, selected) ? FontWeights.Medium : FontWeights.Normal, label.FontWeight);
             Assert.Equal(seven.FontFamily, label.FontFamily);
@@ -297,18 +358,14 @@ public sealed class GoalInvestmentTrendRedesignTests
         var directory = Environment.GetEnvironmentVariable("FOCUSAPP_INVESTMENT_REDESIGN_QA_PATH");
         if (string.IsNullOrWhiteSpace(directory)) return;
         Directory.CreateDirectory(directory);
-        var width = (int)Math.Ceiling(element.ActualWidth);
-        var height = (int)Math.Ceiling(element.ActualHeight);
-        var drawing = new DrawingVisual();
-        using (var context = drawing.RenderOpen())
-        {
-            context.DrawRectangle(Brushes.WhiteSmoke, null, new Rect(0, 0, width, height));
-            context.DrawRectangle(new VisualBrush(element), null, new Rect(0, 0, width, height));
-        }
-        var bitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
-        bitmap.Render(drawing);
+        var root = (FrameworkElement)Window.GetWindow(element).Content;
+        var bitmap = new RenderTargetBitmap((int)Math.Ceiling(root.ActualWidth), (int)Math.Ceiling(root.ActualHeight), 96, 96, PixelFormats.Pbgra32);
+        bitmap.Render(root);
+        var origin = element.TranslatePoint(new Point(), root);
+        var crop = new CroppedBitmap(bitmap, new Int32Rect((int)Math.Round(origin.X), (int)Math.Round(origin.Y),
+            (int)Math.Round(element.ActualWidth), (int)Math.Round(element.ActualHeight)));
         var encoder = new PngBitmapEncoder();
-        encoder.Frames.Add(BitmapFrame.Create(bitmap));
+        encoder.Frames.Add(BitmapFrame.Create(crop));
         using var stream = File.Create(Path.Combine(directory, $"{name}.png"));
         encoder.Save(stream);
     }

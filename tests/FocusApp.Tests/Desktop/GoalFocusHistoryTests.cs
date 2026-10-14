@@ -1,4 +1,4 @@
-﻿using FocusApp.Contracts;
+using FocusApp.Contracts;
 using FocusApp.Desktop.ViewModels;
 using Xunit;
 
@@ -17,7 +17,7 @@ public sealed class GoalFocusHistoryTests
             Record(Today.AddHours(19), 50, 5), Record(Today.AddDays(-1).AddHours(10), 30) };
         model.ApplyState(Goal(), records, []);
         Assert.Equal(new[] { "今天 · 10月4日", "昨天 · 10月3日" }, model.Days.Select(day => day.DateDisplay));
-        Assert.Equal("2小时10分钟 · 3次专注", model.Days[0].SummaryDisplay);
+        Assert.Equal("2小时10分钟", model.Days[0].SummaryDisplay);
         Assert.All(model.Days, day => Assert.False(day.IsExpanded));
         Assert.Equal(new[] { 19, 16, 10 }, model.Days[0].Sessions.Select(session => session.Record.StartTime.Hour));
         model.Days[0].ToggleCommand.Execute(null);
@@ -46,7 +46,7 @@ public sealed class GoalFocusHistoryTests
         Assert.Equal(count > 0, session.HasTasks);
         Assert.Equal(count > 0, session.ToggleTasksCommand.CanExecute(null));
         Assert.Equal(string.Join(" · ", Enumerable.Range(0, Math.Min(2, count)).Select(index => $"任务{index}")) + (count > 2 ? "…" : ""), session.TaskSummaryDisplay);
-        Assert.Equal("50分钟 · 1次专注", model.Days[0].SummaryDisplay);
+        Assert.Equal("50分钟", model.Days[0].SummaryDisplay);
     }
 
     [Fact]
@@ -202,10 +202,10 @@ public sealed class GoalFocusHistoryTests
         var day = Assert.Single(model.Days);
         var session = Assert.Single(day.Sessions);
         Assert.Same(record, session.Record);
-        Assert.Equal("50分钟 · 1次专注", day.SummaryDisplay);
+        Assert.Equal("50分钟", day.SummaryDisplay);
         Assert.Equal(new[] { "完整完成", "无子任务" }, session.Tasks.Select(task => task.Name));
         Assert.Equal(2, model.CompletedTaskCount);
-        Assert.Equal("2项任务", session.TaskCountDisplay);
+        Assert.Equal("2个任务", session.TaskCountDisplay);
         Assert.True(Assert.Single(session.Tasks[0].SubTasks).IsLast);
 
         model.ApplyState(Goal(), [WithSnapshots(record, [partial])], []);
@@ -243,6 +243,27 @@ public sealed class GoalFocusHistoryTests
 
     private static FocusSessionRecordViewModel Record(DateTime start, int minutes, int count = 0) =>
         new(start, start.AddMinutes(minutes), "dev", "开发屏蔽软件", "", count, Enumerable.Range(0, count).Select(index => $"任务{index}"));
+
+    [Fact]
+    public void NeighborGapsUseRealTimestampsAndRemainWithinTheirDateGroup()
+    {
+        var latest = Record(Today.AddHours(18).AddMinutes(25), 15, 3);
+        var middle = Record(Today.AddHours(16).AddMinutes(43), 5);
+        var earliest = Record(Today.AddHours(8).AddMinutes(37), 45, 1);
+        var model = new GoalFocusHistoryViewModel(() => Today);
+        model.ApplyState(Goal(), [middle, earliest, latest, Record(Today.AddDays(-1), 10)], []);
+        var day = model.Days[0];
+        Assert.Equal("1小时5分钟", day.SummaryDisplay);
+        Assert.Equal("间隔 1小时37分钟", day.Sessions[0].GapDisplay);
+        Assert.Equal("间隔 7小时21分钟", day.Sessions[1].GapDisplay);
+        Assert.False(day.Sessions[2].HasGap);
+        Assert.False(model.Days[1].Sessions[0].HasGap);
+        Assert.False(day.Sessions[1].HasTasks);
+        Assert.False(day.Sessions[1].IsTasksExpanded);
+        Assert.Equal("3个任务", day.Sessions[0].TaskCountDisplay);
+        model.ApplyState(Goal(), [Record(Today.AddHours(10), 60), Record(Today.AddHours(10.5), 30)], []);
+        Assert.All(model.Days[0].Sessions, session => Assert.False(session.HasGap));
+    }
     private static FocusSessionRecordViewModel WithSnapshots(FocusSessionRecordViewModel record, IReadOnlyList<LocalFocusSessionTaskSnapshotDto> snapshots) =>
         new(record.StartTime, record.EndTime, record.GoalId, record.GoalName, "", snapshots.Count, snapshots.Select(task => task.TaskNameSnapshot))
         { SessionId = Guid.NewGuid(), CompletedTaskIds = snapshots.Select(task => task.TaskId).ToArray(), CompletedTaskSnapshots = snapshots };

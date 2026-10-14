@@ -48,7 +48,7 @@ public sealed class GoalFocusHistoryPresentationTests
             var scroll = (ScrollViewer)history.FindName("HistoryScrollViewer");
             var headerHeight = header.ActualHeight;
             var metricsHeight = metrics.ActualHeight;
-            foreach (var name in new[] { "GoalRecentInvestmentText", "GoalTotalInvestmentText" })
+            foreach (var name in new[] { "GoalTotalInvestmentText", "GoalCompletedTaskCountText" })
             {
                 var value = (TextBlock)page.FindName(name);
                 var bounds = value.TransformToAncestor(metrics).TransformBounds(new Rect(0, 0, value.ActualWidth, value.ActualHeight));
@@ -71,10 +71,9 @@ public sealed class GoalFocusHistoryPresentationTests
             Assert.Empty(Descendants<TextBox>(history));
             Assert.Empty(Descendants<CheckBox>(history));
             Assert.Empty(Descendants<FrameworkElement>(history).Where(element => element.ContextMenu is not null));
-            var note = Assert.Single(Descendants<TextBlock>(history).Where(text => text.Text == description));
-            Assert.Equal(TextWrapping.Wrap, note.TextWrapping);
-            Assert.True(note.ActualHeight > note.FontSize * 2);
-            Assert.True(note.ActualWidth <= width);
+            var historicalTask = model.GoalFocusHistory.Days[0].Sessions[0].Tasks[0];
+            Assert.Equal(description, historicalTask.Description);
+            Assert.Single(Descendants<TextBlock>(history).Where(text => Equals(text.ToolTip, description)));
             Assert.Equal(12, Descendants<TextBlock>(history).Count(text => text.DataContext is GoalHistorySubTaskViewModel child && text.Text == child.Title));
             Assert.Equal(FontWeights.Medium, Descendants<TextBlock>(history).Single(text => text.Text == model.GoalFocusHistory.Days[0].DateDisplay).FontWeight);
             scroll.ScrollToBottom();
@@ -103,8 +102,8 @@ public sealed class GoalFocusHistoryPresentationTests
             foreach (var hour in new[] { 0, 10, 23 })
                 model.FocusSessionRecords.Add(new FocusSessionRecordViewModel(day.AddHours(hour), day.AddHours(hour).AddMinutes(30), "dev", goal.Name, "", hour == 10 ? 1 : 0, hour == 10 ? ["历史任务"] : []));
             var page = CreatePage(model);
-            var completed = (Button)page.FindName("GoalCompletedTasksButton");
-            Assert.Same(((Button)page.FindName("GoalInvestmentTrendButton")).Style, completed.Style);
+            var completed = (Button)page.FindName("GoalCompletedTasksCard");
+            Assert.Same(((Button)page.FindName("GoalTotalInvestmentCard")).Style, completed.Style);
             Assert.Same(model.GoalCompletedTasks.OpenCommand, completed.Command);
             completed.Command.Execute(null); Layout(page);
             Assert.True(model.GoalCompletedTasks.IsOpen);
@@ -112,7 +111,7 @@ public sealed class GoalFocusHistoryPresentationTests
             model.GoalFocusHistory.ShowCompletedTasks(); Layout(page);
             var history = (GoalFocusHistoryView)page.FindName("GoalFocusHistoryControl");
             Assert.Empty(Descendants<CalendarFocusTimeline>(history));
-            Assert.Empty(Descendants<Border>(history).Where(border => border.Name == "SessionConnector"));
+            Assert.Single(Descendants<Border>(history).Where(border => border.Name == "SessionConnector" && border.Visibility == Visibility.Visible));
             Assert.True(model.GoalFocusHistory.Days[0].IsExpanded);
             Assert.True(model.GoalFocusHistory.Days[0].Sessions.Single(item => item.HasTasks).IsTasksExpanded);
             Assert.Equal(3, Descendants<Border>(history).Count(border => border.Name == "SessionListRow"));
@@ -154,29 +153,26 @@ public sealed class GoalFocusHistoryPresentationTests
             foreach (var row in rows)
             {
                 var session = (GoalFocusSessionViewModel)row.DataContext;
-                var header = Descendants<Button>(row).Single(button => button.Name == "SessionSummaryButton");
-                var summary = Descendants<TextBlock>(row).Single(text => text.Name == "SessionTaskSummary");
-                var details = Descendants<TextBlock>(row).Single(text => text.Name == "SessionDetails");
-                var pill = Descendants<Border>(row).Single(border => border.Name == "SessionTaskPill");
-                Assert.Equal(session.HasTasks, header.IsEnabled);
+                var pill = Descendants<Button>(row).Single(button => button.Name == "SessionTaskPill");
+                var details = Descendants<TextBlock>(row).Single(text => text.Name == "SessionTimeRange");
                 Assert.Equal(session.HasTasks ? Visibility.Visible : Visibility.Collapsed, pill.Visibility);
-                Assert.Equal(session.HasTasks ? Visibility.Visible : Visibility.Collapsed, summary.Visibility);
-                Assert.Equal(session.SessionDetailsDisplay, details.Text);
-                Assert.Equal(session.TaskSummaryDisplay, summary.Text);
+                Assert.Equal(session.TimeRangeDisplay, details.Text);
+                Assert.DoesNotContain("·", details.Text);
+                Assert.Equal(Visibility.Collapsed, Descendants<Border>(row).Single(border => border.Name == "SessionConnector").Visibility);
                 Assert.Single(Descendants<System.Windows.Shapes.Ellipse>(row));
                 if (session.HasTasks)
                 {
                     Assert.Equal(session.TaskCountDisplay, Assert.Single(Descendants<TextBlock>(pill)).Text);
-                    var hitPoint = pill.TranslatePoint(new Point(pill.ActualWidth / 2, pill.ActualHeight / 2), header);
-                    Assert.NotNull(header.InputHitTest(hitPoint));
+                    Assert.True(pill.IsEnabled);
+                    Assert.NotNull(pill.InputHitTest(new Point(pill.ActualWidth / 2, pill.ActualHeight / 2)));
                 }
                 else
                 {
-                    Assert.Equal("14:00 - 14:30 · 30 分钟", details.Text);
+                    Assert.Equal("14:00 - 14:30", details.Text);
                     Assert.Empty(session.TaskToggleDisplay);
+                    Assert.False(pill.IsEnabled);
                 }
-            }
-            var fixedHeader = (FrameworkElement)page.FindName("GoalDetailHeader");
+            }            var fixedHeader = (FrameworkElement)page.FindName("GoalDetailHeader");
             var metrics = (FrameworkElement)page.FindName("GoalInvestmentMetrics");
             var headerHeight = fixedHeader.ActualHeight;
             var metricsHeight = metrics.ActualHeight;
@@ -193,11 +189,9 @@ public sealed class GoalFocusHistoryPresentationTests
             foreach (var parent in parents)
             {
                 var task = (GoalHistoryTaskViewModel)parent.DataContext;
-                var time = Descendants<TextBlock>(parent).Single(text => text.Name == "HistoryTaskCompletionTime");
-                Assert.Equal(task.CompletedTimeDisplay, time.Text);
-                Assert.Matches("^[0-9]{2}:[0-9]{2}$", time.Text);
                 var name = Descendants<TextBlock>(parent).Single(text => text.Text == task.Name);
-                Assert.True(time.TranslatePoint(new Point(), parent).X > name.TranslatePoint(new Point(), parent).X);
+                Assert.Contains(name.TextDecorations, decoration => decoration.Location == TextDecorationLocation.Strikethrough);
+                Assert.Null(parent.FindName("HistoryTaskCompletionTime"));
                 var mark = Descendants<Border>(parent).Single(border => border.Name == "HistoryParentCompletionMark");
                 Assert.Equal(mark.ActualWidth, mark.ActualHeight);
                 Assert.Equal(new CornerRadius(3), mark.CornerRadius);
@@ -213,7 +207,7 @@ public sealed class GoalFocusHistoryPresentationTests
                     foreach (var row in childRows)
                     {
                         var circle = Assert.Single(Descendants<System.Windows.Shapes.Ellipse>(row));
-                        Assert.Equal(0, ((SolidColorBrush)circle.Fill).Color.A);
+                        Assert.Equal(((SolidColorBrush)mark.Background).Color, ((SolidColorBrush)circle.Fill).Color);
                         Assert.Equal(((SolidColorBrush)mark.Background).Color, ((SolidColorBrush)circle.Stroke).Color);
                         Assert.Single(Descendants<System.Windows.Shapes.Path>(row));
                         var bottom = Descendants<Border>(row).Single(border => border.Name == "TaskHierarchySpineBottom");

@@ -95,11 +95,10 @@ public sealed class MainWindowViewModelTests
 
         session.ReturnHomeCommand.Execute(null);
 
-        Assert.True(viewModel.IsFocusResultToastVisible);
-        Assert.Equal("专注已完成", viewModel.FocusResultToastTitle);
-        Assert.Equal("本次专注 1 分钟", viewModel.FocusResultToastSubtitle);
-        Assert.Equal(FocusResultKind.NaturalCompleted, viewModel.FocusResultToastKind);
-        Assert.EndsWith("toast_gouxuan.png", viewModel.FocusResultToastIconSource, StringComparison.Ordinal);
+        Assert.False(viewModel.IsFocusResultToastVisible);
+        Assert.Equal(NavigationPage.Home, viewModel.CurrentPage);
+        Assert.Equal(FocusFlowStage.Idle, session.Stage);
+        Assert.Contains(added, viewModel.StatisticsPage.FocusSessionRecords);
     }
 
     [Fact]
@@ -142,7 +141,7 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
-    public void NaturalFocusToast_IncludesCompletedTasksOnlyWhenCountIsPositive()
+    public void NaturalFocus_ReturnsHomeWithoutToastAndPreservesCompletedTasks()
     {
         var session = new FocusSessionViewModel(runTimer: false);
         var homePage = new HomePageViewModel(
@@ -151,6 +150,7 @@ public sealed class MainWindowViewModelTests
         var home = new NavigationItemViewModel(NavigationPage.Home, "Home", "H");
         var account = new NavigationItemViewModel(NavigationPage.Account, "Account", "A");
         var viewModel = new MainWindowViewModel([home], account, homePage);
+        var recordCount = viewModel.StatisticsPage.FocusSessionRecords.Count;
         var target = new FocusTargetViewModel("学习", ["任务一", "任务二"]);
         session.Start(1, target);
         session.AdvancePreparationBy(TimeSpan.FromSeconds(5));
@@ -160,7 +160,9 @@ public sealed class MainWindowViewModelTests
 
         session.ReturnHomeCommand.Execute(null);
 
-        Assert.Equal("本次专注 1 分钟 · 完成 2 项任务", viewModel.FocusResultToastSubtitle);
+        Assert.False(viewModel.IsFocusResultToastVisible);
+        Assert.Equal(NavigationPage.Home, viewModel.CurrentPage);
+        Assert.Equal(2, Assert.Single(viewModel.StatisticsPage.FocusSessionRecords.Skip(recordCount)).CompletedTaskCount);
     }
 
     [Fact]

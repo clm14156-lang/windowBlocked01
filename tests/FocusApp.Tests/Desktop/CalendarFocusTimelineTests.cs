@@ -106,7 +106,7 @@ public sealed class CalendarFocusTimelineTests
     }
 
     [Fact]
-    public void CalendarContainsOnlyDailyMetricsTimelineAndIndependentRecordList()
+    public void CalendarContainsFixedTimelineAndIndependentDescendingRecordList()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
         while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "FocusApp.sln"))) directory = directory.Parent;
@@ -118,7 +118,7 @@ public sealed class CalendarFocusTimelineTests
             (string?)element.Attribute("Text") is "日均专注" or "时间分布");
         Assert.Single(calendar.Descendants().Where(element => element.Name.LocalName == "CalendarFocusTimeline" &&
             (string?)element.Attribute("Timeline") == "{Binding SelectedDayTimeline}"));
-        Assert.Contains(calendar.Descendants(), element => (string?)element.Attribute("ItemsSource") == "{Binding SelectedDayRecords}");
+        Assert.Contains(calendar.Descendants(), element => (string?)element.Attribute("ItemsSource") == "{Binding SelectedDayRecordEntries}");
         Assert.DoesNotContain(calendar.Descendants(), element => (string?)element.Attribute("ItemsSource") == "{Binding SelectedDayDistributions}");
     }
 

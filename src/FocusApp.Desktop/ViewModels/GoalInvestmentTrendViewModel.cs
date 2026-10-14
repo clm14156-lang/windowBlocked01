@@ -10,12 +10,12 @@ namespace FocusApp.Desktop.ViewModels;
 
 public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
 {
-    internal const double PlotLeft = 44;
-    internal const double PlotRight = 586;
+    internal const double PlotLeft = 48;
+    internal const double PlotRight = 636;
     internal const double PlotTop = 20;
     internal const double PlotBottom = 146;
     public const double TooltipWidth = 132;
-    private const double ChartWidth = 592;
+    private const double ChartWidth = 642;
     private const double TooltipEdgeInset = 8;
     private const double TooltipGap = 12;
     private const double PlotWidth = PlotRight - PlotLeft;
@@ -154,6 +154,9 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
     public GoalInvestmentDurationViewModel PeriodInvestment { get; private set; } = new(0);
     public int ActiveDays { get; private set; }
     public GoalInvestmentDurationViewModel AverageInvestment { get; private set; } = new(0);
+    public GoalInvestmentDurationViewModel DailyAverageInvestment { get; private set; } = new(0);
+    public GoalInvestmentDurationViewModel LongestDayInvestment { get; private set; } = new(0);
+    public string ChartAggregationDisplay => IsMonthRange ? $"{SelectedMonthDisplay} · 按天" : "按天";
     public GoalInvestmentDurationViewModel TotalInvestment { get; private set; } = new(0);
     public GoalInvestmentTrendPointViewModel? HoveredPoint
     {
@@ -386,6 +389,8 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
             TotalInvestment = new GoalInvestmentDurationViewModel(0);
             ActiveDays = 0;
             AverageInvestment = new GoalInvestmentDurationViewModel(0);
+            DailyAverageInvestment = new GoalInvestmentDurationViewModel(0);
+            LongestDayInvestment = new GoalInvestmentDurationViewModel(0);
             TrendPoints.Clear();
             YAxisTicks.Clear();
             SelectedDateRecords.Clear();
@@ -403,7 +408,10 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
                                                      && record.EndTime > start.Date.AddDays(offset)));
         AverageInvestment = new GoalInvestmentDurationViewModel(periodRecords.Length == 0 ? 0
             : (int)Math.Round(PeriodInvestment.TotalMinutes / (double)periodRecords.Length, MidpointRounding.AwayFromZero));
+        DailyAverageInvestment = new GoalInvestmentDurationViewModel(ActiveDays == 0 ? 0
+            : (int)Math.Round(PeriodInvestment.TotalMinutes / (double)ActiveDays, MidpointRounding.AwayFromZero));
         BuildTrend(start.Date, end.Date.AddDays(-1));
+        LongestDayInvestment = new GoalInvestmentDurationViewModel(TrendPoints.Max(point => point.Minutes));
 
         var selectedPoint = TrendPoints.FirstOrDefault(point => point.Date == _selectedDate);
         if (_selectedDate < start.Date || _selectedDate >= end.Date || selectedPoint is null || selectedPoint.Minutes == 0)
@@ -456,7 +464,7 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
             var y = PlotBottom - daily[index].Minutes / (double)maximum * PlotHeight;
             var showLabel = index == 0 || index == count - 1 || index % labelStep == 0;
             TrendPoints.Add(new GoalInvestmentTrendPointViewModel(daily[index].Date, daily[index].Minutes, x, y, showLabel,
-                Math.Min(34, slotWidth * 0.44)));
+                Math.Min(40, slotWidth * 0.48)));
         }
 
         foreach (var minutes in new[] { 0, maximum / 2, maximum }.Distinct())
@@ -507,7 +515,7 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
 
     private void NotifyRangeProperties()
     {
-        foreach (var property in new[] { nameof(IsSevenDaysRange), nameof(IsThirtyDaysRange), nameof(IsMonthRange), nameof(MonthButtonText), nameof(SelectedMonthDisplay), nameof(PeriodInvestmentTitle), nameof(TrendTitle), nameof(OverviewSubtitle), nameof(TrendSubtitle) })
+        foreach (var property in new[] { nameof(IsSevenDaysRange), nameof(IsThirtyDaysRange), nameof(IsMonthRange), nameof(MonthButtonText), nameof(SelectedMonthDisplay), nameof(PeriodInvestmentTitle), nameof(TrendTitle), nameof(OverviewSubtitle), nameof(TrendSubtitle), nameof(ChartAggregationDisplay) })
             OnPropertyChanged(property);
         foreach (var option in AvailableMonths) option.IsSelected = IsMonthRange && option.Month == _selectedMonth;
     }
@@ -517,6 +525,7 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
         foreach (var property in new[]
                  {
                      nameof(PeriodInvestment), nameof(ActiveDays), nameof(AverageInvestment), nameof(TotalInvestment),
+                     nameof(DailyAverageInvestment), nameof(LongestDayInvestment), nameof(ChartAggregationDisplay),
                      nameof(PeriodInvestmentTitle), nameof(InvestmentSummary),
                      nameof(TrendTitle), nameof(OverviewSubtitle), nameof(TrendSubtitle), nameof(MonthButtonText), nameof(SelectedMonthDisplay), nameof(SelectedDateTitle),
                      nameof(SelectedDateSummary), nameof(HasSelectedDateRecords)

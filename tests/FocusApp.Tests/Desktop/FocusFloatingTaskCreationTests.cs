@@ -16,7 +16,7 @@ namespace FocusApp.Tests.Desktop;
 public sealed class FocusFloatingTaskCreationTests
 {
     [Theory]
-    [InlineData(0)] [InlineData(1)] [InlineData(8)]
+    [InlineData(0)] [InlineData(1)] [InlineData(4)] [InlineData(5)] [InlineData(6)] [InlineData(8)]
     public void TabFocusesOneEditorAndEnterCreatesOneSharedPersistedTask(int count)
     {
         Sta(() =>
@@ -40,14 +40,14 @@ public sealed class FocusFloatingTaskCreationTests
             Assert.Equal(44, host.Model.CreationHeight);
             Assert.True(host.Input.IsKeyboardFocused);
             Assert.Equal(300, host.View.ActualWidth);
-            Assert.InRange(host.Model.WindowHeight, 115, 245);
+            Assert.InRange(host.Model.WindowHeight, 115, 301);
             Assert.Equal(timerPosition, timer.TranslatePoint(new Point(), host.View));
             Assert.True(host.View.IsInteractiveRegion(host.Input));
             Assert.Equal(Color.FromRgb(255, 173, 112), ((SolidColorBrush)((Border)host.View.FindName("TaskCreationSurface")).BorderBrush).Color);
             Render(host.View, $"creation-{count}-tasks");
             if (count > 3)
             {
-                Assert.Equal(40, host.Model.TaskListHeight);
+                Assert.Equal(96, host.Model.TaskListHeight);
                 var scroll = (ScrollViewer)host.View.FindName("TaskScrollViewer");
                 Assert.Equal(Visibility.Visible, scroll.ComputedVerticalScrollBarVisibility);
                 scroll.ScrollToBottom(); Pump(20);
@@ -69,7 +69,7 @@ public sealed class FocusFloatingTaskCreationTests
             Pump(230);
             Assert.Equal(Visibility.Collapsed, host.Area.Visibility);
             Assert.Equal(0, host.Model.CreationHeight);
-            Assert.Equal(count == 0 ? 189 : Math.Min(245, originalHeight + 28), host.Model.WindowHeight);
+            Assert.Equal(count == 0 ? 189 : Math.Min(301, originalHeight + 28), host.Model.WindowHeight);
             Assert.Equal(host.Model.WindowHeight, host.Native.Height);
             if (count > 3)
             {
@@ -181,7 +181,7 @@ public sealed class FocusFloatingTaskCreationTests
     {
         var workArea = new Rect(-1920, 0, 1920, 1040);
         var origin = new Point(-300, 925);
-        for (var height = 115; height <= 245; height++)
+        for (var height = 115; height <= 301; height++)
         {
             var bounds = FocusFloatingSnapCalculator.GetFloatingBounds(origin, workArea, height);
             Assert.True(workArea.Contains(bounds));
@@ -189,7 +189,7 @@ public sealed class FocusFloatingTaskCreationTests
         }
         Assert.Equal(origin, FocusFloatingSnapCalculator.GetFloatingBounds(origin, workArea, 115).TopLeft);
         var expanded = FocusFloatingSnapCalculator.GetExpandedBounds(FocusFloatingWindowState.FoldedBottom,
-            new Rect(-220, 990, 160, 50), workArea, 245);
+            new Rect(-220, 990, 160, 50), workArea, 301);
         Assert.True(workArea.Contains(expanded));
         Assert.Equal(workArea.Bottom, expanded.Bottom);
     }

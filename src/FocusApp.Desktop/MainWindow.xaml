@@ -16,8 +16,17 @@
         WindowStyle="None">
     <Grid Width="{Binding HomePage.FocusSession.FocusWindowWidth, FallbackValue=800}">
     <Border Width="800" HorizontalAlignment="Left" BorderBrush="{DynamicResource BorderPrimary}"
-            BorderThickness="1"
             Background="{DynamicResource BackgroundPrimary}">
+        <Border.Style>
+            <Style TargetType="{x:Type Border}">
+                <Setter Property="BorderThickness" Value="1" />
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding HomePage.FocusSession.IsFullScreenVisible}" Value="True">
+                        <Setter Property="BorderThickness" Value="0" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+        </Border.Style>
         <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="72" />

@@ -9,55 +9,25 @@ public sealed class StatisticsOverviewPresentationTests
     private static readonly XNamespace Xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
 
     [Fact]
-    public void CalendarDayMetricsUseTwoLightweightColumnsAndKeepLiveBindings()
+    public void CalendarDayHeaderAndTimelineStayOutsideTheRecordScrollViewer()
     {
         var page = XDocument.Load(Path.Combine(
             FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
-        var card = Assert.Single(page.Descendants(Presentation + "Border").Where(element =>
-            (string?)element.Attribute(Xaml + "Name") == "CalendarDayMetrics"));
-
-        Assert.Equal("96", (string?)card.Attribute("Height"));
-        Assert.Equal("Transparent", (string?)card.Attribute("Background"));
-        Assert.Null(card.Attribute("CornerRadius"));
-
-        var title = Assert.Single(card.Descendants(Presentation + "TextBlock").Where(element =>
-            (string?)element.Attribute(Xaml + "Name") == "CalendarDayFocusTitle"));
-        Assert.Equal("今日专注时长", (string?)title.Attribute("Text"));
-        Assert.Equal("{DynamicResource SecondaryFontSize}", (string?)title.Attribute("FontSize"));
-        Assert.Equal("{DynamicResource TextSecondary}", (string?)title.Attribute("Foreground"));
-
-        var duration = Assert.Single(card.Descendants(Presentation + "TextBlock").Where(element =>
-            (string?)element.Attribute(Xaml + "Name") == "CalendarDayFocusDuration"));
-        var durationRuns = duration.Elements(Presentation + "Run").ToArray();
-        Assert.Equal(4, durationRuns.Length);
-        Assert.Equal("{Binding SelectedDayHoursValueDisplay, Mode=OneWay}", (string?)durationRuns[0].Attribute("Text"));
-        Assert.Equal("{DynamicResource DataValueHeroFontSize}", (string?)durationRuns[0].Attribute("FontSize"));
-        Assert.Equal("{DynamicResource DataValueHeroFontWeight}", (string?)durationRuns[0].Attribute("FontWeight"));
-        Assert.Equal("{Binding SelectedDayHoursUnitDisplay, Mode=OneWay}", (string?)durationRuns[1].Attribute("Text"));
-        Assert.Equal("{DynamicResource BodyFontSize}", (string?)durationRuns[1].Attribute("FontSize"));
-        Assert.Equal("{Binding SelectedDayMinutesValueDisplay, Mode=OneWay}", (string?)durationRuns[2].Attribute("Text"));
-        Assert.Equal("{DynamicResource DataValueHeroFontSize}", (string?)durationRuns[2].Attribute("FontSize"));
-        Assert.Equal("{DynamicResource DataValueHeroFontWeight}", (string?)durationRuns[2].Attribute("FontWeight"));
-        Assert.Equal(" 分钟", (string?)durationRuns[3].Attribute("Text"));
-
-        Assert.DoesNotContain(card.Descendants(Presentation + "Image"), image =>
-            ((string?)image.Attribute("Source"))?.Contains("clock_icon.png") == true);
-        Assert.DoesNotContain(card.Descendants(), element => (string?)element.Attribute(Xaml + "Name") == "CalendarDayFocusCount");
-        Assert.DoesNotContain(card.Descendants(Presentation + "TextBlock"), element => (string?)element.Attribute("Text") == "查看完成任务");
-
-        var completedTasks = Assert.Single(card.Descendants(Presentation + "Grid").Where(element =>
-            (string?)element.Attribute(Xaml + "Name") == "CalendarDayCompletedTaskMetric"));
-        Assert.Contains(completedTasks.Descendants(Presentation + "Run"), run =>
-            (string?)run.Attribute("Text") == "{Binding SelectedDayCompletedTasks, Mode=OneWay}");
-        Assert.DoesNotContain(completedTasks.Descendants(), element =>
-            element.Name.LocalName is "Button" or "ToggleButton" or "ControlTemplate");
-        Assert.Null(completedTasks.Attribute("Cursor"));
-        var completedTitle = Assert.Single(completedTasks.Descendants(Presentation + "TextBlock").Where(element =>
-            (string?)element.Attribute(Xaml + "Name") == "CalendarDayCompletedTaskTitle"));
-        Assert.Equal((string?)title.Attribute("FontSize"), (string?)completedTitle.Attribute("FontSize"));
-        Assert.Equal((string?)title.Attribute("Foreground"), (string?)completedTitle.Attribute("Foreground"));
-        Assert.DoesNotContain(page.Descendants(), element =>
-            (string?)element.Attribute(Xaml + "Name") is "CompletedTasksPopup" or "CalendarDayCompletedTaskChevron");
+        XElement Named(string name) => Assert.Single(page.Descendants().Where(element =>
+            (string?)element.Attribute(Xaml + "Name") == name));
+        var detail = Named("DailyFocusRecordContent");
+        var header = Named("CalendarDayHeader");
+        var timeline = Named("CalendarDayTimeline");
+        var scroll = Named("CalendarRecordsScrollViewer");
+        Assert.Same(detail, header.Parent);
+        Assert.Same(detail, timeline.Parent);
+        Assert.Same(detail, scroll.Parent);
+        Assert.Equal("{Binding SelectedDayCompactDurationDisplay}", (string?)Named("CalendarDayFocusDuration").Attribute("Text"));
+        Assert.Equal("True", (string?)timeline.Attribute("InlineRecordDetails"));
+        Assert.Equal("Auto", (string?)scroll.Attribute("VerticalScrollBarVisibility"));
+        Assert.DoesNotContain(detail.Descendants(), element => (string?)element.Attribute(Xaml + "Name") is
+            "CalendarDayMetrics" or "CalendarDayCompletedTaskMetric");
+        Assert.DoesNotContain(detail.Descendants(Presentation + "TextBlock"), text => (string?)text.Attribute("Text") == "时间记录");
     }
     [Fact]
     public void SelectedCalendarDayUsesOrangeHighlightAndWhiteText()
@@ -330,9 +300,9 @@ public sealed class StatisticsOverviewPresentationTests
                 (string?)setter.Attribute("Property") == "Visibility" &&
                 (string?)setter.Attribute("Value") == "Visible"));
         Assert.Contains(content.Descendants(Presentation + "TextBlock"), text =>
-            (string?)text.Attribute("Text") == "{Binding SelectedDateDisplay}");
+            (string?)text.Attribute("Text") == "{Binding SelectedDayDateDisplay}");
         Assert.Contains(content.Descendants(Presentation + "ItemsControl"), control =>
-            (string?)control.Attribute("ItemsSource") == "{Binding SelectedDayRecords}");
+            (string?)control.Attribute("ItemsSource") == "{Binding SelectedDayRecordEntries}");
 
         var locked = Assert.Single(card.Descendants(Presentation + "Grid").Where(element =>
             (string?)element.Attribute(Xaml + "Name") == "DailyFocusRecordLockedPlaceholder"));

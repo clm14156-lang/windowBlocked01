@@ -20,11 +20,13 @@ public sealed class FocusCompletionViewModelTests
         for (var index = 0; index < 300; index++) model.AdvanceOneSecond();
         Assert.True(model.IsCompleted); Assert.Equal(dark, model.IsDarkFocusTheme);
         var message = model.CompletionSubtitle;
+        var summary = model.CompletionTodayStatistics;
         now = now.AddDays(1).Date.AddHours(dark ? 12 : 23);
         for (var index = 0; index < 20; index++) model.RefreshFocusAppearance();
         var nextMode = dark ? FocusThemeMode.Light : FocusThemeMode.Dark;
         model.ApplyFocusTheme(nextMode);
         Assert.Equal(dark, model.IsDarkFocusTheme); Assert.Equal(message, model.CompletionSubtitle);
+        Assert.Equal(summary, model.CompletionTodayStatistics);
         model.FocusAgainCommand.Execute(null);
         Assert.True(model.IsFocusing); Assert.Equal(!dark, model.IsDarkFocusTheme);
     }
@@ -69,13 +71,13 @@ public sealed class FocusCompletionViewModelTests
         model.Start(5); model.AdvancePreparationBy(TimeSpan.FromSeconds(5));
         for (var tick = 0; tick < 300; tick++) { now = now.AddSeconds(1); model.AdvanceOneSecond(); }
         var current = Saved(now, 300);
-        Assert.Equal("今日累计 35 分钟 · 完成 2 次", model.CompletionTodayStatistics);
+        Assert.Equal("今日累计 35 分钟 · 12:05完成", model.CompletionTodayStatistics);
         var changes = 0;
         model.PropertyChanged += (_, args) => { if (args.PropertyName == nameof(model.CompletionTodayStatistics)) changes++; };
         statistics.ApplyState(state with { Revision = 2, FocusSessions = [priorDay, earlier, invalid, current] });
-        Assert.Equal("今日累计 35 分钟 · 完成 2 次", model.CompletionTodayStatistics);
+        Assert.Equal("今日累计 35 分钟 · 12:05完成", model.CompletionTodayStatistics);
         statistics.ApplyState(state with { Revision = 3, FocusSessions = [priorDay, earlier, invalid, current] });
-        Assert.Equal("今日累计 35 分钟 · 完成 2 次", model.CompletionTodayStatistics);
+        Assert.Equal("今日累计 35 分钟 · 12:05完成", model.CompletionTodayStatistics);
         Assert.True(changes > 0); Assert.Single(model.CompletionHistory);
     }
 
@@ -86,7 +88,7 @@ public sealed class FocusCompletionViewModelTests
         var model = new FocusSessionViewModel(() => now, false);
         model.Start(5); model.AdvancePreparationBy(TimeSpan.FromSeconds(5));
         for (var index = 0; index < 300; index++) { now = now.AddSeconds(1); model.AdvanceOneSecond(); }
-        Assert.Equal("今日累计 3 分钟 · 完成 1 次", model.CompletionTodayStatistics);
+        Assert.Equal("今日累计 3 分钟 · 00:03完成", model.CompletionTodayStatistics);
     }
 
     [Fact]
@@ -96,7 +98,7 @@ public sealed class FocusCompletionViewModelTests
         var model = new FocusSessionViewModel(() => now, false);
         model.Start(5); model.AdvancePreparationBy(TimeSpan.FromSeconds(5));
         for (var index = 0; index < 300; index++) { now = now.AddSeconds(1); model.AdvanceOneSecond(); }
-        Assert.Equal("今日累计 0 分钟 · 完成 1 次", model.CompletionTodayStatistics);
+        Assert.Equal("今日累计 0 分钟 · 00:00完成", model.CompletionTodayStatistics);
     }
 
     [Fact]
@@ -112,7 +114,7 @@ public sealed class FocusCompletionViewModelTests
             new SettingsPageViewModel([], []), new BlockingPageViewModel([], [], "", ""), statistics);
         model.Start(5); model.AdvancePreparationBy(TimeSpan.FromSeconds(5));
         for (var tick = 0; tick < 300; tick++) { now = now.AddSeconds(1); model.AdvanceOneSecond(); }
-        Assert.Equal("今日累计 7 分钟 · 完成 1 次", model.CompletionTodayStatistics);
+        Assert.Equal("今日累计 7 分钟 · 12:05完成", model.CompletionTodayStatistics);
     }
 
     private static LocalFocusSessionDto Saved(DateTime end, int seconds) => new(

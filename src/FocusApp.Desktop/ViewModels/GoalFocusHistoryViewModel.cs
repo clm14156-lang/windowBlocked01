@@ -59,11 +59,16 @@ public sealed class GoalFocusHistoryViewModel(Func<DateTime> now) : INotifyPrope
                          .GroupBy(record => record.StartTime.Date).OrderByDescending(group => group.Key))
             {
                 oldDays.TryGetValue(group.Key, out var oldDay);
-                var sessions = group.OrderByDescending(record => record.StartTime).Select(record =>
+                var ordered = group.OrderByDescending(record => record.StartTime).ThenByDescending(record => record.EndTime).ToArray();
+                var sessions = ordered.Select((record, index) =>
                 {
                     var previous = oldDay?.Sessions.FirstOrDefault(session => ReferenceEquals(session.Record, record) ||
                         record.SessionId is { } id && session.Record.SessionId == id);
-                    return new GoalFocusSessionViewModel(record, ReadTasks(record, tasksById), previous?.IsTasksExpanded == true);
+                    var next = index + 1 < ordered.Length ? ordered[index + 1] : null;
+                    return new GoalFocusSessionViewModel(record, ReadTasks(record, tasksById), previous?.IsTasksExpanded == true,
+                        FocusRecordTimelineRules.GetGap(record, next),
+                        index > 0 && FocusRecordTimelineRules.Connect(ordered[index - 1], record),
+                        FocusRecordTimelineRules.Connect(record, next));
                 }).ToArray();
                 Days.Add(new GoalFocusDayViewModel(group.Key, now().Date, sessions, oldDay?.IsExpanded == true));
             }
@@ -112,7 +117,7 @@ public sealed class GoalFocusDayViewModel : INotifyPropertyChanged
         _isExpanded = expanded;
         DateDisplay = date == today ? $"今天 · {date:M月d日}" : date == today.AddDays(-1) ? $"昨天 · {date:M月d日}" : $"{date:M月d日}";
         var minutes = (int)TimeSpan.FromTicks(sessions.Sum(session => (session.Record.EndTime - session.Record.StartTime).Ticks)).TotalMinutes;
-        SummaryDisplay = $"{new GoalInvestmentDurationViewModel(minutes).Display} · {sessions.Count}次专注";
+        SummaryDisplay = new GoalInvestmentDurationViewModel(minutes).Display;
         ToggleCommand = new RelayCommand<object>(_ => IsExpanded = !IsExpanded);
     }
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -131,10 +136,14 @@ public sealed class GoalFocusDayViewModel : INotifyPropertyChanged
 public sealed class GoalFocusSessionViewModel : INotifyPropertyChanged
 {
     private bool _isTasksExpanded;
-    public GoalFocusSessionViewModel(FocusSessionRecordViewModel record, IReadOnlyList<GoalHistoryTaskViewModel> tasks, bool expanded)
+    public GoalFocusSessionViewModel(FocusSessionRecordViewModel record, IReadOnlyList<GoalHistoryTaskViewModel> tasks, bool expanded,
+        TimeSpan gap = default, bool connectsFromPrevious = false, bool connectsToNext = false)
     {
         Record = record;
         Tasks = tasks;
+        Gap = gap;
+        ConnectsFromPrevious = connectsFromPrevious;
+        ConnectsToNext = connectsToNext;
         _isTasksExpanded = expanded && tasks.Count > 0;
         ToggleTasksCommand = new RelayCommand<object>(_ => IsTasksExpanded = !IsTasksExpanded, _ => HasTasks);
     }
@@ -148,8 +157,13 @@ public sealed class GoalFocusSessionViewModel : INotifyPropertyChanged
     public string TaskSummaryDisplay => string.Join(" · ", Tasks.Take(2).Select(task => task.Name)) + (Tasks.Count > 2 ? "…" : string.Empty);
     public IReadOnlyList<GoalHistoryTaskViewModel> Tasks { get; }
     public bool HasTasks => Tasks.Count > 0;
+    public TimeSpan Gap { get; }
+    public bool HasGap => FocusRecordTimelineRules.ShowGap(Gap);
+    public bool ConnectsFromPrevious { get; }
+    public bool ConnectsToNext { get; }
+    public string GapDisplay => $"间隔 {(Gap < TimeSpan.FromMinutes(1) ? "不足1分钟" : new GoalInvestmentDurationViewModel((int)Gap.TotalMinutes).Display)}";
     public int TaskCount => Tasks.Count;
-    public string TaskCountDisplay => $"{Tasks.Count}项任务";
+    public string TaskCountDisplay => $"{Tasks.Count}个任务";
     public string TaskToggleDisplay => !HasTasks ? string.Empty : IsTasksExpanded ? $"收起{Tasks.Count}项历史任务" : $"查看{Tasks.Count}项历史任务";
     public ICommand ToggleTasksCommand { get; }
     public bool IsTasksExpanded

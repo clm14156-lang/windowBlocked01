@@ -408,7 +408,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             var date = _completedAt == default ? _nowProvider().Date : _completedAt.Date;
             var summary = _completionStatisticsProvider?.Invoke(date, LastCompletion)
                 ?? FocusCompletionStatistics.Summarize(_completionHistory, date);
-            return $"今日累计 {summary.FocusMinutes} 分钟 · 完成 {summary.SessionCount} 次";
+            return $"今日累计 {summary.FocusMinutes} 分钟 · {_completedAt.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture)}完成";
         }
     }
 

@@ -15,6 +15,29 @@
     <UserControl.Resources>
         <sys:Boolean x:Key="SelectedRangeValue">True</sys:Boolean>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        <SolidColorBrush x:Key="TrendSummaryBackground" Color="#F7F7F9"/>
+        <SolidColorBrush x:Key="TrendSegmentBackground" Color="#F7F7F9"/>
+        <SolidColorBrush x:Key="TrendSegmentSelectedBackground" Color="#FFF6EF"/>
+        <SolidColorBrush x:Key="TrendSegmentSelectedBorder" Color="#FFE8D7"/>
+        <Style x:Key="TrendMetricCard" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource TrendSummaryBackground}"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="16,12"/>
+        </Style>
+        <Style x:Key="TrendMetricLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="{DynamicResource BodyFontSize}"/>
+            <Setter Property="FontWeight" Value="{DynamicResource BodyFontWeight}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+        </Style>
+        <Style x:Key="TrendMetricValue" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{DynamicResource FontFamilyNumeric}"/>
+            <Setter Property="FontSize" Value="{DynamicResource DataValueLargeFontSize}"/>
+            <Setter Property="FontWeight" Value="{DynamicResource DataValueLargeFontWeight}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+        </Style>
+        <DataTemplate x:Key="TrendMetricDuration">
+            <TextBlock Style="{StaticResource TrendMetricValue}"><Run Text="{Binding HoursValue, Mode=OneWay}"/><Run Text="{Binding HoursUnitWithLeadingSpace, Mode=OneWay}" FontFamily="{DynamicResource FontFamilyPrimary}" FontSize="{DynamicResource BodyFontSize}" FontWeight="{DynamicResource BodyFontWeight}"/><Run Text="{Binding MinutesValueWithLeadingSpace, Mode=OneWay}"/><Run Text="{Binding MinutesUnitWithLeadingSpace, Mode=OneWay}" FontFamily="{DynamicResource FontFamilyPrimary}" FontSize="{DynamicResource BodyFontSize}" FontWeight="{DynamicResource BodyFontWeight}"/></TextBlock>
+        </DataTemplate>
         <Style TargetType="{x:Type TextBlock}">
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
         </Style>
@@ -28,19 +51,19 @@
             <TextBlock Text="{Binding}" Style="{StaticResource TrendRangeLabel}"/>
         </DataTemplate>
         <Style x:Key="TrendRangeButton" TargetType="Button">
-            <Setter Property="Height" Value="32"/><Setter Property="Padding" Value="12,0"/>
+            <Setter Property="Height" Value="36"/><Setter Property="Padding" Value="12,0"/>
             <Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Foreground" Value="#9AA2AF"/><Setter Property="FontSize" Value="{DynamicResource BodyFontSize}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/><Setter Property="FontSize" Value="{DynamicResource BodyFontSize}"/>
             <Setter Property="FontFamily" Value="Segoe UI Variable, Microsoft YaHei UI, Segoe UI"/><Setter Property="FontWeight" Value="{DynamicResource BodyFontWeight}"/>
             <Setter Property="Cursor" Value="Hand"/><Setter Property="FocusVisualStyle" Value="{x:Null}"/>
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
-                <Border x:Name="Surface" Padding="{TemplateBinding Padding}" Background="Transparent">
+                <Border x:Name="Surface" Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}" CornerRadius="12" BorderThickness="1" BorderBrush="Transparent">
                     <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" TextElement.Foreground="{TemplateBinding Foreground}"/>
                 </Border>
                 <ControlTemplate.Triggers>
-                    <Trigger Property="IsMouseOver" Value="True"><Setter Property="Foreground" Value="#778294"/></Trigger>
-                    <Trigger Property="IsKeyboardFocused" Value="True"><Setter Property="Foreground" Value="#778294"/></Trigger>
-                    <Trigger Property="Tag" Value="{StaticResource SelectedRangeValue}"><Setter Property="Foreground" Value="{DynamicResource AccentPrimary}"/><Setter Property="FontWeight" Value="{DynamicResource BodyMediumFontWeight}"/></Trigger>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Surface" Property="Background" Value="{DynamicResource ControlHoverBackground}"/></Trigger>
+                    <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Surface" Property="BorderBrush" Value="{DynamicResource AccentSoftBorder}"/></Trigger>
+                    <Trigger Property="Tag" Value="{StaticResource SelectedRangeValue}"><Setter Property="Foreground" Value="{DynamicResource AccentPrimary}"/><Setter Property="FontWeight" Value="{DynamicResource BodyMediumFontWeight}"/><Setter TargetName="Surface" Property="Background" Value="{StaticResource TrendSegmentSelectedBackground}"/><Setter TargetName="Surface" Property="BorderBrush" Value="{StaticResource TrendSegmentSelectedBorder}"/></Trigger>
                     <Trigger Property="IsPressed" Value="True"><Setter TargetName="Surface" Property="Opacity" Value="0.8"/></Trigger>
                 </ControlTemplate.Triggers>
             </ControlTemplate></Setter.Value></Setter>
@@ -81,36 +104,22 @@
         </Style>
     </UserControl.Resources>
     <Grid Background="{DynamicResource ModalScrim}" MouseDown="Overlay_MouseDown">
-        <Border x:Name="TrendModalCard" Width="650" Height="420" HorizontalAlignment="Center" VerticalAlignment="Center"
+        <Border x:Name="TrendModalCard" Width="700" Height="448" HorizontalAlignment="Center" VerticalAlignment="Center"
                 Background="White" BorderBrush="#E8E9EC" BorderThickness="1" CornerRadius="18" MouseDown="ModalCard_MouseDown">
             <Border.Effect><DropShadowEffect BlurRadius="24" ShadowDepth="4" Direction="270" Opacity="0.10"/></Border.Effect>
             <Grid x:Name="CloseButtonHost">
             <Grid Margin="28,24">
-                <Grid.RowDefinitions><RowDefinition Height="60"/><RowDefinition Height="80"/><RowDefinition Height="30"/><RowDefinition/></Grid.RowDefinitions>
-                <StackPanel Margin="0,0,38,0">
-                    <TextBlock Text="{Binding GoalName}" FontSize="{DynamicResource DialogTitleFontSize}" FontWeight="{DynamicResource DialogTitleFontWeight}" Foreground="#17202C" TextTrimming="CharacterEllipsis" ToolTip="{Binding GoalRemark}"/>
-                    <TextBlock Text="投入趋势" FontSize="{DynamicResource SecondaryFontSize}" FontWeight="{DynamicResource SecondaryFontWeight}" Foreground="#8D96A8" Margin="0,4,0,0"/>
+                <Grid.RowDefinitions><RowDefinition Height="64"/><RowDefinition Height="12"/><RowDefinition Height="84"/><RowDefinition Height="20"/><RowDefinition Height="24"/><RowDefinition Height="6"/><RowDefinition Height="188"/></Grid.RowDefinitions>
+                <StackPanel Margin="0,0,260,0">
+                    <TextBlock Text="{Binding GoalName}" FontSize="{DynamicResource DialogTitleFontSize}" FontWeight="{DynamicResource DialogTitleFontWeight}" Foreground="{DynamicResource TextPrimary}" TextTrimming="CharacterEllipsis" ToolTip="{Binding GoalRemark}"/>
+                    <TextBlock Text="投入趋势" FontSize="{DynamicResource BodyFontSize}" FontWeight="{DynamicResource BodyFontWeight}" Foreground="{DynamicResource TextSecondary}" Margin="0,6,0,0"/>
                 </StackPanel>
-                <StackPanel x:Name="InvestmentSummary" Grid.Row="1" HorizontalAlignment="Left">
-                    <TextBlock x:Name="InvestmentDuration" Foreground="#17202C" FontSize="{DynamicResource DataValueDisplayFontSize}" FontWeight="{DynamicResource DataValueDisplayFontWeight}">
-                        <Run Text="{Binding PeriodInvestment.HoursValue, Mode=OneWay}"/>
-                        <Run Text="{Binding PeriodInvestment.HoursUnitWithLeadingSpace, Mode=OneWay}" FontSize="{DynamicResource BodyFontSize}" FontWeight="{DynamicResource BodyFontWeight}"/>
-                        <Run Text="{Binding PeriodInvestment.MinutesValueWithLeadingSpace, Mode=OneWay}"/>
-                        <Run Text="{Binding PeriodInvestment.MinutesUnitWithLeadingSpace, Mode=OneWay}" FontSize="{DynamicResource BodyFontSize}" FontWeight="{DynamicResource BodyFontWeight}"/>
-                    </TextBlock>
-                    <TextBlock Text="{Binding InvestmentSummary}" Margin="0,5,0,0" FontSize="{DynamicResource SecondaryFontSize}" FontWeight="{DynamicResource SecondaryFontWeight}" Foreground="#8D96A8"/>
-                </StackPanel>
-                <Border x:Name="RangeSelectorSurface" Grid.Row="1" Height="34" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,8,0,0" Background="Transparent" BorderThickness="0">
+                <Border x:Name="RangeSelectorSurface" Width="228" Height="36" HorizontalAlignment="Right" VerticalAlignment="Bottom" Background="{StaticResource TrendSegmentBackground}" CornerRadius="12" BorderThickness="0">
                     <Grid>
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="72"/><ColumnDefinition Width="78"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
                         <Button Content="近7天" ContentTemplate="{StaticResource TrendRangeTextContent}" Tag="{Binding IsSevenDaysRange}" Style="{StaticResource TrendRangeButton}" Command="{Binding SelectSevenDaysCommand}"/>
                         <Button Grid.Column="1" Content="近30天" ContentTemplate="{StaticResource TrendRangeTextContent}" Tag="{Binding IsThirtyDaysRange}" Style="{StaticResource TrendRangeButton}" Command="{Binding SelectThirtyDaysCommand}"/>
-                        <Button x:Name="MonthRangeButton" Grid.Column="2" MinWidth="92" Tag="{Binding IsMonthRange}" Style="{StaticResource TrendRangeButton}" Command="{Binding SelectMonthModeCommand}">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="{Binding MonthButtonText}" Style="{StaticResource TrendRangeLabel}"/>
-                                <Path Data="M 0,0 L 4,4 L 8,0" Width="8" Height="4" Margin="7,0,0,0" VerticalAlignment="Center" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/>
-                            </StackPanel>
-                        </Button>
+                        <Button x:Name="MonthRangeButton" Grid.Column="2" Content="{Binding MonthButtonText}" ContentTemplate="{StaticResource TrendRangeTextContent}" Tag="{Binding IsMonthRange}" Style="{StaticResource TrendRangeButton}" Command="{Binding SelectMonthModeCommand}"/>
                         <Popup x:Name="MonthPickerPopup" Grid.Column="2" HorizontalOffset="-78" VerticalOffset="4" IsOpen="{Binding IsMonthMenuOpen, Mode=TwoWay}" Placement="Bottom" PlacementTarget="{Binding ElementName=MonthRangeButton}" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
                             <Border x:Name="MonthPickerSurface" Width="180" Padding="6" Margin="8" Background="White" BorderBrush="#ECEEF1" BorderThickness="1" CornerRadius="9">
                                 <Border.Effect><DropShadowEffect BlurRadius="16" ShadowDepth="3" Opacity="0.12"/></Border.Effect>
@@ -137,21 +146,52 @@
                         </Popup>
                     </Grid>
                 </Border>
-                <Border x:Name="TrendChartCard" Grid.Row="3" Background="Transparent">
+                <Grid x:Name="InvestmentSummary" Grid.Row="2">
+                    <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="8"/><ColumnDefinition/><ColumnDefinition Width="8"/><ColumnDefinition/><ColumnDefinition Width="8"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                    <Border x:Name="PeriodInvestmentCard" Style="{StaticResource TrendMetricCard}">
+                        <Grid><Grid.RowDefinitions><RowDefinition Height="18"/><RowDefinition Height="6"/><RowDefinition/></Grid.RowDefinitions>
+                            <TextBlock Text="累计投入" Style="{StaticResource TrendMetricLabel}"/>
+                            <Viewbox Grid.Row="2" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" VerticalAlignment="Center"><ContentControl Content="{Binding PeriodInvestment}" ContentTemplate="{StaticResource TrendMetricDuration}"/></Viewbox>
+                        </Grid>
+                    </Border>
+                    <Border x:Name="DailyAverageInvestmentCard" Grid.Column="2" Style="{StaticResource TrendMetricCard}">
+                        <Grid><Grid.RowDefinitions><RowDefinition Height="18"/><RowDefinition Height="6"/><RowDefinition/></Grid.RowDefinitions>
+                            <TextBlock Text="日均投入" Style="{StaticResource TrendMetricLabel}" ToolTip="所选范围的累计投入除以活跃天数"/>
+                            <Viewbox Grid.Row="2" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" VerticalAlignment="Center"><ContentControl Content="{Binding DailyAverageInvestment}" ContentTemplate="{StaticResource TrendMetricDuration}"/></Viewbox>
+                        </Grid>
+                    </Border>
+                    <Border x:Name="ActiveDaysCard" Grid.Column="4" Style="{StaticResource TrendMetricCard}">
+                        <Grid><Grid.RowDefinitions><RowDefinition Height="18"/><RowDefinition Height="6"/><RowDefinition/></Grid.RowDefinitions>
+                            <TextBlock Text="活跃天数" Style="{StaticResource TrendMetricLabel}"/>
+                            <Viewbox Grid.Row="2" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" VerticalAlignment="Center"><TextBlock Style="{StaticResource TrendMetricValue}"><Run Text="{Binding ActiveDays, Mode=OneWay}"/><Run Text=" 天" FontFamily="{DynamicResource FontFamilyPrimary}" FontSize="{DynamicResource BodyFontSize}" FontWeight="{DynamicResource BodyFontWeight}"/></TextBlock></Viewbox>
+                        </Grid>
+                    </Border>
+                    <Border x:Name="LongestDayInvestmentCard" Grid.Column="6" Style="{StaticResource TrendMetricCard}">
+                        <Grid><Grid.RowDefinitions><RowDefinition Height="18"/><RowDefinition Height="6"/><RowDefinition/></Grid.RowDefinitions>
+                            <TextBlock Text="最长单日" Style="{StaticResource TrendMetricLabel}"/>
+                            <Viewbox Grid.Row="2" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" VerticalAlignment="Center"><ContentControl Content="{Binding LongestDayInvestment}" ContentTemplate="{StaticResource TrendMetricDuration}"/></Viewbox>
+                        </Grid>
+                    </Border>
+                </Grid>
+                <Grid x:Name="TrendChartHeading" Grid.Row="4">
+                    <TextBlock Text="投入趋势" FontSize="{DynamicResource SectionTitleFontSize}" FontWeight="{DynamicResource SectionTitleFontWeight}" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding ChartAggregationDisplay}" FontSize="{DynamicResource BodyFontSize}" FontWeight="{DynamicResource BodyFontWeight}" Foreground="{DynamicResource TextSecondary}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                </Grid>
+                <Border x:Name="TrendChartCard" Grid.Row="6" Background="Transparent">
                     <views:GoalInvestmentTrendChart x:Name="TrendChart" HorizontalAlignment="Center" VerticalAlignment="Top"/>
                 </Border>
-                <Canvas Grid.RowSpan="4" Panel.ZIndex="6" IsHitTestVisible="False">
+                <Canvas Grid.RowSpan="7" Panel.ZIndex="6" IsHitTestVisible="False">
                     <Border x:Name="TrendTooltip" Canvas.Left="{Binding TooltipLeft}"
                             Width="132" Height="{Binding TooltipHeight}" Padding="12,10" Background="White" BorderBrush="#F0F1F4" BorderThickness="1" CornerRadius="9"
                             Visibility="{Binding IsTooltipOpen, Converter={StaticResource BooleanToVisibilityConverter}}">
-                        <Border.RenderTransform><TransformGroup><TranslateTransform Y="{Binding TooltipTop}"/><TranslateTransform Y="170"/></TransformGroup></Border.RenderTransform>
+                        <Border.RenderTransform><TransformGroup><TranslateTransform Y="{Binding TooltipTop}"/><TranslateTransform Y="210"/></TransformGroup></Border.RenderTransform>
                         <Border.Effect><DropShadowEffect BlurRadius="16" ShadowDepth="3" Direction="270" Opacity="0.09"/></Border.Effect>
                         <StackPanel>
-                            <TextBlock Text="{Binding HoveredPoint.TooltipDateDisplay}" FontSize="11" Foreground="#8D96A8"/>
+                            <TextBlock Text="{Binding HoveredPoint.TooltipDateDisplay}" FontSize="{DynamicResource SecondaryFontSize}" Foreground="{DynamicResource TextSecondary}"/>
                             <TextBlock Text="{Binding HoverDayDurationDisplay}" Margin="0,4,0,0" FontSize="13" FontWeight="SemiBold" Foreground="#17202C"/>
                             <StackPanel x:Name="TooltipTaskCount" Orientation="Horizontal" Margin="0,5,0,0" Visibility="{Binding HasHoverDayTasks, Converter={StaticResource BooleanToVisibilityConverter}}">
                                 <Grid Width="11" Height="11" Margin="0,0,5,0" VerticalAlignment="Center"><Ellipse Fill="#FFA45D"/><Path Data="M 2.5,5.5 L 4.5,7.5 L 8,3.5" Stroke="White" StrokeThickness="1.1" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/></Grid>
-                                <TextBlock Text="{Binding HoverTaskCountDisplay}" FontSize="10.5" Foreground="#677386"/>
+                                <TextBlock Text="{Binding HoverTaskCountDisplay}" FontSize="{DynamicResource SecondaryFontSize}" Foreground="{DynamicResource TextSecondary}"/>
                             </StackPanel>
                         </StackPanel>
                     </Border>

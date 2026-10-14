@@ -24,7 +24,7 @@ public sealed class FocusCompletionPresentationTests
     {
         Sta(() =>
         {
-            var now = new DateTime(2026, 10, 12, 14, 0, 0);
+            var now = new DateTime(2026, 10, 12, 21, 40, 0);
             var session = new FocusSessionViewModel(() => now, false);
             session.ApplyFocusTheme(dark ? FocusThemeMode.Dark : FocusThemeMode.Light);
             var target = hasTarget ? new FocusTargetViewModel("Windows屏蔽软件开发", ["保留任务"]) : null;
@@ -77,10 +77,10 @@ public sealed class FocusCompletionPresentationTests
                 var targetRow = Named<Grid>(view, "CompletionTarget");
                 Assert.Equal(hasTarget, targetRow.IsVisible);
                 var statistics = Named<TextBlock>(view, "CompletionStatistics");
-                Assert.Equal("今日累计 5 分钟 · 完成 1 次", statistics.Text);
+                Assert.Equal("今日累计 5 分钟 · 21:45完成", statistics.Text);
                 var timeBottom = Bounds((FrameworkElement)time.Parent, view).Bottom;
                 var statisticsBounds = Bounds(statistics, view);
-                Assert.Equal(timeBottom + 8 + 15 + (hasTarget ? 42 : 0), statisticsBounds.Top + statisticsBounds.Height / 2, 3);
+                Assert.Equal(timeBottom - 4 + 15 + (hasTarget ? 32 : 0), statisticsBounds.Top + statisticsBounds.Height / 2, 3);
                 Assert.Equal(400, statisticsBounds.Left + statisticsBounds.Width / 2, 3);
                 if (hasTarget)
                 {

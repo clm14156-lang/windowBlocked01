@@ -14,11 +14,10 @@ public partial class GoalCompletedTasksModal : UserControl
         CloseMenus();
         if (IsVisible) { TasksScrollViewer.ScrollToTop(); Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() => { if (IsVisible) SearchInput.Focus(); })); }
     }
-    private void CloseMenus() { SortToggle.IsChecked = false; if (_taskMenu is not null) _taskMenu.IsChecked = false; _taskMenu = null; }
+    private void CloseMenus() { if (_taskMenu is not null) _taskMenu.IsChecked = false; _taskMenu = null; }
     private void TaskMore_Click(object sender, RoutedEventArgs e)
     { if (_taskMenu is not null && !ReferenceEquals(_taskMenu, sender)) _taskMenu.IsChecked = false; _taskMenu = (ToggleButton)sender; }
     private void TaskOperation_Click(object sender, RoutedEventArgs e) => CloseMenus();
-    private void SortOption_Click(object sender, RoutedEventArgs e) => SortToggle.IsChecked = false;
     private void Overlay_MouseDown(object sender, MouseButtonEventArgs e)
     { if (ReferenceEquals(e.OriginalSource, Overlay) && DataContext is GoalCompletedTasksViewModel model) model.CloseCommand.Execute(null); }
     private void Modal_PreviewKeyDown(object sender, KeyEventArgs e)

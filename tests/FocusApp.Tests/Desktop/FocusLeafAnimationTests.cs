@@ -38,7 +38,9 @@ public sealed class FocusLeafAnimationTests
                 Assert.Equal(Bounds(rule, layer.Parent as Visual ?? view).Top, layer.Viewport.ClipHeight, 5);
                 var originalTime = session.RemainingFocusSeconds;
                 var elements = new[] { "FocusGreeting", "FocusCenter", "FocusCharacter", "FocusCharacterShadow", "FocusFooterActions" };
-                var before = elements.ToDictionary(name => name, name => Bounds((FrameworkElement)view.FindName(name), view));
+                var before = elements.ToDictionary(name => name, name => name == "FocusCharacter"
+                    ? System.Windows.Controls.Primitives.LayoutInformation.GetLayoutSlot((FrameworkElement)view.FindName(name))
+                    : Bounds((FrameworkElement)view.FindName(name), view));
                 SeekState(layer, FocusWeatherState.Breeze);
                 Assert.True(layer.IsRendering);
                 Pump(180); Assert.True(layer.FrameCount > frames);
@@ -70,7 +72,9 @@ public sealed class FocusLeafAnimationTests
                 Assert.Null(WindowReference(layer));
                 host.Content = view; Pump(50); Assert.True(layer.IsScheduled);
                 Assert.Equal(state, layer.Controller.State);
-                foreach (var name in elements) Assert.Equal(before[name], Bounds((FrameworkElement)view.FindName(name), view));
+                foreach (var name in elements) Assert.Equal(before[name], name == "FocusCharacter"
+                    ? System.Windows.Controls.Primitives.LayoutInformation.GetLayoutSlot((FrameworkElement)view.FindName(name))
+                    : Bounds((FrameworkElement)view.FindName(name), view));
                 Assert.Equal(originalTime, session.RemainingFocusSeconds);
                 ((Button)view.FindName("FocusViewTasksButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 Assert.True(session.TaskDrawer.IsOpen);

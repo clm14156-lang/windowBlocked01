@@ -1,8 +1,20 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <LinearGradientBrush x:Key="FocusEndDialogBackground" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#182333" Offset="0" />
+        <GradientStop Color="#111D2C" Offset="0.6" />
+        <GradientStop Color="#172232" Offset="1" />
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="FocusEndDialogBorder" Color="#2D394D" />
+    <SolidColorBrush x:Key="FocusEndTitleBrush" Color="#F7F9FC" />
+    <SolidColorBrush x:Key="FocusEndSecondaryBrush" Color="#A5AFC3" />
+    <SolidColorBrush x:Key="FocusAgainCancelBorder" Color="#59667C" />
+    <SolidColorBrush x:Key="FocusEndWarningBackground" Color="Transparent" />
+    <SolidColorBrush x:Key="FocusEndWarningIconBrush" Color="#FF8A00" />
+    <SolidColorBrush x:Key="FocusEndWarningTextBrush" Color="#E7ECF5" />
     <SolidColorBrush x:Key="FocusTitleBrush" Color="#F7F9FF" />
     <SolidColorBrush x:Key="FocusSubtitleBrush" Color="#A5C9FB" />
     <SolidColorBrush x:Key="FocusCountdownBrush" Color="#FCFDFF" />
-    <SolidColorBrush x:Key="FocusTargetBrush" Color="#A7CCFF" />
+    <SolidColorBrush x:Key="FocusTargetBrush" Color="#E6F0FF" />
     <SolidColorBrush x:Key="FocusFooterBrush" Color="#A4C6FB" />
     <SolidColorBrush x:Key="FocusFooterHoverBrush" Color="#D3E2FF" />
     <SolidColorBrush x:Key="FocusRuleBrush" Color="#6D86B8" />
@@ -48,8 +60,12 @@
     <SolidColorBrush x:Key="FocusTaskProgressTrack" Color="#344C79" />
     <SolidColorBrush x:Key="FocusTaskCloseHover" Color="#243C60" />
     <SolidColorBrush x:Key="FocusTaskKeycapSurface" Color="#182D4D" />
-    <SolidColorBrush x:Key="FocusTaskCreateAccent" Color="#7C99D1" />
+    <SolidColorBrush x:Key="FocusTaskCreateAccent" Color="#405982" />
     <SolidColorBrush x:Key="FocusTaskProgressAccent" Color="#7C99D1" />
+    <LinearGradientBrush x:Key="FocusTaskProgressFill" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#FFA12D" Offset="0" />
+        <GradientStop Color="#FF8816" Offset="1" />
+    </LinearGradientBrush>
     <SolidColorBrush x:Key="FocusTaskAddIcon" Color="#ACC9FF" />
     <SolidColorBrush x:Key="FocusTaskAddHoverBorder" Color="#9FBCF0" />
     <SolidColorBrush x:Key="FocusTaskCheckHover" Color="#AACBFF" />

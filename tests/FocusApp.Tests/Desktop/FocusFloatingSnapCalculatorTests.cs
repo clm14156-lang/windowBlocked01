@@ -144,7 +144,7 @@ public sealed class FocusFloatingSnapCalculatorTests
     }
 
     [Theory]
-    [InlineData(115)] [InlineData(189)] [InlineData(217)] [InlineData(245)]
+    [InlineData(115)] [InlineData(189)] [InlineData(217)] [InlineData(245)] [InlineData(273)] [InlineData(301)]
     public void GetExpandedBounds_UsesTheTaskDependentHeightAndStaysAnchoredOnBothEdges(double height)
     {
         var workArea = new Rect(-1920, -1080, 1920, 1040);
