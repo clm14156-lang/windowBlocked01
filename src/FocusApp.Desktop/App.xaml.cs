@@ -92,7 +92,7 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
-        BlockedAccessNotificationService.SetFocusSession(null);
+        BlockedAccessNotificationService.Shutdown();
         _focusSessionBridge?.Dispose();
         _accessControlBridge?.Dispose();
         if (_serviceConnection is not null)
@@ -113,15 +113,11 @@ public partial class App : Application
 
     private void ServiceConnection_AccessBlocked(object? sender, AccessBlockedEvent e)
     {
-        if (_serviceConnection?.State?.Settings.WindowsNotificationsEnabled == false)
-        {
-            return;
-        }
-
         BlockedAccessNotificationService.Show(new BlockedAccessNotificationData(
             e.RuleName,
             e.Target,
-            e.Kind == BlockedTargetKind.Website ? "Website" : "Application"));
+            e.Kind == BlockedTargetKind.Website ? "Website" : "Application"),
+            notificationsEnabled: _serviceConnection?.State?.Settings.WindowsNotificationsEnabled != false);
     }
 
 #if DEBUG

@@ -12,6 +12,7 @@ using Xunit;
 
 namespace FocusApp.Tests.Desktop;
 
+[Collection("Calendar UI")]
 public sealed class BlockedAccessNotificationPresentationTests
 {
     private static readonly XNamespace Presentation = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
@@ -293,6 +294,8 @@ public sealed class BlockedAccessNotificationPresentationTests
                 firstModel.CloseCommand.Execute(null);
                 Assert.Null(ActiveNotification());
                 BlockedAccessNotificationService.Show(website);
+                Assert.Null(ActiveNotification()); // Dismissal does not bypass the host's quiet period.
+                BlockedAccessNotificationService.Show(website with { Address="next.example.com" });
                 var next = Assert.IsType<BlockedAccessNotificationWindow>(ActiveNotification());
                 Assert.NotSame(first,next);
                 PumpFor(TimeSpan.FromMilliseconds(220));
@@ -313,6 +316,8 @@ public sealed class BlockedAccessNotificationPresentationTests
                 Assert.True(focus.IsCompleted);
                 focus.Start(1);
                 BlockedAccessNotificationService.Show(website);
+                Assert.Null(ActiveNotification()); // Starting another focus does not reset request timestamps.
+                BlockedAccessNotificationService.Show(website with { Address="fresh.example.com" });
                 Assert.NotNull(ActiveNotification());
             }
             catch (Exception exception) { failure=exception; }
@@ -326,6 +331,80 @@ public sealed class BlockedAccessNotificationPresentationTests
         thread.Start();
         Assert.True(thread.Join(TimeSpan.FromSeconds(6)));
         Assert.Null(failure);
+    }
+
+    [Fact]
+    public void RepeatedRequestsDoNotRecreateOrExtendToastAndDisabledRequestsAreRemembered()
+    {
+        RunHostSta(() =>
+        {
+            var id = Guid.NewGuid().ToString("N");
+            var website = new BlockedAccessNotificationData("One", $"one.{id}.example", "Website");
+            BlockedAccessNotificationService.Show(website);
+            var first = Assert.IsType<BlockedAccessNotificationWindow>(ActiveNotification());
+            for (var index = 0; index < 100; index++) BlockedAccessNotificationService.Show(website);
+            Assert.Same(first, ActiveNotification());
+            var nextData = website with { Name="Two", Address=$"two.{id}.example" };
+            BlockedAccessNotificationService.Show(nextData);
+            var next = Assert.IsType<BlockedAccessNotificationWindow>(ActiveNotification());
+            Assert.NotSame(first, next);
+            Assert.False(first.IsVisible);
+            InvokeMouseLifecycleHandler(next, "AutoCloseTimer_Tick");
+            for (var index = 0; index < 100; index++) BlockedAccessNotificationService.Show(nextData);
+            Assert.Same(next, ActiveNotification());
+            WaitForWindowToAutoClose(next);
+            Assert.Null(ActiveNotification());
+            BlockedAccessNotificationService.Show(nextData);
+            Assert.Null(ActiveNotification());
+            var disabled = website with { Address=$"disabled.{id}.example" };
+            BlockedAccessNotificationService.Show(disabled, notificationsEnabled:false);
+            BlockedAccessNotificationService.Show(disabled);
+            Assert.Null(ActiveNotification());
+        });
+    }
+
+    [Fact]
+    public void BackgroundBurstSchedulesOneDeliveryAndDisplaysOnlyTheLatestCandidate()
+    {
+        RunHostSta(() =>
+        {
+            var dispatcher = Dispatcher.CurrentDispatcher;
+            var posted = 0;
+            void OperationPosted(object? sender, DispatcherHookEventArgs args)
+            { if (args.Operation.Priority == DispatcherPriority.Background) Interlocked.Increment(ref posted); }
+            var id = Guid.NewGuid().ToString("N");
+            dispatcher.Hooks.OperationPosted += OperationPosted;
+            try
+            {
+                Task.Run(() =>
+                {
+                    Parallel.For(0, 1000, index => BlockedAccessNotificationService.Show(
+                        new BlockedAccessNotificationData("Burst", $"{index}.{id}.example", "Website")));
+                    BlockedAccessNotificationService.Show(new("Latest", $"last.{id}.example", "Website"));
+                }).GetAwaiter().GetResult();
+            }
+            finally { dispatcher.Hooks.OperationPosted -= OperationPosted; }
+            Assert.Null(ActiveNotification());
+            Assert.Equal(1, posted);
+            dispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
+            var window = Assert.IsType<BlockedAccessNotificationWindow>(ActiveNotification());
+            Assert.Same(dispatcher, window.Dispatcher);
+            Assert.Equal("Latest", Assert.IsType<BlockedAccessNotificationViewModel>(window.DataContext).Name);
+        });
+    }
+
+    private static void RunHostSta(Action action)
+    {
+        Exception? failure = null;
+        var thread = new Thread(() =>
+        {
+            try { BlockedAccessNotificationService.SetFocusSession(null); action(); }
+            catch (Exception error) { failure=error; }
+            finally { ActiveNotification()?.Close(); BlockedAccessNotificationService.SetFocusSession(null); }
+        });
+        thread.SetApartmentState(ApartmentState.STA); thread.Start();
+        Assert.True(thread.Join(TimeSpan.FromSeconds(10)));
+        if (failure is not null) throw new InvalidOperationException("Notification host verification failed.", failure);
     }
 
     private static BlockedAccessNotificationWindow? ActiveNotification() =>

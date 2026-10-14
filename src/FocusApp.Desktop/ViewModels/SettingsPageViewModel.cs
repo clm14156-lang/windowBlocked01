@@ -46,6 +46,12 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
         RuleModal = ruleModal ?? AutomaticRuleModalViewModel.CreateDefault();
         RuleActivationModal = new AutomaticRuleActivationModalViewModel();
         ExportRecordsModal = exportRecordsModal ?? new ExportRecordsModalViewModel();
+        FocusCharacterPicker = new FocusCharacterPickerViewModel();
+        FocusCharacterPicker.SelectionChanged += (_, id) =>
+        {
+            NotifyFocusCharacterChanged();
+            FocusCharacterChanged?.Invoke(this, id);
+        };
         _dailyLabel = dailyLabel;
         ActivateEntryCommand = new RelayCommand<SettingsEntryItemViewModel>(ActivateEntry);
         SelectFocusThemeCommand = new RelayCommand<object>(value =>
@@ -106,6 +112,21 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
 
     public event EventHandler? RulesChanged;
     public event EventHandler<FocusThemeMode>? FocusThemeChanged;
+    public event EventHandler<string>? FocusCharacterChanged;
+    public FocusCharacterPickerViewModel FocusCharacterPicker { get; }
+    public string FocusCharacterId => FocusCharacterPicker.SelectedId;
+    public string FocusCharacterName => FocusCharacterPicker.SelectedName;
+
+    public void ApplyFocusCharacterState(string? id)
+    {
+        if (FocusCharacterPicker.ApplySelection(id)) NotifyFocusCharacterChanged();
+    }
+
+    private void NotifyFocusCharacterChanged()
+    {
+        OnPropertyChanged(nameof(FocusCharacterId));
+        OnPropertyChanged(nameof(FocusCharacterName));
+    }
     public ICommand SelectFocusThemeCommand { get; }
     public FocusThemeMode FocusTheme => _focusTheme;
 

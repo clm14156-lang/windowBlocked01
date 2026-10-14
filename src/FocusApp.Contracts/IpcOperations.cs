@@ -336,6 +336,7 @@ public sealed record LocalAppSettingsDto(
 {
     public string RecentTargetIconsJson { get; init; } = "[]";
     public string FocusTheme { get; init; } = "System";
+    public string FocusCharacterId { get; init; } = "white_boy01";
 }
 
 public sealed record LocalDurationPresetDto(Guid Id, int Minutes, bool IsVisible, bool IsCurrent, int SortOrder);

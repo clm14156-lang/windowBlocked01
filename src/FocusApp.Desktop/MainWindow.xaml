@@ -950,6 +950,9 @@
             <views:GoalCompletedTasksModal Grid.ColumnSpan="2" Panel.ZIndex="207" Margin="-1"
                                             HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
                                             DataContext="{Binding StatisticsPage.GoalCompletedTasks}" />
+            <views:FocusCharacterPickerModal Grid.ColumnSpan="2" Panel.ZIndex="211" Margin="-1"
+                                            HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                                            DataContext="{Binding SettingsPage.FocusCharacterPicker}" />
             <views:GoalInvestmentTrendModal Grid.ColumnSpan="2"
                                             Panel.ZIndex="206"
                                             Margin="-1"

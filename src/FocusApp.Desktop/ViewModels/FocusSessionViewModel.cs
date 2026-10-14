@@ -44,6 +44,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     private readonly FocusGreetingProvider _greetings;
     private FocusThemeMode _focusTheme = FocusThemeMode.System;
     private bool _isDarkFocusTheme;
+    private string _focusCharacterId = FocusCharacters.DefaultId;
     private readonly HashSet<FocusTaskViewModel> _sessionCompletedTaskSet = [];
     private readonly List<FocusSessionRecord> _completionHistory = [];
     private FocusSessionRecord? _lastRecordedCompletion;
@@ -324,6 +325,15 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     public FocusGreetingState GreetingState => _greetingState;
     public FocusThemeMode FocusTheme => _focusTheme;
     public bool IsDarkFocusTheme => _isDarkFocusTheme;
+    public string FocusCharacterId => _focusCharacterId;
+
+    public void ApplyFocusCharacter(string? id)
+    {
+        id = FocusCharacters.Find(id).Id;
+        if (_focusCharacterId == id) return;
+        _focusCharacterId = id;
+        OnPropertyChanged(nameof(FocusCharacterId));
+    }
 
     public void ApplyFocusTheme(FocusThemeMode mode)
     {

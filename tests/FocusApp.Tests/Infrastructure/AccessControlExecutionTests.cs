@@ -11,6 +11,33 @@ namespace FocusApp.Tests.Infrastructure;
 public sealed class AccessControlExecutionTests
 {
     [Fact]
+    public async Task NotificationDeduplicationKeepsEveryBlockedResponseAndEvent()
+    {
+        await using var proxy = new LocalWebsiteProxy();
+        using var notifications = new FocusApp.Desktop.Services.WebsiteNotificationThrottle();
+        var blockedEvents = 0;
+        var shownNotifications = 0;
+        proxy.WebsiteBlocked += (_, blocked) =>
+        {
+            Interlocked.Increment(ref blockedEvents);
+            if (notifications.RecordRequest(blocked.Host)) Interlocked.Increment(ref shownNotifications);
+        };
+        var rule = new WebsiteAccessRule(Guid.NewGuid(), "Example", "example.com");
+        var port = await proxy.StartAsync([rule]);
+        for (var index = 0; index < 20; index++)
+        {
+            using var client = new TcpClient();
+            await client.ConnectAsync(IPAddress.Loopback, port);
+            var stream = client.GetStream();
+            await stream.WriteAsync(Encoding.ASCII.GetBytes(
+                "CONNECT example.com:443 HTTP/1.1\r\nHost: example.com:443\r\n\r\n"));
+            Assert.Contains("403 Forbidden", await ReadAvailableTextAsync(stream), StringComparison.Ordinal);
+        }
+        Assert.Equal(20, blockedEvents);
+        Assert.Equal(1, shownNotifications);
+    }
+
+    [Fact]
     public async Task LocalProxy_BlocksMatchingHttpsConnectWithoutOpeningUpstream()
     {
         await using var proxy = new LocalWebsiteProxy();

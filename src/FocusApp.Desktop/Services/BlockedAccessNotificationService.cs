@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Threading;
 using FocusApp.Desktop.Models;
 using FocusApp.Desktop.ViewModels;
 using FocusApp.Desktop.Views;
@@ -13,17 +14,67 @@ public static class BlockedAccessNotificationService
 {
     private static BlockedAccessNotificationWindow? _activeWindow;
     private static BlockedAccessNotificationSessionScope? _sessionScope;
+    private static readonly WebsiteNotificationThrottle WebsiteThrottle = new();
+    private static readonly object PendingSync = new();
+    private static BlockedAccessNotificationData? _pendingNotification;
+    private static bool _deliveryScheduled;
+    private static bool _isShuttingDown;
+    private static Dispatcher? _dispatcher;
 
     public static void SetFocusSession(FocusSessionViewModel? focusSession)
     {
+        _dispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
         _sessionScope?.Dispose();
         _sessionScope = focusSession is null ? null : new BlockedAccessNotificationSessionScope(focusSession);
     }
 
-    public static void Show(BlockedAccessNotificationData data)
+    public static void Show(BlockedAccessNotificationData data, bool notificationsEnabled = true)
     {
         ArgumentNullException.ThrowIfNull(data);
+        var eligible = !string.Equals(data.Type, "Website", StringComparison.OrdinalIgnoreCase) ||
+            WebsiteThrottle.RecordRequest(data.Address);
+        if (!notificationsEnabled || !eligible) return;
 
+        var dispatcher = Application.Current?.Dispatcher ?? _dispatcher ?? Dispatcher.CurrentDispatcher;
+        lock (PendingSync)
+        {
+            if (_isShuttingDown || dispatcher.HasShutdownStarted || dispatcher.HasShutdownFinished) return;
+            // One replaceable pending item, rather than one Dispatcher callback per event.
+            _pendingNotification = data;
+            if (_deliveryScheduled) return;
+            _deliveryScheduled = true;
+        }
+        if (dispatcher.CheckAccess()) DeliverPending();
+        else dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(DeliverPending));
+    }
+
+    public static void Shutdown()
+    {
+        lock (PendingSync)
+        {
+            _isShuttingDown = true;
+            _pendingNotification = null;
+            _deliveryScheduled = false;
+        }
+        WebsiteThrottle.Dispose();
+        SetFocusSession(null);
+        _activeWindow?.Close();
+    }
+
+    private static void DeliverPending()
+    {
+        BlockedAccessNotificationData? data;
+        lock (PendingSync)
+        {
+            data = _isShuttingDown ? null : _pendingNotification;
+            _pendingNotification = null;
+            _deliveryScheduled = false;
+        }
+        if (data is not null) ShowOnDispatcher(data);
+    }
+
+    private static void ShowOnDispatcher(BlockedAccessNotificationData data)
+    {
         if (_sessionScope?.ShouldShow(data.Type) == false || _activeWindow?.IsActionsOpen == true)
             return;
 

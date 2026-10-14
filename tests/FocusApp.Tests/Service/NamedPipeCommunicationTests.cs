@@ -357,7 +357,7 @@ public sealed class NamedPipeCommunicationTests
             true,
             0);
         var settings = new LocalAppSettingsDto(true, true, true, false, true, false, target.TargetId, now)
-        { FocusTheme = "Dark" };
+        { FocusTheme = "Dark", FocusCharacterId = "dark_rabbit" };
         var preset = new LocalDurationPresetDto(Guid.NewGuid(), 45, true, true, 0);
         var monthlyTarget = new LocalMonthlyFocusTargetDto(new DateOnly(2026, 8, 1), 1200);
 

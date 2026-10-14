@@ -573,13 +573,41 @@
                     </Grid>
                 </StackPanel>
             </Grid>
-            <Image x:Name="FocusCharacterShadow" Source="{DynamicResource FocusSceneShadow}" Width="288" Height="36"
-                   HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,540,0,0" Stretch="Uniform"
-                   IsHitTestVisible="False" RenderOptions.BitmapScalingMode="HighQuality" />
-            <Image x:Name="FocusCharacter" Source="{DynamicResource FocusSceneBoy}" Width="240" Height="240"
-                   HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,326,0,0" Stretch="Uniform"
+            <Grid x:Name="FocusCharacterShadowLayers" Width="288" Height="36"
+                  HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,540,0,0" IsHitTestVisible="False">
+                <Image x:Name="FocusCharacterShadow" Source="{DynamicResource FocusSceneShadow}" Width="288" Height="36"
+                       HorizontalAlignment="Center" VerticalAlignment="Top" Stretch="Uniform"
+                       RenderOptions.BitmapScalingMode="HighQuality" />
+                <Image x:Name="FocusCharacterContactShadow" Width="216" Height="{Binding ActualHeight, ElementName=FocusCharacterShadow}" Opacity="0.4"
+                       HorizontalAlignment="Center" VerticalAlignment="Top" Stretch="Uniform"
+                       RenderOptions.BitmapScalingMode="HighQuality">
+                    <Image.Style>
+                        <Style TargetType="Image">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Setter Property="Source" Value="{x:Null}"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsDarkFocusTheme}" Value="False">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                    <Setter Property="Source" Value="{DynamicResource FocusSceneContactShadow}"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Image.Style>
+                </Image>
+            </Grid>
+            <views:FocusCharacterImage x:Name="FocusCharacter" CharacterId="{Binding FocusCharacterId}" IsNight="{Binding IsDarkFocusTheme}"
+                   Width="{Binding FocusCharacterId, Converter={x:Static views:FocusCharacterSizeConverter.Instance}}"
+                   Height="{Binding FocusCharacterId, Converter={x:Static views:FocusCharacterSizeConverter.Instance}}"
+                   HorizontalAlignment="Center" VerticalAlignment="Top" Stretch="Uniform"
                    RenderTransformOrigin="{x:Static views:FocusCharacterMotion.TransformOrigin}" views:FocusCharacterMotion.IsEnabled="True"
-                   IsHitTestVisible="False" RenderOptions.BitmapScalingMode="HighQuality" />
+                   IsHitTestVisible="False" RenderOptions.BitmapScalingMode="HighQuality">
+                <views:FocusCharacterImage.Margin>
+                    <MultiBinding Converter="{x:Static views:FocusCharacterPlacementConverter.Instance}">
+                        <Binding Path="FocusCharacterId"/>
+                        <Binding Path="IsDarkFocusTheme"/>
+                    </MultiBinding>
+                </views:FocusCharacterImage.Margin>
+            </views:FocusCharacterImage>
             <StackPanel x:Name="FocusFooter" Margin="40,0,40,20" VerticalAlignment="Bottom">
                 <StackPanel x:Name="FocusForceNotice" Orientation="Horizontal" HorizontalAlignment="Center" IsHitTestVisible="False"
                             Visibility="{Binding ShowForceNotice, Converter={StaticResource BooleanToVisibilityConverter}}">

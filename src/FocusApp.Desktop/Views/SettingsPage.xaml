@@ -681,7 +681,7 @@
                 <!-- Character selection remains a preview; the theme selector uses the saved focus setting. -->
                 <Border x:Name="FocusAppearanceCard" Margin="0,6,0,0" Background="{DynamicResource SurfacePrimary}" BorderBrush="{StaticResource SettingsHairlineBrush}" BorderThickness="1" CornerRadius="10">
                     <StackPanel>
-                        <Button x:Name="FocusCharacterPreview" Style="{StaticResource SettingsAppearanceRowStyle}" AutomationProperties.Name="{DynamicResource SettingsFocusCharacter}">
+                        <Button x:Name="FocusCharacterPreview" Style="{StaticResource SettingsAppearanceRowStyle}" Command="{Binding FocusCharacterPicker.OpenCommand}" AutomationProperties.Name="{DynamicResource SettingsFocusCharacter}">
                             <Grid>
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="64" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="66" /></Grid.ColumnDefinitions>
                                 <Border Style="{StaticResource SettingsAppearanceIconStyle}">
@@ -691,7 +691,7 @@
                                     <TextBlock Style="{DynamicResource BodyMediumTextStyle}" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource SettingsFocusCharacter}" />
                                     <TextBlock Margin="0,2,0,0" Style="{DynamicResource SecondaryTextStyle}" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource SettingsFocusCharacterDescription}" />
                                 </StackPanel>
-                                <TextBlock Grid.Column="2" VerticalAlignment="Center" Style="{DynamicResource BodyTextStyle}" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource SettingsFocusCharacterPreview}" />
+                                <TextBlock Grid.Column="2" VerticalAlignment="Center" Style="{DynamicResource BodyTextStyle}" Foreground="{DynamicResource TextPrimary}" Text="{Binding FocusCharacterName}" />
                                 <TextBlock Grid.Column="3" HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{DynamicResource TextSecondary}" Text="&#xE76C;" />
                             </Grid>
                         </Button>

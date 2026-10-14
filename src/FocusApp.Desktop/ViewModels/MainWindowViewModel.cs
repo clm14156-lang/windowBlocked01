@@ -40,6 +40,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private int _pendingAutomaticRuleWrites;
     private int _pendingDurationPresetWrites;
     private int _pendingFocusThemeWrites;
+    private int _pendingFocusCharacterWrites;
 
     public MainWindowViewModel(
         IEnumerable<NavigationItemViewModel> primaryNavigationItems,
@@ -76,9 +77,14 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         SettingsPage.WindowsNotificationsChanged += SettingsPage_WindowsNotificationsChanged;
         SettingsPage.FocusSoundChanged += SettingsPage_FocusSoundChanged;
         SettingsPage.FocusThemeChanged += SettingsPage_FocusThemeChanged;
+        SettingsPage.FocusCharacterChanged += SettingsPage_FocusCharacterChanged;
         if (ServiceConnection?.State is { } initialState)
+        {
             SettingsPage.ApplyFocusThemeState(ParseFocusTheme(initialState.Settings.FocusTheme));
+            SettingsPage.ApplyFocusCharacterState(initialState.Settings.FocusCharacterId);
+        }
         HomePage.FocusSession.ApplyFocusTheme(SettingsPage.FocusTheme);
+        HomePage.FocusSession.ApplyFocusCharacter(SettingsPage.FocusCharacterId);
         SettingsPage.RulesChanged += SettingsPage_RulesChanged;
         BlockingPage.WebsiteModal.WebsiteAddressValidationFailed += WebsiteModal_WebsiteAddressValidationFailed;
         HomePage.DurationOptionsChanged += HomePage_DurationOptionsChanged;
@@ -594,6 +600,11 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             SettingsPage.ApplyFocusThemeState(ParseFocusTheme(state.Settings.FocusTheme));
             HomePage.FocusSession.ApplyFocusTheme(SettingsPage.FocusTheme);
         }
+        if (_pendingFocusCharacterWrites == 0)
+        {
+            SettingsPage.ApplyFocusCharacterState(state.Settings.FocusCharacterId);
+            HomePage.FocusSession.ApplyFocusCharacter(SettingsPage.FocusCharacterId);
+        }
         if (_pendingDurationPresetWrites == 0) HomePage.ApplyDurationPresets(state.DurationPresets);
         ApplyFocusTaskState(state);
         StatisticsPage.ApplyState(state);
@@ -1075,6 +1086,19 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
                 state.DurationPresets, state.MonthlyFocusTargets));
         }
         finally { _pendingFocusThemeWrites--; }
+    }
+
+    private async void SettingsPage_FocusCharacterChanged(object? sender, string id)
+    {
+        HomePage.FocusSession.ApplyFocusCharacter(id);
+        _pendingFocusCharacterWrites++;
+        try
+        {
+            await PersistSettingsAsync(state => new SaveSettingsCommand(
+                state.Settings with { FocusCharacterId = id, UpdatedAtUtc = DateTimeOffset.UtcNow },
+                state.DurationPresets, state.MonthlyFocusTargets));
+        }
+        finally { _pendingFocusCharacterWrites--; }
     }
 
     private async Task PersistSettingsAsync(Func<LocalDataSnapshotDto, SaveSettingsCommand> createCommand)

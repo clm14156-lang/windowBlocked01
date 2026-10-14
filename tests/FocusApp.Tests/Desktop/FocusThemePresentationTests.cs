@@ -38,7 +38,7 @@ public sealed class FocusThemePresentationTests
                 session.TaskDrawer.ToggleCommand.Execute(null);
                 host.Show();
                 Pump(host);
-                var layoutNames = new[] { "FocusGreeting", "FocusCenter", "FocusCountdown", "FocusTargetRegion", "FocusCharacter", "FocusCharacterShadow", "FocusLeaves", "FocusFooter", "FocusFooterActions" };
+                var layoutNames = new[] { "FocusGreeting", "FocusCenter", "FocusCountdown", "FocusTargetRegion", "FocusCharacter", "FocusCharacterShadowLayers", "FocusLeaves", "FocusFooter", "FocusFooterActions" };
                 var firstBounds = layoutNames.ToDictionary(name => name, name => name == "FocusCharacter"
                     ? LayoutInformation.GetLayoutSlot((FrameworkElement)focus.FindName(name))
                     : Bounds((FrameworkElement)focus.FindName(name), focus));
@@ -67,11 +67,12 @@ public sealed class FocusThemePresentationTests
                     Assert.Equal(greeting, session.GreetingSubtitle);
                     Assert.Equal(3, session.PendingTasks.Count);
                     var expectedPrefix = dark ? "dark" : "white";
-                    Assert.EndsWith(dark ? "focus_dark.png" : "focus_white.png", ((Image)focus.FindName("FocusBackground")).Source.ToString());
-                    foreach (var (name, file) in new[] { ("FocusCharacter", "_boy01.png"), ("FocusCharacterShadow", "_shadow.png") })
+                    Assert.EndsWith(dark ? "focus_dark01.png" : "focus_white01.png", ((Image)focus.FindName("FocusBackground")).Source.ToString());
+                    foreach (var (name, file) in new[] { ("FocusCharacter", "_boy01.png"), ("FocusCharacterShadow", dark ? "_shadow01.png" : "_shadow.png") })
                     {
                         var image = (Image)focus.FindName(name);
-                        Assert.EndsWith(expectedPrefix + file, image.Source.ToString());
+                        var prefix = expectedPrefix;
+                        Assert.EndsWith(prefix + file, image.Source.ToString());
                         Assert.Equal(Stretch.Uniform, image.Stretch);
                         Assert.True(((BitmapSource)image.Source).PixelWidth > 0);
                     }
@@ -159,7 +160,7 @@ public sealed class FocusThemePresentationTests
                     Pump(host);
                     Assert.False(popup.IsOpen);
                 }
-                Assert.Null(((Button)page.FindName("FocusCharacterPreview")).Command);
+                Assert.Same(vm.FocusCharacterPicker.OpenCommand, ((Button)page.FindName("FocusCharacterPreview")).Command);
             }
             finally { host.Close(); }
         });

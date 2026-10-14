@@ -123,6 +123,7 @@ public sealed record LocalAppSettings(
 {
     public string RecentTargetIconsJson { get; init; } = "[]";
     public FocusThemeMode FocusTheme { get; init; } = FocusThemeMode.System;
+    public string FocusCharacterId { get; init; } = "white_boy01";
 
     public static LocalAppSettings Default { get; } = new(
         false,
