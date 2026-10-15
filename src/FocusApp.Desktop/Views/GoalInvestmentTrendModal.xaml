@@ -15,19 +15,31 @@
     <UserControl.Resources>
         <sys:Boolean x:Key="SelectedRangeValue">True</sys:Boolean>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
-        <SolidColorBrush x:Key="TrendSummaryBackground" Color="#F7F7F9"/>
-        <SolidColorBrush x:Key="TrendSegmentBackground" Color="#F7F7F9"/>
-        <SolidColorBrush x:Key="TrendSegmentSelectedBackground" Color="#FFF6EF"/>
-        <SolidColorBrush x:Key="TrendSegmentSelectedBorder" Color="#FFE8D7"/>
-        <Style x:Key="TrendMetricCard" TargetType="Border">
-            <Setter Property="Background" Value="{StaticResource TrendSummaryBackground}"/>
-            <Setter Property="CornerRadius" Value="12"/>
-            <Setter Property="Padding" Value="16,12"/>
+        <SolidColorBrush x:Key="TrendSegmentBackground" Color="#F5F6F8"/>
+        <SolidColorBrush x:Key="TrendSegmentSelectedBackground" Color="#FFF5EB"/>
+        <SolidColorBrush x:Key="TrendSegmentSelectedBorder" Color="#FFDFC7"/>
+        <SolidColorBrush x:Key="TrendMetricIconBrush" Color="#748292"/>
+        <SolidColorBrush x:Key="TrendMetricDividerBrush" Color="#E6EAF0"/>
+        <Style x:Key="TrendMetricGroup" TargetType="Border">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Padding" Value="16,0,8,0"/>
+        </Style>
+        <Style x:Key="TrendMetricDivider" TargetType="Border">
+            <Setter Property="Width" Value="1"/><Setter Property="Height" Value="58"/>
+            <Setter Property="Background" Value="{StaticResource TrendMetricDividerBrush}"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="TrendMetricIcon" TargetType="Path">
+            <Setter Property="Width" Value="24"/><Setter Property="Height" Value="24"/>
+            <Setter Property="Stretch" Value="Uniform"/><Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Stroke" Value="{StaticResource TrendMetricIconBrush}"/><Setter Property="StrokeThickness" Value="1.8"/>
+            <Setter Property="StrokeStartLineCap" Value="Round"/><Setter Property="StrokeEndLineCap" Value="Round"/><Setter Property="StrokeLineJoin" Value="Round"/>
+            <Setter Property="IsHitTestVisible" Value="False"/>
         </Style>
         <Style x:Key="TrendMetricLabel" TargetType="TextBlock">
             <Setter Property="FontSize" Value="{DynamicResource BodyFontSize}"/>
             <Setter Property="FontWeight" Value="{DynamicResource BodyFontWeight}"/>
-            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+            <Setter Property="Foreground" Value="{StaticResource TrendMetricIconBrush}"/>
         </Style>
         <Style x:Key="TrendMetricValue" TargetType="TextBlock">
             <Setter Property="FontFamily" Value="{DynamicResource FontFamilyNumeric}"/>
@@ -51,13 +63,13 @@
             <TextBlock Text="{Binding}" Style="{StaticResource TrendRangeLabel}"/>
         </DataTemplate>
         <Style x:Key="TrendRangeButton" TargetType="Button">
-            <Setter Property="Height" Value="36"/><Setter Property="Padding" Value="12,0"/>
+            <Setter Property="Height" Value="34"/><Setter Property="Padding" Value="12,0"/>
             <Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/><Setter Property="FontSize" Value="{DynamicResource BodyFontSize}"/>
             <Setter Property="FontFamily" Value="Segoe UI Variable, Microsoft YaHei UI, Segoe UI"/><Setter Property="FontWeight" Value="{DynamicResource BodyFontWeight}"/>
             <Setter Property="Cursor" Value="Hand"/><Setter Property="FocusVisualStyle" Value="{x:Null}"/>
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
-                <Border x:Name="Surface" Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}" CornerRadius="12" BorderThickness="1" BorderBrush="Transparent">
+                <Border x:Name="Surface" Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}" CornerRadius="17" BorderThickness="1" BorderBrush="Transparent">
                     <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" TextElement.Foreground="{TemplateBinding Foreground}"/>
                 </Border>
                 <ControlTemplate.Triggers>
@@ -86,8 +98,8 @@
             <Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Cursor" Value="Hand"/><Setter Property="FocusVisualStyle" Value="{x:Null}"/>
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
-                <Border x:Name="MonthSurface" Background="{TemplateBinding Background}" Padding="10,0" CornerRadius="6">
-                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="20"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                <Border x:Name="MonthSurface" Background="{TemplateBinding Background}" Padding="6,0" CornerRadius="6">
+                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="16"/><ColumnDefinition/></Grid.ColumnDefinitions>
                         <Path x:Name="MonthCheck" Data="M 0,5 L 4,9 L 12,0" Stroke="{DynamicResource AccentPrimary}" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round" VerticalAlignment="Center" Visibility="Collapsed"/>
                         <ContentPresenter Grid.Column="1" VerticalAlignment="Center"/>
                     </Grid>
@@ -114,14 +126,14 @@
                     <TextBlock Text="{Binding GoalName}" FontSize="{DynamicResource DialogTitleFontSize}" FontWeight="{DynamicResource DialogTitleFontWeight}" Foreground="{DynamicResource TextPrimary}" TextTrimming="CharacterEllipsis" ToolTip="{Binding GoalRemark}"/>
                     <TextBlock Text="投入趋势" FontSize="{DynamicResource BodyFontSize}" FontWeight="{DynamicResource BodyFontWeight}" Foreground="{DynamicResource TextSecondary}" Margin="0,6,0,0"/>
                 </StackPanel>
-                <Border x:Name="RangeSelectorSurface" Width="228" Height="36" HorizontalAlignment="Right" VerticalAlignment="Bottom" Background="{StaticResource TrendSegmentBackground}" CornerRadius="12" BorderThickness="0">
+                <Border x:Name="RangeSelectorSurface" Width="228" Height="34" HorizontalAlignment="Right" VerticalAlignment="Bottom" Background="{StaticResource TrendSegmentBackground}" CornerRadius="17" BorderThickness="0">
                     <Grid>
                         <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
                         <Button Content="近7天" ContentTemplate="{StaticResource TrendRangeTextContent}" Tag="{Binding IsSevenDaysRange}" Style="{StaticResource TrendRangeButton}" Command="{Binding SelectSevenDaysCommand}"/>
                         <Button Grid.Column="1" Content="近30天" ContentTemplate="{StaticResource TrendRangeTextContent}" Tag="{Binding IsThirtyDaysRange}" Style="{StaticResource TrendRangeButton}" Command="{Binding SelectThirtyDaysCommand}"/>
                         <Button x:Name="MonthRangeButton" Grid.Column="2" Content="{Binding MonthButtonText}" ContentTemplate="{StaticResource TrendRangeTextContent}" Tag="{Binding IsMonthRange}" Style="{StaticResource TrendRangeButton}" Command="{Binding SelectMonthModeCommand}"/>
-                        <Popup x:Name="MonthPickerPopup" Grid.Column="2" HorizontalOffset="-78" VerticalOffset="4" IsOpen="{Binding IsMonthMenuOpen, Mode=TwoWay}" Placement="Bottom" PlacementTarget="{Binding ElementName=MonthRangeButton}" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
-                            <Border x:Name="MonthPickerSurface" Width="180" Padding="6" Margin="8" Background="White" BorderBrush="#ECEEF1" BorderThickness="1" CornerRadius="9">
+                        <Popup x:Name="MonthPickerPopup" Grid.Column="2" HorizontalOffset="-44" VerticalOffset="4" IsOpen="{Binding IsMonthMenuOpen, Mode=TwoWay}" Placement="Bottom" PlacementTarget="{Binding ElementName=MonthRangeButton}" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
+                            <Border x:Name="MonthPickerSurface" Width="120" Padding="4" Margin="8" Background="White" BorderBrush="#ECEEF1" BorderThickness="1" CornerRadius="9">
                                 <Border.Effect><DropShadowEffect BlurRadius="16" ShadowDepth="3" Opacity="0.12"/></Border.Effect>
                                 <StackPanel>
                                     <Grid Height="32" Visibility="{Binding HasMultipleMonthYears, Converter={StaticResource BooleanToVisibilityConverter}}">
@@ -147,54 +159,63 @@
                     </Grid>
                 </Border>
                 <Grid x:Name="InvestmentSummary" Grid.Row="2">
-                    <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="8"/><ColumnDefinition/><ColumnDefinition Width="8"/><ColumnDefinition/><ColumnDefinition Width="8"/><ColumnDefinition/></Grid.ColumnDefinitions>
-                    <Border x:Name="PeriodInvestmentCard" Style="{StaticResource TrendMetricCard}">
-                        <Grid><Grid.RowDefinitions><RowDefinition Height="18"/><RowDefinition Height="6"/><RowDefinition/></Grid.RowDefinitions>
-                            <TextBlock Text="累计投入" Style="{StaticResource TrendMetricLabel}"/>
-                            <Viewbox Grid.Row="2" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" VerticalAlignment="Center"><ContentControl Content="{Binding PeriodInvestment}" ContentTemplate="{StaticResource TrendMetricDuration}"/></Viewbox>
+                    <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="1"/><ColumnDefinition/><ColumnDefinition Width="1"/><ColumnDefinition/><ColumnDefinition Width="1"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                    <Border x:Name="PeriodInvestmentCard" Style="{StaticResource TrendMetricGroup}" Padding="8,0,8,0">
+                        <Grid VerticalAlignment="Center"><Grid.ColumnDefinitions><ColumnDefinition Width="26"/><ColumnDefinition Width="12"/><ColumnDefinition/></Grid.ColumnDefinitions><Grid.RowDefinitions><RowDefinition Height="44"/><RowDefinition Height="2"/><RowDefinition Height="20"/></Grid.RowDefinitions>
+                            <Path x:Name="PeriodInvestmentIcon" Style="{StaticResource TrendMetricIcon}" Data="M 12,1.5 A 10.5,10.5 0 1 1 11.99,1.5 M 12,5 L 12,12 L 17,14"/>
+                            <Viewbox Grid.Column="2" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" VerticalAlignment="Center"><ContentControl Content="{Binding PeriodInvestment}" ContentTemplate="{StaticResource TrendMetricDuration}"/></Viewbox>
+                            <TextBlock Grid.Column="2" Grid.Row="2" Text="累计投入" Style="{StaticResource TrendMetricLabel}"/>
                         </Grid>
                     </Border>
-                    <Border x:Name="DailyAverageInvestmentCard" Grid.Column="2" Style="{StaticResource TrendMetricCard}">
-                        <Grid><Grid.RowDefinitions><RowDefinition Height="18"/><RowDefinition Height="6"/><RowDefinition/></Grid.RowDefinitions>
-                            <TextBlock Text="日均投入" Style="{StaticResource TrendMetricLabel}" ToolTip="所选范围的累计投入除以活跃天数"/>
-                            <Viewbox Grid.Row="2" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" VerticalAlignment="Center"><ContentControl Content="{Binding DailyAverageInvestment}" ContentTemplate="{StaticResource TrendMetricDuration}"/></Viewbox>
+                    <Border Grid.Column="1" Style="{StaticResource TrendMetricDivider}"/>
+                    <Border x:Name="DailyAverageInvestmentCard" Grid.Column="2" Style="{StaticResource TrendMetricGroup}">
+                        <Grid VerticalAlignment="Center"><Grid.ColumnDefinitions><ColumnDefinition Width="26"/><ColumnDefinition Width="12"/><ColumnDefinition/></Grid.ColumnDefinitions><Grid.RowDefinitions><RowDefinition Height="44"/><RowDefinition Height="2"/><RowDefinition Height="20"/></Grid.RowDefinitions>
+                            <Path x:Name="DailyAverageInvestmentIcon" Style="{StaticResource TrendMetricIcon}" Data="M 4,21 L 4,14 M 12,21 L 12,8 M 20,21 L 20,3" StrokeThickness="3.2"/>
+                            <Viewbox Grid.Column="2" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" VerticalAlignment="Center"><ContentControl Content="{Binding DailyAverageInvestment}" ContentTemplate="{StaticResource TrendMetricDuration}"/></Viewbox>
+                            <TextBlock Grid.Column="2" Grid.Row="2" Text="日均投入" Style="{StaticResource TrendMetricLabel}" ToolTip="所选范围的累计投入除以活跃天数"/>
                         </Grid>
                     </Border>
-                    <Border x:Name="ActiveDaysCard" Grid.Column="4" Style="{StaticResource TrendMetricCard}">
-                        <Grid><Grid.RowDefinitions><RowDefinition Height="18"/><RowDefinition Height="6"/><RowDefinition/></Grid.RowDefinitions>
-                            <TextBlock Text="活跃天数" Style="{StaticResource TrendMetricLabel}"/>
-                            <Viewbox Grid.Row="2" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" VerticalAlignment="Center"><TextBlock Style="{StaticResource TrendMetricValue}"><Run Text="{Binding ActiveDays, Mode=OneWay}"/><Run Text=" 天" FontFamily="{DynamicResource FontFamilyPrimary}" FontSize="{DynamicResource BodyFontSize}" FontWeight="{DynamicResource BodyFontWeight}"/></TextBlock></Viewbox>
+                    <Border Grid.Column="3" Style="{StaticResource TrendMetricDivider}"/>
+                    <Border x:Name="ActiveDaysCard" Grid.Column="4" Style="{StaticResource TrendMetricGroup}">
+                        <Grid VerticalAlignment="Center"><Grid.ColumnDefinitions><ColumnDefinition Width="26"/><ColumnDefinition Width="12"/><ColumnDefinition/></Grid.ColumnDefinitions><Grid.RowDefinitions><RowDefinition Height="44"/><RowDefinition Height="2"/><RowDefinition Height="20"/></Grid.RowDefinitions>
+                            <Path x:Name="ActiveDaysIcon" Style="{StaticResource TrendMetricIcon}" Data="M 5,5 L 19,5 Q 21,5 21,7 L 21,20 Q 21,22 19,22 L 5,22 Q 3,22 3,20 L 3,7 Q 3,5 5,5 Z M 7,2 L 7,7 M 17,2 L 17,7 M 3,10 L 21,10 M 8,14 L 8.01,14 M 15,14 L 15.01,14 M 8,18 L 8.01,18"/>
+                            <Viewbox Grid.Column="2" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" VerticalAlignment="Center"><TextBlock Style="{StaticResource TrendMetricValue}"><Run Text="{Binding ActiveDays, Mode=OneWay}"/><Run Text=" 天" FontFamily="{DynamicResource FontFamilyPrimary}" FontSize="{DynamicResource BodyFontSize}" FontWeight="{DynamicResource BodyFontWeight}"/></TextBlock></Viewbox>
+                            <TextBlock Grid.Column="2" Grid.Row="2" Text="活跃天数" Style="{StaticResource TrendMetricLabel}"/>
                         </Grid>
                     </Border>
-                    <Border x:Name="LongestDayInvestmentCard" Grid.Column="6" Style="{StaticResource TrendMetricCard}">
-                        <Grid><Grid.RowDefinitions><RowDefinition Height="18"/><RowDefinition Height="6"/><RowDefinition/></Grid.RowDefinitions>
-                            <TextBlock Text="最长单日" Style="{StaticResource TrendMetricLabel}"/>
-                            <Viewbox Grid.Row="2" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" VerticalAlignment="Center"><ContentControl Content="{Binding LongestDayInvestment}" ContentTemplate="{StaticResource TrendMetricDuration}"/></Viewbox>
+                    <Border Grid.Column="5" Style="{StaticResource TrendMetricDivider}"/>
+                    <Border x:Name="LongestDayInvestmentCard" Grid.Column="6" Style="{StaticResource TrendMetricGroup}">
+                        <Grid VerticalAlignment="Center"><Grid.ColumnDefinitions><ColumnDefinition Width="26"/><ColumnDefinition Width="12"/><ColumnDefinition/></Grid.ColumnDefinitions><Grid.RowDefinitions><RowDefinition Height="44"/><RowDefinition Height="2"/><RowDefinition Height="20"/></Grid.RowDefinitions>
+                            <Path x:Name="LongestDayInvestmentIcon" Style="{StaticResource TrendMetricIcon}" Data="M 4,21 L 4,14 M 12,21 L 12,8 M 20,21 L 20,3" StrokeThickness="3.2"/>
+                            <Viewbox Grid.Column="2" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" VerticalAlignment="Center"><ContentControl Content="{Binding LongestDayInvestment}" ContentTemplate="{StaticResource TrendMetricDuration}"/></Viewbox>
+                            <TextBlock Grid.Column="2" Grid.Row="2" Text="最长单日" Style="{StaticResource TrendMetricLabel}"/>
                         </Grid>
                     </Border>
                 </Grid>
+                <Border x:Name="SummaryDivider" Grid.Row="3" Height="1" Background="#F0F2F5" VerticalAlignment="Center"/>
                 <Grid x:Name="TrendChartHeading" Grid.Row="4">
-                    <TextBlock Text="投入趋势" FontSize="{DynamicResource SectionTitleFontSize}" FontWeight="{DynamicResource SectionTitleFontWeight}" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center"/>
-                    <TextBlock Text="{Binding ChartAggregationDisplay}" FontSize="{DynamicResource BodyFontSize}" FontWeight="{DynamicResource BodyFontWeight}" Foreground="{DynamicResource TextSecondary}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                    <TextBlock Text="投入趋势" FontSize="{DynamicResource SectionTitleFontSize}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center"/>
                 </Grid>
                 <Border x:Name="TrendChartCard" Grid.Row="6" Background="Transparent">
                     <views:GoalInvestmentTrendChart x:Name="TrendChart" HorizontalAlignment="Center" VerticalAlignment="Top"/>
                 </Border>
                 <Canvas Grid.RowSpan="7" Panel.ZIndex="6" IsHitTestVisible="False">
-                    <Border x:Name="TrendTooltip" Canvas.Left="{Binding TooltipLeft}"
-                            Width="132" Height="{Binding TooltipHeight}" Padding="12,10" Background="White" BorderBrush="#F0F1F4" BorderThickness="1" CornerRadius="9"
+                    <views:PoptipChrome x:Name="TrendTooltip" Canvas.Left="{Binding TooltipLeft}"
+                            Width="164" Height="{Binding TooltipHeight}" PointerLeft="{Binding TooltipPointerLeft}"
                             Visibility="{Binding IsTooltipOpen, Converter={StaticResource BooleanToVisibilityConverter}}">
-                        <Border.RenderTransform><TransformGroup><TranslateTransform Y="{Binding TooltipTop}"/><TranslateTransform Y="210"/></TransformGroup></Border.RenderTransform>
-                        <Border.Effect><DropShadowEffect BlurRadius="16" ShadowDepth="3" Direction="270" Opacity="0.09"/></Border.Effect>
+                        <views:PoptipChrome.RenderTransform><TransformGroup><TranslateTransform Y="{Binding TooltipTop}"/><TranslateTransform Y="210"/></TransformGroup></views:PoptipChrome.RenderTransform>
+                        <views:PoptipChrome.Effect><DropShadowEffect BlurRadius="12" ShadowDepth="3" Direction="270" Opacity="0.08"/></views:PoptipChrome.Effect>
                         <StackPanel>
-                            <TextBlock Text="{Binding HoveredPoint.TooltipDateDisplay}" FontSize="{DynamicResource SecondaryFontSize}" Foreground="{DynamicResource TextSecondary}"/>
-                            <TextBlock Text="{Binding HoverDayDurationDisplay}" Margin="0,4,0,0" FontSize="13" FontWeight="SemiBold" Foreground="#17202C"/>
-                            <StackPanel x:Name="TooltipTaskCount" Orientation="Horizontal" Margin="0,5,0,0" Visibility="{Binding HasHoverDayTasks, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                <Grid Width="11" Height="11" Margin="0,0,5,0" VerticalAlignment="Center"><Ellipse Fill="#FFA45D"/><Path Data="M 2.5,5.5 L 4.5,7.5 L 8,3.5" Stroke="White" StrokeThickness="1.1" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/></Grid>
-                                <TextBlock Text="{Binding HoverTaskCountDisplay}" FontSize="{DynamicResource SecondaryFontSize}" Foreground="{DynamicResource TextSecondary}"/>
-                            </StackPanel>
+                            <TextBlock x:Name="TooltipDate" Text="{Binding HoveredPoint.TooltipDateDisplay}" FontSize="12" Foreground="#728197"/>
+                            <Grid Margin="0,5,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                <TextBlock x:Name="TooltipFocusLabel" Text="专注时长" FontSize="13" Foreground="#17202C" VerticalAlignment="Center"/>
+                                <Viewbox Grid.Column="1" Margin="6,0,0,0" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                    <TextBlock x:Name="TooltipFocusDuration" Text="{Binding HoverFocusDurationDisplay}" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource AccentPrimary}"/>
+                                </Viewbox>
+                            </Grid>
+                            <TextBlock x:Name="TooltipFocusCount" Text="{Binding HoverFocusCountDisplay}" Margin="0,5,0,0" FontSize="12" Foreground="#728197"/>
                         </StackPanel>
-                    </Border>
+                    </views:PoptipChrome>
                 </Canvas>
             </Grid>
                 <Button x:Name="ModalCloseButton" Style="{DynamicResource ModalCloseButtonStyle}"

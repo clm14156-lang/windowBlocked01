@@ -149,6 +149,7 @@ public sealed class FocusThemePresentationTests
                     selector.IsChecked = true;
                     Pump(host);
                     Assert.True(popup.IsOpen);
+                    Assert.Equal(selector.ActualWidth, ((Border)page.FindName("FocusThemeMenuSurface")).ActualWidth);
                     var button = (Button)page.FindName("FocusTheme" + mode + "Option");
                     Assert.Same(vm.SelectFocusThemeCommand, button.Command);
                     Assert.Equal(mode, button.CommandParameter);

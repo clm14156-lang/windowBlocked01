@@ -45,7 +45,7 @@
           <Border x:Name="TaskHoverSurface" CornerRadius="6" IsHitTestVisible="False"><Border.Style><Style TargetType="Border"><Setter Property="Background" Value="Transparent"/><Style.Triggers><DataTrigger Binding="{Binding IsMouseOver, ElementName=CompletedTaskRow}" Value="True"><Setter Property="Background" Value="#F5F6F8"/></DataTrigger></Style.Triggers></Style></Border.Style></Border>
           <Border x:Name="TaskContentSurface" Padding="0">
           <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="20"/><ColumnDefinition Width="12"/><ColumnDefinition/><ColumnDefinition Width="24"/></Grid.ColumnDefinitions><Grid.RowDefinitions><RowDefinition Height="32"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-           <Grid Width="15" Height="15" VerticalAlignment="Center"><Ellipse Fill="{DynamicResource AccentPrimary}"/><Path Data="M 3.5,7.5 L 6.5,10.5 L 11.5,4.5" Stroke="White" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/></Grid>
+           <Border x:Name="CompletedParentMark" Width="15" Height="15" CornerRadius="3" Background="{DynamicResource AccentPrimary}" VerticalAlignment="Center" IsHitTestVisible="False"><Path Data="M 3.5,7.5 L 6.5,10.5 L 11.5,4.5" Stroke="White" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/></Border>
            <TextBlock Grid.Column="2" Text="{Binding Name}" FontSize="{DynamicResource BodyMediumFontSize}" FontWeight="{DynamicResource BodyMediumFontWeight}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding Name}"/>
            <ToggleButton x:Name="TaskMoreToggle" Grid.Column="3" Width="22" Height="23" HorizontalAlignment="Right" VerticalAlignment="Center" Click="TaskMore_Click" AutomationProperties.Name="任务操作">
             <ToggleButton.Style><Style TargetType="ToggleButton" BasedOn="{StaticResource QuietToggle}"><Setter Property="Visibility" Value="Hidden"/><Style.Triggers><DataTrigger Binding="{Binding IsMouseOver, ElementName=CompletedTaskRow}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></ToggleButton.Style>
@@ -58,7 +58,26 @@
             </StackPanel></Border>
            </Popup>
            <TextBlock Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2" Margin="0,3,0,0" Text="{Binding Description}" FontSize="{DynamicResource SecondaryFontSize}" FontWeight="{DynamicResource SecondaryFontWeight}" LineHeight="16" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" Visibility="{Binding HasDescription, Converter={StaticResource VisibleIf}}"/>
-           <ItemsControl Grid.Row="2" Grid.Column="2" Grid.ColumnSpan="2" Margin="4,5,0,0" ItemsSource="{Binding SubTasks}" Visibility="{Binding HasSubTasks, Converter={StaticResource VisibleIf}}"><ItemsControl.ItemTemplate><DataTemplate><Grid Margin="0,2,0,2"><Grid.ColumnDefinitions><ColumnDefinition Width="12"/><ColumnDefinition Width="7"/><ColumnDefinition/></Grid.ColumnDefinitions><Grid Width="11" Height="11" VerticalAlignment="Top" Margin="0,3,0,0"><Ellipse Stroke="#FFC49A" StrokeThickness="1"/><Path Data="M 2.5,5.5 L 4.5,7.5 L 8.5,3.5" Stroke="#FFAA70" StrokeThickness="1" Visibility="{Binding IsCompleted, Converter={StaticResource VisibleIf}}"/></Grid><TextBlock Grid.Column="2" Text="{Binding Title}" FontSize="{DynamicResource BodyFontSize}" FontWeight="{DynamicResource BodyFontWeight}" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap"/></Grid></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+           <Border x:Name="TaskHierarchyLead" Grid.Row="1" Width="1" Background="#E1E5EC" HorizontalAlignment="Left" Margin="9.5,0,0,-5" IsHitTestVisible="False" Visibility="{Binding HasSubTasks, Converter={StaticResource VisibleIf}}"/>
+           <ItemsControl x:Name="CompletedSubTasks" Grid.Row="2" Grid.ColumnSpan="4" Margin="0,5,0,0" ItemsSource="{Binding SubTaskRows}" Visibility="{Binding HasSubTasks, Converter={StaticResource VisibleIf}}">
+            <ItemsControl.ItemTemplate><DataTemplate>
+             <Grid x:Name="CompletedChildRow" MinHeight="18" Margin="0,2,0,2">
+              <Grid.ColumnDefinitions><ColumnDefinition Width="40"/><ColumnDefinition Width="14"/><ColumnDefinition Width="8"/><ColumnDefinition/></Grid.ColumnDefinitions>
+              <Border x:Name="ChildHierarchyTop" Width="1" Height="11" Background="#E1E5EC" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="9.5,-2,0,0" IsHitTestVisible="False"/>
+              <Border x:Name="ChildHierarchyBottom" Width="1" Background="#E1E5EC" HorizontalAlignment="Left" Margin="9.5,9,0,-2" IsHitTestVisible="False"/>
+              <Border x:Name="ChildHierarchyBranch" Height="1" Width="18" Background="#E1E5EC" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="9.5,8.5,0,0" IsHitTestVisible="False"/>
+              <Grid x:Name="CompletedChildMark" Grid.Column="1" Width="12" Height="12" VerticalAlignment="Top" Margin="0,3,0,0" IsHitTestVisible="False">
+               <Ellipse x:Name="CompletedChildCircle" Stroke="#FFB57F" StrokeThickness="1" Fill="Transparent"/>
+               <Path x:Name="CompletedChildTick" Data="M 2.5,6 L 5,8.5 L 9.5,3.5" Stroke="White" StrokeThickness="1.2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Visibility="Collapsed"/>
+              </Grid>
+              <TextBlock x:Name="CompletedChildTitle" Grid.Column="3" Text="{Binding Title}" FontSize="{DynamicResource BodyFontSize}" FontWeight="{DynamicResource BodyFontWeight}" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap"/>
+             </Grid>
+             <DataTemplate.Triggers>
+              <DataTrigger Binding="{Binding IsCompleted}" Value="True"><Setter TargetName="CompletedChildCircle" Property="Fill" Value="#FFAA70"/><Setter TargetName="CompletedChildTick" Property="Visibility" Value="Visible"/></DataTrigger>
+              <DataTrigger Binding="{Binding IsLast}" Value="True"><Setter TargetName="ChildHierarchyBottom" Property="Visibility" Value="Collapsed"/></DataTrigger>
+             </DataTemplate.Triggers>
+            </DataTemplate></ItemsControl.ItemTemplate>
+           </ItemsControl>
           </Grid>
           </Border>
          </Grid>

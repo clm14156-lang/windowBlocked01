@@ -25,9 +25,10 @@ public sealed class GoalInvestmentTrendTests
         {
             model.SetHoveredPointNearestTo(point.ChartX);
             Assert.Same(point, model.HoveredPoint);
-            Assert.InRange(model.TooltipLeft, 8, 502);
+            Assert.InRange(model.TooltipLeft, 8, 634 - GoalInvestmentTrendViewModel.TooltipWidth);
             Assert.True(model.TooltipLeft + GoalInvestmentTrendViewModel.TooltipWidth <= 634);
             Assert.Equal(point.ChartY - 12, model.TooltipTop + model.TooltipHeight);
+            Assert.InRange(Math.Abs(model.TooltipLeft + model.TooltipPointerLeft + 6 - point.ChartX), 0, 0.7);
             var left = model.TooltipLeft;
             model.SetHoveredPointNearestTo(point.ChartX + 2);
             Assert.Equal(left, model.TooltipLeft);
@@ -202,7 +203,9 @@ public sealed class GoalInvestmentTrendTests
         var texts = modal.Descendants(Presentation + "TextBlock").Select(element => (string?)element.Attribute("Text")).ToArray();
         Assert.Equal(2, texts.Count(text => text == "投入趋势"));
         foreach (var label in new[] { "累计投入", "日均投入", "活跃天数", "最长单日" }) Assert.Contains(label, texts);
-        Assert.Equal(4, modal.Descendants(Presentation + "Border").Count(border => (string?)border.Attribute("Style") == "{StaticResource TrendMetricCard}"));
+        Assert.Equal(4, modal.Descendants(Presentation + "Border").Count(border => (string?)border.Attribute("Style") == "{StaticResource TrendMetricGroup}"));
+        Assert.Equal(4, modal.Descendants(Presentation + "Path").Count(icon => (string?)icon.Attribute("Style") == "{StaticResource TrendMetricIcon}"));
+        Assert.DoesNotContain("{Binding ChartAggregationDisplay}", texts);
         foreach (var binding in new[] { "{Binding PeriodInvestment}", "{Binding DailyAverageInvestment}", "{Binding LongestDayInvestment}" })
             Assert.Contains(modal.Descendants(Presentation + "ContentControl"), element => (string?)element.Attribute("Content") == binding);
         Assert.DoesNotContain(modal.Descendants(Presentation + "ItemsControl"), item => (string?)item.Attribute("ItemsSource") == "{Binding VisibleHoverDayTasks}");

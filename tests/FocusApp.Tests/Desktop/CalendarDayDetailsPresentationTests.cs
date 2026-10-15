@@ -44,18 +44,22 @@ public sealed class CalendarDayDetailsPresentationTests
                 window = new Window { Width = 726, Height = 670, WindowStyle = WindowStyle.None,
                     ShowInTaskbar = false, ShowActivated = false, Left = -32000, Top = -32000, Content = page };
                 window.Show(); Pump(page);
+                Assert.Equal("10月12日", ((TextBlock)page.FindName("CalendarSelectedDate")).Text);
+                Assert.Equal("· 周一", ((TextBlock)page.FindName("CalendarSelectedWeekday")).Text);
                 var entries = model.SelectedDayRecordEntries;
                 var views = Descendants<CalendarDayRecordView>(page).ToArray();
                 Assert.Equal(3, views.Length);
                 var expanded = views.Single(view => ReferenceEquals(view.DataContext, entries[2]));
                 var plainView = views.Single(view => ReferenceEquals(view.DataContext, entries[1]));
-                Assert.Equal(Visibility.Collapsed, ((Border)plainView.FindName("FocusLine")).Visibility);
+                var plainMarker = (Border)plainView.FindName("FocusMarker");
+                Assert.True(plainMarker.IsVisible);
+                Assert.True(plainMarker.ActualHeight > plainMarker.ActualWidth * 2);
                 Assert.Equal(Visibility.Collapsed, ((TextBlock)plainView.FindName("GoalName")).Visibility);
                 Assert.Equal(Visibility.Collapsed, ((System.Windows.Shapes.Path)plainView.FindName("ExpandArrow")).Visibility);
                 Assert.Equal("5分钟", ((TextBlock)plainView.FindName("Summary")).Text);
                 Save(page, "calendar-records-collapsed");
                 var content = (Border)expanded.FindName("TaskExpansion");
-                var line = (Border)expanded.FindName("FocusLine");
+                var line = (Border)expanded.FindName("FocusMarker");
                 var collapsedHeight = expanded.ActualHeight;
                 var collapsedLineHeight = line.ActualHeight;
                 var row = Descendants<Border>(page).Single(item => item.Name == "CalendarRecordRow" && ReferenceEquals(item.DataContext, entries[2]));

@@ -43,6 +43,9 @@ public sealed class GoalInvestmentTrendRedesignTests
         model.SetHoveredPointNearestTo(model.TrendPoints.Single(point => point.Date == date).ChartX);
 
         Assert.Equal(5, model.HoverDayTaskCount);
+        Assert.Equal(5, model.HoverDayFocusCount);
+        Assert.Equal("5次专注", model.HoverFocusCountDisplay);
+        Assert.Equal("50分钟", model.HoverFocusDurationDisplay);
         Assert.Equal(3, model.VisibleHoverDayTasks.Count());
         Assert.Equal("还有 2 项任务  ›", model.HoverTaskOverflowLabel);
         model.ToggleAllHoverTasksCommand.Execute(null);
@@ -75,6 +78,8 @@ public sealed class GoalInvestmentTrendRedesignTests
         model.SetHoveredPointNearestTo(model.TrendPoints.Single(point => point.Date == Now.Date).ChartX);
         Assert.Equal(0, model.HoveredPoint!.Minutes);
         Assert.Equal(1, model.HoverDayTaskCount);
+        Assert.Equal(0, model.HoverDayFocusCount);
+        Assert.Equal("0次专注", model.HoverFocusCountDisplay);
         Assert.Equal("已完成", Assert.Single(model.HoverDayTasks).Name);
         model.ApplyState(Goal(), []);
         model.SetHoveredPointNearestTo(model.TrendPoints.Single(point => point.Date == Now.Date).ChartX);
@@ -227,25 +232,40 @@ public sealed class GoalInvestmentTrendRedesignTests
                 var summary = (Grid)modal.FindName("InvestmentSummary");
                 var selector = (Border)modal.FindName("RangeSelectorSurface");
                 var chart = Descendants<GoalInvestmentTrendChart>(modal).Single();
-                var tooltip = (Border)modal.FindName("TrendTooltip");
-                var taskRow = (StackPanel)modal.FindName("TooltipTaskCount");
+                var tooltip = (PoptipChrome)modal.FindName("TrendTooltip");
+                var focusCount = (TextBlock)modal.FindName("TooltipFocusCount");
+                var focusDuration = (TextBlock)modal.FindName("TooltipFocusDuration");
+                Assert.Null(modal.FindName("TooltipTaskCount"));
                 var guide = (System.Windows.Shapes.Line)chart.FindName("HoverGuideLine");
                 Assert.Equal(700, card.ActualWidth);
                 Assert.Equal(448, card.ActualHeight);
                 Assert.Equal(251, model.PeriodInvestment.TotalMinutes);
                 Assert.Equal("近7天投入 · 活跃6天", model.InvestmentSummary);
                 Assert.True(selector.TranslatePoint(new Point(0, selector.ActualHeight), card).Y < summary.TranslatePoint(new Point(), card).Y);
+                Assert.Equal(selector.Height / 2, selector.CornerRadius.TopLeft);
                 var metrics = new[] { "PeriodInvestmentCard", "DailyAverageInvestmentCard", "ActiveDaysCard", "LongestDayInvestmentCard" }
                     .Select(name => (Border)modal.FindName(name)).ToArray();
                 Assert.All(metrics, metric => Assert.Equal(84, metric.ActualHeight));
                 Assert.All(metrics, metric => Assert.InRange(Math.Abs(metric.ActualWidth - metrics[0].ActualWidth), 0, 0.7));
+                foreach (var metric in metrics)
+                {
+                    Assert.Equal(0, ((SolidColorBrush)metric.Background).Color.A);
+                    var icon = Descendants<System.Windows.Shapes.Path>(metric).Single();
+                    var value = Descendants<TextBlock>(metric).Single(text => text.Inlines.Count > 1);
+                    var label = Descendants<TextBlock>(metric).Single(text => text.Inlines.Count == 1);
+                    Assert.True(icon.ActualWidth > 0);
+                    Assert.True(icon.TranslatePoint(new Point(icon.ActualWidth, 0), metric).X < value.TranslatePoint(new Point(), metric).X);
+                    Assert.Equal(value.TranslatePoint(new Point(), metric).X, label.TranslatePoint(new Point(), metric).X, 1);
+                    Assert.True(value.TranslatePoint(new Point(0, value.ActualHeight), metric).Y <= label.TranslatePoint(new Point(), metric).Y);
+                }
                 foreach (var metric in new[] { metrics[0], metrics[1], metrics[3] })
                 {
                     var value = Descendants<TextBlock>(metric).Single(text => text.Inlines.Count == 4);
                     Assert.False(string.Concat(value.Inlines.OfType<System.Windows.Documents.Run>().Select(run => run.Text)).StartsWith(' '));
                 }
                 for (var index = 1; index < metrics.Length; index++)
-                    Assert.InRange(metrics[index].TranslatePoint(new Point(), summary).X - metrics[index - 1].TranslatePoint(new Point(metrics[index - 1].ActualWidth, 0), summary).X, 7.3, 8.7);
+                    Assert.InRange(metrics[index].TranslatePoint(new Point(), summary).X - metrics[index - 1].TranslatePoint(new Point(metrics[index - 1].ActualWidth, 0), summary).X, 0.7, 1.4);
+                Assert.Equal("投入趋势", Assert.Single(Descendants<TextBlock>((Grid)modal.FindName("TrendChartHeading"))).Text);
                 Assert.Equal(42, model.DailyAverageInvestment.TotalMinutes);
                 Assert.Equal(56, model.LongestDayInvestment.TotalMinutes);
                 Assert.True(chart.TranslatePoint(new Point(0, chart.ActualHeight), card).Y < card.ActualHeight - 24);
@@ -269,9 +289,12 @@ public sealed class GoalInvestmentTrendRedesignTests
                 Pump();
                 Assert.True(tooltip.IsVisible);
                 Assert.Equal(Visibility.Visible, guide.Visibility);
-                Assert.Equal(132, tooltip.ActualWidth);
-                Assert.Equal(82, tooltip.ActualHeight);
-                Assert.Equal(Visibility.Visible, taskRow.Visibility);
+                Assert.Equal(164, tooltip.ActualWidth);
+                Assert.Equal(96, tooltip.ActualHeight);
+                Assert.Equal("1次专注", focusCount.Text);
+                Assert.Equal("专注时长", ((TextBlock)modal.FindName("TooltipFocusLabel")).Text);
+                Assert.Equal("56分钟", focusDuration.Text);
+                Assert.Equal(orange, ((SolidColorBrush)focusDuration.Foreground).Color);
                 Assert.Equal("56 分钟", model.HoverDayDurationDisplay);
                 Assert.Equal("完成任务 3 项", model.HoverTaskCountDisplay);
                 var tipPoint = tooltip.TranslatePoint(new Point(), card);
@@ -283,8 +306,9 @@ public sealed class GoalInvestmentTrendRedesignTests
                 hovered = model.TrendPoints[0];
                 model.SetHoveredBarAt(new Point(hovered.ChartX, hovered.ChartY + 10));
                 Pump();
-                Assert.Equal(62, tooltip.ActualHeight);
-                Assert.Equal(Visibility.Collapsed, taskRow.Visibility);
+                Assert.Equal(96, tooltip.ActualHeight);
+                Assert.Equal("1次专注", focusCount.Text);
+                Assert.Equal("45分钟", focusDuration.Text);
                 Assert.Equal("45 分钟", model.HoverDayDurationDisplay);
                 SavePreview(card, "investment-tooltip-duration");
                 var interaction = (Border)chart.FindName("TrendInteractionArea");

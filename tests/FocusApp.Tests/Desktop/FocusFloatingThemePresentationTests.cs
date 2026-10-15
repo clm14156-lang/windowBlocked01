@@ -93,17 +93,17 @@ public sealed class FocusFloatingThemePresentationTests
                     var dark = mode == FocusThemeMode.Dark;
                     Assert.Equal(dark, FocusThemeScope.GetIsDark(floating));
                     Assert.Equal(dark, FocusThemeScope.GetIsDark(folded));
-                    Assert.Equal(dark ? Color.FromRgb(0xF5, 0xF5, 0xF8) : Color.FromRgb(0x10, 0x1B, 0x2C),
+                    Assert.Equal(dark ? Color.FromRgb(0xF2, 0xF5, 0xFB) : Color.FromRgb(0x10, 0x1B, 0x2C),
                         ((SolidColorBrush)((TextBlock)floating.FindName("CountdownText")).Foreground).Color);
                     var surface = (Border)floating.FindName("FloatingSurface");
                     if (dark)
                     {
                         var gradient = Assert.IsType<LinearGradientBrush>(surface.Background);
                         Assert.Equal(3, gradient.GradientStops.Count);
-                        Assert.All(gradient.GradientStops, stop => Assert.InRange(stop.Color.B - stop.Color.R, 0, 5));
+                        Assert.All(gradient.GradientStops, stop => Assert.True(stop.Color.B > stop.Color.G && stop.Color.G > stop.Color.R));
                         Assert.IsType<System.Windows.Media.Effects.DropShadowEffect>(surface.Effect);
-                        Assert.Equal(Color.FromRgb(0x30, 0x32, 0x36), ((SolidColorBrush)((ProgressBar)floating.FindName("FocusProgressBar")).Background).Color);
-                        Assert.Equal(Color.FromRgb(0xF5, 0xF5, 0xF8), ((SolidColorBrush)((TextBlock)folded.FindName("FoldedCountdown")).Foreground).Color);
+                        Assert.Equal(Color.FromRgb(0x25, 0x3D, 0x60), ((SolidColorBrush)((ProgressBar)floating.FindName("FocusProgressBar")).Background).Color);
+                        Assert.Equal(Color.FromRgb(0xF2, 0xF5, 0xFB), ((SolidColorBrush)((TextBlock)folded.FindName("FoldedCountdown")).Foreground).Color);
                     }
                     else Assert.Null(surface.Effect);
                     if (withTask)
@@ -118,7 +118,7 @@ public sealed class FocusFloatingThemePresentationTests
                         check.ApplyTemplate();
                         var chrome = (Border)check.Template.FindName("CheckSurface", check);
                         Assert.Equal(dark ? (byte)0 : (byte)255, ((SolidColorBrush)chrome.Background).Color.A);
-                        Assert.Equal(dark ? Color.FromRgb(0xA0, 0xA4, 0xAE) : Color.FromRgb(0xAE, 0xBC, 0xCF), ((SolidColorBrush)chrome.BorderBrush).Color);
+                        Assert.Equal(dark ? Color.FromRgb(0x8F, 0xAB, 0xD3) : Color.FromRgb(0xAE, 0xBC, 0xCF), ((SolidColorBrush)chrome.BorderBrush).Color);
                     }
                 }
                 Save(Capture(folded), withTask ? "folded-dark-task" : "folded-dark-empty");

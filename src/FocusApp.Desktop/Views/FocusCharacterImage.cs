@@ -40,6 +40,11 @@ public sealed class FocusCharacterImage : Image
     private void UpdateSource()
     {
         if (!IsLoaded) return;
+        PrepareSource();
+    }
+
+    internal void PrepareSource()
+    {
         // Image's render size can become zero while Source is being replaced. The explicit
         // layout width stays stable and prevents that transition from triggering another decode.
         var displayWidth = double.IsFinite(Width) && Width > 0 ? Width : ActualWidth;

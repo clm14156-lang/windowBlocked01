@@ -511,7 +511,7 @@
         </ResourceDictionary>
     </UserControl.Resources>
 
-    <Grid Background="{DynamicResource SurfacePrimary}">
+    <Grid Background="{DynamicResource FocusSceneBaseBrush}">
         <Image x:Name="FocusBackground" Panel.ZIndex="-1" IsHitTestVisible="False"
                Source="{DynamicResource FocusSceneBackground}"
                Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"
@@ -555,7 +555,7 @@
             </Grid>
             <Grid IsHitTestVisible="False">
                 <StackPanel x:Name="FocusCenter" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,128,0,0">
-                    <Viewbox Width="440" Height="116" Stretch="Uniform" StretchDirection="DownOnly">
+                    <Viewbox x:Name="FocusTimerRegion" Width="440" Height="116" Stretch="Uniform" StretchDirection="DownOnly">
                         <TextBlock x:Name="FocusCountdown" Text="{Binding RemainingTimeDisplay}" Style="{StaticResource FocusCountdownTextStyle}"/>
                     </Viewbox>
                     <Grid x:Name="FocusTargetRegion" HorizontalAlignment="Center" Height="30" Margin="0,8,0,0" MaxWidth="440"
@@ -595,6 +595,8 @@
                     </Image.Style>
                 </Image>
             </Grid>
+            <Grid x:Name="FocusCharacterEntrance" IsHitTestVisible="False">
+                <Grid.RenderTransform><TranslateTransform /></Grid.RenderTransform>
             <views:FocusCharacterImage x:Name="FocusCharacter" CharacterId="{Binding FocusCharacterId}" IsNight="{Binding IsDarkFocusTheme}"
                    Width="{Binding FocusCharacterId, Converter={x:Static views:FocusCharacterSizeConverter.Instance}}"
                    Height="{Binding FocusCharacterId, Converter={x:Static views:FocusCharacterSizeConverter.Instance}}"
@@ -608,6 +610,7 @@
                     </MultiBinding>
                 </views:FocusCharacterImage.Margin>
             </views:FocusCharacterImage>
+            </Grid>
             <StackPanel x:Name="FocusFooter" Margin="40,0,40,20" VerticalAlignment="Bottom">
                 <StackPanel x:Name="FocusForceNotice" Orientation="Horizontal" HorizontalAlignment="Center" IsHitTestVisible="False"
                             Visibility="{Binding ShowForceNotice, Converter={StaticResource BooleanToVisibilityConverter}}">

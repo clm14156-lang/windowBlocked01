@@ -17,7 +17,7 @@ public sealed class FocusRecordTimelinePresentationTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void ShortGapLinesLeaveDotClearanceAndOnlyGoalContinuousRowsGainSpacing(bool goalPage)
+    public void CalendarBarsAndGoalDotsPreserveConnectionsAndSpacing(bool goalPage)
     {
         Exception? failure = null;
         var thread = new Thread(() =>
@@ -75,11 +75,20 @@ public sealed class FocusRecordTimelinePresentationTests
                     .Select(gap => Descendants<TextBlock>(gap).Single().Text));
                 foreach (var gap in gaps.Where(gap => gap.IsVisible))
                 {
-                    var dot = Descendants<Ellipse>(gap).Single();
+                    FrameworkElement marker = goalPage ? Descendants<Ellipse>(gap).Single()
+                        : Descendants<Border>(gap).Single(item => item.Name == "CalendarGapMarker");
                     var text = Descendants<TextBlock>(gap).Single();
-                    Assert.InRange(Math.Abs(CenterY(dot, scope) - CenterY(text, scope)), 0, 0.7);
-                    Assert.Equal(Color.FromRgb(199, 207, 216), ((SolidColorBrush)dot.Fill).Color);
-                    Assert.True(Descendants<Border>(gap).Single().ActualHeight > 0);
+                    Assert.InRange(Math.Abs(CenterY(marker, scope) - CenterY(text, scope)), 0, 0.7);
+                    if (goalPage) Assert.Equal(Color.FromRgb(199, 207, 216), ((SolidColorBrush)((Ellipse)marker).Fill).Color);
+                    else
+                    {
+                        var bar = (Border)marker;
+                        Assert.True(bar.ActualHeight > bar.ActualWidth * 2);
+                        Assert.Equal(Color.FromRgb(184, 189, 197), ((SolidColorBrush)bar.Background).Color);
+                        Assert.Equal(bar.ActualWidth, bar.CornerRadius.TopLeft * 2);
+                        Assert.Empty(Descendants<Ellipse>(gap));
+                    }
+                    Assert.True(Descendants<Border>(gap).First().ActualHeight > 0);
                     Assert.Equal(goalPage ? 24 : 26, gap.ActualHeight);
                 }
                 var spacers = Descendants<Grid>(scope).Where(grid => grid.Name == "ContinuousRecordSpacing").ToArray();
@@ -100,25 +109,39 @@ public sealed class FocusRecordTimelinePresentationTests
                     {
                         var incoming = Descendants<Border>(rows[index]).Single(line => line.Name == "ContinuousIncomingLine");
                         var outgoing = Descendants<Border>(rows[index]).Single(line => line.Name == "ContinuousOutgoingLine");
-                        var dot = Descendants<Ellipse>(rows[index]).Single(item => item.Name == (goalPage ? "SessionBullet" : "FocusDot"));
+                        FrameworkElement marker = goalPage ? Descendants<Ellipse>(rows[index]).Single(item => item.Name == "SessionBullet")
+                            : Descendants<Border>(rows[index]).Single(item => item.Name == "FocusMarker");
                         Assert.Equal(index is 1 or 2 or 4, incoming.IsVisible);
                         Assert.Equal(index is 0 or 1 or 3, outgoing.IsVisible);
                         if (!outgoing.IsVisible) continue;
                         var nextIncoming = Descendants<Border>(rows[index + 1]).Single(line => line.Name == "ContinuousIncomingLine");
                         Assert.Equal(accent, ((SolidColorBrush)outgoing.Background).Color);
-                        Assert.InRange(Bounds(outgoing, scope).Top - Bounds(dot, scope).Bottom, 1.5, 3);
                         if (goalPage)
                         {
+                            Assert.InRange(Bounds(outgoing, scope).Top - Bounds(marker, scope).Bottom, 1.5, 3);
                             var spacingLine = Descendants<Border>(spacers[index]).Single();
                             Assert.Equal(accent, ((SolidColorBrush)spacingLine.Background).Color);
                             Assert.InRange(Math.Abs(Bounds(outgoing, scope).Bottom - Bounds(spacingLine, scope).Top), 0, 0.7);
                             Assert.InRange(Math.Abs(Bounds(spacingLine, scope).Bottom - Bounds(nextIncoming, scope).Top), 0, 0.7);
                             Assert.InRange(Math.Abs(Bounds(outgoing, scope).Left - Bounds(spacingLine, scope).Left), 0, 0.7);
                         }
-                        else Assert.InRange(Math.Abs(Bounds(outgoing, scope).Bottom - Bounds(nextIncoming, scope).Top), 0, 0.7);
+                        else
+                        {
+                            Assert.InRange(Math.Abs(Bounds(outgoing, scope).Bottom - Bounds(nextIncoming, scope).Top), 0, 0.7);
+                            Assert.True(Bounds(outgoing, scope).IntersectsWith(Bounds(marker, scope)));
+                            Assert.Equal(marker.ActualWidth, outgoing.ActualWidth);
+                        }
                         Assert.InRange(Math.Abs(Bounds(outgoing, scope).Left - Bounds(nextIncoming, scope).Left), 0, 0.7);
-                        var nextDot = Descendants<Ellipse>(rows[index + 1]).Single(item => item.Name == (goalPage ? "SessionBullet" : "FocusDot"));
-                        Assert.InRange(Bounds(nextDot, scope).Top - Bounds(nextIncoming, scope).Bottom, 1.5, 3);
+                        if (goalPage)
+                        {
+                            var nextDot = Descendants<Ellipse>(rows[index + 1]).Single(item => item.Name == "SessionBullet");
+                            Assert.InRange(Bounds(nextDot, scope).Top - Bounds(nextIncoming, scope).Bottom, 1.5, 3);
+                        }
+                        else
+                        {
+                            var nextMarker = Descendants<Border>(rows[index + 1]).Single(item => item.Name == "FocusMarker");
+                            Assert.True(Bounds(nextIncoming, scope).IntersectsWith(Bounds(nextMarker, scope)));
+                        }
                     }
                 }
                 VerifyConnections();

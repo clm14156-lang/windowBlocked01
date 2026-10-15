@@ -34,6 +34,8 @@ public partial class MainWindow : Window
     private StatisticsPage? _statisticsPageView;
     private bool _isClosing;
     private bool _ruleScrimPressed;
+    private FocusFlowStage _lastFocusStage;
+    private bool _entranceFromHome;
 #if DEBUG
     private bool _debugForcedExitInProgress;
 #endif
@@ -54,6 +56,7 @@ public partial class MainWindow : Window
         DataContextChanged += MainWindow_DataContextChanged;
         Closed += MainWindow_Closed;
         SizeChanged += MainWindow_SizeChanged;
+        StateChanged += (_, _) => { if (WindowState == WindowState.Minimized) FocusScene.FinishEntrance(); };
         PreviewKeyDown += EmptyTaskDrawer_PreviewKeyDown;
     }
 
@@ -125,6 +128,7 @@ public partial class MainWindow : Window
 
     private void MainWindow_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
+        FocusScene.FinishEntrance();
         if (e.OldValue is MainWindowViewModel oldViewModel)
         {
             oldViewModel.HomePage.FocusSession.PropertyChanged -= FocusSession_PropertyChanged;
@@ -133,9 +137,12 @@ public partial class MainWindow : Window
 
         if (e.NewValue is MainWindowViewModel newViewModel)
         {
+            _lastFocusStage = newViewModel.HomePage.FocusSession.Stage;
+            _entranceFromHome = newViewModel.HomePage.FocusSession.IsPreparing;
             newViewModel.HomePage.FocusSession.PropertyChanged += FocusSession_PropertyChanged;
             newViewModel.PropertyChanged += MainViewModel_PropertyChanged;
             ShowCurrentPage(newViewModel);
+            if (newViewModel.HomePage.FocusSession.IsPreparing) FocusScene.PrepareEntranceResources();
         }
     }
 
@@ -282,6 +289,21 @@ public partial class MainWindow : Window
             return;
         }
 
+        var previousStage = _lastFocusStage;
+        _lastFocusStage = session.Stage;
+        if (session.IsPreparing)
+        {
+            // "Focus again" skips the preparation page; do not flash a home snapshot
+            // when returning directly from the completion scene.
+            _entranceFromHome = previousStage == FocusFlowStage.Idle;
+            FocusScene.PrepareEntranceResources();
+        }
+        else if (session.IsFocusing && previousStage == FocusFlowStage.Preparing &&
+                 _entranceFromHome && IsLoaded && IsVisible && WindowState != WindowState.Minimized)
+            FocusScene.BeginEntrance(HomeSurface, FocusHomeExitSnapshot);
+        else
+            FocusScene.FinishEntrance();
+
         if (!session.IsFocusing && _focusFloatingWindow is not null)
         {
             RestoreFromFocusFloatingWindow();
@@ -313,6 +335,7 @@ public partial class MainWindow : Window
 
     private void MainWindow_Closed(object? sender, EventArgs e)
     {
+        FocusScene.FinishEntrance();
         if (_hotKeySource is not null)
         {
             NativeMethods.UnregisterHotKey(_hotKeySource.Handle, ToastHotKeyId);

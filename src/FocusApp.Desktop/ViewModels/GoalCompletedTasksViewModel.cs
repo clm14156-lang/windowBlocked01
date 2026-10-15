@@ -132,6 +132,13 @@ public sealed record GoalCompletedTaskEntryViewModel(LocalTaskDto Source, IComma
     public string Description => Source.Description;
     public bool HasDescription => !string.IsNullOrWhiteSpace(Description);
     public IReadOnlyList<LocalSubTaskDto> SubTasks => Source.SubTasks.OrderBy(child => child.SortOrder).ToArray();
+    public IReadOnlyList<GoalCompletedSubTaskRow> SubTaskRows => SubTasks
+        .Select((child, index) => new GoalCompletedSubTaskRow(child, index == Source.SubTasks.Count - 1)).ToArray();
     public bool HasSubTasks => SubTasks.Count > 0;
     public string TimeDisplay => GoalCompletedTasksViewModel.CompletionTime(Source).ToString("HH:mm");
+}
+public sealed record GoalCompletedSubTaskRow(LocalSubTaskDto Source, bool IsLast)
+{
+    public string Title => Source.Title;
+    public bool IsCompleted => Source.IsCompleted;
 }

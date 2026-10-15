@@ -12,6 +12,8 @@ public partial class FocusFlowView : UserControl
     {
         InitializeComponent();
         FocusLeaves.SetScene(FocusBackground, FocusFooterRule, FocusFooter);
+        Unloaded += (_, _) => FinishEntrance();
+        IsVisibleChanged += (_, _) => { if (!IsVisible) FinishEntrance(); };
     }
 
     public event EventHandler? MinimizeRequested;

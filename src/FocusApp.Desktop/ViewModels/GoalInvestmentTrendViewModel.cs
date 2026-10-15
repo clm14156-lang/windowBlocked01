@@ -14,7 +14,7 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
     internal const double PlotRight = 636;
     internal const double PlotTop = 20;
     internal const double PlotBottom = 146;
-    public const double TooltipWidth = 132;
+    public const double TooltipWidth = 164;
     private const double ChartWidth = 642;
     private const double TooltipEdgeInset = 8;
     private const double TooltipGap = 12;
@@ -89,6 +89,11 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
     public int HoverDayTaskCount => HoverDayTasks.Count;
     public string InvestmentSummary => $"{PeriodInvestmentTitle} · 活跃{ActiveDays}天";
     public string HoverTaskCountDisplay => $"完成任务 {HoverDayTaskCount} 项";
+    public int HoverDayFocusCount => HoveredPoint is { } point
+        ? _records.Count(record => record.StartTime < point.Date.Date.AddDays(1) && record.EndTime > point.Date.Date)
+        : 0;
+    public string HoverFocusCountDisplay => $"{HoverDayFocusCount}次专注";
+    public string HoverFocusDurationDisplay => new GoalInvestmentDurationViewModel(HoveredPoint?.Minutes ?? 0).Display;
     public string HoverDayDurationDisplay => (HoveredPoint?.Minutes ?? 0) switch
     {
         >= 60 when HoveredPoint!.Minutes % 60 == 0 => $"{HoveredPoint.Minutes / 60} 小时",
@@ -170,6 +175,7 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
             OnPropertyChanged();
             OnPropertyChanged(nameof(IsTooltipOpen));
             OnPropertyChanged(nameof(TooltipLeft));
+            OnPropertyChanged(nameof(TooltipPointerLeft));
             RefreshHoverDayTasks();
             OnPropertyChanged(nameof(TooltipTop));
             OnPropertyChanged(nameof(TooltipHeight));
@@ -182,14 +188,14 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
         get
         {
             if (HoveredPoint is null) return 0;
-            var left = HoveredPoint.ChartX + 24;
-            if (left + TooltipWidth > ChartWidth - TooltipEdgeInset) left = HoveredPoint.ChartX - 24 - TooltipWidth;
+            var left = HoveredPoint.ChartX - TooltipWidth / 2;
             return Math.Clamp(left, TooltipEdgeInset, ChartWidth - TooltipEdgeInset - TooltipWidth);
         }
     }
     // Coordinates are relative to the chart; the tip sits just above the bar.
     public double TooltipTop => TooltipBottom - TooltipHeight;
-    public double TooltipHeight => HasHoverDayTasks ? 82 : 62;
+    public double TooltipHeight => 96;
+    public double TooltipPointerLeft => Math.Clamp((HoveredPoint?.ChartX ?? 0) - TooltipLeft - 6, 10, TooltipWidth - 22);
     public double TooltipBottom => (HoveredPoint?.ChartY ?? PlotBottom) - TooltipGap;
     public string SelectedDateTitle => $"{_selectedDate:M月d日}";
     public string SelectedDateSummary
@@ -287,7 +293,8 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
         }
         foreach (var property in new[] { nameof(VisibleHoverDayTasks), nameof(HasHoverTaskOverflow),
                      nameof(HoverTaskOverflowLabel), nameof(HasHoverDayTasks), nameof(HasHoverDayFocus),
-                     nameof(HoverDayTaskCount), nameof(HoverTaskCountDisplay), nameof(HoverDayDurationDisplay), nameof(HoverEmptyState) }) OnPropertyChanged(property);
+                     nameof(HoverDayTaskCount), nameof(HoverTaskCountDisplay), nameof(HoverDayDurationDisplay), nameof(HoverEmptyState),
+                     nameof(HoverDayFocusCount), nameof(HoverFocusCountDisplay), nameof(HoverFocusDurationDisplay) }) OnPropertyChanged(property);
     }
 
     public void SelectHoveredDate()

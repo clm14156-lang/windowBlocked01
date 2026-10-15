@@ -1,43 +1,43 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <!-- Neutral charcoal, shared by the floating card and folded capsule. -->
+    <!-- Quiet night blues, shared by the floating card and folded capsule. -->
     <GradientStopCollection x:Key="FloatingDarkGradientStops">
-        <GradientStop Offset="0" Color="#252628"/>
-        <GradientStop Offset="0.45" Color="#1D1E20"/>
-        <GradientStop Offset="1" Color="#17181A"/>
+        <GradientStop Offset="0" Color="#0C2446"/>
+        <GradientStop Offset="0.45" Color="#0A1F3D"/>
+        <GradientStop Offset="1" Color="#081A34"/>
     </GradientStopCollection>
     <LinearGradientBrush x:Key="FloatingBackgroundBrush" StartPoint="0,0" EndPoint="1,1" GradientStops="{StaticResource FloatingDarkGradientStops}"/>
     <LinearGradientBrush x:Key="FoldedBackgroundBrush" StartPoint="0,0" EndPoint="1,1" GradientStops="{StaticResource FloatingDarkGradientStops}"/>
-    <SolidColorBrush x:Key="FloatingBorderBrush" Color="#3D4046"/>
-    <SolidColorBrush x:Key="FloatingCountdownBrush" Color="#F5F5F8"/>
-    <SolidColorBrush x:Key="FloatingSecondaryBrush" Color="#A0A3AD"/>
-    <SolidColorBrush x:Key="FloatingStatusBrush" Color="#F5F5F8"/>
-    <SolidColorBrush x:Key="FloatingIconBrush" Color="#DCDEE5"/>
-    <SolidColorBrush x:Key="FloatingProgressTrackBrush" Color="#303236"/>
-    <SolidColorBrush x:Key="FloatingDividerBrush" Color="#474A50"/>
-    <SolidColorBrush x:Key="FloatingTaskHeaderBrush" Color="#F5F5F8"/>
-    <SolidColorBrush x:Key="FloatingTaskTextBrush" Color="#F5F5F8"/>
-    <SolidColorBrush x:Key="FloatingCompletedTaskBrush" Color="#888C96"/>
-    <SolidColorBrush x:Key="FloatingCheckBorderBrush" Color="#A0A4AE"/>
+    <SolidColorBrush x:Key="FloatingBorderBrush" Color="#2D4567"/>
+    <SolidColorBrush x:Key="FloatingCountdownBrush" Color="#F2F5FB"/>
+    <SolidColorBrush x:Key="FloatingSecondaryBrush" Color="#A8BAD5"/>
+    <SolidColorBrush x:Key="FloatingStatusBrush" Color="#F2F5FB"/>
+    <SolidColorBrush x:Key="FloatingIconBrush" Color="#C4D3E8"/>
+    <SolidColorBrush x:Key="FloatingProgressTrackBrush" Color="#253D60"/>
+    <SolidColorBrush x:Key="FloatingDividerBrush" Color="#304869"/>
+    <SolidColorBrush x:Key="FloatingTaskHeaderBrush" Color="#F2F5FB"/>
+    <SolidColorBrush x:Key="FloatingTaskTextBrush" Color="#F2F5FB"/>
+    <SolidColorBrush x:Key="FloatingCompletedTaskBrush" Color="#8298B8"/>
+    <SolidColorBrush x:Key="FloatingCheckBorderBrush" Color="#8FABD3"/>
     <SolidColorBrush x:Key="FloatingCheckBackgroundBrush" Color="#00FFFFFF"/>
-    <SolidColorBrush x:Key="FloatingButtonHoverBrush" Color="#35373B"/>
-    <SolidColorBrush x:Key="FloatingButtonPressedBrush" Color="#42454B"/>
-    <SolidColorBrush x:Key="FloatingScrollTrackBrush" Color="#25272B"/>
-    <SolidColorBrush x:Key="FloatingScrollThumbBrush" Color="#53565E"/>
-    <SolidColorBrush x:Key="FloatingScrollHoverBrush" Color="#676B74"/>
-    <SolidColorBrush x:Key="FloatingScrollDraggingBrush" Color="#797E88"/>
-    <SolidColorBrush x:Key="FloatingInputBackgroundBrush" Color="#24262A"/>
-    <SolidColorBrush x:Key="FloatingInputBorderBrush" Color="#45484F"/>
-    <SolidColorBrush x:Key="FloatingInputFocusBrush" Color="#FFAD70"/>
-    <SolidColorBrush x:Key="FoldedBorderBrush" Color="#3D4046"/>
-    <SolidColorBrush x:Key="FoldedCountdownBrush" Color="#F5F5F8"/>
-    <SolidColorBrush x:Key="FoldedTaskBrush" Color="#A0A3AD"/>
-    <SolidColorBrush x:Key="FoldedDividerBrush" Color="#474A50"/>
-    <SolidColorBrush x:Key="FoldedRingTrackBrush" Color="#35373B"/>
-    <SolidColorBrush x:Key="FocusTaskCircleBorder" Color="#A0A4AE"/>
-    <SolidColorBrush x:Key="FocusTaskTick" Color="#DCDEE5"/>
-    <SolidColorBrush x:Key="FloatingConnectorBrush" Color="#5B5E66"/>
-    <SolidColorBrush x:Key="FloatingProgressCapsuleBrush" Color="#292B30"/>
-    <SolidColorBrush x:Key="FloatingProgressCapsuleBorderBrush" Color="#3D4046"/>
-    <DropShadowEffect x:Key="FloatingShadow" Color="#000000" BlurRadius="8" ShadowDepth="1" Opacity="0.2"/>
+    <SolidColorBrush x:Key="FloatingButtonHoverBrush" Color="#1A3354"/>
+    <SolidColorBrush x:Key="FloatingButtonPressedBrush" Color="#254362"/>
+    <SolidColorBrush x:Key="FloatingScrollTrackBrush" Color="#102845"/>
+    <SolidColorBrush x:Key="FloatingScrollThumbBrush" Color="#3E5A7D"/>
+    <SolidColorBrush x:Key="FloatingScrollHoverBrush" Color="#526F94"/>
+    <SolidColorBrush x:Key="FloatingScrollDraggingBrush" Color="#6785AA"/>
+    <SolidColorBrush x:Key="FloatingInputBackgroundBrush" Color="#102845"/>
+    <SolidColorBrush x:Key="FloatingInputBorderBrush" Color="#304869"/>
+    <SolidColorBrush x:Key="FloatingInputFocusBrush" Color="#8FABD3"/>
+    <SolidColorBrush x:Key="FoldedBorderBrush" Color="#2D4567"/>
+    <SolidColorBrush x:Key="FoldedCountdownBrush" Color="#F2F5FB"/>
+    <SolidColorBrush x:Key="FoldedTaskBrush" Color="#A8BAD5"/>
+    <SolidColorBrush x:Key="FoldedDividerBrush" Color="#304869"/>
+    <SolidColorBrush x:Key="FoldedRingTrackBrush" Color="#253D60"/>
+    <SolidColorBrush x:Key="FocusTaskCircleBorder" Color="#8FABD3"/>
+    <SolidColorBrush x:Key="FocusTaskTick" Color="#C4D3E8"/>
+    <SolidColorBrush x:Key="FloatingConnectorBrush" Color="#405A7C"/>
+    <SolidColorBrush x:Key="FloatingProgressCapsuleBrush" Color="#142E50"/>
+    <SolidColorBrush x:Key="FloatingProgressCapsuleBorderBrush" Color="#2D4567"/>
+    <DropShadowEffect x:Key="FloatingShadow" Color="#041126" BlurRadius="8" ShadowDepth="1" Opacity="0.2"/>
 </ResourceDictionary>

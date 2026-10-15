@@ -54,7 +54,7 @@ public sealed class CalendarRecordDensityTests
                 foreach (var view in Descendants<CalendarDayRecordView>(scroll))
                 {
                     var goal = (TextBlock)view.FindName("GoalName");
-                    var line = (Border)view.FindName("FocusLine");
+                    var line = (Border)view.FindName("FocusMarker");
                     Assert.True(line.ActualHeight > 0);
                     Assert.True(Bounds(line, view).Bottom <= Bounds(goal, view).Bottom + 0.7);
                     Assert.DoesNotContain(Descendants<Border>(view), border => border.ActualHeight > 0 && border.ActualHeight <= 1.5 && border.ActualWidth > 20);
@@ -70,10 +70,12 @@ public sealed class CalendarRecordDensityTests
                     Assert.True(incoming.IsVisible);
                     Assert.InRange(Math.Abs(Bounds(outgoing, scroll).Bottom - Bounds(incoming, scroll).Top), 0, 0.7);
                     Assert.Equal(((SolidColorBrush)page.FindResource("AccentPrimary")).Color, ((SolidColorBrush)outgoing.Background).Color);
-                    var dot = (System.Windows.Shapes.Ellipse)views[index].FindName("FocusDot");
-                    var nextDot = (System.Windows.Shapes.Ellipse)views[index + 1].FindName("FocusDot");
-                    Assert.InRange(Bounds(outgoing, scroll).Top - Bounds(dot, scroll).Bottom, 1.5, 3);
-                    Assert.InRange(Bounds(nextDot, scroll).Top - Bounds(incoming, scroll).Bottom, 1.5, 3);
+                    var marker = (Border)views[index].FindName("FocusMarker");
+                    var nextMarker = (Border)views[index + 1].FindName("FocusMarker");
+                    Assert.True(Bounds(outgoing, scroll).IntersectsWith(Bounds(marker, scroll)));
+                    Assert.True(Bounds(incoming, scroll).IntersectsWith(Bounds(nextMarker, scroll)));
+                    Assert.Equal(marker.ActualWidth, outgoing.ActualWidth);
+                    Assert.Equal(marker.ActualWidth, marker.CornerRadius.TopLeft * 2);
                 }
                 Save(page, $"calendar-compact-{width}-{height}");
                 var header = (Grid)page.FindName("CalendarDayHeader");

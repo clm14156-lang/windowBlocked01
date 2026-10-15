@@ -8,19 +8,22 @@
     <Grid Margin="0,3,8,3">
         <Grid.ColumnDefinitions><ColumnDefinition Width="30"/><ColumnDefinition/></Grid.ColumnDefinitions>
         <Grid.RowDefinitions><RowDefinition Height="22"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-        <!-- Join short-gap rows while leaving a small clearance around each orange dot. -->
-        <Border x:Name="ContinuousIncomingLine" Width="1.5" Background="{DynamicResource AccentPrimary}" Margin="0,-3,0,20"
+        <Border x:Name="TimelineSpine" Grid.RowSpan="2" Width="1.5" Background="#E3E7EC" Margin="0,-3,0,-3" IsHitTestVisible="False"/>
+        <!-- Overlap the rounded ends so short-gap records form one continuous focus bar. -->
+        <Border x:Name="ContinuousIncomingLine" Width="6" Height="8" Background="{DynamicResource AccentPrimary}" Margin="0,-3,0,0" VerticalAlignment="Top"
                 IsHitTestVisible="False" Visibility="{Binding ConnectsFromPrevious, Converter={StaticResource VisibleWhenTrue}}"/>
-        <Border x:Name="ContinuousOutgoingLine" Grid.RowSpan="2" Width="1.5" Background="{DynamicResource AccentPrimary}" Margin="0,20,0,-3"
-                IsHitTestVisible="False" Visibility="{Binding ConnectsToNext, Converter={StaticResource VisibleWhenTrue}}"/>
-        <Ellipse x:Name="FocusDot" Width="13" Height="13" Fill="{DynamicResource AccentPrimary}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-        <Border x:Name="FocusLine" Grid.Row="1" Width="1.5" Background="{DynamicResource AccentPrimary}"
-                Visibility="{Binding HasDetails, Converter={StaticResource VisibleWhenTrue}}">
+        <Border x:Name="ContinuousOutgoingLine" Grid.RowSpan="2" Width="6" Background="{DynamicResource AccentPrimary}" Margin="0,0,0,-3" VerticalAlignment="Bottom"
+                IsHitTestVisible="False" Visibility="{Binding ConnectsToNext, Converter={StaticResource VisibleWhenTrue}}">
+            <Border.Style><Style TargetType="Border"><Setter Property="Height" Value="8"/>
+                <Style.Triggers><DataTrigger Binding="{Binding IsExpanded}" Value="True"><Setter Property="Height" Value="16"/></DataTrigger></Style.Triggers>
+            </Style></Border.Style>
+        </Border>
+        <Border x:Name="FocusMarker" Grid.RowSpan="2" Width="6" CornerRadius="3" Background="{DynamicResource AccentPrimary}" IsHitTestVisible="False">
             <Border.Style>
                 <Style TargetType="Border">
-                    <Setter Property="Margin" Value="0,1,0,1"/>
+                    <Setter Property="Margin" Value="0,2,0,2"/>
                     <Style.Triggers>
-                        <DataTrigger Binding="{Binding IsExpanded}" Value="True"><Setter Property="Margin" Value="0,1,0,10"/></DataTrigger>
+                        <DataTrigger Binding="{Binding IsExpanded}" Value="True"><Setter Property="Margin" Value="0,2,0,10"/></DataTrigger>
                     </Style.Triggers>
                 </Style>
             </Border.Style>

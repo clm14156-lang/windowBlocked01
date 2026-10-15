@@ -85,9 +85,10 @@
     <SolidColorBrush x:Key="FocusTaskButtonHover" Color="#F5F5F7" />
     <SolidColorBrush x:Key="FocusTaskSelectedAccent" Color="#FF7A19" />
     <SolidColorBrush x:Key="FocusTaskDisabledAccent" Color="#FFC9AA" />
-    <BitmapImage x:Key="FocusSceneBackground" UriSource="/FocusApp.Desktop;component/Assets/Images/focusPage/focus_white01.png" />
+    <SolidColorBrush x:Key="FocusSceneBaseBrush" Color="#FFF8F0" />
+    <BitmapImage x:Key="FocusSceneBackground" CacheOption="OnLoad" UriSource="/FocusApp.Desktop;component/Assets/Images/focusPage/focus_white01.png" />
     <BitmapImage x:Key="FocusCompletionCheck" UriSource="/FocusApp.Desktop;component/Assets/Images/Illustrations/focus_gouxuan.png" />
-    <BitmapImage x:Key="FocusSceneShadow" UriSource="/FocusApp.Desktop;component/Assets/Images/focusPage/white_shadow.png" />
+    <BitmapImage x:Key="FocusSceneShadow" CacheOption="OnLoad" UriSource="/FocusApp.Desktop;component/Assets/Images/focusPage/white_shadow.png" />
     <BitmapImage x:Key="FocusSceneContactShadow" CacheOption="OnLoad" DecodePixelWidth="512" UriSource="/FocusApp.Desktop;component/Assets/Images/focusPage/white_shadow01.png" />
     <SolidColorBrush x:Key="FocusWeatherBrush" Color="#648BAB" />
     <x:Array x:Key="FocusSceneLeaves" Type="{x:Type ImageSource}">

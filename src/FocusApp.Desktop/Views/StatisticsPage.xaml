@@ -856,7 +856,7 @@
                                 <Grid x:Name="CalendarDayHeader">
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                     <TextBlock x:Name="CalendarSelectedDate" Text="{Binding SelectedDayDateDisplay}" FontSize="17" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center"/>
-                                    <TextBlock x:Name="CalendarSelectedWeekday" Grid.Column="1" Margin="12,0,0,0" Text="{Binding SelectedDayWeekdayDisplay}" FontSize="15" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="CalendarSelectedWeekday" Grid.Column="1" Margin="10,0,0,0" Text="{Binding SelectedDayWeekdayDisplay, StringFormat='· {0}'}" FontSize="15" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center"/>
                                     <TextBlock x:Name="CalendarDayFocusDuration" Grid.Column="3" Text="{Binding SelectedDayCompactDurationDisplay}" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center"/>
                                 </Grid>
                                 <views:CalendarFocusTimeline x:Name="CalendarDayTimeline" Grid.Row="1" Margin="4,17,4,10" Timeline="{Binding SelectedDayTimeline}"
@@ -876,8 +876,8 @@
                                                 </Border>
                                                 <Grid x:Name="CalendarRecordGap" Height="26" Margin="0,0,10,0" Visibility="{Binding HasGap, Converter={StaticResource BooleanToVisibilityConverter}}">
                                                     <Grid.ColumnDefinitions><ColumnDefinition Width="30"/><ColumnDefinition/></Grid.ColumnDefinitions>
-                                                    <Border x:Name="CalendarGapLine" Width="1.5" Background="#E3E7EC" Margin="0,2,0,2"/>
-                                                    <Ellipse x:Name="CalendarGapDot" Width="10" Height="10" Fill="#C7CFD8" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    <Border x:Name="CalendarGapLine" Width="1.5" Background="#E3E7EC"/>
+                                                    <Border x:Name="CalendarGapMarker" Width="6" Height="14" CornerRadius="3" Background="#B8BDC5" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                     <TextBlock x:Name="CalendarGapText" Grid.Column="1" Text="{Binding GapDisplay}" FontSize="11" Foreground="#A3AAB5" VerticalAlignment="Center"/>
                                                 </Grid>
                                             </StackPanel>

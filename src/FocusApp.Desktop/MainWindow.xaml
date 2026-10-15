@@ -33,6 +33,11 @@
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
+            <Grid x:Name="HomeSurface" Grid.ColumnSpan="2" Background="{DynamicResource BackgroundPrimary}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="72" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
             <Border Grid.Column="0"
                     Background="{DynamicResource BackgroundPrimary}"
                     BorderBrush="{DynamicResource OverlayBorder}"
@@ -329,6 +334,8 @@
                         </TextBlock.Style>
                     </TextBlock>
                 </Grid>
+            </Grid>
+
             </Grid>
 
             <Grid Grid.ColumnSpan="2" Panel.ZIndex="102">
@@ -924,7 +931,7 @@
                 </Border>
             </Grid>
 
-            <views:FocusFlowView Grid.ColumnSpan="2"
+            <views:FocusFlowView x:Name="FocusScene" Grid.ColumnSpan="2"
                                  Panel.ZIndex="200"
                                  MinimizeRequested="FocusFlowView_MinimizeRequested"
                                  DataContext="{Binding HomePage.FocusSession}">
@@ -939,6 +946,9 @@
                     </Style>
                 </views:FocusFlowView.Style>
             </views:FocusFlowView>
+
+            <Image x:Name="FocusHomeExitSnapshot" Grid.ColumnSpan="2" Panel.ZIndex="201"
+                   Visibility="Collapsed" IsHitTestVisible="False" Stretch="Fill" />
 
             <views:CreateGoalModal x:Name="CreateGoalModalControl"
                                    Grid.ColumnSpan="2"
