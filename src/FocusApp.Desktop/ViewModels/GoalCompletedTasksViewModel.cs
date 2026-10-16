@@ -7,29 +7,36 @@ using FocusApp.Core;
 
 namespace FocusApp.Desktop.ViewModels;
 
+public enum CompletedTaskTimeRange { All, Today, Week, Month }
+
 public sealed class GoalCompletedTasksViewModel : INotifyPropertyChanged
 {
+    private readonly Func<DateTime> _localNowProvider;
     private string? _goalId;
     private IReadOnlyList<LocalTaskDto> _tasks = [];
     private bool _isOpen, _isBusy;
-    private string _searchText = string.Empty, _selectedSort = "最近完成", _errorText = string.Empty;
+    private CompletedTaskTimeRange _selectedRange;
+    private bool _isSortDescending = true;
+    private string _errorText = string.Empty;
     private readonly RelayCommand<object> _open;
     private readonly RelayCommand<GoalCompletedTaskEntryViewModel> _restore, _delete;
-    public GoalCompletedTasksViewModel()
+
+    public GoalCompletedTasksViewModel(Func<DateTime>? localNowProvider = null)
     {
+        _localNowProvider = localNowProvider ?? (() => DateTime.Now);
         _open = new(_ => Open(), _ => _goalId is not null);
         OpenCommand = _open;
         CloseCommand = new RelayCommand<object>(_ => IsOpen = false);
-        SelectSortCommand = new RelayCommand<string>(value => { if (value is not null) SelectedSort = value; });
+        ToggleSortCommand = new RelayCommand<object>(_ => IsSortDescending = !IsSortDescending);
         _restore = new(async entry => { if (entry is not null) await MutateAsync(entry, false); }, entry => entry is not null && !IsBusy);
         _delete = new(async entry => { if (entry is not null) await MutateAsync(entry, true); }, entry => entry is not null && !IsBusy);
     }
+
     public event PropertyChangedEventHandler? PropertyChanged;
-    public ObservableCollection<GoalCompletedTaskDateViewModel> Days { get; } = [];
-    public IReadOnlyList<string> SortOptions { get; } = ["最近完成", "最早完成", "完成最多"];
+    public ObservableCollection<GoalCompletedTaskEntryViewModel> Tasks { get; } = [];
     public ICommand OpenCommand { get; }
     public ICommand CloseCommand { get; }
-    public ICommand SelectSortCommand { get; }
+    public ICommand ToggleSortCommand { get; }
     public Func<LocalTaskDto, bool, Task<bool>>? MutationHandler { get; set; }
     public bool IsOpen { get => _isOpen; private set => Set(ref _isOpen, value); }
     public bool IsBusy
@@ -37,63 +44,113 @@ public sealed class GoalCompletedTasksViewModel : INotifyPropertyChanged
         get => _isBusy;
         private set { if (Set(ref _isBusy, value)) { _restore.NotifyCanExecuteChanged(); _delete.NotifyCanExecuteChanged(); } }
     }
-    public string SearchText { get => _searchText; set { if (Set(ref _searchText, value ?? string.Empty)) Refresh(resetExpansion: true); } }
-    public string SelectedSort { get => _selectedSort; set { if (SortOptions.Contains(value) && Set(ref _selectedSort, value)) Refresh(); } }
+    public CompletedTaskTimeRange SelectedRange
+    {
+        get => _selectedRange;
+        set
+        {
+            if (!Enum.IsDefined(value) || !Set(ref _selectedRange, value)) return;
+            NotifyRange();
+            Refresh();
+        }
+    }
+    public bool IsAllRange { get => SelectedRange == CompletedTaskTimeRange.All; set { if (value) SelectedRange = CompletedTaskTimeRange.All; } }
+    public bool IsTodayRange { get => SelectedRange == CompletedTaskTimeRange.Today; set { if (value) SelectedRange = CompletedTaskTimeRange.Today; } }
+    public bool IsWeekRange { get => SelectedRange == CompletedTaskTimeRange.Week; set { if (value) SelectedRange = CompletedTaskTimeRange.Week; } }
+    public bool IsMonthRange { get => SelectedRange == CompletedTaskTimeRange.Month; set { if (value) SelectedRange = CompletedTaskTimeRange.Month; } }
+    public bool IsSortDescending
+    {
+        get => _isSortDescending;
+        set
+        {
+            if (!Set(ref _isSortDescending, value)) return;
+            Changed(nameof(IsSortAscending)); Changed(nameof(SortHint));
+            Refresh();
+        }
+    }
+    public bool IsSortAscending => !IsSortDescending;
+    public string SortHint => IsSortDescending ? "当前按完成时间从新到旧，点击改为从旧到新" : "当前按完成时间从旧到新，点击改为从新到旧";
     public string ErrorText { get => _errorText; private set { if (Set(ref _errorText, value)) Changed(nameof(HasError)); } }
     public bool HasError => ErrorText.Length > 0;
+    // The goal page retains its all-time total; the modal reports the filtered result count.
     public int TotalCount => _tasks.Count;
     public bool HasTasks => TotalCount > 0;
-    public bool HasResults => Days.Count > 0;
+    public int FilteredCount => Tasks.Count;
+    public string FilteredCountDisplay => $"共 {FilteredCount} 项";
+    public bool HasResults => FilteredCount > 0;
     public string SummaryDisplay => $"已完成 {TotalCount} 项";
-    public string EmptyText => string.IsNullOrWhiteSpace(SearchText) ? "暂无已完成任务" : "没有找到匹配的任务";
+    public string EmptyText => SelectedRange == CompletedTaskTimeRange.All ? "暂无已完成任务" : "该时间范围内暂无已完成任务";
 
     public void ApplyState(GoalOverviewItemViewModel? goal, IReadOnlyList<LocalTaskDto> tasks)
     {
         var changedGoal = _goalId != goal?.GoalId;
         _goalId = goal?.GoalId;
-        _tasks = tasks.Where(task => task.TargetId == _goalId &&
+        _tasks = tasks.Where(task => _goalId is not null && task.TargetId == _goalId &&
                 TaskCompletionPolicy.IsCompleted(task.IsCompleted, task.SubTasks.Select(child => child.IsCompleted)))
             .GroupBy(task => task.TaskId).Select(group => group.First()).ToArray();
         if (changedGoal)
         {
             IsOpen = false;
-            _searchText = string.Empty; _selectedSort = "最近完成"; ErrorText = string.Empty;
-            Changed(nameof(SearchText)); Changed(nameof(SelectedSort));
+            ResetFilters();
+            ErrorText = string.Empty;
         }
-        Refresh(changedGoal);
-        Changed(nameof(TotalCount)); Changed(nameof(HasTasks)); Changed(nameof(SummaryDisplay));
+        Refresh();
+        NotifyTotal();
         _open.NotifyCanExecuteChanged();
     }
     private void Open()
     {
         if (_goalId is null) return;
-        _searchText = string.Empty; _selectedSort = "最近完成"; ErrorText = string.Empty;
-        Changed(nameof(SearchText)); Changed(nameof(SelectedSort)); Refresh(true); IsOpen = true;
+        ResetFilters(); ErrorText = string.Empty;
+        Refresh(); IsOpen = true;
     }
-    private void Refresh(bool resetExpansion = false)
+    private void ResetFilters()
     {
-        var expanded = resetExpansion ? new Dictionary<DateTime, bool>() : Days.ToDictionary(day => day.Date, day => day.IsExpanded);
-        var query = SearchText.Trim();
-        var groups = _tasks.GroupBy(task => CompletionTime(task).Date)
-            .Select(group => new { group.Key, Count = group.Count(), Tasks = group.Where(task => Matches(task, query)).OrderByDescending(CompletionTime).ThenBy(task => task.SortOrder).ToArray() })
-            .Where(group => group.Tasks.Length > 0);
-        groups = SelectedSort switch
-        {
-            "最早完成" => groups.OrderBy(group => group.Key),
-            "完成最多" => groups.OrderByDescending(group => group.Count).ThenByDescending(group => group.Key),
-            _ => groups.OrderByDescending(group => group.Key)
-        };
-        var latest = _tasks.Count == 0 ? (DateTime?)null : _tasks.Max(task => CompletionTime(task).Date);
-        Days.Clear();
-        foreach (var group in groups)
-            Days.Add(new(group.Key, group.Tasks.Select(task => new GoalCompletedTaskEntryViewModel(task, _restore, _delete)).ToArray(),
-                query.Length > 0 || (expanded.TryGetValue(group.Key, out var open) ? open : group.Key == latest)));
-        Changed(nameof(HasResults)); Changed(nameof(EmptyText));
+        _selectedRange = CompletedTaskTimeRange.All;
+        _isSortDescending = true;
+        Changed(nameof(SelectedRange)); NotifyRange();
+        Changed(nameof(IsSortDescending)); Changed(nameof(IsSortAscending)); Changed(nameof(SortHint));
     }
-    internal static DateTime CompletionTime(LocalTaskDto task) => (task.CompletedAtUtc ?? task.UpdatedAtUtc).LocalDateTime;
-    private static bool Matches(LocalTaskDto task, string query) => query.Length == 0 ||
-        task.Name.Contains(query, StringComparison.OrdinalIgnoreCase) || task.Description.Contains(query, StringComparison.OrdinalIgnoreCase) ||
-        task.SubTasks.Any(child => child.Title.Contains(query, StringComparison.OrdinalIgnoreCase));
+    private void NotifyRange()
+    {
+        Changed(nameof(IsAllRange)); Changed(nameof(IsTodayRange)); Changed(nameof(IsWeekRange)); Changed(nameof(IsMonthRange));
+    }
+    private void NotifyTotal()
+    {
+        Changed(nameof(TotalCount)); Changed(nameof(HasTasks)); Changed(nameof(SummaryDisplay));
+    }
+    private void Refresh()
+    {
+        var today = _localNowProvider().Date;
+        var start = SelectedRange switch
+        {
+            CompletedTaskTimeRange.Today => today,
+            CompletedTaskTimeRange.Week => today.AddDays(-(((int)today.DayOfWeek + 6) % 7)),
+            CompletedTaskTimeRange.Month => new DateTime(today.Year, today.Month, 1),
+            _ => (DateTime?)null
+        };
+        var end = SelectedRange switch
+        {
+            CompletedTaskTimeRange.Today => start?.AddDays(1),
+            CompletedTaskTimeRange.Week => start?.AddDays(7),
+            CompletedTaskTimeRange.Month => start?.AddMonths(1),
+            _ => null
+        };
+        var filtered = _tasks.Where(task => start is null ||
+            CompletionTime(task) is { } time && time >= start.Value && time < end!.Value);
+        // Missing legacy timestamps stay visible in All, at the end of either sort order.
+        // UpdatedAtUtc is an edit time and must never be presented as a completion time.
+        var knownFirst = filtered.OrderBy(task => task.CompletedAtUtc is null);
+        var ordered = IsSortDescending ? knownFirst.ThenByDescending(task => task.CompletedAtUtc)
+            : knownFirst.ThenBy(task => task.CompletedAtUtc);
+        var rows = ordered.ThenBy(task => task.SortOrder).ThenBy(task => task.TaskId, StringComparer.Ordinal)
+            .Select(task => new GoalCompletedTaskEntryViewModel(task, _restore, _delete)).ToArray();
+        Tasks.Clear();
+        foreach (var row in rows) Tasks.Add(row);
+        Changed(nameof(FilteredCount)); Changed(nameof(FilteredCountDisplay)); Changed(nameof(HasResults)); Changed(nameof(EmptyText));
+    }
+    internal static DateTime? CompletionTime(LocalTaskDto task) => task.CompletedAtUtc?.LocalDateTime;
+
     public async Task<bool> MutateAsync(GoalCompletedTaskEntryViewModel entry, bool delete)
     {
         if (IsBusy || !_tasks.Any(task => task.TaskId == entry.Source.TaskId)) return false;
@@ -103,7 +160,7 @@ public sealed class GoalCompletedTasksViewModel : INotifyPropertyChanged
             if (MutationHandler is null || !await MutationHandler(entry.Source, delete))
             { ErrorText = delete ? "删除失败，请稍后重试" : "恢复失败，请稍后重试"; return false; }
             _tasks = _tasks.Where(task => task.TaskId != entry.Source.TaskId).ToArray();
-            Refresh(); Changed(nameof(TotalCount)); Changed(nameof(HasTasks)); Changed(nameof(SummaryDisplay));
+            Refresh(); NotifyTotal();
             return true;
         }
         catch (Exception) { ErrorText = "操作未保存，请稍后重试"; return false; }
@@ -113,32 +170,9 @@ public sealed class GoalCompletedTasksViewModel : INotifyPropertyChanged
     { if (EqualityComparer<T>.Default.Equals(field, value)) return false; field = value; Changed(name); return true; }
     private void Changed([CallerMemberName] string? name = null) => PropertyChanged?.Invoke(this, new(name));
 }
-public sealed class GoalCompletedTaskDateViewModel : INotifyPropertyChanged
-{
-    private bool _isExpanded;
-    public GoalCompletedTaskDateViewModel(DateTime date, IReadOnlyList<GoalCompletedTaskEntryViewModel> tasks, bool expanded)
-    { Date = date; Tasks = tasks; _isExpanded = expanded; ToggleCommand = new RelayCommand<object>(_ => IsExpanded = !IsExpanded); }
-    public event PropertyChangedEventHandler? PropertyChanged;
-    public DateTime Date { get; }
-    public string DateDisplay => Date.ToString("M月d日");
-    public string CountDisplay => $"{Tasks.Count}项";
-    public IReadOnlyList<GoalCompletedTaskEntryViewModel> Tasks { get; }
-    public ICommand ToggleCommand { get; }
-    public bool IsExpanded { get => _isExpanded; private set { _isExpanded = value; PropertyChanged?.Invoke(this, new(nameof(IsExpanded))); } }
-}
+
 public sealed record GoalCompletedTaskEntryViewModel(LocalTaskDto Source, ICommand RestoreCommand, ICommand DeleteCommand)
 {
     public string Name => Source.Name;
-    public string Description => Source.Description;
-    public bool HasDescription => !string.IsNullOrWhiteSpace(Description);
-    public IReadOnlyList<LocalSubTaskDto> SubTasks => Source.SubTasks.OrderBy(child => child.SortOrder).ToArray();
-    public IReadOnlyList<GoalCompletedSubTaskRow> SubTaskRows => SubTasks
-        .Select((child, index) => new GoalCompletedSubTaskRow(child, index == Source.SubTasks.Count - 1)).ToArray();
-    public bool HasSubTasks => SubTasks.Count > 0;
-    public string TimeDisplay => GoalCompletedTasksViewModel.CompletionTime(Source).ToString("HH:mm");
-}
-public sealed record GoalCompletedSubTaskRow(LocalSubTaskDto Source, bool IsLast)
-{
-    public string Title => Source.Title;
-    public bool IsCompleted => Source.IsCompleted;
+    public string TimeDisplay => GoalCompletedTasksViewModel.CompletionTime(Source)?.ToString("M月d日 HH:mm") ?? "—";
 }

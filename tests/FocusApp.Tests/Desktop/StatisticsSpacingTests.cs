@@ -62,17 +62,18 @@ public sealed class StatisticsSpacingTests
                 AssertLeft(page, calendar);
                 AssertRight(page, daily);
                 AssertClose(contentTop, Position(calendar, page).Y);
-                foreach (var card in new[] { calendar, daily })
-                    Assert.Equal(new Thickness(20), card.Padding);
-                AssertClose(12, Position(daily, page).X - (Position(calendar, page).X + calendar.ActualWidth));
-                Assert.True(calendar.IsAncestorOf(monthly));
-                AssertClose(20, Position(monthly, page).X - Position(calendar, page).X - calendar.BorderThickness.Left);
+                Assert.Equal(new Thickness(18), calendar.Padding);
+                Assert.Equal(new Thickness(14,14,12,14), daily.Padding);
+                AssertClose(10, Position(daily, page).X - (Position(calendar, page).X + calendar.ActualWidth));
+                Assert.False(calendar.IsAncestorOf(monthly));
+                AssertClose(Position(calendar, page).X, Position(monthly, page).X);
+                AssertGap(calendar, monthly, page, 12);
                 AssertClose(Position(calendar, page).Y, Position(daily, page).Y);
-                AssertBottom(page, calendar);
+                AssertBottom(page, monthly);
                 AssertBottom(page, daily);
                 var vipAction = (Button)page.FindName("CalendarVipUnlockButton");
                 Assert.InRange(Position(daily, page).Y + daily.ActualHeight
-                    - Position(vipAction, page).Y - vipAction.ActualHeight, 19, daily.ActualHeight);
+                    - Position(vipAction, page).Y - vipAction.ActualHeight, 13, daily.ActualHeight);
                 SavePreview(page, "calendar");
                 model.SetUserAccess(true, true);
                 Pump();

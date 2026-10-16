@@ -201,8 +201,10 @@ public sealed class GoalInvestmentTrendRedesignTests
         Assert.All(model.SelectedDateRecords, record => Assert.False(record.IsExpanded));
     }
 
-    [Fact]
-    public void ModalRendersBarsSmallConditionalPoptipsAndAllRangeStates()
+    [Theory]
+    [InlineData(800, 710)]
+    [InlineData(900, 760)]
+    public void RebuiltModalKeepsRealMetricsAndMonthSelectionAndRendersACompleteChartWithoutClippedPoptips(int width, int height)
     {
         Exception? failure = null;
         var thread = new Thread(() =>
@@ -215,142 +217,78 @@ public sealed class GoalInvestmentTrendRedesignTests
                 var durations = new[] { 45, 56, 40, 0, 35, 50, 25 };
                 var records = durations.Select((minutes, index) => new FocusSessionRecordViewModel(
                     today.Date.AddDays(index - 6).AddHours(9), today.Date.AddDays(index - 6).AddHours(9).AddMinutes(minutes),
-                    "goal", "3213", "", 0)).Where(record => record.EndTime > record.StartTime).ToList();
-                records.Add(new FocusSessionRecordViewModel(new DateTime(2026, 9, 12, 9, 0, 0), new DateTime(2026, 9, 12, 9, 30, 0), "goal", "3213", "", 0));
-                var timestamp = new DateTimeOffset(today.Date.AddDays(-5).AddHours(10));
-                var tasks = Enumerable.Range(0, 3).Select(index => new LocalTaskDto($"done{index}", "goal", $"任务{index}", true, index, timestamp, timestamp) { CompletedAtUtc = timestamp }).ToArray();
-                model.ApplyState(new GoalOverviewItemViewModel("goal", "3213", "", "", false, false), records, tasks);
+                    "goal", "3213", "", 0)).Where(record => record.EndTime > record.StartTime).ToArray();
+                model.ApplyState(new("goal", "3213", "", "", false, false), records);
                 model.Open();
                 var modal = new GoalInvestmentTrendModal { DataContext = model };
                 foreach (var resource in new[] { "Colors", "Typography", "Strings", "Styles" })
                     modal.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri($"/FocusApp.Desktop;component/Resources/{resource}.xaml", UriKind.Relative) });
-                window = new Window { Width = 740, Height = 500, Content = modal, WindowStyle = WindowStyle.None,
+                window = new Window { Width = width, Height = height, Content = modal, WindowStyle = WindowStyle.None, ResizeMode = ResizeMode.NoResize,
                     ShowInTaskbar = false, ShowActivated = false, Left = -32000, Top = -32000 };
-                window.Show();
-                Pump();
-                var card = (Border)modal.FindName("TrendModalCard");
-                var summary = (Grid)modal.FindName("InvestmentSummary");
-                var selector = (Border)modal.FindName("RangeSelectorSurface");
-                var chart = Descendants<GoalInvestmentTrendChart>(modal).Single();
-                var tooltip = (PoptipChrome)modal.FindName("TrendTooltip");
-                var focusCount = (TextBlock)modal.FindName("TooltipFocusCount");
-                var focusDuration = (TextBlock)modal.FindName("TooltipFocusDuration");
-                Assert.Null(modal.FindName("TooltipTaskCount"));
-                var guide = (System.Windows.Shapes.Line)chart.FindName("HoverGuideLine");
-                Assert.Equal(700, card.ActualWidth);
-                Assert.Equal(448, card.ActualHeight);
-                Assert.Equal(251, model.PeriodInvestment.TotalMinutes);
-                Assert.Equal("近7天投入 · 活跃6天", model.InvestmentSummary);
-                Assert.True(selector.TranslatePoint(new Point(0, selector.ActualHeight), card).Y < summary.TranslatePoint(new Point(), card).Y);
-                Assert.Equal(selector.Height / 2, selector.CornerRadius.TopLeft);
+                window.Show(); Pump();
+                var card = (Border)modal.FindName("TrendModalCard"); var summary = (Grid)modal.FindName("InvestmentSummary");
+                var selector = (Border)modal.FindName("RangeSelectorSurface"); var chartCard = (Border)modal.FindName("TrendChartCard");
+                var chart = (GoalInvestmentTrendChart)modal.FindName("TrendChart"); var tooltip = (Border)modal.FindName("TrendTooltip");
+                Rect Bounds(FrameworkElement item) => item.TransformToAncestor(card).TransformBounds(new Rect(0, 0, item.ActualWidth, item.ActualHeight));
+                Assert.Equal(700, card.ActualWidth); Assert.Equal(480, card.ActualHeight);
+                Assert.Equal("投入趋势", ((TextBlock)modal.FindName("TrendModalTitle")).Text);
+                Assert.DoesNotContain(Descendants<TextBlock>(modal), text => text.Text == "3213");
+                Assert.True(Bounds(selector).Top > Bounds((TextBlock)modal.FindName("TrendModalTitle")).Bottom);
+                Assert.Equal(HorizontalAlignment.Left, selector.HorizontalAlignment);
+                Assert.True(Bounds(selector).Bottom < Bounds(summary).Top);
+                Assert.Equal(251, model.PeriodInvestment.TotalMinutes); Assert.Equal(6, model.ActiveDays);
+                Assert.Equal(42, model.DailyAverageInvestment.TotalMinutes); Assert.Equal(56, model.LongestDayInvestment.TotalMinutes);
                 var metrics = new[] { "PeriodInvestmentCard", "DailyAverageInvestmentCard", "ActiveDaysCard", "LongestDayInvestmentCard" }
                     .Select(name => (Border)modal.FindName(name)).ToArray();
-                Assert.All(metrics, metric => Assert.Equal(84, metric.ActualHeight));
-                Assert.All(metrics, metric => Assert.InRange(Math.Abs(metric.ActualWidth - metrics[0].ActualWidth), 0, 0.7));
-                foreach (var metric in metrics)
+                foreach(var metric in metrics)
                 {
-                    Assert.Equal(0, ((SolidColorBrush)metric.Background).Color.A);
-                    var icon = Descendants<System.Windows.Shapes.Path>(metric).Single();
-                    var value = Descendants<TextBlock>(metric).Single(text => text.Inlines.Count > 1);
+                    Assert.Equal(76, metric.ActualHeight); Assert.InRange(Math.Abs(metric.ActualWidth - metrics[0].ActualWidth), 0, .7);
                     var label = Descendants<TextBlock>(metric).Single(text => text.Inlines.Count == 1);
-                    Assert.True(icon.ActualWidth > 0);
-                    Assert.True(icon.TranslatePoint(new Point(icon.ActualWidth, 0), metric).X < value.TranslatePoint(new Point(), metric).X);
-                    Assert.Equal(value.TranslatePoint(new Point(), metric).X, label.TranslatePoint(new Point(), metric).X, 1);
-                    Assert.True(value.TranslatePoint(new Point(0, value.ActualHeight), metric).Y <= label.TranslatePoint(new Point(), metric).Y);
+                    var value = Descendants<TextBlock>(metric).Single(text => text.Inlines.Count > 1);
+                    Assert.True(Bounds(label).Bottom <= Bounds(value).Top + 1);
+                    Assert.True(Bounds(value).Right <= Bounds(metric).Right);
                 }
-                foreach (var metric in new[] { metrics[0], metrics[1], metrics[3] })
+                Assert.InRange(Bounds(chartCard).Bottom, 0, card.ActualHeight - 18);
+                Assert.Equal(5, model.ChartYAxisTicks.Count()); Assert.Equal(3, model.YAxisTicks.Count);
+                Assert.Equal(7, Descendants<TextBlock>((ItemsControl)chart.FindName("TrendWeekdayLabels")).Count(text => text.IsVisible));
+                Assert.Equal(7, Descendants<TextBlock>((ItemsControl)chart.FindName("TrendValueLabels")).Count(text => text.IsVisible));
+                Assert.Equal("0h", model.TrendPoints[3].BarValueDisplay); Assert.False(tooltip.IsVisible);
+                var seven = (Button)modal.FindName("SevenDaysRangeButton"); var thirty = (Button)modal.FindName("ThirtyDaysRangeButton"); var month = (Button)modal.FindName("MonthRangeButton");
+                AssertRangeLabels(seven, thirty, month, seven);
+                Assert.Equal("近七天", seven.Content); Assert.Equal("近三十天", thirty.Content); Assert.Equal("按月", month.Content);
+                SavePreview(card, "investment-seven");
+                foreach(var point in new[] { model.TrendPoints[0], model.TrendPoints[1], model.TrendPoints[^1] })
                 {
-                    var value = Descendants<TextBlock>(metric).Single(text => text.Inlines.Count == 4);
-                    Assert.False(string.Concat(value.Inlines.OfType<System.Windows.Documents.Run>().Select(run => run.Text)).StartsWith(' '));
+                    chart.HoverAt(new Point(point.ChartX, point.ChartY + 20 + Math.Min(5, point.BarHeight / 2))); Pump();
+                    Assert.Same(point, model.HoveredPoint); Assert.True(tooltip.IsVisible);
+                    Assert.Equal(196, tooltip.ActualWidth); Assert.Equal(68, tooltip.ActualHeight);
+                    Assert.InRange(Bounds(tooltip).Left, 0, card.ActualWidth - tooltip.ActualWidth);
+                    Assert.InRange(Bounds(tooltip).Top, Bounds(summary).Bottom, card.ActualHeight - tooltip.ActualHeight);
+                    Assert.Equal(point.TooltipFullDateDisplay, ((TextBlock)modal.FindName("TooltipDate")).Text);
+                    Assert.Equal(point.DurationDisplay, ((TextBlock)modal.FindName("TooltipFocusDuration")).Text);
+                    Assert.Equal(Colors.White, ((SolidColorBrush)((TextBlock)modal.FindName("TooltipFocusDuration")).Foreground).Color);
+                    Assert.Equal(Color.FromRgb(40,47,59), ((SolidColorBrush)tooltip.Background).Color);
                 }
-                for (var index = 1; index < metrics.Length; index++)
-                    Assert.InRange(metrics[index].TranslatePoint(new Point(), summary).X - metrics[index - 1].TranslatePoint(new Point(metrics[index - 1].ActualWidth, 0), summary).X, 0.7, 1.4);
-                Assert.Equal("投入趋势", Assert.Single(Descendants<TextBlock>((Grid)modal.FindName("TrendChartHeading"))).Text);
-                Assert.Equal(42, model.DailyAverageInvestment.TotalMinutes);
-                Assert.Equal(56, model.LongestDayInvestment.TotalMinutes);
-                Assert.True(chart.TranslatePoint(new Point(0, chart.ActualHeight), card).Y < card.ActualHeight - 24);
-                var bars = Descendants<Border>((ItemsControl)chart.FindName("TrendBars"))
-                    .Where(border => border.DataContext is GoalInvestmentTrendPointViewModel).ToArray();
-                Assert.Equal(7, bars.Length);
-                Assert.Equal(0, bars[3].ActualHeight);
-                Assert.False(tooltip.IsVisible);
-                Assert.Equal(Visibility.Collapsed, guide.Visibility);
-                SavePreview(card, "investment-bars");
-                var seven = Descendants<Button>(modal).Single(button => Equals(button.Content, "近7天"));
-                var thirty = Descendants<Button>(modal).Single(button => Equals(button.Content, "近30天"));
-                var orange = Color.FromRgb(0xFF, 0x7A, 0x00);
-                Assert.Equal(orange, ((SolidColorBrush)seven.Foreground).Color);
-                Assert.NotEqual(orange, ((SolidColorBrush)thirty.Foreground).Color);
-                var monthRange = (Button)modal.FindName("MonthRangeButton");
-                AssertRangeLabels(seven, thirty, monthRange, seven);
-                var chartPosition = chart.TranslatePoint(new Point(), card);
-                var hovered = model.TrendPoints[1];
-                model.SetHoveredBarAt(new Point(hovered.ChartX, hovered.ChartY + 10));
-                Pump();
-                Assert.True(tooltip.IsVisible);
-                Assert.Equal(Visibility.Visible, guide.Visibility);
-                Assert.Equal(164, tooltip.ActualWidth);
-                Assert.Equal(96, tooltip.ActualHeight);
-                Assert.Equal("1次专注", focusCount.Text);
-                Assert.Equal("专注时长", ((TextBlock)modal.FindName("TooltipFocusLabel")).Text);
-                Assert.Equal("56分钟", focusDuration.Text);
-                Assert.Equal(orange, ((SolidColorBrush)focusDuration.Foreground).Color);
-                Assert.Equal("56 分钟", model.HoverDayDurationDisplay);
-                Assert.Equal("完成任务 3 项", model.HoverTaskCountDisplay);
-                var tipPoint = tooltip.TranslatePoint(new Point(), card);
-                Assert.InRange(tipPoint.X, 28, card.ActualWidth - 28 - tooltip.ActualWidth);
-                Assert.True(tipPoint.Y > 70);
-                Assert.True(tipPoint.Y + tooltip.ActualHeight < chartPosition.Y + hovered.ChartY);
-                Assert.Equal(chartPosition, chart.TranslatePoint(new Point(), card));
-                SavePreview(card, "investment-tooltip-tasks");
-                hovered = model.TrendPoints[0];
-                model.SetHoveredBarAt(new Point(hovered.ChartX, hovered.ChartY + 10));
-                Pump();
-                Assert.Equal(96, tooltip.ActualHeight);
-                Assert.Equal("1次专注", focusCount.Text);
-                Assert.Equal("45分钟", focusDuration.Text);
-                Assert.Equal("45 分钟", model.HoverDayDurationDisplay);
-                SavePreview(card, "investment-tooltip-duration");
-                var interaction = (Border)chart.FindName("TrendInteractionArea");
-                RaiseMouseEvent(interaction, UIElement.MouseLeaveEvent);
-                Pump();
-                Assert.False(model.IsTooltipOpen);
-                Assert.False(tooltip.IsVisible);
-                Assert.Equal(Visibility.Collapsed, guide.Visibility);
-                model.SetHoveredPointNearestTo(hovered.ChartX);
-                model.SelectThirtyDaysCommand.Execute(null);
-                Pump();
-                Assert.False(model.IsTooltipOpen);
-                Assert.Equal(30, model.TrendPoints.Count);
-                Assert.Equal(orange, ((SolidColorBrush)thirty.Foreground).Color);
-                Assert.NotEqual(orange, ((SolidColorBrush)seven.Foreground).Color);
-                AssertRangeLabels(seven, thirty, monthRange, thirty);
-                Assert.Equal("近30天投入 · 活跃7天", model.InvestmentSummary);
-                SavePreview(card, "investment-30days");
-                ((Button)modal.FindName("MonthRangeButton")).Command.Execute(null);
-                Pump();
-                Assert.True(((Popup)modal.FindName("MonthPickerPopup")).IsOpen);
-                var months = (ItemsControl)modal.FindName("AvailableMonthList");
-                var monthButton = Descendants<Button>(months).First(button => button.DataContext is GoalInvestmentMonthOptionViewModel);
-                monthButton.Command.Execute(monthButton.CommandParameter);
-                Pump();
-                Assert.True(model.IsMonthRange);
-                Assert.Equal(31, model.TrendPoints.Count);
-                Assert.Equal(orange, ((SolidColorBrush)((Button)modal.FindName("MonthRangeButton")).Foreground).Color);
-                AssertRangeLabels(seven, thirty, monthRange, monthRange);
-                Assert.Equal("2026年10月投入 · 活跃6天", model.InvestmentSummary);
-                SavePreview(card, "investment-month");
-                model.CloseCommand.Execute(null);
-                Pump();
-                Assert.False(modal.IsVisible);
+                Assert.Null(modal.FindName("TooltipFocusCount")); Assert.Null(modal.FindName("TooltipTaskCount"));
+                SavePreview(card, "investment-hover");
+                RaiseMouseEvent((Border)chart.FindName("TrendInteractionArea"), UIElement.MouseLeaveEvent); Pump(); Assert.False(tooltip.IsVisible);
+                thirty.Command.Execute(null); Pump(); Assert.Equal(30, model.TrendPoints.Count); AssertRangeLabels(seven, thirty, month, thirty);
+                Assert.All(Descendants<TextBlock>((ItemsControl)chart.FindName("TrendWeekdayLabels")), text => Assert.False(text.IsVisible));
+                month.Command.Execute(null); Pump(); Assert.True(((Popup)modal.FindName("MonthPickerPopup")).IsOpen);
+                var monthButton = Descendants<Button>((ItemsControl)modal.FindName("AvailableMonthList")).First(button => button.DataContext is GoalInvestmentMonthOptionViewModel);
+                monthButton.Command.Execute(monthButton.CommandParameter); Pump();
+                Assert.True(model.IsMonthRange); Assert.Equal(31, model.TrendPoints.Count); AssertRangeLabels(seven, thirty, month, month);
+                model.Close(); model.Open(); Pump(); Assert.True(model.IsSevenDaysRange); Assert.Equal(7, model.TrendPoints.Count);
+                model.ApplyState(new("goal", "3213", "", "", false, false), []); Pump();
+                Assert.Equal(0, model.PeriodInvestment.TotalMinutes); Assert.All(model.TrendPoints, point => Assert.Equal(0, point.Minutes));
+                Assert.Equal(new[]{"0m","15m","30m","45m","60m"}, model.ChartYAxisTicks.Select(tick => tick.Label));
+                Assert.False(tooltip.IsVisible); SavePreview(card, "investment-empty"); model.Close(); Pump(); Assert.False(modal.IsVisible);
             }
-            catch (Exception exception) { failure = exception; }
+            catch(Exception error) { failure = error; }
             finally { window?.Close(); }
         });
-        thread.SetApartmentState(ApartmentState.STA);
-        thread.Start();
-        Assert.True(thread.Join(TimeSpan.FromSeconds(20)), "Investment modal rendering timed out.");
-        if (failure is not null) throw new InvalidOperationException("Investment modal rendering verification failed.", failure);
+        thread.SetApartmentState(ApartmentState.STA); thread.Start(); Assert.True(thread.Join(TimeSpan.FromSeconds(30)));
+        if(failure is not null) throw new InvalidOperationException("Investment visual redesign verification failed.", failure);
     }
     private static void Pump() => Dispatcher.CurrentDispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
     private static void AssertRangeLabels(Button seven, Button thirty, Button month, Button selected)
@@ -359,10 +297,10 @@ public sealed class GoalInvestmentTrendRedesignTests
         {
             // Inspect the rendered text, not just Button.Foreground: implicit text styles can override inheritance.
             var label = Descendants<TextBlock>(button).Single();
-            Assert.Equal(ReferenceEquals(button, selected) ? Color.FromRgb(0xFF, 0x7A, 0x00)
-                : Color.FromRgb(0x6E, 0x6E, 0x73), ((SolidColorBrush)label.Foreground).Color);
-            Assert.Equal(13, label.FontSize);
-            Assert.Equal(ReferenceEquals(button, selected) ? FontWeights.Medium : FontWeights.Normal, label.FontWeight);
+            Assert.Equal(ReferenceEquals(button, selected) ? Colors.White
+                : Color.FromRgb(48,57,74), ((SolidColorBrush)label.Foreground).Color);
+            Assert.Equal(14, label.FontSize);
+            Assert.Equal(FontWeights.SemiBold, label.FontWeight);
             Assert.Equal(seven.FontFamily, label.FontFamily);
         }
     }

@@ -75,7 +75,7 @@ public sealed class GoalFocusHistoryPresentationTests
             Assert.Equal(description, historicalTask.Description);
             Assert.Single(Descendants<TextBlock>(history).Where(text => Equals(text.ToolTip, description)));
             Assert.Equal(12, Descendants<TextBlock>(history).Count(text => text.DataContext is GoalHistorySubTaskViewModel child && text.Text == child.Title));
-            Assert.Equal(FontWeights.Medium, Descendants<TextBlock>(history).Single(text => text.Text == model.GoalFocusHistory.Days[0].DateDisplay).FontWeight);
+            Assert.Equal(FontWeights.Medium, Descendants<TextBlock>(history).Single(text => text.Text == model.GoalFocusHistory.Days[0].FullDateDisplay).FontWeight);
             scroll.ScrollToBottom();
             Layout(page);
             Assert.True(scroll.VerticalOffset > 0);
@@ -111,7 +111,7 @@ public sealed class GoalFocusHistoryPresentationTests
             model.GoalFocusHistory.ShowCompletedTasks(); Layout(page);
             var history = (GoalFocusHistoryView)page.FindName("GoalFocusHistoryControl");
             Assert.Empty(Descendants<CalendarFocusTimeline>(history));
-            Assert.Single(Descendants<Border>(history).Where(border => border.Name == "SessionConnector" && border.Visibility == Visibility.Visible));
+            Assert.Equal(2, Descendants<Border>(history).Count(border => border.Name == "SessionConnector" && border.Visibility == Visibility.Visible));
             Assert.True(model.GoalFocusHistory.Days[0].IsExpanded);
             Assert.True(model.GoalFocusHistory.Days[0].Sessions.Single(item => item.HasTasks).IsTasksExpanded);
             Assert.Equal(3, Descendants<Border>(history).Count(border => border.Name == "SessionListRow"));
@@ -119,7 +119,7 @@ public sealed class GoalFocusHistoryPresentationTests
     }
 
     [Fact]
-    public void SessionRowsShowZeroOneAndManyTasksAndExpandOnlyTheChosenRecord()
+    public void SessionRowsShowTasksInlineAndDateCollapseKeepsTheHeaderFixed()
     {
         RunSta(() =>
         {
@@ -153,37 +153,20 @@ public sealed class GoalFocusHistoryPresentationTests
             foreach (var row in rows)
             {
                 var session = (GoalFocusSessionViewModel)row.DataContext;
-                var pill = Descendants<Button>(row).Single(button => button.Name == "SessionTaskPill");
                 var details = Descendants<TextBlock>(row).Single(text => text.Name == "SessionTimeRange");
-                Assert.Equal(session.HasTasks ? Visibility.Visible : Visibility.Collapsed, pill.Visibility);
                 Assert.Equal(session.TimeRangeDisplay, details.Text);
-                Assert.DoesNotContain("·", details.Text);
-                Assert.Equal(Visibility.Collapsed, Descendants<Border>(row).Single(border => border.Name == "SessionConnector").Visibility);
-                Assert.Single(Descendants<System.Windows.Shapes.Ellipse>(row));
-                if (session.HasTasks)
-                {
-                    Assert.Equal(session.TaskCountDisplay, Assert.Single(Descendants<TextBlock>(pill)).Text);
-                    Assert.True(pill.IsEnabled);
-                    Assert.NotNull(pill.InputHitTest(new Point(pill.ActualWidth / 2, pill.ActualHeight / 2)));
-                }
-                else
-                {
-                    Assert.Equal("14:00 - 14:30", details.Text);
-                    Assert.Empty(session.TaskToggleDisplay);
-                    Assert.False(pill.IsEnabled);
-                }
-            }            var fixedHeader = (FrameworkElement)page.FindName("GoalDetailHeader");
+                Assert.Equal(session.DurationDisplay, Descendants<TextBlock>(row).Single(text => text.Name == "SessionDuration").Text);
+                Assert.Empty(Descendants<Button>(row));
+                var tasks = Descendants<ItemsControl>(row).Single(item => item.Name == "SessionTaskDetails");
+                Assert.Equal(session.HasTasks ? Visibility.Visible : Visibility.Collapsed, tasks.Visibility);
+                Assert.Equal(session.Tasks.Count, Descendants<Grid>(row).Count(grid => grid.Name == "HistoryParentTask"));
+                Assert.Equal(session.IsLastInDay ? Visibility.Collapsed : Visibility.Visible,
+                    Descendants<Border>(row).Single(border => border.Name == "SessionConnector").Visibility);
+            }
+            var fixedHeader = (FrameworkElement)page.FindName("GoalDetailHeader");
             var metrics = (FrameworkElement)page.FindName("GoalInvestmentMetrics");
             var headerHeight = fixedHeader.ActualHeight;
             var metricsHeight = metrics.ActualHeight;
-            var before = rows[1].TranslatePoint(new Point(), history).Y;
-            var firstHeight = rows[0].ActualHeight;
-            Invoke(Descendants<Button>(rows[0]).Single()); Layout(page);
-            Assert.True(model.GoalFocusHistory.Days[0].Sessions[0].IsTasksExpanded);
-            Assert.False(model.GoalFocusHistory.Days[0].Sessions[1].IsTasksExpanded);
-            Assert.True(rows[0].ActualHeight > firstHeight);
-            Assert.InRange(Math.Abs(rows[1].TranslatePoint(new Point(), history).Y - before - (rows[0].ActualHeight - firstHeight)), 0, 1);
-            Invoke(Descendants<Button>(rows[1]).Single()); Layout(page);
             var parents = Descendants<Grid>(rows[1]).Where(grid => grid.Name == "HistoryParentTask").ToArray();
             Assert.Equal(3, parents.Length);
             foreach (var parent in parents)
@@ -218,9 +201,10 @@ public sealed class GoalFocusHistoryPresentationTests
                 }
                 else Assert.Empty(Descendants<Grid>(parent).Where(grid => grid.Name == "HistorySubTask"));
             }
-            Invoke(Descendants<Button>(rows[0]).Single()); Layout(page);
-            Assert.False(model.GoalFocusHistory.Days[0].Sessions[0].IsTasksExpanded);
-            Assert.True(model.GoalFocusHistory.Days[0].Sessions[1].IsTasksExpanded);
+            model.GoalFocusHistory.Days[0].ToggleCommand.Execute(null); Layout(page);
+            Assert.All(rows, row => Assert.False(row.IsVisible));
+            model.GoalFocusHistory.Days[0].ToggleCommand.Execute(null); Layout(page);
+            Assert.All(rows, row => Assert.True(row.IsVisible));
             Assert.Equal(headerHeight, fixedHeader.ActualHeight);
             Assert.Equal(metricsHeight, metrics.ActualHeight);
             }

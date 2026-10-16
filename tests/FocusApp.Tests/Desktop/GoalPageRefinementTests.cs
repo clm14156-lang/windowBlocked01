@@ -17,7 +17,7 @@ namespace FocusApp.Tests.Desktop;
 public sealed class GoalPageRefinementTests
 {
     [Fact]
-    public void MetricCardsOpenExistingModalsAndSessionPillsKeepExpansionIndependent()
+    public void MetricCardsOpenExistingModalsAndExpandedDatesShowTheirSessionTasks()
     {
         Exception? failure = null;
         var thread = new Thread(() =>
@@ -92,29 +92,21 @@ public sealed class GoalPageRefinementTests
                 var rows = Descendants<Border>(history).Where(item => item.Name == "SessionListRow").ToArray();
                 var withTasks = rows.Single(item => ((GoalFocusSessionViewModel)item.DataContext).Record == latest);
                 var withoutTasks = rows.Single(item => ((GoalFocusSessionViewModel)item.DataContext).Record == plain);
-                var pill = Descendants<Button>(withTasks).Single();
-                Assert.Equal("3个任务", Descendants<TextBlock>(pill).Single().Text);
-                var connector = Descendants<Border>(withTasks).Single(item => item.Name == "SessionConnector");
-                Assert.Equal(Visibility.Collapsed, connector.Visibility);
-                Assert.Equal(Visibility.Collapsed, Descendants<Border>(withoutTasks).Single(item => item.Name == "SessionConnector").Visibility);
-                Assert.Equal(Visibility.Collapsed, Descendants<Button>(withoutTasks).Single().Visibility);
-                Assert.Single(Descendants<System.Windows.Shapes.Ellipse>(withoutTasks));
+                Assert.Empty(Descendants<Button>(withTasks));
+                Assert.Equal(3, Descendants<Grid>(withTasks).Count(item => item.Name == "HistoryParentTask"));
+                Assert.Equal(Visibility.Visible, Descendants<ItemsControl>(withTasks).Single(item => item.Name == "SessionTaskDetails").Visibility);
+                Assert.Equal(Visibility.Collapsed, Descendants<ItemsControl>(withoutTasks).Single(item => item.Name == "SessionTaskDetails").Visibility);
                 var metricsHeight = metrics.ActualHeight;
-                Invoke(pill); Pump(page);
-                Assert.True(date.Sessions[0].IsTasksExpanded);
-                Assert.False(date.Sessions[2].IsTasksExpanded);
-                Assert.Equal(Visibility.Visible, connector.Visibility);
-                Assert.True(connector.ActualHeight > 100);
-                Assert.Equal(metricsHeight, metrics.ActualHeight);
                 var marks = Descendants<System.Windows.Shapes.Ellipse>(withTasks).Where(item => item.Name == "HistorySubTaskCircle").ToArray();
                 Assert.Equal(2, marks.Length);
                 Assert.All(marks, mark => Assert.Equal(((SolidColorBrush)page.FindResource("AccentPrimary")).Color, ((SolidColorBrush)mark.Fill).Color));
-                var gaps = Descendants<Grid>(history).Where(item => item.Name == "SessionGap" && item.Visibility == Visibility.Visible).ToArray();
-                Assert.Contains(gaps, gap => Descendants<TextBlock>(gap).Single().Text == "间隔 1小时37分钟");
+                Assert.Empty(Descendants<Grid>(history).Where(item => item.Name == "SessionGap"));
                 Save(page, "goal-details-expanded");
-                Invoke(pill); Pump(page);
-                Assert.False(date.Sessions[0].IsTasksExpanded);
-                Assert.Equal(Visibility.Collapsed, connector.Visibility);
+                date.ToggleCommand.Execute(null); Pump(page);
+                Assert.False(withTasks.IsVisible);
+                date.ToggleCommand.Execute(null); Pump(page);
+                Assert.True(withTasks.IsVisible);
+                Assert.Equal(metricsHeight, metrics.ActualHeight);
                 model.GoalCompletedTasks.ApplyState(goal, []); Pump(page);
                 Assert.Equal("0", value.Inlines.OfType<Run>().First().Text);
                 Assert.True(count.IsEnabled);

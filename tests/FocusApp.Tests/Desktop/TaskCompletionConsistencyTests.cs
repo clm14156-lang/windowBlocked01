@@ -52,7 +52,7 @@ public sealed class TaskCompletionConsistencyTests
         public void InvokeClick() => OnClick();
     }
 
-    [Fact] public void InvalidParentCompletionIsExcludedFromListsSearchAndCounts()
+    [Fact] public void InvalidParentCompletionIsExcludedFromTheFlatListAndCounts()
     {
         var invalid = TaskItem("invalid", 0, "1阿1331") with
         {
@@ -67,10 +67,9 @@ public sealed class TaskCompletionConsistencyTests
         model.ApplyState(Goal(), [invalid, valid, TaskItem("plain", 0), valid with { TaskId = "pending", IsCompleted = false }]);
         model.OpenCommand.Execute(null);
         Assert.Equal(2, model.TotalCount);
-        Assert.Equal("2项", Assert.Single(model.Days).CountDisplay);
-        Assert.Equal(new[] { "plain", "valid" }, model.Days[0].Tasks.Select(task => task.Source.TaskId).Order());
-        model.SearchText = "1阿1331";
-        Assert.Empty(model.Days);
+        Assert.Equal("共 2 项", model.FilteredCountDisplay);
+        Assert.Equal(new[] { "plain", "valid" }, model.Tasks.Select(task => task.Source.TaskId).Order());
+        Assert.DoesNotContain(model.Tasks, task => task.Name == "1阿1331");
         Assert.Equal(2, model.TotalCount);
     }
 
@@ -101,7 +100,7 @@ public sealed class TaskCompletionConsistencyTests
             Assert.Null(parent.CompletedAtUtc);
             Assert.True(modal.IsOpen);
             Assert.Equal(0, modal.TotalCount);
-            Assert.Empty(modal.Days);
+            Assert.Empty(modal.Tasks);
             Assert.Same(parent, Assert.Single(session.TaskDrawer.Tasks));
             Assert.Empty(session.TaskDrawer.TodayCompletedTasks);
             Assert.Equal("0/1", session.TaskDrawer.TaskProgress);

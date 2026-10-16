@@ -21,14 +21,15 @@
             <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
         <Style x:Key="GoalMetricCardButtonStyle" TargetType="Button">
-            <Setter Property="Padding" Value="4,0"/>
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="10"/>
+            <Setter Property="Background" Value="#F8F9FA"/>
+            <Setter Property="BorderBrush" Value="#EFF0F3"/>
+            <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
             <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
-                <Border x:Name="MetricSurface" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" CornerRadius="5">
+                <Border x:Name="MetricSurface" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}" CornerRadius="9">
                     <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center"/>
                 </Border>
                 <ControlTemplate.Triggers>
@@ -148,8 +149,8 @@
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Focusable" Value="True"/>
             <Style.Triggers>
-                <Trigger Property="views:CalendarRecordInteractionState.IsHovered" Value="True"><Setter Property="Background" Value="#F7F7F8"/></Trigger>
-                <Trigger Property="views:CalendarRecordInteractionState.IsSelected" Value="True"><Setter Property="Background" Value="#F7F8FA"/></Trigger>
+                <Trigger Property="views:CalendarRecordInteractionState.IsHovered" Value="True"><Setter Property="Background" Value="White"/></Trigger>
+                <Trigger Property="views:CalendarRecordInteractionState.IsSelected" Value="True"><Setter Property="Background" Value="White"/></Trigger>
             </Style.Triggers>
         </Style>
         <Style x:Key="CalendarRecordTimeTextStyle" TargetType="TextBlock">
@@ -254,175 +255,118 @@
             <Grid Grid.Row="1" TextElement.FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI"
                         Visibility="{Binding IsCalendarSelected, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <Grid x:Name="CalendarPageLayout" HorizontalAlignment="Stretch">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="336"/><ColumnDefinition Width="{StaticResource CardColumnGap}"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                    <Border x:Name="CalendarCard" Grid.Column="0" Padding="{StaticResource CardContentPadding}" Background="{DynamicResource SurfacePrimary}" BorderBrush="#ECECEF" BorderThickness="1" CornerRadius="10">
-                        <Grid><Grid.RowDefinitions><RowDefinition/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <Grid.Resources>
+                        <Style x:Key="CalendarSurface" TargetType="Border">
+                            <Setter Property="Background" Value="White"/>
+                            <Setter Property="BorderBrush" Value="#EDEEF0"/>
+                            <Setter Property="BorderThickness" Value="1"/>
+                            <Setter Property="CornerRadius" Value="10"/>
+                            <Setter Property="Effect"><Setter.Value><DropShadowEffect Color="#20252B" BlurRadius="5" ShadowDepth="1" Opacity="0.025"/></Setter.Value></Setter>
+                        </Style>
+                    </Grid.Resources>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="47*"/><ColumnDefinition Width="10"/><ColumnDefinition Width="53*"/></Grid.ColumnDefinitions>
+                    <Grid x:Name="CalendarLeftColumn">
+                        <Grid.RowDefinitions><RowDefinition/><RowDefinition Height="12"/><RowDefinition Height="140"/></Grid.RowDefinitions>
+                        <Border x:Name="CalendarCard" Padding="18" Style="{StaticResource CalendarSurface}">
                             <Grid x:Name="CalendarMonthRegion">
-                                <Grid.RowDefinitions><RowDefinition Height="30"/><RowDefinition Height="Auto"/><RowDefinition/></Grid.RowDefinitions>
-                                <Grid Height="30"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="66"/></Grid.ColumnDefinitions>
-                                    <TextBlock Text="{Binding CalendarMonthDisplay}" FontSize="{DynamicResource PageTitleFontSize}" FontWeight="{DynamicResource PageTitleFontWeight}" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center"/>
+                                <Grid.RowDefinitions><RowDefinition Height="32"/><RowDefinition Height="42"/><RowDefinition/></Grid.RowDefinitions>
+                                <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="66"/></Grid.ColumnDefinitions>
+                                    <TextBlock x:Name="CalendarMonthTitle" Text="{Binding CalendarMonthDisplay}" FontSize="22" FontWeight="SemiBold" Foreground="#15191F" VerticalAlignment="Center"/>
                                     <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
-                                        <Button Width="28" Height="28" Command="{Binding PreviousCalendarMonthCommand}" Style="{StaticResource CalendarMonthNavigationButtonStyle}" AutomationProperties.Name="上个月"><TextBlock Text="&#xE76B;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/></Button>
-                                        <Button Width="28" Height="28" Margin="8,0,0,0" Command="{Binding NextCalendarMonthCommand}" Style="{StaticResource CalendarMonthNavigationButtonStyle}" AutomationProperties.Name="下个月"><TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/></Button>
+                                        <Button Width="28" Height="30" Command="{Binding PreviousCalendarMonthCommand}" Style="{StaticResource CalendarMonthNavigationButtonStyle}" AutomationProperties.Name="上个月"><Path Width="7" Height="13" Data="M 6,0 L 0,6 L 6,12" Stroke="#80858D" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/></Button>
+                                        <Button Width="28" Height="30" Margin="8,0,0,0" Command="{Binding NextCalendarMonthCommand}" Style="{StaticResource CalendarMonthNavigationButtonStyle}" AutomationProperties.Name="下个月"><Path Width="7" Height="13" Data="M 0,0 L 6,6 L 0,12" Stroke="#80858D" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/></Button>
                                     </StackPanel>
                                 </Grid>
-                                <UniformGrid Grid.Row="1" Columns="7" Margin="{StaticResource GroupVerticalInset}">
-                                    <TextBlock Text="日" FontSize="{DynamicResource SecondaryFontSize}" FontWeight="{DynamicResource SecondaryFontWeight}" Foreground="{DynamicResource TextSecondary}" HorizontalAlignment="Center"/>
-                                    <TextBlock Text="一" FontSize="{DynamicResource SecondaryFontSize}" FontWeight="{DynamicResource SecondaryFontWeight}" Foreground="{DynamicResource TextSecondary}" HorizontalAlignment="Center"/>
-                                    <TextBlock Text="二" FontSize="{DynamicResource SecondaryFontSize}" FontWeight="{DynamicResource SecondaryFontWeight}" Foreground="{DynamicResource TextSecondary}" HorizontalAlignment="Center"/>
-                                    <TextBlock Text="三" FontSize="{DynamicResource SecondaryFontSize}" FontWeight="{DynamicResource SecondaryFontWeight}" Foreground="{DynamicResource TextSecondary}" HorizontalAlignment="Center"/>
-                                    <TextBlock Text="四" FontSize="{DynamicResource SecondaryFontSize}" FontWeight="{DynamicResource SecondaryFontWeight}" Foreground="{DynamicResource TextSecondary}" HorizontalAlignment="Center"/>
-                                    <TextBlock Text="五" FontSize="{DynamicResource SecondaryFontSize}" FontWeight="{DynamicResource SecondaryFontWeight}" Foreground="{DynamicResource TextSecondary}" HorizontalAlignment="Center"/>
-                                    <TextBlock Text="六" FontSize="{DynamicResource SecondaryFontSize}" FontWeight="{DynamicResource SecondaryFontWeight}" Foreground="{DynamicResource TextSecondary}" HorizontalAlignment="Center"/>
+                                <UniformGrid x:Name="CalendarWeekdays" Grid.Row="1" Columns="7" Margin="0,12,0,0" VerticalAlignment="Center" TextElement.FontSize="14" TextElement.Foreground="#8A9099">
+                                    <TextBlock Text="日" HorizontalAlignment="Center"/><TextBlock Text="一" HorizontalAlignment="Center"/><TextBlock Text="二" HorizontalAlignment="Center"/><TextBlock Text="三" HorizontalAlignment="Center"/><TextBlock Text="四" HorizontalAlignment="Center"/><TextBlock Text="五" HorizontalAlignment="Center"/><TextBlock Text="六" HorizontalAlignment="Center"/>
                                 </UniformGrid>
-                                <ItemsControl Grid.Row="2" Margin="0,4,0,0" ClipToBounds="False" ItemsSource="{Binding CalendarDays}">
-                                    <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="7" ClipToBounds="False" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate DataType="{x:Type vm:CalendarDayViewModel}">
-                                            <Button MinHeight="48" VerticalAlignment="Stretch"
-                                                    Margin="0"
-                                                    Padding="0"
-                                                    ClipToBounds="False"
-                                                    Command="{Binding DataContext.SelectCalendarDateCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                                    CommandParameter="{Binding}"
-                                                    Background="{DynamicResource TransparentBrush}"
-                                                    BorderThickness="0"
-                                                    Focusable="{Binding CanSelect}"
-                                                    FocusVisualStyle="{x:Null}"
-                                                    IsEnabled="{Binding CanSelect}"
-                                                    IsHitTestVisible="{Binding CanSelect}"
-                                                    IsTabStop="{Binding CanSelect}">
-                                                <Button.Style>
-                                                    <Style TargetType="{x:Type Button}">
-                                                        <Setter Property="Cursor" Value="Arrow" />
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding CanSelect}" Value="True">
-                                                                <Setter Property="Cursor" Value="Hand" />
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </Button.Style>
-                                                <Button.Template>
-                                                    <ControlTemplate TargetType="Button">
-                                                        <Grid Background="{DynamicResource TransparentBrush}" ClipToBounds="False">
-                                                        <Grid x:Name="DayContent" Width="40" Height="40" HorizontalAlignment="Center" VerticalAlignment="Center" ClipToBounds="False">
-                                                            <Border x:Name="DaySelectionBackground"
-                                                                    Width="40"
-                                                                    Height="40"
-                                                                    HorizontalAlignment="Center"
-                                                                    VerticalAlignment="Center"
-                                                                    Background="{TemplateBinding Background}"
-                                                                    CornerRadius="10"
-                                                                    IsHitTestVisible="False" />
-                                                            <Grid Width="40" Height="38" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                                <Grid.RowDefinitions><RowDefinition Height="20"/><RowDefinition Height="18"/></Grid.RowDefinitions>
-                                                                <TextBlock x:Name="DayNumberText" Grid.Row="0" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="{DynamicResource BodyFontSize}" FontWeight="{DynamicResource BodyFontWeight}" Foreground="{DynamicResource TextPrimary}" Text="{Binding DayNumber}" />
-                                                                <TextBlock x:Name="DayDurationText"
-                                                                           Grid.Row="1"
-                                                                           HorizontalAlignment="Center"
-                                                                           VerticalAlignment="Center"
-                                                                           FontSize="{DynamicResource CaptionFontSize}"
-                                                                           FontWeight="{DynamicResource CaptionFontWeight}"
-                                                                           Foreground="{Binding HeatTextColor}"
-                                                                           Text="{Binding DurationLabel}">
-                                                                    <TextBlock.Style>
-                                                                        <Style TargetType="{x:Type TextBlock}">
-                                                                            <Setter Property="Visibility" Value="Collapsed" />
-                                                                            <Style.Triggers>
-                                                                                <MultiDataTrigger>
-                                                                                    <MultiDataTrigger.Conditions>
-                                                                                        <Condition Binding="{Binding HasFocus}" Value="True" />
-                                                                                        <Condition Binding="{Binding IsCurrentMonth}" Value="True" />
-                                                                                    </MultiDataTrigger.Conditions>
-                                                                                    <Setter Property="Visibility" Value="Visible" />
-                                                                                </MultiDataTrigger>
-                                                                            </Style.Triggers>
-                                                                        </Style>
-                                                                    </TextBlock.Style>
-                                                                </TextBlock>
-                                                            </Grid>
-                                                        </Grid>
-                                                        </Grid>
-                                                        <ControlTemplate.Triggers>
-                                                            <Trigger Property="IsPressed" Value="True">
-                                                                <Trigger.EnterActions><BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetName="DayContent" Storyboard.TargetProperty="Opacity" To="0.7" Duration="0:0:0.1"/></Storyboard></BeginStoryboard></Trigger.EnterActions>
-                                                                <Trigger.ExitActions><BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetName="DayContent" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.1"/></Storyboard></BeginStoryboard></Trigger.ExitActions>
-                                                            </Trigger>
-                                                            <DataTrigger Binding="{Binding IsCurrentMonth}" Value="False"><Setter TargetName="DayNumberText" Property="Foreground" Value="{DynamicResource DisabledText}" /><Setter TargetName="DayDurationText" Property="Foreground" Value="{DynamicResource DisabledText}" /></DataTrigger>
-                                                            <DataTrigger Binding="{Binding HasFocus}" Value="False"><Setter TargetName="DayNumberText" Property="Foreground" Value="{DynamicResource DisabledText}" /><Setter TargetName="DayDurationText" Property="Foreground" Value="{DynamicResource DisabledText}" /></DataTrigger>
-                                                            <MultiDataTrigger>
-                                                                <MultiDataTrigger.Conditions>
-                                                                    <Condition Binding="{Binding CanSelect}" Value="True" />
-                                                                    <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource TemplatedParent}}" Value="True" />
-                                                                    <Condition Binding="{Binding IsSelected}" Value="False" />
-                                                                </MultiDataTrigger.Conditions>
-                                                                <MultiDataTrigger.EnterActions><BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetName="DaySelectionBackground" Storyboard.TargetProperty="Opacity" To="0.72" Duration="0:0:0.15" /></Storyboard></BeginStoryboard></MultiDataTrigger.EnterActions>
-                                                                <MultiDataTrigger.ExitActions><BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetName="DaySelectionBackground" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.15" /></Storyboard></BeginStoryboard></MultiDataTrigger.ExitActions>
-                                                            </MultiDataTrigger>
-                                                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                                                <Setter TargetName="DaySelectionBackground" Property="Background" Value="{DynamicResource AccentPrimary}" />
-                                                                <Setter TargetName="DaySelectionBackground" Property="Opacity" Value="1" />
-                                                                <Setter TargetName="DayNumberText" Property="FontWeight" Value="{DynamicResource BodyMediumFontWeight}" />
-                                                                <Setter TargetName="DayNumberText" Property="Foreground" Value="White" />
-                                                                <Setter TargetName="DayDurationText" Property="Foreground" Value="White" />
-                                                                <Setter TargetName="DayDurationText" Property="Opacity" Value="1" />
-                                                            </DataTrigger>
-                                                        </ControlTemplate.Triggers>
-                                                    </ControlTemplate>
-                                                </Button.Template>
-                                            </Button>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
+                                <ItemsControl x:Name="CalendarDateItems" Grid.Row="2" ItemsSource="{Binding CalendarDays}">
+                                    <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="7" Rows="6"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate><DataTemplate DataType="{x:Type vm:CalendarDayViewModel}">
+                                        <Button Margin="0" Padding="0" Background="Transparent" BorderThickness="0" FocusVisualStyle="{x:Null}"
+                                                Command="{Binding DataContext.SelectCalendarDateCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}"
+                                                IsEnabled="{Binding CanSelect}" Focusable="{Binding CanSelect}" IsHitTestVisible="{Binding CanSelect}" IsTabStop="{Binding CanSelect}">
+                                            <Button.Style><Style TargetType="Button"><Setter Property="Cursor" Value="Arrow"/><Style.Triggers><DataTrigger Binding="{Binding CanSelect}" Value="True"><Setter Property="Cursor" Value="Hand"/></DataTrigger></Style.Triggers></Style></Button.Style>
+                                            <Button.Template><ControlTemplate TargetType="Button">
+                                                <Grid Background="Transparent">
+                                                    <Border x:Name="DaySelectionBackground" Width="40" Height="46" CornerRadius="10" HorizontalAlignment="Center" VerticalAlignment="Center" Background="Transparent"/>
+                                                    <Grid x:Name="DayContent" Width="40" Height="44" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                        <Grid.RowDefinitions><RowDefinition Height="24"/><RowDefinition Height="20"/></Grid.RowDefinitions>
+                                                        <TextBlock x:Name="DayNumberText" Text="{Binding DayNumber}" FontSize="14" Foreground="#1B2027" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        <TextBlock x:Name="DayDurationText" Grid.Row="1" Text="{Binding DurationLabel}" FontSize="12" Foreground="#FFA25F" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                            <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><MultiDataTrigger><MultiDataTrigger.Conditions><Condition Binding="{Binding HasFocus}" Value="True"/><Condition Binding="{Binding IsCurrentMonth}" Value="True"/></MultiDataTrigger.Conditions><Setter Property="Visibility" Value="Visible"/></MultiDataTrigger></Style.Triggers></Style></TextBlock.Style>
+                                                        </TextBlock>
+                                                    </Grid>
+                                                </Grid>
+                                                <ControlTemplate.Triggers>
+                                                    <DataTrigger Binding="{Binding IsCurrentMonth}" Value="False"><Setter TargetName="DayNumberText" Property="Foreground" Value="#A9AEB5"/></DataTrigger>
+                                                    <DataTrigger Binding="{Binding HasFocus}" Value="False"><Setter TargetName="DayNumberText" Property="Foreground" Value="#A9AEB5"/></DataTrigger>
+                                                    <MultiDataTrigger><MultiDataTrigger.Conditions><Condition Binding="{Binding CanSelect}" Value="True"/><Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource TemplatedParent}}" Value="True"/></MultiDataTrigger.Conditions><Setter TargetName="DaySelectionBackground" Property="Background" Value="#FFF5EC"/></MultiDataTrigger>
+                                                    <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="DaySelectionBackground" Property="Background" Value="#FFF5EC"/></Trigger>
+                                                    <DataTrigger Binding="{Binding IsSelected}" Value="True"><Setter TargetName="DaySelectionBackground" Property="Background" Value="#FF861F"/><Setter TargetName="DayNumberText" Property="Foreground" Value="White"/><Setter TargetName="DayNumberText" Property="FontWeight" Value="Medium"/><Setter TargetName="DayDurationText" Property="Foreground" Value="White"/></DataTrigger>
+                                                    <Trigger Property="IsPressed" Value="True"><Setter TargetName="DayContent" Property="Opacity" Value="0.7"/></Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate></Button.Template>
+                                        </Button>
+                                    </DataTemplate></ItemsControl.ItemTemplate>
                                 </ItemsControl>
                             </Grid>
-                            <Border x:Name="CalendarSummaryDivider" Grid.Row="1" Height="1" Margin="0,16,0,16" Background="#F0F1F4"/>
-                        <Border x:Name="CalendarMonthlySummary" Grid.Row="2" Background="Transparent">
-                            <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/></Grid.RowDefinitions>
-                                <Grid>
-                                    <TextBlock Text="本月概括" FontSize="{DynamicResource SectionTitleFontSize}" FontWeight="{DynamicResource SectionTitleFontWeight}" Foreground="#454C57"/>
-                                    <TextBlock x:Name="CalendarSummaryMonth" Text="{Binding CalendarMonthDisplay}" FontSize="{DynamicResource SecondaryFontSize}" FontWeight="{DynamicResource SecondaryFontWeight}" Foreground="{DynamicResource TextWeak}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-                                </Grid>
-                                <Grid Grid.Row="1" Margin="0,20,0,0" VerticalAlignment="Top">
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="3*"/><ColumnDefinition Width="25"/><ColumnDefinition Width="2*"/></Grid.ColumnDefinitions>
+                        </Border>
+                        <Border x:Name="CalendarMonthlySummary" Grid.Row="2" Padding="18,12,18,12" Style="{StaticResource CalendarSurface}">
+                            <Grid>
+                                <Grid.RowDefinitions><RowDefinition Height="28"/><RowDefinition Height="1"/><RowDefinition/></Grid.RowDefinitions>
+                                <StackPanel Orientation="Horizontal"><TextBlock Text="本月统计" FontSize="14" FontWeight="SemiBold" Foreground="#252B33" VerticalAlignment="Top"/><Path Width="6" Height="11" Data="M 0,0 L 5,5 L 0,10" Stroke="#8B9098" StrokeThickness="1.3" Margin="10,5,0,0" VerticalAlignment="Top"/></StackPanel>
+                                <Border Grid.Row="1" Background="#F1F2F4"/>
+                                <Grid Grid.Row="2" Margin="0,12,0,0">
+                                    <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="24"/><ColumnDefinition/></Grid.ColumnDefinitions>
                                     <StackPanel>
-                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                                            <Border Width="28" Height="28" CornerRadius="14" Background="#FFF3E9" Margin="0,0,8,0">
-                                                <Viewbox Width="14" Height="14"><Path Data="M 12,1 A 11,11 0 1 1 11.99,1 M 12,5 L 12,12 L 17,12" Stroke="{DynamicResource AccentPrimary}" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/></Viewbox>
-                                            </Border>
-                                            <TextBlock Text="总专注时长" FontSize="{DynamicResource SecondaryFontSize}" FontWeight="{DynamicResource SecondaryFontWeight}" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center"/>
-                                        </StackPanel>
-                                        <Viewbox Height="50" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left"><TextBlock x:Name="MonthlyTotalDuration" FontFamily="{DynamicResource FontFamilyNumeric}" Foreground="{DynamicResource TextPrimary}"><Run Text="{Binding MonthlyTotalHoursValueDisplay, Mode=OneWay}" FontSize="{DynamicResource DataValueLargeFontSize}" FontWeight="{DynamicResource DataValueLargeFontWeight}"/><Run Text="{Binding MonthlyTotalHoursUnitDisplay, Mode=OneWay}" FontSize="{DynamicResource SecondaryFontSize}" FontWeight="{DynamicResource SecondaryFontWeight}" Foreground="{DynamicResource TextSecondary}"/><Run Text="{Binding MonthlyTotalMinutesValueDisplay, Mode=OneWay}" FontSize="{DynamicResource DataValueLargeFontSize}" FontWeight="{DynamicResource DataValueLargeFontWeight}"/><Run Text="{Binding MonthlyTotalMinutesUnitDisplay, Mode=OneWay}" FontSize="{DynamicResource SecondaryFontSize}" FontWeight="{DynamicResource SecondaryFontWeight}" Foreground="{DynamicResource TextSecondary}"/></TextBlock></Viewbox>
+                                        <TextBlock Text="专注总时长" FontSize="13" FontWeight="SemiBold" Foreground="#858C98"/>
+                                        <Viewbox Height="43" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" Margin="0,3,0,0"><TextBlock x:Name="MonthlyTotalDuration" FontFamily="{DynamicResource FontFamilyNumeric}" Foreground="#11161D"><Run Text="{Binding MonthlyTotalHoursValueDisplay, Mode=OneWay}" FontSize="36" FontWeight="SemiBold"/><Run Text="{Binding MonthlyTotalHoursUnitDisplay, Mode=OneWay}" FontSize="12" FontWeight="Medium"/><Run Text="{Binding MonthlyTotalMinutesValueDisplay, Mode=OneWay}" FontSize="36" FontWeight="SemiBold"/><Run Text="{Binding MonthlyTotalMinutesUnitDisplay, Mode=OneWay}" FontSize="12" FontWeight="Medium"/></TextBlock></Viewbox>
                                     </StackPanel>
-                                    <Border Grid.Column="1" Width="1" Background="#F0F1F4" Height="82" VerticalAlignment="Top"/>
-                                    <StackPanel Grid.Column="2">
-                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                                            <Border Width="28" Height="28" CornerRadius="14" Background="#FFF3E9" Margin="0,0,8,0">
-                                                <Viewbox Width="14" Height="14"><Path Data="M 3,4 L 21,4 L 21,22 L 3,22 Z M 3,9 L 21,9 M 7,1 L 7,6 M 17,1 L 17,6 M 7,13 L 9,13 M 12,13 L 14,13 M 17,13 L 18,13 M 7,17 L 9,17 M 12,17 L 14,17 M 17,17 L 18,17" Stroke="{DynamicResource AccentPrimary}" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/></Viewbox>
-                                            </Border>
-                                            <TextBlock Text="专注天数" FontSize="{DynamicResource SecondaryFontSize}" FontWeight="{DynamicResource SecondaryFontWeight}" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center"/>
-                                        </StackPanel>
-                                        <Viewbox Height="50" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left"><TextBlock x:Name="MonthlyFocusDays" FontFamily="{DynamicResource FontFamilyNumeric}" Foreground="{DynamicResource TextPrimary}"><Run Text="{Binding MonthlyFocusDaysValueDisplay, Mode=OneWay}" FontSize="{DynamicResource DataValueLargeFontSize}" FontWeight="{DynamicResource DataValueLargeFontWeight}"/><Run Text=" 天" FontSize="{DynamicResource SecondaryFontSize}" FontWeight="{DynamicResource SecondaryFontWeight}" Foreground="{DynamicResource TextSecondary}"/></TextBlock></Viewbox>
+                                    <Border Grid.Column="1" Width="1" Background="#ECEEF1" Margin="0,2,0,0"/>
+                                    <StackPanel Grid.Column="2" Margin="16,0,0,0">
+                                        <TextBlock Text="专注天数" FontSize="13" FontWeight="SemiBold" Foreground="#858C98"/>
+                                        <Viewbox Height="43" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" Margin="0,3,0,0"><TextBlock x:Name="MonthlyFocusDays" FontFamily="{DynamicResource FontFamilyNumeric}" Foreground="#11161D"><Run Text="{Binding MonthlyFocusDaysValueDisplay, Mode=OneWay}" FontSize="36" FontWeight="SemiBold"/><Run Text=" 天" FontSize="14" FontWeight="Medium"/></TextBlock></Viewbox>
                                     </StackPanel>
                                 </Grid>
                             </Grid>
                         </Border>
-                        </Grid>
-                    </Border>
-                    <Border x:Name="DailyFocusRecordCard" Grid.Column="2" Padding="{StaticResource CardContentPadding}" Background="{DynamicResource SurfacePrimary}" BorderBrush="#ECECEF" BorderThickness="1" CornerRadius="10">
+                    </Grid>
+                    <Border x:Name="DailyFocusRecordCard" Grid.Column="2" Padding="14,14,12,14" Style="{StaticResource CalendarSurface}">
                         <Grid>
                             <Grid x:Name="DailyFocusRecordContent">
                                 <Grid.Style><Style TargetType="Grid"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding CanViewDailyFocusRecord}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Grid.Style>
-                                <Grid.RowDefinitions><RowDefinition Height="30"/><RowDefinition Height="72"/><RowDefinition/></Grid.RowDefinitions>
+                                <Grid.RowDefinitions><RowDefinition Height="32"/><RowDefinition Height="12"/><RowDefinition Height="90"/><RowDefinition Height="74"/><RowDefinition/></Grid.RowDefinitions>
                                 <Grid x:Name="CalendarDayHeader">
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                    <TextBlock x:Name="CalendarSelectedDate" Text="{Binding SelectedDayDateDisplay}" FontSize="17" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center"/>
-                                    <TextBlock x:Name="CalendarSelectedWeekday" Grid.Column="1" Margin="10,0,0,0" Text="{Binding SelectedDayWeekdayDisplay, StringFormat='· {0}'}" FontSize="15" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center"/>
-                                    <TextBlock x:Name="CalendarDayFocusDuration" Grid.Column="3" Text="{Binding SelectedDayCompactDurationDisplay}" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center"/>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <TextBlock x:Name="CalendarSelectedDate" Text="{Binding SelectedDayDateDisplay}" FontSize="22" FontWeight="SemiBold" Foreground="#15191F" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="CalendarSelectedWeekday" Grid.Column="1" Margin="10,0,0,0" Text="{Binding SelectedDayFullWeekdayDisplay}" FontSize="21" FontWeight="SemiBold" Foreground="#15191F" VerticalAlignment="Center"/>
                                 </Grid>
-                                <views:CalendarFocusTimeline x:Name="CalendarDayTimeline" Grid.Row="1" Margin="4,17,4,10" Timeline="{Binding SelectedDayTimeline}"
-                                                            FullDayStyle="True" InlineRecordDetails="True" TrackHeight="10" TrackTop="26"
-                                                            TickLabelFontSize="11" TickLabelFontWeight="Normal" AutomationProperties.Name="全天专注时间轴"/>
-                                <ScrollViewer x:Name="CalendarRecordsScrollViewer" Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                                <Grid x:Name="CalendarDayMetrics" Grid.Row="2">
+                                    <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="8"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                    <Border x:Name="CalendarDayDurationMetric" Background="#F8F8F9" CornerRadius="9" Padding="10,9,10,7">
+                                        <Grid><Grid.RowDefinitions><RowDefinition Height="28"/><RowDefinition/></Grid.RowDefinitions>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Border Width="28" Height="28" CornerRadius="14" Background="#FFEBD9"><Grid><Ellipse Width="21" Height="21" Fill="#FF8A24"/><Path Width="11" Height="12" Data="M 4,0 L 4,7 L 9,10" Stroke="White" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/></Grid></Border>
+                                                <TextBlock Text="专注时长" FontSize="12" FontWeight="SemiBold" Foreground="#7C8592" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                            <Viewbox Grid.Row="1" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Center" Margin="0,1,0,0"><TextBlock x:Name="CalendarDayFocusDuration" FontFamily="{DynamicResource FontFamilyNumeric}" Foreground="#11161D"><Run Text="{Binding SelectedDayHoursValueDisplay, Mode=OneWay}" FontSize="35" FontWeight="SemiBold"/><Run Text="{Binding SelectedDayHoursUnitDisplay, Mode=OneWay}" FontSize="12" FontWeight="Medium"/><Run Text="{Binding SelectedDayMinutesValueDisplay, Mode=OneWay}" FontSize="35" FontWeight="SemiBold"/><Run Text="分钟" FontSize="12" FontWeight="Medium"/></TextBlock></Viewbox>
+                                        </Grid>
+                                    </Border>
+                                    <Border x:Name="CalendarDayCompletedMetric" Grid.Column="2" Background="#F8F8F9" CornerRadius="9" Padding="10,9,10,7">
+                                        <Grid><Grid.RowDefinitions><RowDefinition Height="28"/><RowDefinition/></Grid.RowDefinitions>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Border Width="28" Height="28" CornerRadius="14" Background="#DFF7E8"><Grid><Ellipse Width="21" Height="21" Fill="#19C363"/><Path Width="12" Height="10" Data="M 0,5 L 4,9 L 11,1" Stroke="White" StrokeThickness="2.1" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/></Grid></Border>
+                                                <TextBlock Text="完成任务" FontSize="12" FontWeight="SemiBold" Foreground="#7C8592" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                            <Viewbox Grid.Row="1" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Center" Margin="0,1,0,0"><TextBlock x:Name="CalendarDayCompletedTaskCount" FontFamily="{DynamicResource FontFamilyNumeric}" Foreground="#11161D"><Run Text="{Binding SelectedDayCompletedTasks, Mode=OneWay}" FontSize="35" FontWeight="SemiBold"/><Run Text=" 项" FontSize="13" FontWeight="Medium"/></TextBlock></Viewbox>
+                                        </Grid>
+                                    </Border>
+                                </Grid>
+                                <views:CalendarFocusTimeline x:Name="CalendarDayTimeline" Grid.Row="3" Margin="5,14,5,17" Timeline="{Binding SelectedDayTimeline}"
+                                                            FullDayStyle="True" InlineRecordDetails="True" TrackHeight="11" TrackTop="26" TickLabelFontSize="11" TickLabelFontWeight="Medium" AutomationProperties.Name="全天专注时间轴"/>
+                                <ScrollViewer x:Name="CalendarRecordsScrollViewer" Grid.Row="4" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
                                               CanContentScroll="False" PanningMode="VerticalOnly" Visibility="{Binding HasSelectedDayRecords, Converter={StaticResource BooleanToVisibilityConverter}}">
                                     <ScrollViewer.Resources><Style TargetType="ScrollBar" BasedOn="{StaticResource StatisticsRecordScrollBarStyle}"/></ScrollViewer.Resources>
                                     <ItemsControl x:Name="CalendarRecordItems" ItemsSource="{Binding SelectedDayRecordEntries}">
@@ -434,19 +378,22 @@
                                                         MouseLeftButtonDown="CalendarRecordRow_MouseLeftButtonDown" KeyDown="CalendarRecordRow_KeyDown">
                                                     <views:CalendarDayRecordView/>
                                                 </Border>
-                                                <Grid x:Name="CalendarRecordGap" Height="26" Margin="0,0,10,0" Visibility="{Binding HasGap, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                <Grid x:Name="CalendarRecordGap" Height="46" Margin="0,0,10,0" Visibility="{Binding HasGap, Converter={StaticResource BooleanToVisibilityConverter}}">
                                                     <Grid.ColumnDefinitions><ColumnDefinition Width="30"/><ColumnDefinition/></Grid.ColumnDefinitions>
-                                                    <Border x:Name="CalendarGapLine" Width="1.5" Background="#E3E7EC"/>
-                                                    <Border x:Name="CalendarGapMarker" Width="6" Height="14" CornerRadius="3" Background="#B8BDC5" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                    <TextBlock x:Name="CalendarGapText" Grid.Column="1" Text="{Binding GapDisplay}" FontSize="11" Foreground="#A3AAB5" VerticalAlignment="Center"/>
+                                                    <Border x:Name="CalendarGapLine" Width="1" Background="#E6E8EB"/>
+                                                    <Border x:Name="CalendarGapMarker" Width="9" Height="9" CornerRadius="4.5" Background="#D2D6DC" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,6,0,0"/>
+                                                    <StackPanel Grid.Column="1" ToolTip="{Binding GapDisplay}">
+                                                        <TextBlock x:Name="CalendarGapText" Text="休息" FontSize="11" Foreground="#A3A9B2"/>
+                                                        <TextBlock x:Name="CalendarGapTime" Text="{Binding GapTimeRangeDisplay}" FontFamily="{DynamicResource FontFamilyEnglish}" FontSize="10" Foreground="#A3A9B2" Margin="0,2,0,0"/>
+                                                    </StackPanel>
                                                 </Grid>
                                             </StackPanel>
                                         </DataTemplate></ItemsControl.ItemTemplate>
                                     </ItemsControl>
                                 </ScrollViewer>
-                                <StackPanel x:Name="CalendarRecordsEmptyState" Grid.Row="2" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{Binding HasSelectedDayRecords, Converter={StaticResource GoalInverseVisibilityConverter}}">
-                                    <TextBlock Text="暂无专注记录" HorizontalAlignment="Center" FontSize="12" Foreground="{DynamicResource TextWeak}"/>
-                                    <TextBlock Text="完成一次专注后，这里会显示本日专注记录" HorizontalAlignment="Center" Margin="0,6,0,0" FontSize="10" Foreground="{DynamicResource TextWeak}"/>
+                                <StackPanel x:Name="CalendarRecordsEmptyState" Grid.Row="4" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{Binding HasSelectedDayRecords, Converter={StaticResource GoalInverseVisibilityConverter}}">
+                                    <TextBlock Text="暂无专注记录" HorizontalAlignment="Center" FontSize="12" Foreground="#989FA9"/>
+                                    <TextBlock Text="完成一次专注后，这里会显示本日专注记录" HorizontalAlignment="Center" Margin="0,6,0,0" FontSize="10" Foreground="#989FA9"/>
                                 </StackPanel>
                             </Grid>
                             <Grid x:Name="DailyFocusRecordLockedPlaceholder"
@@ -656,13 +603,26 @@
                         </StackPanel>
                         </Grid>
                     </Border>
-                    <Border x:Name="GoalInvestmentDetailsCard" Grid.Column="2" Padding="{StaticResource CardContentPadding}" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" CornerRadius="16">
+                    <Border x:Name="GoalInvestmentDetailsCard" Grid.Column="2">
+                        <Border.Style><Style TargetType="Border">
+                            <Setter Property="Padding" Value="{StaticResource CardContentPadding}"/>
+                            <Setter Property="Background" Value="{DynamicResource SurfacePrimary}"/>
+                            <Setter Property="BorderBrush" Value="{DynamicResource BorderPrimary}"/>
+                            <Setter Property="BorderThickness" Value="1"/><Setter Property="CornerRadius" Value="16"/>
+                            <Style.Triggers><MultiDataTrigger><MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding CanViewGoalInvestmentDetails}" Value="True"/>
+                                <Condition Binding="{Binding HasSelectedGoal}" Value="True"/>
+                                <Condition Binding="{Binding IsGoalCreationGuideVisible}" Value="False"/>
+                            </MultiDataTrigger.Conditions><Setter Property="Padding" Value="0"/><Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/></MultiDataTrigger></Style.Triggers>
+                        </Style></Border.Style>
                         <Grid>
                             <Grid x:Name="GoalExistingContent" Visibility="{Binding IsGoalCreationGuideVisible, Converter={StaticResource GoalInverseVisibilityConverter}}">
                             <Grid x:Name="GoalInvestmentDetailsContent" Visibility="{Binding CanViewGoalInvestmentDetails, Converter={StaticResource BooleanToVisibilityConverter}}">
                                 <Grid x:Name="GoalDetails">
-                                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto" MinHeight="132"/><RowDefinition/></Grid.RowDefinitions>
-                                    <Grid x:Name="GoalDetailHeader">
+                                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="12"/><RowDefinition/></Grid.RowDefinitions>
+                                    <Border x:Name="GoalSummaryCard" Padding="16" Background="White" BorderBrush="#E9EBEF" BorderThickness="1" CornerRadius="12">
+                                      <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="16"/><RowDefinition Height="88"/></Grid.RowDefinitions>
+<Grid x:Name="GoalDetailHeader">
                                         <StackPanel>
                                             <DockPanel x:Name="GoalDetailTitleRow" HorizontalAlignment="Left" LastChildFill="True">
                                                 <Border x:Name="GoalArchivedBadge" DockPanel.Dock="Right" Height="25" Margin="9,0,0,0" Padding="9,0"
@@ -675,46 +635,40 @@
                                                         <TextBlock Text="已归档" FontSize="12" FontWeight="Normal" Foreground="#7C8593" VerticalAlignment="Center"/>
                                                     </StackPanel>
                                                 </Border>
-                                                <TextBlock x:Name="GoalDetailName" FontSize="{DynamicResource PageTitleFontSize}" FontWeight="{DynamicResource PageTitleFontWeight}" Text="{Binding SelectedGoalName}"
+                                                <TextBlock x:Name="GoalDetailName" FontSize="20" FontWeight="{DynamicResource PageTitleFontWeight}" Text="{Binding SelectedGoalName}"
                                                            Foreground="{DynamicResource TextPrimary}" TextTrimming="CharacterEllipsis"/>
                                             </DockPanel>
-                                            <TextBlock x:Name="GoalDetailMetadata" Margin="0,5,0,0" FontSize="{DynamicResource SecondaryFontSize}" FontWeight="{DynamicResource SecondaryFontWeight}" Foreground="{DynamicResource TextWeak}" Text="{Binding SelectedGoal.DetailMetadataDisplay}" ToolTip="{Binding SelectedGoal.DetailMetadataDisplay}" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock x:Name="GoalDetailMetadata" Margin="0,5,0,0" FontSize="12" FontWeight="{DynamicResource SecondaryFontWeight}" Foreground="#8A94A5" Text="{Binding SelectedGoal.Remark}" ToolTip="{Binding SelectedGoal.Remark}" TextTrimming="CharacterEllipsis"/>
                                         </StackPanel>
                                     </Grid>
-                                    <Grid x:Name="GoalInvestmentMetrics" Grid.Row="1" Margin="0,18,0,20">
-                                        <Grid.RowDefinitions><RowDefinition Height="28"/><RowDefinition Height="8"/><RowDefinition/></Grid.RowDefinitions>
-                                        <TextBlock Text="投入概括" Style="{StaticResource GoalSectionTitleStyle}"/>
-                                        <Grid Grid.Row="2">
-                                            <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="24"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                        <Grid x:Name="GoalInvestmentMetrics" Grid.Row="2"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="8"/><ColumnDefinition/><ColumnDefinition Width="8"/><ColumnDefinition/></Grid.ColumnDefinitions>
                                             <Button x:Name="GoalTotalInvestmentCard" Grid.Column="0" Style="{StaticResource GoalMetricCardButtonStyle}" Command="{Binding GoalInvestmentTrend.OpenCommand}" AutomationProperties.Name="累计投入">
-                                                <Grid>
-                                                    <Grid.ColumnDefinitions><ColumnDefinition Width="36"/><ColumnDefinition/><ColumnDefinition Width="16"/></Grid.ColumnDefinitions>
-                                                    <Grid.RowDefinitions><RowDefinition Height="28"/><RowDefinition Height="8"/><RowDefinition Height="50"/></Grid.RowDefinitions>
-                                                    <Border Width="28" Height="28" CornerRadius="14" Background="#FFF2E8" HorizontalAlignment="Left"><Grid Width="16" Height="16"><Ellipse Stroke="{DynamicResource AccentPrimary}" StrokeThickness="1.3"/><Path Data="M 8,3 L 8,8 L 13,8" Stroke="{DynamicResource AccentPrimary}" StrokeThickness="1.3" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/></Grid></Border>
-                                                    <TextBlock Grid.Column="1" Text="累计投入" FontSize="{DynamicResource BodyFontSize}" FontWeight="{DynamicResource BodyFontWeight}" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center"/>
-                                                    <Path Grid.Column="2" Width="5" Height="9" Data="M 0,0 L 4,4 L 0,8" Stroke="{DynamicResource TextSecondary}" StrokeThickness="1.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" VerticalAlignment="Center" HorizontalAlignment="Right"/>
-                                                    <Viewbox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Height="50" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left"><TextBlock x:Name="GoalTotalInvestmentText" FontFamily="{DynamicResource FontFamilyNumeric}" Foreground="{DynamicResource TextPrimary}" FontSize="{DynamicResource DataValueDisplayFontSize}" FontWeight="{DynamicResource DataValueDisplayFontWeight}"><Run Text="{Binding SelectedGoalTotalInvestment.HoursValue, Mode=OneWay}"/><Run Text="{Binding SelectedGoalTotalInvestment.HoursUnitWithLeadingSpace, Mode=OneWay}" FontSize="{DynamicResource SecondaryFontSize}" FontWeight="{DynamicResource SecondaryFontWeight}" Foreground="{DynamicResource TextSecondary}"/><Run Text="{Binding SelectedGoalTotalInvestment.MinutesValueWithLeadingSpace, Mode=OneWay}"/><Run Text="{Binding SelectedGoalTotalInvestment.MinutesUnitWithLeadingSpace, Mode=OneWay}" FontSize="{DynamicResource SecondaryFontSize}" FontWeight="{DynamicResource SecondaryFontWeight}" Foreground="{DynamicResource TextSecondary}"/></TextBlock></Viewbox>
+                                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="30"/><ColumnDefinition/></Grid.ColumnDefinitions><Grid.RowDefinitions><RowDefinition Height="28"/><RowDefinition/></Grid.RowDefinitions>
+                                                    <Border Width="27" Height="27" CornerRadius="14" Background="#FFF0E4" HorizontalAlignment="Left"><Grid Width="18" Height="18"><Ellipse Stroke="#FF861C" StrokeThickness="1.8"/><Path Data="M 9,4 L 9,9 L 14,12" Stroke="#FF861C" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/></Grid></Border>
+                                                    <TextBlock Grid.Column="1" Text="累计投入" FontSize="11.5" Foreground="#7F899A" VerticalAlignment="Center" Margin="3,0,0,0"/>
+                                                    <Viewbox Grid.Row="1" Grid.ColumnSpan="2" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,3,0,0"><TextBlock x:Name="GoalTotalInvestmentText" FontFamily="{DynamicResource FontFamilyNumeric}" Foreground="#111723" FontSize="27" FontWeight="SemiBold"><Run Text="{Binding SelectedGoalTotalInvestment.HoursValue, Mode=OneWay}"/><Run Text="{Binding SelectedGoalTotalInvestment.HoursUnitWithLeadingSpace, Mode=OneWay}" FontSize="10" FontWeight="Normal" Foreground="#8A94A5"/><Run Text="{Binding SelectedGoalTotalInvestment.MinutesValueWithLeadingSpace, Mode=OneWay}"/><Run Text="{Binding SelectedGoalTotalInvestment.MinutesUnitWithLeadingSpace, Mode=OneWay}" FontSize="10" FontWeight="Normal" Foreground="#8A94A5"/></TextBlock></Viewbox>
                                                 </Grid>
                                             </Button>
-                                            <Border Grid.Column="1" Width="1" Background="#F1F2F5" Margin="0,6,0,6"/>
                                             <Button x:Name="GoalCompletedTasksCard" Grid.Column="2" Style="{StaticResource GoalMetricCardButtonStyle}" Command="{Binding GoalCompletedTasks.OpenCommand}" AutomationProperties.Name="完成任务数">
-                                                <Grid>
-                                                    <Grid.ColumnDefinitions><ColumnDefinition Width="36"/><ColumnDefinition/><ColumnDefinition Width="16"/></Grid.ColumnDefinitions>
-                                                    <Grid.RowDefinitions><RowDefinition Height="28"/><RowDefinition Height="8"/><RowDefinition Height="50"/></Grid.RowDefinitions>
-                                                    <Border Width="28" Height="28" CornerRadius="14" Background="#FFF2E8" HorizontalAlignment="Left"><Viewbox Width="15" Height="15"><Path Data="M 3,1 L 13,1 Q 15,1 15,3 L 15,13 Q 15,15 13,15 L 3,15 Q 1,15 1,13 L 1,3 Q 1,1 3,1 M 4,8 L 7,11 L 12,5" Stroke="{DynamicResource AccentPrimary}" StrokeThickness="1.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/></Viewbox></Border>
-                                                    <TextBlock Grid.Column="1" Text="完成任务数" FontSize="{DynamicResource BodyFontSize}" FontWeight="{DynamicResource BodyFontWeight}" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center"/>
-                                                    <Path Grid.Column="2" Width="5" Height="9" Data="M 0,0 L 4,4 L 0,8" Stroke="{DynamicResource TextSecondary}" StrokeThickness="1.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" VerticalAlignment="Center" HorizontalAlignment="Right"/>
-                                                    <Viewbox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Height="50" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left"><TextBlock x:Name="GoalCompletedTaskCountText" FontFamily="{DynamicResource FontFamilyNumeric}" Foreground="{DynamicResource TextPrimary}" FontSize="{DynamicResource DataValueDisplayFontSize}" FontWeight="{DynamicResource DataValueDisplayFontWeight}"><Run Text="{Binding GoalCompletedTasks.TotalCount, Mode=OneWay}"/><Run Text=" 项" FontSize="{DynamicResource SecondaryFontSize}" FontWeight="{DynamicResource SecondaryFontWeight}" Foreground="{DynamicResource TextSecondary}"/></TextBlock></Viewbox>
+                                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="30"/><ColumnDefinition/></Grid.ColumnDefinitions><Grid.RowDefinitions><RowDefinition Height="28"/><RowDefinition/></Grid.RowDefinitions>
+                                                    <Border Width="27" Height="27" CornerRadius="14" Background="#E4F8EB" HorizontalAlignment="Left"><Grid Width="18" Height="18"><Ellipse Fill="#19BF73"/><Path Data="M 4,9 L 8,13 L 14,6" Stroke="White" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/></Grid></Border>
+                                                    <TextBlock Grid.Column="1" Text="完成任务数" FontSize="11.5" Foreground="#7F899A" VerticalAlignment="Center" Margin="3,0,0,0"/>
+                                                    <Viewbox Grid.Row="1" Grid.ColumnSpan="2" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,3,0,0"><TextBlock x:Name="GoalCompletedTaskCountText" FontFamily="{DynamicResource FontFamilyNumeric}" Foreground="#111723" FontSize="27" FontWeight="SemiBold"><Run Text="{Binding GoalCompletedTasks.TotalCount, Mode=OneWay}"/><Run Text=" 个" FontSize="12" FontWeight="Normal" Foreground="#8A94A5"/></TextBlock></Viewbox>
                                                 </Grid>
                                             </Button>
+                                            <Border x:Name="GoalFocusDaysCard" Grid.Column="4" Padding="10" Background="#F8F9FA" BorderBrush="#EFF0F3" BorderThickness="1" CornerRadius="9" AutomationProperties.Name="专注天数">
+                                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="30"/><ColumnDefinition/></Grid.ColumnDefinitions><Grid.RowDefinitions><RowDefinition Height="28"/><RowDefinition/></Grid.RowDefinitions>
+                                                    <Border Width="27" Height="27" CornerRadius="14" Background="#E6F2FF" HorizontalAlignment="Left"><Grid Width="18" Height="18"><Path Data="M 3,4 L 15,4 Q 17,4 17,6 L 17,15 Q 17,17 15,17 L 3,17 Q 1,17 1,15 L 1,6 Q 1,4 3,4 M 1,8 L 17,8 M 5,1 L 5,6 M 13,1 L 13,6 M 5,11 L 7,11 M 11,11 L 13,11" Stroke="#1888FA" StrokeThickness="1.6" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/></Grid></Border>
+                                                    <TextBlock Grid.Column="1" Text="专注天数" FontSize="11.5" Foreground="#7F899A" VerticalAlignment="Center" Margin="3,0,0,0"/>
+                                                    <Viewbox Grid.Row="1" Grid.ColumnSpan="2" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,3,0,0"><TextBlock x:Name="GoalFocusDaysText" FontFamily="{DynamicResource FontFamilyNumeric}" Foreground="#111723" FontSize="27" FontWeight="SemiBold"><Run Text="{Binding SelectedGoalFocusDays, Mode=OneWay}"/><Run Text=" 天" FontSize="12" FontWeight="Normal" Foreground="#8A94A5"/></TextBlock></Viewbox>
+                                                </Grid>
+                                            </Border>
                                         </Grid>
-                                    </Grid>
-                                    <Grid x:Name="GoalFocusRecordsRegion" Grid.Row="2">
-                                        <Grid.RowDefinitions><RowDefinition Height="35"/><RowDefinition/></Grid.RowDefinitions>
-                                        <TextBlock Text="专注记录" Style="{StaticResource GoalSectionTitleStyle}"/>
-
-                                        <views:GoalFocusHistoryView x:Name="GoalFocusHistoryControl" Grid.Row="1" DataContext="{Binding GoalFocusHistory}"/>
-                                    </Grid>
+                                      </Grid>
+                                    </Border>
+                                    <Border x:Name="GoalRecordsCard" Grid.Row="2" Padding="14,12,12,12" Background="White" BorderBrush="#E9EBEF" BorderThickness="1" CornerRadius="12">
+                                        <Grid x:Name="GoalFocusRecordsRegion"><views:GoalFocusHistoryView x:Name="GoalFocusHistoryControl" DataContext="{Binding GoalFocusHistory}"/></Grid>
+                                    </Border>
                                 </Grid>
                                 <Border Background="{DynamicResource SurfacePrimary}" Visibility="{Binding HasSelectedGoal, Converter={StaticResource GoalInverseVisibilityConverter}}"><TextBlock Text="暂无目标" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextWeak}"/></Border>
                             </Grid>

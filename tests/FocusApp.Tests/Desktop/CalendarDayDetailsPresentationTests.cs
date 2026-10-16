@@ -14,7 +14,7 @@ namespace FocusApp.Tests.Desktop;
 public sealed class CalendarDayDetailsPresentationTests
 {
     [Fact]
-    public void ExpandedHistoricalChildrenKeepTheirStatesAndOrangeConnectorTracksTheContentHeight()
+    public void ExpandedHistoricalChildrenKeepTheirStatesAndTheThinSpineTracksTheContentHeight()
     {
         Exception? failure = null;
         var thread = new Thread(() =>
@@ -45,7 +45,7 @@ public sealed class CalendarDayDetailsPresentationTests
                     ShowInTaskbar = false, ShowActivated = false, Left = -32000, Top = -32000, Content = page };
                 window.Show(); Pump(page);
                 Assert.Equal("10月12日", ((TextBlock)page.FindName("CalendarSelectedDate")).Text);
-                Assert.Equal("· 周一", ((TextBlock)page.FindName("CalendarSelectedWeekday")).Text);
+                Assert.Equal("星期一", ((TextBlock)page.FindName("CalendarSelectedWeekday")).Text);
                 var entries = model.SelectedDayRecordEntries;
                 var views = Descendants<CalendarDayRecordView>(page).ToArray();
                 Assert.Equal(3, views.Length);
@@ -53,13 +53,13 @@ public sealed class CalendarDayDetailsPresentationTests
                 var plainView = views.Single(view => ReferenceEquals(view.DataContext, entries[1]));
                 var plainMarker = (Border)plainView.FindName("FocusMarker");
                 Assert.True(plainMarker.IsVisible);
-                Assert.True(plainMarker.ActualHeight > plainMarker.ActualWidth * 2);
-                Assert.Equal(Visibility.Collapsed, ((TextBlock)plainView.FindName("GoalName")).Visibility);
+                Assert.Equal(plainMarker.ActualWidth, plainMarker.ActualHeight);
+                Assert.Equal("自由专注", ((TextBlock)plainView.FindName("GoalName")).Text);
                 Assert.Equal(Visibility.Collapsed, ((System.Windows.Shapes.Path)plainView.FindName("ExpandArrow")).Visibility);
-                Assert.Equal("5分钟", ((TextBlock)plainView.FindName("Summary")).Text);
+                Assert.Equal("5分钟", ((TextBlock)plainView.FindName("FocusDuration")).Text);
                 Save(page, "calendar-records-collapsed");
                 var content = (Border)expanded.FindName("TaskExpansion");
-                var line = (Border)expanded.FindName("FocusMarker");
+                var line = (Border)expanded.FindName("TimelineSpine");
                 var collapsedHeight = expanded.ActualHeight;
                 var collapsedLineHeight = line.ActualHeight;
                 var row = Descendants<Border>(page).Single(item => item.Name == "CalendarRecordRow" && ReferenceEquals(item.DataContext, entries[2]));
@@ -76,8 +76,8 @@ public sealed class CalendarDayDetailsPresentationTests
                 var taskRows = Descendants<Grid>(taskItems).Where(item => item.Name == "TaskRow").ToArray();
                 Assert.Equal(4, taskRows.Length);
                 var lastText = Descendants<TextBlock>(taskRows.Last()).Single(item => item.Name == "TaskText");
-                Assert.True(line.TranslatePoint(new Point(0, line.ActualHeight), expanded).Y <=
-                            lastText.TranslatePoint(new Point(0, lastText.ActualHeight), expanded).Y + 0.7);
+                Assert.True(line.TranslatePoint(new Point(0, line.ActualHeight), expanded).Y >=
+                            lastText.TranslatePoint(new Point(0, lastText.ActualHeight), expanded).Y);
                 foreach (var taskRow in taskRows)
                 {
                     var task = (CalendarDayTaskRow)taskRow.DataContext;

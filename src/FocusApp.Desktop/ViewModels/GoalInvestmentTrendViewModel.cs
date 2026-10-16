@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Input;
@@ -14,10 +15,10 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
     internal const double PlotRight = 636;
     internal const double PlotTop = 20;
     internal const double PlotBottom = 146;
-    public const double TooltipWidth = 164;
+    public const double TooltipWidth = 196;
     private const double ChartWidth = 642;
     private const double TooltipEdgeInset = 8;
-    private const double TooltipGap = 12;
+    private const double TooltipGap = 30;
     private const double PlotWidth = PlotRight - PlotLeft;
     private const double PlotHeight = PlotBottom - PlotTop;
     private readonly Func<DateTime> _now;
@@ -78,6 +79,21 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
     public ObservableCollection<GoalInvestmentMonthOptionViewModel> AvailableMonths { get; } = [];
     public ObservableCollection<GoalInvestmentTrendPointViewModel> TrendPoints { get; } = [];
     public ObservableCollection<GoalInvestmentTrendAxisTickViewModel> YAxisTicks { get; } = [];
+    // A denser visual scale reuses the existing maximum; statistics and daily buckets stay unchanged.
+    public IEnumerable<GoalInvestmentTrendChartTickViewModel> ChartYAxisTicks
+    {
+        get
+        {
+            var maximum = YAxisTicks.Count == 0 ? 60 : YAxisTicks.Max(tick => tick.Minutes);
+            return Enumerable.Range(0, 5).Select(index =>
+            {
+                var minutes = maximum * index / 4d;
+                var label = maximum >= 120 ? (minutes / 60).ToString("0.#", CultureInfo.InvariantCulture) + "h"
+                    : minutes.ToString("0", CultureInfo.InvariantCulture) + "m";
+                return new GoalInvestmentTrendChartTickViewModel(label, PlotBottom - minutes / maximum * PlotHeight, index > 0);
+            });
+        }
+    }
     public ObservableCollection<TrendCompletedTaskViewModel> HoverDayTasks { get; } = [];
     public IEnumerable<TrendCompletedTaskViewModel> VisibleHoverDayTasks =>
         _showAllHoverTasks ? HoverDayTasks : HoverDayTasks.Take(3);
@@ -192,11 +208,19 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
             return Math.Clamp(left, TooltipEdgeInset, ChartWidth - TooltipEdgeInset - TooltipWidth);
         }
     }
-    // Coordinates are relative to the chart; the tip sits just above the bar.
-    public double TooltipTop => TooltipBottom - TooltipHeight;
-    public double TooltipHeight => 96;
+    // Coordinates are relative to the chart; tall bars use the free space below the marker.
+    public double TooltipTop
+    {
+        get
+        {
+            var barTop = HoveredPoint?.ChartY ?? PlotBottom;
+            var above = barTop - TooltipGap - TooltipHeight;
+            return above >= -34 ? above : barTop + 20;
+        }
+    }
+    public double TooltipHeight => 68;
     public double TooltipPointerLeft => Math.Clamp((HoveredPoint?.ChartX ?? 0) - TooltipLeft - 6, 10, TooltipWidth - 22);
-    public double TooltipBottom => (HoveredPoint?.ChartY ?? PlotBottom) - TooltipGap;
+    public double TooltipBottom => TooltipTop + TooltipHeight;
     public string SelectedDateTitle => $"{_selectedDate:M月d日}";
     public string SelectedDateSummary
     {
@@ -228,6 +252,9 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
     public void Open()
     {
         if (_goal is null) return;
+        _range = GoalInvestmentRange.SevenDays;
+        IsMonthMenuOpen = false;
+        NotifyRangeProperties();
         RefreshAvailableMonths();
         Refresh();
         IsOpen = true;
@@ -471,7 +498,7 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
             var y = PlotBottom - daily[index].Minutes / (double)maximum * PlotHeight;
             var showLabel = index == 0 || index == count - 1 || index % labelStep == 0;
             TrendPoints.Add(new GoalInvestmentTrendPointViewModel(daily[index].Date, daily[index].Minutes, x, y, showLabel,
-                Math.Min(40, slotWidth * 0.48)));
+                Math.Min(48, slotWidth * 0.56)));
         }
 
         foreach (var minutes in new[] { 0, maximum / 2, maximum }.Distinct())
@@ -532,7 +559,7 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
         foreach (var property in new[]
                  {
                      nameof(PeriodInvestment), nameof(ActiveDays), nameof(AverageInvestment), nameof(TotalInvestment),
-                     nameof(DailyAverageInvestment), nameof(LongestDayInvestment), nameof(ChartAggregationDisplay),
+                     nameof(DailyAverageInvestment), nameof(LongestDayInvestment), nameof(ChartAggregationDisplay), nameof(ChartYAxisTicks),
                      nameof(PeriodInvestmentTitle), nameof(InvestmentSummary),
                      nameof(TrendTitle), nameof(OverviewSubtitle), nameof(TrendSubtitle), nameof(MonthButtonText), nameof(SelectedMonthDisplay), nameof(SelectedDateTitle),
                      nameof(SelectedDateSummary), nameof(HasSelectedDateRecords)
@@ -600,7 +627,11 @@ public sealed class GoalInvestmentTrendPointViewModel : INotifyPropertyChanged
     public double AxisLabelY => GoalInvestmentTrendViewModel.PlotBottom + 10;
     public bool ShowAxisLabel { get; }
     public string AxisLabel => $"{Date:M/d}";
+    public string WeekdayDisplay => new[] { "周日", "周一", "周二", "周三", "周四", "周五", "周六" }[(int)Date.DayOfWeek];
+    public string BarValueDisplay => Minutes is > 0 and < 6 ? $"{Minutes}m"
+        : (Minutes / 60d).ToString("0.#", CultureInfo.InvariantCulture) + "h";
     public string TooltipDateDisplay => $"{Date:M月d日}";
+    public string TooltipFullDateDisplay => $"{Date:yyyy年M月d日} {WeekdayDisplay}";
     public string DurationDisplay => new GoalInvestmentDurationViewModel(Minutes).Display;
     public bool IsHovered { get => _isHovered; set { if (_isHovered == value) return; _isHovered = value; PropertyChanged?.Invoke(this, new(nameof(IsHovered))); PropertyChanged?.Invoke(this, new(nameof(IsMarkerVisible))); } }
     public bool IsSelected { get => _isSelected; set { if (_isSelected == value) return; _isSelected = value; PropertyChanged?.Invoke(this, new(nameof(IsSelected))); PropertyChanged?.Invoke(this, new(nameof(IsMarkerVisible))); } }
@@ -612,6 +643,8 @@ public sealed record GoalInvestmentTrendAxisTickViewModel(int Minutes, double Ch
     public string Label => Minutes == 0 ? "0" : new GoalInvestmentDurationViewModel(Minutes).Display;
     public bool ShowGuideLine => Minutes > 0;
 }
+
+public sealed record GoalInvestmentTrendChartTickViewModel(string Label, double ChartY, bool ShowGuideLine);
 
 public sealed class TrendCompletedTaskViewModel : INotifyPropertyChanged
 {

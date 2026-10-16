@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using FocusApp.Core;
 
 namespace FocusApp.Desktop.ViewModels;
 
@@ -10,11 +11,15 @@ public sealed class CalendarDayRecordViewModel : INotifyPropertyChanged
     public bool HasTasks => Record.HasCalendarCompletedTasks;
     public bool HasGoal => Record.HasGoal && !string.IsNullOrWhiteSpace(Record.GoalName);
     public bool HasDetails => HasGoal || HasTasks;
+    public bool IsInterrupted => Record.CompletionKind == FocusCompletionKind.EarlyEnd;
+    public string DurationDisplay => FormatDuration(Record.FocusDuration);
+    public string TaskCountDisplay => $"{Record.CalendarCompletedTaskCount}个任务";
     public TimeSpan Gap { get; }
     public bool HasGap => FocusRecordTimelineRules.ShowGap(Gap);
     public bool ConnectsFromPrevious { get; }
     public bool ConnectsToNext { get; }
     public string GapDisplay => $"间隔 {FormatDuration(Gap)}";
+    public string GapTimeRangeDisplay { get; }
     public string SummaryDisplay => FormatDuration(Record.FocusDuration) +
         (HasTasks ? $" · {Record.CalendarCompletedTaskCount}个任务" : string.Empty);
 
@@ -32,11 +37,12 @@ public sealed class CalendarDayRecordViewModel : INotifyPropertyChanged
     }
     public event PropertyChangedEventHandler? PropertyChanged;
 
-    private CalendarDayRecordViewModel(FocusSessionRecordViewModel record, TimeSpan gap,
+    private CalendarDayRecordViewModel(FocusSessionRecordViewModel record, TimeSpan gap, DateTime? gapStartsAt,
         bool connectsFromPrevious, bool connectsToNext)
     {
         Record = record;
         Gap = gap;
+        GapTimeRangeDisplay = gapStartsAt is { } start ? $"{start:HH:mm} - {record.StartTime:HH:mm}" : string.Empty;
         ConnectsFromPrevious = connectsFromPrevious;
         ConnectsToNext = connectsToNext;
         var tasks = new List<CalendarDayTaskRow>();
@@ -68,7 +74,7 @@ public sealed class CalendarDayRecordViewModel : INotifyPropertyChanged
         return ordered.Select((record, index) =>
         {
             var next = index + 1 < ordered.Length ? ordered[index + 1] : null;
-            return new CalendarDayRecordViewModel(record, FocusRecordTimelineRules.GetGap(record, next),
+            return new CalendarDayRecordViewModel(record, FocusRecordTimelineRules.GetGap(record, next), next?.EndTime,
                 index > 0 && FocusRecordTimelineRules.Connect(ordered[index - 1], record),
                 FocusRecordTimelineRules.Connect(record, next));
         }).ToArray();

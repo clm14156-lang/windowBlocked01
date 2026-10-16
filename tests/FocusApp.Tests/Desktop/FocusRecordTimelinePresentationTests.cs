@@ -17,7 +17,7 @@ public sealed class FocusRecordTimelinePresentationTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void CalendarBarsAndGoalDotsPreserveConnectionsAndSpacing(bool goalPage)
+    public void CalendarAndGoalDotsPreserveTheirOwnConnectionsAndSpacing(bool goalPage)
     {
         Exception? failure = null;
         var thread = new Thread(() =>
@@ -68,106 +68,79 @@ public sealed class FocusRecordTimelinePresentationTests
                     ? Descendants<Border>(scope).Where(row => row.Name == "SessionListRow").Cast<FrameworkElement>().ToArray()
                     : Descendants<CalendarDayRecordView>(scope).Cast<FrameworkElement>().ToArray();
                 Assert.Equal(6, rows.Length);
-                var gapName = goalPage ? "SessionGap" : "CalendarRecordGap";
-                var gaps = Descendants<Grid>(scope).Where(gap => gap.Name == gapName).ToArray();
-                Assert.Equal(new[] { false, false, true, false, true, false }, gaps.Select(gap => gap.IsVisible));
-                Assert.Equal(new[] { "间隔 5分钟", "间隔 12分钟" }, gaps.Where(gap => gap.IsVisible)
-                    .Select(gap => Descendants<TextBlock>(gap).Single().Text));
-                foreach (var gap in gaps.Where(gap => gap.IsVisible))
-                {
-                    FrameworkElement marker = goalPage ? Descendants<Ellipse>(gap).Single()
-                        : Descendants<Border>(gap).Single(item => item.Name == "CalendarGapMarker");
-                    var text = Descendants<TextBlock>(gap).Single();
-                    Assert.InRange(Math.Abs(CenterY(marker, scope) - CenterY(text, scope)), 0, 0.7);
-                    if (goalPage) Assert.Equal(Color.FromRgb(199, 207, 216), ((SolidColorBrush)((Ellipse)marker).Fill).Color);
-                    else
-                    {
-                        var bar = (Border)marker;
-                        Assert.True(bar.ActualHeight > bar.ActualWidth * 2);
-                        Assert.Equal(Color.FromRgb(184, 189, 197), ((SolidColorBrush)bar.Background).Color);
-                        Assert.Equal(bar.ActualWidth, bar.CornerRadius.TopLeft * 2);
-                        Assert.Empty(Descendants<Ellipse>(gap));
-                    }
-                    Assert.True(Descendants<Border>(gap).First().ActualHeight > 0);
-                    Assert.Equal(goalPage ? 24 : 26, gap.ActualHeight);
-                }
-                var spacers = Descendants<Grid>(scope).Where(grid => grid.Name == "ContinuousRecordSpacing").ToArray();
                 if (goalPage)
                 {
-                    Assert.Equal(new[] { true, true, false, true, false, false }, spacers.Select(spacer => spacer.IsVisible));
-                    Assert.All(spacers.Where(spacer => spacer.IsVisible), spacer => Assert.Equal(8, spacer.ActualHeight));
-                    var dots = rows.Select(row => Descendants<Ellipse>(row).Single(dot => dot.Name == "SessionBullet")).ToArray();
-                    Assert.Equal(36, CenterY(dots[1], scope) - CenterY(dots[0], scope));
-                    Assert.Equal(36, CenterY(dots[2], scope) - CenterY(dots[1], scope));
-                    Assert.Equal(52, CenterY(dots[3], scope) - CenterY(dots[2], scope));
+                    // Goal details now show one uninterrupted date timeline, with tasks inline.
+                    Assert.Empty(Descendants<Grid>(scope).Where(grid => grid.Name is "SessionGap" or "ContinuousRecordSpacing"));
+                    for (var index = 0; index < rows.Length; index++)
+                    {
+                        var session = (GoalFocusSessionViewModel)rows[index].DataContext;
+                        var dot = Descendants<Ellipse>(rows[index]).Single(item => item.Name == "SessionBullet");
+                        var line = Descendants<Border>(rows[index]).Single(item => item.Name == "SessionConnector");
+                        Assert.Equal(9, dot.Width);
+                        Assert.Equal(session.IsLastInDay ? Visibility.Collapsed : Visibility.Visible, line.Visibility);
+                        Assert.Equal(session.Tasks.Count, Descendants<Grid>(rows[index]).Count(item => item.Name == "HistoryParentTask"));
+                        if (index + 1 == rows.Length) continue;
+                        var nextDot = Descendants<Ellipse>(rows[index + 1]).Single(item => item.Name == "SessionBullet");
+                        Assert.InRange(Math.Abs(Bounds(line, scope).Bottom - CenterY(nextDot, scope)), 0, .7);
+                        Assert.InRange(Math.Abs(Bounds(line, scope).Left + line.ActualWidth / 2 - Bounds(dot, scope).Left - dot.ActualWidth / 2), 0, .7);
+                    }
+                    Save(page, "goal-grouped-timeline");
+                    return;
                 }
-                else Assert.Empty(spacers);
-                var accent = ((SolidColorBrush)page.FindResource("AccentPrimary")).Color;
+                var gaps = Descendants<Grid>(scope).Where(gap => gap.Name == "CalendarRecordGap").ToArray();
+                Assert.Equal(new[] { false, false, true, false, true, false }, gaps.Select(gap => gap.IsVisible));
+                Assert.Equal(new[] { "间隔 5分钟", "间隔 12分钟" }, gaps.Where(gap => gap.IsVisible)
+                    .Select(gap => ((CalendarDayRecordViewModel)gap.DataContext).GapDisplay));
+                foreach (var gap in gaps.Where(gap => gap.IsVisible))
+                {
+                    var marker = Descendants<Border>(gap).Single(item => item.Name == "CalendarGapMarker");
+                    var text = Descendants<TextBlock>(gap).Single(item => item.Name == "CalendarGapText");
+                    Assert.InRange(Math.Abs(CenterY(marker, scope) - CenterY(text, scope)), 0, 4);
+                    Assert.Equal(marker.ActualHeight, marker.ActualWidth);
+                    Assert.Equal(Color.FromRgb(210, 214, 220), ((SolidColorBrush)marker.Background).Color);
+                    Assert.Equal(9, marker.CornerRadius.TopLeft * 2);
+                    Assert.Equal(((CalendarDayRecordViewModel)gap.DataContext).GapTimeRangeDisplay,
+                        Descendants<TextBlock>(gap).Single(item => item.Name == "CalendarGapTime").Text);
+                    Assert.Empty(Descendants<Ellipse>(gap));
+                    Assert.True(Descendants<Border>(gap).First().ActualHeight > 0);
+                    Assert.Equal(46, gap.ActualHeight);
+                }
+                Assert.Empty(Descendants<Grid>(scope).Where(grid => grid.Name == "ContinuousRecordSpacing"));
                 void VerifyConnections()
                 {
                     for (var index = 0; index < rows.Length; index++)
                     {
-                        var incoming = Descendants<Border>(rows[index]).Single(line => line.Name == "ContinuousIncomingLine");
-                        var outgoing = Descendants<Border>(rows[index]).Single(line => line.Name == "ContinuousOutgoingLine");
-                        FrameworkElement marker = goalPage ? Descendants<Ellipse>(rows[index]).Single(item => item.Name == "SessionBullet")
-                            : Descendants<Border>(rows[index]).Single(item => item.Name == "FocusMarker");
-                        Assert.Equal(index is 1 or 2 or 4, incoming.IsVisible);
-                        Assert.Equal(index is 0 or 1 or 3, outgoing.IsVisible);
-                        if (!outgoing.IsVisible) continue;
-                        var nextIncoming = Descendants<Border>(rows[index + 1]).Single(line => line.Name == "ContinuousIncomingLine");
-                        Assert.Equal(accent, ((SolidColorBrush)outgoing.Background).Color);
-                        if (goalPage)
-                        {
-                            Assert.InRange(Bounds(outgoing, scope).Top - Bounds(marker, scope).Bottom, 1.5, 3);
-                            var spacingLine = Descendants<Border>(spacers[index]).Single();
-                            Assert.Equal(accent, ((SolidColorBrush)spacingLine.Background).Color);
-                            Assert.InRange(Math.Abs(Bounds(outgoing, scope).Bottom - Bounds(spacingLine, scope).Top), 0, 0.7);
-                            Assert.InRange(Math.Abs(Bounds(spacingLine, scope).Bottom - Bounds(nextIncoming, scope).Top), 0, 0.7);
-                            Assert.InRange(Math.Abs(Bounds(outgoing, scope).Left - Bounds(spacingLine, scope).Left), 0, 0.7);
-                        }
-                        else
-                        {
-                            Assert.InRange(Math.Abs(Bounds(outgoing, scope).Bottom - Bounds(nextIncoming, scope).Top), 0, 0.7);
-                            Assert.True(Bounds(outgoing, scope).IntersectsWith(Bounds(marker, scope)));
-                            Assert.Equal(marker.ActualWidth, outgoing.ActualWidth);
-                        }
-                        Assert.InRange(Math.Abs(Bounds(outgoing, scope).Left - Bounds(nextIncoming, scope).Left), 0, 0.7);
-                        if (goalPage)
-                        {
-                            var nextDot = Descendants<Ellipse>(rows[index + 1]).Single(item => item.Name == "SessionBullet");
-                            Assert.InRange(Bounds(nextDot, scope).Top - Bounds(nextIncoming, scope).Bottom, 1.5, 3);
-                        }
-                        else
-                        {
-                            var nextMarker = Descendants<Border>(rows[index + 1]).Single(item => item.Name == "FocusMarker");
-                            Assert.True(Bounds(nextIncoming, scope).IntersectsWith(Bounds(nextMarker, scope)));
-                        }
+                        var spine = Descendants<Border>(rows[index]).Single(line => line.Name == "TimelineSpine");
+                        var dot = Descendants<Border>(rows[index]).Single(line => line.Name == "FocusMarker");
+                        Assert.Equal(dot.ActualWidth, dot.ActualHeight);
+                        Assert.InRange(spine.ActualWidth, .5, 1.5);
+                        Assert.Equal(Color.FromRgb(25,196,99), ((SolidColorBrush)dot.Background).Color);
+                        if (index + 1 >= rows.Length) continue;
+                        var next = gaps[index].IsVisible ? Descendants<Border>(gaps[index]).Single(line => line.Name == "CalendarGapLine")
+                            : Descendants<Border>(rows[index + 1]).Single(line => line.Name == "TimelineSpine");
+                        Assert.InRange(Math.Abs(Bounds(spine, scope).Bottom - Bounds(next, scope).Top), 0, .7);
                     }
                 }
                 VerifyConnections();
-                Save(page, goalPage ? "goal-continuous" : "calendar-continuous");
+                Save(page, "calendar-continuous");
                 var collapsedHeight = rows[0].ActualHeight;
                 void Expand(bool expanded)
                 {
                     foreach (var index in new[] { 0, 3 })
                     {
-                        if (goalPage)
-                        {
-                            var entry = model.GoalFocusHistory.Days[0].Sessions[index];
-                            if (entry.IsTasksExpanded != expanded) entry.ToggleTasksCommand.Execute(null);
-                        }
-                        else model.SelectedDayRecordEntries[index].IsExpanded = expanded;
+                        model.SelectedDayRecordEntries[index].IsExpanded = expanded;
                     }
                     FinishAnimation(page);
                 }
                 Expand(true);
                 Assert.True(rows[0].ActualHeight > collapsedHeight + 75);
                 VerifyConnections();
-                Save(page, goalPage ? "goal-continuous-expanded" : "calendar-continuous-expanded");
+                Save(page, "calendar-continuous-expanded");
                 Expand(false);
                 Assert.Equal(collapsedHeight, rows[0].ActualHeight, 1);
                 VerifyConnections();
-                var scroll = goalPage ? (ScrollViewer)scope.FindName("HistoryScrollViewer") : (ScrollViewer)scope;
+                var scroll = (ScrollViewer)scope;
                 scroll.ScrollToBottom(); Pump(page); VerifyConnections();
                 Assert.Equal(6, model.FocusSessionRecords.Count);
             }

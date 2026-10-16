@@ -16,7 +16,7 @@ public sealed class CalendarRecordDensityTests
     [Theory]
     [InlineData(726, 670)]
     [InlineData(800, 710)]
-    public void FirstViewportFitsSixRecordsWithContinuousTimelineAndNeutralSelection(int width, int height)
+    public void CompactNeighborsUseSeparateDotsAndAThinSpineAndKeepTheHeaderFixed(int width, int height)
     {
         Exception? failure = null;
         var thread = new Thread(() =>
@@ -64,18 +64,14 @@ public sealed class CalendarRecordDensityTests
                 var views = Descendants<CalendarDayRecordView>(scroll).ToArray();
                 for (var index = 0; index + 1 < views.Length; index++)
                 {
-                    var outgoing = (Border)views[index].FindName("ContinuousOutgoingLine");
-                    var incoming = (Border)views[index + 1].FindName("ContinuousIncomingLine");
-                    Assert.True(outgoing.IsVisible);
-                    Assert.True(incoming.IsVisible);
-                    Assert.InRange(Math.Abs(Bounds(outgoing, scroll).Bottom - Bounds(incoming, scroll).Top), 0, 0.7);
-                    Assert.Equal(((SolidColorBrush)page.FindResource("AccentPrimary")).Color, ((SolidColorBrush)outgoing.Background).Color);
+                    var spine = (Border)views[index].FindName("TimelineSpine");
+                    var nextSpine = (Border)views[index + 1].FindName("TimelineSpine");
+                    Assert.InRange(Math.Abs(Bounds(spine, scroll).Bottom - Bounds(nextSpine, scroll).Top), 0, 0.7);
+                    Assert.InRange(spine.ActualWidth, .5, 1.5);
                     var marker = (Border)views[index].FindName("FocusMarker");
-                    var nextMarker = (Border)views[index + 1].FindName("FocusMarker");
-                    Assert.True(Bounds(outgoing, scroll).IntersectsWith(Bounds(marker, scroll)));
-                    Assert.True(Bounds(incoming, scroll).IntersectsWith(Bounds(nextMarker, scroll)));
-                    Assert.Equal(marker.ActualWidth, outgoing.ActualWidth);
-                    Assert.Equal(marker.ActualWidth, marker.CornerRadius.TopLeft * 2);
+                    Assert.Equal(marker.ActualWidth, marker.ActualHeight);
+                    Assert.Equal(Color.FromRgb(25,196,99), ((SolidColorBrush)marker.Background).Color);
+                    Assert.Null(views[index].FindName("ContinuousOutgoingLine"));
                 }
                 Save(page, $"calendar-compact-{width}-{height}");
                 var header = (Grid)page.FindName("CalendarDayHeader");
@@ -88,7 +84,7 @@ public sealed class CalendarRecordDensityTests
                 typeof(CalendarFocusTimeline).GetMethod("HandleSessionClick", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(timeline, [point]);
                 Pump(page);
                 Assert.Same(selected, page.CalendarRecordInteraction.SelectedRecord);
-                Assert.Equal(Color.FromRgb(247, 248, 250), ((SolidColorBrush)rows[1].Background).Color);
+                Assert.Equal(Colors.White, ((SolidColorBrush)rows[1].Background).Color);
                 Assert.Equal(Colors.White, ((SolidColorBrush)rows[0].Background).Color);
                 Assert.Equal(headerBounds, Bounds(header, page));
                 Assert.Equal(timelineBounds, Bounds(timeline, page));

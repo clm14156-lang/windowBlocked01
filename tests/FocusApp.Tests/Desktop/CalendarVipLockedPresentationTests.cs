@@ -51,13 +51,13 @@ public sealed class CalendarVipLockedPresentationTests
                 Assert.Equal(Stretch.Uniform, illustration.Stretch);
                 Assert.Equal(page.ActualWidth - 32, layout.ActualWidth, 1);
                 Assert.InRange(layout.ActualHeight, page.ActualHeight - 64, page.ActualHeight - 62);
-                Assert.Equal(336, calendar.ActualWidth);
-                Assert.Equal(layout.ActualHeight, calendar.ActualHeight, 1);
-                Assert.True(calendar.IsAncestorOf(summary));
-                Assert.True(summary.TranslatePoint(new Point(0, summary.ActualHeight), calendar).Y <= calendar.ActualHeight - 20);
-                Assert.Equal(layout.ActualWidth - 348, card.ActualWidth, 1);
+                Assert.Equal((layout.ActualWidth - 10) * .47, calendar.ActualWidth, 0);
+                Assert.Equal(layout.ActualHeight - 152, calendar.ActualHeight, 1);
+                Assert.False(calendar.IsAncestorOf(summary));
+                Assert.Equal(layout.ActualHeight, summary.TranslatePoint(new Point(0, summary.ActualHeight), layout).Y, 1);
+                Assert.Equal((layout.ActualWidth - 10) * .53, card.ActualWidth, 0);
                 Assert.Equal(layout.ActualHeight, card.ActualHeight, 1);
-                Assert.True(body.TranslatePoint(new Point(0, body.ActualHeight), card).Y <= card.ActualHeight - 20);
+                Assert.True(body.TranslatePoint(new Point(0, body.ActualHeight), card).Y <= card.ActualHeight - 14);
                 Assert.Single(Descendants<Button>(locked));
                 Assert.Empty(Descendants<ScrollViewer>(locked));
                 Assert.Null(page.FindName("DailyFocusRecordVipGuidePopup"));
@@ -86,7 +86,7 @@ public sealed class CalendarVipLockedPresentationTests
                 Assert.False(locked.IsVisible);
                 Assert.True(content.IsVisible);
                 Assert.True(((Grid)page.FindName("DailyFocusRecordContent")).IsVisible);
-                Assert.Equal(layout.ActualWidth - 348, card.ActualWidth, 1);
+                Assert.Equal((layout.ActualWidth - 10) * .53, card.ActualWidth, 0);
                 model.NextCalendarMonthCommand.Execute(null);
                 Pump();
                 Assert.Empty(((CalendarFocusTimeline)page.FindName("CalendarDayTimeline")).Timeline!.Segments);

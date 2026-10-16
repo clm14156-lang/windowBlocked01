@@ -136,7 +136,8 @@ public sealed class CalendarTaskAssociationTests
                     Assert.Equal(2, timeline.Timeline!.Segments.Count);
                     Assert.Null(page.CalendarRecordInteraction.SelectedRecord);
                     Assert.All(model.SelectedDayRecords, record => Assert.False(record.HasCalendarCompletedTasks));
-                    Assert.Null(page.FindName("CalendarDayCompletedTaskCount"));
+                    var count = (TextBlock)page.FindName("CalendarDayCompletedTaskCount");
+                    Assert.Equal("0 项", string.Concat(count.Inlines.OfType<System.Windows.Documents.Run>().Select(run => run.Text)));
                     Assert.All(model.SelectedDayRecordEntries, entry => Assert.False(entry.HasTasks));
                 }
                 finally { window.Close(); }

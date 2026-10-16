@@ -22,11 +22,12 @@ public sealed class StatisticsOverviewPresentationTests
         Assert.Same(detail, header.Parent);
         Assert.Same(detail, timeline.Parent);
         Assert.Same(detail, scroll.Parent);
-        Assert.Equal("{Binding SelectedDayCompactDurationDisplay}", (string?)Named("CalendarDayFocusDuration").Attribute("Text"));
+        Assert.Contains(Named("CalendarDayFocusDuration").Elements(Presentation + "Run"), run =>
+            (string?)run.Attribute("Text") == "{Binding SelectedDayMinutesValueDisplay, Mode=OneWay}");
         Assert.Equal("True", (string?)timeline.Attribute("InlineRecordDetails"));
         Assert.Equal("Auto", (string?)scroll.Attribute("VerticalScrollBarVisibility"));
-        Assert.DoesNotContain(detail.Descendants(), element => (string?)element.Attribute(Xaml + "Name") is
-            "CalendarDayMetrics" or "CalendarDayCompletedTaskMetric");
+        Assert.Same(detail, Named("CalendarDayMetrics").Parent);
+        Assert.DoesNotContain(detail.Descendants(Presentation + "TextBlock"), text => (string?)text.Attribute("Text") == "专注次数");
         Assert.DoesNotContain(detail.Descendants(Presentation + "TextBlock"), text => (string?)text.Attribute("Text") == "时间记录");
     }
     [Fact]
@@ -43,13 +44,13 @@ public sealed class StatisticsOverviewPresentationTests
         var background = Assert.Single(button.Descendants(Presentation + "Border").Where(element =>
             (string?)element.Attribute(Xaml + "Name") == "DaySelectionBackground"));
         Assert.Equal("40", (string?)background.Attribute("Width"));
-        Assert.Equal("40", (string?)background.Attribute("Height"));
+        Assert.Equal("46", (string?)background.Attribute("Height"));
         Assert.Equal("10", (string?)background.Attribute("CornerRadius"));
         Assert.Empty(button.Descendants(Presentation + "Ellipse"));
 
         var durationText = Assert.Single(button.Descendants(Presentation + "TextBlock").Where(element =>
             (string?)element.Attribute(Xaml + "Name") == "DayDurationText"));
-        Assert.Equal("{DynamicResource CaptionFontSize}", (string?)durationText.Attribute("FontSize"));
+        Assert.Equal("12", (string?)durationText.Attribute("FontSize"));
 
         var selectedTrigger = Assert.Single(button.Descendants(Presentation + "DataTrigger").Where(trigger =>
             (string?)trigger.Attribute("Binding") == "{Binding IsSelected}" &&
@@ -57,7 +58,7 @@ public sealed class StatisticsOverviewPresentationTests
         Assert.Contains(selectedTrigger.Elements(Presentation + "Setter"), setter =>
             (string?)setter.Attribute("TargetName") == "DaySelectionBackground" &&
             (string?)setter.Attribute("Property") == "Background" &&
-            (string?)setter.Attribute("Value") == "{DynamicResource AccentPrimary}");
+            (string?)setter.Attribute("Value") == "#FF861F");
         Assert.Contains(selectedTrigger.Elements(Presentation + "Setter"), setter =>
             (string?)setter.Attribute("TargetName") == "DayNumberText" &&
             (string?)setter.Attribute("Property") == "Foreground" &&
@@ -69,7 +70,7 @@ public sealed class StatisticsOverviewPresentationTests
 
         Assert.DoesNotContain(button.Descendants(Presentation + "DataTrigger"), trigger =>
             (string?)trigger.Attribute("Binding") == "{Binding HeatLevel}");
-        Assert.Equal("{Binding HeatTextColor}", (string?)durationText.Attribute("Foreground"));
+        Assert.Equal("#FFA25F", (string?)durationText.Attribute("Foreground"));
     }
 
     [Fact]
@@ -200,8 +201,8 @@ public sealed class StatisticsOverviewPresentationTests
 
         Assert.Equal("2", (string?)card.Attribute("Grid.Column"));
         Assert.Null(card.Attribute("Height"));
-        Assert.Equal("{StaticResource CardContentPadding}", (string?)card.Attribute("Padding"));
-        Assert.Equal("10", (string?)card.Attribute("CornerRadius"));
+        Assert.Equal("14,14,12,14", (string?)card.Attribute("Padding"));
+        Assert.Equal("{StaticResource CalendarSurface}", (string?)card.Attribute("Style"));
 
         var content = Assert.Single(card.Descendants(Presentation + "Grid").Where(element =>
             (string?)element.Attribute(Xaml + "Name") == "DailyFocusRecordContent"));
@@ -232,16 +233,16 @@ public sealed class StatisticsOverviewPresentationTests
     }
 
     [Fact]
-    public void CalendarContainsTheMonthGridAndTwoMetricSummaryInOneCard()
+    public void CalendarSeparatesTheMonthGridAndTwoMetricSummaryIntoIndependentCards()
     {
         var page = XDocument.Load(Path.Combine(FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
         var calendar = Assert.Single(page.Descendants(Presentation + "Border").Where(item => (string?)item.Attribute(Xaml + "Name") == "CalendarCard"));
         var summary = Assert.Single(page.Descendants(Presentation + "Border").Where(item => (string?)item.Attribute(Xaml + "Name") == "CalendarMonthlySummary"));
-        Assert.Contains(calendar.Descendants(), item => item == summary);
-        Assert.Contains(calendar.Descendants(Presentation + "Border"), item => (string?)item.Attribute(Xaml + "Name") == "CalendarSummaryDivider");
+        Assert.DoesNotContain(calendar.Descendants(), item => item == summary);
+        Assert.Same(calendar.Parent, summary.Parent);
         Assert.Null(calendar.Attribute("Height"));
-        Assert.Equal("{StaticResource CardContentPadding}", (string?)calendar.Attribute("Padding"));
-        foreach (var label in new[] { "本月概括", "总专注时长", "专注天数" })
+        Assert.Equal("18", (string?)calendar.Attribute("Padding"));
+        foreach (var label in new[] { "本月统计", "专注总时长", "专注天数" })
             Assert.Contains(summary.Descendants(Presentation + "TextBlock"), item => (string?)item.Attribute("Text") == label);
         Assert.DoesNotContain(summary.Descendants(), item =>
             ((string?)item.Attribute("Text"))?.Contains("较上月") == true ||

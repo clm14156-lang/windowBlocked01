@@ -174,13 +174,13 @@ public sealed class CalendarRedesignTests
                 var dateText = (TextBlock)ordinary.Template.FindName("DayNumberText", ordinary);
                 var durationText = (TextBlock)ordinary.Template.FindName("DayDurationText", ordinary);
                 Assert.NotEqual(((SolidColorBrush)dateText.Foreground).Color, ((SolidColorBrush)durationText.Foreground).Color);
-                Assert.Equal(ColorConverter.ConvertFromString(((CalendarDayViewModel)ordinary.DataContext).HeatTextColor), ((SolidColorBrush)durationText.Foreground).Color);
+                Assert.Equal(Color.FromRgb(255, 162, 95), ((SolidColorBrush)durationText.Foreground).Color);
                 var selectedDateText = (TextBlock)selected.Template.FindName("DayNumberText", selected);
                 var selectedDurationText = (TextBlock)selected.Template.FindName("DayDurationText", selected);
                 var selectedBackground = (Border)selected.Template.FindName("DaySelectionBackground", selected);
                 Assert.Equal(Colors.White, ((SolidColorBrush)selectedDateText.Foreground).Color);
                 Assert.Equal(Colors.White, ((SolidColorBrush)selectedDurationText.Foreground).Color);
-                Assert.Equal(Color.FromRgb(0xFF, 0x7A, 0x00), ((SolidColorBrush)selectedBackground.Background).Color);
+                Assert.Equal(Color.FromRgb(255, 134, 31), ((SolidColorBrush)selectedBackground.Background).Color);
                 Assert.Equal(Visibility.Visible, selectedDurationText.Visibility);
                 var selectedTop = selectedDateText.TranslatePoint(new Point(0, 0), selectedBackground).Y;
                 var selectedBottom = selectedDurationText.TranslatePoint(new Point(0, selectedDurationText.ActualHeight), selectedBackground).Y;
@@ -208,16 +208,16 @@ public sealed class CalendarRedesignTests
                 var emptyDurationText = (TextBlock)emptyDay.Template.FindName("DayDurationText", emptyDay);
                 var emptyBackground = (Border)emptyDay.Template.FindName("DaySelectionBackground", emptyDay);
                 Assert.Equal(Visibility.Collapsed, emptyDurationText.Visibility);
-                Assert.Equal(((SolidColorBrush)page.FindResource("DisabledText")).Color, ((SolidColorBrush)emptyDateText.Foreground).Color);
+                Assert.Equal(Color.FromRgb(169, 174, 181), ((SolidColorBrush)emptyDateText.Foreground).Color);
                 Assert.Equal(0, ((SolidColorBrush)emptyBackground.Background).Color.A);
                 var focusCard = (Grid)page.FindName("CalendarDayHeader");
-                Assert.Null(page.FindName("CalendarDayMetrics"));
+                Assert.NotNull(page.FindName("CalendarDayMetrics"));
                 Assert.Empty(Descendants<Image>(focusCard));
                 var monthly = (Border)page.FindName("CalendarMonthlySummary");
-                foreach (var label in new[] { "总专注时长", "专注天数" })
+                foreach (var label in new[] { "专注总时长", "专注天数" })
                 {
                     var title = Descendants<TextBlock>(monthly).Single(text => text.Text == label);
-                    var column = (StackPanel)((StackPanel)title.Parent).Parent;
+                    var column = (StackPanel)title.Parent;
                     var number = column.Children.OfType<Viewbox>().Single();
                     Assert.True(title.TranslatePoint(new Point(0, title.ActualHeight), monthly).Y <= number.TranslatePoint(new Point(), monthly).Y);
                 }

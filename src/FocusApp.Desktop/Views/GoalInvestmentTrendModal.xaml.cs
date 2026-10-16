@@ -7,7 +7,20 @@ namespace FocusApp.Desktop.Views;
 
 public partial class GoalInvestmentTrendModal : UserControl
 {
-    public GoalInvestmentTrendModal() => InitializeComponent();
+    public GoalInvestmentTrendModal()
+    {
+        InitializeComponent();
+        Loaded += (_, _) => UpdateTooltipOrigin();
+        SizeChanged += (_, _) => UpdateTooltipOrigin();
+    }
+
+    private void UpdateTooltipOrigin()
+    {
+        if (!IsLoaded) return;
+        var origin = TrendChart.TranslatePoint(new Point(), TrendTooltipOverlay);
+        TrendTooltipOrigin.X = origin.X;
+        TrendTooltipOrigin.Y = origin.Y;
+    }
 
     private void Overlay_MouseDown(object sender, MouseButtonEventArgs e)
     {
@@ -30,7 +43,7 @@ public partial class GoalInvestmentTrendModal : UserControl
     {
         if (IsVisible)
         {
-            Dispatcher.BeginInvoke(Focus);
+            Dispatcher.BeginInvoke(new Action(() => { if (IsVisible && IsLoaded) { UpdateTooltipOrigin(); Focus(); } }));
         }
     }
 }

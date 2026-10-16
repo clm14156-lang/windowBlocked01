@@ -16,7 +16,7 @@ public sealed class GoalInvestmentTrendTests
     private static readonly DateTime Now = new(2026, 9, 16, 18, 0, 0);
 
     [Fact]
-    public void TooltipAnchorsAboveTheHoveredBarAndStaysWithinChartBounds()
+    public void TooltipUsesFreeSpaceAboveOrBelowTheHoveredBarAndStaysWithinChartBounds()
     {
         var model = new GoalInvestmentTrendViewModel(() => Now);
         model.ApplyState(Goal("goal", null), [Record(Now.Date.AddHours(9), 56, "goal")]);
@@ -27,7 +27,8 @@ public sealed class GoalInvestmentTrendTests
             Assert.Same(point, model.HoveredPoint);
             Assert.InRange(model.TooltipLeft, 8, 634 - GoalInvestmentTrendViewModel.TooltipWidth);
             Assert.True(model.TooltipLeft + GoalInvestmentTrendViewModel.TooltipWidth <= 634);
-            Assert.Equal(point.ChartY - 12, model.TooltipTop + model.TooltipHeight);
+            if (model.TooltipBottom < point.ChartY) Assert.Equal(point.ChartY - 30, model.TooltipBottom);
+            else Assert.Equal(point.ChartY + 20, model.TooltipTop);
             Assert.InRange(Math.Abs(model.TooltipLeft + model.TooltipPointerLeft + 6 - point.ChartX), 0, 0.7);
             var left = model.TooltipLeft;
             model.SetHoveredPointNearestTo(point.ChartX + 2);
@@ -199,7 +200,7 @@ public sealed class GoalInvestmentTrendTests
         var modal = XDocument.Load(Path.Combine(root, "src", "FocusApp.Desktop", "Views", "GoalInvestmentTrendModal.xaml"));
         var card = modal.Descendants(Presentation + "Border").Single(element => (string?)element.Attribute(Xaml + "Name") == "TrendModalCard");
         Assert.Equal("700", (string?)card.Attribute("Width"));
-        Assert.Equal("448", (string?)card.Attribute("Height"));
+        Assert.Equal("480", (string?)card.Attribute("Height"));
         var texts = modal.Descendants(Presentation + "TextBlock").Select(element => (string?)element.Attribute("Text")).ToArray();
         Assert.Equal(2, texts.Count(text => text == "投入趋势"));
         foreach (var label in new[] { "累计投入", "日均投入", "活跃天数", "最长单日" }) Assert.Contains(label, texts);
@@ -250,7 +251,7 @@ public sealed class GoalInvestmentTrendTests
 
                 var card = (FrameworkElement)modal.FindName("TrendModalCard");
                 Assert.Equal(700, card.ActualWidth);
-                Assert.Equal(448, card.ActualHeight);
+                Assert.Equal(480, card.ActualHeight);
 
                 var path = Environment.GetEnvironmentVariable("FOCUSAPP_GOAL_TREND_VISUAL_QA_PATH");
                 if (!string.IsNullOrWhiteSpace(path))
