@@ -1,6 +1,7 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Threading;
 using FocusApp.Contracts;
 using FocusApp.Desktop.Models;
 using FocusApp.Desktop.Services;
@@ -17,6 +18,32 @@ public partial class App : Application
     private DesktopFocusSessionBridge? _focusSessionBridge;
     private IconService? _iconService;
     private FocusRecordsExporter? _focusRecordsExporter;
+
+    public App()
+    {
+        DesktopDiagnostics.Initialize();
+        DispatcherUnhandledException += App_DispatcherUnhandledException;
+        AppDomain.CurrentDomain.UnhandledException += AppDomain_UnhandledException;
+        TaskScheduler.UnobservedTaskException += TaskScheduler_UnobservedTaskException;
+        DesktopDiagnostics.RecordAction("Application.Start");
+    }
+
+    private void App_DispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
+    {
+        DesktopDiagnostics.RecordException("DispatcherUnhandledException", e.Exception);
+        // Observe only: WPF retains its default unhandled-exception policy.
+    }
+
+    private void AppDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
+    {
+        if (e.ExceptionObject is Exception exception)
+            DesktopDiagnostics.RecordException("AppDomain.UnhandledException", exception, e.IsTerminating);
+    }
+
+    private void TaskScheduler_UnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
+    {
+        DesktopDiagnostics.RecordException("TaskScheduler.UnobservedTaskException", e.Exception);
+    }
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -92,6 +119,7 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        DesktopDiagnostics.RecordAction("Application.Exit", $"ExitCode={e.ApplicationExitCode}");
         BlockedAccessNotificationService.Shutdown();
         _focusSessionBridge?.Dispose();
         _accessControlBridge?.Dispose();
@@ -109,6 +137,9 @@ public partial class App : Application
         _ownsSingleInstanceMutex = false;
 
         base.OnExit(e);
+        DispatcherUnhandledException -= App_DispatcherUnhandledException;
+        AppDomain.CurrentDomain.UnhandledException -= AppDomain_UnhandledException;
+        TaskScheduler.UnobservedTaskException -= TaskScheduler_UnobservedTaskException;
     }
 
     private void ServiceConnection_AccessBlocked(object? sender, AccessBlockedEvent e)

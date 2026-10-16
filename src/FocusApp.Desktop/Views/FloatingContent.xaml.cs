@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media;
+using System.Windows.Media.Media3D;
 
 namespace FocusApp.Desktop.Views;
 
@@ -28,7 +29,15 @@ public partial class FloatingContent : UserControl
                 break;
             }
 
-            source = VisualTreeHelper.GetParent(source);
+            // TextBlock inlines (including the total-time Runs) can be the original
+            // mouse source, but are content elements rather than visual elements.
+            source = source switch
+            {
+                ContentElement content => ContentOperations.GetParent(content)
+                    ?? (content as FrameworkContentElement)?.Parent,
+                Visual or Visual3D => VisualTreeHelper.GetParent(source),
+                _ => LogicalTreeHelper.GetParent(source)
+            };
         }
 
         return false;

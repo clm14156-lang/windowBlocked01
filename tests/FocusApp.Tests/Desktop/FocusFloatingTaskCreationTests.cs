@@ -6,6 +6,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using FocusApp.Core;
 using FocusApp.Desktop.ViewModels;
 using FocusApp.Desktop.Views;
 using Xunit;
@@ -16,12 +17,17 @@ namespace FocusApp.Tests.Desktop;
 public sealed class FocusFloatingTaskCreationTests
 {
     [Theory]
-    [InlineData(0)] [InlineData(1)] [InlineData(4)] [InlineData(5)] [InlineData(6)] [InlineData(8)]
-    public void TabFocusesOneEditorAndEnterCreatesOneSharedPersistedTask(int count)
+    [InlineData(0, FocusThemeMode.Light)] [InlineData(1, FocusThemeMode.Light)]
+    [InlineData(4, FocusThemeMode.Light)] [InlineData(5, FocusThemeMode.Light)]
+    [InlineData(6, FocusThemeMode.Light)] [InlineData(8, FocusThemeMode.Light)]
+    [InlineData(0, FocusThemeMode.Dark)] [InlineData(1, FocusThemeMode.Dark)]
+    [InlineData(4, FocusThemeMode.Dark)] [InlineData(5, FocusThemeMode.Dark)]
+    [InlineData(6, FocusThemeMode.Dark)] [InlineData(8, FocusThemeMode.Dark)]
+    public void TabFocusesOneEditorAndEnterCreatesOneSharedPersistedTask(int count, FocusThemeMode theme)
     {
         Sta(() =>
         {
-            using var host = new Host(count);
+            using var host = new Host(count, theme: theme);
             var originalHeight = host.Model.WindowHeight;
             var timer = (FrameworkElement)host.View.FindName("TimerArea");
             var timerPosition = timer.TranslatePoint(new Point(), host.View);
@@ -43,7 +49,8 @@ public sealed class FocusFloatingTaskCreationTests
             Assert.InRange(host.Model.WindowHeight, 115, 301);
             Assert.Equal(timerPosition, timer.TranslatePoint(new Point(), host.View));
             Assert.True(host.View.IsInteractiveRegion(host.Input));
-            Assert.Equal(Color.FromRgb(255, 173, 112), ((SolidColorBrush)((Border)host.View.FindName("TaskCreationSurface")).BorderBrush).Color);
+            var inputBorder = theme == FocusThemeMode.Dark ? Color.FromRgb(143, 171, 211) : Color.FromRgb(255, 173, 112);
+            Assert.Equal(inputBorder, ((SolidColorBrush)((Border)host.View.FindName("TaskCreationSurface")).BorderBrush).Color);
             Render(host.View, $"creation-{count}-tasks");
             if (count > 3)
             {
@@ -272,10 +279,12 @@ public sealed class FocusFloatingTaskCreationTests
         public TextBox Input => (TextBox)View.FindName("TaskTitleInput");
         public Grid Area => (Grid)View.FindName("TaskCreationArea");
         private readonly Window _window;
-        public Host(int count, bool animation = true)
+        public Host(int count, bool animation = true, FocusThemeMode? theme = null)
         {
             Target = new("目标", Enumerable.Range(0, count).Select(index => $"任务 {index}"));
-            Session = FocusFloatingTaskCreationTests.Session(Target); Model = new(Session);
+            Session = FocusFloatingTaskCreationTests.Session(Target);
+            if (theme is { } mode) Session.ApplyFocusTheme(mode);
+            Model = new(Session);
             View = new() { DataContext = Model }; Resources(View);
             typeof(FloatingContent).GetProperty("CreationAnimationPreference", BindingFlags.Instance | BindingFlags.NonPublic)!
                 .SetValue(View, (Func<bool>)(() => animation));

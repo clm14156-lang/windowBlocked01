@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
+using FocusApp.Desktop.Services;
 using FocusApp.Desktop.ViewModels;
 
 namespace FocusApp.Desktop.Views;
@@ -56,10 +57,12 @@ public partial class FloatingContent
 
     private void CreatedTask(object? sender, FocusTaskViewModel task)
     {
+        DesktopDiagnostics.RecordAction("Floating.TaskCreated", $"VisibleTasks={_creationModel?.VisibleTasks.Count}");
         _creationScrollOperation?.Abort();
         _creationScrollOperation = Dispatcher.InvokeAsync(() =>
         {
             if (!IsLoaded || !IsVisible || _creationModel?.VisibleTasks.Contains(task) != true) return;
+            DesktopDiagnostics.RecordAction("Floating.CreatedTaskScroll");
             UpdateLayout();
             TaskScrollViewer.ScrollToBottom();
         }, DispatcherPriority.Loaded);
@@ -71,6 +74,7 @@ public partial class FloatingContent
             Keyboard.Modifiers != ModifierKeys.None || e.Key == Key.ImeProcessed) return;
         if (e.Key == Key.Tab)
         {
+            DesktopDiagnostics.RecordAction("Floating.Tab", $"Creating={model.IsCreatingTask}; Repeat={e.IsRepeat}; Active={Window.GetWindow(this)?.IsActive}");
             if (model.IsCreatingTask || model.BeginTaskCreation())
             {
                 e.Handled = true;
@@ -81,8 +85,17 @@ public partial class FloatingContent
         {
             e.Handled = true;
             if (e.IsRepeat) return;
-            if (e.Key == Key.Enter) model.SubmitTaskCreation();
-            else model.CancelTaskCreation();
+            if (e.Key == Key.Enter)
+            {
+                DesktopDiagnostics.RecordAction("Floating.TaskSubmit", $"TitleLength={model.TaskTitle?.Length ?? 0}");
+                var submitted = model.SubmitTaskCreation();
+                DesktopDiagnostics.RecordAction("Floating.TaskSubmitResult", $"Submitted={submitted}");
+            }
+            else
+            {
+                DesktopDiagnostics.RecordAction("Floating.TaskCancel");
+                model.CancelTaskCreation();
+            }
         }
     }
 
@@ -97,16 +110,19 @@ public partial class FloatingContent
     {
         if (!_creationNeedsFocus || !IsLoaded || !IsVisible || _creationModel?.IsCreatingTask != true ||
             Window.GetWindow(this)?.IsActive != true) return;
+        DesktopDiagnostics.RecordAction("Floating.EditorFocusBegin");
         // The first expansion frame can still be clipped or rounded to zero at high DPI.
         UpdateLayout();
         TaskTitleInput.Focus();
         Keyboard.Focus(TaskTitleInput);
         _creationNeedsFocus = !TaskTitleInput.IsKeyboardFocused;
+        DesktopDiagnostics.RecordAction("Floating.EditorFocusEnd", $"Focused={TaskTitleInput.IsKeyboardFocused}");
     }
 
     private void CreationStateChanged(object? sender, EventArgs e)
     {
         if (_creationModel is null) return;
+        DesktopDiagnostics.RecordAction("Floating.EditorState", $"Creating={_creationModel.IsCreatingTask}; Loaded={IsLoaded}; Visible={IsVisible}");
         _creationFromHeight = _creationModel.CreationHeight;
         _creationFromTaskArea = _creationModel.TaskAreaHeight;
         _creationToHeight = _creationModel.IsCreatingTask ? FocusFloatingWindowViewModel.TaskCreationHeight : 0;

@@ -79,7 +79,11 @@ public partial class FocusFloatingWindow : Window
         if (IsLoaded) RestoreDockedBounds();
     }
 
-    private void Window_Loaded(object sender, RoutedEventArgs e) => RestoreDockedBounds();
+    private void Window_Loaded(object sender, RoutedEventArgs e)
+    {
+        DesktopDiagnostics.RecordAction("Floating.Loaded", $"State={State}");
+        RestoreDockedBounds();
+    }
 
     private void RestoreDockedBounds()
     {
@@ -171,6 +175,8 @@ public partial class FocusFloatingWindow : Window
 
     private void Window_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
+        DesktopDiagnostics.RecordAction("Floating.MouseDown",
+            $"Source={e.OriginalSource?.GetType().FullName}; LeftButton={e.LeftButton}; State={State}; Creating={(DataContext as FocusFloatingWindowViewModel)?.IsCreatingTask}");
         if (e.LeftButton != MouseButtonState.Pressed ||
             FloatingContentView.IsInteractiveRegion(e.OriginalSource as DependencyObject))
         {
@@ -184,18 +190,29 @@ public partial class FocusFloatingWindow : Window
 
         e.Handled = true;
         _isDragging = true;
+        DesktopDiagnostics.RecordAction("Floating.DragBegin", $"State={State}");
         try
         {
-            DragMove();
-            completedDrag = true;
+            // Expansion/layout may process input before the native move loop starts.
+            if (Mouse.LeftButton == MouseButtonState.Pressed && IsLoaded && IsVisible && !Dispatcher.HasShutdownStarted)
+            {
+                DragMove();
+                completedDrag = true;
+            }
         }
-        catch (InvalidOperationException)
+        catch (InvalidOperationException exception) when (Mouse.LeftButton != MouseButtonState.Pressed
+            || !IsLoaded || !IsVisible || Dispatcher.HasShutdownStarted)
         {
-            // DragMove can be interrupted while the window is closing.
+            // A released mouse button or hidden/closed window cancels the gesture.
+            // Unexpected DragMove failures still propagate to the global logger.
+            DesktopDiagnostics.RecordAction("Floating.DragInterrupted",
+                $"LeftButton={Mouse.LeftButton}; Loaded={IsLoaded}; Visible={IsVisible}; Shutdown={Dispatcher.HasShutdownStarted}");
+            DesktopDiagnostics.RecordException("Floating.DragInterrupted", exception);
         }
         finally
         {
             _isDragging = false;
+            DesktopDiagnostics.RecordAction("Floating.DragEnd", $"Completed={completedDrag}; Visible={IsVisible}; State={State}");
         }
 
         if (IsVisible && WindowState == WindowState.Normal)
@@ -396,6 +413,7 @@ public partial class FocusFloatingWindow : Window
 
     protected override void OnClosed(EventArgs e)
     {
+        DesktopDiagnostics.RecordAction("Floating.Closed", $"Dragging={_isDragging}; State={State}");
         _collapseTimer.Stop();
         _sizeRefreshOperation?.Abort();
         _positionRefreshOperation?.Abort();
