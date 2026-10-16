@@ -71,8 +71,8 @@ public sealed class PersistedDataProjectionTests
         viewModel.ApplyState(state);
 
         Assert.Equal(30, Assert.Single(viewModel.FocusSessionRecords).DurationMinutes);
-        Assert.Equal(1, viewModel.TodayFocusCount);
-        Assert.Contains("30", viewModel.TodayFocusDuration, StringComparison.Ordinal);
+        Assert.Equal(1, viewModel.Overview.FocusDayCount);
+        Assert.Contains("30", viewModel.Overview.TotalDurationDisplay, StringComparison.Ordinal);
         Assert.Equal(30, Assert.Single(viewModel.Goals).TotalMinutes);
     }
 
@@ -139,7 +139,7 @@ public sealed class PersistedDataProjectionTests
 
         Assert.Empty(viewModel.Goals);
         Assert.Equal("已删除目标", Assert.Single(viewModel.FocusSessionRecords).GoalName);
-        Assert.Contains("30", viewModel.TodayFocusDuration, StringComparison.Ordinal);
+        Assert.Contains("30", viewModel.Overview.TotalDurationDisplay, StringComparison.Ordinal);
     }
 
     [Fact]

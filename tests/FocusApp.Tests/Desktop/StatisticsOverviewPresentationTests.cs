@@ -129,7 +129,7 @@ public sealed class StatisticsOverviewPresentationTests
             (string?)image.Attribute("Source") == "{Binding SelectedTargetIcon.IconSource}");
         Assert.Contains(dialog.Descendants(Presentation + "TextBox"), textBox =>
             (string?)textBox.Attribute("Text") == "{Binding NewGoalName, UpdateSourceTrigger=PropertyChanged}" &&
-            (string?)textBox.Attribute("FontSize") == "14");
+            (string?)textBox.Attribute("Style") == "{StaticResource GoalModalTextInputStyle}");
         var quickIconLists = page.Descendants(Presentation + "ItemsControl").Where(items =>
             (string?)items.Attribute("ItemsSource") == "{Binding QuickTargetIcons}").ToArray();
         Assert.Single(quickIconLists);
@@ -188,94 +188,6 @@ public sealed class StatisticsOverviewPresentationTests
             root, "src", "FocusApp.Desktop", "FocusApp.Desktop.csproj"));
         Assert.Contains(project.Descendants("Resource"), resource =>
             (string?)resource.Attribute("Include") == "Assets\\Icons\\targetSelected_Svg\\*.svg");
-    }
-
-    [Fact]
-    public void RangeSelectorReservesIndependentSpaceForTextAndChevron()
-    {
-        var page = XDocument.Load(Path.Combine(
-            FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
-        var style = Assert.Single(page.Descendants(Presentation + "Style").Where(element =>
-            (string?)element.Attribute(Xaml + "Key") == "StatisticsRangeComboBoxStyle"));
-        var setters = style.Elements(Presentation + "Setter").ToArray();
-
-        Assert.Contains(setters, setter =>
-            (string?)setter.Attribute("Property") == "Height"
-            && (string?)setter.Attribute("Value") == "32");
-        Assert.Contains(setters, setter =>
-            (string?)setter.Attribute("Property") == "MinWidth"
-            && (string?)setter.Attribute("Value") == "84");
-        Assert.Contains(setters, setter =>
-            (string?)setter.Attribute("Property") == "BorderThickness"
-            && (string?)setter.Attribute("Value") == "0");
-        Assert.Contains(setters, setter =>
-            (string?)setter.Attribute("Property") == "Background"
-            && (string?)setter.Attribute("Value") == "{DynamicResource TransparentBrush}");
-
-        var template = Assert.Single(style.Descendants(Presentation + "ControlTemplate").Where(element =>
-            (string?)element.Attribute("TargetType") == "{x:Type ComboBox}"));
-        var chrome = Assert.Single(template.Elements(Presentation + "Grid")
-            .Elements(Presentation + "Border"));
-        var contentGrid = Assert.Single(chrome.Elements(Presentation + "Grid"));
-        Assert.Equal(
-            new[] { "*", "24" },
-            contentGrid.Elements(Presentation + "Grid.ColumnDefinitions")
-                .Elements(Presentation + "ColumnDefinition")
-                .Select(column => (string?)column.Attribute("Width")));
-
-        var selectedLabel = Assert.Single(contentGrid.Elements(Presentation + "TextBlock"));
-        Assert.Equal("0", (string?)selectedLabel.Attribute("Grid.Column"));
-        var chevron = Assert.Single(contentGrid.Elements(Presentation + "Path"));
-        Assert.Equal("1", (string?)chevron.Attribute("Grid.Column"));
-        var toggle = Assert.Single(contentGrid.Elements(Presentation + "ToggleButton"));
-        Assert.Equal("2", (string?)toggle.Attribute("Grid.ColumnSpan"));
-
-        var trendContent = Assert.Single(page.Descendants(Presentation + "Grid").Where(element =>
-            (string?)element.Attribute(Xaml + "Name") == "TrendContent"));
-        var selector = Assert.Single(trendContent.Descendants(Presentation + "ComboBox").Where(element =>
-            (string?)element.Attribute("ItemsSource") == "{Binding RangeOptions}"));
-        Assert.Null(selector.Attribute("Width"));
-    }
-
-    [Fact]
-    public void TrendCardAlwaysShowsRealContentAndRemovesVipPlaceholder()
-    {
-        var page = XDocument.Load(Path.Combine(
-            FindRepositoryRoot(), "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
-        var trendCard = Assert.Single(page.Descendants(Presentation + "Border").Where(element =>
-            (string?)element.Attribute(Xaml + "Name") == "TrendCard"));
-
-        Assert.Equal("2", (string?)trendCard.Attribute("Grid.Row"));
-        Assert.Null(trendCard.Attribute("Height"));
-        Assert.Equal("{StaticResource CardContentPadding}", (string?)trendCard.Attribute("Padding"));
-        Assert.Equal("16", (string?)trendCard.Attribute("CornerRadius"));
-
-        var trendContent = Assert.Single(trendCard.Descendants(Presentation + "Grid").Where(element =>
-            (string?)element.Attribute(Xaml + "Name") == "TrendContent"));
-        Assert.Single(trendContent.Descendants().Where(element => element.Name.LocalName == "TrendChart"));
-        Assert.DoesNotContain(trendCard.Descendants(), element =>
-            (string?)element.Attribute(Xaml + "Name") is "VipLockedPlaceholder" or "LockedTrendSkeletonChart" or "LockedTrendSummary");
-        Assert.DoesNotContain(trendCard.Descendants(Presentation + "TextBlock"), text =>
-            (string?)text.Attribute("Text") == "VIP专享");
-    }
-
-    [Fact]
-    public void TrendCardKeepsTheRealChartVisibleWhenRuntimeDataHasNoFocusRecords()
-    {
-        var repositoryRoot = FindRepositoryRoot();
-        var page = XDocument.Load(Path.Combine(
-            repositoryRoot, "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));
-        var trendContent = Assert.Single(page.Descendants(Presentation + "Grid").Where(element =>
-            (string?)element.Attribute(Xaml + "Name") == "TrendContent"));
-        var plot = Assert.Single(trendContent.Descendants(Presentation + "Grid").Where(element =>
-            (string?)element.Attribute(Xaml + "Name") == "TrendPlotContent"));
-        Assert.Single(plot.Descendants().Where(element => element.Name.LocalName == "TrendChart"));
-        Assert.Empty(plot.Descendants(Presentation + "DataTrigger").Where(trigger =>
-            !trigger.Ancestors(Presentation + "Popup").Any()));
-        Assert.DoesNotContain(trendContent.Descendants(Presentation + "Grid"), element =>
-            (string?)element.Attribute(Xaml + "Name") == "TrendEmptyState");
-        Assert.DoesNotContain(page.Descendants(Presentation + "Popup"), popup =>
-            (string?)popup.Attribute(Xaml + "Name") == "TrendVipGuidePopup");
     }
 
     [Fact]

@@ -30,7 +30,7 @@ public sealed class FocusStateCoordinator : IDisposable
 
         _homePage.FocusSession.CompletionRecorded += FocusSession_CompletionRecorded;
         _homePage.FocusSession.SetCompletionStatisticsProvider(_statisticsPage.GetCompletionDailySummary);
-        _statisticsPage.PropertyChanged += StatisticsPage_PropertyChanged;
+        _statisticsPage.FocusHistoryChanged += StatisticsPage_FocusHistoryChanged;
         _settingsPage.RulesChanged += SettingsPage_RulesChanged;
         _blockingPage.BlockingChanged += BlockingPage_BlockingChanged;
         if (_settingsPage.ForcedModeItem is not null)
@@ -63,7 +63,7 @@ public sealed class FocusStateCoordinator : IDisposable
 
         _isDisposed = true;
         _homePage.FocusSession.CompletionRecorded -= FocusSession_CompletionRecorded;
-        _statisticsPage.PropertyChanged -= StatisticsPage_PropertyChanged;
+        _statisticsPage.FocusHistoryChanged -= StatisticsPage_FocusHistoryChanged;
         _homePage.FocusSession.SetCompletionStatisticsProvider(null);
         _settingsPage.RulesChanged -= SettingsPage_RulesChanged;
         _blockingPage.BlockingChanged -= BlockingPage_BlockingChanged;
@@ -91,12 +91,8 @@ public sealed class FocusStateCoordinator : IDisposable
     private void SettingsPage_RulesChanged(object? sender, EventArgs e)
         => EvaluateAutomaticBlocking();
 
-    private void StatisticsPage_PropertyChanged(object? sender, PropertyChangedEventArgs e)
-    {
-        if (e.PropertyName == nameof(StatisticsOverviewViewModel.TodayFocusDuration))
-            _homePage.FocusSession.RefreshCompletionStatistics();
-    }
-
+    private void StatisticsPage_FocusHistoryChanged(object? sender, EventArgs e)
+        => _homePage.FocusSession.RefreshCompletionStatistics();
     private void BlockingPage_BlockingChanged(object? sender, EventArgs e)
         => RefreshBlockingPreview();
 

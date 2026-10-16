@@ -74,7 +74,8 @@ public sealed class MainWindowViewModelTests
         var home = new NavigationItemViewModel(NavigationPage.Home, "Home", "H");
         var statistics = new NavigationItemViewModel(NavigationPage.Statistics, "Statistics", "S");
         var account = new NavigationItemViewModel(NavigationPage.Account, "Account", "A");
-        var viewModel = new MainWindowViewModel([home, statistics], account, homePage);
+        var viewModel = new MainWindowViewModel([home, statistics], account, homePage,
+            statisticsPage: new StatisticsOverviewViewModel(false, localNowProvider: () => now));
         var recordCount = viewModel.StatisticsPage.FocusSessionRecords.Count;
 
         session.Start(1);
@@ -87,9 +88,9 @@ public sealed class MainWindowViewModelTests
 
         var added = Assert.Single(viewModel.StatisticsPage.FocusSessionRecords.Skip(recordCount));
         Assert.Equal(1, added.DurationMinutes);
-        Assert.Equal(1, viewModel.StatisticsPage.TrendPoints.Sum(point => point.SessionCount));
-        Assert.Equal(1, viewModel.StatisticsPage.TrendPoints.Sum(point => point.Minutes));
-        Assert.Equal("8月27日 周四", viewModel.StatisticsPage.TodayDateDisplay);
+        Assert.Equal(1, viewModel.StatisticsPage.Overview.FocusDayCount);
+        Assert.Equal(1, viewModel.StatisticsPage.Overview.TotalMinutes);
+        Assert.Equal(new DateTime(2026, 8, 24), viewModel.StatisticsPage.Overview.PeriodStart);
         Assert.False(viewModel.IsFocusResultToastVisible);
         Assert.NotNull(session.LastCompletion);
 
@@ -673,7 +674,6 @@ public sealed class MainWindowViewModelTests
 
         Assert.Equal(expectedMembership, viewModel.MembershipType);
         Assert.Equal(expectedVip, viewModel.IsVipMember);
-        Assert.Equal(expectedVip, viewModel.StatisticsPage.CanViewTrend);
         Assert.Equal(expectedVip, viewModel.StatisticsPage.CanViewDailyFocusRecord);
         Assert.Equal(expectedVip, viewModel.StatisticsPage.CanViewGoalInvestmentDetails);
         Assert.Equal(expectedVip, viewModel.SettingsPage.CanUseForcedMode);
@@ -709,7 +709,6 @@ public sealed class MainWindowViewModelTests
         Assert.False(viewModel.IsLoggedIn);
         Assert.Equal(MembershipType.Normal, viewModel.MembershipType);
         Assert.False(viewModel.IsVipMember);
-        Assert.False(viewModel.StatisticsPage.CanViewTrend);
         Assert.False(viewModel.StatisticsPage.CanViewDailyFocusRecord);
         Assert.False(viewModel.StatisticsPage.CanViewGoalInvestmentDetails);
         Assert.False(viewModel.SettingsPage.CanUseForcedMode);

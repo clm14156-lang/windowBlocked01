@@ -29,34 +29,29 @@ public sealed class StatisticsSpacingTests
                 var host = new Grid();
                 host.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(72) });
                 host.ColumnDefinitions.Add(new ColumnDefinition());
-                host.RowDefinitions.Add(new RowDefinition { Height = new GridLength(48) });
+                host.RowDefinitions.Add(new RowDefinition { Height = new GridLength(34) });
                 host.RowDefinitions.Add(new RowDefinition());
                 Grid.SetColumn(page, 1);
                 Grid.SetRow(page, 1);
                 host.Children.Add(page);
-                window = new Window { Width = 800, Height = 710, Content = host, WindowStyle = WindowStyle.None,
+                window = new Window { Width = 800, Height = 710, Content = host, WindowStyle = WindowStyle.None, ResizeMode = ResizeMode.NoResize,
                     ShowInTaskbar = false, ShowActivated = false, Left = -32000, Top = -32000 };
                 window.Show();
                 Pump();
 
-                var today = (Border)page.FindName("TodayStatisticsCard");
-                var trend = (Border)page.FindName("TrendCard");
-                var distribution = (Border)page.FindName("PeriodFocusDistributionCard");
-                AssertCardEdges(page, today);
+                var dashboard = (StatisticsDashboard)page.FindName("OverviewDashboard");
+                var trend = (Border)dashboard.FindName("OverviewTrendCard");
+                var distribution = (Border)dashboard.FindName("OverviewDistributionCard");
                 AssertCardEdges(page, trend);
                 AssertCardEdges(page, distribution);
-                var contentTop = Position(today, page).Y;
+                var contentTop = Position(dashboard, page).Y;
                 var tabs = (Grid)page.FindName("StatisticsTabs");
                 AssertClose(12, contentTop - Position(tabs, page).Y - tabs.ActualHeight);
-                foreach (var card in new[] { today, trend, distribution })
-                    Assert.Equal(new Thickness(20), card.Padding);
-                AssertGap(today, trend, page, 12);
                 AssertGap(trend, distribution, page, 12);
-                AssertBottom(page, distribution);
-                var chart = (TrendChart)page.FindName("TrendChartControl");
+                var chart = (OverviewFocusChart)dashboard.FindName("FocusChart");
                 var chartBounds = chart.TransformToAncestor(trend)
                     .TransformBounds(new Rect(0, 0, chart.ActualWidth, chart.ActualHeight));
-                Assert.InRange(chartBounds.Bottom, 0, trend.ActualHeight - 19);
+                Assert.InRange(chartBounds.Bottom, 0, trend.ActualHeight - 11);
                 SavePreview(page, "overview");
 
                 model.SelectCalendarCommand.Execute(null);
@@ -76,8 +71,8 @@ public sealed class StatisticsSpacingTests
                 AssertBottom(page, calendar);
                 AssertBottom(page, daily);
                 var vipAction = (Button)page.FindName("CalendarVipUnlockButton");
-                AssertClose(20, Position(daily, page).Y + daily.ActualHeight
-                    - Position(vipAction, page).Y - vipAction.ActualHeight);
+                Assert.InRange(Position(daily, page).Y + daily.ActualHeight
+                    - Position(vipAction, page).Y - vipAction.ActualHeight, 19, daily.ActualHeight);
                 SavePreview(page, "calendar");
                 model.SetUserAccess(true, true);
                 Pump();

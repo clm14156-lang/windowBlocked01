@@ -3,10 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Controls.Primitives;
-using System.Windows.Interop;
 using System.Windows.Media;
-using System.Windows.Media.Animation;
-using System.Windows.Threading;
 using FocusApp.Desktop.ViewModels;
 
 namespace FocusApp.Desktop.Views;
@@ -30,189 +27,25 @@ public partial class StatisticsPage : UserControl
     }
 
     private ToggleButton? _openGoalListMoreButton;
-    private FrameworkElement? _distributionHoverRow;
-    private ToolTip? _distributionTip;
-
-    private void PeriodDistributionRow_MouseEnter(object sender, MouseEventArgs e)
-    {
-        if (sender is not FrameworkElement row || row.DataContext is not PeriodFocusDistributionViewModel item) return;
-        CloseDistributionTip();
-        if (_distributionTip is null)
-        {
-            var content = new PeriodFocusDistributionToolTip();
-            _distributionTip = new ToolTip
-            {
-                Content = content, Placement = PlacementMode.Custom, StaysOpen = true,
-                IsHitTestVisible = false, Style = (Style)content.FindResource("PeriodDistributionTipStyle")
-            };
-            _distributionTip.Opened += (_, _) => content.BeginAnimation(OpacityProperty,
-                new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(100)));
-        }
-        _distributionHoverRow = row;
-        ((PeriodFocusDistributionToolTip)_distributionTip.Content).DataContext = item;
-        _distributionTip.PlacementTarget = row;
-        _distributionTip.CustomPopupPlacementCallback = (size, target, _) =>
-        {
-            var rowLeft = row.TranslatePoint(new Point(), this).X;
-            var left = Math.Clamp((target.Width - size.Width) / 2,
-                -rowLeft, Math.Max(-rowLeft, ActualWidth - rowLeft - size.Width));
-            ((PeriodFocusDistributionToolTip)_distributionTip.Content).PointerLeft =
-                PoptipChrome.PointerLeftForAnchor(target.Width / 2 - left, size.Width);
-            return [new CustomPopupPlacement(new Point(left, -size.Height - 8), PopupPrimaryAxis.Horizontal),
-                new CustomPopupPlacement(new Point(left, target.Height + 8), PopupPrimaryAxis.Horizontal)];
-        };
-        _distributionTip.IsOpen = true;
-        Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() =>
-        {
-            if (_distributionTip.IsOpen && ReferenceEquals(_distributionHoverRow, row) &&
-                _distributionTip.Content is PeriodFocusDistributionToolTip content &&
-                PresentationSource.FromVisual(content) is not null)
-                content.PointerOnTop = content.PointToScreen(new Point()).Y > row.PointToScreen(new Point()).Y;
-        }));
-    }
-
-    private void PeriodDistributionRow_MouseLeave(object sender, MouseEventArgs e)
-    {
-        if (ReferenceEquals(sender, _distributionHoverRow)) CloseDistributionTip();
-    }
-
-    private void PeriodDistributionRow_Unloaded(object sender, RoutedEventArgs e)
-    {
-        if (ReferenceEquals(sender, _distributionHoverRow)) CloseDistributionTip();
-    }
-
-    private void PeriodDistributionRow_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
-    {
-        if (ReferenceEquals(sender, _distributionHoverRow)) CloseDistributionTip();
-    }
-
-    private void PeriodFocusDistributionScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)
-    {
-        if (e.VerticalChange != 0 || e.HorizontalChange != 0) CloseDistributionTip();
-    }
-
-    private void CloseDistributionTip()
-    {
-        if (_distributionTip is not null)
-        {
-            _distributionTip.IsOpen = false;
-            _distributionTip.PlacementTarget = null;
-            _distributionTip.CustomPopupPlacementCallback = null;
-            ((PeriodFocusDistributionToolTip)_distributionTip.Content).DataContext = null;
-        }
-        _distributionHoverRow = null;
-    }
-
-    private const int WmNcHitTest = 0x0084;
-    private static readonly IntPtr HitTestTransparent = new(-1);
-    private HwndSource? _trendTooltipHwndSource;
-
     public StatisticsPage()
     {
         InitializeComponent();
         InitializeCalendarInteraction();
-        ConfigureFocusGoalTip(TodayFocusTargetStateProgress);
-        ConfigureFocusGoalTip(TodayFocusMonthlyTargetStateProgress);
         DataContextChanged += StatisticsPage_DataContextChanged;
-        Loaded += (_, _) => UpdateTooltipPlacement();
-        Unloaded += (_, _) =>
-        {
-            CloseFocusGoalTips();
-            CloseDistributionTip();
-            DetachTrendTooltipWindowHook();
-        };
-        TrendCard.SizeChanged += (_, _) => UpdateTooltipPlacement();
-    }
-
-    private static void ConfigureFocusGoalTip(ProgressBar progress)
-    {
-        if (progress.ToolTip is not ToolTip tip) return;
-        tip.PlacementTarget = progress;
-        tip.CustomPopupPlacementCallback = (popupSize, targetSize, _) =>
-        {
-            var ratio = progress.Maximum <= progress.Minimum ? 0
-                : Math.Clamp((progress.Value - progress.Minimum) / (progress.Maximum - progress.Minimum), 0, 1);
-            var anchor = ratio * targetSize.Width;
-            // Keep the compact tip within the card and clear of the progress track.
-            var left = Math.Clamp(anchor - popupSize.Width / 2, 0, Math.Max(0, targetSize.Width - popupSize.Width));
-            return [new CustomPopupPlacement(new Point(left, -popupSize.Height - 8), PopupPrimaryAxis.Horizontal),
-                new CustomPopupPlacement(new Point(left, targetSize.Height + 8), PopupPrimaryAxis.Horizontal)];
-        };
-    }
-
-    private void CloseFocusGoalTips()
-    {
-        foreach (var progress in new[] { TodayFocusTargetStateProgress, TodayFocusMonthlyTargetStateProgress })
-            if (progress.ToolTip is ToolTip tip) tip.IsOpen = false;
-    }
-
-    private void TrendTooltipPopup_Opened(object? sender, EventArgs e)
-    {
-        if (TrendTooltipPopup.Child is not DependencyObject child ||
-            PresentationSource.FromDependencyObject(child) is not HwndSource source ||
-            ReferenceEquals(_trendTooltipHwndSource, source))
-        {
-            return;
-        }
-
-        DetachTrendTooltipWindowHook();
-        _trendTooltipHwndSource = source;
-        _trendTooltipHwndSource.AddHook(TrendTooltipWindowProc);
-    }
-
-    private void TrendTooltipPopup_Closed(object? sender, EventArgs e) => DetachTrendTooltipWindowHook();
-
-    private IntPtr TrendTooltipWindowProc(IntPtr hwnd, int message, IntPtr wParam, IntPtr lParam, ref bool handled)
-    {
-        if (message == WmNcHitTest)
-        {
-            handled = true;
-            return HitTestTransparent;
-        }
-
-        return IntPtr.Zero;
-    }
-
-    private void DetachTrendTooltipWindowHook()
-    {
-        if (_trendTooltipHwndSource is null)
-        {
-            return;
-        }
-
-        _trendTooltipHwndSource.RemoveHook(TrendTooltipWindowProc);
-        _trendTooltipHwndSource = null;
     }
 
     private void StatisticsPage_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
         CalendarRecordInteraction.Clear();
-        CloseDistributionTip();
-        if (e.OldValue is StatisticsOverviewViewModel oldViewModel)
-        {
-            oldViewModel.PropertyChanged -= StatisticsViewModel_PropertyChanged;
-        }
-
-        if (e.NewValue is StatisticsOverviewViewModel newViewModel)
-        {
-            newViewModel.PropertyChanged += StatisticsViewModel_PropertyChanged;
-        }
+        if (e.OldValue is StatisticsOverviewViewModel oldModel) oldModel.PropertyChanged -= StatisticsViewModel_PropertyChanged;
+        if (e.NewValue is StatisticsOverviewViewModel newModel) newModel.PropertyChanged += StatisticsViewModel_PropertyChanged;
     }
 
     private void StatisticsViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName is nameof(StatisticsOverviewViewModel.SelectedTab) or nameof(StatisticsOverviewViewModel.SelectedDateDisplay))
             CalendarRecordInteraction.Clear();
-        if (e.PropertyName is nameof(StatisticsOverviewViewModel.SelectedTab) or nameof(StatisticsOverviewViewModel.HasPeriodFocusDistribution))
-            CloseDistributionTip();
-        if (e.PropertyName is nameof(StatisticsOverviewViewModel.HasFocusGoal) or nameof(StatisticsOverviewViewModel.SelectedTab))
-            CloseFocusGoalTips();
-        if (e.PropertyName is nameof(StatisticsOverviewViewModel.HoveredPoint) or nameof(StatisticsOverviewViewModel.IsTooltipOpen))
-        {
-            Dispatcher.BeginInvoke(UpdateTooltipPlacement);
-        }
     }
-
     private void CalendarVipUnlockButton_Click(object sender, RoutedEventArgs e)
     {
         OpenVipPurchase();
@@ -238,32 +71,6 @@ public partial class StatisticsPage : UserControl
         {
             mainWindowViewModel.OpenVipCommand.Execute(null);
         }
-    }
-
-    private void UpdateTooltipPlacement()
-    {
-        if (DataContext is not StatisticsOverviewViewModel viewModel || viewModel.HoveredPoint is null || TrendCard.ActualWidth <= 0 || TrendCard.ActualHeight <= 0)
-        {
-            return;
-        }
-
-        var point = TrendChartControl.TranslatePoint(
-            new Point(viewModel.HoveredPoint.ChartX, viewModel.HoveredPoint.ChartY),
-            TrendCard);
-        TrendTooltipSurface.Measure(new Size(Math.Min(PoptipChrome.MaximumWidth, TrendCard.ActualWidth), double.PositiveInfinity));
-        var tooltipWidth = TrendTooltipSurface.DesiredSize.Width;
-        var tooltipHeight = TrendTooltipSurface.DesiredSize.Height;
-        var x = Math.Clamp(point.X - tooltipWidth / 2, 0, Math.Max(0, TrendCard.ActualWidth - tooltipWidth));
-        var y = point.Y - tooltipHeight - 8;
-        if (y < 0)
-        {
-            y = point.Y + 12;
-        }
-
-        y = Math.Clamp(y, 0, Math.Max(0, TrendCard.ActualHeight - tooltipHeight));
-        TrendTooltipSurface.PointerOnTop = y >= point.Y;
-        TrendTooltipSurface.PointerLeft = PoptipChrome.PointerLeftForAnchor(point.X - x, tooltipWidth);
-        viewModel.SetTooltipOffsets(x, y);
     }
 
     private void SelectCurrentGoalListButton_Click(object sender, RoutedEventArgs e) => ExecuteGoalListCommand("Current");

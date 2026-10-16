@@ -1,0 +1,265 @@
+using System.Windows;
+using System.Windows.Automation.Peers;
+using System.Windows.Automation.Provider;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Threading;
+using FocusApp.Desktop.ViewModels;
+using FocusApp.Desktop.Views;
+using Xunit;
+
+namespace FocusApp.Tests.Desktop;
+
+[Collection("Calendar UI")]
+public sealed class StatisticsDashboardPresentationTests
+{
+    [Theory]
+    [InlineData(728, 660)] [InlineData(694, 613.3333)] [InlineData(900, 780)] [InlineData(620, 540)]
+    public void EqualMetricCardsAndAllChartsFitWithoutOverlappingAtSupportedPageSizes(double width, double height)
+    {
+        Sta(() =>
+        {
+            using var host = new Host(width, height);
+            var cards = new[] { host.Named<Border>("OverviewDurationCard"), host.Named<Border>("OverviewCompletedCard"), host.Named<Border>("OverviewDaysCard") };
+            Assert.All(cards, card => Assert.InRange(Math.Abs(card.ActualWidth - cards[0].ActualWidth), 0, 1));
+            Assert.All(cards, card => Assert.Equal(new CornerRadius(14), card.CornerRadius));
+            Assert.True(Right(cards[0]) < Left(cards[1]));
+            Assert.True(Right(cards[1]) < Left(cards[2]));
+            var plot = host.Named<Border>("OverviewTrendCard");
+            var distribution = host.Named<Border>("OverviewDistributionCard");
+            Assert.True(Top(plot) > Bottom(cards[0]));
+            Assert.True(Top(distribution) > Bottom(plot));
+            var outer = host.Named<ScrollViewer>("OverviewScroll");
+            Assert.Equal(ScrollBarVisibility.Disabled, outer.HorizontalScrollBarVisibility);
+            if (height >= 613) Assert.InRange(outer.ScrollableHeight, 0, 1);
+            else Assert.True(outer.ScrollableHeight > 0);
+            Assert.InRange(host.Named<ScrollViewer>("DistributionScroll").ScrollableHeight, 0, 1);
+            Assert.Equal(6, host.Named<ItemsControl>("DistributionList").Items.Count);
+            Assert.True(host.Chart.PlotBounds.Width > 0);
+
+            double Top(FrameworkElement item) => item.TranslatePoint(new Point(), host.View).Y;
+            double Left(FrameworkElement item) => item.TranslatePoint(new Point(), host.View).X;
+            double Right(FrameworkElement item) => Left(item) + item.ActualWidth;
+            double Bottom(FrameworkElement item) => Top(item) + item.ActualHeight;
+        });
+    }
+
+    [Fact]
+    public void PeriodButtonsUpdateCardsBarBucketsAndDistributionTogether()
+    {
+        Sta(() =>
+        {
+            using var host = new Host();
+            Invoke(host.Named<RadioButton>("MonthPeriodButton")); Pump();
+            Assert.True(host.Model.IsMonth); Assert.Equal(31, host.Model.Bars.Count);
+            Invoke(host.Named<RadioButton>("YearPeriodButton")); Pump();
+            Assert.True(host.Model.IsYear); Assert.Equal(12, host.Model.Bars.Count);
+            Assert.All(host.Model.Bars, item => Assert.True(item.IsMonthBucket));
+            Invoke(host.Named<Button>("PreviousOverviewPeriod")); Pump();
+            Assert.Equal(2025, host.Model.PeriodStart.Year);
+            Assert.Equal(TimeSpan.Zero, host.Model.TotalDuration);
+            Assert.Empty(host.Model.Distribution);
+            Assert.Equal(Visibility.Visible, host.Named<StackPanel>("DistributionEmptyState").Visibility);
+            Invoke(host.Named<RadioButton>("WeekPeriodButton")); Pump(); Assert.Equal(7, host.Model.Bars.Count);
+        });
+    }
+
+    [Fact]
+    public void SectorHoverHighlightsTheMatchingRowAndLegendHoverUsesTheSamePoptip()
+    {
+        Sta(() =>
+        {
+            using var host = new Host();
+            var item = host.Model.Distribution[1];
+            host.Ring.HoverAt(host.Ring.AnchorFor(item)); Pump();
+            Assert.Same(item, host.Model.ActiveDistribution);
+            var rows = Descendants<Button>(host.Named<ItemsControl>("DistributionList")).ToArray();
+            var row = rows.Single(button => ReferenceEquals(button.DataContext, item));
+            var surface = (Border)row.Template.FindName("RowSurface", row);
+            Assert.Equal((Color)ColorConverter.ConvertFromString("#F1F3F6"), ((SolidColorBrush)surface.Background).Color);
+            Assert.True(host.Tip.IsOpen);
+            Assert.Equal(item.TargetName, host.Named<TextBlock>("TipTitle").Text);
+            Assert.Equal(item.ExactDurationDisplay, host.Named<System.Windows.Documents.Run>("TipDuration").Text);
+            Assert.Equal("占比  " + item.PercentageDisplay, host.Named<TextBlock>("TipPercentage").Text);
+
+            var other = host.Model.Distribution[4];
+            var otherRow = rows.Single(button => ReferenceEquals(button.DataContext, other));
+            otherRow.RaiseEvent(new MouseEventArgs(Mouse.PrimaryDevice, 0) { RoutedEvent = Mouse.MouseEnterEvent }); Pump();
+            Assert.Same(other, host.Model.ActiveDistribution);
+            Assert.Equal(other.TargetName, host.Named<TextBlock>("TipTitle").Text);
+            otherRow.RaiseEvent(new MouseEventArgs(Mouse.PrimaryDevice, 0) { RoutedEvent = Mouse.MouseLeaveEvent }); Pump();
+            Assert.Null(host.Model.ActiveDistribution);
+            Assert.False(host.Tip.IsOpen);
+        });
+    }
+
+    [Fact]
+    public void BothClickRoutesLockToggleAndBlankOrEscapeClearsTheLock()
+    {
+        Sta(() =>
+        {
+            using var host = new Host();
+            var item = host.Model.Distribution[0];
+            Assert.True(host.Ring.SelectAt(host.Ring.AnchorFor(item))); Pump();
+            Assert.Same(item, host.Model.SelectedDistribution);
+            host.Ring.HoverAt(new Point()); Pump();
+            Assert.Same(item, host.Model.ActiveDistribution);
+            Assert.True(host.Tip.IsOpen);
+            Assert.True(host.Ring.SelectAt(host.Ring.AnchorFor(item))); Pump();
+            Assert.Null(host.Model.SelectedDistribution);
+            Assert.False(host.Tip.IsOpen);
+
+            var row = Descendants<Button>(host.Named<ItemsControl>("DistributionList")).First();
+            Invoke(row); Pump(); Assert.Same(item, host.Model.SelectedDistribution);
+            Invoke(row); Pump(); Assert.Null(host.Model.SelectedDistribution);
+            Invoke(row); Pump();
+            host.View.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left) { RoutedEvent = UIElement.MouseLeftButtonDownEvent });
+            Assert.Null(host.Model.SelectedDistribution);
+            Invoke(row); Pump();
+            host.View.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(host.View)!, 0, Key.Escape) { RoutedEvent = Keyboard.PreviewKeyDownEvent });
+            Assert.Null(host.Model.SelectedDistribution);
+            Assert.False(host.Tip.IsOpen);
+        });
+    }
+
+    [Fact]
+    public void RingGeometriesHandleWholeCircleSmallSegmentsAndTheEmptyCenter()
+    {
+        Sta(() =>
+        {
+            using var host = new Host();
+            Assert.Null(host.Ring.HitTestItem(new Point(host.Ring.ActualWidth / 2, host.Ring.ActualHeight / 2)));
+            foreach (var item in host.Model.Distribution) Assert.Same(item, host.Ring.HitTestItem(host.Ring.AnchorFor(item)));
+            host.Model.ApplyData([Record(30, "one")], []); Pump();
+            var only = Assert.Single(host.Model.Distribution);
+            Assert.Same(only, host.Ring.HitTestItem(host.Ring.AnchorFor(only)));
+            Assert.Null(host.Ring.HitTestItem(new Point(host.Ring.ActualWidth / 2, host.Ring.ActualHeight / 2)));
+            host.Model.ApplyData([], []); Pump();
+            Assert.Null(host.Ring.HitTestItem(new Point(20, 20)));
+            Assert.False(host.Ring.SelectAt(new Point(20, 20)));
+        });
+    }
+
+    [Fact]
+    public void BarHitTestingUsesEveryDayAndTooltipPreservesExactSecondsAtBothEdges()
+    {
+        Sta(() =>
+        {
+            using var host = new Host();
+            foreach (var period in Enum.GetValues<StatisticsPeriod>())
+            {
+                host.Model.Period = period; Pump();
+                var bounds = host.Chart.PlotBounds;
+                Assert.Same(host.Model.Bars[0], host.Chart.HitTestBar(new Point(bounds.Left + .1, bounds.Bottom - 1)));
+                Assert.Same(host.Model.Bars[^1], host.Chart.HitTestBar(new Point(bounds.Right - .1, bounds.Bottom - 1)));
+                Assert.Null(host.Chart.HitTestBar(new Point(bounds.Left - 1, bounds.Top)));
+                foreach (var x in new[] { bounds.Left + .1, bounds.Right - .1 })
+                {
+                    host.Chart.HoverAt(new Point(x, bounds.Bottom - 1)); Pump();
+                    var bar = host.Chart.HoveredBar!;
+                    Assert.True(host.Tip.IsOpen);
+                    Assert.Equal(bar.TooltipDate, host.Named<TextBlock>("TipTitle").Text);
+                    Assert.Equal(bar.DurationDisplay, host.Named<System.Windows.Documents.Run>("TipDuration").Text);
+                    var tipSurface = host.Named<PoptipChrome>("OverviewTipSurface");
+                    Assert.InRange(host.Tip.HorizontalOffset, 0, host.View.ActualWidth - tipSurface.DesiredSize.Width);
+                    Assert.InRange(host.Tip.VerticalOffset, 0, host.View.ActualHeight - tipSurface.DesiredSize.Height);
+                }
+            }
+            host.Model.HoverDistribution(host.Model.Distribution[0]); Pump();
+            Assert.True(host.Tip.IsOpen);
+            host.Model.PreviousPeriodCommand.Execute(null); Pump();
+            Assert.False(host.Tip.IsOpen);
+            host.Model.NextPeriodCommand.Execute(null); Pump();
+            host.Model.ToggleDistribution(host.Model.Distribution[0]); Pump();
+            host.View.Visibility = Visibility.Collapsed; Pump();
+            Assert.False(host.Tip.IsOpen);
+            Assert.Null(host.Model.SelectedDistribution);
+        });
+    }
+
+    [Fact]
+    public void LockedPoptipRefreshesWithTheSnapshotAndPendingPlacementCannotReopenAfterUnload()
+    {
+        Sta(() =>
+        {
+            using var host = new Host();
+            host.Model.ToggleDistribution(host.Model.Distribution[0]); Pump();
+            host.Model.ApplyData([Record(95, "g0"), Record(25, "g1")], []); Pump();
+            Assert.Equal("g0", host.Model.SelectedDistribution!.TargetId);
+            Assert.True(host.Tip.IsOpen);
+            Assert.Equal("1小时35分钟", host.Named<System.Windows.Documents.Run>("TipDuration").Text);
+            host.Model.ApplyData([Record(100, "g0")], []);
+            host.Dispose(); Pump();
+            Assert.False(host.Tip.IsOpen);
+            Assert.Null(host.Model.SelectedDistribution);
+        });
+    }
+
+    [Fact]
+    public void RapidHoverReentryResumesTheAnimationAndLockedSnapshotRefreshDoesNotRestartIt()
+    {
+        Sta(() =>
+        {
+            using var host = new Host();
+            var item = host.Model.Distribution[0];
+            var anchor = host.Ring.AnchorFor(item);
+            host.Ring.HoverAt(anchor); Pump();
+            Assert.InRange(host.Ring.Activation, .99, 1);
+            host.Ring.HoverAt(new Point());
+            host.Ring.HoverAt(anchor); Pump();
+            Assert.Same(item, host.Model.ActiveDistribution);
+            Assert.InRange(host.Ring.Activation, .99, 1);
+            host.Model.ToggleDistribution(item);
+            host.Model.ApplyData([Record(75, "g0"), Record(25, "g1")], []);
+            Assert.InRange(host.Ring.Activation, .99, 1);
+            Assert.Equal("g0", host.Model.ActiveDistribution!.TargetId);
+        });
+    }
+
+    private sealed class Host : IDisposable
+    {
+        public StatisticsDashboardViewModel Model { get; } = new(() => new DateTime(2026, 10, 16));
+        public StatisticsDashboard View { get; }
+        private readonly Window _window;
+        public OverviewFocusChart Chart => Named<OverviewFocusChart>("FocusChart");
+        public FocusDistributionChart Ring => Named<FocusDistributionChart>("DistributionChart");
+        public Popup Tip => Named<Popup>("OverviewTip");
+        public T Named<T>(string name) => (T)View.FindName(name);
+        public Host(double width = 694, double height = 614)
+        {
+            Model.ApplyData(Enumerable.Range(0, 6).Select(index => Record(60 - index * 5, "g" + index)), []);
+            View = new StatisticsDashboard { DataContext = Model };
+            _window = new Window { Content = View, Width = width, Height = height, WindowStyle = WindowStyle.None, ResizeMode = ResizeMode.NoResize, ShowInTaskbar = false, ShowActivated = false, Left = -10000, Top = -10000 };
+            _window.Show(); Pump();
+        }
+        public void Dispose() => _window.Close();
+    }
+    private static FocusSessionRecordViewModel Record(int minutes, string id) => new(new DateTime(2026, 10, 16, 9, 0, 0), new DateTime(2026, 10, 16, 9, 0, 0).AddMinutes(minutes), id, "目标 " + id, "", 0);
+    private static IEnumerable<T> Descendants<T>(DependencyObject value) where T : DependencyObject
+    {
+        if (value is T item) yield return item;
+        for (var index = 0; index < VisualTreeHelper.GetChildrenCount(value); index++) foreach (var child in Descendants<T>(VisualTreeHelper.GetChild(value, index))) yield return child;
+    }
+    private static void Invoke(ButtonBase button)
+    {
+        var peer = UIElementAutomationPeer.CreatePeerForElement(button)!;
+        if (peer.GetPattern(PatternInterface.Invoke) is IInvokeProvider invoke) invoke.Invoke();
+        else if (peer.GetPattern(PatternInterface.SelectionItem) is ISelectionItemProvider select) select.Select();
+        else throw new InvalidOperationException("Button does not expose an actionable automation pattern.");
+    }
+    private static void Pump()
+    {
+        Dispatcher.CurrentDispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
+        var frame = new DispatcherFrame(); var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(175) };
+        timer.Tick += (_, _) => { timer.Stop(); frame.Continue = false; }; timer.Start(); Dispatcher.PushFrame(frame);
+    }
+    private static void Sta(Action action)
+    {
+        Exception? failure = null;
+        var thread = new Thread(() => { try { action(); } catch (Exception ex) { failure = ex; } });
+        thread.SetApartmentState(ApartmentState.STA); thread.Start(); Assert.True(thread.Join(TimeSpan.FromSeconds(30)));
+        if (failure is not null) throw new InvalidOperationException("Overview presentation regression.", failure);
+    }
+}

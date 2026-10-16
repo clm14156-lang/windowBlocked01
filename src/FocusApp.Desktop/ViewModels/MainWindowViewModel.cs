@@ -102,7 +102,6 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         StatisticsPage.GoalChanged += StatisticsPage_GoalChanged;
         StatisticsPage.GoalDeleted += StatisticsPage_GoalDeleted;
         StatisticsPage.GoalCompletedTasks.MutationHandler = MutateCompletedTaskAsync;
-        StatisticsPage.MonthlyFocusTargetChanged += StatisticsPage_MonthlyFocusTargetChanged;
         StateCoordinator = new FocusStateCoordinator(HomePage, SettingsPage, BlockingPage, StatisticsPage);
         SettingsPage.SetUserAccess(IsLoggedIn, IsVipMember);
         HomePage.SetUserAccess(IsLoggedIn, IsVipMember);
@@ -1049,27 +1048,6 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             }
         }
         finally { _targetPersistenceGate.Release(); }
-    }
-
-    private async void StatisticsPage_MonthlyFocusTargetChanged(object? sender, EventArgs e)
-    {
-        var currentMonth = new DateOnly(DateTime.Today.Year, DateTime.Today.Month, 1);
-        var targetMinutes = StatisticsPage.HasMonthlyFocusTarget
-            ? checked(StatisticsPage.MonthlyFocusTargetHours * 60)
-            : (int?)null;
-        await PersistSettingsAsync(state =>
-        {
-            var targets = state.MonthlyFocusTargets.Where(item => item.Month != currentMonth).ToList();
-            if (targetMinutes is not null)
-            {
-                targets.Add(new LocalMonthlyFocusTargetDto(currentMonth, targetMinutes.Value));
-            }
-
-            return new SaveSettingsCommand(
-                state.Settings with { UpdatedAtUtc = DateTimeOffset.UtcNow },
-                state.DurationPresets,
-                targets);
-        });
     }
 
     private static FocusThemeMode ParseFocusTheme(string value) =>

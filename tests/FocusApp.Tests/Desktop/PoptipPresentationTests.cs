@@ -14,7 +14,7 @@ namespace FocusApp.Tests.Desktop;
 public sealed class PoptipPresentationTests
 {
     [Fact]
-    public void ThreePoptipsUseTheSameTypographyAndAdaptWithoutShrinkingTextAtCommonDpiScales()
+    public void CalendarPoptipKeepsSharedTypographyWithoutShrinkingLongGoalNames()
     {
         Sta(() =>
         {
@@ -39,93 +39,7 @@ public sealed class PoptipPresentationTests
             Assert.Equal(TextTrimming.CharacterEllipsis, goal.TextTrimming);
             Assert.Equal(TextWrapping.NoWrap, goal.TextWrapping);
             Assert.InRange(goal.ActualWidth, 1, 202);
-
-            var distribution = new PeriodFocusDistributionToolTip
-            {
-                DataContext = new PeriodFocusDistributionViewModel("产品开发", 106, .28, "", 5, 3)
-            };
-            Layout(distribution);
-            var primary = (TextBlock)distribution.FindName("DistributionTipPrimaryLine");
-            var secondary = (TextBlock)distribution.FindName("DistributionTipSecondaryLine");
-            VerifyText(primary, 14, FontWeights.SemiBold, "#242424", 20);
-            VerifyText(secondary, 12, FontWeights.Normal, "#909399", 17);
-            var percentage = primary.Inlines.OfType<Run>().Last();
-            Assert.Equal("28%", percentage.Text);
-            Assert.Equal(ColorConverter.ConvertFromString("#FF7A2F"), ((SolidColorBrush)percentage.Foreground).Color);
-            Assert.Equal(14, percentage.FontSize);
-            Assert.Equal(FontWeights.SemiBold, percentage.FontWeight);
-            var compactWidth = distribution.ActualWidth;
-            distribution.DataContext = new PeriodFocusDistributionViewModel("产品开发", 1234567, .99, "", 999999, 88888);
-            Layout(distribution);
-            Assert.True(distribution.ActualWidth >= compactWidth);
-            Assert.InRange(distribution.ActualWidth, 1, 240);
-            Assert.Equal(14, primary.FontSize); // Ellipsis, never a Viewbox that shrinks the font.
-
-            var page = new StatisticsPage();
-            var trend = (PoptipChrome)page.FindName("TrendTooltipSurface");
-            ((StackPanel)trend.Child).DataContext = new { TooltipDateDisplay = "9月19日 周六", TooltipDurationDisplay = "1小时00分钟" };
-            Layout(trend);
-            var lines = ((StackPanel)trend.Child).Children.OfType<TextBlock>().ToArray();
-            VerifyText(lines[0], 12, FontWeights.Normal, "#909399", 17);
-            VerifyText(lines[1], 14, FontWeights.SemiBold, "#FF7A2F", 20);
-            Assert.Equal("9月19日 周六", lines[0].Text);
-            Assert.Equal("1小时00分钟", lines[1].Text);
-
-            foreach (var scale in new[] { 1d, 1.25, 1.5, 2 })
-            {
-                SavePreview(record, "record-long", scale);
-                distribution.DataContext = new PeriodFocusDistributionViewModel("产品开发", 106, .28, "", 5, 3);
-                Layout(distribution);
-                SavePreview(distribution, "distribution", scale);
-                SavePreview(trend, "trend", scale);
-                distribution.PointerOnTop = true;
-                Layout(distribution);
-                SavePreview(distribution, "distribution-below", scale);
-                distribution.PointerOnTop = false;
-            }
-        });
-    }
-
-    [Fact]
-    public void TrendPoptipTracksMeasuredContentAndStaysInsideTheCardAtEitherHorizontalEdge()
-    {
-        Sta(() =>
-        {
-            var model = new StatisticsOverviewViewModel(false);
-            var page = new StatisticsPage();
-            var popup = (System.Windows.Controls.Primitives.Popup)page.FindName("TrendTooltipPopup");
-            System.Windows.Data.BindingOperations.ClearBinding(popup, System.Windows.Controls.Primitives.Popup.IsOpenProperty);
-            popup.IsOpen = false; // Verify placement without opening a native popup window.
-            page.DataContext = model;
-            foreach (var resource in new[] { "Colors", "Typography", "Strings", "Styles" })
-                page.Resources.MergedDictionaries.Add(new ResourceDictionary
-                    { Source = new Uri($"/FocusApp.Desktop;component/Resources/{resource}.xaml", UriKind.Relative) });
-            page.Measure(new Size(800, 800));
-            page.Arrange(new Rect(0, 0, 800, 800));
-            page.UpdateLayout();
-            var card = (FrameworkElement)page.FindName("TrendCard");
-            var surface = (PoptipChrome)page.FindName("TrendTooltipSurface");
-            var chart = (FrameworkElement)page.FindName("TrendChartControl");
-            foreach (var anchorX in new[] { 0d, chart.ActualWidth })
-            {
-                model.SetHoveredPoint(new TrendDataPointViewModel(DateTime.Today, 1234567, 1, anchorX, 90, false));
-                page.Dispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
-                typeof(StatisticsPage).GetMethod("UpdateTooltipPlacement",
-                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.Invoke(page, null);
-                Assert.InRange(model.TooltipOffsetX, 0, Math.Max(0, card.ActualWidth - surface.DesiredSize.Width));
-                Assert.InRange(model.TooltipOffsetY, 0, Math.Max(0, card.ActualHeight - surface.DesiredSize.Height));
-                Assert.InRange(surface.DesiredSize.Width, 1, 240);
-                var content = ((StackPanel)surface.Child).Children.OfType<TextBlock>().Last();
-                Assert.Equal(model.HoveredPoint!.TooltipDurationDisplay, content.Text);
-            }
-            // A tall column near the top needs the same pointer on the opposite side.
-            var highPoint = new TrendDataPointViewModel(DateTime.Today, 90, 1, 20, -100, false);
-            model.SetHoveredPoint(highPoint);
-            page.Dispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
-            typeof(StatisticsPage).GetMethod("UpdateTooltipPlacement",
-                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.Invoke(page, null);
-            Assert.True(surface.PointerOnTop);
-            model.SetHoveredPoint(null);
+            foreach (var scale in new[] { 1d, 1.25, 1.5, 2 }) SavePreview(record, "record-long", scale);
         });
     }
 

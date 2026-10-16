@@ -14,17 +14,6 @@ namespace FocusApp.Desktop.ViewModels;
 
 public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 {
-    private const double ChartLeft = 8;
-    private const double ChartWidth = 562;
-    private const double TrendPlotTop = 0;
-    private const double TrendPlotBottom = 120;
-    private const double TrendPlotHeight = TrendPlotBottom - TrendPlotTop;
-    private const int CompactTrendTickIntervalMinutes = 2 * 60;
-    private const int ExpandedTrendTickIntervalMinutes = 4 * 60;
-    private const int PreferredMaximumTrendTickCount = 6;
-    private const int MaximumSupportedTrendMinutes = 24 * 60;
-    private StatisticsRangeOptionViewModel _selectedRange;
-    private TrendDataPointViewModel? _hoveredPoint;
     private StatisticsTab _selectedTab = StatisticsTab.Overview;
     private DateTime _calendarMonth = new(2026, 2, 1);
     private CalendarDayViewModel? _selectedCalendarDay;
@@ -41,20 +30,10 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     private readonly RelayCommand<object> _confirmCreateGoalCommand;
     private readonly HashSet<FocusSessionRecordViewModel> _subscribedFocusSessionRecords = [];
     private readonly HashSet<GoalOverviewItemViewModel> _observedGoals = [];
-    private int? _monthlyFocusTargetHours;
-    private bool _hasDailyFixedFocusTarget;
-    private int _dailyFixedFocusTargetHours;
-    private FocusGoalMode _focusGoalMode = FocusGoalMode.DailyFixed;
-    private bool _isMonthlyFocusTargetPopupOpen;
-    private bool _isMonthlyFocusTargetMenuOpen;
-    private string _monthlyFocusTargetInput = string.Empty;
-    private readonly FocusGoalSettingsModalViewModel _focusGoalSettingsModal;
     private bool _isLoggedIn;
     private bool _isVip;
-    private bool _isTrendVipGuideOpen;
     private bool _isDailyFocusRecordVipGuideOpen;
     private bool _isGoalInvestmentDetailsVipGuideOpen;
-    private bool _usesRuntimeFocusData;
     private bool _usesPersistedState;
     private readonly bool _useSampleData;
     private readonly Func<DateTime> _localNowProvider;
@@ -62,10 +41,6 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     private bool _isInitialized;
     private bool _isApplyingState;
     private LocalDataSnapshotDto? _pendingState;
-    private DateTime _trendReferenceDate = new(2024, 5, 15);
-    private int _periodTotalDisplayMinutes;
-    private int _averageDurationDisplayMinutes;
-
     public StatisticsOverviewViewModel(bool useSampleData = true, bool deferInitialization = false, Func<DateTime>? localNowProvider = null)
     {
         _useSampleData = useSampleData;
@@ -73,12 +48,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         GoalFocusHistory = new GoalFocusHistoryViewModel(_localNowProvider);
         GoalCompletedTasks = new GoalCompletedTasksViewModel();
         GoalInvestmentTrend = new GoalInvestmentTrendViewModel(_localNowProvider);
-        RangeOptions =
-        [
-            new StatisticsRangeOptionViewModel("近7天", 7),
-            new StatisticsRangeOptionViewModel("近30天", 30)
-        ];
-        _selectedRange = RangeOptions[0];
+        Overview = new StatisticsDashboardViewModel(_localNowProvider);
         AllTargetIcons = new ObservableCollection<TargetIconOptionViewModel>(
             TargetIconCatalog.GetAvailableIconFileNames()
                 .Select(fileName => new TargetIconOptionViewModel(
@@ -118,26 +88,6 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         ArchiveGoalCommand = new RelayCommand<GoalOverviewItemViewModel>(ArchiveGoal);
         RestoreGoalCommand = new RelayCommand<GoalOverviewItemViewModel>(RestoreGoal);
         DeleteGoalCommand = new RelayCommand<GoalOverviewItemViewModel>(DeleteGoal);
-        _focusGoalSettingsModal = new FocusGoalSettingsModalViewModel(_localNowProvider, GetCurrentMonthFocusDuration);
-        _focusGoalSettingsModal.GoalSettingsChanged += FocusGoalSettingsModal_GoalSettingsChanged;
-        OpenFocusGoalSettingsCommand = new RelayCommand<object>(_ => _focusGoalSettingsModal.OpenCommand.Execute(null));
-        OpenMonthlyFocusTargetCommand = new RelayCommand<object>(parameter =>
-        {
-            if (string.Equals(parameter as string, "FocusGoalSettings", StringComparison.Ordinal))
-            {
-                _focusGoalSettingsModal.OpenCommand.Execute(null);
-                return;
-            }
-
-            OpenMonthlyFocusTarget(false);
-        });
-        ToggleMonthlyFocusTargetMenuCommand = new RelayCommand<object>(_ => ToggleMonthlyFocusTargetMenu());
-        EditMonthlyFocusTargetCommand = new RelayCommand<object>(_ => OpenMonthlyFocusTarget(true));
-        SaveMonthlyFocusTargetCommand = new RelayCommand<object>(_ => SaveMonthlyFocusTarget());
-        CancelMonthlyFocusTargetCommand = new RelayCommand<object>(_ => IsMonthlyFocusTargetPopupOpen = false);
-        DeleteMonthlyFocusTargetCommand = new RelayCommand<object>(_ => DeleteMonthlyFocusTarget());
-        IncreaseMonthlyFocusTargetCommand = new RelayCommand<object>(_ => AdjustMonthlyFocusTarget(1));
-        DecreaseMonthlyFocusTargetCommand = new RelayCommand<object>(_ => AdjustMonthlyFocusTarget(-1));
         AddGoalCommand = new RelayCommand<object>(_ => OpenCreateGoalDialog());
         EditGoalCommand = new RelayCommand<GoalOverviewItemViewModel>(OpenEditGoalDialog);
         CancelCreateGoalCommand = new RelayCommand<object>(_ => CloseCreateGoalDialog());
@@ -158,7 +108,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     public event PropertyChangedEventHandler? PropertyChanged;
     public event EventHandler<GoalOverviewItemViewModel>? GoalChanged;
     public event EventHandler<string>? GoalDeleted;
-    public event EventHandler? MonthlyFocusTargetChanged;
+    public event EventHandler? FocusHistoryChanged;
     public void ApplyState(LocalDataSnapshotDto state)
     {
         ArgumentNullException.ThrowIfNull(state);
@@ -248,14 +198,14 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
                 return;
             }
 
-            RefreshTrend();
             if (_useSampleData)
             {
                 RefreshGoals();
             }
 
             RefreshCalendar();
-            NotifyTodayFocusDisplayChanged();
+            RefreshOverview();
+            FocusHistoryChanged?.Invoke(this, EventArgs.Empty);
         }
         finally
         {
@@ -331,23 +281,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             _isApplyingState = false;
         }
 
-        _usesRuntimeFocusData = true;
         _usesPersistedState = true;
-        _trendReferenceDate = DateTime.Today;
-        _calendarMonth = calendarMonth;
-        var monthlyTarget = state.MonthlyFocusTargets.FirstOrDefault(item => item.Month == new DateOnly(DateTime.Today.Year, DateTime.Today.Month, 1));
-        _monthlyFocusTargetHours = monthlyTarget is null ? null : (int)Math.Ceiling(monthlyTarget.TargetMinutes / 60d);
-        if (_monthlyFocusTargetHours is > 0)
-        {
-            _focusGoalMode = FocusGoalMode.MonthlyTotal;
-            _hasDailyFixedFocusTarget = false;
-        }
-        else if (_focusGoalMode == FocusGoalMode.MonthlyTotal)
-        {
-            _focusGoalMode = FocusGoalMode.DailyFixed;
-        }
-
-        _focusGoalSettingsModal.ApplyPersistedMonthlyTarget(_monthlyFocusTargetHours);
         RefreshGoalSummaries();
         var nextSelectedGoal = Goals.FirstOrDefault(goal =>
             goal.GoalId == selectedGoalId && goal.IsArchived == ShowArchivedGoals)
@@ -356,14 +290,12 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         SelectGoal(nextSelectedGoal);
 
         RefreshCalendar(selectedCalendarDate);
-        RefreshTrend();
-        NotifyMonthlyFocusTargetChanged();
+        RefreshOverview();
         if (goalProjectionChanged)
         {
             OnPropertyChanged(nameof(VisibleGoals));
         }
-        OnPropertyChanged(nameof(TodayDateDisplay));
-        NotifyTodayFocusDisplayChanged();
+        FocusHistoryChanged?.Invoke(this, EventArgs.Empty);
     }
 
     private bool HasGoalProjectionChanged(IReadOnlyList<LocalTargetDto> targets)
@@ -400,27 +332,9 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     public bool IsVip => _isVip;
 
-    public bool CanViewTrend => IsLoggedIn && IsVip;
-
     public bool CanViewDailyFocusRecord => IsLoggedIn && IsVip;
 
     public bool CanViewGoalInvestmentDetails => IsLoggedIn && IsVip;
-
-    public bool IsTrendVipGuideOpen
-    {
-        get => _isTrendVipGuideOpen;
-        set
-        {
-            var effectiveValue = value && !CanViewTrend;
-            if (_isTrendVipGuideOpen == effectiveValue)
-            {
-                return;
-            }
-
-            _isTrendVipGuideOpen = effectiveValue;
-            OnPropertyChanged();
-        }
-    }
 
     public bool IsDailyFocusRecordVipGuideOpen
     {
@@ -456,7 +370,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     public void SetUserAccess(bool isLoggedIn, bool isVip)
     {
-        var canViewTrend = CanViewTrend;
+        var couldViewDetails = CanViewDailyFocusRecord;
 
         if (_isLoggedIn != isLoggedIn)
         {
@@ -470,25 +384,19 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(IsVip));
         }
 
-        if (canViewTrend != CanViewTrend)
+        if (couldViewDetails != CanViewDailyFocusRecord)
         {
-            OnPropertyChanged(nameof(CanViewTrend));
             OnPropertyChanged(nameof(CanViewDailyFocusRecord));
             OnPropertyChanged(nameof(CanViewGoalInvestmentDetails));
-            if (CanViewTrend)
+            if (CanViewDailyFocusRecord)
             {
-                IsTrendVipGuideOpen = false;
                 IsDailyFocusRecordVipGuideOpen = false;
                 IsGoalInvestmentDetailsVipGuideOpen = false;
             }
         }
     }
 
-    public ObservableCollection<StatisticsRangeOptionViewModel> RangeOptions { get; }
-
-    public ObservableCollection<TrendDataPointViewModel> TrendPoints { get; } = [];
-
-    public ObservableCollection<YAxisTickViewModel> YAxisTicks { get; } = [];
+    public StatisticsDashboardViewModel Overview { get; }
 
     public ICommand SelectOverviewCommand { get; }
 
@@ -533,34 +441,13 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     public ICommand SelectTargetIconCommand { get; }
 
-
-
-
-
     public ICommand ToggleGoalIconLibraryCommand { get; }
 
     public ICommand ClearNewGoalNameCommand { get; }
 
-    public ICommand OpenMonthlyFocusTargetCommand { get; }
-    public ICommand OpenFocusGoalSettingsCommand { get; }
-    public ICommand ToggleMonthlyFocusTargetMenuCommand { get; }
-    public ICommand EditMonthlyFocusTargetCommand { get; }
-    public ICommand SaveMonthlyFocusTargetCommand { get; }
-    public ICommand CancelMonthlyFocusTargetCommand { get; }
-    public ICommand DeleteMonthlyFocusTargetCommand { get; }
-    public ICommand IncreaseMonthlyFocusTargetCommand { get; }
-    public ICommand DecreaseMonthlyFocusTargetCommand { get; }
-
-    public FocusGoalSettingsModalViewModel FocusGoalSettingsModal => _focusGoalSettingsModal;
-
     public ObservableCollection<CalendarDayViewModel> CalendarDays { get; } = [];
 
     public ObservableCollection<FocusSessionRecordViewModel> FocusSessionRecords { get; } = [];
-
-    public ObservableCollection<PeriodFocusDistributionViewModel> PeriodFocusDistributions { get; } = [];
-    public int PeriodFocusDistributionTotalMinutes { get; private set; }
-    public bool HasPeriodFocusDistribution => PeriodFocusDistributions.Count > 0;
-    public string PeriodFocusDistributionEmptyTitle => SelectedRange.Days == 7 ? "近七天没有专注记录" : $"{SelectedRange.Label}没有专注记录";
 
     public ObservableCollection<FocusSessionRecordViewModel> SelectedDayRecords { get; } = [];
     public IReadOnlyList<CalendarDayRecordViewModel> SelectedDayRecordEntries { get; private set; } = [];
@@ -571,7 +458,6 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     public bool HasSelectedDayRecords => SelectedDayRecords.Count > 0;
     public IReadOnlyList<CalendarCompletedTaskViewModel> SelectedDayCompletedTaskItems { get; private set; } = [];
     public ObservableCollection<GoalOverviewItemViewModel> Goals { get; } = [];
-    public bool ShowSetFocusGoal => !Goals.Any(goal => !goal.IsArchived && goal.GoalId != "goal-unassigned");
 
     private void Goals_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
@@ -583,14 +469,14 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         foreach (var goal in Goals)
             if (_observedGoals.Add(goal)) goal.PropertyChanged += ActiveGoal_PropertyChanged;
         OnPropertyChanged(nameof(IsGoalCreationGuideVisible));
-        OnPropertyChanged(nameof(ShowSetFocusGoal));
+        if (_isInitialized && !_isApplyingState) RefreshOverview();
     }
 
     private void ActiveGoal_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (e.PropertyName == nameof(GoalOverviewItemViewModel.Name) && _isInitialized && !_isApplyingState) RefreshOverview();
         if (e.PropertyName != nameof(GoalOverviewItemViewModel.IsArchived)) return;
         OnPropertyChanged(nameof(IsGoalCreationGuideVisible));
-        OnPropertyChanged(nameof(ShowSetFocusGoal));
     }
 
     public bool IsGoalCreationGuideVisible => IsCurrentGoalList && !Goals.Any(goal => !goal.IsArchived);
@@ -598,7 +484,6 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     public ObservableCollection<TargetIconOptionViewModel> AllTargetIcons { get; }
 
     public ObservableCollection<TargetIconOptionViewModel> QuickTargetIcons { get; }
-
 
     public IReadOnlyList<GoalColorOptionViewModel> GoalColors { get; } =
     [
@@ -966,115 +851,12 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             goalName!,
             taskNames.FirstOrDefault() ?? string.Empty,
             taskNames.Count,
-            taskNames) { IconSource = Goals.FirstOrDefault(goal => goal.GoalId == goalId)?.IconSource ?? TargetIconCatalog.GetIconSource(null) });
-        _usesRuntimeFocusData = true;
-        _trendReferenceDate = endsAt.Date;
-        OnPropertyChanged(nameof(TodayDateDisplay));
+            taskNames) { CompletedTaskIds = record.CompletedTaskIds, IconSource = Goals.FirstOrDefault(goal => goal.GoalId == goalId)?.IconSource ?? TargetIconCatalog.GetIconSource(null) });
         if (_isInitialized)
         {
-            RefreshTrend();
+            RefreshOverview();
         }
     }
-
-    public bool HasMonthlyFocusTarget => _monthlyFocusTargetHours is > 0;
-    public int MonthlyFocusTargetHours => _monthlyFocusTargetHours ?? 0;
-    public bool IsMonthlyFocusGoal => _focusGoalMode == FocusGoalMode.MonthlyTotal && HasMonthlyFocusTarget;
-    public bool HasFocusGoal => HasDailyFixedFocusTarget || IsMonthlyFocusGoal;
-    public int MonthlyFocusRemainingDays => _focusGoalSettingsModal.RemainingDays;
-    public int MonthlyFocusTodayRecommendationMinutes
-    {
-        get
-        {
-            if (!IsMonthlyFocusGoal || MonthlyFocusRemainingDays <= 0)
-            {
-                return 0;
-            }
-
-            return (int)(_focusGoalSettingsModal.GetDailyRequiredFocusHours(MonthlyFocusTargetHours) * 60);
-        }
-    }
-
-    public string MonthlyFocusTodayRecommendationDisplay => FormatTargetDuration(MonthlyFocusTodayRecommendationMinutes);
-    public int MonthlyFocusTodayProgressPercent
-    {
-        get
-        {
-            if (!IsMonthlyFocusGoal)
-            {
-                return 0;
-            }
-
-            if (MonthlyFocusTodayRecommendationMinutes <= 0)
-            {
-                return 100;
-            }
-
-            return Math.Min(100, (int)Math.Round(
-                GetDailySummary(DateTime.Today).FocusMinutes /
-                (double)MonthlyFocusTodayRecommendationMinutes * 100));
-        }
-    }
-
-    public double MonthlyFocusTodayProgressRatio => MonthlyFocusTodayProgressPercent / 100d;
-    public string MonthlyFocusCompletedSummaryDisplay => $"本月 {FormatTargetDuration(CurrentMonthFocusMinutes)} / {MonthlyFocusTargetHours}小时";
-    public string MonthlyFocusRemainingDaysSummaryDisplay => $"剩余{MonthlyFocusRemainingDays}天";
-
-    private int CurrentMonthFocusMinutes => (int)GetCurrentMonthFocusDuration().TotalMinutes;
-
-    public string MonthlyFocusTargetInput
-    {
-        get => _monthlyFocusTargetInput;
-        set
-        {
-            var normalizedValue = FocusGoalSettingsModalViewModel.NormalizeTargetHoursInput(value, _focusGoalSettingsModal.MonthlyTargetMaximumHours);
-            if (_monthlyFocusTargetInput == normalizedValue) return;
-            _monthlyFocusTargetInput = normalizedValue;
-            OnPropertyChanged();
-        }
-    }
-
-    public bool IsMonthlyFocusTargetPopupOpen
-    {
-        get => _isMonthlyFocusTargetPopupOpen;
-        set
-        {
-            if (_isMonthlyFocusTargetPopupOpen == value) return;
-            _isMonthlyFocusTargetPopupOpen = value;
-            if (value)
-            {
-                IsMonthlyFocusTargetMenuOpen = false;
-            }
-            OnPropertyChanged();
-        }
-    }
-
-    public bool IsMonthlyFocusTargetMenuOpen
-    {
-        get => _isMonthlyFocusTargetMenuOpen;
-        set
-        {
-            if (_isMonthlyFocusTargetMenuOpen == value) return;
-            _isMonthlyFocusTargetMenuOpen = value;
-            OnPropertyChanged();
-        }
-    }
-
-    public string MonthlyFocusTargetPopupTitle => HasMonthlyFocusTarget ? "编辑本月目标" : "设置本月目标";
-    public int MonthlyFocusCompletedMinutes => MonthlyTotalMinutes;
-    public int MonthlyFocusCompletedHours => MonthlyFocusCompletedMinutes / 60;
-    public int MonthlyFocusCompletedMinutesRemainder => MonthlyFocusCompletedMinutes % 60;
-    public string MonthlyFocusCompletedDisplay => FormatDuration(MonthlyFocusCompletedMinutes);
-    public string MonthlyFocusInvestedDisplay => FormatHours(MonthlyFocusCompletedMinutes);
-    public int MonthlyFocusProgressPercent => !HasMonthlyFocusTarget
-        ? 0
-        : Math.Min(100, (int)Math.Round(MonthlyFocusCompletedMinutes / (MonthlyFocusTargetHours * 60d) * 100));
-    public bool IsMonthlyFocusTargetCompleted => HasMonthlyFocusTarget &&
-        MonthlyFocusCompletedMinutes >= MonthlyFocusTargetHours * 60;
-    public string MonthlyFocusTargetDisplay => $"{MonthlyFocusTargetHours} 小时";
-    public string MonthlyFocusRemainingDisplay => FormatHours(Math.Max(0, MonthlyFocusTargetHours * 60 - MonthlyFocusCompletedMinutes));
-    public double MonthlyFocusProgressRatio => !HasMonthlyFocusTarget
-        ? 0
-        : Math.Min(1, MonthlyFocusCompletedMinutes / (MonthlyFocusTargetHours * 60d));
 
     public StatisticsTab SelectedTab
     {
@@ -1089,8 +871,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             _selectedTab = value;
             if (_selectedTab != StatisticsTab.Goals) GoalCompletedTasks.CloseCommand.Execute(null);
             if (_selectedTab == StatisticsTab.Goals) GoalFocusHistory.ApplyState(SelectedGoal, FocusSessionRecords, _goalTaskSnapshot);
-            SetHoveredPoint(null);
-            IsTrendVipGuideOpen = false;
+            Overview.ClearDistributionSelection();
             IsDailyFocusRecordVipGuideOpen = false;
             IsGoalInvestmentDetailsVipGuideOpen = false;
             OnPropertyChanged();
@@ -1513,197 +1294,16 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     private void FocusSessionRecord_PropertyChanged(object? sender, PropertyChangedEventArgs e) => RefreshFocusSessionData();
 
-    private void FocusGoalSettingsModal_GoalSettingsChanged(object? sender, EventArgs e)
-    {
-        if (sender is not FocusGoalSettingsModalViewModel modal)
-        {
-            return;
-        }
-
-        if (!modal.HasSavedTarget)
-        {
-            _hasDailyFixedFocusTarget = false;
-            _monthlyFocusTargetHours = null;
-            _focusGoalMode = FocusGoalMode.DailyFixed;
-        }
-        else if (modal.IsMonthlyTotalMode)
-        {
-            _hasDailyFixedFocusTarget = false;
-            _monthlyFocusTargetHours = modal.MonthlyTargetHours;
-            _focusGoalMode = FocusGoalMode.MonthlyTotal;
-        }
-        else
-        {
-            _hasDailyFixedFocusTarget = true;
-            _dailyFixedFocusTargetHours = modal.DailyTargetHours;
-            _monthlyFocusTargetHours = null;
-            _focusGoalMode = FocusGoalMode.DailyFixed;
-        }
-
-        NotifyMonthlyFocusTargetChanged();
-        NotifyTodayFocusTargetChanged();
-        MonthlyFocusTargetChanged?.Invoke(this, EventArgs.Empty);
-    }
-
     private void RefreshFocusSessionData()
     {
         RefreshGoalSummaries();
         NotifyGoalDetailStatistics();
         RefreshCalendar(_selectedCalendarDay?.Date);
-        NotifyMonthlyFocusTargetChanged();
-        NotifyTodayFocusDisplayChanged();
-        if (_usesRuntimeFocusData)
-        {
-            RefreshTrend();
-        }
-        else
-        {
-            RefreshPeriodFocusDistribution();
-        }
+        RefreshOverview();
+        FocusHistoryChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    private void RefreshPeriodFocusDistribution()
-    {
-        PeriodFocusDistributions.Clear();
-        // Reuse the plotted dates so range changes and historical reference dates stay in sync.
-        var endDate = (TrendPoints.LastOrDefault()?.Date.Date ?? _trendReferenceDate.Date).AddDays(1);
-        var startDate = endDate.AddDays(-SelectedRange.Days);
-        var slices = FocusStatisticsCalculator.GetSlices(GetCoreFocusSessionRecords())
-            .Where(slice => slice.StartsAt >= startDate && slice.StartsAt < endDate)
-            .ToArray();
-        var totalTicks = slices.Sum(slice => slice.Duration.Ticks);
-        PeriodFocusDistributionTotalMinutes = (int)TimeSpan.FromTicks(totalTicks).TotalMinutes;
-        foreach (var group in slices
-                     .GroupBy(slice => string.IsNullOrWhiteSpace(slice.Record.TargetId) ? "goal-unassigned" : slice.Record.TargetId)
-                     .OrderByDescending(group => group.Sum(slice => slice.Duration.Ticks))
-                     .ThenBy(group => group.Key, StringComparer.Ordinal))
-        {
-            var ticks = group.Sum(slice => slice.Duration.Ticks);
-            var goal = Goals.FirstOrDefault(item => item.GoalId == group.Key);
-            var name = goal?.Name ?? group.First().Record.TargetName;
-            PeriodFocusDistributions.Add(new PeriodFocusDistributionViewModel(
-                group.Key == "goal-unassigned" || string.IsNullOrWhiteSpace(name) ? "自由专注" : name,
-                (int)TimeSpan.FromTicks(ticks).TotalMinutes,
-                totalTicks == 0 ? 0 : ticks / (double)totalTicks,
-                goal?.IconSource ?? TargetIconCatalog.GetIconSource(null),
-                group.Select(slice => slice.Record).Distinct(ReferenceEqualityComparer.Instance).Count(),
-                group.Select(slice => slice.StartsAt.Date).Distinct().Count()));
-        }
-        OnPropertyChanged(nameof(PeriodFocusDistributionTotalMinutes));
-        OnPropertyChanged(nameof(PeriodFocusDistributionTotalDisplay));
-        OnPropertyChanged(nameof(HasPeriodFocusDistribution));
-        OnPropertyChanged(nameof(PeriodFocusDistributionEmptyTitle));
-    }
-
-    private void NotifyTodayFocusDisplayChanged()
-    {
-        OnPropertyChanged(nameof(TodayFocusDuration));
-        OnPropertyChanged(nameof(TodayFocusCount));
-        NotifyTodayFocusTargetChanged();
-    }
-
-    private void NotifyTodayFocusTargetChanged()
-    {
-        OnPropertyChanged(nameof(HasDailyFixedFocusTarget));
-        OnPropertyChanged(nameof(HasFocusGoal));
-        OnPropertyChanged(nameof(IsMonthlyFocusGoal));
-        OnPropertyChanged(nameof(TodayFocusDurationCompact));
-        OnPropertyChanged(nameof(OverviewFocusGoalProgressRatio));
-        OnPropertyChanged(nameof(OverviewFocusGoalTodayDisplay));
-        OnPropertyChanged(nameof(OverviewFocusGoalTodayTargetDisplay));
-        OnPropertyChanged(nameof(OverviewFocusGoalMonthDurationDisplay));
-        OnPropertyChanged(nameof(OverviewFocusGoalMonthTargetDisplay));
-        OnPropertyChanged(nameof(OverviewFocusGoalDetailLabel));
-        OnPropertyChanged(nameof(OverviewFocusGoalDetailDisplay));
-        OnPropertyChanged(nameof(DailyFixedFocusTargetDisplay));
-        OnPropertyChanged(nameof(TodayFocusTargetProgressPercent));
-        OnPropertyChanged(nameof(TodayFocusTargetProgressRatio));
-        OnPropertyChanged(nameof(TodayFocusTargetCompletedSummaryDisplay));
-        OnPropertyChanged(nameof(TodayFocusTargetRemainingDisplay));
-        OnPropertyChanged(nameof(MonthlyFocusRemainingDays));
-        OnPropertyChanged(nameof(MonthlyFocusTodayRecommendationMinutes));
-        OnPropertyChanged(nameof(MonthlyFocusTodayRecommendationDisplay));
-        OnPropertyChanged(nameof(MonthlyFocusTodayProgressPercent));
-        OnPropertyChanged(nameof(MonthlyFocusTodayProgressRatio));
-        OnPropertyChanged(nameof(MonthlyFocusCompletedSummaryDisplay));
-        OnPropertyChanged(nameof(MonthlyFocusRemainingDaysSummaryDisplay));
-    }
-
-    private void OpenMonthlyFocusTarget(bool editing)
-    {
-        IsMonthlyFocusTargetMenuOpen = false;
-        if (IsMonthlyFocusTargetPopupOpen)
-        {
-            IsMonthlyFocusTargetPopupOpen = false;
-            return;
-        }
-
-        MonthlyFocusTargetInput = editing && HasMonthlyFocusTarget
-            ? MonthlyFocusTargetHours.ToString()
-            : string.Empty;
-        IsMonthlyFocusTargetPopupOpen = true;
-    }
-
-    private void ToggleMonthlyFocusTargetMenu()
-    {
-        if (!HasMonthlyFocusTarget)
-        {
-            IsMonthlyFocusTargetMenuOpen = false;
-            return;
-        }
-
-        IsMonthlyFocusTargetPopupOpen = false;
-        IsMonthlyFocusTargetMenuOpen = !IsMonthlyFocusTargetMenuOpen;
-    }
-
-    private void SaveMonthlyFocusTarget()
-    {
-        MonthlyFocusTargetInput = MonthlyFocusTargetInput;
-        if (!int.TryParse(MonthlyFocusTargetInput, out var hours) || hours <= 0)
-        {
-            return;
-        }
-
-        _monthlyFocusTargetHours = Math.Clamp(hours, 0, _focusGoalSettingsModal.MonthlyTargetMaximumHours);
-        IsMonthlyFocusTargetPopupOpen = false;
-        NotifyMonthlyFocusTargetChanged();
-        MonthlyFocusTargetChanged?.Invoke(this, EventArgs.Empty);
-    }
-
-    private void AdjustMonthlyFocusTarget(int delta)
-    {
-        MonthlyFocusTargetInput = MonthlyFocusTargetInput;
-        _ = int.TryParse(MonthlyFocusTargetInput, out var currentHours);
-        MonthlyFocusTargetInput = Math.Clamp(currentHours + delta, 1, _focusGoalSettingsModal.MonthlyTargetMaximumHours).ToString();
-    }
-
-    private void DeleteMonthlyFocusTarget()
-    {
-        IsMonthlyFocusTargetMenuOpen = false;
-        _monthlyFocusTargetHours = null;
-        IsMonthlyFocusTargetPopupOpen = false;
-        NotifyMonthlyFocusTargetChanged();
-        MonthlyFocusTargetChanged?.Invoke(this, EventArgs.Empty);
-    }
-
-    private void NotifyMonthlyFocusTargetChanged()
-    {
-        _focusGoalSettingsModal.RefreshMonthlyProgress();
-        OnPropertyChanged(nameof(HasMonthlyFocusTarget));
-        OnPropertyChanged(nameof(MonthlyFocusTargetHours));
-        OnPropertyChanged(nameof(MonthlyFocusTargetPopupTitle));
-        OnPropertyChanged(nameof(MonthlyFocusCompletedMinutes));
-        OnPropertyChanged(nameof(MonthlyFocusCompletedHours));
-        OnPropertyChanged(nameof(MonthlyFocusCompletedMinutesRemainder));
-        OnPropertyChanged(nameof(MonthlyFocusCompletedDisplay));
-        OnPropertyChanged(nameof(MonthlyFocusInvestedDisplay));
-        OnPropertyChanged(nameof(MonthlyFocusProgressPercent));
-        OnPropertyChanged(nameof(IsMonthlyFocusTargetCompleted));
-        OnPropertyChanged(nameof(MonthlyFocusTargetDisplay));
-        OnPropertyChanged(nameof(MonthlyFocusRemainingDisplay));
-        OnPropertyChanged(nameof(MonthlyFocusProgressRatio));
-    }
-
+    private void RefreshOverview() => Overview.ApplyData(FocusSessionRecords, Goals);
     private void RefreshGoalSummaries()
     {
         var summaries = FocusStatisticsCalculator.GetGoalSummaries(GetCoreFocusSessionRecords())
@@ -1933,15 +1533,6 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     private IEnumerable<FocusSessionRecordViewModel> GetRecordsForMonth(DateTime month) =>
         FocusSessionRecords.Where(record => record.StartTime.Year == month.Year && record.StartTime.Month == month.Month);
 
-    private TimeSpan GetCurrentMonthFocusDuration()
-    {
-        var today = _localNowProvider().Date;
-        var ticks = FocusStatisticsCalculator.GetSlices(GetCoreFocusSessionRecords())
-            .Where(slice => slice.StartsAt.Year == today.Year && slice.StartsAt.Month == today.Month)
-            .Sum(slice => slice.Duration.Ticks);
-        return TimeSpan.FromTicks(ticks);
-    }
-
     private FocusDailySummary GetDailySummary(DateTime date) =>
         FocusStatisticsCalculator.GetDailySummaries(GetCoreFocusSessionRecords(), date, 1)[0];
 
@@ -1972,23 +1563,6 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     private static string GetWeekday(DateTime date) => new[] { "周日", "周一", "周二", "周三", "周四", "周五", "周六" }[(int)date.DayOfWeek];
 
-    public StatisticsRangeOptionViewModel SelectedRange
-    {
-        get => _selectedRange;
-        set
-        {
-            if (ReferenceEquals(_selectedRange, value))
-            {
-                return;
-            }
-
-            _selectedRange = value;
-            OnPropertyChanged();
-            OnPropertyChanged(nameof(TrendRangeTitle));
-            RefreshTrend();
-        }
-    }
-
     private void RefreshSelectedDayCompletedTasks(DateTime? date = null)
     {
         var selectedDate = date ?? _selectedCalendarDay?.Date;
@@ -2009,310 +1583,6 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(SelectedDayCompletedTaskItems));
     }
 
-    public string TrendRangeTitle => $"{SelectedRange.Label}投入";
-
-    public string PeriodTotalLabel => SelectedRange.Days == 30 ? "本月总计" : "本周总计";
-
-    public string ComparisonLabel => SelectedRange.Days == 30 ? "较上月日均" : "较上周日均";
-
-    public string PeriodTotalDisplay { get; private set; } = string.Empty;
-
-    public string PeriodTotalHoursValueDisplay => _periodTotalDisplayMinutes >= 60
-        ? (_periodTotalDisplayMinutes / 60).ToString()
-        : string.Empty;
-
-    public string PeriodTotalHoursUnitDisplay => _periodTotalDisplayMinutes >= 60 ? " 小时 " : string.Empty;
-
-    public string PeriodTotalMinutesValueDisplay => (_periodTotalDisplayMinutes % 60).ToString();
-
-    public string AverageDurationDisplay { get; private set; } = string.Empty;
-
-    public string AverageDurationHoursValueDisplay => _averageDurationDisplayMinutes >= 60
-        ? (_averageDurationDisplayMinutes / 60).ToString()
-        : string.Empty;
-
-    public string AverageDurationHoursUnitDisplay => _averageDurationDisplayMinutes >= 60 ? " 小时 " : string.Empty;
-
-    public string AverageDurationMinutesValueDisplay => (_averageDurationDisplayMinutes % 60).ToString();
-
-    public string PeriodTotalOverviewDisplay => FormatCompactDuration(_periodTotalDisplayMinutes);
-
-    public string AverageDurationOverviewDisplay => FormatCompactDuration(_averageDurationDisplayMinutes);
-
-    public int TrendAverageMinutes { get; private set; }
-
-    public double TrendAverageY { get; private set; }
-
-    public double TrendAverageLabelTop => TrendAverageY - 18;
-
-    public string TrendAverageDurationDisplay { get; private set; } = string.Empty;
-
-    public string ComparisonDisplay { get; private set; } = string.Empty;
-    private int _comparisonDifferenceMinutes;
-    public string ComparisonDirectionDisplay => _comparisonDifferenceMinutes < 0 ? "↓ " : _comparisonDifferenceMinutes > 0 ? "↑ " : "→ ";
-    public string ComparisonHoursValueDisplay => Math.Abs(_comparisonDifferenceMinutes) >= 60
-        ? (Math.Abs(_comparisonDifferenceMinutes) / 60).ToString()
-        : string.Empty;
-    public string ComparisonHoursUnitDisplay => Math.Abs(_comparisonDifferenceMinutes) >= 60 ? " 小时 " : string.Empty;
-    public string ComparisonMinutesValueDisplay => (Math.Abs(_comparisonDifferenceMinutes) % 60).ToString();
-
-    public string ComparisonOverviewDisplay =>
-        $"{ComparisonDirectionDisplay.Trim()}{FormatCompactDuration(Math.Abs(_comparisonDifferenceMinutes))}";
-
-    public bool IsComparisonIncrease => _comparisonDifferenceMinutes > 0;
-
-    public string TodayDateDisplay
-    {
-        get
-        {
-            var date = _usesRuntimeFocusData ? _trendReferenceDate : DateTime.Today;
-            return $"{date:M月d日} {GetWeekday(date)}";
-        }
-    }
-
-    public string TodayFocusDuration => FormatDuration(GetDailySummary(DateTime.Today).FocusMinutes);
-
-    public int TodayFocusCount => GetDailySummary(DateTime.Today).SessionCount;
-
-    public bool HasDailyFixedFocusTarget => _hasDailyFixedFocusTarget;
-
-    public string TodayFocusDurationCompact => FormatTargetDuration(GetDailySummary(DateTime.Today).FocusMinutes);
-
-    public double OverviewFocusGoalProgressRatio => IsMonthlyFocusGoal
-        ? Math.Clamp(GetDailySummary(DateTime.Today).FocusMinutes / (MonthlyFocusTargetHours * 60d), 0, 1)
-        : TodayFocusTargetProgressRatio;
-
-    public string OverviewFocusGoalTodayTargetDisplay => HasDailyFixedFocusTarget
-        ? $" / {DailyFixedFocusTargetDisplay}"
-        : IsMonthlyFocusGoal ? $" / {MonthlyFocusTodayRecommendationDisplay}" : string.Empty;
-
-    public string OverviewFocusGoalMonthDurationDisplay => FormatTargetDuration((int)GetCurrentMonthFocusDuration().TotalMinutes);
-
-    public string OverviewFocusGoalMonthTargetDisplay => IsMonthlyFocusGoal
-        ? $" / {MonthlyFocusTargetHours}小时" : string.Empty;
-
-    public string OverviewFocusGoalTodayDisplay => $"{TodayFocusDurationCompact}{OverviewFocusGoalTodayTargetDisplay}";
-
-    public string OverviewFocusGoalDetailLabel => "本月";
-
-    public string OverviewFocusGoalDetailDisplay => $"{OverviewFocusGoalMonthDurationDisplay}{OverviewFocusGoalMonthTargetDisplay}";
-
-    public string PeriodFocusDistributionTotalDisplay => FormatTargetDuration(PeriodFocusDistributionTotalMinutes);
-
-    public string DailyFixedFocusTargetDisplay => $"{_dailyFixedFocusTargetHours}小时";
-
-    public int TodayFocusTargetProgressPercent
-    {
-        get
-        {
-            if (!HasDailyFixedFocusTarget || _dailyFixedFocusTargetHours <= 0)
-            {
-                return 0;
-            }
-
-            var minutes = GetDailySummary(DateTime.Today).FocusMinutes;
-            return Math.Min(100, (int)Math.Round(minutes / (_dailyFixedFocusTargetHours * 60d) * 100));
-        }
-    }
-
-    public double TodayFocusTargetProgressRatio
-    {
-        get
-        {
-            if (!HasDailyFixedFocusTarget || _dailyFixedFocusTargetHours <= 0)
-            {
-                return 0;
-            }
-
-            return Math.Min(1, GetDailySummary(DateTime.Today).FocusMinutes / (_dailyFixedFocusTargetHours * 60d));
-        }
-    }
-
-    public string TodayFocusTargetCompletedSummaryDisplay =>
-        $"本日 {TodayFocusDurationCompact} / {DailyFixedFocusTargetDisplay}";
-
-    public string TodayFocusTargetRemainingDisplay =>
-        $"剩余 {FormatTargetDuration(Math.Max(0, _dailyFixedFocusTargetHours * 60 - GetDailySummary(DateTime.Today).FocusMinutes))}";
-
-    public void SetHoveredPointNearestTo(double chartX)
-    {
-        var nearestPoint = TrendPoints.MinBy(point => Math.Abs(point.ChartX - chartX));
-        SetHoveredPoint(nearestPoint);
-    }
-
-    public void SetHoveredPoint(TrendDataPointViewModel? point)
-    {
-        if (ReferenceEquals(_hoveredPoint, point))
-        {
-            return;
-        }
-
-        if (_hoveredPoint is not null)
-        {
-            _hoveredPoint.IsHovered = false;
-        }
-
-        _hoveredPoint = point;
-        if (_hoveredPoint is not null)
-        {
-            _hoveredPoint.IsHovered = true;
-        }
-
-        OnPropertyChanged(nameof(HoveredPoint));
-        OnPropertyChanged(nameof(IsTooltipOpen));
-    }
-
-    public TrendDataPointViewModel? HoveredPoint => _hoveredPoint;
-
-    public bool IsTooltipOpen => _hoveredPoint is not null;
-
-    public double TooltipOffsetX { get; private set; }
-
-    public double TooltipOffsetY { get; private set; }
-
-    public void SetTooltipOffsets(double x, double y)
-    {
-        if (Math.Abs(TooltipOffsetX - x) > 0.1)
-        {
-            TooltipOffsetX = x;
-            OnPropertyChanged(nameof(TooltipOffsetX));
-        }
-
-        if (Math.Abs(TooltipOffsetY - y) > 0.1)
-        {
-            TooltipOffsetY = y;
-            OnPropertyChanged(nameof(TooltipOffsetY));
-        }
-    }
-
-    private void RefreshTrend()
-    {
-        SetHoveredPoint(null);
-        var isSampleTrend = !_usesRuntimeFocusData && _useSampleData;
-        var data = _usesRuntimeFocusData
-            ? GetRuntimeTrendData(SelectedRange.Days)
-            : isSampleTrend
-                ? SelectedRange.Days == 7 ? SevenDayData : ThirtyDayData
-                : GetEmptyTrendData(SelectedRange.Days);
-        TrendPoints.Clear();
-        YAxisTicks.Clear();
-        var maximumDataMinutes = data.Max(point => point.Minutes);
-        var (scaleMaximumMinutes, tickIntervalMinutes) = CalculateTrendScale(maximumDataMinutes);
-
-        for (var value = scaleMaximumMinutes; value >= 0; value -= tickIntervalMinutes)
-        {
-            YAxisTicks.Add(new YAxisTickViewModel(
-                value,
-                MapTrendValueToY(value, scaleMaximumMinutes)));
-        }
-
-        var slotWidth = ChartWidth / data.Length;
-        for (var index = 0; index < data.Length; index++)
-        {
-            var item = data[index];
-            var x = ChartLeft + (index + 0.5) * slotWidth;
-            var y = MapTrendValueToY(item.Minutes, scaleMaximumMinutes);
-            var point = new TrendDataPointViewModel(
-                item.Date,
-                item.Minutes,
-                item.SessionCount,
-                x,
-                y,
-                data.Length == 7 || IsRepresentativeThirtyDayIndex(index, data.Length),
-                Math.Min(32, slotWidth * 0.42));
-            TrendPoints.Add(point);
-        }
-
-        RefreshPeriodFocusDistribution();
-
-        var totalMinutes = data.Sum(point => point.Minutes);
-        var averageMinutes = (int)Math.Round(totalMinutes / (double)data.Length);
-        var previousTotalMinutes = _usesRuntimeFocusData
-            ? GetRuntimeTrendData(SelectedRange.Days, -SelectedRange.Days).Sum(point => point.Minutes)
-            : isSampleTrend ? SelectedRange.Days == 7 ? 720 : 2400 : 0;
-        _periodTotalDisplayMinutes = isSampleTrend && SelectedRange.Days == 7 ? 14 * 60 + 20 : totalMinutes;
-        _averageDurationDisplayMinutes = isSampleTrend && SelectedRange.Days == 7 ? 2 * 60 + 2 : averageMinutes;
-        PeriodTotalDisplay = FormatDuration(_periodTotalDisplayMinutes);
-        AverageDurationDisplay = FormatDuration(_averageDurationDisplayMinutes);
-        TrendAverageMinutes = averageMinutes;
-        TrendAverageY = MapTrendValueToY(averageMinutes, scaleMaximumMinutes);
-        TrendAverageDurationDisplay = FormatCompactDuration(averageMinutes);
-        _comparisonDifferenceMinutes = isSampleTrend && SelectedRange.Days == 7
-            ? 35
-            : (int)Math.Round((totalMinutes - previousTotalMinutes) / (double)data.Length);
-        ComparisonDisplay = FormatComparison(_comparisonDifferenceMinutes);
-        OnPropertyChanged(nameof(PeriodTotalLabel));
-        OnPropertyChanged(nameof(ComparisonLabel));
-        OnPropertyChanged(nameof(PeriodTotalDisplay));
-        OnPropertyChanged(nameof(PeriodTotalHoursValueDisplay));
-        OnPropertyChanged(nameof(PeriodTotalHoursUnitDisplay));
-        OnPropertyChanged(nameof(PeriodTotalMinutesValueDisplay));
-        OnPropertyChanged(nameof(AverageDurationDisplay));
-        OnPropertyChanged(nameof(AverageDurationHoursValueDisplay));
-        OnPropertyChanged(nameof(AverageDurationHoursUnitDisplay));
-        OnPropertyChanged(nameof(AverageDurationMinutesValueDisplay));
-        OnPropertyChanged(nameof(PeriodTotalOverviewDisplay));
-        OnPropertyChanged(nameof(AverageDurationOverviewDisplay));
-        OnPropertyChanged(nameof(TrendAverageMinutes));
-        OnPropertyChanged(nameof(TrendAverageY));
-        OnPropertyChanged(nameof(TrendAverageLabelTop));
-        OnPropertyChanged(nameof(TrendAverageDurationDisplay));
-        OnPropertyChanged(nameof(ComparisonDisplay));
-        OnPropertyChanged(nameof(ComparisonDirectionDisplay));
-        OnPropertyChanged(nameof(ComparisonHoursValueDisplay));
-        OnPropertyChanged(nameof(ComparisonHoursUnitDisplay));
-        OnPropertyChanged(nameof(ComparisonMinutesValueDisplay));
-        OnPropertyChanged(nameof(ComparisonOverviewDisplay));
-        OnPropertyChanged(nameof(IsComparisonIncrease));
-        OnPropertyChanged(nameof(YAxisTicks));
-    }
-
-    private static double MapTrendValueToY(int value, int maximumValue)
-    {
-        if (maximumValue <= 0)
-        {
-            return TrendPlotBottom;
-        }
-
-        var plottedValue = Math.Clamp(value, 0, maximumValue);
-        return TrendPlotBottom - plottedValue / (double)maximumValue * TrendPlotHeight;
-    }
-
-    private static (int ScaleMaximumMinutes, int TickIntervalMinutes) CalculateTrendScale(int maximumDataMinutes)
-    {
-        var cappedMaximumMinutes = Math.Clamp(maximumDataMinutes, 0, MaximumSupportedTrendMinutes);
-        var compactScaleMaximum = RoundUpToInterval(
-            Math.Max(cappedMaximumMinutes, CompactTrendTickIntervalMinutes),
-            CompactTrendTickIntervalMinutes);
-        var compactTickCount = compactScaleMaximum / CompactTrendTickIntervalMinutes + 1;
-        var tickIntervalMinutes = compactTickCount <= PreferredMaximumTrendTickCount
-            ? CompactTrendTickIntervalMinutes
-            : ExpandedTrendTickIntervalMinutes;
-        var scaleMaximumMinutes = Math.Min(
-            MaximumSupportedTrendMinutes,
-            RoundUpToInterval(
-                Math.Max(cappedMaximumMinutes, tickIntervalMinutes),
-                tickIntervalMinutes));
-
-        return (scaleMaximumMinutes, tickIntervalMinutes);
-    }
-
-    private static int RoundUpToInterval(int value, int interval)
-    {
-        return (value + interval - 1) / interval * interval;
-    }
-
-    private static bool IsRepresentativeThirtyDayIndex(int index, int count)
-    {
-        if (count <= 1)
-        {
-            return true;
-        }
-
-        var representativeIndex = (int)Math.Round(index * 6d / (count - 1), MidpointRounding.AwayFromZero);
-        return index == (int)Math.Round(representativeIndex * (count - 1) / 6d, MidpointRounding.AwayFromZero);
-    }
-
     private static string FormatDuration(int totalMinutes)
     {
         return totalMinutes >= 60
@@ -2320,83 +1590,11 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             : $"{totalMinutes} 分钟";
     }
 
-    private static string FormatCompactDuration(int totalMinutes)
-    {
-        return totalMinutes >= 60
-            ? $"{totalMinutes / 60}小时{totalMinutes % 60}分钟"
-            : $"{totalMinutes}分钟";
-    }
-
-    private static string FormatTargetDuration(int totalMinutes)
-    {
-        return totalMinutes >= 60
-            ? totalMinutes % 60 == 0
-                ? $"{totalMinutes / 60}小时"
-                : $"{totalMinutes / 60}小时{totalMinutes % 60}分钟"
-            : $"{totalMinutes}分钟";
-    }
-
-    private TrendMockData[] GetRuntimeTrendData(int days, int offsetDays = 0)
-    {
-        var startDate = _trendReferenceDate.Date.AddDays(1 - days + offsetDays);
-        return FocusStatisticsCalculator.GetDailySummaries(GetCoreFocusSessionRecords(), startDate, days)
-            .Select(summary => new TrendMockData(summary.Date, summary.FocusMinutes, summary.SessionCount))
-            .ToArray();
-    }
-
-    private TrendMockData[] GetEmptyTrendData(int days)
-    {
-        var startDate = _trendReferenceDate.Date.AddDays(1 - days);
-        return Enumerable.Range(0, days)
-            .Select(index => new TrendMockData(startDate.AddDays(index), 0, 0))
-            .ToArray();
-    }
-
-    private static string FormatComparison(int averageDifferenceMinutes) => averageDifferenceMinutes >= 0
-        ? $"+{FormatDuration(averageDifferenceMinutes)}"
-        : $"-{FormatDuration(Math.Abs(averageDifferenceMinutes))}";
-
-    private static string FormatHours(int totalMinutes) => totalMinutes % 60 == 0
-        ? $"{totalMinutes / 60} 小时"
-        : $"{totalMinutes / 60} 小时 {totalMinutes % 60} 分钟";
-
-    private static readonly TrendMockData[] SevenDayData =
-    [
-        new(new DateTime(2024, 5, 9), 0, 0),
-        new(new DateTime(2024, 5, 10), 126, 4),
-        new(new DateTime(2024, 5, 11), 96, 3),
-        new(new DateTime(2024, 5, 12), 1380, 5),
-        new(new DateTime(2024, 5, 13), 138, 4),
-        new(new DateTime(2024, 5, 14), 186, 5),
-        new(new DateTime(2024, 5, 15), 126, 5)
-    ];
-
-    private static readonly TrendMockData[] ThirtyDayData = Enumerable.Range(0, 30)
-        .Select(index => new TrendMockData(
-            new DateTime(2024, 4, 16).AddDays(index),
-            new[] { 42, 88, 0, 125, 98, 154, 76, 116, 63, 179 }[index % 10],
-            new[] { 1, 3, 0, 4, 3, 5, 2, 4, 2, 5 }[index % 10]))
-        .ToArray();
-
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 
-    private sealed record TrendMockData(DateTime Date, int Minutes, int SessionCount);
-}
-
-public sealed class StatisticsRangeOptionViewModel
-{
-    public StatisticsRangeOptionViewModel(string label, int days)
-    {
-        Label = label;
-        Days = days;
-    }
-
-    public string Label { get; }
-
-    public int Days { get; }
 }
 
 public sealed class CalendarDayViewModel : INotifyPropertyChanged
@@ -2587,15 +1785,6 @@ public sealed class FocusSessionRecordViewModel : INotifyPropertyChanged
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 }
 
-public sealed record PeriodFocusDistributionViewModel(string TargetName, int Minutes, double Ratio, string IconSource,
-    int SessionCount = 0, int FocusDayCount = 0)
-{
-    public string TooltipDurationDisplay => DurationDisplay.Replace(" ", string.Empty);
-    public string PercentageDisplay => $"{Math.Clamp(Ratio, 0, 1) * 100:0}%";
-    public string DurationDisplay => Minutes < 1 ? "<1 分钟" : Minutes < 60 ? $"{Minutes} 分钟"
-        : Minutes % 60 == 0 ? $"{Minutes / 60} 小时" : $"{Minutes / 60} 小时 {Minutes % 60} 分钟";
-}
-
 public sealed class CalendarTimeDistributionViewModel
 {
     public CalendarTimeDistributionViewModel(string targetName, int minutes, double ratio, string? iconSource = null)
@@ -2686,8 +1875,6 @@ public sealed class GoalOverviewItemViewModel : INotifyPropertyChanged
     public string IconSource { get; private set; }
 
     public string? Remark { get; private set; }
-
-
 
     public void UpdateDetails(string? remark)
     {
@@ -2881,117 +2068,4 @@ public enum GoalDetailsViewState
 {
     CurrentGoal,
     ArchivedGoal
-}
-
-public sealed class YAxisTickViewModel
-{
-    public YAxisTickViewModel(int minutes, double chartY)
-    {
-        Minutes = minutes;
-        ChartY = chartY;
-    }
-
-    public int Minutes { get; }
-
-    public double ChartY { get; }
-
-    public string Label => $"{Minutes / 60}h";
-
-    public bool ShowGuideLine => Minutes > 0;
-}
-
-public sealed class TrendDataPointViewModel : INotifyPropertyChanged
-{
-    private bool _isHovered;
-
-    public TrendDataPointViewModel(
-        DateTime date,
-        int minutes,
-        int sessionCount,
-        double chartX,
-        double chartY,
-        bool isKeyPoint,
-        double barWidth = 32)
-    {
-        Date = date;
-        Minutes = minutes;
-        SessionCount = sessionCount;
-        ChartX = chartX;
-        ChartY = chartY;
-        IsKeyPoint = isKeyPoint;
-        BarWidth = barWidth;
-    }
-
-    public event PropertyChangedEventHandler? PropertyChanged;
-
-    public DateTime Date { get; }
-
-    public int Minutes { get; }
-
-    public int SessionCount { get; }
-
-    public double ChartX { get; }
-
-    public double ChartY { get; }
-
-    public double BarWidth { get; }
-
-    public double BarLeft => ChartX - BarWidth / 2;
-
-    public double BarHeight => Math.Max(0, 120 - ChartY);
-
-    public double AxisLabelY => 128;
-
-    public bool IsKeyPoint { get; }
-
-    public bool IsMarkerVisible => IsHovered;
-
-    public bool IsValueLabelVisible => IsHovered;
-
-    public bool IsDateLabelVisible => IsKeyPoint;
-
-    public string TooltipDateDisplay => $"{Date:M月d日} {GetWeekday(Date)}";
-
-    public string TooltipDurationDisplay => FormatDuration(Minutes);
-
-    public string DateLabel => $"{Date:M/d}";
-
-    public string DurationLabel => Minutes == 0 ? "0" : $"{Minutes / 60d:0.0}h";
-
-    public string TooltipText => $"{Date:M月d日} · {FormatDuration(Minutes)} · {SessionCount}次专注";
-
-    public bool IsHovered
-    {
-        get => _isHovered;
-        set
-        {
-            if (_isHovered == value)
-            {
-                return;
-            }
-
-            _isHovered = value;
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsHovered)));
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsMarkerVisible)));
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsValueLabelVisible)));
-        }
-    }
-
-    private static string FormatDuration(int totalMinutes)
-    {
-        return totalMinutes >= 60
-            ? $"{totalMinutes / 60}小时{totalMinutes % 60:00}分钟"
-            : $"{totalMinutes}分钟";
-    }
-
-    private static string GetWeekday(DateTime date) => date.DayOfWeek switch
-    {
-        DayOfWeek.Monday => "周一",
-        DayOfWeek.Tuesday => "周二",
-        DayOfWeek.Wednesday => "周三",
-        DayOfWeek.Thursday => "周四",
-        DayOfWeek.Friday => "周五",
-        DayOfWeek.Saturday => "周六",
-        _ => "周日"
-    };
 }
