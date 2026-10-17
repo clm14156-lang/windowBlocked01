@@ -11,6 +11,8 @@ public sealed record CalendarFocusTimelineViewModel(
     int StartHour,
     IReadOnlyList<CalendarFocusTimelineSegment> Segments)
 {
+    public DateTime Date { get; init; }
+
     public static CalendarFocusTimelineViewModel Create(
         DateTime date, IEnumerable<FocusSessionRecordViewModel> records, bool fullDay = false)
     {
@@ -32,6 +34,6 @@ public sealed record CalendarFocusTimelineViewModel(
         return new CalendarFocusTimelineViewModel(startHour, intervals.Select(interval =>
             new CalendarFocusTimelineSegment(interval.Record, interval.Start, interval.End,
                 (interval.Start - axisStart).Ticks / (double)axisTicks,
-                (interval.End - interval.Start).Ticks / (double)axisTicks)).ToArray());
+                (interval.End - interval.Start).Ticks / (double)axisTicks)).ToArray()) { Date = dayStart };
     }
 }

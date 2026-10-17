@@ -236,13 +236,13 @@ public sealed class CalendarRefactorTests
                 Assert.Equal(longName, model.SelectedGoal!.Name);
                 SavePreview(page, archived ? "archived-goal-sidebar" : "current-goal-sidebar");
                 var fullWidth = overflowing.ActualWidth;
-                var more = Descendants<ToggleButton>(page).Single(button =>
-                    button.Name == "GoalListMoreButton" && button.DataContext == overflowing.DataContext);
+                Assert.DoesNotContain(Descendants<ToggleButton>(page), button => button.Name == "GoalListMoreButton");
+                var more = (ToggleButton)page.FindName("GoalDetailMoreButton");
+                Assert.Same(overflowing.DataContext, more.DataContext);
                 more.IsChecked = true;
                 Pump();
-                Assert.Equal(fullWidth - 28, overflowing.ActualWidth, 1);
-                Assert.True(Descendants<Popup>(page).Single(popup =>
-                    popup.Name == "GoalListMorePopup" && popup.DataContext == overflowing.DataContext).IsOpen);
+                Assert.Equal(fullWidth, overflowing.ActualWidth, 1);
+                Assert.True(((Popup)page.FindName("GoalDetailMorePopup")).IsOpen);
                 more.IsChecked = false;
                 Pump();
                 Assert.Equal(fullWidth, overflowing.ActualWidth, 1);

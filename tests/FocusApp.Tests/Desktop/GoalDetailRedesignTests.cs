@@ -22,6 +22,22 @@ public sealed class GoalDetailRedesignTests
         new(start, start.AddMinutes(minutes), goalId, "开发", "", 0);
 
     [Fact]
+    public void DateHeadersOmitTheCurrentYearAndRetainYearsAcrossTheNewYearBoundary()
+    {
+        var now = new DateTime(2026, 12, 31, 20, 0, 0);
+        var model = new GoalFocusHistoryViewModel(() => now);
+        var records = new[] { Record(new DateTime(2026, 10, 15)), Record(new DateTime(2025, 10, 15)), Record(new DateTime(2024, 2, 29)) };
+        model.ApplyState(Goal(), records, []);
+        Assert.Equal(new[] { "10月15日", "2025年10月15日", "2024年2月29日" }, model.Days.Select(day => day.HeaderDateDisplay));
+        Assert.Equal("周四", model.Days[0].WeekdayDisplay);
+        Assert.Equal("2026年10月15日", model.Days[0].FullDateDisplay);
+        now = new DateTime(2027, 1, 1);
+        model.ApplyState(Goal(), records, []);
+        Assert.Equal("2026年10月15日", model.Days[0].HeaderDateDisplay);
+        Assert.All(model.Days, day => Assert.Equal("25分钟", day.SummaryDisplay));
+    }
+
+    [Fact]
     public void CalendarDayRangesIncludeTheirFirstDayAndTodayAndExcludeFutureAndOtherGoals()
     {
         var model = new GoalFocusHistoryViewModel(() => Now);
@@ -154,10 +170,26 @@ public sealed class GoalDetailRedesignTests
                 var cards = new[] { "GoalTotalInvestmentCard", "GoalCompletedTasksCard", "GoalFocusDaysCard" }.Select(name => (FrameworkElement)page.FindName(name)).ToArray();
                 Assert.InRange(cards.Max(card => card.ActualWidth) - cards.Min(card => card.ActualWidth), 0, 1);
                 foreach (var card in cards) Assert.InRange(card.TranslatePoint(new Point(0, card.ActualHeight), metrics).Y, 0, metrics.ActualHeight);
+                foreach (var card in cards.OfType<Button>())
+                {
+                    Assert.Equal(0, ((SolidColorBrush)card.Background).Color.A);
+                    Assert.Equal(new Thickness(0), card.BorderThickness);
+                    Assert.Equal(new CornerRadius(0), ((Border)card.Template.FindName("MetricSurface", card)).CornerRadius);
+                }
+                var daysMetric = (Border)cards[2];
+                Assert.Equal(0, ((SolidColorBrush)daysMetric.Background).Color.A);
+                Assert.Equal(new Thickness(0), daysMetric.BorderThickness);
+                Assert.Equal(new CornerRadius(0), daysMetric.CornerRadius);
                 Assert.Equal(goal.Remark, ((TextBlock)page.FindName("GoalDetailMetadata")).Text);
                 Invoke((Button)cards[0]); Assert.True(model.GoalInvestmentTrend.IsOpen); model.GoalInvestmentTrend.CloseCommand.Execute(null);
                 Invoke((Button)cards[1]); Assert.True(model.GoalCompletedTasks.IsOpen); model.GoalCompletedTasks.CloseCommand.Execute(null);
                 var history = (GoalFocusHistoryView)page.FindName("GoalFocusHistoryControl");
+                foreach (var dayHeader in Descendants<Button>(history).Where(button => button.Name == "HistoryDayHeader"))
+                {
+                    Assert.Equal(Colors.White, ((SolidColorBrush)dayHeader.Background).Color);
+                    Assert.Equal(new Thickness(0, 0, 0, 1), dayHeader.BorderThickness);
+                    Assert.Equal(new CornerRadius(0), ((Border)dayHeader.Template.FindName("DayRowSurface", dayHeader)).CornerRadius);
+                }
                 var trigger = (Button)history.FindName("HistoryRangeButton");
                 var rangePopup = (Popup)history.FindName("HistoryRangePopup");
                 var monthPopup = (Popup)history.FindName("HistoryMonthPopup");
@@ -165,6 +197,15 @@ public sealed class GoalDetailRedesignTests
                 Assert.True(rangePopup.IsOpen);
                 var options = Descendants<Button>(rangePopup.Child).ToArray();
                 Assert.Equal(4, options.Length);
+                var rangeSurface = (Border)history.FindName("HistoryRangeMenuSurface");
+                Assert.Equal(trigger.ActualWidth, rangeSurface.ActualWidth);
+                Assert.Empty(Descendants<TextBlock>(rangePopup.Child).Where(text => text.FontFamily.Source == "Segoe MDL2 Assets"));
+                Assert.Equal(Color.FromRgb(245, 246, 248), ((SolidColorBrush)options[0].Background).Color);
+                foreach (var option in options)
+                {
+                    var label = Assert.Single(Descendants<TextBlock>(option));
+                    Assert.InRange(label.TranslatePoint(new Point(label.ActualWidth, 0), rangeSurface).X, 0, rangeSurface.ActualWidth);
+                }
                 Invoke(options[1]); Pump(page);
                 Assert.False(rangePopup.IsOpen);
                 Assert.Equal(GoalHistoryTimeRange.SevenDays, model.GoalFocusHistory.SelectedRange);
@@ -193,6 +234,51 @@ public sealed class GoalDetailRedesignTests
                 Assert.True(args.Handled); Assert.False(monthPopup.IsOpen);
                 Invoke(trigger); Pump(page); window.Close(); Pump(page);
                 Assert.False(model.GoalFocusHistory.IsRangeMenuOpen);
+            }
+            finally { window.Close(); }
+        });
+    }
+
+    [Fact]
+    public void DetailMenuFollowsSelectionAndKeepsEditingArchivingRestoringAndDeleting()
+    {
+        RunSta(() =>
+        {
+            var model = new StatisticsOverviewViewModel(false, localNowProvider: () => Now);
+            model.SetUserAccess(true, true); model.SelectGoalsCommand.Execute(null);
+            var first = Goal("first"); var second = Goal("second");
+            model.Goals.Add(first); model.Goals.Add(second); model.SelectGoalCommand.Execute(first);
+            var page = CreatePage(model);
+            var window = new Window { Width = 800, Height = 710, Content = page, ShowActivated = false,
+                ShowInTaskbar = false, Left = -32000, Top = -32000 };
+            try
+            {
+                window.Show(); Pump(page);
+                var more = (ToggleButton)page.FindName("GoalDetailMoreButton");
+                var popup = (Popup)page.FindName("GoalDetailMorePopup");
+                Assert.DoesNotContain(Descendants<ToggleButton>(page), button => button.Name == "GoalListMoreButton");
+                void Open() { more.IsChecked = true; Pump(page); Assert.True(popup.IsOpen); }
+                Button Action(string text) => Descendants<Button>(popup.Child).Single(button => Equals(button.Content, text));
+                Open(); Assert.Same(first, popup.DataContext);
+                model.SelectGoalCommand.Execute(second); Pump(page);
+                Assert.False(popup.IsOpen); Assert.Same(second, more.DataContext);
+                Open(); Invoke(Action("编辑")); Pump(page);
+                Assert.False(popup.IsOpen); Assert.True(model.IsCreateGoalDialogOpen);
+                Assert.Equal(second.Name, model.NewGoalName); model.CancelCreateGoalCommand.Execute(null);
+                Open(); Invoke(Action("归档")); Pump(page);
+                Assert.True(second.IsArchived); Assert.False(popup.IsOpen);
+                model.SelectGoalListCommand.Execute("Archived"); Pump(page);
+                Open(); Assert.Same(second, popup.DataContext); Assert.True(Action("恢复目标").IsVisible);
+                Invoke(Action("恢复目标")); Pump(page);
+                Assert.False(second.IsArchived); Assert.False(popup.IsOpen);
+                model.SelectGoalListCommand.Execute("Current"); model.SelectGoalCommand.Execute(second); Pump(page);
+                Open(); model.SelectCalendarCommand.Execute(null); Pump(page); Assert.False(popup.IsOpen);
+                model.SelectGoalsCommand.Execute(null); model.SetUserAccess(false, false); Pump(page);
+                Assert.True(more.IsVisible);
+                Open(); Invoke(Action("归档")); Pump(page);
+                model.SelectGoalListCommand.Execute("Archived"); Pump(page);
+                Open(); Invoke(Action("删除目标")); Pump(page);
+                Assert.DoesNotContain(second, model.Goals); Assert.False(popup.IsOpen);
             }
             finally { window.Close(); }
         });

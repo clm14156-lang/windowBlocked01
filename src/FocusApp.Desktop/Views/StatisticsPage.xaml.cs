@@ -26,7 +26,6 @@ public partial class StatisticsPage : UserControl
         if (sender is TextBlock label && !IsGoalNameTrimmed(label)) e.Handled = true;
     }
 
-    private ToggleButton? _openGoalListMoreButton;
     public StatisticsPage()
     {
         InitializeComponent();
@@ -77,30 +76,20 @@ public partial class StatisticsPage : UserControl
 
     private void SelectArchivedGoalListButton_Click(object sender, RoutedEventArgs e) => ExecuteGoalListCommand("Archived");
 
-    private void GoalListMoreButton_Click(object sender, RoutedEventArgs e)
+    private void GoalDetailMoreButton_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
-        if (sender is not ToggleButton { DataContext: GoalOverviewItemViewModel goal } button ||
-            DataContext is not StatisticsOverviewViewModel viewModel)
+        if (sender is ToggleButton button)
         {
-            return;
+            button.SetCurrentValue(ToggleButton.IsCheckedProperty, false);
         }
+    }
 
-        if (button.IsChecked == true)
+    private void GoalDetailMoreButton_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        if (e.NewValue is false && sender is ToggleButton button)
         {
-            if (_openGoalListMoreButton is not null && !ReferenceEquals(_openGoalListMoreButton, button))
-            {
-                _openGoalListMoreButton.SetCurrentValue(ToggleButton.IsCheckedProperty, false);
-            }
-
-            _openGoalListMoreButton = button;
-            viewModel.SelectGoalCommand.Execute(goal);
+            button.SetCurrentValue(ToggleButton.IsCheckedProperty, false);
         }
-        else if (ReferenceEquals(_openGoalListMoreButton, button))
-        {
-            _openGoalListMoreButton = null;
-        }
-
-        e.Handled = true;
     }
 
     private void SaveGoalRenameButton_Click(object sender, RoutedEventArgs e)
@@ -156,8 +145,7 @@ public partial class StatisticsPage : UserControl
     {
         if (sender is FrameworkElement { DataContext: GoalOverviewItemViewModel goal } && DataContext is StatisticsOverviewViewModel viewModel)
         {
-            _openGoalListMoreButton?.SetCurrentValue(ToggleButton.IsCheckedProperty, false);
-            _openGoalListMoreButton = null;
+            GoalDetailMoreButton.SetCurrentValue(ToggleButton.IsCheckedProperty, false);
             commandSelector(viewModel).Execute(goal);
         }
     }

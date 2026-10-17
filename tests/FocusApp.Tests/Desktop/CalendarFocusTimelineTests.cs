@@ -106,7 +106,7 @@ public sealed class CalendarFocusTimelineTests
     }
 
     [Fact]
-    public void CalendarContainsFixedTimelineAndIndependentDescendingRecordList()
+    public void CalendarContainsFixedTimelineAndIndependentAscendingRecordList()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
         while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "FocusApp.sln"))) directory = directory.Parent;

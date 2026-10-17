@@ -14,24 +14,34 @@ public partial class StatisticsDashboard : UserControl
     private FrameworkElement? _hoveredRow;
     private HwndSource? _tipSource;
     private DispatcherOperation? _tipRefreshOperation;
+    private readonly DispatcherTimer _dateRefreshTimer;
     public StatisticsDashboard()
     {
         InitializeComponent();
+        _dateRefreshTimer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMinutes(1) };
+        _dateRefreshTimer.Tick += (_, _) => _model?.RefreshCurrentDate();
         DataContextChanged += (_, _) => AttachModel();
-        Loaded += (_, _) => AttachModel();
-        Unloaded += (_, _) => { CloseTip(); _model?.ClearDistributionSelection(); DetachModel(); };
-        IsVisibleChanged += (_, _) => { if (!IsVisible) { CloseTip(); _model?.ClearDistributionSelection(); FocusChart.ClearHover(); } };
+        Loaded += (_, _) => { AttachModel(); if (IsVisible) _dateRefreshTimer.Start(); };
+        Unloaded += (_, _) => { _dateRefreshTimer.Stop(); ClosePeriodPicker(); CloseTip(); _model?.ClearDistributionSelection(); DetachModel(); };
+        IsVisibleChanged += (_, _) =>
+        {
+            if (!IsVisible) { _dateRefreshTimer.Stop(); ClosePeriodPicker(); CloseTip(); _model?.ClearDistributionSelection(); FocusChart.ClearHover(); }
+            else if (IsLoaded) { _model?.RefreshCurrentDate(); _dateRefreshTimer.Start(); }
+        };
         FocusChart.HoverChanged += FocusChart_HoverChanged;
         DistributionChart.InteractionChanged += (_, _) => { _hoveredRow = null; UpdateDistributionTip(); };
-        SizeChanged += (_, _) => CloseTip();
+        SizeChanged += (_, _) => { ClosePeriodPicker(); CloseTip(); };
     }
     private void AttachModel()
     {
+        ClosePeriodPicker();
         DetachModel();
         _model = IsLoaded ? DataContext as StatisticsDashboardViewModel : null;
         if (_model is not null) _model.PropertyChanged += Model_PropertyChanged;
+        _model?.RefreshCurrentDate();
         CloseTip();
     }
+    private void ClosePeriodPicker() { if (_model is not null) _model.IsPeriodPickerOpen = false; }
     private void DetachModel()
     {
         if (_model is not null) _model.PropertyChanged -= Model_PropertyChanged;
@@ -54,10 +64,11 @@ public partial class StatisticsDashboard : UserControl
             }
         }
         else if (e.PropertyName == nameof(StatisticsDashboardViewModel.ActiveDistribution)) UpdateDistributionTip();
+        else if (e.PropertyName == nameof(StatisticsDashboardViewModel.IsPeriodPickerOpen) && _model?.IsPeriodPickerOpen == true) CloseTip();
     }
     private void FocusChart_HoverChanged(object? sender, EventArgs e)
     {
-        if (FocusChart.HoveredBar is not { } bar) { UpdateDistributionTip(); return; }
+        if (FocusChart.HoveredBar is not { } bar) { CloseTip(); return; }
         TipTitle.Text = bar.TooltipDate;
         TipDuration.Text = bar.DurationDisplay;
         TipPercentage.Visibility = Visibility.Collapsed;
@@ -89,7 +100,7 @@ public partial class StatisticsDashboard : UserControl
     }
     private void UpdateDistributionTip()
     {
-        if (_model?.ActiveDistribution is not { } item || !IsVisible) { CloseTip(); return; }
+        if (_model?.ActiveDistribution is not { } item || !IsVisible || FocusChart.IsMouseOver && FocusChart.HoveredBar is null) { CloseTip(); return; }
         TipTitle.Text = item.TargetName;
         TipDuration.Text = item.ExactDurationDisplay;
         TipPercentage.Text = $"占比  {item.PercentageDisplay}";
@@ -101,7 +112,10 @@ public partial class StatisticsDashboard : UserControl
     }
     private void ShowTip(Point anchor)
     {
-        if (!IsLoaded || !IsVisible || ActualWidth <= 0 || ActualHeight <= 0) return;
+        if (!IsLoaded || !IsVisible || ActualWidth <= 0 || ActualHeight <= 0 || _model?.IsPeriodPickerOpen == true) return;
+        // Inline text changes can leave the popup's previous desired width cached until layout runs.
+        OverviewTipSurface.InvalidateMeasure();
+        OverviewTipSurface.UpdateLayout();
         OverviewTipSurface.Measure(new Size(240, double.PositiveInfinity));
         var size = OverviewTipSurface.DesiredSize;
         var x = Math.Clamp(anchor.X - size.Width / 2, 2, Math.Max(2, ActualWidth - size.Width - 2));
@@ -116,6 +130,7 @@ public partial class StatisticsDashboard : UserControl
     }
     private void Dashboard_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
+        ClosePeriodPicker();
         _hoveredRow = null;
         _model?.ClearDistributionSelection();
         CloseTip();
@@ -123,6 +138,7 @@ public partial class StatisticsDashboard : UserControl
     private void Dashboard_PreviewKeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key != Key.Escape) return;
+        ClosePeriodPicker();
         _hoveredRow = null;
         _model?.ClearDistributionSelection();
         CloseTip();
@@ -130,7 +146,7 @@ public partial class StatisticsDashboard : UserControl
     }
     private void OverviewScroll_ScrollChanged(object sender, ScrollChangedEventArgs e)
     {
-        if (e.VerticalChange != 0 || e.HorizontalChange != 0) CloseTip();
+        if (e.VerticalChange != 0 || e.HorizontalChange != 0) { ClosePeriodPicker(); CloseTip(); }
     }
     private void CloseTip()
     {

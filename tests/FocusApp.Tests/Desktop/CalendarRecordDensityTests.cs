@@ -57,7 +57,9 @@ public sealed class CalendarRecordDensityTests
                     var line = (Border)view.FindName("FocusMarker");
                     Assert.True(line.ActualHeight > 0);
                     Assert.True(Bounds(line, view).Bottom <= Bounds(goal, view).Bottom + 0.7);
-                    Assert.DoesNotContain(Descendants<Border>(view), border => border.ActualHeight > 0 && border.ActualHeight <= 1.5 && border.ActualWidth > 20);
+                    var separator = (Border)view.FindName("RecordSeparator");
+                    Assert.InRange(separator.ActualHeight, .5, 1.5);
+                    Assert.True(separator.ActualWidth > 20);
                 }
                 var gaps = Descendants<Grid>(scroll).Where(item => item.Name == "CalendarRecordGap" && item.IsVisible).ToArray();
                 Assert.Empty(gaps);
@@ -84,7 +86,7 @@ public sealed class CalendarRecordDensityTests
                 typeof(CalendarFocusTimeline).GetMethod("HandleSessionClick", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(timeline, [point]);
                 Pump(page);
                 Assert.Same(selected, page.CalendarRecordInteraction.SelectedRecord);
-                Assert.Equal(Colors.White, ((SolidColorBrush)rows[1].Background).Color);
+                Assert.Equal(Color.FromRgb(244, 245, 247), ((SolidColorBrush)rows[1].Background).Color);
                 Assert.Equal(Colors.White, ((SolidColorBrush)rows[0].Background).Color);
                 Assert.Equal(headerBounds, Bounds(header, page));
                 Assert.Equal(timelineBounds, Bounds(timeline, page));

@@ -9,20 +9,23 @@ public sealed class CalendarDayRecordViewModelTests
     private static readonly DateTime Day = new(2026, 10, 12);
 
     [Fact]
-    public void DescendingRecordsUseActualNeighborGapsWithoutChangingTheSourceOrder()
+    public void AscendingRecordsPutLatestLastAndKeepGapsBeforeTheLaterRecord()
     {
         var early = Session(8, 37, 45);
         var middle = Session(16, 43, 5);
         var latest = Session(18, 25, 15);
-        var source = new[] { early, middle, latest };
+        var source = new[] { latest, early, middle };
         var entries = CalendarDayRecordViewModel.Create(source);
-        Assert.Equal(new[] { latest, middle, early }, entries.Select(entry => entry.Record));
-        Assert.Equal("间隔 1小时37分钟", entries[0].GapDisplay);
+        Assert.Equal(new[] { early, middle, latest }, entries.Select(entry => entry.Record));
+        Assert.Equal("间隔 1小时37分钟", entries[2].GapDisplay);
         Assert.Equal("间隔 7小时21分钟", entries[1].GapDisplay);
-        Assert.False(entries[2].HasGap);
-        Assert.Equal(new[] { early, middle, latest }, source);
-        Assert.Equal("15分钟", entries[0].SummaryDisplay);
-        Assert.False(entries[0].HasDetails);
+        Assert.False(entries[0].HasGap);
+        Assert.Equal(new[] { latest, early, middle }, source);
+        Assert.Equal("15分钟", entries[2].SummaryDisplay);
+        Assert.False(entries[2].HasDetails);
+        Assert.Equal("时长 15分钟", entries[2].FocusDurationDisplay);
+        Assert.Equal("16:48 - 18:25", entries[2].GapTimeRangeDisplay);
+        Assert.Equal("09:22 - 16:43", entries[1].GapTimeRangeDisplay);
     }
 
     [Fact]

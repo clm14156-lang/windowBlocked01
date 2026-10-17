@@ -14,21 +14,27 @@ public sealed class StatisticsDashboardViewModel : INotifyPropertyChanged
 {
     private static readonly string[] Palette = ["#2788FA", "#58ADFA", "#FFCD61", "#FF9754", "#C773EE", "#3ECAA0", "#7187DA", "#EB839B"];
     private readonly Dictionary<string, Brush> _colors = new(StringComparer.Ordinal);
+    private readonly Func<DateTime> _localNowProvider;
     private FocusSessionRecordViewModel[] _records = [];
     private GoalOverviewItemViewModel[] _goals = [];
     private DateTime _anchor;
     private StatisticsPeriod _period;
+    private bool _isPeriodPickerOpen;
+    private DateTime _displayDate;
     private FocusDistributionItemViewModel? _hoveredDistribution;
     private FocusDistributionItemViewModel? _selectedDistribution;
 
     public StatisticsDashboardViewModel(Func<DateTime>? localNowProvider = null)
     {
-        _anchor = (localNowProvider ?? (() => DateTime.Now))().Date;
+        _localNowProvider = localNowProvider ?? (() => DateTime.Now);
+        _anchor = _localNowProvider().Date;
         SelectWeekCommand = new RelayCommand<object>(_ => Period = StatisticsPeriod.Week);
         SelectMonthCommand = new RelayCommand<object>(_ => Period = StatisticsPeriod.Month);
         SelectYearCommand = new RelayCommand<object>(_ => Period = StatisticsPeriod.Year);
         PreviousPeriodCommand = new RelayCommand<object>(_ => MovePeriod(-1), _ => PeriodStart.Year > 1);
         NextPeriodCommand = new RelayCommand<object>(_ => MovePeriod(1), _ => PeriodEndExclusive.Year < 9999);
+        TogglePeriodPickerCommand = new RelayCommand<object>(_ => IsPeriodPickerOpen = !IsPeriodPickerOpen);
+        SelectAvailablePeriodCommand = new RelayCommand<OverviewPeriodOption>(SelectAvailablePeriod);
         ToggleDistributionCommand = new RelayCommand<FocusDistributionItemViewModel>(ToggleDistribution);
         Refresh();
     }
@@ -39,6 +45,15 @@ public sealed class StatisticsDashboardViewModel : INotifyPropertyChanged
     public ICommand SelectYearCommand { get; }
     public ICommand PreviousPeriodCommand { get; }
     public ICommand NextPeriodCommand { get; }
+    public ICommand TogglePeriodPickerCommand { get; }
+    public ICommand SelectAvailablePeriodCommand { get; }
+    public IReadOnlyList<OverviewPeriodOption> AvailablePeriods { get; private set; } = [];
+    public bool HasAvailablePeriods => AvailablePeriods.Count > 0;
+    public bool IsPeriodPickerOpen
+    {
+        get => _isPeriodPickerOpen;
+        set { if (_isPeriodPickerOpen == value) return; _isPeriodPickerOpen = value; OnPropertyChanged(); }
+    }
     public ICommand ToggleDistributionCommand { get; }
     public StatisticsPeriod Period
     {
@@ -47,6 +62,7 @@ public sealed class StatisticsDashboardViewModel : INotifyPropertyChanged
         {
             if (_period == value || !Enum.IsDefined(value)) return;
             _period = value;
+            IsPeriodPickerOpen = false;
             Refresh();
         }
     }
@@ -139,18 +155,35 @@ public sealed class StatisticsDashboardViewModel : INotifyPropertyChanged
             StatisticsPeriod.Month => PeriodStart.AddMonths(offset),
             _ => PeriodStart.AddYears(offset)
         };
+        IsPeriodPickerOpen = false;
         Refresh();
+    }
+
+    private void SelectAvailablePeriod(OverviewPeriodOption? option)
+    {
+        if (option is null || option.Period != Period || !AvailablePeriods.Contains(option)) return;
+        _anchor = option.Start;
+        IsPeriodPickerOpen = false;
+        Refresh();
+    }
+
+    private static DateTime StartOfPeriod(DateTime date, StatisticsPeriod period) => period switch
+    {
+        StatisticsPeriod.Week => date.Date.AddDays(-((int)date.DayOfWeek + 6) % 7),
+        StatisticsPeriod.Month => new DateTime(date.Year, date.Month, 1),
+        _ => new DateTime(date.Year, 1, 1)
+    };
+
+    internal void RefreshCurrentDate()
+    {
+        if (_displayDate != _localNowProvider().Date) Refresh(resetInteraction: false);
     }
 
     private void Refresh(bool resetInteraction = true)
     {
+        _displayDate = _localNowProvider().Date;
         var selectedId = resetInteraction ? null : _selectedDistribution?.TargetId;
-        PeriodStart = Period switch
-        {
-            StatisticsPeriod.Week => _anchor.AddDays(-((int)_anchor.DayOfWeek + 6) % 7),
-            StatisticsPeriod.Month => new DateTime(_anchor.Year, _anchor.Month, 1),
-            _ => new DateTime(_anchor.Year, 1, 1)
-        };
+        PeriodStart = StartOfPeriod(_anchor, Period);
         PeriodEndExclusive = Period switch
         {
             StatisticsPeriod.Week => PeriodStart.AddDays(7),
@@ -163,7 +196,16 @@ public sealed class StatisticsDashboardViewModel : INotifyPropertyChanged
         var coreRecords = _records.Select(record => new FocusSessionRecord(
             record.EndTime - record.StartTime, record.FocusDuration, record.StartTime, record.EndTime,
             FocusCompletionKind.Natural, false) { TargetId = NormalizeGoalId(record.GoalId), TargetName = record.GoalName }).ToArray();
-        var slices = FocusStatisticsCalculator.GetSlices(coreRecords)
+        var allSlices = FocusStatisticsCalculator.GetSlices(coreRecords);
+        AvailablePeriods = allSlices.Select(slice => StartOfPeriod(slice.StartsAt, Period)).Distinct()
+            .OrderByDescending(date => date)
+            .Select(date => new OverviewPeriodOption(date, Period, Period switch
+            {
+                StatisticsPeriod.Week => $"{ISOWeek.GetYear(date)} 第{ISOWeek.GetWeekOfYear(date)}周",
+                StatisticsPeriod.Month => $"{date:yyyy年M月}",
+                _ => $"{date:yyyy年}"
+            }, date == PeriodStart)).ToArray();
+        var slices = allSlices
             .Where(slice => slice.StartsAt >= PeriodStart && slice.StartsAt < PeriodEndExclusive).ToArray();
         TotalDuration = TimeSpan.FromTicks(slices.Sum(slice => slice.Duration.Ticks));
         FocusDayCount = slices.Select(slice => slice.StartsAt.Date).Distinct().Count();
@@ -175,7 +217,8 @@ public sealed class StatisticsDashboardViewModel : INotifyPropertyChanged
         Bars = Enumerable.Range(0, count).Select(index =>
         {
             var date = IsYear ? PeriodStart.AddMonths(index) : PeriodStart.AddDays(index);
-            return new OverviewFocusBar(date, buckets.GetValueOrDefault(date), IsYear, IsWeek);
+            return new OverviewFocusBar(date, buckets.GetValueOrDefault(date), IsYear, IsWeek)
+            { IsToday = !IsYear && date == _displayDate };
         }).ToArray();
         var maximum = Math.Max(1, Bars.Max(bar => bar.Duration.TotalMinutes));
         var target = maximum / 4;
@@ -251,10 +294,13 @@ public sealed class StatisticsDashboardViewModel : INotifyPropertyChanged
     private void OnPropertyChanged([CallerMemberName] string? name = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }
 
+public sealed record OverviewPeriodOption(DateTime Start, StatisticsPeriod Period, string Label, bool IsSelected);
+
 public sealed record OverviewFocusBar(DateTime Date, TimeSpan Duration, bool IsMonthBucket, bool ShowWeekday)
 {
+    public bool IsToday { get; init; }
     public string AxisLabel => IsMonthBucket ? $"{Date.Month}月" : ShowWeekday ? Date.ToString("M/d", CultureInfo.InvariantCulture) : Date.Day.ToString(CultureInfo.InvariantCulture);
-    public string Weekday => ShowWeekday ? new[] { "周日", "周一", "周二", "周三", "周四", "周五", "周六" }[(int)Date.DayOfWeek] : string.Empty;
+    public string Weekday => IsToday ? "今天" : ShowWeekday ? new[] { "周日", "周一", "周二", "周三", "周四", "周五", "周六" }[(int)Date.DayOfWeek] : string.Empty;
     public string TooltipDate => Date.ToString(IsMonthBucket ? "yyyy年M月" : "yyyy年M月d日", CultureInfo.InvariantCulture);
     public string DurationDisplay => OverviewDuration.Format(Duration, includeSeconds: true);
 }

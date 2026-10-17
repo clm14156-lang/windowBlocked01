@@ -238,6 +238,7 @@ public sealed class GoalFocusDayViewModel : INotifyPropertyChanged
     public GoalFocusDayViewModel(DateTime date, DateTime today, IReadOnlyList<GoalFocusSessionViewModel> sessions, bool expanded)
     {
         Date = date;
+        HeaderDateDisplay = date.Year == today.Year ? $"{date:M月d日}" : $"{date:yyyy年M月d日}";
         Sessions = sessions;
         _isExpanded = expanded;
         DateDisplay = date == today ? $"今天 · {date:M月d日}" : date == today.AddDays(-1) ? $"昨天 · {date:M月d日}" : $"{date:M月d日}";
@@ -249,6 +250,7 @@ public sealed class GoalFocusDayViewModel : INotifyPropertyChanged
     public DateTime Date { get; }
     public string DateDisplay { get; }
     public string FullDateDisplay => $"{Date:yyyy年M月d日}";
+    public string HeaderDateDisplay { get; }
     public string WeekdayDisplay => "周" + "日一二三四五六"[(int)Date.DayOfWeek];
     public string SummaryDisplay { get; }
     public IReadOnlyList<GoalFocusSessionViewModel> Sessions { get; }

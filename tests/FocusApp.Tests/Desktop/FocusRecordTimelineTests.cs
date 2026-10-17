@@ -32,9 +32,9 @@ public sealed class FocusRecordTimelineTests
         var goal = Assert.Single(history.Days).Sessions;
         var expectedGap = TimeSpan.FromSeconds(Math.Max(0, seconds));
 
-        Assert.Equal(expectedGap, calendar[0].Gap);
+        Assert.Equal(expectedGap, calendar[1].Gap);
         Assert.Equal(expectedGap, goal[0].Gap);
-        Assert.Equal(showsGap, calendar[0].HasGap);
+        Assert.Equal(showsGap, calendar[1].HasGap);
         Assert.Equal(showsGap, goal[0].HasGap);
         Assert.Equal(!showsGap, calendar[0].ConnectsToNext);
         Assert.Equal(!showsGap, goal[0].ConnectsToNext);
@@ -44,9 +44,9 @@ public sealed class FocusRecordTimelineTests
         Assert.False(goal[0].ConnectsFromPrevious);
         Assert.False(calendar[1].ConnectsToNext);
         Assert.False(goal[1].ConnectsToNext);
-        Assert.False(calendar[1].HasGap);
+        Assert.False(calendar[0].HasGap);
         Assert.False(goal[1].HasGap);
-        if (showsGap) Assert.Equal(calendar[0].GapDisplay, goal[0].GapDisplay);
+        if (showsGap) Assert.Equal(calendar[1].GapDisplay, goal[0].GapDisplay);
         Assert.Equal(new[] { earlier, later }, source);
         Assert.Equal(TimeSpan.FromMinutes(1), earlier.RecordedFocusDuration);
     }

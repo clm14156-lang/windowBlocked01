@@ -48,9 +48,10 @@ public sealed class CalendarVisualRedesignTests
         Assert.True(Assert.Single(CalendarDayRecordViewModel.Create([record])).IsInterrupted);
         var legacy = new FocusSessionRecordViewModel(start.AddMinutes(45), start.AddHours(1), "", "", "", 0);
         var entries = CalendarDayRecordViewModel.Create([record, legacy]);
-        Assert.False(entries[0].IsInterrupted);
-        Assert.Equal("09:15 - 09:45", entries[0].GapTimeRangeDisplay);
-        Assert.Equal("间隔 30分钟", entries[0].GapDisplay);
+        var legacyEntry = entries.Single(entry => ReferenceEquals(entry.Record, legacy));
+        Assert.False(legacyEntry.IsInterrupted);
+        Assert.Equal("09:15 - 09:45", legacyEntry.GapTimeRangeDisplay);
+        Assert.Equal("间隔 30分钟", legacyEntry.GapDisplay);
         Assert.Equal("自由专注", legacy.CalendarTitle);
     }
 
@@ -102,7 +103,7 @@ public sealed class CalendarVisualRedesignTests
                 Assert.Equal("1 项", Runs((TextBlock)page.FindName("CalendarDayCompletedTaskCount")));
                 var timeline = (CalendarFocusTimeline)page.FindName("CalendarDayTimeline"); Assert.True(timeline.FullDayStyle); Assert.True(timeline.InlineRecordDetails); Assert.Equal(0, timeline.Timeline!.StartHour);
                 var scroll = (ScrollViewer)page.FindName("CalendarRecordsScrollViewer");
-                Assert.True(scroll.ScrollableHeight > 0); Assert.True(scroll.ViewportHeight > 350);
+                Assert.True(scroll.ScrollableHeight > 0); Assert.True(scroll.ViewportHeight > 320);
                 var views = Descendants<CalendarDayRecordView>(scroll).ToArray(); Assert.Equal(9, views.Length);
                 for (var index = 0; index < views.Length; index++)
                 {
@@ -117,13 +118,14 @@ public sealed class CalendarVisualRedesignTests
                     Assert.Equal(entry.Record.CalendarTitle, title.Text); Assert.Equal(TextTrimming.CharacterEllipsis, title.TextTrimming);
                     Assert.InRange(Bounds(title, view).Right, 0, view.ActualWidth);
                 }
-                var first = views[0]; var row = Descendants<Border>(scroll).First(item => item.Name == "CalendarRecordRow");
+                var expandedEntry = model.SelectedDayRecordEntries.Single(entry => entry.HasTasks);
+                var first = views.Single(view => ReferenceEquals(view.DataContext, expandedEntry)); var row = Descendants<Border>(scroll).Single(item => item.Name == "CalendarRecordRow" && ReferenceEquals(item.DataContext, expandedEntry));
                 var rowBounds = Bounds(row, page); var header = (FrameworkElement)page.FindName("CalendarDayHeader"); var headerBounds = Bounds(header, page);
                 row.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(row)!, 0, Key.Enter) { RoutedEvent = Keyboard.KeyDownEvent }); FinishAnimation(page);
-                Assert.True(model.SelectedDayRecordEntries[0].IsExpanded); Assert.True(first.ActualHeight > rowBounds.Height + 70);
+                Assert.True(expandedEntry.IsExpanded); Assert.True(first.ActualHeight > rowBounds.Height + 70);
                 Assert.InRange(((Border)first.FindName("FocusMarker")).ActualHeight, 8.5, 9.5);
-                Assert.False(model.SelectedDayRecordEntries[0].Tasks.Last().IsCompleted);
-                Assert.Equal(Colors.White, ((SolidColorBrush)row.Background).Color);
+                Assert.False(expandedEntry.Tasks.Last().IsCompleted);
+                Assert.Equal(Color.FromRgb(244, 245, 247), ((SolidColorBrush)row.Background).Color);
                 scroll.ScrollToBottom(); Pump(page); Assert.True(scroll.VerticalOffset > 0); Assert.Equal(headerBounds, Bounds(header, page));
                 model.NextCalendarMonthCommand.Execute(null); Pump(page); Assert.Empty(model.SelectedDayRecordEntries); Assert.Equal(0, model.MonthlyTotalMinutes);
                 Assert.Equal("0 项", Runs((TextBlock)page.FindName("CalendarDayCompletedTaskCount")));

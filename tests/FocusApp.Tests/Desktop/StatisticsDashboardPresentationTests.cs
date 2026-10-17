@@ -57,7 +57,8 @@ public sealed class StatisticsDashboardPresentationTests
             Invoke(host.Named<RadioButton>("YearPeriodButton")); Pump();
             Assert.True(host.Model.IsYear); Assert.Equal(12, host.Model.Bars.Count);
             Assert.All(host.Model.Bars, item => Assert.True(item.IsMonthBucket));
-            Invoke(host.Named<Button>("PreviousOverviewPeriod")); Pump();
+            Assert.Null(host.View.FindName("PreviousOverviewPeriod"));
+            host.Model.PreviousPeriodCommand.Execute(null); Pump();
             Assert.Equal(2025, host.Model.PeriodStart.Year);
             Assert.Equal(TimeSpan.Zero, host.Model.TotalDuration);
             Assert.Empty(host.Model.Distribution);
@@ -143,7 +144,7 @@ public sealed class StatisticsDashboardPresentationTests
     }
 
     [Fact]
-    public void BarHitTestingUsesEveryDayAndTooltipPreservesExactSecondsAtBothEdges()
+    public void BarHitTestingUsesPositiveDataAndTooltipPreservesExactSecondsAtBothEdges()
     {
         Sta(() =>
         {
@@ -151,6 +152,10 @@ public sealed class StatisticsDashboardPresentationTests
             foreach (var period in Enum.GetValues<StatisticsPeriod>())
             {
                 host.Model.Period = period; Pump();
+                var first = host.Model.PeriodStart.AddHours(9);
+                var last = host.Model.PeriodEndExclusive.AddDays(-1).AddHours(9);
+                host.Model.ApplyData([new(first, first.AddSeconds(31), "g0", "工作", "", 0),
+                    new(last, last.AddSeconds(65), "g0", "工作", "", 0)], []); Pump();
                 var bounds = host.Chart.PlotBounds;
                 Assert.Same(host.Model.Bars[0], host.Chart.HitTestBar(new Point(bounds.Left + .1, bounds.Bottom - 1)));
                 Assert.Same(host.Model.Bars[^1], host.Chart.HitTestBar(new Point(bounds.Right - .1, bounds.Bottom - 1)));
@@ -176,6 +181,42 @@ public sealed class StatisticsDashboardPresentationTests
             host.View.Visibility = Visibility.Collapsed; Pump();
             Assert.False(host.Tip.IsOpen);
             Assert.Null(host.Model.SelectedDistribution);
+        });
+    }
+
+    [Theory]
+    [InlineData(StatisticsPeriod.Week)]
+    [InlineData(StatisticsPeriod.Month)]
+    [InlineData(StatisticsPeriod.Year)]
+    public void EmptyBucketsCloseTheSharedPoptipWhileSubMinuteDataRemainsHoverable(StatisticsPeriod period)
+    {
+        Sta(() =>
+        {
+            using var host = new Host();
+            host.Model.Period = period;
+            var date = period == StatisticsPeriod.Year ? host.Model.PeriodStart.AddMonths(1) : host.Model.PeriodStart.AddDays(1);
+            var start = date.AddHours(9);
+            host.Model.ApplyData([new(start, start.AddSeconds(30), "g0", "工作", "", 0),
+                new(start.AddDays(1), start.AddDays(1), "g0", "工作", "", 0)], []); Pump();
+            var bars = host.Model.Bars;
+            var active = bars.ToList().FindIndex(bar => bar.Duration > TimeSpan.Zero);
+            var empty = bars.ToList().FindIndex(bar => bar.Duration == TimeSpan.Zero);
+            var bounds = host.Chart.PlotBounds;
+            Point Center(int index) => new(bounds.Left + (index + .5) * bounds.Width / bars.Count, bounds.Bottom - 1);
+            Assert.Null(host.Chart.HitTestBar(Center(empty)));
+            Assert.Same(bars[active], host.Chart.HitTestBar(Center(active)));
+            host.Chart.HoverAt(Center(active)); Pump();
+            Assert.True(host.Tip.IsOpen);
+            Assert.Equal("30秒", host.Named<System.Windows.Documents.Run>("TipDuration").Text);
+            host.Chart.HoverAt(Center(empty)); Pump();
+            Assert.Null(host.Chart.HoveredBar); Assert.False(host.Tip.IsOpen);
+            host.Model.ToggleDistribution(host.Model.Distribution[0]); Pump(); Assert.True(host.Tip.IsOpen);
+            host.Chart.HoverAt(Center(empty)); Pump();
+            Assert.False(host.Tip.IsOpen); Assert.NotNull(host.Model.SelectedDistribution);
+            Assert.Equal(TimeSpan.FromSeconds(30), host.Model.TotalDuration);
+            host.Model.ApplyData([], []); Pump();
+            host.Chart.HoverAt(Center(empty)); Pump();
+            Assert.Null(host.Chart.HoveredBar); Assert.False(host.Tip.IsOpen);
         });
     }
 

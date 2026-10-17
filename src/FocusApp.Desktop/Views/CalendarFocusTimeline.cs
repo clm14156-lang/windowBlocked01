@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
 using FocusApp.Desktop.ViewModels;
 
 namespace FocusApp.Desktop.Views;
@@ -19,8 +20,19 @@ public sealed class CalendarFocusTimeline : FrameworkElement
     public static readonly DependencyProperty FullDayStyleProperty = DependencyProperty.Register(
         nameof(FullDayStyle), typeof(bool), typeof(CalendarFocusTimeline),
         new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.AffectsRender,
-            (owner, _) => ((CalendarFocusTimeline)owner).CloseSessionToolTip()));
+            (owner, _) =>
+            {
+                var timeline = (CalendarFocusTimeline)owner;
+                timeline.CloseSessionToolTip();
+                timeline.UpdateCurrentTimeTimer();
+            }));
     public bool FullDayStyle { get => (bool)GetValue(FullDayStyleProperty); set => SetValue(FullDayStyleProperty, value); }
+
+    public static readonly DependencyProperty ShowCurrentTimeProperty = DependencyProperty.Register(
+        nameof(ShowCurrentTime), typeof(bool), typeof(CalendarFocusTimeline),
+        new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.AffectsRender,
+            (owner, _) => ((CalendarFocusTimeline)owner).UpdateCurrentTimeTimer()));
+    public bool ShowCurrentTime { get => (bool)GetValue(ShowCurrentTimeProperty); set => SetValue(ShowCurrentTimeProperty, value); }
 
     // The calendar expands tasks inside the record list; other timeline consumers keep their poptips.
     public static readonly DependencyProperty InlineRecordDetailsProperty = DependencyProperty.Register(
@@ -32,7 +44,12 @@ public sealed class CalendarFocusTimeline : FrameworkElement
     public static readonly DependencyProperty GoalHistoryStyleProperty = DependencyProperty.Register(
         nameof(GoalHistoryStyle), typeof(bool), typeof(CalendarFocusTimeline),
         new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.AffectsRender,
-            (owner, _) => ((CalendarFocusTimeline)owner).ResetSessionToolTip()));
+            (owner, _) =>
+            {
+                var timeline = (CalendarFocusTimeline)owner;
+                timeline.ResetSessionToolTip();
+                timeline.UpdateCurrentTimeTimer();
+            }));
     public bool GoalHistoryStyle { get => (bool)GetValue(GoalHistoryStyleProperty); set => SetValue(GoalHistoryStyleProperty, value); }
     private double AxisLeft => GoalHistoryStyle ? 4 : 0;
     private double AxisWidth => Math.Max(0, ActualWidth - AxisLeft * 2);
@@ -41,6 +58,47 @@ public sealed class CalendarFocusTimeline : FrameworkElement
     private CalendarFocusTimelineSegment? _hoveredSegment;
     private CalendarRecordInteractionState? _interactionState;
     private CalendarRecordPoptip? _recordPoptip;
+    private DispatcherTimer? _currentTimeTimer;
+    private DateTime? _lastCurrentMinute;
+    internal Func<DateTime> LocalNowProvider { get; set; } = () => DateTime.Now;
+
+    // Only the visible calendar for today needs a clock. The one-second check redraws once per minute.
+    private void UpdateCurrentTimeTimer()
+    {
+        var now = LocalNowProvider();
+        if (!IsLoaded || !IsVisible || GetCurrentTimeMarker(now) is null)
+        {
+            _currentTimeTimer?.Stop();
+            _lastCurrentMinute = null;
+            return;
+        }
+        if (_currentTimeTimer is null)
+        {
+            _currentTimeTimer = new DispatcherTimer(DispatcherPriority.Background, Dispatcher) { Interval = TimeSpan.FromSeconds(1) };
+            _currentTimeTimer.Tick += (_, _) => RefreshCurrentTime();
+        }
+        RefreshCurrentTime();
+        _currentTimeTimer.Start();
+    }
+
+    internal void RefreshCurrentTime()
+    {
+        var now = LocalNowProvider();
+        var minute = new DateTime(now.Year, now.Month, now.Day, now.Hour, now.Minute, 0);
+        if (_lastCurrentMinute != minute)
+        {
+            _lastCurrentMinute = minute;
+            InvalidateVisual();
+        }
+        // A calendar left open over midnight must not keep showing today's marker on yesterday.
+        if (GetCurrentTimeMarker(now) is null) _currentTimeTimer?.Stop();
+    }
+
+    internal (double X, string Label)? GetCurrentTimeMarker(DateTime now)
+    {
+        if (!ShowCurrentTime || !FullDayStyle || GoalHistoryStyle || Timeline?.Date.Date != now.Date) return null;
+        return (AxisLeft + (now.Hour * 60 + now.Minute) / 1440d * AxisWidth, now.ToString("HH:mm", CultureInfo.InvariantCulture));
+    }
 
     public CalendarRecordInteractionState? InteractionState
     {
@@ -99,14 +157,16 @@ public sealed class CalendarFocusTimeline : FrameworkElement
              state.HoveredTimelineRecord is { } hovered && Timeline?.Segments.Any(segment => ReferenceEquals(segment.Record, hovered)) != true))
             state.Clear();
         _recordPoptip?.Synchronize();
+        UpdateCurrentTimeTimer();
         InvalidateVisual();
     }
 
     public CalendarFocusTimeline()
     {
-        Unloaded += (_, _) => { CloseSessionToolTip(); _recordPoptip?.Reset(); InteractionState?.Clear(); };
-        IsVisibleChanged += (_, _) => { if (!IsVisible) { CloseSessionToolTip(); _recordPoptip?.Close(); InteractionState?.Clear(); } };
-        SizeChanged += (_, _) => { CloseSessionToolTip(); _recordPoptip?.Reposition(); };
+        Loaded += (_, _) => UpdateCurrentTimeTimer();
+        Unloaded += (_, _) => { _currentTimeTimer?.Stop(); CloseSessionToolTip(); _recordPoptip?.Reset(); InteractionState?.Clear(); };
+        IsVisibleChanged += (_, _) => { UpdateCurrentTimeTimer(); if (!IsVisible) { CloseSessionToolTip(); _recordPoptip?.Close(); InteractionState?.Clear(); } };
+        SizeChanged += (_, _) => { UpdateCurrentTimeTimer(); CloseSessionToolTip(); _recordPoptip?.Reposition(); };
     }
 
     public CalendarFocusTimelineViewModel? Timeline
@@ -200,6 +260,23 @@ public sealed class CalendarFocusTimeline : FrameworkElement
                 drawingContext.DrawRoundedRectangle(new SolidColorBrush(selected ? Color.FromRgb(255, 128, 0) : Color.FromRgb(255, 158, 75)), null, active, 2, 2);
             }
         }
+        DrawCurrentTimeMarker(drawingContext);
+    }
+
+    private void DrawCurrentTimeMarker(DrawingContext drawingContext)
+    {
+        if (GetCurrentTimeMarker(LocalNowProvider()) is not { } marker) return;
+        var brush = new SolidColorBrush(Color.FromRgb(80, 99, 130));
+        var dot = new Point(marker.X, TrackTop - 2);
+        var lineBottom = TrackTop + TrackHeight + 14;
+        drawingContext.DrawLine(new Pen(brush, 1.3), dot, new Point(marker.X, lineBottom));
+        drawingContext.DrawEllipse(brush, null, dot, 3.5, 3.5);
+        var typeface = new Typeface(TryFindResource("FontFamilyEnglish") as FontFamily ?? new FontFamily("Segoe UI"),
+            FontStyles.Normal, FontWeights.SemiBold, FontStretches.Normal);
+        var label = new FormattedText(marker.Label, CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
+            typeface, 11, brush, VisualTreeHelper.GetDpi(this).PixelsPerDip);
+        var x = Math.Clamp(marker.X - label.Width / 2, 0, Math.Max(0, ActualWidth - label.Width));
+        drawingContext.DrawText(label, new Point(x, lineBottom + 2));
     }
 
     // Use a larger hit area, resolving neighboring/overlapping areas to the closest real block.

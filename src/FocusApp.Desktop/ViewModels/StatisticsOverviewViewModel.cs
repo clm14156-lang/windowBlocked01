@@ -15,7 +15,7 @@ namespace FocusApp.Desktop.ViewModels;
 public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 {
     private StatisticsTab _selectedTab = StatisticsTab.Overview;
-    private DateTime _calendarMonth = new(2026, 2, 1);
+    private DateTime _calendarMonth;
     private CalendarDayViewModel? _selectedCalendarDay;
     private GoalOverviewItemViewModel? _selectedGoal;
     private bool _showArchivedGoals;
@@ -45,6 +45,8 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     {
         _useSampleData = useSampleData;
         _localNowProvider = localNowProvider ?? (() => DateTime.Now);
+        var today = _localNowProvider().Date;
+        _calendarMonth = new DateTime(today.Year, today.Month, 1);
         GoalFocusHistory = new GoalFocusHistoryViewModel(_localNowProvider);
         GoalCompletedTasks = new GoalCompletedTasksViewModel(_localNowProvider);
         GoalInvestmentTrend = new GoalInvestmentTrendViewModel(_localNowProvider);
@@ -187,6 +189,8 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         }
 
         _isInitialized = true;
+        var today = _localNowProvider().Date;
+        _calendarMonth = new DateTime(today.Year, today.Month, 1);
         _isApplyingState = true;
         try
         {
@@ -203,7 +207,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
                 RefreshGoals();
             }
 
-            RefreshCalendar();
+            RefreshCalendar(today);
             RefreshOverview();
             FocusHistoryChanged?.Invoke(this, EventArgs.Empty);
         }
@@ -219,10 +223,11 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         var selectedGoalId = SelectedGoal?.GoalId;
         var orderedTargets = state.Targets.OrderBy(item => item.SortOrder).ToArray();
         var goalProjectionChanged = HasGoalProjectionChanged(orderedTargets);
+        var today = _localNowProvider().Date;
         var calendarMonth = _usesPersistedState
             ? _calendarMonth
-            : new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
-        var selectedCalendarDate = _usesPersistedState ? _selectedCalendarDay?.Date : DateTime.Today;
+            : new DateTime(today.Year, today.Month, 1);
+        var selectedCalendarDate = _usesPersistedState ? _selectedCalendarDay?.Date : today;
         _isApplyingState = true;
         try
         {
@@ -291,6 +296,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
         SelectGoal(nextSelectedGoal);
 
+        _calendarMonth = calendarMonth;
         RefreshCalendar(selectedCalendarDate);
         RefreshOverview();
         if (goalProjectionChanged)
@@ -757,7 +763,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     public string SelectedDayWeekdayDisplay => _selectedCalendarDay is null ? string.Empty : GetWeekday(_selectedCalendarDay.Date);
     public string SelectedDayFullWeekdayDisplay => SelectedDayWeekdayDisplay.Replace("周", "星期");
 
-    public bool IsReturnToTodayVisible => _selectedCalendarDay?.Date.Date != DateTime.Today;
+    public bool IsReturnToTodayVisible => _selectedCalendarDay?.Date.Date != _localNowProvider().Date;
 
     public string SelectedDayDurationDisplay => FormatDuration(SelectedDayMinutes);
     public string SelectedDayCompactDurationDisplay => SelectedDayDurationDisplay.Replace(" ", string.Empty);
@@ -1379,7 +1385,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     private void ReturnToToday()
     {
-        var today = DateTime.Today;
+        var today = _localNowProvider().Date;
         _calendarMonth = new DateTime(today.Year, today.Month, 1);
         RefreshCalendar(today);
     }

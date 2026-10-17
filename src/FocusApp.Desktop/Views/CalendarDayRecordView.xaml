@@ -24,7 +24,7 @@
             </Path>
         </Grid>
         <StackPanel Grid.Column="1" Grid.Row="1" Margin="0,0,0,14">
-            <TextBlock x:Name="FocusDuration" Text="{Binding DurationDisplay}" FontSize="12" FontWeight="SemiBold" Foreground="#718FBB" Margin="0,1,0,0"/>
+            <TextBlock x:Name="FocusDuration" Text="{Binding FocusDurationDisplay}" FontSize="11" FontWeight="Normal" Foreground="#969EAA" Margin="0,1,0,0"/>
             <Border x:Name="TaskExpansion" Height="0" Opacity="0" ClipToBounds="True">
                 <ItemsControl x:Name="TaskItems" ItemsSource="{Binding Tasks}" Margin="4,4,0,0">
                     <ItemsControl.ItemTemplate>
@@ -68,5 +68,6 @@
                 </ItemsControl>
             </Border>
         </StackPanel>
+        <Border x:Name="RecordSeparator" Grid.RowSpan="2" Grid.Column="1" Height="1" Background="#EFF0F3" VerticalAlignment="Bottom" IsHitTestVisible="False"/>
     </Grid>
 </UserControl>

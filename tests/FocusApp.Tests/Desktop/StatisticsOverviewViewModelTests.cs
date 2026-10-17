@@ -74,9 +74,9 @@ public sealed class StatisticsOverviewViewModelTests
     }
 
     [Fact]
-    public void CalendarDefaultsToLatestFebruaryRecordAndSynchronizesDetailRecords()
+    public void CalendarInFebruarySynchronizesSampleRecordsAndDetails()
     {
-        var viewModel = new StatisticsOverviewViewModel();
+        var viewModel = new StatisticsOverviewViewModel(localNowProvider: () => new DateTime(2026, 2, 28, 23, 59, 59));
 
         Assert.Equal("2026年2月", viewModel.CalendarMonthDisplay);
         Assert.Equal(42, viewModel.CalendarDays.Count);
@@ -93,7 +93,7 @@ public sealed class StatisticsOverviewViewModelTests
     [Fact]
     public void SelectingCalendarDateUpdatesTheDetailImmediately()
     {
-        var viewModel = new StatisticsOverviewViewModel();
+        var viewModel = new StatisticsOverviewViewModel(localNowProvider: () => new DateTime(2026, 2, 28, 23, 59, 59));
         var februaryTwentySixth = viewModel.CalendarDays.Single(day => day.Date == new DateTime(2026, 2, 26));
 
         Assert.True(februaryTwentySixth.HasFocus);
@@ -129,7 +129,7 @@ public sealed class StatisticsOverviewViewModelTests
     [Fact]
     public void EmptyAndAdjacentMonthDatesCannotChangeSelection()
     {
-        var viewModel = new StatisticsOverviewViewModel();
+        var viewModel = new StatisticsOverviewViewModel(localNowProvider: () => new DateTime(2026, 2, 28, 23, 59, 59));
         var empty = viewModel.CalendarDays.First(item => item.IsCurrentMonth && !item.HasFocus && !item.IsSelected);
         var selectedDate = viewModel.SelectedDateDisplay;
         var selectedMinutes = viewModel.SelectedDayMinutes;
@@ -147,7 +147,7 @@ public sealed class StatisticsOverviewViewModelTests
     [Fact]
     public void AdjacentMonthDateWithAFocusRecordDoesNotChangeSelection()
     {
-        var viewModel = new StatisticsOverviewViewModel();
+        var viewModel = new StatisticsOverviewViewModel(localNowProvider: () => new DateTime(2026, 2, 28, 23, 59, 59));
         viewModel.NextCalendarMonthCommand.Execute(null);
         viewModel.NextCalendarMonthCommand.Execute(null);
         var target = viewModel.CalendarDays.First(item =>
@@ -165,7 +165,7 @@ public sealed class StatisticsOverviewViewModelTests
     [Fact]
     public void ChangingCalendarMonthRefreshesCellsAndMonthlyStatistics()
     {
-        var viewModel = new StatisticsOverviewViewModel();
+        var viewModel = new StatisticsOverviewViewModel(localNowProvider: () => new DateTime(2026, 2, 28, 23, 59, 59));
 
         viewModel.PreviousCalendarMonthCommand.Execute(null);
 
@@ -511,7 +511,7 @@ public sealed class StatisticsOverviewViewModelTests
     [Fact]
     public void CalendarAndGoalInvestmentUseTheSameFocusSessionData()
     {
-        var viewModel = new StatisticsOverviewViewModel();
+        var viewModel = new StatisticsOverviewViewModel(localNowProvider: () => new DateTime(2026, 2, 28, 23, 59, 59));
         var reading = viewModel.Goals.Single(goal => goal.GoalId == "goal-reading");
         var februaryTwentyEighth = viewModel.CalendarDays.Single(day => day.Date == new DateTime(2026, 2, 28));
 
@@ -528,7 +528,7 @@ public sealed class StatisticsOverviewViewModelTests
     [Fact]
     public void CalendarTimelineOmitsZeroLengthRecordsAndLabelsSubMinuteSessions()
     {
-        var viewModel = new StatisticsOverviewViewModel();
+        var viewModel = new StatisticsOverviewViewModel(localNowProvider: () => new DateTime(2026, 2, 28, 23, 59, 59));
         var selectedDate = new DateTime(2026, 2, 28);
         var subMinute = new FocusSessionRecordViewModel(
             selectedDate.AddHours(18),
@@ -557,7 +557,7 @@ public sealed class StatisticsOverviewViewModelTests
     [Fact]
     public void ChangingSharedFocusSessionsRefreshesCalendarAndGoalStatistics()
     {
-        var viewModel = new StatisticsOverviewViewModel();
+        var viewModel = new StatisticsOverviewViewModel(localNowProvider: () => new DateTime(2026, 2, 28, 23, 59, 59));
         var reading = viewModel.Goals.Single(goal => goal.GoalId == "goal-reading");
         viewModel.SelectGoalCommand.Execute(reading);
         var added = new FocusSessionRecordViewModel(

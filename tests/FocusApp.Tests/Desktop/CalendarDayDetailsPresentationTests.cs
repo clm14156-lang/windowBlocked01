@@ -47,26 +47,27 @@ public sealed class CalendarDayDetailsPresentationTests
                 Assert.Equal("10月12日", ((TextBlock)page.FindName("CalendarSelectedDate")).Text);
                 Assert.Equal("星期一", ((TextBlock)page.FindName("CalendarSelectedWeekday")).Text);
                 var entries = model.SelectedDayRecordEntries;
+                var detailedEntry = entries.Single(entry => ReferenceEquals(entry.Record, early));
                 var views = Descendants<CalendarDayRecordView>(page).ToArray();
                 Assert.Equal(3, views.Length);
-                var expanded = views.Single(view => ReferenceEquals(view.DataContext, entries[2]));
+                var expanded = views.Single(view => ReferenceEquals(view.DataContext, detailedEntry));
                 var plainView = views.Single(view => ReferenceEquals(view.DataContext, entries[1]));
                 var plainMarker = (Border)plainView.FindName("FocusMarker");
                 Assert.True(plainMarker.IsVisible);
                 Assert.Equal(plainMarker.ActualWidth, plainMarker.ActualHeight);
                 Assert.Equal("自由专注", ((TextBlock)plainView.FindName("GoalName")).Text);
                 Assert.Equal(Visibility.Collapsed, ((System.Windows.Shapes.Path)plainView.FindName("ExpandArrow")).Visibility);
-                Assert.Equal("5分钟", ((TextBlock)plainView.FindName("FocusDuration")).Text);
+                Assert.Equal("时长 5分钟", ((TextBlock)plainView.FindName("FocusDuration")).Text);
                 Save(page, "calendar-records-collapsed");
                 var content = (Border)expanded.FindName("TaskExpansion");
                 var line = (Border)expanded.FindName("TimelineSpine");
                 var collapsedHeight = expanded.ActualHeight;
                 var collapsedLineHeight = line.ActualHeight;
-                var row = Descendants<Border>(page).Single(item => item.Name == "CalendarRecordRow" && ReferenceEquals(item.DataContext, entries[2]));
+                var row = Descendants<Border>(page).Single(item => item.Name == "CalendarRecordRow" && ReferenceEquals(item.DataContext, detailedEntry));
                 void Click() => row.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left) { RoutedEvent = UIElement.MouseLeftButtonDownEvent });
                 Click(); FinishAnimation(page);
-                Assert.True(entries[2].IsExpanded);
-                Assert.Equal(4, entries[2].Tasks.Count);
+                Assert.True(detailedEntry.IsExpanded);
+                Assert.Equal(4, detailedEntry.Tasks.Count);
                 Assert.True(content.ActualHeight >= 136);
                 Assert.True(expanded.ActualHeight > collapsedHeight + 100);
                 Assert.True(line.ActualHeight > collapsedLineHeight);
@@ -94,7 +95,7 @@ public sealed class CalendarDayDetailsPresentationTests
                 Assert.False(early.CompletedTaskSnapshots[1].Details!.SubTasks[1].IsCompleted);
                 Assert.Equal(2, early.CalendarCompletedTaskCount);
                 Click(); FinishAnimation(page);
-                Assert.False(entries[2].IsExpanded);
+                Assert.False(detailedEntry.IsExpanded);
                 Assert.Equal(0, content.Height);
                 Assert.Equal(collapsedHeight, expanded.ActualHeight, 1);
                 Assert.False(DependencyPropertyHelper.GetValueSource(content, FrameworkElement.HeightProperty).IsAnimated);
@@ -102,7 +103,7 @@ public sealed class CalendarDayDetailsPresentationTests
                 window.Close(); window = null;
                 Pump(page);
                 Assert.False(DependencyPropertyHelper.GetValueSource(content, FrameworkElement.HeightProperty).IsAnimated);
-                entries[2].IsExpanded = false;
+                detailedEntry.IsExpanded = false;
                 Assert.False(DependencyPropertyHelper.GetValueSource(content, FrameworkElement.HeightProperty).IsAnimated);
             }
             catch (Exception exception) { failure = exception; }

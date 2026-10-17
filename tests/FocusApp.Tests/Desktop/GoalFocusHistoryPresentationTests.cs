@@ -75,7 +75,7 @@ public sealed class GoalFocusHistoryPresentationTests
             Assert.Equal(description, historicalTask.Description);
             Assert.Single(Descendants<TextBlock>(history).Where(text => Equals(text.ToolTip, description)));
             Assert.Equal(12, Descendants<TextBlock>(history).Count(text => text.DataContext is GoalHistorySubTaskViewModel child && text.Text == child.Title));
-            Assert.Equal(FontWeights.Medium, Descendants<TextBlock>(history).Single(text => text.Text == model.GoalFocusHistory.Days[0].FullDateDisplay).FontWeight);
+            Assert.Equal(FontWeights.Medium, Descendants<TextBlock>(history).Single(text => text.Text == model.GoalFocusHistory.Days[0].HeaderDateDisplay).FontWeight);
             scroll.ScrollToBottom();
             Layout(page);
             Assert.True(scroll.VerticalOffset > 0);

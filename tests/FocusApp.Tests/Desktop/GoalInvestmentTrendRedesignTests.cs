@@ -247,6 +247,14 @@ public sealed class GoalInvestmentTrendRedesignTests
                     var value = Descendants<TextBlock>(metric).Single(text => text.Inlines.Count > 1);
                     Assert.True(Bounds(label).Bottom <= Bounds(value).Top + 1);
                     Assert.True(Bounds(value).Right <= Bounds(metric).Right);
+                    Assert.Equal(new Thickness(0), metric.BorderThickness);
+                    Assert.Equal(new CornerRadius(0), metric.CornerRadius);
+                    Assert.Equal(0, ((SolidColorBrush)metric.Background).Color.A);
+                    Assert.Equal(TextWrapping.NoWrap, value.TextWrapping);
+                    Assert.True(value.ActualHeight < 48, "Duration must occupy a single line.");
+                    var icon = Assert.Single(Descendants<System.Windows.Shapes.Path>(metric));
+                    Assert.InRange(icon.ActualWidth, 0, 18);
+                    Assert.InRange(icon.ActualHeight, 0, 18);
                 }
                 Assert.InRange(Bounds(chartCard).Bottom, 0, card.ActualHeight - 18);
                 Assert.Equal(5, model.ChartYAxisTicks.Count()); Assert.Equal(3, model.YAxisTicks.Count);
@@ -279,6 +287,28 @@ public sealed class GoalInvestmentTrendRedesignTests
                 monthButton.Command.Execute(monthButton.CommandParameter); Pump();
                 Assert.True(model.IsMonthRange); Assert.Equal(31, model.TrendPoints.Count); AssertRangeLabels(seven, thirty, month, month);
                 model.Close(); model.Open(); Pump(); Assert.True(model.IsSevenDaysRange); Assert.Equal(7, model.TrendPoints.Count);
+                foreach (var minutes in new[] { 181, 76859 })
+                {
+                    var start = minutes > 1440 ? today.AddMinutes(-minutes) : today.Date.AddHours(9);
+                    model.ApplyState(new("goal", "3213", "", "", false, false), [new FocusSessionRecordViewModel(start, start.AddMinutes(minutes), "goal", "3213", "", 0)]);
+                    if (minutes > 1440) model.SelectThirtyDaysCommand.Execute(null);
+                    Pump();
+                    var metric = metrics[0];
+                    var value = Descendants<TextBlock>(metric).Single(text => text.Inlines.Count > 1);
+                    Assert.True(value.ActualHeight < 48);
+                    Assert.True(Bounds(value).Right <= Bounds(metric).Right);
+                    Assert.True(Bounds(value).Bottom <= Bounds(metric).Bottom);
+                    if (minutes == 181)
+                    {
+                        Assert.Equal(181, model.PeriodInvestment.TotalMinutes);
+                        SavePreview(card, "investment-single-line");
+                    }
+                    else
+                    {
+                        Assert.True(model.PeriodInvestment.TotalMinutes > 9999);
+                        SavePreview(card, "investment-long-duration");
+                    }
+                }
                 model.ApplyState(new("goal", "3213", "", "", false, false), []); Pump();
                 Assert.Equal(0, model.PeriodInvestment.TotalMinutes); Assert.All(model.TrendPoints, point => Assert.Equal(0, point.Minutes));
                 Assert.Equal(new[]{"0m","15m","30m","45m","60m"}, model.ChartYAxisTicks.Select(tick => tick.Label));

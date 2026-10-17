@@ -69,6 +69,8 @@ public sealed class CalendarRecordInteractionTests
                 Click(Center(0));
                 Assert.Same(records[0], timeline.InteractionState!.SelectedRecord);
                 Assert.True(CalendarRecordInteractionState.GetIsSelected(Row(0)));
+                Assert.Equal(Color.FromRgb(244, 245, 247), ((SolidColorBrush)Row(0).Background).Color);
+                Assert.Single(rows.Where(row => CalendarRecordInteractionState.GetIsSelected(row)));
                 RowHover(1, true);
                 Assert.True(CalendarRecordInteractionState.GetIsHovered(Row(1)));
                 Assert.True(CalendarRecordInteractionState.GetIsSelected(Row(0)));
@@ -154,13 +156,13 @@ public sealed class CalendarRecordInteractionTests
                 var timelineY = timeline.TranslatePoint(new Point(), page).Y;
                 Assert.True(scroll.ScrollableHeight > 0);
                 Assert.Equal(0, scroll.VerticalOffset);
-                var segment = timeline.Timeline!.Segments.Single(item => ReferenceEquals(item.Record, records[0]));
+                var segment = timeline.Timeline!.Segments.Single(item => ReferenceEquals(item.Record, records[^1]));
                 Invoke(timeline, "HandleSessionClick", new Point((segment.StartRatio + segment.WidthRatio / 2) * timeline.ActualWidth, timeline.TrackTop + 5));
                 Pump(page);
-                Assert.Same(records[0], page.CalendarRecordInteraction.SelectedRecord);
+                Assert.Same(records[^1], page.CalendarRecordInteraction.SelectedRecord);
                 Assert.True(scroll.VerticalOffset > 0);
                 var row = Descendants<Border>(scroll).Single(item => item.Name == "CalendarRecordRow" &&
-                    ReferenceEquals(((CalendarDayRecordViewModel)item.DataContext).Record, records[0]));
+                    ReferenceEquals(((CalendarDayRecordViewModel)item.DataContext).Record, records[^1]));
                 var rowY = row.TranslatePoint(new Point(), scroll).Y;
                 Assert.InRange(rowY, 0, scroll.ViewportHeight - Math.Min(row.ActualHeight, scroll.ViewportHeight) + 1);
                 Assert.Equal(headerY, header.TranslatePoint(new Point(), page).Y);

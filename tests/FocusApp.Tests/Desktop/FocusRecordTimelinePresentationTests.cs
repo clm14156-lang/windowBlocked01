@@ -89,8 +89,8 @@ public sealed class FocusRecordTimelinePresentationTests
                     return;
                 }
                 var gaps = Descendants<Grid>(scope).Where(gap => gap.Name == "CalendarRecordGap").ToArray();
-                Assert.Equal(new[] { false, false, true, false, true, false }, gaps.Select(gap => gap.IsVisible));
-                Assert.Equal(new[] { "间隔 5分钟", "间隔 12分钟" }, gaps.Where(gap => gap.IsVisible)
+                Assert.Equal(new[] { false, true, false, true, false, false }, gaps.Select(gap => gap.IsVisible));
+                Assert.Equal(new[] { "间隔 12分钟", "间隔 5分钟" }, gaps.Where(gap => gap.IsVisible)
                     .Select(gap => ((CalendarDayRecordViewModel)gap.DataContext).GapDisplay));
                 foreach (var gap in gaps.Where(gap => gap.IsVisible))
                 {
@@ -117,24 +117,25 @@ public sealed class FocusRecordTimelinePresentationTests
                         Assert.InRange(spine.ActualWidth, .5, 1.5);
                         Assert.Equal(Color.FromRgb(25,196,99), ((SolidColorBrush)dot.Background).Color);
                         if (index + 1 >= rows.Length) continue;
-                        var next = gaps[index].IsVisible ? Descendants<Border>(gaps[index]).Single(line => line.Name == "CalendarGapLine")
+                        var next = gaps[index + 1].IsVisible ? Descendants<Border>(gaps[index + 1]).Single(line => line.Name == "CalendarGapLine")
                             : Descendants<Border>(rows[index + 1]).Single(line => line.Name == "TimelineSpine");
                         Assert.InRange(Math.Abs(Bounds(spine, scope).Bottom - Bounds(next, scope).Top), 0, .7);
                     }
                 }
                 VerifyConnections();
                 Save(page, "calendar-continuous");
-                var collapsedHeight = rows[0].ActualHeight;
+                var detailedRow = rows.First(row => ((CalendarDayRecordViewModel)row.DataContext).HasTasks);
+                var collapsedHeight = detailedRow.ActualHeight;
                 void Expand(bool expanded)
                 {
-                    foreach (var index in new[] { 0, 3 })
+                    foreach (var entry in model.SelectedDayRecordEntries.Where(entry => entry.HasTasks))
                     {
-                        model.SelectedDayRecordEntries[index].IsExpanded = expanded;
+                        entry.IsExpanded = expanded;
                     }
                     FinishAnimation(page);
                 }
                 Expand(true);
-                Assert.True(rows[0].ActualHeight > collapsedHeight + 75);
+                Assert.True(detailedRow.ActualHeight > collapsedHeight + 75);
                 VerifyConnections();
                 Save(page, "calendar-continuous-expanded");
                 Expand(false);

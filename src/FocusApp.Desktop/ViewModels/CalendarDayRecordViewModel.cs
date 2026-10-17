@@ -13,6 +13,7 @@ public sealed class CalendarDayRecordViewModel : INotifyPropertyChanged
     public bool HasDetails => HasGoal || HasTasks;
     public bool IsInterrupted => Record.CompletionKind == FocusCompletionKind.EarlyEnd;
     public string DurationDisplay => FormatDuration(Record.FocusDuration);
+    public string FocusDurationDisplay => $"时长 {DurationDisplay}";
     public string TaskCountDisplay => $"{Record.CalendarCompletedTaskCount}个任务";
     public TimeSpan Gap { get; }
     public bool HasGap => FocusRecordTimelineRules.ShowGap(Gap);
@@ -70,13 +71,14 @@ public sealed class CalendarDayRecordViewModel : INotifyPropertyChanged
 
     public static IReadOnlyList<CalendarDayRecordViewModel> Create(IEnumerable<FocusSessionRecordViewModel> records)
     {
-        var ordered = records.OrderByDescending(record => record.StartTime).ThenByDescending(record => record.EndTime).ToArray();
+        var ordered = records.OrderBy(record => record.StartTime).ThenBy(record => record.EndTime).ToArray();
         return ordered.Select((record, index) =>
         {
+            var previous = index > 0 ? ordered[index - 1] : null;
             var next = index + 1 < ordered.Length ? ordered[index + 1] : null;
-            return new CalendarDayRecordViewModel(record, FocusRecordTimelineRules.GetGap(record, next), next?.EndTime,
-                index > 0 && FocusRecordTimelineRules.Connect(ordered[index - 1], record),
-                FocusRecordTimelineRules.Connect(record, next));
+            return new CalendarDayRecordViewModel(record, FocusRecordTimelineRules.GetGap(record, previous), previous?.EndTime,
+                FocusRecordTimelineRules.Connect(record, previous),
+                next is not null && FocusRecordTimelineRules.Connect(next, record));
         }).ToArray();
     }
 

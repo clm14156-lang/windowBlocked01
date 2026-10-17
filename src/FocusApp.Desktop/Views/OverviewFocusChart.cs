@@ -13,6 +13,7 @@ public sealed class OverviewFocusChart : FrameworkElement
     public static readonly DependencyProperty ModelProperty = DependencyProperty.Register(nameof(Model),
         typeof(StatisticsDashboardViewModel), typeof(OverviewFocusChart), new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender, ModelChanged));
     private static readonly Brush LabelBrush = FrozenBrush("#7C889C");
+    private static readonly Brush TodayBrush = FrozenBrush("#FF8A25");
     private static readonly Pen GridPen = FrozenPen("#EAF0F6", 1, new DashStyle([2, 3], 0));
     private static readonly Pen BaselinePen = FrozenPen("#DDE4ED", 1);
     private static readonly Brush ColumnBrush = CreateColumnBrush();
@@ -21,7 +22,7 @@ public sealed class OverviewFocusChart : FrameworkElement
     public OverviewFocusBar? HoveredBar { get; private set; }
     public Point HoverAnchor { get; private set; }
     public event EventHandler? HoverChanged;
-    internal Rect PlotBounds => new(36, 12, Math.Max(0, ActualWidth - 48), Math.Max(0, ActualHeight - (Model?.IsWeek == true ? 58 : 42)));
+    internal Rect PlotBounds => new(36, 12, Math.Max(0, ActualWidth - 48), Math.Max(0, ActualHeight - (Model?.IsYear == true ? 42 : 58)));
 
     public OverviewFocusChart()
     {
@@ -83,8 +84,12 @@ public sealed class OverviewFocusChart : FrameworkElement
                 drawing.DrawGeometry(ColumnBrush, null, ColumnGeometry(bounds));
                 drawing.Pop();
             }
-            DrawText(drawing, bar.AxisLabel, model.IsMonth ? 10 : 11, new Point(center - slot / 2, plot.Bottom + 8), slot, TextAlignment.Center);
-            if (model.IsWeek) DrawText(drawing, bar.Weekday, 11, new Point(center - slot / 2, plot.Bottom + 25), slot, TextAlignment.Center);
+            DrawText(drawing, bar.AxisLabel, model.IsMonth ? 10 : 11, new Point(center - slot / 2, plot.Bottom + 8), slot, TextAlignment.Center, bar.IsToday);
+            if (model.IsWeek || bar.IsToday)
+            {
+                var labelWidth = bar.IsToday ? Math.Max(28, slot) : slot;
+                DrawText(drawing, bar.Weekday, 11, new Point(center - labelWidth / 2, plot.Bottom + 25), labelWidth, TextAlignment.Center, bar.IsToday);
+            }
         }
     }
 
@@ -92,14 +97,21 @@ public sealed class OverviewFocusChart : FrameworkElement
     {
         if (Model is not { Bars.Count: > 0 } model || !PlotBounds.Contains(point)) return null;
         var index = Math.Clamp((int)((point.X - PlotBounds.Left) / PlotBounds.Width * model.Bars.Count), 0, model.Bars.Count - 1);
-        return model.Bars[index];
+        var bar = model.Bars[index];
+        return bar.Duration > TimeSpan.Zero ? bar : null;
     }
     protected override void OnMouseMove(MouseEventArgs e)
     {
         base.OnMouseMove(e);
         HoverAt(e.GetPosition(this));
     }
-    internal void HoverAt(Point point) => SetHover(HitTestBar(point));
+    internal void HoverAt(Point point)
+    {
+        var bar = HitTestBar(point);
+        // Empty chart space also dismisses a shared poptip left open by the ring/list.
+        if (bar is null && HoveredBar is null) HoverChanged?.Invoke(this, EventArgs.Empty);
+        else SetHover(bar);
+    }
     protected override void OnMouseLeave(MouseEventArgs e) { base.OnMouseLeave(e); ClearHover(); }
     private void SetHover(OverviewFocusBar? bar)
     {
@@ -115,10 +127,11 @@ public sealed class OverviewFocusChart : FrameworkElement
         HoverChanged?.Invoke(this, EventArgs.Empty);
     }
     internal void ClearHover() => SetHover(null);
-    private void DrawText(DrawingContext drawing, string text, double size, Point origin, double width, TextAlignment alignment = TextAlignment.Left)
+    private void DrawText(DrawingContext drawing, string text, double size, Point origin, double width, TextAlignment alignment = TextAlignment.Left, bool isToday = false)
     {
         var formatted = new FormattedText(text, CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
-            new Typeface("Segoe UI, Microsoft YaHei UI"), size, LabelBrush, VisualTreeHelper.GetDpi(this).PixelsPerDip)
+            new Typeface(new FontFamily("Segoe UI, Microsoft YaHei UI"), FontStyles.Normal, isToday ? FontWeights.SemiBold : FontWeights.Normal, FontStretches.Normal),
+            size, isToday ? TodayBrush : LabelBrush, VisualTreeHelper.GetDpi(this).PixelsPerDip)
         { MaxTextWidth = Math.Max(.1, width), TextAlignment = alignment, MaxLineCount = 1, Trimming = TextTrimming.CharacterEllipsis };
         drawing.DrawText(formatted, origin);
     }

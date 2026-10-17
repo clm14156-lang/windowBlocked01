@@ -67,6 +67,13 @@ public sealed class GoalPageRefinementTests
                 Assert.Null(page.FindName("GoalCompletedTasksButton"));
                 Assert.Same(model.GoalInvestmentTrend.OpenCommand, total.Command);
                 Assert.Same(model.GoalCompletedTasks.OpenCommand, count.Command);
+                foreach (var (metric, name) in new[] { (total, "GoalInvestmentDetailChevron"), (count, "GoalCompletedDetailChevron") })
+                {
+                    var arrow = (System.Windows.Shapes.Path)page.FindName(name);
+                    Assert.True(arrow.IsVisible);
+                    Assert.False(arrow.IsHitTestVisible);
+                    Assert.InRange(arrow.TranslatePoint(new Point(arrow.ActualWidth, arrow.ActualHeight), metric).X, 0, metric.ActualWidth);
+                }
                 var value = (TextBlock)page.FindName("GoalCompletedTaskCountText");
                 Assert.Equal("13", value.Inlines.OfType<Run>().First().Text);
                 foreach (var card in new[] { total, count })
