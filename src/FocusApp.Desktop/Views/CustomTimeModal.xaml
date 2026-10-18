@@ -7,6 +7,10 @@
              UseLayoutRounding="True"
              SnapsToDevicePixels="True">
     <UserControl.Resources>
+        <ResourceDictionary>
+        <ResourceDictionary.MergedDictionaries>
+            <ResourceDictionary Source="../Resources/PrimaryActionButtons.xaml" />
+        </ResourceDictionary.MergedDictionaries>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <Style x:Key="CustomTimeFocusVisualStyle" TargetType="{x:Type Control}">
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="{x:Type Control}">
@@ -110,10 +114,9 @@
         </Style>
         <Style x:Key="CustomTimePrimaryButtonStyle"
                TargetType="{x:Type Button}"
-               BasedOn="{StaticResource CustomTimeFooterButtonStyle}">
-            <Setter Property="Background" Value="{DynamicResource AccentPrimary}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
-            <Setter Property="Foreground" Value="{DynamicResource WhiteText}" />
+               BasedOn="{StaticResource PrimaryActionButtonStyle}">
+            <Setter Property="Height" Value="42" />
+            <Setter Property="FocusVisualStyle" Value="{StaticResource CustomTimeFocusVisualStyle}" />
             <Setter Property="ContentTemplate" Value="{x:Null}" />
             <Setter Property="Template">
                 <Setter.Value>
@@ -126,22 +129,6 @@
                             <ContentPresenter HorizontalAlignment="Center"
                                               VerticalAlignment="Center" />
                         </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="PrimaryButtonBorder" Property="Background" Value="{DynamicResource AccentHover}" />
-                                <Setter TargetName="PrimaryButtonBorder" Property="BorderBrush" Value="{DynamicResource AccentHover}" />
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="PrimaryButtonBorder" Property="Background" Value="{DynamicResource AccentPressed}" />
-                                <Setter TargetName="PrimaryButtonBorder" Property="BorderBrush" Value="{DynamicResource AccentPressed}" />
-                            </Trigger>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter TargetName="PrimaryButtonBorder" Property="Background" Value="{DynamicResource ControlPressedBackground}" />
-                                <Setter TargetName="PrimaryButtonBorder" Property="BorderBrush" Value="{DynamicResource ControlPressedBackground}" />
-                                <Setter Property="Foreground" Value="{DynamicResource DisabledText}" />
-                                <Setter Property="Cursor" Value="Arrow" />
-                            </Trigger>
-                        </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
@@ -174,6 +161,7 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        </ResourceDictionary>
     </UserControl.Resources>
 
     <Border x:Name="CustomTimeCard" Width="320"
@@ -357,9 +345,7 @@
                     AutomationProperties.Name="{DynamicResource CustomTimeConfirm}"
                     Command="{Binding ConfirmCommand}"
                     Style="{StaticResource CustomTimePrimaryButtonStyle}">
-                <TextBlock FontSize="{Binding FontSize, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
-                           FontWeight="{Binding FontWeight, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
-                           Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
+                <TextBlock Style="{StaticResource PrimaryActionButtonLabelStyle}"
                            Text="{DynamicResource CustomTimeConfirm}" />
             </Button>
         </Canvas>

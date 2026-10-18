@@ -1641,20 +1641,19 @@ public sealed class CalendarDayViewModel : INotifyPropertyChanged
     public string DayNumber => Date.Day.ToString();
     public int HeatLevel => !IsCurrentMonth || Minutes <= 0 ? 0 : Minutes switch
     {
-        < 30 => 1,
-        < 60 => 2,
-        < 120 => 3,
-        < 240 => 4,
-        < 480 => 5,
-        _ => 6
+        < 60 => 1,
+        < 120 => 2,
+        < 240 => 3,
+        < 480 => 4,
+        _ => 5
     };
     public string DurationLabel => HeatLevel == 0 ? string.Empty
         : Math.Max(0.1, Math.Round(Minutes / 60d, 1, MidpointRounding.AwayFromZero))
             .ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + "h";
     public string HeatTextColor => HeatLevel switch
     {
-        1 => "#F2B58C", 2 => "#EFA06D", 3 => "#EB874B",
-        4 => "#E36B2C", 5 => "#D65318", 6 => "#BA4010", _ => "#272A31"
+        1 => "#EBB28C", 2 => "#E69A6C", 3 => "#E37F4C",
+        4 => "#D9642D", 5 => "#BF481F", _ => "#98A2B3"
     };
     public bool IsSelected
     {

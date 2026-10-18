@@ -46,7 +46,11 @@ public sealed class FocusRecordTimelineTests
         Assert.False(goal[1].ConnectsToNext);
         Assert.False(calendar[0].HasGap);
         Assert.False(goal[1].HasGap);
-        if (showsGap) Assert.Equal(calendar[1].GapDisplay, goal[0].GapDisplay);
+        if (showsGap)
+        {
+            Assert.StartsWith("休息 ", calendar[1].GapDisplay);
+            Assert.DoesNotContain("秒", calendar[1].GapDisplay);
+        }
         Assert.Equal(new[] { earlier, later }, source);
         Assert.Equal(TimeSpan.FromMinutes(1), earlier.RecordedFocusDuration);
     }

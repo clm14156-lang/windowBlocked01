@@ -139,7 +139,7 @@ public sealed class FocusTaskCompletionAnimationTests
             Assert.Equal(1, saves);
             Assert.Single(session.SessionCompletedTasks);
             Assert.NotNull(parent.CompletedAtUtc);
-            Assert.Equal(0.72, ui.Row(parent).Opacity);
+            Assert.Equal(session.IsDarkFocusTheme ? 0.72 : 1, ui.Row(parent).Opacity);
             Assert.True(double.IsNaN(ui.Row(parent).Height));
         });
     }

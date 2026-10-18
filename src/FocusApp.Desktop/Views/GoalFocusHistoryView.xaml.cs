@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
@@ -44,15 +45,38 @@ public partial class GoalFocusHistoryView : UserControl
     }
 
     private void RangePopup_Opened(object sender, EventArgs e) => FocusPopup(HistoryRangePopup.Child);
-    private void MonthPopup_Opened(object sender, EventArgs e) => FocusPopup(HistoryMonths);
-    private void FocusPopup(DependencyObject? root)
+    private void MonthPopup_Opened(object sender, EventArgs e)
+    {
+        if (Window.GetWindow(this) is { } window)
+        {
+            var top = HistoryRangeButton.TranslatePoint(new Point(), window).Y;
+            var below = window.ActualHeight - top - HistoryRangeButton.ActualHeight - 8;
+            var above = top - 8;
+            var desiredHeight = Math.Min(240, HistoryMonths.Items.Count * 30) + 24;
+            var placeAbove = below < desiredHeight && above > below;
+            HistoryMonthPopup.Placement = placeAbove ? PlacementMode.Top : PlacementMode.Bottom;
+            HistoryMonthPopup.VerticalOffset = placeAbove ? -2 : 2;
+            HistoryMonthScrollViewer.MaxHeight = Math.Clamp((placeAbove ? above : below) - 24, 30, 240);
+        }
+        FocusPopup(HistoryMonths, preferSelectedMonth: true);
+    }
+    private void FocusPopup(DependencyObject? root, bool preferSelectedMonth = false)
     {
         if (root is null) return;
         Dispatcher.BeginInvoke(DispatcherPriority.Input, () =>
         {
-            if (!IsVisible) return;
-            FirstButton(root)?.Focus();
+            if (!IsVisible || _model is null || (preferSelectedMonth ? !_model.IsMonthPickerOpen : !_model.IsRangeMenuOpen)) return;
+            var button = preferSelectedMonth ? SelectedMonthButton(root) ?? FirstButton(root) : FirstButton(root);
+            button?.BringIntoView();
+            button?.Focus();
         });
+    }
+    private static Button? SelectedMonthButton(DependencyObject root)
+    {
+        if (root is Button { DataContext: GoalHistoryMonthViewModel { IsSelected: true } } button) return button;
+        for (var index = 0; index < VisualTreeHelper.GetChildrenCount(root); index++)
+            if (SelectedMonthButton(VisualTreeHelper.GetChild(root, index)) is { } found) return found;
+        return null;
     }
     private static Button? FirstButton(DependencyObject root)
     {

@@ -57,7 +57,7 @@ public sealed class GoalDetailRedesignTests
     }
 
     [Fact]
-    public void MonthPickerNavigatesYearsWithoutApplyingAndKeepsCrossMidnightSessionsWhole()
+    public void MonthMenuListsOnlyRecordedMonthsAcrossYearsAndKeepsCrossMidnightSessionsWhole()
     {
         var model = new GoalFocusHistoryViewModel(() => Now);
         var start = new DateTime(2025, 12, 31, 23, 50, 0);
@@ -67,10 +67,8 @@ public sealed class GoalDetailRedesignTests
         model.OpenMonthPickerCommand.Execute(null);
         Assert.False(model.IsRangeMenuOpen);
         Assert.True(model.IsMonthPickerOpen);
-        Assert.Equal(2026, model.DisplayYear);
-        Assert.Equal(12, model.Months.Count());
-        Assert.Equal(1, Assert.Single(model.Months.Where(month => month.IsSelected)).Date.Month);
-        model.PreviousYearCommand.Execute(null);
+        Assert.Equal(new[] { "2026年1月", "2025年12月", "2024年2月" }, model.Months.Select(month => month.Display));
+        Assert.DoesNotContain(model.Months, month => month.IsSelected);
         Assert.Equal(GoalHistoryTimeRange.All, model.SelectedRange);
         Assert.Equal(3, model.Days.Count);
         model.SelectMonthCommand.Execute(model.Months.Single(month => month.Date.Month == 12));
@@ -83,8 +81,7 @@ public sealed class GoalDetailRedesignTests
         Assert.Equal("2025年12月31日", model.Days[0].FullDateDisplay);
         Assert.Equal("周三", model.Days[0].WeekdayDisplay);
         model.OpenMonthPickerCommand.Execute(null);
-        Assert.Equal(2025, model.DisplayYear);
-        model.PreviousYearCommand.Execute(null);
+        Assert.Equal(new DateTime(2025, 12, 1), Assert.Single(model.Months.Where(month => month.IsSelected)).Date);
         model.SelectMonthCommand.Execute(model.Months.Single(month => month.Date.Month == 2));
         Assert.Equal(new DateTime(2024, 2, 29), Assert.Single(model.Days).Date);
     }
@@ -120,7 +117,7 @@ public sealed class GoalDetailRedesignTests
     }
 
     [Fact]
-    public void FocusDaysUseActualDaySlicesAndRecordFiltersDoNotChangeLifetimeMetrics()
+    public void FilteredSummaryUsesTheSameSessionsAsHistoryAndKeepsTheSeparateLifetimeProjection()
     {
         var model = new StatisticsOverviewViewModel(false, localNowProvider: () => Now);
         model.SelectGoalsCommand.Execute(null);
@@ -129,14 +126,19 @@ public sealed class GoalDetailRedesignTests
                      Record(Now.Date.AddDays(-10)), Record(Now.Date.AddDays(1)), Record(Now.Date, 0), Record(Now.Date, 20, "other") })
             model.FocusSessionRecords.Add(record);
         Assert.Equal(3, model.SelectedGoalFocusDays);
+        Assert.Equal(4, model.GoalFocusHistory.FocusDayCount);
         var minutes = model.SelectedGoalTotalInvestment.TotalMinutes;
         model.GoalFocusHistory.SelectRangeCommand.Execute("SevenDays");
         Assert.Equal(3, model.SelectedGoalFocusDays);
         Assert.Equal(minutes, model.SelectedGoalTotalInvestment.TotalMinutes);
         Assert.Equal(2, model.GoalFocusHistory.Days.Count);
+        Assert.Equal(2, model.GoalFocusHistory.FocusDayCount);
+        Assert.Equal(55, model.GoalFocusHistory.TotalInvestment.TotalMinutes);
         model.FocusSessionRecords.Clear();
         Assert.Equal(0, model.SelectedGoalFocusDays);
         Assert.Equal(0, model.SelectedGoalTotalInvestment.TotalMinutes);
+        Assert.Equal(0, model.GoalFocusHistory.FocusDayCount);
+        Assert.Equal(0, model.GoalFocusHistory.TotalInvestment.TotalMinutes);
     }
 
     [Theory]
@@ -212,16 +214,28 @@ public sealed class GoalDetailRedesignTests
                 Assert.Equal(3, model.GoalFocusHistory.Days.Count);
                 Invoke(trigger); Pump(page); Invoke((Button)history.FindName("HistoryMonthOption")); Pump(page);
                 Assert.False(rangePopup.IsOpen); Assert.True(monthPopup.IsOpen);
-                Assert.Equal(12, Descendants<Button>((ItemsControl)history.FindName("HistoryMonths")).Count());
+                Assert.Equal(new[] { "2026年1月", "2025年12月", "2025年11月" }, model.GoalFocusHistory.Months.Select(month => month.Display));
+                Assert.Equal(3, Descendants<Button>((ItemsControl)history.FindName("HistoryMonths")).Count());
+                Assert.Null(history.FindName("HistoryPreviousYear"));
+                Assert.Null(history.FindName("HistoryNextYear"));
+                Assert.Equal(trigger.ActualWidth, ((Border)history.FindName("HistoryMonthPickerSurface")).ActualWidth);
+                var january = Descendants<Button>((ItemsControl)history.FindName("HistoryMonths")).First();
+                Invoke(january); Pump(page);
+                Assert.False(monthPopup.IsOpen);
+                Invoke(trigger); Pump(page); Invoke((Button)history.FindName("HistoryMonthOption")); Pump(page);
                 var selectedMonth = Descendants<Button>((ItemsControl)history.FindName("HistoryMonths")).Single(button => button.DataContext is GoalHistoryMonthViewModel { IsSelected: true });
-                Assert.Equal(Colors.White, ((SolidColorBrush)Descendants<TextBlock>(selectedMonth).Single().Foreground).Color);
-                Invoke((Button)history.FindName("HistoryPreviousYear")); Pump(page);
-                Assert.Equal(2025, model.GoalFocusHistory.DisplayYear);
+                Assert.Equal(Color.FromRgb(55, 65, 81), ((SolidColorBrush)Descendants<TextBlock>(selectedMonth).Single().Foreground).Color);
+                Assert.Equal(Color.FromRgb(241, 243, 246), ((SolidColorBrush)selectedMonth.Background).Color);
                 var december = Descendants<Button>((ItemsControl)history.FindName("HistoryMonths")).Single(button => button.DataContext is GoalHistoryMonthViewModel month && month.Date.Month == 12);
                 Invoke(december); Pump(page);
                 Assert.False(monthPopup.IsOpen);
                 Assert.Equal("2025年12月", model.GoalFocusHistory.RangeDisplay);
                 Assert.Equal(2, model.GoalFocusHistory.Days.Count);
+                Assert.Equal("50分钟", model.GoalFocusHistory.TotalInvestment.Display);
+                string Value(string name) => string.Concat(((TextBlock)page.FindName(name)).Inlines.OfType<System.Windows.Documents.Run>().Select(run => run.Text));
+                Assert.Equal("50 分钟", Value("GoalTotalInvestmentText").Trim());
+                Assert.Equal("0 个", Value("GoalCompletedTaskCountText"));
+                Assert.Equal("2 天", Value("GoalFocusDaysText"));
                 Invoke(trigger); Pump(page);
                 model.SelectCalendarCommand.Execute(null); Pump(page);
                 Assert.False(rangePopup.IsOpen); Assert.False(monthPopup.IsOpen);

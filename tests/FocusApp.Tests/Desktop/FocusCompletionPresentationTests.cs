@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
@@ -76,11 +77,37 @@ public sealed class FocusCompletionPresentationTests
                 Assert.Null(check.Effect);
                 var targetRow = Named<Grid>(view, "CompletionTarget");
                 Assert.Equal(hasTarget, targetRow.IsVisible);
-                var statistics = Named<TextBlock>(view, "CompletionStatistics");
-                Assert.Equal("今日累计 5 分钟 · 21:45完成", statistics.Text);
+                var statistics = Named<Grid>(view, "CompletionStatistics");
+                Assert.Equal("5分钟", string.Concat(Named<TextBlock>(view, "CompletionTodayValue").Inlines.OfType<Run>().Select(run => run.Text)));
+                Assert.Equal("21:45", Named<TextBlock>(view, "CompletionClockValue").Text);
+                Assert.Equal("今日累计", Named<TextBlock>(view, "CompletionTodayLabel").Text);
+                Assert.Equal("完成时间", Named<TextBlock>(view, "CompletionClockLabel").Text);
+                Assert.Equal(18, Named<TextBlock>(view, "CompletionTitle").FontSize);
+                Assert.Equal(FontWeights.SemiBold, Named<TextBlock>(view, "CompletionTitle").FontWeight);
+                Assert.Equal(13, Named<TextBlock>(view, "CompletionSubtitle").FontSize);
+                Assert.Equal(13, Named<TextBlock>(view, "CompletionTodayLabel").FontSize);
+                Assert.Equal(13, Named<TextBlock>(view, "CompletionClockLabel").FontSize);
+                Assert.Equal(20, Named<TextBlock>(view, "CompletionTodayValue").FontSize);
+                var durationValue = Named<TextBlock>(view, "CompletionTodayValue");
+                var clockValue = Named<TextBlock>(view, "CompletionClockValue");
+                Assert.Equal(durationValue.FontFamily, clockValue.FontFamily);
+                Assert.Equal("Segoe UI Variable Display", durationValue.FontFamily.Source);
+                Assert.Equal(FontWeights.SemiBold, durationValue.FontWeight);
+                Assert.Equal(FontWeights.SemiBold, clockValue.FontWeight);
+                var durationRuns = durationValue.Inlines.OfType<Run>().ToArray();
+                foreach (var unit in new[] { durationRuns[1], durationRuns[3] })
+                {
+                    Assert.Equal(12, unit.FontSize);
+                    Assert.Equal(FontWeights.Normal, unit.FontWeight);
+                    Assert.Equal("Microsoft YaHei UI", unit.FontFamily.Source);
+                    Assert.Equal(BaselineAlignment.Baseline, unit.BaselineAlignment);
+                }
+                Assert.Equal(24, Named<SvgIcon>(view, "CompletionTodayIcon").Width);
+                Assert.Equal(24, Named<Viewbox>(view, "CompletionClockIcon").Width);
+                Assert.Equal(1, Named<Border>(view, "CompletionStatisticsDivider").Width);
                 var timeBottom = Bounds((FrameworkElement)time.Parent, view).Bottom;
                 var statisticsBounds = Bounds(statistics, view);
-                Assert.Equal(timeBottom - 4 + 15 + (hasTarget ? 32 : 0), statisticsBounds.Top + statisticsBounds.Height / 2, 3);
+                Assert.Equal(timeBottom - 4 + (hasTarget ? 32 : 0) + 10, statisticsBounds.Top, 3);
                 Assert.Equal(400, statisticsBounds.Left + statisticsBounds.Width / 2, 3);
                 if (hasTarget)
                 {

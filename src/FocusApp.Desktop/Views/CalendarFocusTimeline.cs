@@ -194,6 +194,11 @@ public sealed class CalendarFocusTimeline : FrameworkElement
         new FrameworkPropertyMetadata(FontWeights.Normal, FrameworkPropertyMetadataOptions.AffectsRender));
     public FontWeight TickLabelFontWeight { get => (FontWeight)GetValue(TickLabelFontWeightProperty); set => SetValue(TickLabelFontWeightProperty, value); }
 
+    public static readonly DependencyProperty TickLabelForegroundProperty = DependencyProperty.Register(
+        nameof(TickLabelForeground), typeof(Brush), typeof(CalendarFocusTimeline),
+        new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender));
+    public Brush? TickLabelForeground { get => (Brush?)GetValue(TickLabelForegroundProperty); set => SetValue(TickLabelForegroundProperty, value); }
+
     protected override void OnRender(DrawingContext drawingContext)
     {
         base.OnRender(drawingContext);
@@ -203,7 +208,7 @@ public sealed class CalendarFocusTimeline : FrameworkElement
         var startHour = Timeline?.StartHour ?? (FullDayStyle || GoalHistoryStyle ? 0 : 8);
         var typeface = new Typeface(TryFindResource("FontFamilyEnglish") as FontFamily ?? new FontFamily("Segoe UI"),
             FontStyles.Normal, TickLabelFontWeight, FontStretches.Normal);
-        var labelBrush = TryFindResource("TextWeak") as Brush ?? Brushes.Gray;
+        var labelBrush = TickLabelForeground ?? TryFindResource("TextWeak") as Brush ?? Brushes.Gray;
         var trackBrush = FullDayStyle ? new SolidColorBrush(Color.FromRgb(246, 247, 249))
             : TryFindResource("SurfaceTertiary") as Brush ?? new SolidColorBrush(Color.FromRgb(239, 240, 243));
         var accentBrush = GoalHistoryStyle ? new SolidColorBrush(Color.FromRgb(255, 151, 57))
@@ -338,6 +343,7 @@ public sealed class CalendarFocusTimeline : FrameworkElement
             InteractionState?.HoverTimeline(segment.Record);
             _sessionToolTip ??= new ToolTip
             {
+                Style = TryFindResource("CalendarToolTipStyle") as Style,
                 PlacementTarget = this, Placement = PlacementMode.Top,
                 StaysOpen = true, IsHitTestVisible = false,
                 Padding = new Thickness(10, 6, 10, 6), Background = Brushes.White,

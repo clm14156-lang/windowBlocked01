@@ -38,4 +38,26 @@
     <Style x:Key="PoptipAccentTextStyle" TargetType="TextBlock" BasedOn="{StaticResource PoptipPrimaryTextStyle}">
         <Setter Property="Foreground" Value="{StaticResource PoptipAccentBrush}" />
     </Style>
+    <Style x:Key="ChartPoptipSurfaceStyle" TargetType="views:PoptipChrome" BasedOn="{StaticResource PoptipSurfaceStyle}">
+        <Setter Property="Background" Value="#282F3B" />
+        <Setter Property="BorderBrush" Value="#343D4B" />
+        <Setter Property="ShowPointer" Value="False" />
+        <Setter Property="Effect">
+            <Setter.Value><DropShadowEffect Color="#17202D" Opacity="0.12" BlurRadius="12" ShadowDepth="2" /></Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key="ChartPoptipSecondaryTextStyle" TargetType="TextBlock" BasedOn="{StaticResource PoptipSecondaryTextStyle}">
+        <Setter Property="Foreground" Value="#BFC6D2" />
+    </Style>
+    <Style x:Key="ChartPoptipBodyTextStyle" TargetType="TextBlock" BasedOn="{StaticResource PoptipSecondaryTextStyle}">
+        <Setter Property="Foreground" Value="#E3E7EE" />
+        <Setter Property="LineHeight" Value="20" />
+    </Style>
+    <Style x:Key="ChartPoptipValueStyle" TargetType="Run">
+        <Setter Property="FontFamily" Value="{DynamicResource FontFamilyEnglish}" />
+        <Setter Property="FontSize" Value="{DynamicResource BodyFontSize}" />
+        <Setter Property="FontWeight" Value="Medium" />
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Typography.NumeralAlignment" Value="Tabular" />
+    </Style>
 </ResourceDictionary>

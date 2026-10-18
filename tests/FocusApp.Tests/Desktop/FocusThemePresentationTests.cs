@@ -80,14 +80,14 @@ public sealed class FocusThemePresentationTests
                     Assert.False(leaves.IsHitTestVisible);
                     Assert.Equal(dark ? 2 : 3, leaves.Sources!.Length);
                     Assert.All(leaves.Sources, source => Assert.Contains(expectedPrefix + "_yezi", source.ToString()));
-                    Assert.Equal(dark ? Color.FromRgb(0xFC, 0xFD, 0xFF) : Color.FromRgb(0x06, 0x1C, 0x31),
+                    Assert.Equal(dark ? Color.FromRgb(0xFC, 0xFD, 0xFF) : Color.FromRgb(0x18, 0x21, 0x2F),
                         ((SolidColorBrush)((TextBlock)focus.FindName("FocusCountdown")).Foreground).Color);
-                    Assert.Equal(dark ? Color.FromRgb(0xF5, 0xF8, 0xFF) : Color.FromRgb(0x24, 0x26, 0x2C),
+                    Assert.Equal(dark ? Color.FromRgb(0xF5, 0xF8, 0xFF) : Color.FromRgb(0x37, 0x41, 0x51),
                         ((SolidColorBrush)drawer.Foreground).Color);
                     Assert.Equal(dark ? (byte)0x40 : (byte)0, ((SolidColorBrush)cards[0].Background).Color.A);
                     var drawing = Assert.IsType<DrawingImage>(((Image)focus.FindName("FocusTargetIcon")).Source);
                     var targetColor = ((SolidColorBrush)((TextBlock)focus.FindName("FocusTargetName")).Foreground).Color;
-                    Assert.Equal(dark ? Color.FromRgb(0xE6, 0xF0, 0xFF) : Color.FromRgb(0x5D, 0x7F, 0xA6), targetColor);
+                    Assert.Equal(dark ? Color.FromRgb(0xE6, 0xF0, 0xFF) : Color.FromRgb(0x37, 0x41, 0x51), targetColor);
                     Assert.All(((DrawingGroup)drawing.Drawing).Children.OfType<GeometryDrawing>().Where(item => item.Brush is SolidColorBrush brush && brush.Color.A > 0),
                         item => Assert.Equal(targetColor, ((SolidColorBrush)item.Brush).Color));
                     SavePreview(focus, dark ? "focus-dark" : "focus-light");

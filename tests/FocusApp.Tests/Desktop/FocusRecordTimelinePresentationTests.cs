@@ -90,21 +90,29 @@ public sealed class FocusRecordTimelinePresentationTests
                 }
                 var gaps = Descendants<Grid>(scope).Where(gap => gap.Name == "CalendarRecordGap").ToArray();
                 Assert.Equal(new[] { false, true, false, true, false, false }, gaps.Select(gap => gap.IsVisible));
-                Assert.Equal(new[] { "间隔 12分钟", "间隔 5分钟" }, gaps.Where(gap => gap.IsVisible)
+                Assert.Equal(new[] { "休息 12分钟", "休息 5分钟" }, gaps.Where(gap => gap.IsVisible)
                     .Select(gap => ((CalendarDayRecordViewModel)gap.DataContext).GapDisplay));
                 foreach (var gap in gaps.Where(gap => gap.IsVisible))
                 {
-                    var marker = Descendants<Border>(gap).Single(item => item.Name == "CalendarGapMarker");
+                    var marker = Descendants<Grid>(gap).Single(item => item.Name == "CalendarGapMarker");
                     var text = Descendants<TextBlock>(gap).Single(item => item.Name == "CalendarGapText");
-                    Assert.InRange(Math.Abs(CenterY(marker, scope) - CenterY(text, scope)), 0, 4);
+                    Assert.InRange(Math.Abs(CenterY(marker, scope) - CenterY(text, scope)), 0, .7);
+                    Assert.InRange(Math.Abs(CenterY(marker, gap) - 12), 0, .7);
                     Assert.Equal(marker.ActualHeight, marker.ActualWidth);
-                    Assert.Equal(Color.FromRgb(210, 214, 220), ((SolidColorBrush)marker.Background).Color);
-                    Assert.Equal(9, marker.CornerRadius.TopLeft * 2);
-                    Assert.Equal(((CalendarDayRecordViewModel)gap.DataContext).GapTimeRangeDisplay,
-                        Descendants<TextBlock>(gap).Single(item => item.Name == "CalendarGapTime").Text);
-                    Assert.Empty(Descendants<Ellipse>(gap));
+                    var face = Assert.Single(Descendants<Ellipse>(marker));
+                    Assert.Equal(Color.FromRgb(191, 197, 206), ((SolidColorBrush)face.Fill).Color);
+                    var hands = Assert.Single(Descendants<System.Windows.Shapes.Path>(marker));
+                    Assert.Equal(1, hands.StrokeThickness);
+                    Assert.False(marker.IsHitTestVisible);
+                    Assert.Null(text.ToolTip); Assert.Equal(((CalendarDayRecordViewModel)gap.DataContext).GapDisplay, text.Text);
+                    Assert.Single(Descendants<TextBlock>(gap));
+                    Assert.Equal(12, text.FontSize);
+                    Assert.Equal(FontWeights.Normal, text.FontWeight);
+                    Assert.Equal(Color.FromRgb(102, 112, 133), ((SolidColorBrush)text.Foreground).Color);
+                    Assert.Single(Descendants<Ellipse>(gap));
+                    Assert.Empty(Descendants<Border>(gap).Where(border => border.Height == 1));
                     Assert.True(Descendants<Border>(gap).First().ActualHeight > 0);
-                    Assert.Equal(46, gap.ActualHeight);
+                    Assert.Equal(32, gap.ActualHeight);
                 }
                 Assert.Empty(Descendants<Grid>(scope).Where(grid => grid.Name == "ContinuousRecordSpacing"));
                 void VerifyConnections()
@@ -116,6 +124,11 @@ public sealed class FocusRecordTimelinePresentationTests
                         Assert.Equal(dot.ActualWidth, dot.ActualHeight);
                         Assert.InRange(spine.ActualWidth, .5, 1.5);
                         Assert.Equal(Color.FromRgb(25,196,99), ((SolidColorBrush)dot.Background).Color);
+                        var time = Descendants<TextBlock>(rows[index]).Single(text => text.Name == "TimeRange");
+                        var goalName = Descendants<TextBlock>(rows[index]).Single(text => text.Name == "GoalName");
+                        Assert.InRange(Math.Abs(CenterY(dot, scope) - CenterY(time, scope)), 0, .7);
+                        Assert.InRange(Math.Abs(CenterY(dot, scope) - CenterY(goalName, scope)), 0, .7);
+                        Assert.InRange(Math.Abs(CenterY(dot, rows[index]) - 12), 0, .7);
                         if (index + 1 >= rows.Length) continue;
                         var next = gaps[index + 1].IsVisible ? Descendants<Border>(gaps[index + 1]).Single(line => line.Name == "CalendarGapLine")
                             : Descendants<Border>(rows[index + 1]).Single(line => line.Name == "TimelineSpine");

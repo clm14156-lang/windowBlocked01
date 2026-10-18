@@ -72,13 +72,26 @@ public sealed class FocusCompletionViewModelTests
         for (var tick = 0; tick < 300; tick++) { now = now.AddSeconds(1); model.AdvanceOneSecond(); }
         var current = Saved(now, 300);
         Assert.Equal("今日累计 35 分钟 · 12:05完成", model.CompletionTodayStatistics);
+        Assert.Equal("35分钟", model.CompletionTodayDurationDisplay);
+        Assert.Equal("12:05", model.CompletionClockDisplay);
         var changes = 0;
-        model.PropertyChanged += (_, args) => { if (args.PropertyName == nameof(model.CompletionTodayStatistics)) changes++; };
+        var updatedFields = new HashSet<string>();
+        model.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(model.CompletionTodayStatistics)) changes++;
+            if (args.PropertyName is not null) updatedFields.Add(args.PropertyName);
+        };
         statistics.ApplyState(state with { Revision = 2, FocusSessions = [priorDay, earlier, invalid, current] });
         Assert.Equal("今日累计 35 分钟 · 12:05完成", model.CompletionTodayStatistics);
         statistics.ApplyState(state with { Revision = 3, FocusSessions = [priorDay, earlier, invalid, current] });
         Assert.Equal("今日累计 35 分钟 · 12:05完成", model.CompletionTodayStatistics);
         Assert.True(changes > 0); Assert.Single(model.CompletionHistory);
+        Assert.Contains(nameof(model.CompletionTodayDurationDisplay), updatedFields);
+        Assert.Contains(nameof(model.CompletionTodayPrimaryValue), updatedFields);
+        Assert.Contains(nameof(model.CompletionTodaySecondaryValue), updatedFields);
+        Assert.Contains(nameof(model.CompletionTodayPrimaryUnit), updatedFields);
+        Assert.Contains(nameof(model.CompletionTodaySecondaryUnit), updatedFields);
+        Assert.Contains(nameof(model.CompletionClockDisplay), updatedFields);
     }
 
     [Fact]
@@ -89,6 +102,8 @@ public sealed class FocusCompletionViewModelTests
         model.Start(5); model.AdvancePreparationBy(TimeSpan.FromSeconds(5));
         for (var index = 0; index < 300; index++) { now = now.AddSeconds(1); model.AdvanceOneSecond(); }
         Assert.Equal("今日累计 3 分钟 · 00:03完成", model.CompletionTodayStatistics);
+        Assert.Equal("3分钟", model.CompletionTodayDurationDisplay);
+        Assert.Equal("00:03", model.CompletionClockDisplay);
     }
 
     [Fact]
@@ -99,6 +114,8 @@ public sealed class FocusCompletionViewModelTests
         model.Start(5); model.AdvancePreparationBy(TimeSpan.FromSeconds(5));
         for (var index = 0; index < 300; index++) { now = now.AddSeconds(1); model.AdvanceOneSecond(); }
         Assert.Equal("今日累计 0 分钟 · 00:00完成", model.CompletionTodayStatistics);
+        Assert.Equal("0分钟", model.CompletionTodayDurationDisplay);
+        Assert.Equal("00:00", model.CompletionClockDisplay);
     }
 
     [Fact]
@@ -115,6 +132,34 @@ public sealed class FocusCompletionViewModelTests
         model.Start(5); model.AdvancePreparationBy(TimeSpan.FromSeconds(5));
         for (var tick = 0; tick < 300; tick++) { now = now.AddSeconds(1); model.AdvanceOneSecond(); }
         Assert.Equal("今日累计 7 分钟 · 12:05完成", model.CompletionTodayStatistics);
+    }
+
+    [Theory]
+    [InlineData(5, "5分钟")]
+    [InlineData(59, "59分钟")]
+    [InlineData(60, "1小时")]
+    [InlineData(65, "1小时5分钟")]
+    [InlineData(240, "4小时")]
+    [InlineData(1439, "23小时59分钟")]
+    public void CompletionColumnsUseDailyDurationAndTheActualFrozenCompletionClock(int minutes, string expected)
+    {
+        var now = new DateTime(2026, 10, 18, 23, 43, 0);
+        var model = new FocusSessionViewModel(() => now, false);
+        model.Start(5); model.AdvancePreparationBy(TimeSpan.FromSeconds(5));
+        for (var tick = 0; tick < 300; tick++) { now = now.AddSeconds(1); model.AdvanceOneSecond(); }
+        model.SetCompletionStatisticsProvider((date, _) => new FocusDailySummary(date, TimeSpan.FromMinutes(minutes), 1, 0));
+        Assert.Equal(expected, model.CompletionTodayDurationDisplay);
+        Assert.Equal(expected, $"{model.CompletionTodayPrimaryValue}{model.CompletionTodayPrimaryUnit}{model.CompletionTodaySecondaryValue}{model.CompletionTodaySecondaryUnit}");
+        if (minutes % 60 == 0 || minutes < 60)
+        {
+            Assert.Empty(model.CompletionTodaySecondaryValue);
+            Assert.Empty(model.CompletionTodaySecondaryUnit);
+        }
+        Assert.Equal("23:48", model.CompletionClockDisplay);
+        now = now.AddDays(1);
+        model.RefreshFocusAppearance();
+        Assert.Equal(expected, model.CompletionTodayDurationDisplay);
+        Assert.Equal("23:48", model.CompletionClockDisplay);
     }
 
     private static LocalFocusSessionDto Saved(DateTime end, int seconds) => new(

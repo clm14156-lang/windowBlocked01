@@ -24,8 +24,7 @@ public sealed class FocusTargetModalPresentationTests
         Assert.Equal("390", (string?)modal.Root.Attribute("Height"));
         var title = Assert.Single(modal.Descendants(Presentation + "TextBlock").Where(text =>
             (string?)text.Attribute("Text") == "{DynamicResource FocusTargetTitle}"));
-        Assert.Equal("{DynamicResource DialogTitleFontSize}", (string?)title.Attribute("FontSize"));
-        Assert.Equal("{DynamicResource DialogTitleFontWeight}", (string?)title.Attribute("FontWeight"));
+        Assert.Equal("{StaticResource StatisticsPageTitleTextStyle}", (string?)title.Attribute("Style"));
         Assert.DoesNotContain(modal.Descendants(Presentation + "TextBlock"), text =>
             (string?)text.Attribute("Text") == "选择一个目标开始本次专注");
         Assert.DoesNotContain(modal.Descendants(Presentation + "Button"), button =>

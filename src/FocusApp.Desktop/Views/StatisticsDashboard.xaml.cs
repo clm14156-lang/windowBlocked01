@@ -71,6 +71,7 @@ public partial class StatisticsDashboard : UserControl
         if (FocusChart.HoveredBar is not { } bar) { CloseTip(); return; }
         TipTitle.Text = bar.TooltipDate;
         TipDuration.Text = bar.DurationDisplay;
+        TipMarker.Fill = OverviewFocusChart.FrozenBrush("#FF8B28");
         TipPercentage.Visibility = Visibility.Collapsed;
         ShowTip(FocusChart.TranslatePoint(FocusChart.HoverAnchor, DashboardRoot));
     }
@@ -102,7 +103,8 @@ public partial class StatisticsDashboard : UserControl
     {
         if (_model?.ActiveDistribution is not { } item || !IsVisible || FocusChart.IsMouseOver && FocusChart.HoveredBar is null) { CloseTip(); return; }
         TipTitle.Text = item.TargetName;
-        TipDuration.Text = item.ExactDurationDisplay;
+        TipDuration.Text = item.DurationDisplay;
+        TipMarker.Fill = item.Color;
         TipPercentage.Text = $"占比  {item.PercentageDisplay}";
         TipPercentage.Visibility = Visibility.Visible;
         var point = _hoveredRow is { IsVisible: true } row && ReferenceEquals(row.DataContext, item)

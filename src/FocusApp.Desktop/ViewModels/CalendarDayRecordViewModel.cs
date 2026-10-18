@@ -19,7 +19,7 @@ public sealed class CalendarDayRecordViewModel : INotifyPropertyChanged
     public bool HasGap => FocusRecordTimelineRules.ShowGap(Gap);
     public bool ConnectsFromPrevious { get; }
     public bool ConnectsToNext { get; }
-    public string GapDisplay => $"间隔 {FormatDuration(Gap)}";
+    public string GapDisplay => $"休息 {FormatDuration(Gap)}";
     public string GapTimeRangeDisplay { get; }
     public string SummaryDisplay => FormatDuration(Record.FocusDuration) +
         (HasTasks ? $" · {Record.CalendarCompletedTaskCount}个任务" : string.Empty);

@@ -17,8 +17,8 @@ public sealed class CalendarDayRecordViewModelTests
         var source = new[] { latest, early, middle };
         var entries = CalendarDayRecordViewModel.Create(source);
         Assert.Equal(new[] { early, middle, latest }, entries.Select(entry => entry.Record));
-        Assert.Equal("间隔 1小时37分钟", entries[2].GapDisplay);
-        Assert.Equal("间隔 7小时21分钟", entries[1].GapDisplay);
+        Assert.Equal("休息 1小时37分钟", entries[2].GapDisplay);
+        Assert.Equal("休息 7小时21分钟", entries[1].GapDisplay);
         Assert.False(entries[0].HasGap);
         Assert.Equal(new[] { latest, early, middle }, source);
         Assert.Equal("15分钟", entries[2].SummaryDisplay);
@@ -26,6 +26,23 @@ public sealed class CalendarDayRecordViewModelTests
         Assert.Equal("时长 15分钟", entries[2].FocusDurationDisplay);
         Assert.Equal("16:48 - 18:25", entries[2].GapTimeRangeDisplay);
         Assert.Equal("09:22 - 16:43", entries[1].GapTimeRangeDisplay);
+    }
+
+    [Theory]
+    [InlineData(300, "休息 5分钟")]
+    [InlineData(359, "休息 5分钟")]
+    [InlineData(3600, "休息 1小时")]
+    [InlineData(6600, "休息 1小时50分钟")]
+    [InlineData(6659, "休息 1小时50分钟")]
+    public void RestLabelUsesTheRealTimestampGapWithoutSeconds(int seconds, string label)
+    {
+        var previous = Session(8, 0, 5);
+        var start = previous.EndTime.AddSeconds(seconds);
+        var later = new FocusSessionRecordViewModel(start, start.AddMinutes(5), "", "", "", 0);
+        var entry = CalendarDayRecordViewModel.Create([later, previous])[1];
+        Assert.True(entry.HasGap);
+        Assert.Equal(TimeSpan.FromSeconds(seconds), entry.Gap);
+        Assert.Equal(label, entry.GapDisplay);
     }
 
     [Fact]

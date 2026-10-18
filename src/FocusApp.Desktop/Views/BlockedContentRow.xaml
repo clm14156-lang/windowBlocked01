@@ -3,10 +3,14 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:views="clr-namespace:FocusApp.Desktop.Views"
              Height="48"
-             FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI"
+             FontFamily="{DynamicResource FontFamilyPrimary}"
              UseLayoutRounding="True"
              SnapsToDevicePixels="True">
     <UserControl.Resources>
+        <ResourceDictionary>
+        <ResourceDictionary.MergedDictionaries>
+            <ResourceDictionary Source="../Resources/StatisticsTypography.xaml" />
+        </ResourceDictionary.MergedDictionaries>
         <DataTemplate x:Key="BlockedFallbackIconTemplate">
             <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center"
                        FontFamily="Segoe MDL2 Assets" Text="{Binding IconGlyph}">
@@ -51,6 +55,7 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        </ResourceDictionary>
     </UserControl.Resources>
 
     <Grid x:Name="RowRoot">
@@ -110,9 +115,7 @@
             <TextBlock Grid.Column="1"
                        Margin="6,0,8,0"
                        VerticalAlignment="Center"
-                       FontSize="14"
-                       FontWeight="Normal"
-                       Foreground="{DynamicResource TextPrimary}"
+                       Style="{StaticResource StatisticsBodyTextStyle}"
                        Text="{Binding Name}"
                        TextTrimming="CharacterEllipsis" />
 

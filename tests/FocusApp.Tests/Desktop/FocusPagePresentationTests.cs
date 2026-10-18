@@ -107,7 +107,7 @@ public sealed class FocusPagePresentationTests
                         var icon = Assert.IsType<DrawingImage>(((Image)view.FindName("FocusTargetIcon")).Source);
                         var drawing = Assert.IsType<DrawingGroup>(icon.Drawing);
                         Assert.All(drawing.Children.OfType<GeometryDrawing>().Where(item => item.Brush is SolidColorBrush brush && brush.Color.A > 0), item =>
-                            Assert.Equal(Color.FromRgb(0x5D, 0x7F, 0xA6), ((SolidColorBrush)item.Brush).Color));
+                            Assert.Equal(Color.FromRgb(0x37, 0x41, 0x51), ((SolidColorBrush)item.Brush).Color));
                         var label = Descendants<TextBlock>(tasks).Single(text => text.Inlines.OfType<Run>().Count() == 4);
                         Assert.Equal("查看任务（0）", label.Text);
                         target!.AddTask("检查当前任务");

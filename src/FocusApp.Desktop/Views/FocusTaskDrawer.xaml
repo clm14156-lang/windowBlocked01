@@ -21,7 +21,7 @@
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="CheckBox">
                 <Border x:Name="CheckChrome" CornerRadius="3" BorderBrush="{DynamicResource FocusTaskCheckBorder}" BorderThickness="1" Background="{DynamicResource FocusTaskSurface}">
                     <Grid>
-                    <TextBlock x:Name="TaskNumber" Text="{Binding DrawerNumber}" FontSize="10" FontWeight="{DynamicResource CaptionFontWeight}" Foreground="{DynamicResource FocusTaskNumberText}"
+                    <TextBlock x:Name="TaskNumber" Text="{Binding DrawerNumber}" FontSize="{DynamicResource FocusTaskNumberFontSize}" FontWeight="{DynamicResource CaptionFontWeight}" Foreground="{DynamicResource FocusTaskNumberText}"
                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     <Path x:Name="Tick" Width="9" Height="7" Data="M 0,3 L 3,6 L 9,0" Stroke="{DynamicResource FocusTaskTickWhite}" StrokeThickness="1.5"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
@@ -56,15 +56,16 @@
         <Style x:Key="DrawerAddTaskButtonStyle" TargetType="Button" BasedOn="{StaticResource PlainButton}">
             <Setter Property="Width" Value="42"/><Setter Property="Height" Value="42"/>
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
-                <Border x:Name="CreateSurface" Background="{DynamicResource FocusTaskSurface}" BorderBrush="{DynamicResource FocusTaskAddBorder}" BorderThickness="1" CornerRadius="21" RenderTransformOrigin="0.5,0.5">
+                <Border x:Name="CreateSurface" Background="#FF963F" BorderThickness="0" CornerRadius="21" RenderTransformOrigin="0.5,0.5">
                     <Border.RenderTransform><ScaleTransform/></Border.RenderTransform>
-                    <Path Width="14" Height="14" Data="M 0,7 L 14,7 M 7,0 L 7,14" Stroke="{DynamicResource FocusTaskAddIcon}" StrokeThickness="1.5"
+                    <Border.Effect><DropShadowEffect Color="#C97738" BlurRadius="10" ShadowDepth="2" Opacity="0.18"/></Border.Effect>
+                    <Path Width="14" Height="14" Data="M 0,7 L 14,7 M 7,0 L 7,14" Stroke="White" StrokeThickness="1.5"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 </Border>
                 <ControlTemplate.Triggers>
-                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="CreateSurface" Property="Background" Value="{DynamicResource FocusTaskAddHover}"/><Setter TargetName="CreateSurface" Property="BorderBrush" Value="{DynamicResource FocusTaskAddHoverBorder}"/></Trigger>
-                    <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="CreateSurface" Property="Background" Value="{DynamicResource FocusTaskAddHover}"/></Trigger>
-                    <Trigger Property="IsPressed" Value="True"><Setter TargetName="CreateSurface" Property="Background" Value="{DynamicResource FocusTaskAddPressed}"/><Setter TargetName="CreateSurface" Property="RenderTransform"><Setter.Value><ScaleTransform ScaleX="0.94" ScaleY="0.94"/></Setter.Value></Setter></Trigger>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="CreateSurface" Property="Background" Value="#F5872E"/></Trigger>
+                    <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="CreateSurface" Property="Background" Value="#F5872E"/></Trigger>
+                    <Trigger Property="IsPressed" Value="True"><Setter TargetName="CreateSurface" Property="Background" Value="#E97B25"/><Setter TargetName="CreateSurface" Property="RenderTransform"><Setter.Value><ScaleTransform ScaleX="0.94" ScaleY="0.94"/></Setter.Value></Setter></Trigger>
                 </ControlTemplate.Triggers>
             </ControlTemplate></Setter.Value></Setter>
             <Style.Triggers><DataTrigger Binding="{Binding IsCreating}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers>
@@ -98,9 +99,22 @@
                         <Grid.ColumnDefinitions><ColumnDefinition Width="35" /><ColumnDefinition Width="*" /><ColumnDefinition Width="24" /></Grid.ColumnDefinitions>
                         <CheckBox x:Name="TaskCompletionCheck" IsChecked="{Binding IsCompleted, Mode=OneWay}" Command="{Binding DataContext.ToggleTaskCompletedCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
                                   HorizontalAlignment="Left" VerticalAlignment="Center" Style="{StaticResource DrawerTaskCheck}" AutomationProperties.Name="切换任务完成状态" />
-                        <TextBlock x:Name="TaskTitle" Grid.Column="1" VerticalAlignment="Center" Text="{Binding Name}" FontSize="{DynamicResource BodyMediumFontSize}" FontWeight="{DynamicResource BodyMediumFontWeight}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" Style="{StaticResource CompletedTitle}" />
+                        <TextBlock x:Name="TaskTitle" Grid.Column="1" VerticalAlignment="Center" Text="{Binding Name}" FontSize="{DynamicResource BodyFontSize}" FontWeight="{DynamicResource FocusTaskNameFontWeight}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" Style="{StaticResource CompletedTitle}" />
                         <Button x:Name="TaskMoreButton" Tag="{Binding DataContext.Session.IsDarkFocusTheme, RelativeSource={RelativeSource AncestorType=UserControl}}" Grid.Column="2" Width="24" Height="24" VerticalAlignment="Center" Content="···" FontSize="17" AutomationProperties.Name="更多任务操作" Click="TaskMoreButton_Click">
-                            <Button.Style><Style TargetType="Button" BasedOn="{StaticResource PlainButton}"><Setter Property="Opacity" Value="0.6"/><Style.Triggers><DataTrigger Binding="{Binding ContextMenu.IsOpen, RelativeSource={RelativeSource Self}}" Value="True"><Setter Property="Opacity" Value="1"/></DataTrigger></Style.Triggers></Style></Button.Style>
+                            <Button.Style><Style TargetType="Button" BasedOn="{StaticResource PlainButton}">
+                                <Setter Property="Opacity" Value="1"/>
+                                <Style.Triggers>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding IsMouseOver, ElementName=TaskRowSurface}" Value="False"/>
+                                            <Condition Binding="{Binding ContextMenu.IsOpen, RelativeSource={RelativeSource Self}}" Value="False"/>
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter Property="Opacity" Value="0"/><Setter Property="IsHitTestVisible" Value="False"/>
+                                        <MultiDataTrigger.EnterActions><BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.09"/></Storyboard></BeginStoryboard></MultiDataTrigger.EnterActions>
+                                        <MultiDataTrigger.ExitActions><BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.09"/></Storyboard></BeginStoryboard></MultiDataTrigger.ExitActions>
+                                    </MultiDataTrigger>
+                                </Style.Triggers>
+                            </Style></Button.Style>
                             <Button.ContextMenu><ContextMenu views:FocusThemeScope.IsDark="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource Self}}" DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
                                 <MenuItem Header="编辑任务" Click="EditTaskMenu_Click" Foreground="{DynamicResource FocusTaskMenuItemText}">
                                     <MenuItem.Icon><Path Width="14" Height="14" Data="M 2,11 L 2,14 L 5,14 L 13,6 L 10,3 Z M 10,3 L 12,1 L 15,4 L 13,6" Stroke="{DynamicResource FocusTaskMenuItemText}" StrokeThickness="1.4" Fill="Transparent" StrokeLineJoin="Round" /></MenuItem.Icon>
@@ -134,9 +148,9 @@
                 <Border VerticalAlignment="Bottom" Height="1" Margin="18,0,14,0" Background="{DynamicResource FocusTaskRowDivider}" />
             </Grid>
             <DataTemplate.Triggers>
-                <Trigger SourceName="TaskRowSurface" Property="IsMouseOver" Value="True"><Setter TargetName="TaskMoreButton" Property="Opacity" Value="1"/></Trigger>
-                <Trigger SourceName="TaskRowSurface" Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="TaskMoreButton" Property="Opacity" Value="1"/></Trigger>
-                <DataTrigger Binding="{Binding IsCompleted}" Value="True"><Setter TargetName="TaskRowSurface" Property="Opacity" Value="0.72" /></DataTrigger>
+                <Trigger SourceName="TaskRowSurface" Property="IsMouseOver" Value="True"><Setter TargetName="TaskRowSurface" Property="Background" Value="{DynamicResource FocusTaskButtonHover}"/></Trigger>
+                <DataTrigger Binding="{Binding ContextMenu.IsOpen, ElementName=TaskMoreButton}" Value="True"><Setter TargetName="TaskRowSurface" Property="Background" Value="{DynamicResource FocusTaskButtonHover}"/></DataTrigger>
+                <DataTrigger Binding="{Binding IsCompleted}" Value="True"><Setter TargetName="TaskRowSurface" Property="Opacity" Value="{DynamicResource FocusCompletedTaskRowOpacity}" /></DataTrigger>
             </DataTemplate.Triggers>
         </DataTemplate>
         </ResourceDictionary>
@@ -147,7 +161,7 @@
             <Border BorderBrush="{DynamicResource FocusTaskDivider}" Margin="18,0,14,0">
                 <Border.Style><Style TargetType="Border"><Setter Property="BorderThickness" Value="0"/><Style.Triggers><DataTrigger Binding="{Binding HasPendingTasks}" Value="False"><Setter Property="BorderThickness" Value="0,0,0,1"/></DataTrigger></Style.Triggers></Style></Border.Style>
                 <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="32" /></Grid.ColumnDefinitions>
-                    <TextBlock x:Name="DrawerTitle" VerticalAlignment="Center" Text="当前专注" FontSize="{DynamicResource DialogTitleFontSize}" FontWeight="{DynamicResource DialogTitleFontWeight}" Foreground="{DynamicResource FocusTaskTitleText}"/>
+                    <TextBlock x:Name="DrawerTitle" VerticalAlignment="Center" Text="当前专注" FontSize="{DynamicResource FocusTaskHeadingFontSize}" FontWeight="{DynamicResource DialogTitleFontWeight}" Foreground="{DynamicResource FocusTaskTitleText}"/>
                     <Button x:Name="DrawerCloseButton" Grid.Column="1" Style="{StaticResource DrawerCloseButtonStyle}" Command="{Binding CloseCommand}" AutomationProperties.Name="关闭任务面板" />
                 </Grid>
             </Border>

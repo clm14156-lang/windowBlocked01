@@ -175,13 +175,13 @@ public sealed class CustomTimeModalInteractionTests
             Assert.Equal(280, add.ActualWidth);
             Assert.Equal(Visibility.Visible, add.Visibility);
             Assert.False(add.IsEnabled);
-            Assert.Equal(Color.FromRgb(234, 234, 237), BrushColor(Descendants<Border>(add).First().Background));
+            Assert.Equal(Color.FromRgb(229, 231, 235), BrushColor(Descendants<Border>(add).First().Background));
             Assert.Single(Descendants<Button>(modal).Where(button => Equals(button.Command, model.CancelCommand)));
             Assert.DoesNotContain(Descendants<TextBlock>(modal), text => text.Text == "取消");
             Render(modal, "custom-time-disabled");
             model.MinutesInput = "45"; Layout(modal, 320, 420);
             Assert.True(add.IsEnabled);
-            Assert.Equal(Color.FromRgb(255, 122, 0), BrushColor(Descendants<Border>(add).First().Background));
+            Assert.Equal(Color.FromRgb(255, 144, 53), BrushColor(Descendants<Border>(add).First().Background));
             Render(modal, "custom-time-add-ready");
             Invoke(add); Layout(modal, 320, 420);
             Assert.Equal("0", ((TextBox)modal.FindName("MinutesTextBox")).Text);

@@ -15,6 +15,12 @@
     <SolidColorBrush x:Key="DisabledText" Color="#AEAEB2" />
     <SolidColorBrush x:Key="BorderPrimary" Color="#E5E5EA" />
     <SolidColorBrush x:Key="AccentPrimary" Color="#FF7A00" />
+    <!-- Shared filled-action colors, matched to the supplied orange reference. -->
+    <SolidColorBrush x:Key="PrimaryActionBackground" Color="#FF9035" />
+    <SolidColorBrush x:Key="PrimaryActionHoverBackground" Color="#F2842F" />
+    <SolidColorBrush x:Key="PrimaryActionPressedBackground" Color="#DF792A" />
+    <SolidColorBrush x:Key="PrimaryActionDisabledBackground" Color="#E5E7EB" />
+    <SolidColorBrush x:Key="PrimaryActionDisabledText" Color="#98A2B3" />
     <SolidColorBrush x:Key="MembershipBadgeAccent" Color="#FCBA29" />
     <SolidColorBrush x:Key="AccentTint" Color="#FFF1E6" />
     <SolidColorBrush x:Key="AccentSoftBorder" Color="#FFD3B0" />

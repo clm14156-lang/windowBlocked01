@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -227,14 +228,20 @@ public sealed class GoalInvestmentTrendRedesignTests
                     ShowInTaskbar = false, ShowActivated = false, Left = -32000, Top = -32000 };
                 window.Show(); Pump();
                 var card = (Border)modal.FindName("TrendModalCard"); var summary = (Grid)modal.FindName("InvestmentSummary");
-                var selector = (Border)modal.FindName("RangeSelectorSurface"); var chartCard = (Border)modal.FindName("TrendChartCard");
+                var selector = (Button)modal.FindName("RangeSelectorButton"); var chartCard = (Border)modal.FindName("TrendChartCard");
                 var chart = (GoalInvestmentTrendChart)modal.FindName("TrendChart"); var tooltip = (Border)modal.FindName("TrendTooltip");
                 Rect Bounds(FrameworkElement item) => item.TransformToAncestor(card).TransformBounds(new Rect(0, 0, item.ActualWidth, item.ActualHeight));
                 Assert.Equal(700, card.ActualWidth); Assert.Equal(480, card.ActualHeight);
                 Assert.Equal("投入趋势", ((TextBlock)modal.FindName("TrendModalTitle")).Text);
                 Assert.DoesNotContain(Descendants<TextBlock>(modal), text => text.Text == "3213");
                 Assert.True(Bounds(selector).Top > Bounds((TextBlock)modal.FindName("TrendModalTitle")).Bottom);
-                Assert.Equal(HorizontalAlignment.Left, selector.HorizontalAlignment);
+                Assert.Equal(HorizontalAlignment.Right, selector.HorizontalAlignment);
+                var overviewTitle = (TextBlock)modal.FindName("DataOverviewTitle");
+                var chartTitle = (TextBlock)modal.FindName("TrendSectionHeading");
+                Assert.Equal("数据概况", overviewTitle.Text);
+                Assert.Equal(overviewTitle.FontSize, chartTitle.FontSize);
+                Assert.Equal(overviewTitle.FontWeight, chartTitle.FontWeight);
+                Assert.Equal(Bounds(overviewTitle).Left, Bounds(chartTitle).Left, 1);
                 Assert.True(Bounds(selector).Bottom < Bounds(summary).Top);
                 Assert.Equal(251, model.PeriodInvestment.TotalMinutes); Assert.Equal(6, model.ActiveDays);
                 Assert.Equal(42, model.DailyAverageInvestment.TotalMinutes); Assert.Equal(56, model.LongestDayInvestment.TotalMinutes);
@@ -253,16 +260,19 @@ public sealed class GoalInvestmentTrendRedesignTests
                     Assert.Equal(TextWrapping.NoWrap, value.TextWrapping);
                     Assert.True(value.ActualHeight < 48, "Duration must occupy a single line.");
                     var icon = Assert.Single(Descendants<System.Windows.Shapes.Path>(metric));
-                    Assert.InRange(icon.ActualWidth, 0, 18);
-                    Assert.InRange(icon.ActualHeight, 0, 18);
+                    Assert.InRange(icon.ActualWidth, 0, 22);
+                    Assert.InRange(icon.ActualHeight, 0, 22);
                 }
                 Assert.InRange(Bounds(chartCard).Bottom, 0, card.ActualHeight - 18);
                 Assert.Equal(5, model.ChartYAxisTicks.Count()); Assert.Equal(3, model.YAxisTicks.Count);
                 Assert.Equal(7, Descendants<TextBlock>((ItemsControl)chart.FindName("TrendWeekdayLabels")).Count(text => text.IsVisible));
-                Assert.Equal(7, Descendants<TextBlock>((ItemsControl)chart.FindName("TrendValueLabels")).Count(text => text.IsVisible));
+                Assert.Equal(6, Descendants<TextBlock>((ItemsControl)chart.FindName("TrendValueLabels")).Count(text => text.IsVisible));
+                var bars = Descendants<Border>((ItemsControl)chart.FindName("TrendBars")).Where(bar => bar.Name == "TrendBar").ToArray();
+                Assert.Equal(6, bars.Count(bar => bar.IsVisible));
+                Assert.All(bars, bar => Assert.IsType<SolidColorBrush>(bar.Background));
                 Assert.Equal("0h", model.TrendPoints[3].BarValueDisplay); Assert.False(tooltip.IsVisible);
-                var seven = (Button)modal.FindName("SevenDaysRangeButton"); var thirty = (Button)modal.FindName("ThirtyDaysRangeButton"); var month = (Button)modal.FindName("MonthRangeButton");
-                AssertRangeLabels(seven, thirty, month, seven);
+                var seven = (Button)modal.FindName("SevenDaysRangeOption"); var thirty = (Button)modal.FindName("ThirtyDaysRangeOption"); var month = (Button)modal.FindName("MonthRangeOption");
+                Assert.Equal("近七天", model.RangeDisplay);
                 Assert.Equal("近七天", seven.Content); Assert.Equal("近三十天", thirty.Content); Assert.Equal("按月", month.Content);
                 SavePreview(card, "investment-seven");
                 foreach(var point in new[] { model.TrendPoints[0], model.TrendPoints[1], model.TrendPoints[^1] })
@@ -277,15 +287,20 @@ public sealed class GoalInvestmentTrendRedesignTests
                     Assert.Equal(Colors.White, ((SolidColorBrush)((TextBlock)modal.FindName("TooltipFocusDuration")).Foreground).Color);
                     Assert.Equal(Color.FromRgb(40,47,59), ((SolidColorBrush)tooltip.Background).Color);
                 }
+                var zeroPoint = model.TrendPoints[3];
+                chart.HoverAt(new Point(zeroPoint.ChartX, zeroPoint.ChartY + 20)); Pump();
+                Assert.Null(model.HoveredPoint); Assert.False(tooltip.IsVisible);
+                Assert.False(Descendants<TextBlock>((ItemsControl)chart.FindName("TrendValueLabels")).Single(text => ReferenceEquals(text.DataContext, zeroPoint)).IsVisible);
+                chart.HoverAt(new Point(model.TrendPoints[0].ChartX, model.TrendPoints[0].ChartY + 22)); Pump();
                 Assert.Null(modal.FindName("TooltipFocusCount")); Assert.Null(modal.FindName("TooltipTaskCount"));
                 SavePreview(card, "investment-hover");
                 RaiseMouseEvent((Border)chart.FindName("TrendInteractionArea"), UIElement.MouseLeaveEvent); Pump(); Assert.False(tooltip.IsVisible);
-                thirty.Command.Execute(null); Pump(); Assert.Equal(30, model.TrendPoints.Count); AssertRangeLabels(seven, thirty, month, thirty);
+                Select(thirty); Assert.Equal(30, model.TrendPoints.Count); Assert.Equal("近三十天", model.RangeDisplay);
                 Assert.All(Descendants<TextBlock>((ItemsControl)chart.FindName("TrendWeekdayLabels")), text => Assert.False(text.IsVisible));
-                month.Command.Execute(null); Pump(); Assert.True(((Popup)modal.FindName("MonthPickerPopup")).IsOpen);
+                Select(month); Assert.True(((Popup)modal.FindName("MonthPickerPopup")).IsOpen);
                 var monthButton = Descendants<Button>((ItemsControl)modal.FindName("AvailableMonthList")).First(button => button.DataContext is GoalInvestmentMonthOptionViewModel);
                 monthButton.Command.Execute(monthButton.CommandParameter); Pump();
-                Assert.True(model.IsMonthRange); Assert.Equal(31, model.TrendPoints.Count); AssertRangeLabels(seven, thirty, month, month);
+                Assert.True(model.IsMonthRange); Assert.Equal(31, model.TrendPoints.Count); Assert.Equal("按月", model.RangeDisplay);
                 model.Close(); model.Open(); Pump(); Assert.True(model.IsSevenDaysRange); Assert.Equal(7, model.TrendPoints.Count);
                 foreach (var minutes in new[] { 181, 76859 })
                 {
@@ -312,7 +327,24 @@ public sealed class GoalInvestmentTrendRedesignTests
                 model.ApplyState(new("goal", "3213", "", "", false, false), []); Pump();
                 Assert.Equal(0, model.PeriodInvestment.TotalMinutes); Assert.All(model.TrendPoints, point => Assert.Equal(0, point.Minutes));
                 Assert.Equal(new[]{"0m","15m","30m","45m","60m"}, model.ChartYAxisTicks.Select(tick => tick.Label));
-                Assert.False(tooltip.IsVisible); SavePreview(card, "investment-empty"); model.Close(); Pump(); Assert.False(modal.IsVisible);
+                Assert.False(tooltip.IsVisible);
+                Assert.All(Descendants<Border>((ItemsControl)chart.FindName("TrendBars")).Where(bar => bar.Name == "TrendBar"), bar => Assert.False(bar.IsVisible));
+                Assert.All(Descendants<TextBlock>((ItemsControl)chart.FindName("TrendValueLabels")), text => Assert.False(text.IsVisible));
+                SavePreview(card, "investment-empty");
+                Invoke(selector); Pump(); Assert.True(((Popup)modal.FindName("RangeMenuPopup")).IsOpen);
+                var popupChild = (UIElement)((Popup)modal.FindName("RangeMenuPopup")).Child;
+                var escape = new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(popupChild), 0, Key.Escape) { RoutedEvent = Keyboard.PreviewKeyDownEvent };
+                popupChild.RaiseEvent(escape); Pump(); Assert.False(((Popup)modal.FindName("RangeMenuPopup")).IsOpen); Assert.True(model.IsOpen);
+                Invoke(selector); Pump(); model.Close(); Pump(); Assert.False(modal.IsVisible); Assert.False(((Popup)modal.FindName("RangeMenuPopup")).IsOpen);
+
+                void Select(Button option)
+                {
+                    Invoke(selector); Pump();
+                    var menu = (Popup)modal.FindName("RangeMenuPopup");
+                    Assert.True(menu.IsOpen);
+                    Assert.False(((Popup)modal.FindName("MonthPickerPopup")).IsOpen);
+                    Invoke(option); Pump(); Assert.False(menu.IsOpen);
+                }
             }
             catch(Exception error) { failure = error; }
             finally { window?.Close(); }
@@ -321,19 +353,7 @@ public sealed class GoalInvestmentTrendRedesignTests
         if(failure is not null) throw new InvalidOperationException("Investment visual redesign verification failed.", failure);
     }
     private static void Pump() => Dispatcher.CurrentDispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
-    private static void AssertRangeLabels(Button seven, Button thirty, Button month, Button selected)
-    {
-        foreach (var button in new[] { seven, thirty, month })
-        {
-            // Inspect the rendered text, not just Button.Foreground: implicit text styles can override inheritance.
-            var label = Descendants<TextBlock>(button).Single();
-            Assert.Equal(ReferenceEquals(button, selected) ? Colors.White
-                : Color.FromRgb(48,57,74), ((SolidColorBrush)label.Foreground).Color);
-            Assert.Equal(14, label.FontSize);
-            Assert.Equal(FontWeights.SemiBold, label.FontWeight);
-            Assert.Equal(seven.FontFamily, label.FontFamily);
-        }
-    }
+    private static void Invoke(Button button) => typeof(ButtonBase).GetMethod("OnClick", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(button, null);
     private static void RaiseMouseEvent(UIElement element, RoutedEvent routedEvent) =>
         element.RaiseEvent(new MouseEventArgs(Mouse.PrimaryDevice, Environment.TickCount) { RoutedEvent = routedEvent });
     private static IEnumerable<T> Descendants<T>(DependencyObject parent) where T : DependencyObject

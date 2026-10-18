@@ -3,15 +3,22 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="clr-namespace:FocusApp.Desktop.ViewModels" xmlns:views="clr-namespace:FocusApp.Desktop.Views"
              Width="642" Height="212"
-             TextElement.FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI"
+             TextElement.FontFamily="{DynamicResource FontFamilyPrimary}"
              TextElement.FontSize="{DynamicResource BodyFontSize}" TextElement.FontWeight="{DynamicResource BodyFontWeight}"
              UseLayoutRounding="True" SnapsToDevicePixels="True">
     <UserControl.Resources>
-        <SolidColorBrush x:Key="TrendAxisTextBrush" Color="#6E6E73"/>
+      <ResourceDictionary>
+        <ResourceDictionary.MergedDictionaries>
+            <ResourceDictionary Source="/FocusApp.Desktop;component/Resources/StatisticsTypography.xaml"/>
+        </ResourceDictionary.MergedDictionaries>
+        <SolidColorBrush x:Key="TrendAxisTextBrush" Color="{StaticResource StatisticsWeakColor}"/>
         <SolidColorBrush x:Key="TrendAxisLineBrush" Color="#D3D7E0"/>
         <SolidColorBrush x:Key="TrendGridLineBrush" Color="#E6E8EE"/>
-        <Style TargetType="{x:Type TextBlock}">
-            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+        <Style TargetType="{x:Type TextBlock}" BasedOn="{StaticResource StatisticsBodyTextStyle}"/>
+        <Style x:Key="TrendAxisTextStyle" TargetType="TextBlock" BasedOn="{StaticResource StatisticsAuxiliaryTextStyle}">
+            <Setter Property="FontFamily" Value="{DynamicResource FontFamilyEnglish}"/>
+            <Setter Property="FontSize" Value="{DynamicResource CaptionFontSize}"/>
+            <Setter Property="Typography.NumeralAlignment" Value="Tabular"/>
         </Style>
         <Style x:Key="TrendVerticalGuideLineStyle" TargetType="{x:Type Line}">
             <Setter Property="Y2" Value="146"/>
@@ -20,6 +27,7 @@
             <Setter Property="StrokeDashArray" Value="3,3"/>
             <Setter Property="IsHitTestVisible" Value="False"/>
         </Style>
+      </ResourceDictionary>
     </UserControl.Resources>
     <Grid ClipToBounds="False">
       <Grid x:Name="PlotLayer" Width="642" Height="188" Margin="0,20,0,0" VerticalAlignment="Top">
@@ -33,7 +41,7 @@
             <ItemsControl.ItemTemplate>
                 <DataTemplate DataType="{x:Type vm:GoalInvestmentTrendChartTickViewModel}">
                     <Canvas Width="642" Height="1">
-                        <TextBlock Canvas.Left="0" Canvas.Top="-8" Width="40" TextAlignment="Right" FontSize="{DynamicResource SecondaryFontSize}" FontWeight="{DynamicResource SecondaryFontWeight}" Foreground="{StaticResource TrendAxisTextBrush}" Text="{Binding Label}"/>
+                        <TextBlock Canvas.Left="0" Canvas.Top="-7" Width="40" TextAlignment="Right" Style="{StaticResource TrendAxisTextStyle}" Text="{Binding Label}"/>
                         <Line X1="48" X2="636" StrokeThickness="1">
                             <Line.Style><Style TargetType="Line"><Setter Property="Stroke" Value="{StaticResource TrendGridLineBrush}"/><Setter Property="StrokeDashArray" Value="3,4"/><Style.Triggers><DataTrigger Binding="{Binding ShowGuideLine}" Value="False"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></Line.Style>
                         </Line>
@@ -46,9 +54,8 @@
             <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
             <ItemsControl.ItemContainerStyle><Style TargetType="ContentPresenter"><Setter Property="Canvas.Left" Value="{Binding BarLeft}"/><Setter Property="Canvas.Top" Value="{Binding ChartY}"/></Style></ItemsControl.ItemContainerStyle>
             <ItemsControl.ItemTemplate><DataTemplate DataType="{x:Type vm:GoalInvestmentTrendPointViewModel}">
-                <Border Width="{Binding BarWidth}" Height="{Binding BarHeight}" CornerRadius="5,5,0,0">
-                    <Border.Style><Style TargetType="Border"><Style.Triggers><DataTrigger Binding="{Binding Minutes}" Value="0"><Setter Property="MinHeight" Value="1"/><Setter Property="Opacity" Value="0.4"/></DataTrigger></Style.Triggers></Style></Border.Style>
-                    <Border.Background><LinearGradientBrush StartPoint="0,0" EndPoint="0,1"><GradientStop Offset="0" Color="#FF8B28"/><GradientStop Offset="1" Color="#FFE4CC"/></LinearGradientBrush></Border.Background>
+                <Border x:Name="TrendBar" Width="{Binding BarWidth}" Height="{Binding BarHeight}" CornerRadius="5,5,0,0" Background="#FFAA63">
+                    <Border.Style><Style TargetType="Border"><Style.Triggers><DataTrigger Binding="{Binding Minutes}" Value="0"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></Border.Style>
                 </Border>
             </DataTemplate></ItemsControl.ItemTemplate>
         </ItemsControl>
@@ -76,8 +83,8 @@
             <ItemsControl.ItemContainerStyle><Style TargetType="ContentPresenter"><Setter Property="Canvas.Left" Value="{Binding ChartX}"/><Setter Property="Canvas.Top" Value="{Binding AxisLabelY}"/></Style></ItemsControl.ItemContainerStyle>
             <ItemsControl.ItemTemplate>
                 <DataTemplate DataType="{x:Type vm:GoalInvestmentTrendPointViewModel}">
-                    <TextBlock Width="50" Margin="-25,0,0,0" TextAlignment="Center" FontSize="{DynamicResource SecondaryFontSize}" FontWeight="{DynamicResource SecondaryFontWeight}" Foreground="{StaticResource TrendAxisTextBrush}" Text="{Binding AxisLabel}">
-                        <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding ShowAxisLabel}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                    <TextBlock Width="50" Margin="-25,0,0,0" TextAlignment="Center" Text="{Binding AxisLabel}">
+                        <TextBlock.Style><Style TargetType="TextBlock" BasedOn="{StaticResource TrendAxisTextStyle}"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding ShowAxisLabel}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
                     </TextBlock>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
@@ -87,10 +94,11 @@
             <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
             <ItemsControl.ItemContainerStyle><Style TargetType="ContentPresenter"><Setter Property="Canvas.Left" Value="{Binding ChartX}"/><Setter Property="Canvas.Top" Value="{Binding ChartY}"/></Style></ItemsControl.ItemContainerStyle>
             <ItemsControl.ItemTemplate><DataTemplate>
-                <TextBlock Text="{Binding BarValueDisplay}" Width="58" Margin="-29,-22,0,0" TextAlignment="Center" FontSize="12" FontWeight="SemiBold" Foreground="#2A3240">
-                    <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers>
+                <TextBlock Text="{Binding BarValueDisplay}" Width="58" Margin="-29,-22,0,0" TextAlignment="Center" Foreground="{DynamicResource StatisticsSecondaryBrush}">
+                    <TextBlock.Style><Style TargetType="TextBlock" BasedOn="{StaticResource TrendAxisTextStyle}"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers>
                         <DataTrigger Binding="{Binding DataContext.IsSevenDaysRange, RelativeSource={RelativeSource AncestorType=views:GoalInvestmentTrendChart}}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger>
                         <DataTrigger Binding="{Binding IsHovered}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger>
+                        <DataTrigger Binding="{Binding Minutes}" Value="0"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
                     </Style.Triggers></Style></TextBlock.Style>
                 </TextBlock>
             </DataTemplate></ItemsControl.ItemTemplate>
@@ -99,8 +107,8 @@
             <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
             <ItemsControl.ItemContainerStyle><Style TargetType="ContentPresenter"><Setter Property="Canvas.Left" Value="{Binding ChartX}"/><Setter Property="Canvas.Top" Value="172"/></Style></ItemsControl.ItemContainerStyle>
             <ItemsControl.ItemTemplate><DataTemplate>
-                <TextBlock Text="{Binding WeekdayDisplay}" Width="50" Margin="-25,0,0,0" TextAlignment="Center" FontSize="10" Foreground="#7C8594">
-                    <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding DataContext.IsSevenDaysRange, RelativeSource={RelativeSource AncestorType=views:GoalInvestmentTrendChart}}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                <TextBlock Text="{Binding WeekdayDisplay}" Width="50" Margin="-25,0,0,0" TextAlignment="Center" FontFamily="{DynamicResource FontFamilyPrimary}">
+                    <TextBlock.Style><Style TargetType="TextBlock" BasedOn="{StaticResource TrendAxisTextStyle}"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding DataContext.IsSevenDaysRange, RelativeSource={RelativeSource AncestorType=views:GoalInvestmentTrendChart}}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
                 </TextBlock>
             </DataTemplate></ItemsControl.ItemTemplate>
         </ItemsControl>

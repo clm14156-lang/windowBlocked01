@@ -415,11 +415,41 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     {
         get
         {
-            var date = _completedAt == default ? _nowProvider().Date : _completedAt.Date;
-            var summary = _completionStatisticsProvider?.Invoke(date, LastCompletion)
-                ?? FocusCompletionStatistics.Summarize(_completionHistory, date);
+            var summary = GetCompletionDailySummary();
             return $"今日累计 {summary.FocusMinutes} 分钟 · {_completedAt.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture)}完成";
         }
+    }
+
+    public string CompletionTodayDurationDisplay
+    {
+        get
+        {
+            var parts = GetCompletionTodayDurationParts();
+            return $"{parts.PrimaryValue}{parts.PrimaryUnit}{parts.SecondaryValue}{parts.SecondaryUnit}";
+        }
+    }
+
+    public string CompletionTodayPrimaryValue => GetCompletionTodayDurationParts().PrimaryValue;
+    public string CompletionTodayPrimaryUnit => GetCompletionTodayDurationParts().PrimaryUnit;
+    public string CompletionTodaySecondaryValue => GetCompletionTodayDurationParts().SecondaryValue;
+    public string CompletionTodaySecondaryUnit => GetCompletionTodayDurationParts().SecondaryUnit;
+
+    private (string PrimaryValue, string PrimaryUnit, string SecondaryValue, string SecondaryUnit) GetCompletionTodayDurationParts()
+    {
+        var minutes = Math.Max(0, GetCompletionDailySummary().FocusMinutes);
+        if (minutes < 60) return ($"{minutes}", "分钟", string.Empty, string.Empty);
+        return ($"{minutes / 60}", "小时", minutes % 60 == 0 ? string.Empty : $"{minutes % 60}", minutes % 60 == 0 ? string.Empty : "分钟");
+    }
+
+    public string CompletionClockDisplay => _completedAt == default
+        ? string.Empty
+        : _completedAt.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture);
+
+    private FocusDailySummary GetCompletionDailySummary()
+    {
+        var date = _completedAt == default ? _nowProvider().Date : _completedAt.Date;
+        return _completionStatisticsProvider?.Invoke(date, LastCompletion)
+            ?? FocusCompletionStatistics.Summarize(_completionHistory, date);
     }
 
     internal void SetCompletionStatisticsProvider(Func<DateTime, FocusSessionRecord?, FocusDailySummary>? provider)
@@ -428,7 +458,16 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         RefreshCompletionStatistics();
     }
 
-    internal void RefreshCompletionStatistics() => OnPropertyChanged(nameof(CompletionTodayStatistics));
+    internal void RefreshCompletionStatistics()
+    {
+        OnPropertyChanged(nameof(CompletionTodayStatistics));
+        OnPropertyChanged(nameof(CompletionTodayDurationDisplay));
+        OnPropertyChanged(nameof(CompletionTodayPrimaryValue));
+        OnPropertyChanged(nameof(CompletionTodayPrimaryUnit));
+        OnPropertyChanged(nameof(CompletionTodaySecondaryValue));
+        OnPropertyChanged(nameof(CompletionTodaySecondaryUnit));
+        OnPropertyChanged(nameof(CompletionClockDisplay));
+    }
 
     public bool IsHomeConfigurationEnabled => !IsPreparing;
 

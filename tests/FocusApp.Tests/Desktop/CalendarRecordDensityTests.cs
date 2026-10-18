@@ -57,9 +57,7 @@ public sealed class CalendarRecordDensityTests
                     var line = (Border)view.FindName("FocusMarker");
                     Assert.True(line.ActualHeight > 0);
                     Assert.True(Bounds(line, view).Bottom <= Bounds(goal, view).Bottom + 0.7);
-                    var separator = (Border)view.FindName("RecordSeparator");
-                    Assert.InRange(separator.ActualHeight, .5, 1.5);
-                    Assert.True(separator.ActualWidth > 20);
+                    Assert.Null(view.FindName("RecordSeparator"));
                 }
                 var gaps = Descendants<Grid>(scroll).Where(item => item.Name == "CalendarRecordGap" && item.IsVisible).ToArray();
                 Assert.Empty(gaps);

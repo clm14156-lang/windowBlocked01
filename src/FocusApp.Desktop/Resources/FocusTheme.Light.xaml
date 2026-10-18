@@ -1,4 +1,11 @@
-<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:system="clr-namespace:System;assembly=System.Runtime">
+    <!-- Match the neutral text hierarchy used by the statistics pages. -->
+    <system:Double x:Key="FocusGreetingTitleFontSize">18</system:Double>
+    <system:Double x:Key="FocusTaskHeadingFontSize">18</system:Double>
+    <system:Double x:Key="FocusTaskNumberFontSize">11</system:Double>
+    <FontWeight x:Key="FocusTaskNameFontWeight">Normal</FontWeight>
+    <system:Double x:Key="FocusCompletedTaskRowOpacity">1</system:Double>
     <SolidColorBrush x:Key="FocusEndDialogBackground" Color="#FFFEFD" />
     <SolidColorBrush x:Key="FocusEndDialogBorder" Color="#E9EDF2" />
     <SolidColorBrush x:Key="FocusEndTitleBrush" Color="#101722" />
@@ -7,22 +14,26 @@
     <SolidColorBrush x:Key="FocusEndWarningBackground" Color="#FFF3E9" />
     <SolidColorBrush x:Key="FocusEndWarningIconBrush" Color="#FF983E" />
     <SolidColorBrush x:Key="FocusEndWarningTextBrush" Color="#6F7785" />
-    <SolidColorBrush x:Key="FocusTitleBrush" Color="#061B30" />
-    <SolidColorBrush x:Key="FocusSubtitleBrush" Color="#5D7FA6" />
-    <SolidColorBrush x:Key="FocusCountdownBrush" Color="#061C31" />
-    <SolidColorBrush x:Key="FocusTargetBrush" Color="#5D7FA6" />
-    <SolidColorBrush x:Key="FocusFooterBrush" Color="#5D7FA6" />
-    <SolidColorBrush x:Key="FocusFooterHoverBrush" Color="#355D89" />
-    <SolidColorBrush x:Key="FocusRuleBrush" Color="#D5DEE7" />
-    <SolidColorBrush x:Key="FocusDividerBrush" Color="#D5DEE7" />
-    <SolidColorBrush x:Key="FocusNoticeBrush" Color="#8190A3" />
+    <SolidColorBrush x:Key="FocusTitleBrush" Color="#18212F" />
+    <SolidColorBrush x:Key="FocusSubtitleBrush" Color="#667085" />
+    <SolidColorBrush x:Key="FocusCompletionSecondaryBrush" Color="#667085" />
+    <SolidColorBrush x:Key="FocusCompletionValueBrush" Color="#374151" />
+    <SolidColorBrush x:Key="FocusCompletionIconBrush" Color="#667085" />
+    <SolidColorBrush x:Key="FocusCompletionDividerBrush" Color="#D5DAE2" />
+    <SolidColorBrush x:Key="FocusCountdownBrush" Color="#18212F" />
+    <SolidColorBrush x:Key="FocusTargetBrush" Color="#374151" />
+    <SolidColorBrush x:Key="FocusFooterBrush" Color="#374151" />
+    <SolidColorBrush x:Key="FocusFooterHoverBrush" Color="#FF7A19" />
+    <SolidColorBrush x:Key="FocusRuleBrush" Color="#E4E7EC" />
+    <SolidColorBrush x:Key="FocusDividerBrush" Color="#E4E7EC" />
+    <SolidColorBrush x:Key="FocusNoticeBrush" Color="#667085" />
     <SolidColorBrush x:Key="FocusChromeHoverBrush" Color="#EAF0F6" />
     <SolidColorBrush x:Key="FocusTaskSurface" Color="#FFFFFF" />
     <SolidColorBrush x:Key="FocusTaskCard" Color="Transparent" />
     <SolidColorBrush x:Key="FocusTaskTickWhite" Color="#FFFFFF" />
     <SolidColorBrush x:Key="FocusDrawerSurface" Color="#FFFFFF" />
-    <SolidColorBrush x:Key="FocusTaskBodyText" Color="#24262C" />
-    <SolidColorBrush x:Key="FocusTaskTitleText" Color="#252C37" />
+    <SolidColorBrush x:Key="FocusTaskBodyText" Color="#374151" />
+    <SolidColorBrush x:Key="FocusTaskTitleText" Color="#18212F" />
     <SolidColorBrush x:Key="FocusTaskMenuItemText" Color="#424955" />
     <SolidColorBrush x:Key="FocusTaskDraftTitleText" Color="#454B55" />
     <SolidColorBrush x:Key="FocusTaskEmptyText" Color="#646D7A" />
@@ -33,14 +44,14 @@
     <SolidColorBrush x:Key="FocusTaskSubTaskLabel" Color="#838B98" />
     <SolidColorBrush x:Key="FocusTaskDescriptionText" Color="#9299A6" />
     <SolidColorBrush x:Key="FocusTaskDraftActionText" Color="#929AA7" />
-    <SolidColorBrush x:Key="FocusTaskProgressText" Color="#929BA8" />
+    <SolidColorBrush x:Key="FocusTaskProgressText" Color="#667085" />
     <SolidColorBrush x:Key="FocusTaskDraftPlaceholder" Color="#959CAA" />
     <SolidColorBrush x:Key="FocusTaskDraftCounter" Color="#969EAA" />
     <SolidColorBrush x:Key="FocusTaskShortcutText" Color="#9BA3AE" />
     <SolidColorBrush x:Key="FocusTaskPlaceholder" Color="#A0A6B0" />
     <SolidColorBrush x:Key="FocusTaskCloseText" Color="#A0A7B2" />
     <SolidColorBrush x:Key="FocusTaskSecondaryText" Color="#A5ABB5" />
-    <SolidColorBrush x:Key="FocusTaskNumberText" Color="#A9AFB9" />
+    <SolidColorBrush x:Key="FocusTaskNumberText" Color="#667085" />
     <SolidColorBrush x:Key="FocusTaskCompletedCheck" Color="#ABB1BA" />
     <SolidColorBrush x:Key="FocusTaskDisabledText" Color="#B2B8C2" />
     <SolidColorBrush x:Key="FocusTaskDraftCheckBorder" Color="#BAC2CD" />
@@ -71,11 +82,11 @@
     <SolidColorBrush x:Key="FocusTaskInputText" Color="#30343B" />
     <SolidColorBrush x:Key="FocusTaskBorderlessText" Color="#343B47" />
     <SolidColorBrush x:Key="FocusTaskMenuText" Color="#505662" />
-    <SolidColorBrush x:Key="FocusTaskText" Color="#535965" />
+    <SolidColorBrush x:Key="FocusTaskText" Color="#374151" />
     <SolidColorBrush x:Key="FocusTaskSheetText" Color="#555B65" />
     <SolidColorBrush x:Key="FocusTaskButtonText" Color="#8C929D" />
     <SolidColorBrush x:Key="FocusTaskTick" Color="#8F96A2" />
-    <SolidColorBrush x:Key="FocusTaskCompletedText" Color="#A0A4AC" />
+    <SolidColorBrush x:Key="FocusTaskCompletedText" Color="#7C8798" />
     <SolidColorBrush x:Key="FocusTaskCircleBorder" Color="#AEB4BE" />
     <SolidColorBrush x:Key="FocusTaskSquareBorder" Color="#AEB5C0" />
     <SolidColorBrush x:Key="FocusTaskInputFocusBorder" Color="#C7CBD3" />

@@ -140,6 +140,7 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
     public bool IsSevenDaysRange => _range == GoalInvestmentRange.SevenDays;
     public bool IsThirtyDaysRange => _range == GoalInvestmentRange.ThirtyDays;
     public bool IsMonthRange => _range == GoalInvestmentRange.Month;
+    public string RangeDisplay => IsSevenDaysRange ? "近七天" : IsThirtyDaysRange ? "近三十天" : "按月";
     public string MonthButtonText => "按月";
     public string SelectedMonthDisplay => $"{_selectedMonth:yyyy年M月}";
     public int MonthPickerYear => _monthPickerYear;
@@ -281,7 +282,7 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
     public void SetHoveredBarAt(Point chartPosition)
     {
         var point = TrendPoints.MinBy(item => Math.Abs(item.ChartX - chartPosition.X));
-        HoveredPoint = point is not null && Math.Abs(point.ChartX - chartPosition.X) <= Math.Max(10, point.BarWidth / 2)
+        HoveredPoint = point is not null && point.Minutes > 0 && Math.Abs(point.ChartX - chartPosition.X) <= Math.Max(10, point.BarWidth / 2)
             && chartPosition.Y >= point.ChartY - 5 && chartPosition.Y <= PlotBottom + 5 ? point : null;
     }
 
@@ -549,6 +550,7 @@ public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
 
     private void NotifyRangeProperties()
     {
+        OnPropertyChanged(nameof(RangeDisplay));
         foreach (var property in new[] { nameof(IsSevenDaysRange), nameof(IsThirtyDaysRange), nameof(IsMonthRange), nameof(MonthButtonText), nameof(SelectedMonthDisplay), nameof(PeriodInvestmentTitle), nameof(TrendTitle), nameof(OverviewSubtitle), nameof(TrendSubtitle), nameof(ChartAggregationDisplay) })
             OnPropertyChanged(property);
         foreach (var option in AvailableMonths) option.IsSelected = IsMonthRange && option.Month == _selectedMonth;

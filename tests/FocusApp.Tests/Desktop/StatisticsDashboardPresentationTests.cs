@@ -82,7 +82,7 @@ public sealed class StatisticsDashboardPresentationTests
             Assert.Equal((Color)ColorConverter.ConvertFromString("#F1F3F6"), ((SolidColorBrush)surface.Background).Color);
             Assert.True(host.Tip.IsOpen);
             Assert.Equal(item.TargetName, host.Named<TextBlock>("TipTitle").Text);
-            Assert.Equal(item.ExactDurationDisplay, host.Named<System.Windows.Documents.Run>("TipDuration").Text);
+            Assert.Equal(item.DurationDisplay, host.Named<System.Windows.Documents.Run>("TipDuration").Text);
             Assert.Equal("占比  " + item.PercentageDisplay, host.Named<TextBlock>("TipPercentage").Text);
 
             var other = host.Model.Distribution[4];
@@ -93,6 +93,26 @@ public sealed class StatisticsDashboardPresentationTests
             otherRow.RaiseEvent(new MouseEventArgs(Mouse.PrimaryDevice, 0) { RoutedEvent = Mouse.MouseLeaveEvent }); Pump();
             Assert.Null(host.Model.ActiveDistribution);
             Assert.False(host.Tip.IsOpen);
+        });
+    }
+
+    [Theory]
+    [InlineData(17457, "4小时50分钟")]
+    [InlineData(14400, "4小时")]
+    [InlineData(30, "不足1分钟")]
+    public void DistributionPoptipOmitsSecondsWithoutChangingTheRecordedDuration(int seconds, string expected)
+    {
+        Sta(() =>
+        {
+            using var host = new Host();
+            var start = host.Model.PeriodStart.AddHours(9);
+            host.Model.ApplyData([new(start, start.AddSeconds(seconds), "g0", "工作", "", 0)], []); Pump();
+            var item = Assert.Single(host.Model.Distribution);
+            host.Ring.HoverAt(host.Ring.AnchorFor(item)); Pump();
+            Assert.True(host.Tip.IsOpen);
+            Assert.Equal(expected, host.Named<System.Windows.Documents.Run>("TipDuration").Text);
+            Assert.Equal(TimeSpan.FromSeconds(seconds), item.Duration);
+            Assert.Equal(item.Duration, host.Model.TotalDuration);
         });
     }
 

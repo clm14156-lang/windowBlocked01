@@ -1,0 +1,90 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:system="clr-namespace:System;assembly=System.Runtime">
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="/FocusApp.Desktop;component/Resources/StatisticsTypography.xaml"/>
+    </ResourceDictionary.MergedDictionaries>
+    <!-- Calendar-scoped semantics keep other pages' existing themes unchanged. -->
+    <system:Double x:Key="CalendarTitleFontSize">18</system:Double>
+    <system:Double x:Key="CalendarWeekdayFontSize">14</system:Double>
+    <SolidColorBrush x:Key="CalendarTextPrimary" Color="{StaticResource StatisticsPrimaryColor}"/>
+    <SolidColorBrush x:Key="CalendarTextBody" Color="{StaticResource StatisticsBodyColor}"/>
+    <SolidColorBrush x:Key="CalendarTextSecondary" Color="{StaticResource StatisticsSecondaryColor}"/>
+    <SolidColorBrush x:Key="CalendarTextWeak" Color="{StaticResource StatisticsWeakColor}"/>
+    <SolidColorBrush x:Key="CalendarTextMuted" Color="#98A2B3"/>
+    <SolidColorBrush x:Key="CalendarAccent" Color="#FF841F"/>
+    <SolidColorBrush x:Key="CalendarAccentText" Color="#B85416"/>
+    <SolidColorBrush x:Key="CalendarSelectedText" Color="#FFFFFF"/>
+
+    <Style x:Key="CalendarBodyTextStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{DynamicResource FontFamilyPrimary}"/>
+        <Setter Property="FontSize" Value="{DynamicResource BodyFontSize}"/>
+        <Setter Property="FontWeight" Value="Normal"/>
+        <Setter Property="Foreground" Value="{DynamicResource CalendarTextBody}"/>
+    </Style>
+    <Style x:Key="CalendarPageTitleStyle" TargetType="TextBlock" BasedOn="{StaticResource CalendarBodyTextStyle}">
+        <Setter Property="FontSize" Value="{DynamicResource CalendarTitleFontSize}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{DynamicResource CalendarTextPrimary}"/>
+    </Style>
+    <Style x:Key="CalendarSelectedWeekdayStyle" TargetType="TextBlock" BasedOn="{StaticResource CalendarBodyTextStyle}">
+        <Setter Property="FontSize" Value="{DynamicResource CalendarWeekdayFontSize}"/>
+        <Setter Property="Foreground" Value="{DynamicResource CalendarTextSecondary}"/>
+    </Style>
+    <Style x:Key="CalendarTabTextStyle" TargetType="TextBlock" BasedOn="{StaticResource CalendarBodyTextStyle}">
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Foreground" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}"/>
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=RadioButton}}" Value="True">
+                <Setter Property="FontWeight" Value="Medium"/>
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+    <Style x:Key="CalendarSectionTitleStyle" TargetType="TextBlock" BasedOn="{StaticResource CalendarBodyTextStyle}">
+        <Setter Property="FontSize" Value="{DynamicResource SectionTitleFontSize}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{DynamicResource CalendarTextPrimary}"/>
+    </Style>
+    <Style x:Key="CalendarRecordTextStyle" TargetType="TextBlock" BasedOn="{StaticResource CalendarBodyTextStyle}">
+        <Setter Property="FontWeight" Value="Medium"/>
+        <Setter Property="Typography.NumeralAlignment" Value="Tabular"/>
+    </Style>
+    <Style x:Key="CalendarSecondaryTextStyle" TargetType="TextBlock" BasedOn="{StaticResource CalendarBodyTextStyle}">
+        <Setter Property="FontSize" Value="{DynamicResource SecondaryFontSize}"/>
+        <Setter Property="Foreground" Value="{DynamicResource CalendarTextSecondary}"/>
+    </Style>
+    <Style x:Key="CalendarWeakTextStyle" TargetType="TextBlock" BasedOn="{StaticResource CalendarSecondaryTextStyle}">
+        <Setter Property="Foreground" Value="{DynamicResource CalendarTextWeak}"/>
+    </Style>
+    <Style x:Key="CalendarCaptionTextStyle" TargetType="TextBlock" BasedOn="{StaticResource CalendarWeakTextStyle}">
+        <Setter Property="FontSize" Value="{DynamicResource CaptionFontSize}"/>
+    </Style>
+    <Style x:Key="CalendarStatusTextStyle" TargetType="TextBlock" BasedOn="{StaticResource CalendarSecondaryTextStyle}"/>
+    <Style x:Key="CalendarDayNumberStyle" TargetType="TextBlock" BasedOn="{StaticResource CalendarBodyTextStyle}">
+        <Setter Property="Typography.NumeralAlignment" Value="Tabular"/>
+    </Style>
+    <Style x:Key="CalendarDayDurationStyle" TargetType="TextBlock" BasedOn="{StaticResource CalendarSecondaryTextStyle}">
+        <Setter Property="Foreground" Value="{Binding HeatTextColor}"/>
+    </Style>
+    <Style x:Key="CalendarMonthValueStyle" TargetType="Run" BasedOn="{StaticResource StatisticsValueRunStyle}"/>
+    <Style x:Key="CalendarDayValueStyle" TargetType="Run" BasedOn="{StaticResource CalendarMonthValueStyle}"/>
+    <Style x:Key="CalendarUnitStyle" TargetType="Run" BasedOn="{StaticResource StatisticsUnitRunStyle}"/>
+    <Style x:Key="CalendarToolTipStyle" TargetType="ToolTip">
+        <!-- ToolTips have a detached visual tree, so resolve their defaults here. -->
+        <Setter Property="FontFamily" Value="{StaticResource FontFamilyPrimary}"/>
+        <Setter Property="FontSize" Value="{StaticResource BodyFontSize}"/>
+        <Setter Property="FontWeight" Value="Normal"/>
+        <Setter Property="Foreground" Value="{StaticResource CalendarTextBody}"/>
+        <Setter Property="ContentTemplate">
+            <Setter.Value>
+                <DataTemplate>
+                    <TextBlock Text="{Binding}"
+                               FontFamily="{Binding FontFamily, RelativeSource={RelativeSource AncestorType=ToolTip}}"
+                               FontSize="{Binding FontSize, RelativeSource={RelativeSource AncestorType=ToolTip}}"
+                               FontWeight="{Binding FontWeight, RelativeSource={RelativeSource AncestorType=ToolTip}}"
+                               Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToolTip}}"/>
+                </DataTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+</ResourceDictionary>

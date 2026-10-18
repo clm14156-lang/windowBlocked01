@@ -30,9 +30,14 @@ public sealed class FocusCompletionTypographyPresentationTests
         Assert.Equal("{Binding HasTarget, Converter={StaticResource BooleanToVisibilityConverter}}", (string?)target.Attribute("Visibility"));
         Assert.Contains(target.Descendants(Presentation + "TextBlock"), element =>
             (string?)element.Attribute("Text") == "{Binding TargetName, Mode=OneWay}");
-        var statistics = Assert.Single(template.Descendants(Presentation + "TextBlock").Where(element =>
+        var statistics = Assert.Single(template.Descendants(Presentation + "Grid").Where(element =>
             (string?)element.Attribute(Xaml + "Name") == "CompletionStatistics"));
-        Assert.Equal("{Binding CompletionTodayStatistics, Mode=OneWay}", (string?)statistics.Attribute("Text"));
+        Assert.Contains(statistics.Descendants(Presentation + "TextBlock"), element =>
+            (string?)element.Attribute("AutomationProperties.Name") == "{Binding CompletionTodayDurationDisplay, Mode=OneWay}");
+        Assert.Contains(statistics.Descendants(Presentation + "TextBlock"), element =>
+            (string?)element.Attribute("Text") == "{Binding CompletionClockDisplay, Mode=OneWay}");
+        Assert.Contains(statistics.Descendants(Presentation + "Border"), element =>
+            (string?)element.Attribute(Xaml + "Name") == "CompletionStatisticsDivider");
 
         var buttons = template.Descendants(Presentation + "Button").ToArray();
         Assert.Equal(2, buttons.Length);

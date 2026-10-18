@@ -18,6 +18,7 @@ public sealed class GoalCompletedTasksViewModel : INotifyPropertyChanged
     private CompletedTaskTimeRange _selectedRange;
     private bool _isSortDescending = true;
     private string _errorText = string.Empty;
+    private string _searchQuery = string.Empty;
     private readonly RelayCommand<object> _open;
     private readonly RelayCommand<GoalCompletedTaskEntryViewModel> _restore, _delete;
 
@@ -58,6 +59,11 @@ public sealed class GoalCompletedTasksViewModel : INotifyPropertyChanged
     public bool IsTodayRange { get => SelectedRange == CompletedTaskTimeRange.Today; set { if (value) SelectedRange = CompletedTaskTimeRange.Today; } }
     public bool IsWeekRange { get => SelectedRange == CompletedTaskTimeRange.Week; set { if (value) SelectedRange = CompletedTaskTimeRange.Week; } }
     public bool IsMonthRange { get => SelectedRange == CompletedTaskTimeRange.Month; set { if (value) SelectedRange = CompletedTaskTimeRange.Month; } }
+    public string SearchQuery
+    {
+        get => _searchQuery;
+        set { if (Set(ref _searchQuery, value ?? string.Empty)) Refresh(); }
+    }
     public bool IsSortDescending
     {
         get => _isSortDescending;
@@ -79,7 +85,8 @@ public sealed class GoalCompletedTasksViewModel : INotifyPropertyChanged
     public string FilteredCountDisplay => $"共 {FilteredCount} 项";
     public bool HasResults => FilteredCount > 0;
     public string SummaryDisplay => $"已完成 {TotalCount} 项";
-    public string EmptyText => SelectedRange == CompletedTaskTimeRange.All ? "暂无已完成任务" : "该时间范围内暂无已完成任务";
+    public string EmptyText => !string.IsNullOrWhiteSpace(SearchQuery) ? "没有匹配的任务"
+        : SelectedRange == CompletedTaskTimeRange.All ? "暂无已完成任务" : "该时间范围内暂无已完成任务";
 
     public void ApplyState(GoalOverviewItemViewModel? goal, IReadOnlyList<LocalTaskDto> tasks)
     {
@@ -108,6 +115,8 @@ public sealed class GoalCompletedTasksViewModel : INotifyPropertyChanged
     {
         _selectedRange = CompletedTaskTimeRange.All;
         _isSortDescending = true;
+        _searchQuery = string.Empty;
+        Changed(nameof(SearchQuery));
         Changed(nameof(SelectedRange)); NotifyRange();
         Changed(nameof(IsSortDescending)); Changed(nameof(IsSortAscending)); Changed(nameof(SortHint));
     }
@@ -138,6 +147,9 @@ public sealed class GoalCompletedTasksViewModel : INotifyPropertyChanged
         };
         var filtered = _tasks.Where(task => start is null ||
             CompletionTime(task) is { } time && time >= start.Value && time < end!.Value);
+        var query = SearchQuery.Trim();
+        if (query.Length > 0)
+            filtered = filtered.Where(task => task.Name.Contains(query, StringComparison.OrdinalIgnoreCase));
         // Missing legacy timestamps stay visible in All, at the end of either sort order.
         // UpdatedAtUtc is an edit time and must never be presented as a completion time.
         var knownFirst = filtered.OrderBy(task => task.CompletedAtUtc is null);

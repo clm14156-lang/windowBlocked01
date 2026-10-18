@@ -1,4 +1,10 @@
-<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:system="clr-namespace:System;assembly=System.Runtime">
+    <system:Double x:Key="FocusGreetingTitleFontSize">20</system:Double>
+    <system:Double x:Key="FocusTaskHeadingFontSize">17</system:Double>
+    <system:Double x:Key="FocusTaskNumberFontSize">10</system:Double>
+    <FontWeight x:Key="FocusTaskNameFontWeight">Medium</FontWeight>
+    <system:Double x:Key="FocusCompletedTaskRowOpacity">0.72</system:Double>
     <LinearGradientBrush x:Key="FocusEndDialogBackground" StartPoint="0,0" EndPoint="1,1">
         <GradientStop Color="#07152F" Offset="0" />
         <GradientStop Color="#07152F" Offset="0.6" />
@@ -13,6 +19,10 @@
     <SolidColorBrush x:Key="FocusEndWarningTextBrush" Color="#E7ECF5" />
     <SolidColorBrush x:Key="FocusTitleBrush" Color="#F7F9FF" />
     <SolidColorBrush x:Key="FocusSubtitleBrush" Color="#A5C9FB" />
+    <SolidColorBrush x:Key="FocusCompletionSecondaryBrush" Color="#A5B8D5" />
+    <SolidColorBrush x:Key="FocusCompletionValueBrush" Color="#E6EEF9" />
+    <SolidColorBrush x:Key="FocusCompletionIconBrush" Color="#B8CCE9" />
+    <SolidColorBrush x:Key="FocusCompletionDividerBrush" Color="#4A638F" />
     <SolidColorBrush x:Key="FocusCountdownBrush" Color="#FCFDFF" />
     <SolidColorBrush x:Key="FocusTargetBrush" Color="#E6F0FF" />
     <SolidColorBrush x:Key="FocusFooterBrush" Color="#A4C6FB" />

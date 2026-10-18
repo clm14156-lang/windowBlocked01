@@ -3,15 +3,30 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:views="clr-namespace:FocusApp.Desktop.Views"
              Width="350"
              Height="390"
+             FontFamily="{DynamicResource FontFamilyPrimary}"
              UseLayoutRounding="True"
              SnapsToDevicePixels="True">
     <UserControl.Resources>
+      <ResourceDictionary>
+        <ResourceDictionary.MergedDictionaries>
+            <ResourceDictionary Source="/FocusApp.Desktop;component/Resources/StatisticsTypography.xaml"/>
+        </ResourceDictionary.MergedDictionaries>
+        <Style x:Key="TargetNameTextStyle" TargetType="TextBlock" BasedOn="{StaticResource StatisticsBodyTextStyle}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsSelected}" Value="True"><Setter Property="FontWeight" Value="Medium"/></DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <DataTemplate x:Key="TargetNameTooltipTemplate">
+            <TextBlock Text="{Binding}" FontFamily="{StaticResource FontFamilyPrimary}" FontSize="{StaticResource BodyFontSize}"
+                       FontWeight="Normal" Foreground="{StaticResource StatisticsBodyBrush}" TextWrapping="Wrap" MaxWidth="320"/>
+        </DataTemplate>
         <Style x:Key="TargetManagementButton" TargetType="{x:Type Button}">
             <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
             <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
-            <Setter Property="FontSize" Value="{DynamicResource SecondaryMediumFontSize}" />
-            <Setter Property="FontWeight" Value="{DynamicResource SecondaryMediumFontWeight}" />
+            <Setter Property="Foreground" Value="{DynamicResource StatisticsSecondaryBrush}" />
+            <Setter Property="FontSize" Value="{DynamicResource BodyFontSize}" />
+            <Setter Property="FontWeight" Value="Normal" />
+            <Setter Property="FontFamily" Value="{DynamicResource FontFamilyPrimary}" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Template">
@@ -23,7 +38,7 @@
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="Surface" Property="Background" Value="{DynamicResource FocusTargetSubtleHoverBrush}" />
-                                <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+                                <Setter Property="Foreground" Value="{DynamicResource StatisticsBodyBrush}" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -128,6 +143,7 @@
                 </Setter.Value>
             </Setter>
         </Style>
+      </ResourceDictionary>
     </UserControl.Resources>
 
     <Border Background="{DynamicResource SurfacePrimary}"
@@ -145,9 +161,7 @@
 
             <Grid Grid.Row="0">
                 <TextBlock VerticalAlignment="Center"
-                           FontSize="{DynamicResource DialogTitleFontSize}"
-                           FontWeight="{DynamicResource DialogTitleFontWeight}"
-                           Foreground="{DynamicResource TextPrimary}"
+                           Style="{StaticResource StatisticsPageTitleTextStyle}"
                            Text="{DynamicResource FocusTargetTitle}" />
                 <Button HorizontalAlignment="Right"
                         VerticalAlignment="Center"
@@ -156,6 +170,7 @@
                         Style="{StaticResource TargetManagementButton}">
                     <TextBlock FontSize="{Binding FontSize, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
                                FontWeight="{Binding FontWeight, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
+                               Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
                                Text="{DynamicResource FocusTargetManage}" />
                 </Button>
             </Grid>
@@ -234,11 +249,11 @@
                                         <TextBlock Grid.Column="1"
                                                    Margin="3,0,8,0"
                                                    VerticalAlignment="Center"
-                                                   FontSize="{DynamicResource BodyFontSize}"
-                                                   FontWeight="{DynamicResource BodyFontWeight}"
-                                                   Foreground="{DynamicResource TextPrimary}"
+                                                   Style="{StaticResource TargetNameTextStyle}"
                                                    Text="{Binding Name}"
-                                                   TextTrimming="CharacterEllipsis" />
+                                                   TextTrimming="CharacterEllipsis">
+                                            <TextBlock.ToolTip><ToolTip Content="{Binding Name}" ContentTemplate="{StaticResource TargetNameTooltipTemplate}"/></TextBlock.ToolTip>
+                                        </TextBlock>
                                         <Border x:Name="TargetSelectionIndicator"
                                                 Grid.Column="2"
                                                 Width="20"
@@ -324,8 +339,7 @@
                                Text="{DynamicResource FocusTargetEmptyTitle}" />
                     <TextBlock Margin="0,5,0,0"
                                HorizontalAlignment="Center"
-                               FontSize="12"
-                               Foreground="{DynamicResource TextSecondary}"
+                               Style="{StaticResource StatisticsAuxiliaryTextStyle}"
                                Text="{DynamicResource FocusTargetEmptyDescription}" />
                     <Button Margin="0,24,0,0"
                             HorizontalAlignment="Center"

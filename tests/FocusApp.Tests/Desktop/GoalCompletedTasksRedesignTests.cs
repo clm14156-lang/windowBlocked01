@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Automation.Peers;
 using System.Windows.Automation.Provider;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
@@ -104,6 +105,34 @@ public sealed class GoalCompletedTasksRedesignTests
         Assert.True(await model.MutateAsync(model.Tasks[0], true)); Assert.False(model.HasResults); Assert.Equal(0, model.TotalCount);
     }
 
+    [Fact]
+    public async Task SearchComposesWithRangeAndSortAndRetainsTheUnderlyingTaskAndOverallTotal()
+    {
+        var model = new GoalCompletedTasksViewModel(() => Today);
+        var recent = Completed("recent", Today) with { Name = "实现 API 登录", Description = "不会修改备注" };
+        var older = Completed("older", Today.AddDays(-1)) with { Name = "优化 api 文档" };
+        var hidden = Completed("hidden", Today) with { Name = "整理房间", Description = "API" };
+        var unknown = Completed("unknown", null) with { Name = "旧版 API 任务" };
+        model.ApplyState(Goal(), [recent, older, hidden, unknown]); model.OpenCommand.Execute(null);
+        model.SearchQuery = "  aPi  ";
+        Assert.Equal(new[] { "recent", "older", "unknown" }, Ids(model)); Assert.Equal(4, model.TotalCount);
+        model.IsTodayRange = true; Assert.Equal("recent", Assert.Single(Ids(model)));
+        model.IsAllRange = true; model.ToggleSortCommand.Execute(null);
+        Assert.Equal(new[] { "older", "recent", "unknown" }, Ids(model));
+        model.ApplyState(Goal(), [recent, older, hidden, unknown]);
+        Assert.Equal("  aPi  ", model.SearchQuery); Assert.True(model.IsSortAscending);
+        model.MutationHandler = (source, delete) => { Assert.Same(older, source); Assert.False(delete); return Task.FromResult(true); };
+        Assert.True(await model.MutateAsync(model.Tasks[0], false));
+        Assert.Equal(3, model.TotalCount); Assert.Equal("共 2 项", model.FilteredCountDisplay);
+        model.SearchQuery = "不存在"; Assert.False(model.HasResults); Assert.Equal("没有匹配的任务", model.EmptyText);
+        model.SearchQuery = "   "; Assert.Equal(3, model.FilteredCount);
+        model.SearchQuery = "登录"; Assert.Same(recent, Assert.Single(model.Tasks).Source);
+        model.CloseCommand.Execute(null); model.OpenCommand.Execute(null);
+        Assert.Equal("", model.SearchQuery); Assert.True(model.IsAllRange); Assert.True(model.IsSortDescending);
+        model.SearchQuery = "登录"; model.ApplyState(Goal("other"), []);
+        Assert.Equal("", model.SearchQuery); Assert.False(model.IsOpen);
+    }
+
     [Theory]
     [InlineData(800, 710)]
     [InlineData(900, 760)]
@@ -122,19 +151,25 @@ public sealed class GoalCompletedTasksRedesignTests
                 window.Show(); Pump(view);
                 var surface = (Border)view.FindName("ModalSurface"); var list = (ListBox)view.FindName("TaskList");
                 var scroll = (ScrollViewer)list.Template.FindName("TasksScrollViewer", list);
-                Assert.Equal(600, surface.ActualWidth); Assert.Equal(590, surface.ActualHeight);
-                Assert.InRange(Bounds(surface, view).Left, 1, width - 600); Assert.InRange(Bounds(surface, view).Bottom, 1, height - 1);
+                Assert.Equal(460, surface.ActualWidth); Assert.Equal(500, surface.ActualHeight);
+                Assert.Equal((width - 460) / 2.0, Bounds(surface, view).Left, 1); Assert.InRange(Bounds(surface, view).Bottom, 1, height - 1);
                 Assert.Equal("已完成的任务", ((TextBlock)view.FindName("CompletedTasksTitle")).Text);
-                Assert.Null(view.FindName("SearchInput")); Assert.Null(view.FindName("DateGroups")); Assert.Empty(Descendants<TextBox>(view));
+                var search = (TextBox)view.FindName("SearchInput");
+                var range = (ComboBox)view.FindName("RangeFilter");
+                Assert.Null(view.FindName("DateGroups")); Assert.Empty(Descendants<RadioButton>(view));
+                Assert.Equal(32, ((Border)view.FindName("CompletedSearchSurface")).ActualHeight);
+                Assert.Equal(32, range.ActualHeight);
+                Assert.True(Bounds(range, view).Right < Bounds(search, view).Left);
+                Assert.True(Bounds(search, view).Right < Bounds((TextBlock)view.FindName("CompletedTaskCount"), view).Left);
                 Assert.Equal(240, list.Items.Count); Assert.True(scroll.ScrollableHeight > 0);
                 Assert.InRange(Descendants<Grid>(list).Count(grid => grid.Name == "CompletedTaskRow"), 8, 35);
                 Assert.DoesNotContain(Descendants<Button>(view), button => button.Name == "DateGroupHeader");
                 var header = (Border)view.FindName("CompletedTasksTableHeader"); var headerBounds = Bounds(header, view);
                 scroll.ScrollToBottom(); Pump(view); Assert.True(scroll.VerticalOffset > 0); Assert.Equal(headerBounds, Bounds(header, view));
-                Select("TodayFilter"); Assert.Equal(8, model.FilteredCount); Assert.True(model.IsTodayRange); Assert.InRange(scroll.VerticalOffset, 0, 1);
-                Select("WeekFilter"); Assert.Equal(40, model.FilteredCount);
-                Select("MonthFilter"); Assert.Equal(128, model.FilteredCount);
-                Select("AllFilter"); Assert.Equal("共 240 项", ((TextBlock)view.FindName("CompletedTaskCount")).Text);
+                Select(CompletedTaskTimeRange.Today); Assert.Equal(8, model.FilteredCount); Assert.True(model.IsTodayRange); Assert.InRange(scroll.VerticalOffset, 0, 1);
+                Select(CompletedTaskTimeRange.Week); Assert.Equal(40, model.FilteredCount);
+                Select(CompletedTaskTimeRange.Month); Assert.Equal(128, model.FilteredCount);
+                Select(CompletedTaskTimeRange.All); Assert.Equal("共 240 项", ((TextBlock)view.FindName("CompletedTaskCount")).Text);
                 var first = model.Tasks[0].Source.TaskId;
                 ((Button)view.FindName("CompletionSortButton")).Command.Execute(null); Pump(view);
                 Assert.True(model.IsSortAscending); Assert.NotEqual(first, model.Tasks[0].Source.TaskId);
@@ -142,21 +177,38 @@ public sealed class GoalCompletedTasksRedesignTests
                 var row = Descendants<Grid>(container).Single(grid => grid.Name == "CompletedTaskRow");
                 var title = Descendants<TextBlock>(row).Single(block => block.Name == "CompletedTaskName"); var time = Descendants<TextBlock>(row).Single(block => block.Name == "CompletedTaskTime");
                 Assert.Equal(TextTrimming.CharacterEllipsis, title.TextTrimming); Assert.True(Bounds(title, row).Right <= Bounds(time, row).Left);
-                Assert.Equal(model.Tasks[0].TimeDisplay, time.Text); Assert.Equal(48, container.Height);
+                Assert.Equal(model.Tasks[0].TimeDisplay, time.Text); Assert.Equal(40, container.Height);
                 container.ContextMenu.PlacementTarget = container; container.ContextMenu.IsOpen = true; Pump(view);
                 Assert.Same(model.Tasks[0], container.ContextMenu.DataContext);
                 var restore = (MenuItem)container.ContextMenu.Items[0]; Assert.Same(model.Tasks[0].RestoreCommand, restore.Command); Assert.Same(model.Tasks[0], restore.CommandParameter);
                 var menu = container.ContextMenu;
                 model.IsTodayRange = true; Pump(view); Assert.False(menu.IsOpen);
+                Select(CompletedTaskTimeRange.All);
+                scroll.ScrollToBottom(); Pump(view);
+                search.Text = "任务00"; Pump(view);
+                Assert.Equal("任务00", model.SearchQuery); Assert.Equal(10, model.FilteredCount);
+                Assert.InRange(scroll.VerticalOffset, 0, 1); Assert.Equal(headerBounds, Bounds(header, view));
+                Select(CompletedTaskTimeRange.Today); Assert.Equal(1, model.FilteredCount);
+                search.Text = "无匹配任务"; Pump(view);
+                Assert.True(((TextBlock)view.FindName("CompletedTasksEmptyState")).IsVisible);
+                Assert.Equal("没有匹配的任务", ((TextBlock)view.FindName("CompletedTasksEmptyState")).Text);
+                search.Text = ""; Pump(view); Assert.Equal(8, model.FilteredCount);
+                range.IsDropDownOpen = true; Pump(view);
+                var escape = new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(view), 0, Key.Escape) { RoutedEvent = Keyboard.PreviewKeyDownEvent };
+                view.RaiseEvent(escape); Pump(view);
+                Assert.False(range.IsDropDownOpen); Assert.True(model.IsOpen);
                 model.ApplyState(Goal(), []); Pump(view);
                 Assert.True(((TextBlock)view.FindName("CompletedTasksEmptyState")).IsVisible); Assert.Equal("共 0 项", ((TextBlock)view.FindName("CompletedTaskCount")).Text);
                 ((Button)view.FindName("CloseModalButton")).Command.Execute(null); Pump(view); Assert.False(view.IsVisible);
 
-                void Select(string name)
+                void Select(CompletedTaskTimeRange selection)
                 {
-                    var button = (RadioButton)view.FindName(name);
-                    ((ISelectionItemProvider)new RadioButtonAutomationPeer(button).GetPattern(PatternInterface.SelectionItem)!).Select(); Pump(view);
-                    Assert.True(button.IsChecked);
+                    range.IsDropDownOpen = true; Pump(view);
+                    var item = range.Items.Cast<ComboBoxItem>().Single(option => Equals(option.Tag, selection));
+                    var optionPeer = new ComboBoxAutomationPeer(range).GetChildren()!.Single(peer => peer.GetName() == item.Content.ToString());
+                    ((ISelectionItemProvider)optionPeer.GetPattern(PatternInterface.SelectionItem)!).Select(); Pump(view);
+                    Assert.Equal(selection, model.SelectedRange);
+                    Assert.False(range.IsDropDownOpen);
                 }
             }
             finally { window.Close(); }

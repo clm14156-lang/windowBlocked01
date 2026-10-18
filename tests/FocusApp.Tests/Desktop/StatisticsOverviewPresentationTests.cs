@@ -50,7 +50,8 @@ public sealed class StatisticsOverviewPresentationTests
 
         var durationText = Assert.Single(button.Descendants(Presentation + "TextBlock").Where(element =>
             (string?)element.Attribute(Xaml + "Name") == "DayDurationText"));
-        Assert.Equal("12", (string?)durationText.Attribute("FontSize"));
+        Assert.Equal("{StaticResource CalendarDayDurationStyle}", (string?)durationText
+            .Element(Presentation + "TextBlock.Style")?.Element(Presentation + "Style")?.Attribute("BasedOn"));
 
         var selectedTrigger = Assert.Single(button.Descendants(Presentation + "DataTrigger").Where(trigger =>
             (string?)trigger.Attribute("Binding") == "{Binding IsSelected}" &&
@@ -58,19 +59,24 @@ public sealed class StatisticsOverviewPresentationTests
         Assert.Contains(selectedTrigger.Elements(Presentation + "Setter"), setter =>
             (string?)setter.Attribute("TargetName") == "DaySelectionBackground" &&
             (string?)setter.Attribute("Property") == "Background" &&
-            (string?)setter.Attribute("Value") == "#FF861F");
+            (string?)setter.Attribute("Value") == "{DynamicResource CalendarAccent}");
         Assert.Contains(selectedTrigger.Elements(Presentation + "Setter"), setter =>
             (string?)setter.Attribute("TargetName") == "DayNumberText" &&
             (string?)setter.Attribute("Property") == "Foreground" &&
-            (string?)setter.Attribute("Value") == "White");
+            (string?)setter.Attribute("Value") == "{DynamicResource CalendarSelectedText}");
         Assert.Contains(selectedTrigger.Elements(Presentation + "Setter"), setter =>
             (string?)setter.Attribute("TargetName") == "DayDurationText" &&
             (string?)setter.Attribute("Property") == "Foreground" &&
-            (string?)setter.Attribute("Value") == "White");
+            (string?)setter.Attribute("Value") == "{DynamicResource CalendarSelectedText}");
 
         Assert.DoesNotContain(button.Descendants(Presentation + "DataTrigger"), trigger =>
             (string?)trigger.Attribute("Binding") == "{Binding HeatLevel}");
-        Assert.Equal("#FFA25F", (string?)durationText.Attribute("Foreground"));
+        var typography = XDocument.Load(Path.Combine(FindRepositoryRoot(), "src", "FocusApp.Desktop", "Resources", "CalendarTypography.xaml"));
+        var durationStyle = Assert.Single(typography.Descendants(Presentation + "Style")
+            .Where(element => (string?)element.Attribute(Xaml + "Key") == "CalendarDayDurationStyle"));
+        Assert.Contains(durationStyle.Elements(Presentation + "Setter"), setter =>
+            (string?)setter.Attribute("Property") == "Foreground" &&
+            (string?)setter.Attribute("Value") == "{Binding HeatTextColor}");
     }
 
     [Fact]

@@ -6,16 +6,21 @@
              Height="320"
              HorizontalAlignment="Center"
              VerticalAlignment="Center"
-             FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI"
+             FontFamily="{DynamicResource FontFamilyPrimary}"
              UseLayoutRounding="True"
              SnapsToDevicePixels="True">
     <UserControl.Resources>
+        <ResourceDictionary>
+        <ResourceDictionary.MergedDictionaries>
+            <ResourceDictionary Source="../Resources/StatisticsTypography.xaml" />
+        </ResourceDictionary.MergedDictionaries>
         <Style x:Key="BlockedTabStyle" TargetType="{x:Type RadioButton}">
             <Setter Property="Width" Value="94" />
             <Setter Property="Height" Value="40" />
-            <Setter Property="Foreground" Value="{DynamicResource TextWeak}" />
-            <Setter Property="FontSize" Value="13" />
-            <Setter Property="FontWeight" Value="Normal" />
+            <Setter Property="Foreground" Value="{DynamicResource StatisticsSecondaryBrush}" />
+            <Setter Property="FontFamily" Value="{DynamicResource FontFamilyPrimary}" />
+            <Setter Property="FontSize" Value="{DynamicResource BodyFontSize}" />
+            <Setter Property="FontWeight" Value="{DynamicResource BodyFontWeight}" />
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Template">
                 <Setter.Value>
@@ -32,8 +37,8 @@
                         </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-                                <Setter Property="FontWeight" Value="SemiBold" />
+                                <Setter Property="Foreground" Value="{DynamicResource StatisticsPrimaryBrush}" />
+                                <Setter Property="FontWeight" Value="{DynamicResource BodyMediumFontWeight}" />
                                 <Setter TargetName="Indicator" Property="Background" Value="{DynamicResource AccentPrimary}" />
                             </Trigger>
                         </ControlTemplate.Triggers>
@@ -109,6 +114,7 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        </ResourceDictionary>
     </UserControl.Resources>
 
     <Border Background="{DynamicResource SurfacePrimary}"
@@ -132,9 +138,7 @@
             </Grid.RowDefinitions>
 
             <TextBlock VerticalAlignment="Center"
-                       FontSize="18"
-                       FontWeight="SemiBold"
-                       Foreground="{DynamicResource TextPrimary}"
+                       Style="{StaticResource StatisticsPageTitleTextStyle}"
                        Text="{DynamicResource BlockedContentTitle}" />
 
             <Grid Grid.Row="2" Height="40">

@@ -78,7 +78,7 @@ public sealed class StatisticsOverviewDatePickerPresentationTests
     }
 
     [Fact]
-    public void NativeChartHighlightsTodayAndDonutTitleStaysAboveItsValue()
+    public void NativeChartHighlightsTodayAndDonutShowsOnlyItsCenteredDuration()
     {
         GoalDetailRedesignTests.RunSta(() =>
         {
@@ -103,11 +103,15 @@ public sealed class StatisticsOverviewDatePickerPresentationTests
                 VerifyToday();
                 Click((RadioButton)view.FindName("MonthPeriodButton")); Pump(view); VerifyToday();
                 var center = (StackPanel)view.FindName("DistributionCenter");
-                var title = (TextBlock)view.FindName("DistributionCenterTitle");
                 var value = (TextBlock)view.FindName("DistributionCenterValue");
-                Assert.True(title.TranslatePoint(new Point(0, title.ActualHeight), center).Y < value.TranslatePoint(new Point(), center).Y);
+                Assert.Null(view.FindName("DistributionCenterTitle"));
+                var region = (Grid)view.FindName("DistributionRingRegion");
+                var centerPoint = center.TranslatePoint(new Point(center.ActualWidth / 2, center.ActualHeight / 2), region);
+                Assert.InRange(Math.Abs(centerPoint.X - region.ActualWidth / 2), 0, 1);
+                Assert.InRange(Math.Abs(centerPoint.Y - region.ActualHeight / 2), 0, 1);
                 Assert.True(center.ActualWidth < 104);
-                Assert.Equal("10", value.Text); Assert.Equal("24分钟", model.DonutRemainder);
+                Assert.Equal("10小时", string.Concat(value.Inlines.OfType<System.Windows.Documents.Run>().Select(run => run.Text)));
+                Assert.Equal("24分钟", model.DonutRemainder);
                 Click((RadioButton)view.FindName("YearPeriodButton")); Pump(view);
                 Assert.DoesNotContain(Drawings(VisualTreeHelper.GetDrawing(chart)).OfType<GlyphRunDrawing>(),
                     item => item.ForegroundBrush is SolidColorBrush brush && brush.Color == Color.FromRgb(255, 138, 37));

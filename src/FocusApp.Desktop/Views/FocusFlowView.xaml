@@ -336,8 +336,8 @@
         <Style x:Key="FocusEndConfirmationAccentButton"
                TargetType="{x:Type Button}"
                BasedOn="{StaticResource FocusFlowAccentButton}">
-            <Setter Property="FontSize" Value="16" />
-            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontSize" Value="{DynamicResource ButtonEmphasisFontSize}" />
+            <Setter Property="FontWeight" Value="{DynamicResource ButtonFontWeight}" />
             <Setter Property="Height" Value="42" />
             <Setter Property="Background" Value="{StaticResource FocusEndButtonBackground}" />
             <Setter Property="Template">
@@ -409,6 +409,41 @@
             <Setter Property="TextAlignment" Value="Center" />
         </Style>
 
+        <Style x:Key="FocusEndTimeUnitRunStyle" TargetType="Run">
+            <Setter Property="FontFamily" Value="{DynamicResource FontFamilyPrimary}" />
+            <Setter Property="FontSize" Value="{DynamicResource BodyFontSize}" />
+            <Setter Property="FontWeight" Value="{DynamicResource BodyFontWeight}" />
+            <Setter Property="Foreground" Value="{DynamicResource FocusEndSecondaryBrush}" />
+            <Setter Property="BaselineAlignment" Value="Baseline" />
+        </Style>
+
+        <Style x:Key="FocusCompletionTitleTextStyle" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{DynamicResource FontFamilyPrimary}" />
+            <Setter Property="FontSize" Value="18" />
+            <Setter Property="FontWeight" Value="{DynamicResource PageTitleFontWeight}" />
+            <Setter Property="Foreground" Value="{DynamicResource FocusTitleBrush}" />
+        </Style>
+        <Style x:Key="FocusCompletionLabelTextStyle" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{DynamicResource FontFamilyPrimary}" />
+            <Setter Property="FontSize" Value="{DynamicResource BodyFontSize}" />
+            <Setter Property="FontWeight" Value="{DynamicResource BodyFontWeight}" />
+            <Setter Property="Foreground" Value="{DynamicResource FocusCompletionSecondaryBrush}" />
+        </Style>
+        <Style x:Key="FocusCompletionMetricTextStyle" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{DynamicResource FontFamilyNumeric}" />
+            <Setter Property="FontSize" Value="20" />
+            <Setter Property="FontWeight" Value="{DynamicResource FontWeightSemiBold}" />
+            <Setter Property="Foreground" Value="{DynamicResource FocusCompletionValueBrush}" />
+            <Setter Property="Typography.NumeralAlignment" Value="Tabular" />
+        </Style>
+        <Style x:Key="FocusCompletionUnitRunStyle" TargetType="Run">
+            <Setter Property="FontFamily" Value="{DynamicResource FontFamilyPrimary}" />
+            <Setter Property="FontSize" Value="{DynamicResource SecondaryFontSize}" />
+            <Setter Property="FontWeight" Value="{DynamicResource BodyFontWeight}" />
+            <Setter Property="Foreground" Value="{DynamicResource FocusCompletionSecondaryBrush}" />
+            <Setter Property="BaselineAlignment" Value="Baseline" />
+        </Style>
+
         <DataTemplate x:Key="FocusCompletionDetails">
             <Grid>
                 <Grid x:Name="CompletionGreeting" Margin="40,40,0,0" HorizontalAlignment="Left" VerticalAlignment="Top">
@@ -422,8 +457,8 @@
                            Source="/FocusApp.Desktop;component/Assets/Images/Illustrations/focus_aixin.png"
                            Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality" />
                     <StackPanel Grid.Column="2">
-                        <TextBlock x:Name="CompletionTitle" Text="{DynamicResource FocusCompletedTitle}" FontSize="{DynamicResource PageTitleFontSize}" FontWeight="{DynamicResource PageTitleFontWeight}" Foreground="{DynamicResource FocusTitleBrush}" />
-                        <TextBlock x:Name="CompletionSubtitle" Text="{Binding CompletionSubtitle}" FontSize="{DynamicResource SectionTitleFontSize}" FontWeight="{DynamicResource BodyFontWeight}" Foreground="{DynamicResource FocusSubtitleBrush}" Margin="0,4,0,0"
+                        <TextBlock x:Name="CompletionTitle" Text="{DynamicResource FocusCompletedTitle}" Style="{StaticResource FocusCompletionTitleTextStyle}" />
+                        <TextBlock x:Name="CompletionSubtitle" Text="{Binding CompletionSubtitle}" Style="{StaticResource FocusCompletionLabelTextStyle}" FontSize="{DynamicResource BodyFontSize}" Margin="0,4,0,0"
                                    MaxWidth="668" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
                     </StackPanel>
                 </Grid>
@@ -471,9 +506,36 @@
                                            Text="{Binding TargetName, Mode=OneWay}" FontSize="{DynamicResource SectionTitleFontSize}" FontWeight="{DynamicResource SectionTitleFontWeight}" Foreground="{DynamicResource FocusTargetBrush}"
                                            TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" ToolTip="{Binding TargetName}" />
                             </Grid>
-                            <Grid Height="30">
-                                <TextBlock x:Name="CompletionStatistics" Text="{Binding CompletionTodayStatistics, Mode=OneWay}" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                           FontSize="{DynamicResource BodyFontSize}" FontWeight="{DynamicResource BodyFontWeight}" Foreground="{DynamicResource FocusSubtitleBrush}" />
+                            <Grid x:Name="CompletionStatistics" Width="304" Height="48" Margin="0,10,0,0" HorizontalAlignment="Center">
+                                <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="1"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                <Grid x:Name="CompletionTodayColumn" Margin="0,0,12,0" HorizontalAlignment="Center">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="24"/><ColumnDefinition Width="10"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <views:SvgIcon x:Name="CompletionTodayIcon" Width="24" Height="24" VerticalAlignment="Center"
+                                                   Source="/FocusApp.Desktop;component/Assets/Icons/Common/time.svg" FillOverride="{DynamicResource FocusCompletionIconBrush}" />
+                                    <StackPanel Grid.Column="2" VerticalAlignment="Center" MaxWidth="104">
+                                        <TextBlock x:Name="CompletionTodayLabel" Text="{DynamicResource FocusTodayTotalShort}" Style="{StaticResource FocusCompletionLabelTextStyle}" />
+                                        <Viewbox Height="27" MaxWidth="104" HorizontalAlignment="Left" Stretch="Uniform" StretchDirection="DownOnly" Margin="0,2,0,0">
+                                            <TextBlock x:Name="CompletionTodayValue" Style="{StaticResource FocusCompletionMetricTextStyle}" AutomationProperties.Name="{Binding CompletionTodayDurationDisplay, Mode=OneWay}">
+                                                <Run Text="{Binding CompletionTodayPrimaryValue, Mode=OneWay}"/><Run Text="{Binding CompletionTodayPrimaryUnit, Mode=OneWay}" Style="{StaticResource FocusCompletionUnitRunStyle}"/><Run Text="{Binding CompletionTodaySecondaryValue, Mode=OneWay}"/><Run Text="{Binding CompletionTodaySecondaryUnit, Mode=OneWay}" Style="{StaticResource FocusCompletionUnitRunStyle}"/>
+                                            </TextBlock>
+                                        </Viewbox>
+                                    </StackPanel>
+                                </Grid>
+                                <Border x:Name="CompletionStatisticsDivider" Grid.Column="1" Width="1" Height="32" VerticalAlignment="Center" Background="{DynamicResource FocusCompletionDividerBrush}" />
+                                <Grid x:Name="CompletionClockColumn" Grid.Column="2" Margin="12,0,0,0" HorizontalAlignment="Center">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="24"/><ColumnDefinition Width="10"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <Viewbox x:Name="CompletionClockIcon" Width="24" Height="24" VerticalAlignment="Center">
+                                        <Canvas Width="24" Height="24">
+                                            <Path Data="M 4,5 L 20,5 Q 22,5 22,7 L 22,20 Q 22,22 20,22 L 4,22 Q 2,22 2,20 L 2,7 Q 2,5 4,5 M 2,10 L 22,10 M 7,2 L 7,7 M 17,2 L 17,7"
+                                                  Stroke="{DynamicResource FocusCompletionIconBrush}" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
+                                        </Canvas>
+                                    </Viewbox>
+                                    <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                                        <TextBlock x:Name="CompletionClockLabel" Text="{DynamicResource FocusCompletedAt}" Style="{StaticResource FocusCompletionLabelTextStyle}" />
+                                        <TextBlock x:Name="CompletionClockValue" Text="{Binding CompletionClockDisplay, Mode=OneWay}" Style="{StaticResource FocusCompletionMetricTextStyle}"
+                                                   Height="27" Margin="0,2,0,0" />
+                                    </StackPanel>
+                                </Grid>
                             </Grid>
                         </StackPanel>
                     </StackPanel>
@@ -548,7 +610,7 @@
                 <Image x:Name="FocusGreetingIcon" Width="56" Height="56" VerticalAlignment="Top" Margin="0,-6,0,0"
                        Source="{Binding GreetingIconSource}" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality" IsHitTestVisible="False"/>
                 <StackPanel Grid.Column="2">
-                    <TextBlock x:Name="FocusGreetingTitle" Text="{Binding GreetingTitle}" FontSize="{DynamicResource PageTitleFontSize}" FontWeight="{DynamicResource PageTitleFontWeight}" Foreground="{DynamicResource FocusTitleBrush}"/>
+                    <TextBlock x:Name="FocusGreetingTitle" Text="{Binding GreetingTitle}" FontSize="{DynamicResource FocusGreetingTitleFontSize}" FontWeight="{DynamicResource PageTitleFontWeight}" Foreground="{DynamicResource FocusTitleBrush}"/>
                     <TextBlock x:Name="FocusGreetingSubtitle" Text="{Binding GreetingSubtitle}" FontSize="{DynamicResource SecondaryFontSize}" FontWeight="{DynamicResource SecondaryFontWeight}" Margin="0,7,0,0" Foreground="{DynamicResource FocusSubtitleBrush}"
                                MaxWidth="668" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
                 </StackPanel>
@@ -700,14 +762,14 @@
                         <TextBlock x:Name="FocusEndTitle" Grid.Row="0" Style="{StaticResource FocusConfirmationTitle}"
                                    Text="{DynamicResource FocusEndNormalTitle}"/>
                         <TextBlock x:Name="FocusEndElapsedLabel" Grid.Row="2" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                   Foreground="{DynamicResource FocusEndSecondaryBrush}" FontSize="13"
+                                   Foreground="{DynamicResource FocusEndSecondaryBrush}" FontSize="{DynamicResource SecondaryFontSize}"
                                    FontWeight="Normal" Text="{DynamicResource FocusEndElapsedLabel}"/>
                         <Grid x:Name="FocusEndTimeRegion" Grid.Row="4">
                             <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <TextBlock x:Name="FocusEndElapsedValue" Foreground="{DynamicResource AccentPrimary}"
-                                           FontFamily="{DynamicResource FontFamilyNumeric}" FontSize="44"
+                                <TextBlock x:Name="FocusEndElapsedValue" Foreground="{DynamicResource FocusEndTitleBrush}"
+                                           FontFamily="{DynamicResource FontFamilyNumeric}" FontSize="{DynamicResource TimerConfirmationFontSize}"
                                            FontWeight="{DynamicResource TimerFontWeight}" AutomationProperties.Name="{Binding EndConfirmationElapsedDisplay}">
-                                    <Run Text="{Binding EndConfirmationMinutesDisplay, Mode=OneWay}"/><Run Text=" 分 " FontSize="18" FontWeight="{DynamicResource TimerUnitFontWeight}" Foreground="{DynamicResource FocusEndSecondaryBrush}"/><Run Text="{Binding EndConfirmationSecondsDisplay, Mode=OneWay}"/><Run Text=" 秒" FontSize="18" FontWeight="{DynamicResource TimerUnitFontWeight}" Foreground="{DynamicResource FocusEndSecondaryBrush}"/>
+                                    <Run Text="{Binding EndConfirmationMinutesDisplay, Mode=OneWay}"/><Run Text=" 分 " Style="{StaticResource FocusEndTimeUnitRunStyle}"/><Run Text="{Binding EndConfirmationSecondsDisplay, Mode=OneWay}"/><Run Text=" 秒" Style="{StaticResource FocusEndTimeUnitRunStyle}"/>
                                 </TextBlock>
                             </Viewbox>
                         </Grid>
@@ -729,7 +791,7 @@
                                                  Margin="0,11,0,0" VerticalAlignment="Top" HorizontalAlignment="Center"/>
                                     </Grid>
                                     <TextBlock x:Name="FocusEndWarningText" VerticalAlignment="Center" TextWrapping="NoWrap"
-                                               FontSize="11.5" FontWeight="Normal"
+                                               FontSize="{DynamicResource SecondaryFontSize}" FontWeight="Normal"
                                                Foreground="{DynamicResource FocusEndWarningTextBrush}">
                                         <Run Text="{DynamicResource FocusEndShortDescriptionPrefix}"/><Run Text="{DynamicResource FocusEndShortDescriptionEmphasis}"/>
                                     </TextBlock>

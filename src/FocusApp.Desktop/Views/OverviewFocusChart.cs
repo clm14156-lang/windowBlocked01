@@ -12,7 +12,6 @@ public sealed class OverviewFocusChart : FrameworkElement
 {
     public static readonly DependencyProperty ModelProperty = DependencyProperty.Register(nameof(Model),
         typeof(StatisticsDashboardViewModel), typeof(OverviewFocusChart), new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender, ModelChanged));
-    private static readonly Brush LabelBrush = FrozenBrush("#7C889C");
     private static readonly Brush TodayBrush = FrozenBrush("#FF8A25");
     private static readonly Pen GridPen = FrozenPen("#EAF0F6", 1, new DashStyle([2, 3], 0));
     private static readonly Pen BaselinePen = FrozenPen("#DDE4ED", 1);
@@ -72,6 +71,17 @@ public sealed class OverviewFocusChart : FrameworkElement
         }
         var slot = plot.Width / model.Bars.Count;
         var width = Math.Min(model.IsWeek ? 44 : model.IsYear ? 30 : 15, slot * .5);
+        // Keep the same 11 DIP type in dense months and leave room around today's label.
+        var labelWidth = model.IsMonth ? 24 : slot;
+        var labelStep = model.IsMonth ? Math.Max(1, (int)Math.Ceiling(labelWidth / slot)) : 1;
+        var occupiedLabels = new List<Rect>();
+        if (model.IsMonth)
+        {
+            var todayIndex = model.Bars.ToList().FindIndex(bar => bar.IsToday);
+            if (todayIndex >= 0)
+                occupiedLabels.Add(new Rect(plot.Left + (todayIndex + .5) * slot - labelWidth / 2,
+                    plot.Bottom + 8, labelWidth, 16));
+        }
         for (var index = 0; index < model.Bars.Count; index++)
         {
             var bar = model.Bars[index];
@@ -84,11 +94,17 @@ public sealed class OverviewFocusChart : FrameworkElement
                 drawing.DrawGeometry(ColumnBrush, null, ColumnGeometry(bounds));
                 drawing.Pop();
             }
-            DrawText(drawing, bar.AxisLabel, model.IsMonth ? 10 : 11, new Point(center - slot / 2, plot.Bottom + 8), slot, TextAlignment.Center, bar.IsToday);
+            var labelBounds = new Rect(center - labelWidth / 2, plot.Bottom + 8, labelWidth, 16);
+            if (!model.IsMonth || bar.IsToday ||
+                (index % labelStep == 0 && !occupiedLabels.Any(bounds => bounds.IntersectsWith(labelBounds))))
+            {
+                DrawText(drawing, bar.AxisLabel, 11, labelBounds.TopLeft, labelWidth, TextAlignment.Center, bar.IsToday);
+                if (model.IsMonth && !bar.IsToday) occupiedLabels.Add(labelBounds);
+            }
             if (model.IsWeek || bar.IsToday)
             {
-                var labelWidth = bar.IsToday ? Math.Max(28, slot) : slot;
-                DrawText(drawing, bar.Weekday, 11, new Point(center - labelWidth / 2, plot.Bottom + 25), labelWidth, TextAlignment.Center, bar.IsToday);
+                var weekdayWidth = bar.IsToday ? Math.Max(28, slot) : slot;
+                DrawText(drawing, bar.Weekday, 11, new Point(center - weekdayWidth / 2, plot.Bottom + 25), weekdayWidth, TextAlignment.Center, bar.IsToday);
             }
         }
     }
@@ -130,8 +146,8 @@ public sealed class OverviewFocusChart : FrameworkElement
     private void DrawText(DrawingContext drawing, string text, double size, Point origin, double width, TextAlignment alignment = TextAlignment.Left, bool isToday = false)
     {
         var formatted = new FormattedText(text, CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
-            new Typeface(new FontFamily("Segoe UI, Microsoft YaHei UI"), FontStyles.Normal, isToday ? FontWeights.SemiBold : FontWeights.Normal, FontStretches.Normal),
-            size, isToday ? TodayBrush : LabelBrush, VisualTreeHelper.GetDpi(this).PixelsPerDip)
+            new Typeface((FontFamily)FindResource("FontFamilyEnglish"), FontStyles.Normal, isToday ? FontWeights.Medium : FontWeights.Normal, FontStretches.Normal),
+            size, isToday ? TodayBrush : (Brush)FindResource("StatisticsWeakBrush"), VisualTreeHelper.GetDpi(this).PixelsPerDip)
         { MaxTextWidth = Math.Max(.1, width), TextAlignment = alignment, MaxLineCount = 1, Trimming = TextTrimming.CharacterEllipsis };
         drawing.DrawText(formatted, origin);
     }

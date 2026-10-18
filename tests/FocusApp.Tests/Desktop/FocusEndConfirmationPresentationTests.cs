@@ -86,14 +86,14 @@ public sealed class FocusEndConfirmationPresentationTests
                 Assert.Equal(HorizontalAlignment.Center, title.HorizontalAlignment);
                 Assert.Equal("0分16秒", model.EndConfirmationElapsedDisplay);
                 Assert.Equal("0 分 16 秒", InlineText(elapsed));
-                Assert.Equal(44, elapsed.FontSize);
+                Assert.Equal(36, elapsed.FontSize);
                 Assert.Equal(26, title.FontSize);
                 Assert.Equal(FontWeights.Bold, title.FontWeight);
                 Assert.Equal(34, status.ActualHeight);
                 Assert.Equal(28, end.ActualHeight);
                 Assert.Equal(42, resume.ActualHeight);
                 Assert.InRange(resume.ActualWidth, 279, 280.5); // Border rounding at 150% DPI.
-                Assert.Equal(16, resume.FontSize);
+                Assert.Equal(14, resume.FontSize);
                 Assert.Equal(((SolidColorBrush)view.FindResource("FocusEndSecondaryBrush")).Color, ((SolidColorBrush)((TextBlock)end.Content).Foreground).Color);
                 Assert.Same(view.FindResource("FocusEndDialogBackground"), dialog.Background);
                 Assert.Equal(dark, dialog.Background is LinearGradientBrush);

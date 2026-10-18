@@ -51,7 +51,7 @@ public sealed class CalendarVisualRedesignTests
         var legacyEntry = entries.Single(entry => ReferenceEquals(entry.Record, legacy));
         Assert.False(legacyEntry.IsInterrupted);
         Assert.Equal("09:15 - 09:45", legacyEntry.GapTimeRangeDisplay);
-        Assert.Equal("间隔 30分钟", legacyEntry.GapDisplay);
+        Assert.Equal("休息 30分钟", legacyEntry.GapDisplay);
         Assert.Equal("自由专注", legacy.CalendarTitle);
     }
 
@@ -87,6 +87,21 @@ public sealed class CalendarVisualRedesignTests
             try
             {
                 window.Show(); Pump(page);
+                foreach (var name in new[] { "CalendarMonthTitle", "CalendarSelectedDate" })
+                    AssertTypography((TextBlock)page.FindName(name), 18, FontWeights.SemiBold, "#18212F");
+                AssertTypography((TextBlock)page.FindName("CalendarSelectedWeekday"), 14, FontWeights.Normal, "#667085");
+                foreach (var weekday in ((System.Windows.Controls.Primitives.UniformGrid)page.FindName("CalendarWeekdays")).Children.OfType<TextBlock>())
+                    AssertTypography(weekday, 12, FontWeights.Normal, "#667085");
+                foreach (var name in new[] { "MonthlyTotalDuration", "MonthlyFocusDays", "CalendarDayFocusDuration", "CalendarDayCompletedTaskCount" })
+                {
+                    foreach (var run in ((TextBlock)page.FindName(name)).Inlines.OfType<Run>())
+                    {
+                        var number = run.FontSize > 20;
+                        Assert.Equal(number ? 28 : 12, run.FontSize);
+                        Assert.Equal(number ? FontWeights.SemiBold : FontWeights.Normal, run.FontWeight);
+                        Assert.Equal((Color)ColorConverter.ConvertFromString(number ? "#18212F" : "#667085"), ((SolidColorBrush)run.Foreground).Color);
+                    }
+                }
                 var calendar = (Border)page.FindName("CalendarCard"); var month = (Border)page.FindName("CalendarMonthlySummary"); var daily = (Border)page.FindName("DailyFocusRecordCard");
                 Assert.False(calendar.IsAncestorOf(month));
                 Assert.InRange(calendar.ActualWidth / daily.ActualWidth, .88, .90);
@@ -102,6 +117,8 @@ public sealed class CalendarVisualRedesignTests
                 Assert.Equal("星期一", ((TextBlock)page.FindName("CalendarSelectedWeekday")).Text);
                 Assert.Equal("1 项", Runs((TextBlock)page.FindName("CalendarDayCompletedTaskCount")));
                 var timeline = (CalendarFocusTimeline)page.FindName("CalendarDayTimeline"); Assert.True(timeline.FullDayStyle); Assert.True(timeline.InlineRecordDetails); Assert.Equal(0, timeline.Timeline!.StartHour);
+                Assert.False(timeline.ShowCurrentTime);
+                Assert.Null(timeline.GetCurrentTimeMarker(day.AddHours(10).AddMinutes(27)));
                 var scroll = (ScrollViewer)page.FindName("CalendarRecordsScrollViewer");
                 Assert.True(scroll.ScrollableHeight > 0); Assert.True(scroll.ViewportHeight > 320);
                 var views = Descendants<CalendarDayRecordView>(scroll).ToArray(); Assert.Equal(9, views.Length);
@@ -110,9 +127,17 @@ public sealed class CalendarVisualRedesignTests
                     var view = views[index]; var entry = (CalendarDayRecordViewModel)view.DataContext; var dot = (Border)view.FindName("FocusMarker");
                     Assert.InRange(dot.ActualWidth, 8.5, 9.5); Assert.Equal(dot.ActualWidth, dot.ActualHeight);
                     Assert.Equal(entry.IsInterrupted ? Color.FromRgb(255, 134, 31) : Color.FromRgb(25, 196, 99), ((SolidColorBrush)dot.Background).Color);
+                    Assert.Null(view.FindName("RecordSeparator"));
                     Assert.Null(view.FindName("ContinuousIncomingLine")); Assert.Null(view.FindName("ContinuousOutgoingLine"));
                     Assert.InRange(((Border)view.FindName("TimelineSpine")).ActualWidth, .5, 1.5);
                     var time = (TextBlock)view.FindName("TimeRange"); var title = (TextBlock)view.FindName("GoalName"); var value = (TextBlock)view.FindName("FocusDuration");
+                    AssertTypography(time, 13, FontWeights.Medium, "#374151");
+                    AssertTypography(title, 13, FontWeights.Normal, "#374151");
+                    AssertTypography(value, 12, FontWeights.Normal, "#7C8798");
+                    var tip = Assert.IsType<ToolTip>(title.ToolTip);
+                    Assert.Equal(13, tip.FontSize);
+                    Assert.Equal(FontWeights.Normal, tip.FontWeight);
+                    Assert.Equal((Color)ColorConverter.ConvertFromString("#374151"), ((SolidColorBrush)tip.Foreground).Color);
                     Assert.InRange(Math.Abs(Bounds(time, view).Y - Bounds(title, view).Y), 0, 1);
                     Assert.True(Bounds(value, view).Top >= Bounds(time, view).Bottom);
                     Assert.Equal(entry.Record.CalendarTitle, title.Text); Assert.Equal(TextTrimming.CharacterEllipsis, title.TextTrimming);
@@ -136,6 +161,12 @@ public sealed class CalendarVisualRedesignTests
     }
 
     private static string Runs(TextBlock block) => string.Concat(block.Inlines.OfType<Run>().Select(run => run.Text));
+    private static void AssertTypography(TextBlock text, double size, FontWeight weight, string color)
+    {
+        Assert.Equal(size, text.FontSize);
+        Assert.Equal(weight, text.FontWeight);
+        Assert.Equal((Color)ColorConverter.ConvertFromString(color), ((SolidColorBrush)text.Foreground).Color);
+    }
     private static Rect Bounds(FrameworkElement view, UIElement relative) => new(view.TranslatePoint(new Point(), relative), new Size(view.ActualWidth, view.ActualHeight));
     private static IEnumerable<T> Descendants<T>(DependencyObject root) where T : DependencyObject { for (var i=0;i<VisualTreeHelper.GetChildrenCount(root);i++) { var child=VisualTreeHelper.GetChild(root,i); if(child is T match) yield return match; foreach(var next in Descendants<T>(child)) yield return next; } }
     private static void Pump(FrameworkElement view) { view.UpdateLayout(); view.Dispatcher.Invoke(() => {}, DispatcherPriority.ApplicationIdle); view.UpdateLayout(); }

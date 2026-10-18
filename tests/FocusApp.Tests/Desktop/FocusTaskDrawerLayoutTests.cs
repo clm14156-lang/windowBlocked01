@@ -90,7 +90,7 @@ public sealed class FocusTaskDrawerLayoutTests
                 var number = (TextBlock)mainCheck.Template.FindName("TaskNumber", mainCheck);
                 Assert.Equal(new CornerRadius(3), chrome.CornerRadius);
                 Assert.Equal("1", number.Text);
-                Assert.Equal(11, number.FontSize);
+                Assert.Equal(session.IsDarkFocusTheme ? 10 : 11, number.FontSize);
                 Assert.Equal(HorizontalAlignment.Center, number.HorizontalAlignment);
                 Assert.Equal(VerticalAlignment.Center, number.VerticalAlignment);
                 var note = Descendants(card).OfType<TextBlock>().Single(item => item.Name == "InlineDescription");
@@ -185,7 +185,10 @@ public sealed class FocusTaskDrawerLayoutTests
                 Assert.False(vm.IsCreating);
                 Assert.False(scrim.IsVisible);
 
+                // A parent is eligible for completion only after all of its children are complete.
+                foreach (var child in task.SubTasks) child.IsCompleted = true;
                 task.IsCompleted = true;
+                WaitFor(() => vm.VisibleTasks.SequenceEqual(new[] { next, task }));
                 host.UpdateLayout();
                 Assert.Equal(new[] { next }, vm.Tasks);
                 Assert.Equal(new[] { task }, vm.TodayCompletedTasks);
@@ -208,7 +211,7 @@ public sealed class FocusTaskDrawerLayoutTests
                 var origin = completedCard.TranslatePoint(new Point(70, 20), list);
                 DragCall("PrepareTaskDrag", completedCard, completedCard, origin);
                 DragCall("UpdateTaskDrag", origin, MouseButtonState.Pressed);
-                Assert.Equal(0.72, completedCard.Opacity);
+                Assert.Equal(session.IsDarkFocusTheme ? 0.72 : 1, completedCard.Opacity);
                 Assert.Equal(false, DragCall("CompleteTaskDrag", new Point(70, 2)));
                 Assert.Equal(new[] { next, task }, vm.VisibleTasks);
 
@@ -267,6 +270,7 @@ public sealed class FocusTaskDrawerLayoutTests
                 task.IsCompleted = true; // Completion from another UI aborts an in-flight drag.
                 DragCall("UpdateTaskDrag", cancelPoint, MouseButtonState.Pressed);
                 Assert.Equal(false, DragCall("CompleteTaskDrag", cancelPoint));
+                WaitFor(() => vm.VisibleTasks.SequenceEqual(new[] { next, task }));
                 Assert.Equal(new[] { next, task }, vm.VisibleTasks);
                 Assert.Equal(Visibility.Collapsed, insertionLine.Visibility);
             }
@@ -301,18 +305,28 @@ public sealed class FocusTaskDrawerLayoutTests
         var more = Assert.Single(document.Descendants(presentation + "Button").Where(item =>
             (string?)item.Attribute(xaml + "Name") == "TaskMoreButton"));
         Assert.Contains(more.Descendants(presentation + "Setter"), setter =>
-            (string?)setter.Attribute("Property") == "Opacity" && (string?)setter.Attribute("Value") == "0.6");
+            (string?)setter.Attribute("Property") == "Opacity" && (string?)setter.Attribute("Value") == "0");
         Assert.Contains(document.Descendants(presentation + "Trigger"), trigger =>
             (string?)trigger.Attribute("SourceName") == "TaskRowSurface" &&
             (string?)trigger.Attribute("Property") == "IsMouseOver" &&
             trigger.Elements(presentation + "Setter").Any(setter =>
-                (string?)setter.Attribute("TargetName") == "TaskMoreButton" &&
-                (string?)setter.Attribute("Property") == "Opacity" &&
-                (string?)setter.Attribute("Value") == "1"));
+                (string?)setter.Attribute("TargetName") == "TaskRowSurface" &&
+                (string?)setter.Attribute("Property") == "Background"));
     }
     private static bool CanDrag(DependencyObject source, FrameworkElement row) =>
         (bool)typeof(FocusTaskDrawer).GetMethod("IsTaskDragSource", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!
             .Invoke(null, [source, row])!;
+
+    private static void WaitFor(Func<bool> condition)
+    {
+        var elapsed = System.Diagnostics.Stopwatch.StartNew();
+        while (!condition())
+        {
+            Assert.True(elapsed.Elapsed < TimeSpan.FromSeconds(3), "Completion presentation did not settle.");
+            Dispatcher.CurrentDispatcher.Invoke(() => { }, DispatcherPriority.Background);
+            Thread.Sleep(5);
+        }
+    }
 
     [Theory]
     [InlineData(-10, 0)]

@@ -210,7 +210,7 @@ public sealed class GoalInvestmentTrendTests
         foreach (var binding in new[] { "{Binding PeriodInvestment}", "{Binding DailyAverageInvestment}", "{Binding LongestDayInvestment}" })
             Assert.Contains(modal.Descendants(Presentation + "ContentControl"), element => (string?)element.Attribute("Content") == binding);
         Assert.DoesNotContain(modal.Descendants(Presentation + "ItemsControl"), item => (string?)item.Attribute("ItemsSource") == "{Binding VisibleHoverDayTasks}");
-        Assert.Single(modal.Descendants(Presentation + "Popup"));
+        Assert.Equal(new[] { "RangeMenuPopup", "MonthPickerPopup" }, modal.Descendants(Presentation + "Popup").Select(popup => (string?)popup.Attribute(Xaml + "Name")));
         var monthGrid = modal.Descendants(Presentation + "ItemsControl").Single(element => (string?)element.Attribute(Xaml + "Name") == "AvailableMonthList");
         Assert.Equal("{Binding AvailableMonths}", (string?)monthGrid.Attribute("ItemsSource"));
         var page = XDocument.Load(Path.Combine(root, "src", "FocusApp.Desktop", "Views", "StatisticsPage.xaml"));

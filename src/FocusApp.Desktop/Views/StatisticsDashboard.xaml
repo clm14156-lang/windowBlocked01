@@ -4,11 +4,11 @@
              xmlns:views="clr-namespace:FocusApp.Desktop.Views"
              xmlns:vm="clr-namespace:FocusApp.Desktop.ViewModels"
              UseLayoutRounding="True" SnapsToDevicePixels="True"
-             FontFamily="Segoe UI, Microsoft YaHei UI" Foreground="#202938"
+             FontFamily="{DynamicResource FontFamilyPrimary}" Foreground="{DynamicResource StatisticsBodyBrush}"
              MouseLeftButtonDown="Dashboard_MouseLeftButtonDown" PreviewKeyDown="Dashboard_PreviewKeyDown">
     <UserControl.Resources>
         <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries><ResourceDictionary Source="/FocusApp.Desktop;component/Resources/PoptipStyles.xaml"/><ResourceDictionary Source="/FocusApp.Desktop;component/Resources/StatisticsScrollStyles.xaml"/></ResourceDictionary.MergedDictionaries>
+            <ResourceDictionary.MergedDictionaries><ResourceDictionary Source="/FocusApp.Desktop;component/Resources/PoptipStyles.xaml"/><ResourceDictionary Source="/FocusApp.Desktop;component/Resources/StatisticsScrollStyles.xaml"/><ResourceDictionary Source="/FocusApp.Desktop;component/Resources/StatisticsTypography.xaml"/></ResourceDictionary.MergedDictionaries>
             <Style TargetType="ScrollBar" BasedOn="{StaticResource StatisticsThinScrollBarStyle}"/>
             <BooleanToVisibilityConverter x:Key="VisibleWhenTrue"/>
             <Style x:Key="OverviewCard" TargetType="Border">
@@ -17,29 +17,33 @@
                 <Setter Property="Padding" Value="16"/>
                 <Setter Property="Effect"><Setter.Value><DropShadowEffect Color="#6C85A6" Opacity="0.035" BlurRadius="12" ShadowDepth="3" Direction="270"/></Setter.Value></Setter>
             </Style>
-            <Style x:Key="OverviewHeading" TargetType="TextBlock"><Setter Property="FontSize" Value="15"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="Foreground" Value="#273142"/></Style>
-            <Style x:Key="OverviewMetricLabel" TargetType="TextBlock"><Setter Property="FontSize" Value="13"/><Setter Property="FontWeight" Value="Medium"/><Setter Property="Foreground" Value="#75829A"/><Setter Property="VerticalAlignment" Value="Center"/></Style>
-            <Style x:Key="OverviewNumber" TargetType="TextBlock"><Setter Property="FontSize" Value="31"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="Foreground" Value="#101722"/><Setter Property="VerticalAlignment" Value="Bottom"/></Style>
-            <Style x:Key="OverviewUnit" TargetType="TextBlock"><Setter Property="FontSize" Value="14"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="Foreground" Value="#111925"/><Setter Property="VerticalAlignment" Value="Bottom"/><Setter Property="Margin" Value="2,0,3,5"/></Style>
+            <Style x:Key="OverviewHeading" TargetType="TextBlock" BasedOn="{StaticResource StatisticsHeadingTextStyle}"/>
+            <Style x:Key="OverviewMetricLabel" TargetType="TextBlock" BasedOn="{StaticResource StatisticsMetricLabelStyle}"/>
+            <Style x:Key="OverviewNumber" TargetType="Run" BasedOn="{StaticResource StatisticsValueRunStyle}"/>
+            <Style x:Key="OverviewUnit" TargetType="Run" BasedOn="{StaticResource StatisticsUnitRunStyle}"/>
+            <Style x:Key="OverviewNumericSecondary" TargetType="TextBlock" BasedOn="{StaticResource StatisticsAuxiliaryTextStyle}">
+                <Setter Property="FontFamily" Value="{DynamicResource FontFamilyEnglish}"/>
+                <Setter Property="Typography.NumeralAlignment" Value="Tabular"/>
+            </Style>
             <Style x:Key="OverviewInfo" TargetType="TextBlock">
                 <Setter Property="Text" Value="&#xE946;"/><Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
                 <Setter Property="FontSize" Value="11"/><Setter Property="Foreground" Value="#A0ACC0"/><Setter Property="Margin" Value="6,0,0,0"/><Setter Property="VerticalAlignment" Value="Center"/>
             </Style>
             <Style x:Key="OverviewSegment" TargetType="RadioButton">
-                <Setter Property="Height" Value="30"/><Setter Property="Width" Value="68"/><Setter Property="FontSize" Value="13"/><Setter Property="FontWeight" Value="SemiBold"/>
-                <Setter Property="Foreground" Value="#55647B"/><Setter Property="Cursor" Value="Hand"/><Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+                <Setter Property="Height" Value="30"/><Setter Property="Width" Value="68"/><Setter Property="FontSize" Value="{DynamicResource BodyFontSize}"/><Setter Property="FontWeight" Value="Normal"/>
+                <Setter Property="Foreground" Value="{DynamicResource StatisticsSecondaryBrush}"/><Setter Property="Cursor" Value="Hand"/><Setter Property="FocusVisualStyle" Value="{x:Null}"/>
                 <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="RadioButton">
                     <Border x:Name="SegmentSurface" Background="Transparent" CornerRadius="9"><TextBlock Text="{TemplateBinding Content}" FontSize="{TemplateBinding FontSize}" FontWeight="{TemplateBinding FontWeight}" Foreground="{TemplateBinding Foreground}" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="SegmentSurface" Property="Background" Value="#F0F3F8"/></Trigger>
-                        <Trigger Property="IsChecked" Value="True"><Setter Property="Foreground" Value="White"/><Setter TargetName="SegmentSurface" Property="Background"><Setter.Value><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#FFA247" Offset="0"/><GradientStop Color="#FF8B30" Offset="1"/></LinearGradientBrush></Setter.Value></Setter></Trigger>
+                        <Trigger Property="IsChecked" Value="True"><Setter Property="FontWeight" Value="Medium"/><Setter Property="Foreground" Value="White"/><Setter TargetName="SegmentSurface" Property="Background"><Setter.Value><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#FFA247" Offset="0"/><GradientStop Color="#FF8B30" Offset="1"/></LinearGradientBrush></Setter.Value></Setter></Trigger>
                         <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="SegmentSurface" Property="BorderBrush" Value="#FFC28F"/><Setter TargetName="SegmentSurface" Property="BorderThickness" Value="1"/></Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate></Setter.Value></Setter>
             </Style>
             <Style x:Key="OverviewDateButton" TargetType="Button">
                 <Setter Property="Height" Value="32"/><Setter Property="Padding" Value="12,0"/><Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/>
-                <Setter Property="Foreground" Value="#2C4262"/><Setter Property="Cursor" Value="Hand"/><Setter Property="FocusVisualStyle" Value="{x:Null}"/><Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                <Setter Property="Foreground" Value="{DynamicResource StatisticsBodyBrush}"/><Setter Property="Cursor" Value="Hand"/><Setter Property="FocusVisualStyle" Value="{x:Null}"/><Setter Property="HorizontalContentAlignment" Value="Stretch"/>
                 <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button"><Border x:Name="DateButtonSurface" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" CornerRadius="16"><ContentPresenter VerticalAlignment="Center"/></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="DateButtonSurface" Property="Background" Value="#F0F3F7"/></Trigger><Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="DateButtonSurface" Property="Background" Value="#F0F3F7"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
             </Style>
             <Style x:Key="OverviewPeriodOptionStyle" TargetType="Button">
@@ -66,7 +70,7 @@
                     <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="12"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                     <Button x:Name="OverviewDateButton" HorizontalAlignment="Left" Style="{StaticResource OverviewDateButton}" Command="{Binding TogglePeriodPickerCommand}" AutomationProperties.Name="选择统计日期" ToolTip="{Binding DateRangeDisplay}">
                         <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="20"/></Grid.ColumnDefinitions>
-                            <TextBlock x:Name="OverviewDateRange" Text="{Binding DateRangeDisplay}" Foreground="#2C4262" FontSize="12" FontWeight="Medium" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock x:Name="OverviewDateRange" Text="{Binding DateRangeDisplay}" Style="{StaticResource StatisticsBodyTextStyle}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                             <Path Grid.Column="1" Width="8" Height="5" Data="M 0,0 L 4,4 L 8,0" Stroke="#354E70" StrokeThickness="1.3" StrokeStartLineCap="Round" StrokeEndLineCap="Round" HorizontalAlignment="Right" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5"><Path.Style><Style TargetType="Path"><Style.Triggers><DataTrigger Binding="{Binding IsPeriodPickerOpen}" Value="True"><Setter Property="RenderTransform"><Setter.Value><RotateTransform Angle="180"/></Setter.Value></Setter></DataTrigger></Style.Triggers></Style></Path.Style></Path>
                         </Grid>
                     </Button>
@@ -89,7 +93,7 @@
                             <Grid Grid.Column="2"><Grid.RowDefinitions><RowDefinition Height="21"/><RowDefinition/></Grid.RowDefinitions>
                             <StackPanel Orientation="Horizontal"><TextBlock Text="总专注时长" Style="{StaticResource OverviewMetricLabel}"/><TextBlock Style="{StaticResource OverviewInfo}" ToolTip="当前周期内实际专注时长的总和"/></StackPanel>
                             <Viewbox Grid.Row="1" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" VerticalAlignment="Bottom">
-                                <StackPanel Orientation="Horizontal"><StackPanel Orientation="Horizontal" Visibility="{Binding HasHours, Converter={StaticResource VisibleWhenTrue}}"><TextBlock Text="{Binding TotalHoursValue}" Style="{StaticResource OverviewNumber}"/><TextBlock Text="{Binding TotalHoursUnit}" Style="{StaticResource OverviewUnit}"/></StackPanel><TextBlock Text="{Binding TotalMinutesValue}" Style="{StaticResource OverviewNumber}"/><TextBlock Text="分钟" Style="{StaticResource OverviewUnit}" Margin="2,0,0,5"/></StackPanel>
+                                <TextBlock x:Name="OverviewTotalDuration" Style="{StaticResource StatisticsBodyTextStyle}"><Run Text="{Binding TotalHoursValue, Mode=OneWay}" Style="{StaticResource OverviewNumber}"/><Run Text="{Binding TotalHoursUnit, Mode=OneWay}" Style="{StaticResource OverviewUnit}"/><Run Text="{Binding TotalMinutesValue, Mode=OneWay}" Style="{StaticResource OverviewNumber}"/><Run Text=" 分钟" Style="{StaticResource OverviewUnit}"/></TextBlock>
                             </Viewbox>
                         </Grid>
                         </Grid>
@@ -100,7 +104,7 @@
                                 <Grid.Resources><Style TargetType="Ellipse"><Setter Property="Fill" Value="{x:Null}"/><Setter Property="Stroke" Value="#2AC78D"/><Setter Property="StrokeThickness" Value="1.8"/></Style><Style TargetType="Path"><Setter Property="Fill" Value="{x:Null}"/><Setter Property="Stroke" Value="#2AC78D"/><Setter Property="StrokeThickness" Value="1.8"/><Setter Property="StrokeStartLineCap" Value="Round"/><Setter Property="StrokeEndLineCap" Value="Round"/><Setter Property="StrokeLineJoin" Value="Round"/></Style></Grid.Resources>
                                 <Ellipse Margin="2"/><Path Data="M 7,15 L 12,20 L 22,9"/>
                             </Grid>
-                            <Grid Grid.Column="2"><Grid.RowDefinitions><RowDefinition Height="21"/><RowDefinition/></Grid.RowDefinitions><StackPanel Orientation="Horizontal"><TextBlock Text="完成任务" Style="{StaticResource OverviewMetricLabel}"/><TextBlock Style="{StaticResource OverviewInfo}" ToolTip="当前周期内专注记录中完成的任务，按任务去重"/></StackPanel><StackPanel Grid.Row="1" Orientation="Horizontal" VerticalAlignment="Bottom"><TextBlock Text="{Binding CompletedTaskCount}" Style="{StaticResource OverviewNumber}"/><TextBlock Text="项" Style="{StaticResource OverviewUnit}" Margin="4,0,0,5"/></StackPanel></Grid>
+                            <Grid Grid.Column="2"><Grid.RowDefinitions><RowDefinition Height="21"/><RowDefinition/></Grid.RowDefinitions><StackPanel Orientation="Horizontal"><TextBlock Text="完成任务" Style="{StaticResource OverviewMetricLabel}"/><TextBlock Style="{StaticResource OverviewInfo}" ToolTip="当前周期内专注记录中完成的任务，按任务去重"/></StackPanel><TextBlock x:Name="OverviewCompletedCount" Grid.Row="1" Style="{StaticResource StatisticsBodyTextStyle}" VerticalAlignment="Bottom"><Run Text="{Binding CompletedTaskCount, Mode=OneWay}" Style="{StaticResource OverviewNumber}"/><Run Text=" 项" Style="{StaticResource OverviewUnit}"/></TextBlock></Grid>
                         </Grid>
                     </Border>
                     <Border x:Name="OverviewDaysCard" Grid.Column="4" Style="{StaticResource OverviewCard}">
@@ -109,7 +113,7 @@
                                 <Grid.Resources><Style TargetType="Ellipse"><Setter Property="Fill" Value="{x:Null}"/><Setter Property="Stroke" Value="#2788FA"/><Setter Property="StrokeThickness" Value="1.8"/></Style><Style TargetType="Path"><Setter Property="Fill" Value="{x:Null}"/><Setter Property="Stroke" Value="#2788FA"/><Setter Property="StrokeThickness" Value="1.8"/><Setter Property="StrokeStartLineCap" Value="Round"/><Setter Property="StrokeEndLineCap" Value="Round"/><Setter Property="StrokeLineJoin" Value="Round"/></Style></Grid.Resources>
                                 <Path Data="M 4,26 L 4,17 M 11,26 L 11,10 M 18,26 L 18,3 M 25,26 L 25,12"/>
                             </Grid>
-                            <Grid Grid.Column="2"><Grid.RowDefinitions><RowDefinition Height="21"/><RowDefinition/></Grid.RowDefinitions><StackPanel Orientation="Horizontal"><TextBlock Text="专注天数" Style="{StaticResource OverviewMetricLabel}"/><TextBlock Style="{StaticResource OverviewInfo}" ToolTip="当前周期内有实际专注时长的日期数"/></StackPanel><StackPanel Grid.Row="1" Orientation="Horizontal" VerticalAlignment="Bottom"><TextBlock Text="{Binding FocusDayCount}" Style="{StaticResource OverviewNumber}"/><TextBlock Text="天" Style="{StaticResource OverviewUnit}" Margin="4,0,0,5"/></StackPanel></Grid>
+                            <Grid Grid.Column="2"><Grid.RowDefinitions><RowDefinition Height="21"/><RowDefinition/></Grid.RowDefinitions><StackPanel Orientation="Horizontal"><TextBlock Text="专注天数" Style="{StaticResource OverviewMetricLabel}"/><TextBlock Style="{StaticResource OverviewInfo}" ToolTip="当前周期内有实际专注时长的日期数"/></StackPanel><TextBlock x:Name="OverviewFocusDays" Grid.Row="1" Style="{StaticResource StatisticsBodyTextStyle}" VerticalAlignment="Bottom"><Run Text="{Binding FocusDayCount, Mode=OneWay}" Style="{StaticResource OverviewNumber}"/><Run Text=" 天" Style="{StaticResource OverviewUnit}"/></TextBlock></Grid>
                         </Grid>
                     </Border>
                 </Grid>
@@ -122,11 +126,10 @@
                             <Grid x:Name="DistributionRingRegion" Width="216" Height="194" HorizontalAlignment="Center" VerticalAlignment="Center">
                                 <views:FocusDistributionChart x:Name="DistributionChart" Model="{Binding}" AutomationProperties.Name="目标时间分布环形图"/>
                                 <StackPanel x:Name="DistributionCenter" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False">
-                                    <TextBlock x:Name="DistributionCenterTitle" Text="总专注时长" Margin="0,0,0,5" FontSize="11" Foreground="#8792A4" HorizontalAlignment="Center"/>
                                     <Viewbox MaxWidth="96" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Center">
-                                        <StackPanel Orientation="Horizontal"><TextBlock x:Name="DistributionCenterValue" Text="{Binding DonutValue}" FontSize="28" FontWeight="SemiBold" Foreground="#111925"/><TextBlock Text="{Binding DonutUnit}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Bottom" Margin="2,0,0,5"/></StackPanel>
+                                        <TextBlock x:Name="DistributionCenterValue" Style="{StaticResource StatisticsBodyTextStyle}"><Run Text="{Binding DonutValue, Mode=OneWay}" Style="{StaticResource OverviewNumber}"/><Run Text="{Binding DonutUnit, Mode=OneWay}" Style="{StaticResource OverviewUnit}"/></TextBlock>
                                     </Viewbox>
-                                    <TextBlock Text="{Binding DonutRemainder}" Visibility="{Binding HasDonutRemainder, Converter={StaticResource VisibleWhenTrue}}" Margin="0,2,0,0" FontSize="11" Foreground="#8A95A6" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="{Binding DonutRemainder}" Visibility="{Binding HasDonutRemainder, Converter={StaticResource VisibleWhenTrue}}" Style="{StaticResource OverviewNumericSecondary}" Margin="0,2,0,0" HorizontalAlignment="Center"/>
                                 </StackPanel>
                             </Grid>
                             <Grid Grid.Column="1" Margin="5,0,0,0">
@@ -137,9 +140,9 @@
                                                     MouseEnter="DistributionRow_MouseEnter" MouseLeave="DistributionRow_MouseLeave" Click="DistributionRow_Click" GotKeyboardFocus="DistributionRow_GotKeyboardFocus" LostKeyboardFocus="DistributionRow_LostKeyboardFocus" AutomationProperties.Name="{Binding TargetName}">
                                                 <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="24"/><ColumnDefinition/><ColumnDefinition Width="104"/><ColumnDefinition Width="46"/></Grid.ColumnDefinitions>
                                                     <Ellipse Width="13" Height="13" Fill="{Binding Color}" HorizontalAlignment="Left" VerticalAlignment="Center"/>
-                                                    <TextBlock Grid.Column="1" Text="{Binding TargetName}" VerticalAlignment="Center" Foreground="#38465B" FontSize="12" FontWeight="Medium" TextTrimming="CharacterEllipsis" Margin="6,0,8,0"/>
-                                                    <TextBlock Grid.Column="2" Text="{Binding DurationDisplay}" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="#7C889D" FontSize="11.5"/>
-                                                    <TextBlock Grid.Column="3" Text="{Binding PercentageDisplay}" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="#7C889D" FontSize="11.5"/>
+                                                    <TextBlock Grid.Column="1" Text="{Binding TargetName}" Style="{StaticResource StatisticsBodyTextStyle}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="6,0,8,0"/>
+                                                    <TextBlock Grid.Column="2" Text="{Binding DurationDisplay}" Style="{StaticResource OverviewNumericSecondary}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                                    <TextBlock Grid.Column="3" Text="{Binding PercentageDisplay}" Style="{StaticResource OverviewNumericSecondary}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                                                 </Grid>
                                             </Button>
                                         </DataTemplate></ItemsControl.ItemTemplate>
@@ -147,8 +150,8 @@
                                 </ScrollViewer>
                                 <StackPanel x:Name="DistributionEmptyState" HorizontalAlignment="Center" VerticalAlignment="Center">
                                     <StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding HasDistribution}" Value="False"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></StackPanel.Style>
-                                    <TextBlock Text="本周期暂无专注记录" FontSize="13" Foreground="#7C889D" HorizontalAlignment="Center"/>
-                                    <TextBlock Text="开始专注，记录每一次投入" FontSize="11" Foreground="#A0AABA" Margin="0,7,0,0" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="本周期暂无专注记录" Style="{StaticResource StatisticsMetricLabelStyle}" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="开始专注，记录每一次投入" Style="{StaticResource StatisticsAuxiliaryTextStyle}" Margin="0,7,0,0" HorizontalAlignment="Center"/>
                                 </StackPanel>
                             </Grid>
                         </Grid>
@@ -163,22 +166,26 @@
                         <ItemsControl x:Name="OverviewPeriodOptions" ItemsSource="{Binding AvailablePeriods}"><ItemsControl.ItemTemplate><DataTemplate>
                             <Button Style="{StaticResource OverviewPeriodOptionStyle}" Command="{Binding DataContext.SelectAvailablePeriodCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}" AutomationProperties.Name="{Binding Label}">
                                 <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="18"/></Grid.ColumnDefinitions>
-                                    <TextBlock Text="{Binding Label}" FontSize="13" FontWeight="Medium" Foreground="#354B69" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding Label}" Style="{StaticResource StatisticsBodyTextStyle}" VerticalAlignment="Center"/>
                                     <Path Grid.Column="1" Width="10" Height="8" Data="M 0,4 L 3.5,7.5 L 10,0" Stroke="#354B69" StrokeThickness="1.7" StrokeStartLineCap="Round" StrokeEndLineCap="Round" HorizontalAlignment="Right" VerticalAlignment="Center" Visibility="{Binding IsSelected, Converter={StaticResource VisibleWhenTrue}}"/>
                                 </Grid>
                             </Button>
                         </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
                     </ScrollViewer>
-                    <TextBlock Text="暂无可选时间" FontSize="12" Foreground="#939EAE" Margin="10,9" HorizontalAlignment="Center"><TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding HasAvailablePeriods}" Value="False"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
+                    <TextBlock Text="暂无可选时间" Margin="10,9" HorizontalAlignment="Center"><TextBlock.Style><Style TargetType="TextBlock" BasedOn="{StaticResource StatisticsAuxiliaryTextStyle}"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding HasAvailablePeriods}" Value="False"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
                 </StackPanel>
             </views:PoptipChrome>
         </Popup>
         <Popup x:Name="OverviewTip" AllowsTransparency="True" Focusable="False" IsHitTestVisible="False" Placement="Relative" PlacementTarget="{Binding ElementName=DashboardRoot}" PopupAnimation="Fade" Opened="OverviewTip_Opened" Closed="OverviewTip_Closed">
-            <views:PoptipChrome x:Name="OverviewTipSurface" Style="{StaticResource PoptipSurfaceStyle}" IsHitTestVisible="False">
+            <views:PoptipChrome x:Name="OverviewTipSurface" Style="{StaticResource ChartPoptipSurfaceStyle}" IsHitTestVisible="False">
                 <StackPanel>
-                    <TextBlock x:Name="TipTitle" Style="{StaticResource PoptipSecondaryTextStyle}" MaxWidth="210"/>
-                    <TextBlock Margin="0,4,0,0" Style="{StaticResource PoptipPrimaryTextStyle}"><Run Text="专注时长  "/><Run x:Name="TipDuration" Foreground="#FF8A25"/></TextBlock>
-                    <TextBlock x:Name="TipPercentage" Margin="0,4,0,0" Style="{StaticResource PoptipSecondaryTextStyle}"/>
+                    <TextBlock x:Name="TipTitle" Style="{StaticResource ChartPoptipSecondaryTextStyle}" MaxWidth="210"/>
+                    <Grid Margin="0,7,0,0">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="8"/><ColumnDefinition Width="8"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                        <Ellipse x:Name="TipMarker" Width="8" Height="8" Fill="#FF8B28" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="2" Style="{StaticResource ChartPoptipBodyTextStyle}"><Run Text="专注时长  "/><Run x:Name="TipDuration" Style="{StaticResource ChartPoptipValueStyle}"/></TextBlock>
+                    </Grid>
+                    <TextBlock x:Name="TipPercentage" Margin="0,6,0,0" Style="{StaticResource ChartPoptipSecondaryTextStyle}"/>
                 </StackPanel>
             </views:PoptipChrome>
         </Popup>

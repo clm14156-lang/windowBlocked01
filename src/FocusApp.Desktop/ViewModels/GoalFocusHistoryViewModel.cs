@@ -15,7 +15,6 @@ public sealed class GoalFocusHistoryViewModel : INotifyPropertyChanged
     private string? _goalId;
     private GoalHistoryTimeRange _selectedRange;
     private DateTime _selectedMonth;
-    private int _displayYear;
     private bool _isRangeMenuOpen;
     private bool _isMonthPickerOpen;
 
@@ -23,7 +22,6 @@ public sealed class GoalFocusHistoryViewModel : INotifyPropertyChanged
     {
         _now = now;
         _selectedMonth = new DateTime(now().Year, now().Month, 1);
-        _displayYear = _selectedMonth.Year;
         ToggleRangeMenuCommand = new RelayCommand<object>(_ =>
         {
             IsMonthPickerOpen = false;
@@ -33,15 +31,11 @@ public sealed class GoalFocusHistoryViewModel : INotifyPropertyChanged
         OpenMonthPickerCommand = new RelayCommand<object>(_ =>
         {
             IsRangeMenuOpen = false;
-            _displayYear = (_selectedRange == GoalHistoryTimeRange.Month ? _selectedMonth : _now()).Year;
-            NotifyMonthPicker();
             IsMonthPickerOpen = true;
         });
-        PreviousYearCommand = new RelayCommand<object>(_ => ChangeYear(-1), _ => _displayYear > 1);
-        NextYearCommand = new RelayCommand<object>(_ => ChangeYear(1), _ => _displayYear < 9999);
         SelectMonthCommand = new RelayCommand<GoalHistoryMonthViewModel>(month =>
         {
-            if (month is null) return;
+            if (month is null || !Months.Any(option => option.Date == month.Date)) return;
             _selectedMonth = month.Date;
             _selectedRange = GoalHistoryTimeRange.Month;
             CloseMenus();
@@ -54,8 +48,6 @@ public sealed class GoalFocusHistoryViewModel : INotifyPropertyChanged
     public ICommand ToggleRangeMenuCommand { get; }
     public ICommand SelectRangeCommand { get; }
     public ICommand OpenMonthPickerCommand { get; }
-    public ICommand PreviousYearCommand { get; }
-    public ICommand NextYearCommand { get; }
     public ICommand SelectMonthCommand { get; }
     public GoalHistoryTimeRange SelectedRange => _selectedRange;
     public DateTime SelectedMonth => _selectedMonth;
@@ -70,10 +62,10 @@ public sealed class GoalFocusHistoryViewModel : INotifyPropertyChanged
     public bool IsSevenDays => _selectedRange == GoalHistoryTimeRange.SevenDays;
     public bool IsThirtyDays => _selectedRange == GoalHistoryTimeRange.ThirtyDays;
     public bool IsMonth => _selectedRange == GoalHistoryTimeRange.Month;
-    public int DisplayYear => _displayYear;
-    public IEnumerable<GoalHistoryMonthViewModel> Months => Enumerable.Range(1, 12)
-        .Select(month => new GoalHistoryMonthViewModel(new DateTime(_displayYear, month, 1),
-            _selectedMonth.Year == _displayYear && _selectedMonth.Month == month));
+    public IEnumerable<GoalHistoryMonthViewModel> Months => _allDays
+        .Select(day => new DateTime(day.Date.Year, day.Date.Month, 1)).Distinct().OrderDescending()
+        .Select(month => new GoalHistoryMonthViewModel(month, IsMonth && _selectedMonth == month));
+    public bool HasMonths => _allDays.Count > 0;
     public bool IsRangeMenuOpen
     {
         get => _isRangeMenuOpen;
@@ -94,17 +86,6 @@ public sealed class GoalFocusHistoryViewModel : INotifyPropertyChanged
         NotifyRange();
         RefreshVisibleDays();
     }
-    private void ChangeYear(int delta)
-    {
-        _displayYear = Math.Clamp(_displayYear + delta, 1, 9999);
-        NotifyMonthPicker();
-    }
-    private void NotifyMonthPicker()
-    {
-        Notify(nameof(DisplayYear)); Notify(nameof(Months));
-        ((RelayCommand<object>)PreviousYearCommand).NotifyCanExecuteChanged();
-        ((RelayCommand<object>)NextYearCommand).NotifyCanExecuteChanged();
-    }
     private void NotifyRange()
     {
         foreach (var property in new[] { nameof(SelectedRange), nameof(SelectedMonth), nameof(RangeDisplay), nameof(IsAllTime), nameof(IsSevenDays), nameof(IsThirtyDays), nameof(IsMonth), nameof(Months) }) Notify(property);
@@ -115,6 +96,11 @@ public sealed class GoalFocusHistoryViewModel : INotifyPropertyChanged
     public bool ShowEmptyState => _goalId is not null && !HasRecords;
     public string EmptyHint => IsAllTime ? "开始专注计时后，记录会显示在这里，\n你可以查看每次专注的时间与任务。" : "所选时间范围内暂无专注记录";
     public int CompletedTaskCount => Days.Sum(day => day.Sessions.Sum(session => session.Tasks.Count));
+    // The summary and history use the same session cohort. Cross-midnight sessions
+    // stay whole under their start date, matching the existing history grouping.
+    public GoalInvestmentDurationViewModel TotalInvestment => new((int)(Days
+        .Sum(day => day.Sessions.Sum(session => session.Record.FocusDuration.Ticks)) / TimeSpan.TicksPerMinute));
+    public int FocusDayCount => Days.Count;
     public bool HasCompletedTasks => CompletedTaskCount > 0;
     public string CompletedTaskSummaryDisplay => $"已完成 {CompletedTaskCount} 项";
 
@@ -152,10 +138,8 @@ public sealed class GoalFocusHistoryViewModel : INotifyPropertyChanged
         {
             _selectedRange = GoalHistoryTimeRange.All;
             _selectedMonth = new DateTime(_now().Year, _now().Month, 1);
-            _displayYear = _selectedMonth.Year;
             CloseMenus();
             NotifyRange();
-            NotifyMonthPicker();
         }
         _goalId = goal?.GoalId;
         _allDays.Clear();
@@ -165,7 +149,7 @@ public sealed class GoalFocusHistoryViewModel : INotifyPropertyChanged
                 .GroupBy(task => task.TaskId).ToDictionary(group => group.Key, group => group.First());
             // A session belongs to its start date, including sessions that finish after midnight.
             // It stays one historical result rather than being duplicated once per completed task.
-            foreach (var group in records.Where(record => record.GoalId == goal.GoalId && record.EndTime > record.StartTime)
+            foreach (var group in records.Where(record => record.GoalId == goal.GoalId && record.EndTime > record.StartTime && record.FocusDuration > TimeSpan.Zero)
                          .GroupBy(record => record.StartTime.Date).OrderByDescending(group => group.Key))
             {
                 oldDays.TryGetValue(group.Key, out var oldDay);
@@ -183,6 +167,8 @@ public sealed class GoalFocusHistoryViewModel : INotifyPropertyChanged
                 _allDays.Add(new GoalFocusDayViewModel(group.Key, _now().Date, sessions, oldDay?.IsExpanded == true));
             }
         }
+        Notify(nameof(Months));
+        Notify(nameof(HasMonths));
         RefreshVisibleDays();
     }
 
@@ -200,6 +186,8 @@ public sealed class GoalFocusHistoryViewModel : INotifyPropertyChanged
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasRecords)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ShowEmptyState)));
         Notify(nameof(EmptyHint));
+        Notify(nameof(TotalInvestment));
+        Notify(nameof(FocusDayCount));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CompletedTaskCount)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasCompletedTasks)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CompletedTaskSummaryDisplay)));
@@ -242,7 +230,7 @@ public sealed class GoalFocusDayViewModel : INotifyPropertyChanged
         Sessions = sessions;
         _isExpanded = expanded;
         DateDisplay = date == today ? $"今天 · {date:M月d日}" : date == today.AddDays(-1) ? $"昨天 · {date:M月d日}" : $"{date:M月d日}";
-        var minutes = (int)TimeSpan.FromTicks(sessions.Sum(session => (session.Record.EndTime - session.Record.StartTime).Ticks)).TotalMinutes;
+        var minutes = (int)TimeSpan.FromTicks(sessions.Sum(session => session.Record.FocusDuration.Ticks)).TotalMinutes;
         SummaryDisplay = new GoalInvestmentDurationViewModel(minutes).Display;
         ToggleCommand = new RelayCommand<object>(_ => IsExpanded = !IsExpanded);
     }
@@ -324,5 +312,5 @@ public sealed record GoalHistorySubTaskViewModel(string Title, bool IsCompleted)
 
 public sealed record GoalHistoryMonthViewModel(DateTime Date, bool IsSelected)
 {
-    public string Display => $"{Date.Month}月";
+    public string Display => $"{Date:yyyy年M月}";
 }
