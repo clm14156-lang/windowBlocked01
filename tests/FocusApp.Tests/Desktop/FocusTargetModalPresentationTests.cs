@@ -58,8 +58,8 @@ public sealed class FocusTargetModalPresentationTests
     {
         var modal = LoadModal();
         var cardStyle = FindStyle(modal, "TargetCardButton");
-        AssertSetter(cardStyle, "Height", "48");
-        AssertSetter(cardStyle, "Padding", "12,0");
+        AssertSetter(cardStyle, "Height", "61");
+        AssertSetter(cardStyle, "Padding", "4,0");
         AssertSetter(cardStyle, "BorderThickness", "0");
         var cardSurface = Assert.Single(cardStyle.Descendants(Presentation + "Border").Where(border =>
             (string?)border.Attribute(Xaml + "Name") == "CardSurface"));
@@ -76,7 +76,7 @@ public sealed class FocusTargetModalPresentationTests
         var startStyle = FindStyle(modal, "TargetStartFocusButton");
         AssertSetter(startStyle, "Height", "46");
         AssertSetter(startStyle, "Foreground", "{DynamicResource WhiteText}");
-        AssertSetter(startStyle, "FontWeight", "{DynamicResource ButtonFontWeight}");
+        AssertSetter(startStyle, "FontWeight", "{DynamicResource FontWeightSemiBold}");
         var startSurface = Assert.Single(startStyle.Descendants(Presentation + "Border").Where(border =>
             (string?)border.Attribute(Xaml + "Name") == "StartSurface"));
         Assert.Equal("12", (string?)startSurface.Attribute("CornerRadius"));
@@ -104,8 +104,8 @@ public sealed class FocusTargetModalPresentationTests
         var targetIcon = Assert.Single(modal.Descendants(Presentation + "ItemsControl")
             .Where(items => (string?)items.Attribute("ItemsSource") == "{Binding Targets}")
             .Descendants(Presentation + "Image"));
-        Assert.Equal("21", (string?)targetIcon.Attribute("Width"));
-        Assert.Equal("21", (string?)targetIcon.Attribute("Height"));
+        Assert.Equal("28", (string?)targetIcon.Attribute("Width"));
+        Assert.Equal("28", (string?)targetIcon.Attribute("Height"));
     }
 
     [Fact]
@@ -145,16 +145,27 @@ public sealed class FocusTargetModalPresentationTests
         {
             try
             {
-                var now = DateTimeOffset.Now;
-                var model = new FocusTargetModalViewModel(useSampleData: false);
+                var now = new DateTimeOffset(new DateTime(2026, 10, 19, 12, 0, 0));
+                var model = new FocusTargetModalViewModel(useSampleData: false, () => now.LocalDateTime);
+                var names = new[] { "我真的爱你哦啊", "windows屏蔽软件开发", "休息玩手机", "1234567892134566712321321" };
+                var icons = new[] { "heart.svg", "code.svg", "meditation.svg", "work.svg" };
+                var colors = new[] { "#FF4B64", "#189BFA", "#16A67D", "#8C42D6" };
                 var targets = Enumerable.Range(0, 9).Select(index => new LocalTargetDto(
-                    $"target-{index}", new[] { "213123", "asd", "saddas" }.ElementAtOrDefault(index) ?? $"目标{index}",
-                    false, index, now, now)).ToArray();
+                    $"target-{index}", names.ElementAtOrDefault(index) ?? $"目标{index}",
+                    false, index, now, now)
+                {
+                    IconFileName = icons[index % icons.Length], IconColorHex = colors[index % colors.Length]
+                }).ToArray();
+                LocalFocusSessionDto[] sessions = [
+                    Session("target-0", now.AddHours(-3), 4800),
+                    Session("target-1", now.AddDays(-1), 2700),
+                    Session("target-3", now.AddDays(-2), 1800)
+                ];
                 var modal = new FocusTargetModal { DataContext = model };
                 foreach (var resource in new[] { "Colors", "Typography", "Strings", "Styles" })
                     modal.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri($"/FocusApp.Desktop;component/Resources/{resource}.xaml", UriKind.Relative) });
 
-                model.ApplyState(targets.Take(3), [], "target-0");
+                model.ApplyState(targets.Take(3), [], "target-0", sessions);
                 modal.Measure(new Size(350, 390));
                 modal.Arrange(new Rect(0, 0, 350, 390));
                 modal.UpdateLayout();
@@ -164,11 +175,11 @@ public sealed class FocusTargetModalPresentationTests
                 Assert.Equal(0, scroll.ScrollableHeight);
                 SavePreview(modal, "target-picker-three");
 
-                model.ApplyState(targets.Take(5), [], "target-0");
+                model.ApplyState(targets.Take(4), [], "target-0", sessions);
                 modal.UpdateLayout();
                 Assert.Equal(0, scroll.ScrollableHeight);
                 var rows = Descendants<Button>(scroll).Where(button => button.DataContext is FocusTargetViewModel).ToArray();
-                Assert.Equal(5, rows.Length);
+                Assert.Equal(4, rows.Length);
                 Assert.All(rows, row =>
                 {
                     var top = row.TranslatePoint(new Point(), scroll).Y;
@@ -181,7 +192,20 @@ public sealed class FocusTargetModalPresentationTests
                 Assert.Equal(Colors.White, firstRowColor);
                 Assert.Equal(Visibility.Visible, Descendants<System.Windows.Shapes.Path>(indicators[0]).Single().Visibility);
                 Assert.All(indicators.Skip(1), indicator => Assert.Equal(Visibility.Collapsed, Descendants<System.Windows.Shapes.Path>(indicator).Single().Visibility));
-                SavePreview(modal, "target-picker-five");
+                Assert.Equal(["今日已投入 1小时20分钟", "昨日已投入 45分钟", "暂无专注", "2天前专注"],
+                    Descendants<TextBlock>(scroll).Where(text => text.Name == "TargetRecentFocusStatus").Select(text => text.Text));
+                var badges = Descendants<Border>(scroll).Where(border => border.Name == "TargetIconBadge").ToArray();
+                Assert.Equal(4, badges.Length);
+                for (var index = 0; index < badges.Length; index++)
+                {
+                    Assert.Equal(44, badges[index].ActualWidth);
+                    Assert.Null(badges[index].Background);
+                    Assert.NotNull(Descendants<Image>(badges[index]).Single().Source);
+                }
+                var start = Descendants<Button>(modal).Single(button => ReferenceEquals(button.Command, model.StartFocusCommand));
+                Assert.Equal(FontWeights.SemiBold, start.FontWeight);
+                Assert.Equal("Microsoft YaHei UI", Descendants<TextBlock>(start).Single().FontFamily.Source);
+                SavePreview(modal, "target-picker-four");
                 model.SelectTargetCommand.Execute(model.Targets[1]);
                 modal.UpdateLayout();
                 Assert.Equal(firstRowColor, ((SolidColorBrush)rows[0].Background).Color);
@@ -190,10 +214,12 @@ public sealed class FocusTargetModalPresentationTests
                 Assert.Equal(Visibility.Visible, Descendants<System.Windows.Shapes.Path>(indicators[1]).Single().Visibility);
                 SavePreview(modal, "target-picker-selected-second");
 
-                model.ApplyState(targets, [], "target-0");
+                model.ApplyState(targets.Take(5), [], "target-0", sessions);
                 modal.UpdateLayout();
                 Assert.True(scroll.ScrollableHeight > 0);
-                var start = Descendants<Button>(modal).Single(button => ReferenceEquals(button.Command, model.StartFocusCommand));
+                model.ApplyState(targets, [], "target-0", sessions);
+                modal.UpdateLayout();
+                Assert.True(scroll.ScrollableHeight > 0);
                 var startY = start.TranslatePoint(new Point(0, 0), modal).Y;
                 scroll.ScrollToBottom();
                 modal.UpdateLayout();
@@ -217,6 +243,11 @@ public sealed class FocusTargetModalPresentationTests
             foreach (var descendant in Descendants<T>(child)) yield return descendant;
         }
     }
+
+    private static LocalFocusSessionDto Session(string targetId, DateTimeOffset start, int seconds) => new(
+        Guid.NewGuid(), LocalFocusSessionStatusDto.Completed, false, seconds, seconds,
+        start.ToUniversalTime(), start.ToUniversalTime(), null, start.AddSeconds(seconds).ToUniversalTime(),
+        FocusCompletionKindDto.Natural, targetId, "历史名称", false, null, null, []);
 
     private static void SavePreview(FrameworkElement element, string name)
     {

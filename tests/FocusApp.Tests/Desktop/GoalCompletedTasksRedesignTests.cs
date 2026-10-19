@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Windows;
 using System.Windows.Automation.Peers;
 using System.Windows.Automation.Provider;
@@ -5,6 +6,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using FocusApp.Contracts;
 using FocusApp.Desktop.ViewModels;
@@ -178,13 +180,57 @@ public sealed class GoalCompletedTasksRedesignTests
                 var title = Descendants<TextBlock>(row).Single(block => block.Name == "CompletedTaskName"); var time = Descendants<TextBlock>(row).Single(block => block.Name == "CompletedTaskTime");
                 Assert.Equal(TextTrimming.CharacterEllipsis, title.TextTrimming); Assert.True(Bounds(title, row).Right <= Bounds(time, row).Left);
                 Assert.Equal(model.Tasks[0].TimeDisplay, time.Text); Assert.Equal(40, container.Height);
-                container.ContextMenu.PlacementTarget = container; container.ContextMenu.IsOpen = true; Pump(view);
+                // Native popup coordinates must be checked with the modal on screen;
+                // off-screen windows cause WPF to reposition popups onto the monitor.
+                var workArea = SystemParameters.WorkArea;
+                window.Left = workArea.Left + (workArea.Width - window.ActualWidth) / 2;
+                window.Top = workArea.Top + (workArea.Height - window.ActualHeight) / 2;
+                Pump(view);
+                var more = Descendants<Button>(row).Single(button => button.Name == "CompletedTaskMoreButton");
+                var rowSurface = (Border)container.Template.FindName("CompletedTaskRowSurface", container);
+                var titleBounds = Bounds(title, row);
+                Assert.True(time.IsVisible); Assert.False(more.IsVisible);
+                Hover(container, true); Pump(view);
+                Assert.False(time.IsVisible); Assert.True(more.IsVisible);
+                Assert.Equal((Color)ColorConverter.ConvertFromString("#F3F4F6"), ((SolidColorBrush)rowSurface.Background).Color);
+                Assert.Equal(titleBounds, Bounds(title, row));
+                Save(view, $"completed-tasks-{width}-hover");
+                Hover(container, false); Pump(view);
+                Assert.True(time.IsVisible); Assert.False(more.IsVisible);
+                Hover(container, true); Invoke(more); Pump(view);
                 Assert.Same(model.Tasks[0], container.ContextMenu.DataContext);
                 var restore = (MenuItem)container.ContextMenu.Items[0]; Assert.Same(model.Tasks[0].RestoreCommand, restore.Command); Assert.Same(model.Tasks[0], restore.CommandParameter);
                 var menu = container.ContextMenu;
+                var actions = menu.Items.OfType<MenuItem>().ToArray();
+                Assert.Equal(new[] { "恢复任务", "删除任务" }, actions.Select(item => item.Header));
+                Assert.All(actions, item =>
+                {
+                    var icon = Assert.IsType<System.Windows.Shapes.Path>(item.Icon);
+                    Assert.NotNull(icon.Stroke); Assert.True(icon.IsVisible); Assert.True(icon.ActualWidth > 0);
+                });
+                Assert.Equal((Color)ColorConverter.ConvertFromString("#D92D45"), ((SolidColorBrush)actions[1].Foreground).Color);
+                Assert.False(menu.StaysOpen);
+                Hover(container, false); Pump(view);
+                Assert.True(GoalCompletedTasksModal.GetIsTaskMenuOpen(container));
+                Assert.False(time.IsVisible); Assert.True(more.IsVisible);
+                Assert.Equal((Color)ColorConverter.ConvertFromString("#F3F4F6"), ((SolidColorBrush)rowSurface.Background).Color);
+                AssertMenuBounds(menu, surface, opensAbove: false);
+                Save(menu, $"completed-tasks-{width}-menu");
+                menu.IsOpen = false; Pump(view);
+                Assert.False(GoalCompletedTasksModal.GetIsTaskMenuOpen(container));
+                Assert.True(time.IsVisible); Assert.False(more.IsVisible);
+                Hover(container, true); Invoke(more); Pump(view);
+                var menuEscape = new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(view), 0, Key.Escape) { RoutedEvent = Keyboard.PreviewKeyDownEvent };
+                view.RaiseEvent(menuEscape); Pump(view); Assert.False(menu.IsOpen); Assert.True(model.IsOpen);
+                Hover(container, true); Invoke(more); Pump(view);
                 model.IsTodayRange = true; Pump(view); Assert.False(menu.IsOpen);
                 Select(CompletedTaskTimeRange.All);
                 scroll.ScrollToBottom(); Pump(view);
+                var bottom = (ListBoxItem)list.ItemContainerGenerator.ContainerFromIndex(list.Items.Count - 1);
+                var bottomMore = Descendants<Button>(bottom).Single(button => button.Name == "CompletedTaskMoreButton");
+                Hover(bottom, true); Invoke(bottomMore); Pump(view);
+                AssertMenuBounds(bottom.ContextMenu, surface, opensAbove: true);
+                scroll.ScrollToTop(); Pump(view); Assert.False(bottom.ContextMenu.IsOpen);
                 search.Text = "任务00"; Pump(view);
                 Assert.Equal("任务00", model.SearchQuery); Assert.Equal(10, model.FilteredCount);
                 Assert.InRange(scroll.VerticalOffset, 0, 1); Assert.Equal(headerBounds, Bounds(header, view));
@@ -197,6 +243,20 @@ public sealed class GoalCompletedTasksRedesignTests
                 var escape = new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(view), 0, Key.Escape) { RoutedEvent = Keyboard.PreviewKeyDownEvent };
                 view.RaiseEvent(escape); Pump(view);
                 Assert.False(range.IsDropDownOpen); Assert.True(model.IsOpen);
+                var mutations = new List<bool>();
+                model.MutationHandler = (_, delete) => { mutations.Add(delete); return Task.FromResult(true); };
+                foreach (var delete in new[] { false, true })
+                {
+                    var actionRow = (ListBoxItem)list.ItemContainerGenerator.ContainerFromIndex(0);
+                    var sourceId = ((GoalCompletedTaskEntryViewModel)actionRow.DataContext).Source.TaskId;
+                    var actionMore = Descendants<Button>(actionRow).Single(button => button.Name == "CompletedTaskMoreButton");
+                    Hover(actionRow, true); Invoke(actionMore); Pump(view);
+                    var action = actionRow.ContextMenu.Items.OfType<MenuItem>().Single(item => Equals(item.Header, delete ? "删除任务" : "恢复任务"));
+                    Invoke(action); Pump(view);
+                    Assert.DoesNotContain(model.Tasks, entry => entry.Source.TaskId == sourceId);
+                    Assert.False(actionRow.ContextMenu.IsOpen);
+                }
+                Assert.Equal(new[] { false, true }, mutations);
                 model.ApplyState(Goal(), []); Pump(view);
                 Assert.True(((TextBlock)view.FindName("CompletedTasksEmptyState")).IsVisible); Assert.Equal("共 0 项", ((TextBlock)view.FindName("CompletedTaskCount")).Text);
                 ((Button)view.FindName("CloseModalButton")).Command.Execute(null); Pump(view); Assert.False(view.IsVisible);
@@ -215,6 +275,46 @@ public sealed class GoalCompletedTasksRedesignTests
         });
     }
 
+    private static void AssertMenuBounds(ContextMenu menu, FrameworkElement surface, bool opensAbove)
+    {
+        Assert.True(menu.IsOpen);
+        var anchor = Assert.IsType<Button>(menu.PlacementTarget);
+        Assert.Equal("CompletedTaskMoreButton", anchor.Name);
+        var frame = new DispatcherFrame();
+        var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(200) };
+        timer.Tick += (_, _) => frame.Continue = false;
+        timer.Start(); Dispatcher.PushFrame(frame); timer.Stop();
+        var menuSurface = (Border)menu.Template.FindName("CompletedTaskMenuSurface", menu);
+        var menuBounds = ScreenBounds(menuSurface);
+        var anchorBounds = ScreenBounds(anchor);
+        var modalBounds = ScreenBounds(surface);
+        Assert.InRange(Math.Abs(menuBounds.Right - anchorBounds.Right), 0, 2);
+        var gap = opensAbove ? anchorBounds.Top - menuBounds.Bottom : menuBounds.Top - anchorBounds.Bottom;
+        Assert.InRange(gap, 0, 4 * VisualTreeHelper.GetDpi(anchor).DpiScaleY);
+        Assert.True(modalBounds.Contains(menuBounds), $"Menu {menuBounds} must fit inside modal {modalBounds}.");
+        Assert.True(modalBounds.Contains(ScreenBounds(menu)), "Popup including its shadow margin must fit inside the modal.");
+    }
+    private static Rect ScreenBounds(FrameworkElement element)
+    {
+        var topLeft = element.PointToScreen(new Point());
+        var bottomRight = element.PointToScreen(new Point(element.ActualWidth, element.ActualHeight));
+        return new Rect(topLeft, bottomRight);
+    }
+    private static void Hover(UIElement element, bool value) => element.SetValue(
+        (DependencyPropertyKey)typeof(UIElement).GetField("IsMouseOverPropertyKey", BindingFlags.Static | BindingFlags.NonPublic)!.GetValue(null)!, value);
+    private static void Invoke(FrameworkElement element) => element.GetType().GetMethod("OnClick", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(element, null);
+    private static void Save(FrameworkElement element, string name)
+    {
+        var directory = Environment.GetEnvironmentVariable("FOCUSAPP_COMPLETED_TASK_MENU_QA_PATH");
+        if (string.IsNullOrEmpty(directory)) return;
+        Directory.CreateDirectory(directory);
+        var bitmap = new RenderTargetBitmap((int)Math.Ceiling(element.ActualWidth), (int)Math.Ceiling(element.ActualHeight), 96, 96, PixelFormats.Pbgra32);
+        var drawing = new DrawingVisual();
+        using (var context = drawing.RenderOpen()) context.DrawRectangle(new VisualBrush(element), null, new Rect(new Size(element.ActualWidth, element.ActualHeight)));
+        bitmap.Render(drawing);
+        var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));
+        using var stream = File.Create(Path.Combine(directory, name + ".png")); encoder.Save(stream);
+    }
     private static Rect Bounds(FrameworkElement item, UIElement relative) => new(item.TranslatePoint(new Point(), relative), new Size(item.ActualWidth, item.ActualHeight));
     private static IEnumerable<T> Descendants<T>(DependencyObject root) where T : DependencyObject { for(var i=0;i<VisualTreeHelper.GetChildrenCount(root);i++) {var child=VisualTreeHelper.GetChild(root,i);if(child is T match)yield return match;foreach(var next in Descendants<T>(child))yield return next;} }
     private static void Pump(FrameworkElement view) { view.UpdateLayout();view.Dispatcher.Invoke(()=>{},DispatcherPriority.ApplicationIdle);view.UpdateLayout(); }

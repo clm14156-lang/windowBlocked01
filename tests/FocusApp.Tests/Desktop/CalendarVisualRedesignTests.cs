@@ -52,7 +52,7 @@ public sealed class CalendarVisualRedesignTests
         Assert.False(legacyEntry.IsInterrupted);
         Assert.Equal("09:15 - 09:45", legacyEntry.GapTimeRangeDisplay);
         Assert.Equal("休息 30分钟", legacyEntry.GapDisplay);
-        Assert.Equal("自由专注", legacy.CalendarTitle);
+        Assert.Empty(legacy.CalendarTitle);
     }
 
     [Theory]
@@ -134,6 +134,7 @@ public sealed class CalendarVisualRedesignTests
                     AssertTypography(time, 13, FontWeights.Medium, "#374151");
                     AssertTypography(title, 13, FontWeights.Normal, "#374151");
                     AssertTypography(value, 12, FontWeights.Normal, "#7C8798");
+                    Assert.Equal(entry.HasGoal, ToolTipService.GetIsEnabled(title));
                     var tip = Assert.IsType<ToolTip>(title.ToolTip);
                     Assert.Equal(13, tip.FontSize);
                     Assert.Equal(FontWeights.Normal, tip.FontWeight);

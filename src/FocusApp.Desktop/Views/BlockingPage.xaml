@@ -259,7 +259,7 @@
                                                 <TextBlock Margin="0,-7,0,0" FontSize="17" FontWeight="SemiBold" Text="..." />
                                             </ToggleButton>
                                             <Popup AllowsTransparency="True" IsOpen="{Binding IsChecked, ElementName=WebsiteMoreButton, Mode=TwoWay}" Placement="Left" PlacementTarget="{Binding ElementName=WebsiteMoreButton}" PopupAnimation="Fade" StaysOpen="False">
-                                                <Border Width="160" Padding="6" Background="{DynamicResource SurfacePrimary}" BorderBrush="#E5E5EA" BorderThickness="1" CornerRadius="12">
+                                                <Border Width="110" Padding="6" Background="{DynamicResource SurfacePrimary}" BorderBrush="#E5E5EA" BorderThickness="1" CornerRadius="12">
                                                     <Border.Effect><DropShadowEffect BlurRadius="10" Direction="270" Opacity="0.08" ShadowDepth="2" /></Border.Effect>
                                                     <StackPanel>
                                                         <Button AutomationProperties.Name="{DynamicResource BlockingRenameWebsite}" Command="{Binding DataContext.EditWebsiteCommand, Source={x:Reference BlockingPageRoot}}" CommandParameter="{Binding}" Style="{StaticResource BlockingMenuItemStyle}">

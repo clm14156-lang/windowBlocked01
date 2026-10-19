@@ -17,8 +17,6 @@ public partial class MainWindow : Window
     private const uint ModControl = 0x0002;
     private const uint VirtualKeyQ = 0x51;
 #if DEBUG
-    private const int CompletionReminderHotKeyId = 0x5242;
-    private const uint VirtualKeyW = 0x57;
     private const int DebugForcedExitHotKeyId = 0x5243;
     private const uint ModShift = 0x0004;
 #endif
@@ -58,7 +56,26 @@ public partial class MainWindow : Window
         SizeChanged += MainWindow_SizeChanged;
         StateChanged += (_, _) => { if (WindowState == WindowState.Minimized) FocusScene.FinishEntrance(); };
         PreviewKeyDown += EmptyTaskDrawer_PreviewKeyDown;
+#if DEBUG
+        var completeFocusForDebug = new RoutedCommand(nameof(MainWindowViewModel.CompleteFocusForDebugAsync), typeof(MainWindow));
+        InputBindings.Add(new KeyBinding(completeFocusForDebug, Key.W, ModifierKeys.Control));
+        CommandBindings.Add(new CommandBinding(completeFocusForDebug, DebugCompleteFocus_Executed,
+            (_, args) =>
+            {
+                args.CanExecute = DataContext is MainWindowViewModel { CurrentPage: NavigationPage.Home } model &&
+                    model.HomePage.FocusSession.IsFocusing;
+                args.Handled = true;
+            }));
+#endif
     }
+
+#if DEBUG
+    private async void DebugCompleteFocus_Executed(object sender, ExecutedRoutedEventArgs e)
+    {
+        e.Handled = true;
+        if (DataContext is MainWindowViewModel model) await model.CompleteFocusForDebugAsync();
+    }
+#endif
 
     private void EmptyTaskDrawer_PreviewKeyDown(object sender, KeyEventArgs e)
     {
@@ -91,7 +108,6 @@ public partial class MainWindow : Window
         _hotKeySource.AddHook(MainWindowHook);
         NativeMethods.RegisterHotKey(_hotKeySource.Handle, ToastHotKeyId, ModControl, VirtualKeyQ);
 #if DEBUG
-        NativeMethods.RegisterHotKey(_hotKeySource.Handle, CompletionReminderHotKeyId, ModControl, VirtualKeyW);
         NativeMethods.RegisterHotKey(_hotKeySource.Handle, DebugForcedExitHotKeyId, ModShift, VirtualKeyQ);
 #endif
     }
@@ -104,14 +120,6 @@ public partial class MainWindow : Window
             handled = true;
         }
 #if DEBUG
-        else if (msg == NativeMethods.WmHotKey && wParam.ToInt32() == CompletionReminderHotKeyId)
-        {
-            if (DataContext is MainWindowViewModel viewModel)
-            {
-                viewModel.ShowCompletionReminderTest();
-            }
-            handled = true;
-        }
         else if (msg == NativeMethods.WmHotKey && wParam.ToInt32() == DebugForcedExitHotKeyId)
         {
             handled = true;
@@ -340,7 +348,6 @@ public partial class MainWindow : Window
         {
             NativeMethods.UnregisterHotKey(_hotKeySource.Handle, ToastHotKeyId);
 #if DEBUG
-            NativeMethods.UnregisterHotKey(_hotKeySource.Handle, CompletionReminderHotKeyId);
             NativeMethods.UnregisterHotKey(_hotKeySource.Handle, DebugForcedExitHotKeyId);
 #endif
             _hotKeySource.RemoveHook(MainWindowHook);

@@ -77,21 +77,25 @@ public sealed class SettingsPageViewModelTests
     }
 
     [Fact]
-    public void ForcedMode_RequiresLoggedInVipAccessAndStaysOffWithoutIt()
+    public void ForcedMode_IsAvailableToEveryoneAndAccountChangesPreserveTheToggle()
     {
         var forcedMode = new SettingsToggleItemViewModel("ForcedMode", "Forced mode", "Description", "Icon", true, false);
         var viewModel = new SettingsPageViewModel([forcedMode], []);
 
-        Assert.False(viewModel.CanUseForcedMode);
-        Assert.False(forcedMode.IsEnabled);
-        Assert.True(forcedMode.IsVipRestricted);
+        Assert.True(viewModel.CanUseForcedMode);
+        Assert.True(forcedMode.IsEnabled);
+        Assert.False(forcedMode.IsVipRestricted);
 
         viewModel.SetUserAccess(true, false);
         forcedMode.IsEnabled = true;
 
-        Assert.False(viewModel.CanUseForcedMode);
+        Assert.True(viewModel.CanUseForcedMode);
+        Assert.True(forcedMode.IsEnabled);
+        Assert.False(forcedMode.IsVipRestricted);
+        forcedMode.IsEnabled = false;
         Assert.False(forcedMode.IsEnabled);
-        Assert.True(forcedMode.IsVipRestricted);
+        forcedMode.IsEnabled = true;
+        Assert.True(forcedMode.IsEnabled);
 
         viewModel.SetUserAccess(true, true);
         forcedMode.IsEnabled = true;
@@ -102,9 +106,9 @@ public sealed class SettingsPageViewModelTests
 
         viewModel.SetUserAccess(false, true);
 
-        Assert.False(viewModel.CanUseForcedMode);
-        Assert.False(forcedMode.IsEnabled);
-        Assert.True(forcedMode.IsVipRestricted);
+        Assert.True(viewModel.CanUseForcedMode);
+        Assert.True(forcedMode.IsEnabled);
+        Assert.False(forcedMode.IsVipRestricted);
     }
 
     [Fact]

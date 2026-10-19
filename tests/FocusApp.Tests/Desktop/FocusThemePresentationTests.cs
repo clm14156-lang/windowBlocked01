@@ -84,7 +84,7 @@ public sealed class FocusThemePresentationTests
                         ((SolidColorBrush)((TextBlock)focus.FindName("FocusCountdown")).Foreground).Color);
                     Assert.Equal(dark ? Color.FromRgb(0xF5, 0xF8, 0xFF) : Color.FromRgb(0x37, 0x41, 0x51),
                         ((SolidColorBrush)drawer.Foreground).Color);
-                    Assert.Equal(dark ? (byte)0x40 : (byte)0, ((SolidColorBrush)cards[0].Background).Color.A);
+                    Assert.Equal((byte)0, ((SolidColorBrush)cards[0].Background).Color.A);
                     var drawing = Assert.IsType<DrawingImage>(((Image)focus.FindName("FocusTargetIcon")).Source);
                     var targetColor = ((SolidColorBrush)((TextBlock)focus.FindName("FocusTargetName")).Foreground).Color;
                     Assert.Equal(dark ? Color.FromRgb(0xE6, 0xF0, 0xFF) : Color.FromRgb(0x37, 0x41, 0x51), targetColor);
@@ -98,7 +98,7 @@ public sealed class FocusThemePresentationTests
                     Pump(host);
                     Assert.True(more.ContextMenu!.IsOpen);
                     var menuColor = ((SolidColorBrush)Descendants<Border>(more.ContextMenu).First().Background).Color;
-                    Assert.Equal(dark ? Color.FromRgb(0x19, 0x2C, 0x4B) : Colors.White, menuColor);
+                    Assert.Equal(dark ? Color.FromRgb(0x18, 0x20, 0x2B) : Colors.White, menuColor);
                     more.ContextMenu.IsOpen = false;
                 }
 

@@ -56,16 +56,18 @@
         <Style x:Key="DrawerAddTaskButtonStyle" TargetType="Button" BasedOn="{StaticResource PlainButton}">
             <Setter Property="Width" Value="42"/><Setter Property="Height" Value="42"/>
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
-                <Border x:Name="CreateSurface" Background="#FF963F" BorderThickness="0" CornerRadius="21" RenderTransformOrigin="0.5,0.5">
+                <Border x:Name="CreateSurface" Background="{DynamicResource FocusTaskAddBackground}" BorderBrush="{DynamicResource FocusTaskAddBorder}" BorderThickness="1" CornerRadius="21" RenderTransformOrigin="0.5,0.5">
                     <Border.RenderTransform><ScaleTransform/></Border.RenderTransform>
-                    <Border.Effect><DropShadowEffect Color="#C97738" BlurRadius="10" ShadowDepth="2" Opacity="0.18"/></Border.Effect>
-                    <Path Width="14" Height="14" Data="M 0,7 L 14,7 M 7,0 L 7,14" Stroke="White" StrokeThickness="1.5"
+                    <Path Width="14" Height="14" Data="M 0,7 L 14,7 M 7,0 L 7,14" Stroke="{DynamicResource FocusTaskAddIcon}" StrokeThickness="1.5"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 </Border>
                 <ControlTemplate.Triggers>
-                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="CreateSurface" Property="Background" Value="#F5872E"/></Trigger>
-                    <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="CreateSurface" Property="Background" Value="#F5872E"/></Trigger>
-                    <Trigger Property="IsPressed" Value="True"><Setter TargetName="CreateSurface" Property="Background" Value="#E97B25"/><Setter TargetName="CreateSurface" Property="RenderTransform"><Setter.Value><ScaleTransform ScaleX="0.94" ScaleY="0.94"/></Setter.Value></Setter></Trigger>
+                    <DataTrigger Binding="{Binding Session.IsDarkFocusTheme}" Value="False">
+                        <Setter TargetName="CreateSurface" Property="Effect"><Setter.Value><DropShadowEffect Color="#C97738" BlurRadius="10" ShadowDepth="2" Opacity="0.18"/></Setter.Value></Setter>
+                    </DataTrigger>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="CreateSurface" Property="Background" Value="{DynamicResource FocusTaskAddHover}"/><Setter TargetName="CreateSurface" Property="BorderBrush" Value="{DynamicResource FocusTaskAddHoverBorder}"/></Trigger>
+                    <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="CreateSurface" Property="Background" Value="{DynamicResource FocusTaskAddHover}"/><Setter TargetName="CreateSurface" Property="BorderBrush" Value="{DynamicResource FocusTaskAddHoverBorder}"/></Trigger>
+                    <Trigger Property="IsPressed" Value="True"><Setter TargetName="CreateSurface" Property="Background" Value="{DynamicResource FocusTaskAddPressed}"/><Setter TargetName="CreateSurface" Property="RenderTransform"><Setter.Value><ScaleTransform ScaleX="0.94" ScaleY="0.94"/></Setter.Value></Setter></Trigger>
                 </ControlTemplate.Triggers>
             </ControlTemplate></Setter.Value></Setter>
             <Style.Triggers><DataTrigger Binding="{Binding IsCreating}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers>
@@ -99,8 +101,9 @@
                         <Grid.ColumnDefinitions><ColumnDefinition Width="35" /><ColumnDefinition Width="*" /><ColumnDefinition Width="24" /></Grid.ColumnDefinitions>
                         <CheckBox x:Name="TaskCompletionCheck" IsChecked="{Binding IsCompleted, Mode=OneWay}" Command="{Binding DataContext.ToggleTaskCompletedCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
                                   HorizontalAlignment="Left" VerticalAlignment="Center" Style="{StaticResource DrawerTaskCheck}" AutomationProperties.Name="切换任务完成状态" />
-                        <TextBlock x:Name="TaskTitle" Grid.Column="1" VerticalAlignment="Center" Text="{Binding Name}" FontSize="{DynamicResource BodyFontSize}" FontWeight="{DynamicResource FocusTaskNameFontWeight}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" Style="{StaticResource CompletedTitle}" />
-                        <Button x:Name="TaskMoreButton" Tag="{Binding DataContext.Session.IsDarkFocusTheme, RelativeSource={RelativeSource AncestorType=UserControl}}" Grid.Column="2" Width="24" Height="24" VerticalAlignment="Center" Content="···" FontSize="17" AutomationProperties.Name="更多任务操作" Click="TaskMoreButton_Click">
+                        <TextBlock x:Name="TaskTitle" Grid.Column="1" VerticalAlignment="Center" Text="{Binding Name}" FontSize="14" FontWeight="{DynamicResource FocusTaskNameFontWeight}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" Style="{StaticResource CompletedTitle}" />
+                        <Button x:Name="TaskMoreButton" Tag="{Binding DataContext.Session.IsDarkFocusTheme, RelativeSource={RelativeSource AncestorType=UserControl}}" Grid.Column="2" Width="28" Height="28" Margin="-2" VerticalAlignment="Center" Foreground="{DynamicResource FocusTaskActionIcon}" FontSize="17" AutomationProperties.Name="更多任务操作" Click="TaskMoreButton_Click">
+                            <Path Width="15" Height="3" Stretch="Fill" Data="M 0,1.5 A 1.5,1.5 0 1 0 3,1.5 A 1.5,1.5 0 1 0 0,1.5 M 6,1.5 A 1.5,1.5 0 1 0 9,1.5 A 1.5,1.5 0 1 0 6,1.5 M 12,1.5 A 1.5,1.5 0 1 0 15,1.5 A 1.5,1.5 0 1 0 12,1.5" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
                             <Button.Style><Style TargetType="Button" BasedOn="{StaticResource PlainButton}">
                                 <Setter Property="Opacity" Value="1"/>
                                 <Style.Triggers>
@@ -115,13 +118,13 @@
                                     </MultiDataTrigger>
                                 </Style.Triggers>
                             </Style></Button.Style>
-                            <Button.ContextMenu><ContextMenu views:FocusThemeScope.IsDark="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource Self}}" DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
-                                <MenuItem Header="编辑任务" Click="EditTaskMenu_Click" Foreground="{DynamicResource FocusTaskMenuItemText}">
-                                    <MenuItem.Icon><Path Width="14" Height="14" Data="M 2,11 L 2,14 L 5,14 L 13,6 L 10,3 Z M 10,3 L 12,1 L 15,4 L 13,6" Stroke="{DynamicResource FocusTaskMenuItemText}" StrokeThickness="1.4" Fill="Transparent" StrokeLineJoin="Round" /></MenuItem.Icon>
+                            <Button.ContextMenu><ContextMenu Style="{StaticResource DrawerTaskMenuStyle}" views:FocusThemeScope.IsDark="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource Self}}" DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                                <MenuItem Header="编辑任务" Click="EditTaskMenu_Click" Foreground="{DynamicResource DrawerTaskMenuEdit}">
+                                    <MenuItem.Icon><Path Width="14" Height="14" Data="M 2,11 L 2,14 L 5,14 L 13,6 L 10,3 Z M 10,3 L 12,1 L 15,4 L 13,6" Stroke="{DynamicResource DrawerTaskMenuEdit}" StrokeThickness="1.4" Fill="Transparent" StrokeLineJoin="Round" /></MenuItem.Icon>
                                 </MenuItem>
-                                <Separator />
-                                <MenuItem Header="删除任务" Foreground="#E35B58" Click="DeleteTaskMenu_Click">
-                                    <MenuItem.Icon><Path Width="14" Height="14" Data="M 2,4 L 14,4 M 5,4 L 5,14 L 11,14 L 11,4 M 6,2 L 10,2 M 7,7 L 7,11 M 9,7 L 9,11" Stroke="#E35B58" StrokeThickness="1.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Fill="Transparent" /></MenuItem.Icon>
+                                <Separator Style="{StaticResource DrawerTaskMenuSeparatorStyle}" />
+                                <MenuItem Header="删除任务" Foreground="{DynamicResource DrawerTaskMenuDelete}" Click="DeleteTaskMenu_Click">
+                                    <MenuItem.Icon><Path Width="14" Height="14" Data="M 2,4 L 14,4 M 5,4 L 5,14 L 11,14 L 11,4 M 6,2 L 10,2 M 7,7 L 7,11 M 9,7 L 9,11" Stroke="{DynamicResource DrawerTaskMenuDelete}" StrokeThickness="1.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Fill="Transparent" /></MenuItem.Icon>
                                 </MenuItem>
                             </ContextMenu></Button.ContextMenu>
                         </Button>
@@ -129,7 +132,7 @@
                     <TextBlock x:Name="InlineDescription" Margin="35,5,2,0" Text="{Binding Description}" FontSize="{DynamicResource SecondaryFontSize}" FontWeight="{DynamicResource SecondaryFontWeight}" Foreground="{DynamicResource FocusTaskDescriptionText}" TextWrapping="Wrap" LineHeight="18" MaxHeight="36" TextTrimming="CharacterEllipsis" Visibility="{Binding HasDescription, Converter={StaticResource BoolVisibility}}" />
                     <Button x:Name="SubTaskToggle" Margin="35,9,0,0" Padding="10,0" Height="25" HorizontalAlignment="Left" Background="{DynamicResource FocusTaskSubTaskSurface}" Style="{StaticResource PlainButton}" Command="{Binding DataContext.ToggleExpandedCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Visibility="{Binding HasSubTasks, Converter={StaticResource BoolVisibility}}" AutomationProperties.Name="展开或收起子任务">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center"><TextBlock Text="{Binding DrawerSubTaskToggleLabel}" FontSize="{DynamicResource SecondaryMediumFontSize}" FontWeight="{DynamicResource SecondaryMediumFontWeight}" Foreground="{DynamicResource FocusTaskSubTaskLabel}" />
-                            <Path Width="6" Height="9" Margin="7,0,0,0" VerticalAlignment="Center" Data="M 0,0 L 5,4.5 L 0,9" Stroke="{DynamicResource FocusTaskDescriptionText}" StrokeThickness="1.3" StrokeStartLineCap="Round" StrokeEndLineCap="Round">
+                            <Path Width="6" Height="9" Margin="7,0,0,0" VerticalAlignment="Center" Data="M 0,0 L 5,4.5 L 0,9" Stroke="{DynamicResource FocusTaskSubTaskChevron}" StrokeThickness="1.3" StrokeStartLineCap="Round" StrokeEndLineCap="Round">
                                 <Path.Style><Style TargetType="Path"><Style.Triggers><DataTrigger Binding="{Binding IsExpanded}" Value="True"><Setter Property="RenderTransform"><Setter.Value><RotateTransform Angle="90" CenterX="3" CenterY="4.5" /></Setter.Value></Setter></DataTrigger></Style.Triggers></Style></Path.Style>
                             </Path>
                         </StackPanel>

@@ -107,7 +107,7 @@ public sealed class CustomTimePresetPersistenceTests
             modal.CancelCommand.Execute(null); modal.Open();
             Assert.Equal([180, 60, 90, 45], modal.SelectedMinutes);
             Assert.Equal([30, 45, 60, 90, 180], modal.CommonTimes.Select(option => option.Minutes));
-            Assert.Equal("0", modal.MinutesInput);
+            Assert.Equal(string.Empty, modal.MinutesInput);
             modal.MinutesInput = "55";
             modal.ConfirmCommand.Execute(null);
             PumpUntil(() => connection.State?.Revision == 7);
@@ -116,7 +116,7 @@ public sealed class CustomTimePresetPersistenceTests
             Assert.False(added.IsCurrent);
             Assert.Equal([45, 60, 90, 180], HomeMinutes());
             Assert.Equal([30, 45, 55, 60, 90, 180], modal.CommonTimes.Select(option => option.Minutes));
-            Assert.Equal("0", modal.MinutesInput);
+            Assert.Equal(string.Empty, modal.MinutesInput);
             Assert.False(home.FocusSession.IsFocusing);
             void Click(int minutes) => modal.SelectTimeCommand.Execute(modal.CommonTimes.Single(option => option.Minutes == minutes));
             IEnumerable<int> HomeMinutes() => home.VisibleDurationOptions.Where(option => option.Icon.Length == 0).Select(option => option.Minutes);

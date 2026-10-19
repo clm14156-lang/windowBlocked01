@@ -70,13 +70,19 @@ public sealed class CalendarDayRecordViewModelTests
         Assert.Equal(2, record.CalendarCompletedTaskCount);
     }
 
-    [Fact]
-    public void MissingGoalAndTasksCannotExpandAndRecordedFocusDurationRemainsAuthoritative()
+    [Theory]
+    [InlineData("", "")]
+    [InlineData("", "旧目标名称")]
+    [InlineData("goal-unassigned", "自由专注")]
+    public void MissingGoalAndTasksCannotExpandAndRecordedFocusDurationRemainsAuthoritative(string goalId, string goalName)
     {
-        var record = new FocusSessionRecordViewModel(Day.AddHours(10), Day.AddHours(11), "goal-unassigned", "自由专注", "", 0)
+        var record = new FocusSessionRecordViewModel(Day.AddHours(10), Day.AddHours(11), goalId, goalName, "", 0)
         { RecordedFocusDuration = TimeSpan.FromMinutes(15) };
         var entry = Assert.Single(CalendarDayRecordViewModel.Create([record]));
         Assert.False(entry.HasGoal);
+        Assert.Empty(record.CalendarTitle);
+        Assert.Equal(goalId, record.GoalId);
+        Assert.Equal(goalName, record.GoalName);
         Assert.False(entry.HasTasks);
         entry.IsExpanded = true;
         Assert.False(entry.IsExpanded);

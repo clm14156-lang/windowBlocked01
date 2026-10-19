@@ -198,6 +198,15 @@ public sealed class FocusSessionEngine
         Reset();
     }
 
+#if DEBUG
+    public bool CompleteForDebug()
+    {
+        if (State != FocusSessionState.Focusing) return false;
+        Complete(FocusCompletionKind.EarlyEnd);
+        return true;
+    }
+#endif
+
     private void BeginFocus()
     {
         _preparationElapsed = PreparationDuration;

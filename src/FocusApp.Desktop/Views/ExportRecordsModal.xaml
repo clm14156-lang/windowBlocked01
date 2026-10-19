@@ -95,7 +95,7 @@
 
         <Style x:Key="ExportPrimaryButtonStyle" TargetType="{x:Type Button}" BasedOn="{StaticResource ExportPlainButtonStyle}">
             <Setter Property="Height" Value="42" />
-            <Setter Property="Background" Value="{DynamicResource FocusButtonBackground}" />
+            <Setter Property="Background" Value="{DynamicResource ModalCommitBackgroundBrush}" />
             <Setter Property="FontSize" Value="{DynamicResource ButtonEmphasisFontSize}" />
             <Setter Property="FontWeight" Value="{DynamicResource ButtonEmphasisFontWeight}" />
             <Setter Property="Foreground" Value="{DynamicResource WhiteText}" />

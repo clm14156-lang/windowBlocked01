@@ -16,11 +16,24 @@
         </ResourceDictionary.MergedDictionaries>
         <views:GoalInverseVisibilityConverter x:Key="GoalInverseVisibilityConverter"/>
 
+        <Style x:Key="VipUnlockButtonStyle" TargetType="Button" BasedOn="{StaticResource PrimaryActionButtonStyle}">
+            <Style.Resources>
+                <ResourceDictionary>
+                    <ResourceDictionary.MergedDictionaries>
+                        <ResourceDictionary Source="/FocusApp.Desktop;component/Resources/VipActionBackgrounds.xaml" />
+                    </ResourceDictionary.MergedDictionaries>
+                </ResourceDictionary>
+            </Style.Resources>
+        </Style>
+
         <Style x:Key="GoalSectionTitleStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="{DynamicResource SectionTitleFontSize}"/>
             <Setter Property="FontWeight" Value="{DynamicResource SectionTitleFontWeight}"/>
             <Setter Property="Foreground" Value="#454C57"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="GoalCreatedDateTextStyle" TargetType="TextBlock" BasedOn="{StaticResource StatisticsBodyTextStyle}">
+            <Setter Property="Foreground" Value="{DynamicResource StatisticsWeakBrush}"/>
         </Style>
         <Style x:Key="GoalMetricCardButtonStyle" TargetType="Button">
             <Setter Property="Padding" Value="4,3"/>
@@ -436,7 +449,7 @@
                                         </StackPanel>
                                     </Grid>
                                     <Button x:Name="CalendarVipUnlockButton" Width="244" Height="43" HorizontalAlignment="Center" Margin="{StaticResource SectionGapAbove}"
-                                            Style="{StaticResource PrimaryActionButtonStyle}" Click="CalendarVipUnlockButton_Click"
+                                            Style="{StaticResource VipUnlockButtonStyle}" Click="CalendarVipUnlockButton_Click"
                                             AutomationProperties.Name="立即开通 VIP">
                                         <Button.Template><ControlTemplate TargetType="Button">
                                             <Border x:Name="UnlockSurface" Background="{TemplateBinding Background}" CornerRadius="22"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
@@ -515,7 +528,7 @@
                                                                         <Grid.ColumnDefinitions>
                                                                             <ColumnDefinition Width="30" />
                                                                             <ColumnDefinition Width="*" />
-                                                                            <ColumnDefinition Width="Auto" />
+                                                                            <ColumnDefinition Width="28" />
                                                                         </Grid.ColumnDefinitions>
                                                                         <Image Grid.Column="0" Width="20" Height="20" HorizontalAlignment="Left" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality" Source="{Binding IconSource, Converter={x:Static views:TargetIconSourceConverter.Instance}}" Stretch="Uniform" />
                                                                         <TextBox Grid.Column="1" Margin="3,0,4,0" VerticalAlignment="Center" Text="{Binding DraftName, UpdateSourceTrigger=PropertyChanged}" Visibility="{Binding IsRenaming, Converter={StaticResource BooleanToVisibilityConverter}}" FontFamily="{DynamicResource FontFamilyPrimary}" FontSize="{DynamicResource BodyFontSize}" Foreground="{DynamicResource StatisticsBodyBrush}" BorderThickness="0" Background="Transparent" IsVisibleChanged="GoalNameTextBox_IsVisibleChanged" LostKeyboardFocus="GoalNameTextBox_LostKeyboardFocus" PreviewKeyDown="GoalNameTextBox_PreviewKeyDown" />
@@ -544,12 +557,51 @@
                                                         </ControlTemplate>
                                                     </Button.Template>
                                                 </Button>
+                                                <ToggleButton x:Name="GoalListMoreButton" Width="28" Height="28" Margin="0,0,10,0"
+                                                              HorizontalAlignment="Right" VerticalAlignment="Center" Content="···"
+                                                              Click="GoalListMoreButton_Click" PreviewKeyDown="GoalListMorePopup_PreviewKeyDown"
+                                                              DataContextChanged="GoalListMoreButton_DataContextChanged"
+                                                              IsVisibleChanged="GoalListMoreButton_IsVisibleChanged"
+                                                              Unloaded="GoalListMoreButton_Unloaded" AutomationProperties.Name="目标更多操作">
+                                                    <ToggleButton.Style><Style TargetType="ToggleButton">
+                                                        <Setter Property="Opacity" Value="0"/><Setter Property="IsHitTestVisible" Value="False"/>
+                                                        <Setter Property="Foreground" Value="{DynamicResource StatisticsSecondaryBrush}"/>
+                                                        <Setter Property="FontSize" Value="20"/><Setter Property="FontWeight" Value="SemiBold"/>
+                                                        <Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/>
+                                                        <Setter Property="Cursor" Value="Hand"/><Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+                                                        <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ToggleButton">
+                                                            <Border Background="Transparent"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                                                            <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter Property="Foreground" Value="{DynamicResource StatisticsPrimaryBrush}"/></Trigger></ControlTemplate.Triggers>
+                                                        </ControlTemplate></Setter.Value></Setter>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsMouseOver, ElementName=GoalRowRoot}" Value="True"><Setter Property="Opacity" Value="1"/><Setter Property="IsHitTestVisible" Value="True"/></DataTrigger>
+                                                            <Trigger Property="IsKeyboardFocused" Value="True"><Setter Property="Opacity" Value="1"/><Setter Property="IsHitTestVisible" Value="True"/></Trigger>
+                                                            <Trigger Property="IsChecked" Value="True"><Setter Property="Opacity" Value="1"/><Setter Property="IsHitTestVisible" Value="True"/></Trigger>
+                                                            <DataTrigger Binding="{Binding IsRenaming}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style></ToggleButton.Style>
+                                                </ToggleButton>
                                             </Grid>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
                             </ScrollViewer>
                         </DockPanel>
+                        <Popup x:Name="GoalListMorePopup" Width="132" DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}"
+                               IsOpen="{Binding PlacementTarget.IsChecked, RelativeSource={RelativeSource Self}, Mode=TwoWay}"
+                               Placement="Bottom" HorizontalOffset="-98" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade"
+                               Closed="GoalListMorePopup_Closed">
+                            <Border Width="120" Margin="6" Padding="6" Background="White" BorderBrush="#E8E8EA" BorderThickness="1" CornerRadius="9"
+                                    PreviewKeyDown="GoalListMorePopup_PreviewKeyDown">
+                                <Border.Effect><DropShadowEffect BlurRadius="14" Direction="270" ShadowDepth="3" Opacity="0.10" Color="#000000"/></Border.Effect>
+                                <StackPanel>
+                                    <Button Content="编辑" Style="{StaticResource GoalDetailMenuItemStyle}" Click="EditGoalButton_Click" Visibility="{Binding IsArchived, Converter={StaticResource GoalInverseVisibilityConverter}}"/>
+                                    <Button Content="归档" Style="{StaticResource GoalDetailMenuItemStyle}" Click="ArchiveGoalButton_Click" Visibility="{Binding IsArchived, Converter={StaticResource GoalInverseVisibilityConverter}}"/>
+                                    <Button Content="恢复目标" Style="{StaticResource GoalDetailMenuItemStyle}" Click="RestoreGoalButton_Click" Visibility="{Binding IsArchived, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                    <Button Content="删除目标" Foreground="{DynamicResource Danger}" Style="{StaticResource GoalDetailMenuItemStyle}" Click="DeleteGoalButton_Click" Visibility="{Binding IsArchived, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                </StackPanel>
+                            </Border>
+                        </Popup>
                         <StackPanel x:Name="GoalListEmptyState" Margin="-10,0,0,0" HorizontalAlignment="Center" VerticalAlignment="Center"
                                     Visibility="{Binding IsGoalCreationGuideVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
                             <Viewbox Width="44" Height="52" HorizontalAlignment="Center" IsHitTestVisible="False">
@@ -585,10 +637,10 @@
                                 <Grid x:Name="GoalDetails">
                                     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="12"/><RowDefinition/></Grid.RowDefinitions>
                                     <Border x:Name="GoalSummaryCard" Padding="16" Background="White" BorderBrush="#E9EBEF" BorderThickness="1" CornerRadius="12">
-                                      <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="26"/><RowDefinition Height="100"/></Grid.RowDefinitions>
+                                      <Grid><Grid.RowDefinitions><RowDefinition Height="43"/><RowDefinition Height="100"/></Grid.RowDefinitions>
                                     <Grid x:Name="GoalDetailHeader">
                                         <StackPanel>
-                                            <DockPanel x:Name="GoalDetailTitleRow" Margin="0,0,36,0" LastChildFill="True">
+                                            <DockPanel x:Name="GoalDetailTitleRow" LastChildFill="True">
                                                 <Border x:Name="GoalArchivedBadge" DockPanel.Dock="Right" Height="25" Margin="9,0,0,0" Padding="9,0"
                                                         Background="#F3F4F6" CornerRadius="7" VerticalAlignment="Center"
                                                         Visibility="{Binding SelectedGoal.IsArchived, Converter={StaticResource BooleanToVisibilityConverter}}">
@@ -602,10 +654,14 @@
                                                 <TextBlock x:Name="GoalDetailName" Style="{StaticResource StatisticsPageTitleTextStyle}" Text="{Binding SelectedGoalName}"
                                                            TextTrimming="CharacterEllipsis"/>
                                             </DockPanel>
-                                            <TextBlock x:Name="GoalDetailMetadata" Style="{StaticResource StatisticsAuxiliaryTextStyle}" Margin="0,7,0,0" Text="{Binding SelectedGoal.Remark}" ToolTip="{Binding SelectedGoal.Remark}" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock x:Name="GoalDetailMetadata" Style="{StaticResource StatisticsAuxiliaryTextStyle}"
+                                                       Margin="0,4,0,0" Text="{Binding SelectedGoal.RemarkPreview}" TextWrapping="NoWrap"
+                                                       TextTrimming="CharacterEllipsis" Visibility="{Binding SelectedGoal.HasRemark, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                <TextBlock.ToolTip><ToolTip DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}"><TextBlock Text="{Binding SelectedGoal.Remark}" Style="{StaticResource StatisticsBodyTextStyle}" TextWrapping="Wrap" MaxWidth="320"/></ToolTip></TextBlock.ToolTip>
+                                            </TextBlock>
                                         </StackPanel>
                                     </Grid>
-                                        <Grid x:Name="GoalInvestmentMetrics" Grid.Row="2"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="20"/><ColumnDefinition/><ColumnDefinition Width="20"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                        <Grid x:Name="GoalInvestmentMetrics" Grid.Row="1"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="20"/><ColumnDefinition/><ColumnDefinition Width="20"/><ColumnDefinition/></Grid.ColumnDefinitions>
                                             <Button x:Name="GoalTotalInvestmentCard" Grid.Column="0" Style="{StaticResource GoalMetricCardButtonStyle}" Command="{Binding GoalInvestmentTrend.OpenCommand}" AutomationProperties.Name="累计投入">
                                                 <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="36"/><ColumnDefinition/></Grid.ColumnDefinitions><Grid.RowDefinitions><RowDefinition Height="32"/><RowDefinition/></Grid.RowDefinitions>
                                                     <Border Width="32" Height="32" CornerRadius="16" Background="#FFF0E4" HorizontalAlignment="Left"><Grid Width="18" Height="18"><Ellipse Stroke="#FF861C" StrokeThickness="1.8"/><Path Data="M 9,4 L 9,9 L 14,12" Stroke="#FF861C" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/></Grid></Border>
@@ -647,9 +703,9 @@
                             <Grid x:Name="GoalInvestmentDetailsLockedPlaceholder" Visibility="{Binding CanViewGoalInvestmentDetails, Converter={StaticResource GoalInverseVisibilityConverter}}">
                                 <Grid x:Name="GoalVipLockedContent" Visibility="{Binding HasSelectedGoal, Converter={StaticResource BooleanToVisibilityConverter}}">
                                     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/></Grid.RowDefinitions>
-                                    <StackPanel x:Name="GoalVipHeader" Margin="0,0,36,0">
+                                    <StackPanel x:Name="GoalVipHeader">
                                         <TextBlock x:Name="GoalVipSelectedName" Text="{Binding SelectedGoalName}" Style="{StaticResource StatisticsPageTitleTextStyle}" TextTrimming="CharacterEllipsis"/>
-                                        <TextBlock x:Name="GoalVipCreatedDate" Text="{Binding SelectedGoal.CreatedDateDisplay}" FontSize="12" Foreground="#8A94A6" Margin="{StaticResource SmallGapAbove}"/>
+                                        <TextBlock x:Name="GoalVipCreatedDate" Text="{Binding SelectedGoal.CreatedDateDisplay}" Style="{StaticResource GoalCreatedDateTextStyle}" Margin="{StaticResource SmallGapAbove}"/>
                                     </StackPanel>
                                     <StackPanel x:Name="GoalVipLockedBody" Grid.Row="1" VerticalAlignment="Center" Margin="0,0,0,40">
                                         <Image x:Name="GoalVipIllustration" Width="300" Height="169" HorizontalAlignment="Center" Stretch="Uniform"
@@ -695,7 +751,7 @@
                                             </StackPanel>
                                         </Grid>
                                         <Button x:Name="GoalVipUnlockButton" Width="272" Height="42" HorizontalAlignment="Center" Margin="{StaticResource SectionGapAbove}"
-                                                Style="{StaticResource PrimaryActionButtonStyle}" Click="GoalVipUnlockButton_Click"
+                                                Style="{StaticResource VipUnlockButtonStyle}" Click="GoalVipUnlockButton_Click"
                                                 AutomationProperties.Name="立即开通 VIP">
                                             <Button.Template><ControlTemplate TargetType="Button">
                                                 <Border x:Name="GoalUnlockSurface" Background="{TemplateBinding Background}" CornerRadius="19"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
@@ -709,27 +765,6 @@
                                 </Grid>
                                 <TextBlock Text="暂无目标" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="13" Foreground="{DynamicResource TextWeak}"
                                            Visibility="{Binding HasSelectedGoal, Converter={StaticResource GoalInverseVisibilityConverter}}"/>
-                            </Grid>
-                            <Grid x:Name="GoalDetailActionsHost" HorizontalAlignment="Right" VerticalAlignment="Top" Visibility="{Binding HasSelectedGoal, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                <Grid.Style><Style TargetType="Grid"><Setter Property="Margin" Value="16"/><Style.Triggers><DataTrigger Binding="{Binding CanViewGoalInvestmentDetails}" Value="False"><Setter Property="Margin" Value="0"/></DataTrigger></Style.Triggers></Style></Grid.Style>
-                                <ToggleButton x:Name="GoalDetailMoreButton" Width="28" Height="28" Content="···" DataContext="{Binding SelectedGoal}" DataContextChanged="GoalDetailMoreButton_DataContextChanged" IsVisibleChanged="GoalDetailMoreButton_IsVisibleChanged" AutomationProperties.Name="目标更多操作">
-                                    <ToggleButton.Style><Style TargetType="ToggleButton">
-                                        <Setter Property="Foreground" Value="#667186"/><Setter Property="FontSize" Value="20"/><Setter Property="FontWeight" Value="SemiBold"/>
-                                        <Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/><Setter Property="Cursor" Value="Hand"/><Setter Property="FocusVisualStyle" Value="{x:Null}"/>
-                                        <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ToggleButton"><Border Background="Transparent"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter Property="Foreground" Value="#303B4D"/></Trigger><Trigger Property="IsKeyboardFocused" Value="True"><Setter Property="Foreground" Value="#303B4D"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
-                                    </Style></ToggleButton.Style>
-                                </ToggleButton>
-                                <Popup x:Name="GoalDetailMorePopup" Width="132" DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}" IsOpen="{Binding IsChecked, ElementName=GoalDetailMoreButton, Mode=TwoWay}" Placement="Bottom" PlacementTarget="{Binding ElementName=GoalDetailMoreButton}" HorizontalOffset="-98" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
-                                    <Border Width="120" Margin="6" Padding="6" Background="White" BorderBrush="#E8E8EA" BorderThickness="1" CornerRadius="9">
-                                        <Border.Effect><DropShadowEffect BlurRadius="14" Direction="270" ShadowDepth="3" Opacity="0.10" Color="#000000"/></Border.Effect>
-                                        <StackPanel>
-                                            <Button Content="编辑" Style="{StaticResource GoalDetailMenuItemStyle}" Click="EditGoalButton_Click" Visibility="{Binding IsArchived, Converter={StaticResource GoalInverseVisibilityConverter}}"/>
-                                            <Button Content="归档" Style="{StaticResource GoalDetailMenuItemStyle}" Click="ArchiveGoalButton_Click" Visibility="{Binding IsArchived, Converter={StaticResource GoalInverseVisibilityConverter}}"/>
-                                            <Button Content="恢复目标" Style="{StaticResource GoalDetailMenuItemStyle}" Click="RestoreGoalButton_Click" Visibility="{Binding IsArchived, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                            <Button Content="删除目标" Foreground="{DynamicResource Danger}" Style="{StaticResource GoalDetailMenuItemStyle}" Click="DeleteGoalButton_Click" Visibility="{Binding IsArchived, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                        </StackPanel>
-                                    </Border>
-                                </Popup>
                             </Grid>
                         </Grid>
                             <StackPanel x:Name="GoalFirstCreationGuide" Margin="0,-112,0,0" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"

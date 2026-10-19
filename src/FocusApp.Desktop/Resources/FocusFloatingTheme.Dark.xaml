@@ -1,13 +1,9 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <!-- Quiet night blues, shared by the floating card and folded capsule. -->
-    <GradientStopCollection x:Key="FloatingDarkGradientStops">
-        <GradientStop Offset="0" Color="#0C2446"/>
-        <GradientStop Offset="0.45" Color="#0A1F3D"/>
-        <GradientStop Offset="1" Color="#081A34"/>
-    </GradientStopCollection>
-    <LinearGradientBrush x:Key="FloatingBackgroundBrush" StartPoint="0,0" EndPoint="1,1" GradientStops="{StaticResource FloatingDarkGradientStops}"/>
-    <LinearGradientBrush x:Key="FoldedBackgroundBrush" StartPoint="0,0" EndPoint="1,1" GradientStops="{StaticResource FloatingDarkGradientStops}"/>
+    <Color x:Key="FloatingDarkBackgroundColor">#141D2D</Color>
+    <SolidColorBrush x:Key="FloatingBackgroundBrush" Color="{StaticResource FloatingDarkBackgroundColor}"/>
+    <SolidColorBrush x:Key="FoldedBackgroundBrush" Color="{StaticResource FloatingDarkBackgroundColor}"/>
     <SolidColorBrush x:Key="FloatingBorderBrush" Color="#2D4567"/>
     <SolidColorBrush x:Key="FloatingCountdownBrush" Color="#F2F5FB"/>
     <SolidColorBrush x:Key="FloatingSecondaryBrush" Color="#A8BAD5"/>

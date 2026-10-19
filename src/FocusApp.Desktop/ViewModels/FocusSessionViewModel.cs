@@ -540,8 +540,11 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     public int ElapsedFocusSeconds => Math.Max(0, TotalFocusSeconds - RemainingFocusSeconds);
 
     public string ElapsedTimeDisplay => FormatEndConfirmationDuration(ElapsedFocusSeconds);
-    public string EndConfirmationElapsedDisplay => $"{ElapsedFocusSeconds / 60}分{ElapsedFocusSeconds % 60}秒";
-    public string EndConfirmationMinutesDisplay => (ElapsedFocusSeconds / 60).ToString();
+    public string EndConfirmationElapsedDisplay => ElapsedFocusSeconds < 60
+        ? $"{ElapsedFocusSeconds}秒"
+        : $"{ElapsedFocusSeconds / 60}分{ElapsedFocusSeconds % 60}秒";
+    public string EndConfirmationMinutesDisplay => ElapsedFocusSeconds < 60 ? string.Empty : (ElapsedFocusSeconds / 60).ToString();
+    public string EndConfirmationMinutesUnitDisplay => ElapsedFocusSeconds < 60 ? string.Empty : " 分 ";
     public string EndConfirmationSecondsDisplay => (ElapsedFocusSeconds % 60).ToString();
     public double EndConfirmationProgress => Math.Clamp((double)ElapsedFocusSeconds / MinimumSavedFocusSeconds, 0, 1);
 
@@ -611,6 +614,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(ElapsedTimeDisplay));
             OnPropertyChanged(nameof(EndConfirmationElapsedDisplay));
             OnPropertyChanged(nameof(EndConfirmationMinutesDisplay));
+            OnPropertyChanged(nameof(EndConfirmationMinutesUnitDisplay));
             OnPropertyChanged(nameof(EndConfirmationSecondsDisplay));
             OnPropertyChanged(nameof(EndConfirmationProgress));
             OnPropertyChanged(nameof(IsShortEndConfirmation));
@@ -929,6 +933,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(ElapsedTimeDisplay));
             OnPropertyChanged(nameof(EndConfirmationElapsedDisplay));
             OnPropertyChanged(nameof(EndConfirmationMinutesDisplay));
+            OnPropertyChanged(nameof(EndConfirmationMinutesUnitDisplay));
             OnPropertyChanged(nameof(EndConfirmationSecondsDisplay));
             OnPropertyChanged(nameof(EndConfirmationProgress));
             OnPropertyChanged(nameof(IsShortEndConfirmation));
@@ -980,6 +985,22 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             return;
         }
 
+        FinishCompletedFocus();
+    }
+
+#if DEBUG
+    internal bool CompleteForDebug()
+    {
+        if (!IsFocusing || IsServiceOwnedForcedSession) return false;
+        SyncCompletedTaskIdsToEngine();
+        if (!_engine.CompleteForDebug()) return false;
+        FinishCompletedFocus();
+        return true;
+    }
+#endif
+
+    private void FinishCompletedFocus()
+    {
         _timer.Stop();
         _preparationStopwatch.Reset();
         _focusStopwatch.Stop();

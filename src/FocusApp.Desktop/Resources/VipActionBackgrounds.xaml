@@ -1,0 +1,14 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <LinearGradientBrush x:Key="PrimaryActionBackground" StartPoint="0,0" EndPoint="1,0">
+        <GradientStop Offset="0" Color="#FFA72A" />
+        <GradientStop Offset="0.5" Color="#FD7E05" />
+        <GradientStop Offset="1" Color="#FD6504" />
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="PrimaryActionHoverBackground" StartPoint="0,0" EndPoint="1,0">
+        <GradientStop Offset="0" Color="#FFB344" />
+        <GradientStop Offset="0.5" Color="#FF8E1F" />
+        <GradientStop Offset="1" Color="#FF7514" />
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="PrimaryActionPressedBackground" Color="#FD7E05" />
+</ResourceDictionary>

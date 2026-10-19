@@ -94,6 +94,7 @@ public partial class App : Application
             _serviceConnection,
             new AudioService());
         BlockedAccessNotificationService.SetFocusSession(mainViewModel.HomePage.FocusSession);
+        BlockedAccessNotificationService.ConfigureWebsiteIcons(_iconService, mainViewModel.BlockingPage.Websites);
         _accessControlBridge = new DesktopAccessControlBridge(
             mainViewModel.HomePage.FocusSession,
             mainViewModel.BlockingPage,
@@ -184,24 +185,12 @@ public partial class App : Application
     {
         IEnumerable<(string Name, string Address, bool Enabled)> websiteData = [];
         IEnumerable<(string Name, string Path, bool Enabled)> applicationData = [];
-        var now = DateTime.Now;
-        var recentProgramData = new[]
-        {
-            new RecentProgramRecord(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Google", "Chrome", "Application", "chrome.exe"), "chrome.exe", "Google Chrome", now.AddMinutes(-4)),
-            new RecentProgramRecord(@"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe", "msedge.exe", "Microsoft Edge", now.AddMinutes(-18)),
-            new RecentProgramRecord(@"C:\Program Files\Tencent\WeChat\WeChat.exe", "WeChat.exe", "微信", now.AddHours(-2)),
-            new RecentProgramRecord(@"C:\Program Files (x86)\Steam\steam.exe", "steam.exe", "Steam", now.AddDays(-1)),
-            new RecentProgramRecord(@"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\devenv.exe", "devenv.exe", "Visual Studio", now.AddDays(-5)),
-            new RecentProgramRecord(@"C:\Program Files\Blender Foundation\Blender 4.3\blender.exe", "blender.exe", "Blender", now.AddDays(-12)),
-            new RecentProgramRecord(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Google", "Chrome", "Application", "chrome.exe"), "chrome.exe", "Google Chrome", now.AddDays(-20)),
-            new RecentProgramRecord(@"C:\Windows\System32\svchost.exe", "svchost.exe", "Service Host", now)
-        };
         return new BlockingPageViewModel(
             websiteData.Select(item => new BlockingWebsiteItemViewModel(Guid.NewGuid(), item.Item1, item.Item2, item.Item3)),
             applicationData.Select(item => new BlockingApplicationItemViewModel(Guid.NewGuid(), item.Item1, item.Item2, item.Item3)),
             (string)FindResource("BlockingWebsiteCountTemplate"),
             (string)FindResource("BlockingApplicationCountTemplate"),
-            recentPrograms: recentProgramData,
+            recentProgramSource: new WindowsRecentProgramSource(),
             faviconService: _iconService,
             programIconService: _iconService);
     }

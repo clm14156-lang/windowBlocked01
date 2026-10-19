@@ -55,7 +55,8 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             TargetIconCatalog.GetAvailableIconFileNames()
                 .Select(fileName => new TargetIconOptionViewModel(
                     fileName,
-                    TargetIconCatalog.GetIconSource(fileName))));
+                    TargetIconCatalog.GetIconSource(fileName),
+                    () => SelectedGoalColorHex)));
         QuickTargetIcons = [];
         _selectedTargetIcon = AllTargetIcons.FirstOrDefault(icon =>
                                   string.Equals(
@@ -495,7 +496,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     public IReadOnlyList<GoalColorOptionViewModel> GoalColors { get; } =
     [
-        new("深灰色", "#424547"), new("红色", "#FF6265"), new("橙色", "#FF7F3F", true),
+        new("深灰色", "#424547", true), new("红色", "#FF6265"), new("橙色", "#FF7F3F"),
         new("黄色", "#FFD332"), new("绿色", "#2BC46D"), new("蓝色", "#299BFA"), new("紫色", "#A66AF3")
     ];
 
@@ -520,7 +521,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     {
         if (color is null || !GoalColors.Contains(color)) return;
         foreach (var option in GoalColors) option.IsSelected = ReferenceEquals(option, color);
-        foreach (var icon in AllTargetIcons) icon.SetColor(color.ColorHex);
+        foreach (var icon in AllTargetIcons) icon.RefreshColor();
         OnPropertyChanged(nameof(SelectedGoalColorHex));
     }
 
@@ -593,22 +594,18 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         private set
         {
             if (ReferenceEquals(_selectedTargetIcon, value)) return;
-            if (_selectedTargetIcon is not null)
-            {
-                _selectedTargetIcon.IsSelected = false;
-            }
-
             _selectedTargetIcon = value;
-            if (_selectedTargetIcon is not null)
-            {
-                _selectedTargetIcon.IsSelected = true;
-            }
+            foreach (var icon in AllTargetIcons)
+                icon.IsSelected = string.Equals(icon.Id, SelectedTargetIconId, StringComparison.OrdinalIgnoreCase);
 
             OnPropertyChanged();
+            OnPropertyChanged(nameof(SelectedTargetIconId));
             OnPropertyChanged(nameof(CanCreateGoal));
             _confirmCreateGoalCommand.NotifyCanExecuteChanged();
         }
     }
+
+    public string? SelectedTargetIconId => SelectedTargetIcon?.Id;
 
     public bool CanCreateGoal => SelectedTargetIcon is not null && !string.IsNullOrWhiteSpace(NewGoalName);
 
@@ -1053,7 +1050,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         NewGoalName = string.Empty;
         NewGoalRemark = string.Empty;
         SetGoalRemarkLineCount(1);
-        SelectGoalColor(GoalColors[2]);
+        SelectGoalColor(GoalColors[0]);
         IsGoalIconLibraryOpen = false;
         SelectTargetIcon(QuickTargetIcons.FirstOrDefault() ?? AllTargetIcons.FirstOrDefault());
         IsCreateGoalDialogOpen = true;
@@ -1067,6 +1064,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         SetEditingGoal(null);
         NewGoalName = string.Empty;
         NewGoalRemark = string.Empty;
+        RebuildTargetIconShortcuts();
         SelectTargetIcon(QuickTargetIcons.FirstOrDefault() ?? AllTargetIcons.FirstOrDefault());
     }
 
@@ -1153,10 +1151,21 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     private void SelectTargetIcon(TargetIconOptionViewModel? icon)
     {
-        if (icon is not null && AllTargetIcons.Contains(icon))
-        {
-            SelectedTargetIcon = icon;
-        }
+        var selected = AllTargetIcons.FirstOrDefault(item =>
+            string.Equals(item.Id, icon?.Id, StringComparison.OrdinalIgnoreCase));
+        if (selected is null) return;
+        SelectedTargetIcon = selected;
+        EnsureSelectedIconShortcut();
+    }
+
+    private void EnsureSelectedIconShortcut()
+    {
+        if (SelectedTargetIcon is not { } selected || QuickTargetIcons.Any(icon =>
+                string.Equals(icon.Id, selected.Id, StringComparison.OrdinalIgnoreCase))) return;
+
+        // Existing shortcuts stay in place; only a previously absent icon replaces the first slot.
+        if (QuickTargetIcons.Count == 0) QuickTargetIcons.Add(selected);
+        else QuickTargetIcons[0] = selected;
     }
 
     private void ApplyRecentTargetIcons(IEnumerable<string> fileNames)
@@ -1166,11 +1175,11 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .Take(TargetIconCatalog.MaximumRecentIconCount)
             .ToArray();
-        RebuildTargetIconShortcuts();
+        RebuildTargetIconShortcuts(includeSelectedIcon: IsCreateGoalDialogOpen);
         OnPropertyChanged(nameof(RecentTargetIconFileNames));
     }
 
-    private void RebuildTargetIconShortcuts()
+    private void RebuildTargetIconShortcuts(bool includeSelectedIcon = false)
     {
         var byFileName = AllTargetIcons.ToDictionary(
             icon => icon.FileName,
@@ -1186,6 +1195,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         {
             QuickTargetIcons.Add(byFileName[fileName]);
         }
+        if (includeSelectedIcon) EnsureSelectedIconShortcut();
     }
 
     private void SelectGoal(GoalOverviewItemViewModel? goal)
@@ -1682,7 +1692,7 @@ public sealed class FocusSessionRecordViewModel : INotifyPropertyChanged
     public IReadOnlyList<LocalFocusSessionTaskSnapshotDto> CompletedTaskSnapshots { get; init; } = [];
     public IReadOnlyList<string> CompletedTaskIds { get; init; } = [];
     public string IconSource { get; init; } = TargetIconCatalog.GetIconSource(null);
-    public string CalendarTitle => HasGoal ? GoalName : "自由专注";
+    public string CalendarTitle => HasGoal ? GoalName : string.Empty;
     // Saved membership is authoritative; a completion timestamp never identifies a task.
     public int CalendarCompletedTaskCount => FocusDuration < TimeSpan.FromMinutes(5) ? 0 : CompletedTaskSnapshots.Count > 0
         ? CompletedTaskSnapshots.Select(task => task.TaskId).Distinct(StringComparer.Ordinal).Count()
@@ -1886,7 +1896,7 @@ public sealed class GoalOverviewItemViewModel : INotifyPropertyChanged
     public string GoalId { get; }
     public DateTimeOffset? CreatedAtUtc { get; }
     public DateTimeOffset? ArchivedAtUtc => _archivedAtUtc;
-    public string CreatedDateDisplay => CreatedAtUtc is { } created ? $"创建于 {created.ToLocalTime():M月d日}" : "创建日期未知";
+    public string CreatedDateDisplay => CreatedAtUtc is { } created ? $"创建于 {created.ToLocalTime():yyyy年M月d日}" : "创建日期未知";
     public string ArchivedDateDisplay => ArchivedAtUtc is { } archived
         ? $"归档于 {archived.ToLocalTime():M月d日}"
         : "归档时间未知";
@@ -1899,6 +1909,8 @@ public sealed class GoalOverviewItemViewModel : INotifyPropertyChanged
     public string IconSource { get; private set; }
 
     public string? Remark { get; private set; }
+    public bool HasRemark => !string.IsNullOrWhiteSpace(Remark);
+    public string RemarkPreview => Remark?.ReplaceLineEndings(" ") ?? string.Empty;
 
     public void UpdateDetails(string? remark)
     {
@@ -1906,6 +1918,8 @@ public sealed class GoalOverviewItemViewModel : INotifyPropertyChanged
         {
             Remark = remark;
             OnPropertyChanged(nameof(Remark));
+            OnPropertyChanged(nameof(HasRemark));
+            OnPropertyChanged(nameof(RemarkPreview));
             OnPropertyChanged(nameof(DetailMetadataDisplay));
         }
     }
@@ -2016,26 +2030,24 @@ public sealed class GoalOverviewItemViewModel : INotifyPropertyChanged
 public sealed class TargetIconOptionViewModel : INotifyPropertyChanged
 {
     private bool _isSelected;
-    private string _colorHex = TargetIconCatalog.DefaultColorHex;
+    private readonly Func<string> _colorProvider;
 
-    public TargetIconOptionViewModel(string fileName, string iconSource)
+    public TargetIconOptionViewModel(string fileName, string iconSource, Func<string>? colorProvider = null)
     {
         FileName = fileName;
         IconSource = iconSource;
+        _colorProvider = colorProvider ?? (() => TargetIconCatalog.DefaultColorHex);
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public string FileName { get; }
+    public string Id => FileName;
 
     public string IconSource { get; }
-    public string DisplayIconSource => TargetIconCatalog.GetIconSource(FileName, IsSelected ? _colorHex : "#65758B");
+    public string DisplayIconSource => TargetIconCatalog.GetIconSource(FileName, _colorProvider());
 
-    public void SetColor(string colorHex)
-    {
-        _colorHex = colorHex;
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DisplayIconSource)));
-    }
+    internal void RefreshColor() => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DisplayIconSource)));
 
     public bool IsSelected
     {
@@ -2045,7 +2057,6 @@ public sealed class TargetIconOptionViewModel : INotifyPropertyChanged
             if (_isSelected == value) return;
             _isSelected = value;
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsSelected)));
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DisplayIconSource)));
         }
     }
 }

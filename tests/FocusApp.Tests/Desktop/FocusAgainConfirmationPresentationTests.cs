@@ -68,7 +68,7 @@ public sealed class FocusAgainConfirmationPresentationTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void BothModesShareEndDialogColorsAndTitleSizeAndKeepAllThreeActions(bool dark)
+    public void BothModesKeepOriginalAgainDialogColorsAndTitleSizeAndAllThreeActions(bool dark)
     {
         Exception? failure = null;
         var thread = new Thread(() =>
@@ -90,7 +90,6 @@ public sealed class FocusAgainConfirmationPresentationTests
                     ShowInTaskbar = false, ShowActivated = false, Left = -32000, Top = -32000 };
                 window.Show(); Pump(view);
                 var dialog = (Border)view.FindName("FocusAgainConfirmationDialog");
-                var endDialog = (Border)view.FindName("FocusEndConfirmationDialog");
                 var title = (TextBlock)view.FindName("FocusAgainTitle");
                 var endTitle = (TextBlock)view.FindName("FocusEndTitle");
                 var description = (TextBlock)view.FindName("FocusAgainDescription");
@@ -124,8 +123,8 @@ public sealed class FocusAgainConfirmationPresentationTests
                 Assert.Equal(180, dialog.Height);
                 Assert.InRange(dialog.ActualWidth, 329.5, 330.5);
                 Assert.InRange(dialog.ActualHeight, 179.5, 180.5);
-                Assert.Same(endDialog.Background, dialog.Background);
-                Assert.Same(endDialog.BorderBrush, dialog.BorderBrush);
+                Assert.Same(view.FindResource("FocusEndDialogBackground"), dialog.Background);
+                Assert.Same(view.FindResource("FocusEndDialogBorder"), dialog.BorderBrush);
                 Assert.Equal(dark, dialog.Background is LinearGradientBrush);
                 Assert.Equal("再次专注？", title.Text);
                 Assert.Equal(26, title.FontSize);
@@ -152,7 +151,7 @@ public sealed class FocusAgainConfirmationPresentationTests
                 SavePreview(view, dialog, dark ? "focus-again-dark" : "focus-again-light");
                 var before = regions.Select(region => Bounds(region, dialog)).ToArray();
                 model.ApplyFocusTheme(dark ? FocusThemeMode.Light : FocusThemeMode.Dark); Pump(view);
-                Assert.Same(endDialog.Background, dialog.Background);
+                Assert.Same(view.FindResource("FocusEndDialogBackground"), dialog.Background);
                 // Completion keeps the theme used by the finished session; new preferences apply on restart.
                 Assert.Equal(dark, model.IsDarkFocusTheme);
                 Assert.Equal(dark, dialog.Background is LinearGradientBrush);

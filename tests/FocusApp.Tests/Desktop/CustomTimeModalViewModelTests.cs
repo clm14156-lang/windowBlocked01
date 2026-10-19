@@ -6,6 +6,34 @@ namespace FocusApp.Tests.Desktop;
 public sealed class CustomTimeModalViewModelTests
 {
     [Fact]
+    public void ExpandingAndTypingPreservesPresetsAndSelectionAndReopeningStartsCollapsed()
+    {
+        var home = new HomePageViewModel([new("30", "", true, 30), new("60", "", false, 60)]);
+        var modal = home.CustomTimeModal;
+        modal.Open();
+        var original = modal.CommonTimes.ToArray();
+        var writes = 0;
+        home.DurationOptionsChanged += (_, _) => writes++;
+        Assert.False(modal.IsCustomDurationExpanded);
+        modal.ToggleCustomDurationCommand.Execute(null);
+        modal.MinutesInput = "120";
+        modal.ToggleCustomDurationCommand.Execute(null);
+        Assert.False(modal.IsCustomDurationExpanded);
+        Assert.Equal("120", modal.MinutesInput);
+        Assert.Equal(original, modal.CommonTimes);
+        Assert.Equal(new[] { 30 }, modal.SelectedMinutes);
+        Assert.Equal(0, writes);
+        modal.ToggleCustomDurationCommand.Execute(null);
+        modal.ConfirmCommand.Execute(null);
+        Assert.Single(modal.CommonTimes.Where(option => option.Minutes == 120));
+        Assert.Equal(1, writes);
+        modal.CancelCommand.Execute(null);
+        modal.Open();
+        Assert.False(modal.IsCustomDurationExpanded);
+        Assert.Equal(string.Empty, modal.MinutesInput);
+    }
+
+    [Fact]
     public void QuickSelectionRestoresSavedChoicesAndEvictsByClickOrder()
     {
         var home = new HomePageViewModel([new("30", "", true, 30), new("60", "", true, 60),
@@ -18,7 +46,7 @@ public sealed class CustomTimeModalViewModelTests
         var thirty = modal.CommonTimes.Single(option => option.Minutes == 30);
         var sixty = modal.CommonTimes.Single(option => option.Minutes == 60);
         modal.SelectTimeCommand.Execute(thirty);
-        Assert.Equal("0", modal.MinutesInput);
+        Assert.Equal(string.Empty, modal.MinutesInput);
         Assert.Equal([60, 90, 180], modal.SelectedMinutes);
         Assert.False(thirty.IsSelectedInCustomTime);
         modal.SelectTimeCommand.Execute(thirty);
@@ -27,7 +55,7 @@ public sealed class CustomTimeModalViewModelTests
         Assert.Equal([90, 180, 30, 45], modal.SelectedMinutes);
         Assert.False(sixty.IsSelectedInCustomTime);
         modal.SelectTimeCommand.Execute(sixty);
-        Assert.Equal("0", modal.MinutesInput);
+        Assert.Equal(string.Empty, modal.MinutesInput);
         Assert.Equal([180, 30, 45, 60], modal.SelectedMinutes);
         modal.SelectTimeCommand.Execute(sixty);
         Assert.Equal([180, 30, 45], modal.SelectedMinutes);
@@ -116,7 +144,7 @@ public sealed class CustomTimeModalViewModelTests
         modal.ConfirmCommand.Execute(null);
         Assert.Equal(new[] { 5, 16, 30, 50, 54, 60, 90, 180, 455 }, CommonMinutes());
         Assert.Equal(new[] { 5, 16, 54, 60 }, HomeMinutes());
-        Assert.Equal("0", modal.MinutesInput);
+        Assert.Equal(string.Empty, modal.MinutesInput);
         home.ApplyDurationPresets(home.GetDurationPresets());
         Assert.Equal(new[] { 5, 16, 30, 50, 54, 60, 90, 180, 455 }, CommonMinutes());
         modal.CancelCommand.Execute(null); modal.Open();
@@ -194,13 +222,13 @@ public sealed class CustomTimeModalViewModelTests
         var writes = 0;
         home.DurationOptionsChanged += (_, _) => writes++;
         modal.Open();
-        Assert.Equal("0", modal.MinutesInput);
+        Assert.Equal(string.Empty, modal.MinutesInput);
         Assert.False(modal.ConfirmCommand.CanExecute(null));
         modal.MinutesInput = "45";
         modal.SelectTimeCommand.Execute(modal.CommonTimes.Single(option => option.Minutes == 60));
         Assert.Equal("45", modal.MinutesInput);
         modal.ConfirmCommand.Execute(null);
-        Assert.Equal("0", modal.MinutesInput);
+        Assert.Equal(string.Empty, modal.MinutesInput);
         var added = Assert.Single(modal.CommonTimes.Where(option => option.Minutes == 45));
         Assert.False(added.IsSelectedInCustomTime);
         Assert.False(added.IsSelected);
@@ -209,14 +237,14 @@ public sealed class CustomTimeModalViewModelTests
         var beforeDuplicate = home.GetDurationPresets();
         modal.Minutes = 45;
         modal.ConfirmCommand.Execute(null);
-        Assert.Equal("0", modal.MinutesInput);
+        Assert.Equal(string.Empty, modal.MinutesInput);
         Assert.Equal(beforeDuplicate, home.GetDurationPresets());
         Assert.Equal(2, writes);
         Assert.False(home.FocusSession.IsFocusing);
         modal.MinutesInput = "480";
         modal.CancelCommand.Execute(null);
         modal.Open();
-        Assert.Equal("0", modal.MinutesInput);
+        Assert.Equal(string.Empty, modal.MinutesInput);
         Assert.Equal([30, 60], modal.SelectedMinutes);
     }
 
@@ -225,6 +253,7 @@ public sealed class CustomTimeModalViewModelTests
     [InlineData("5", true)] [InlineData("480", true)] [InlineData("481", false)]
     [InlineData("30.5", false)] [InlineData("-30", false)] [InlineData("+30", false)]
     [InlineData(" 30", false)] [InlineData("abc", false)] [InlineData("2147483648", false)]
+    [InlineData("120\n", false)] [InlineData("１２０", false)] [InlineData("1200", false)]
     public void AddAcceptsOnlyWholeMinutesWithinTheSupportedRange(string input, bool valid)
     {
         var calls = 0;
@@ -234,7 +263,7 @@ public sealed class CustomTimeModalViewModelTests
         Assert.Equal(valid, modal.ConfirmCommand.CanExecute(null));
         modal.ConfirmCommand.Execute(null);
         Assert.Equal(valid ? 1 : 0, calls);
-        Assert.Equal(valid ? "0" : input, modal.MinutesInput);
+        Assert.Equal(valid ? string.Empty : input, modal.MinutesInput);
         Assert.Empty(modal.SelectedMinutes);
     }
 }

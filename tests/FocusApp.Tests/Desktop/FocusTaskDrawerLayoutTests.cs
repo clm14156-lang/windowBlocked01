@@ -90,7 +90,7 @@ public sealed class FocusTaskDrawerLayoutTests
                 var number = (TextBlock)mainCheck.Template.FindName("TaskNumber", mainCheck);
                 Assert.Equal(new CornerRadius(3), chrome.CornerRadius);
                 Assert.Equal("1", number.Text);
-                Assert.Equal(session.IsDarkFocusTheme ? 10 : 11, number.FontSize);
+                Assert.Equal(10, number.FontSize);
                 Assert.Equal(HorizontalAlignment.Center, number.HorizontalAlignment);
                 Assert.Equal(VerticalAlignment.Center, number.VerticalAlignment);
                 var note = Descendants(card).OfType<TextBlock>().Single(item => item.Name == "InlineDescription");

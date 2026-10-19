@@ -248,6 +248,9 @@ public sealed class StatisticsOverviewViewModelTests
         var codeIcon = viewModel.AllTargetIcons.Single(icon => icon.FileName == "code.svg");
         viewModel.SelectTargetIconCommand.Execute(codeIcon);
         Assert.Equal(shortcutsBeforeSelection, viewModel.QuickTargetIcons.Select(icon => icon.FileName));
+        Assert.Same(codeIcon, viewModel.SelectedTargetIcon);
+        Assert.Equal(shortcutsBeforeSelection.Length, viewModel.QuickTargetIcons.Count);
+        Assert.Equal(viewModel.QuickTargetIcons.Count, viewModel.QuickTargetIcons.Select(icon => icon.FileName).Distinct().Count());
         viewModel.ConfirmCreateGoalCommand.Execute(null);
 
         var added = Assert.IsType<GoalOverviewItemViewModel>(viewModel.SelectedGoal);

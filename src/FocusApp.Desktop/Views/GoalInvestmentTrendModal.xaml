@@ -9,6 +9,7 @@
       <ResourceDictionary>
         <ResourceDictionary.MergedDictionaries>
             <ResourceDictionary Source="/FocusApp.Desktop;component/Resources/StatisticsTypography.xaml"/>
+            <ResourceDictionary Source="/FocusApp.Desktop;component/Resources/PoptipStyles.xaml"/>
         </ResourceDictionary.MergedDictionaries>
         <sys:Boolean x:Key="SelectedRangeValue">True</sys:Boolean>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
@@ -173,16 +174,16 @@
                         </Grid>
                     </Border>
         <Canvas x:Name="TrendTooltipOverlay" Grid.RowSpan="7" Panel.ZIndex="10" IsHitTestVisible="False">
-            <Border x:Name="TrendTooltip" Canvas.Left="{Binding TooltipLeft}" Canvas.Top="{Binding TooltipTop}" Width="196" Height="68" CornerRadius="10" Padding="13,10" Background="#282F3B" BorderBrush="#343D4B" BorderThickness="1"
+            <Border x:Name="TrendTooltip" Canvas.Left="{Binding TooltipLeft}" Canvas.Top="{Binding TooltipTop}" Width="196" Height="68" CornerRadius="10" Padding="13,10" Background="{StaticResource ChartPoptipBackgroundBrush}" BorderBrush="{StaticResource ChartPoptipBorderBrush}" BorderThickness="1"
                     Visibility="{Binding IsTooltipOpen, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <Border.RenderTransform><TransformGroup><TranslateTransform Y="20"/><TranslateTransform x:Name="TrendTooltipOrigin"/></TransformGroup></Border.RenderTransform>
                 <Border.Effect><DropShadowEffect Color="#17202D" BlurRadius="12" Opacity="0.12" ShadowDepth="2"/></Border.Effect>
                 <StackPanel>
-                    <TextBlock x:Name="TooltipDate" Text="{Binding HoveredPoint.TooltipFullDateDisplay}" Style="{StaticResource StatisticsAuxiliaryTextStyle}" Foreground="#BFC6D2"/>
+                    <TextBlock x:Name="TooltipDate" Text="{Binding HoveredPoint.TooltipFullDateDisplay}" Style="{StaticResource StatisticsAuxiliaryTextStyle}" Foreground="{StaticResource ChartPoptipSecondaryBrush}"/>
                     <Grid Margin="0,7,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="8"/><ColumnDefinition Width="8"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="8"/><ColumnDefinition/></Grid.ColumnDefinitions>
                         <Ellipse Width="8" Height="8" Fill="#FF8B28" VerticalAlignment="Center"/>
-                        <TextBlock x:Name="TooltipFocusLabel" Grid.Column="2" Text="专注时长" Style="{StaticResource StatisticsAuxiliaryTextStyle}" Foreground="#E3E7EE" VerticalAlignment="Center"/>
-                        <Viewbox Grid.Column="4" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" VerticalAlignment="Center"><TextBlock x:Name="TooltipFocusDuration" Text="{Binding HoverFocusDurationDisplay}" Style="{StaticResource StatisticsTimeTextStyle}" Foreground="White"/></Viewbox>
+                        <TextBlock x:Name="TooltipFocusLabel" Grid.Column="2" Text="专注时长" Style="{StaticResource StatisticsAuxiliaryTextStyle}" Foreground="{StaticResource ChartPoptipBodyBrush}" VerticalAlignment="Center"/>
+                        <Viewbox Grid.Column="4" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" VerticalAlignment="Center"><TextBlock x:Name="TooltipFocusDuration" Text="{Binding HoverFocusDurationDisplay}" Style="{StaticResource StatisticsTimeTextStyle}" Foreground="{StaticResource ChartPoptipValueBrush}"/></Viewbox>
                     </Grid>
                 </StackPanel>
             </Border>

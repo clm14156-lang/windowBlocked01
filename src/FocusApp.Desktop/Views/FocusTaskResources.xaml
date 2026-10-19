@@ -1,4 +1,5 @@
-<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:views="clr-namespace:FocusApp.Desktop.Views">
     <ResourceDictionary.MergedDictionaries>
         <ResourceDictionary Source="../Resources/FocusTheme.Light.xaml" />
     </ResourceDictionary.MergedDictionaries>
@@ -132,4 +133,22 @@
         </ControlTemplate></Setter.Value></Setter>
     </Style>
     <Style TargetType="Separator"><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Separator"><Border Height="1" Background="{DynamicResource FocusTaskDivider}" Margin="8,4" /></ControlTemplate></Setter.Value></Setter></Style>
+    <Style x:Key="DrawerTaskMenuStyle" TargetType="ContextMenu" BasedOn="{StaticResource {x:Type ContextMenu}}">
+        <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ContextMenu">
+            <Border Background="{DynamicResource DrawerTaskMenuBackground}" CornerRadius="9" BorderBrush="{DynamicResource DrawerTaskMenuBorder}" BorderThickness="1" Padding="5" MinWidth="146">
+                <Border.Effect><DropShadowEffect BlurRadius="10" ShadowDepth="1" Opacity="0.09" /></Border.Effect>
+                <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle" />
+            </Border>
+        </ControlTemplate></Setter.Value></Setter>
+    </Style>
+    <Style x:Key="DrawerTaskMenuSeparatorStyle" TargetType="Separator" BasedOn="{StaticResource {x:Static MenuItem.SeparatorStyleKey}}">
+        <Setter Property="Margin" Value="0,2" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding Path=(views:FocusThemeScope.IsDark), RelativeSource={RelativeSource AncestorType=ContextMenu}}" Value="True">
+                <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Separator">
+                    <Border Height="1" Background="{DynamicResource DrawerTaskMenuDivider}" />
+                </ControlTemplate></Setter.Value></Setter>
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
 </ResourceDictionary>

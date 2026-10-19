@@ -25,7 +25,7 @@ public sealed class BlockingPagePresentationTests
         Assert.Equal("False", (string?)popup.Attribute("StaysOpen"));
         Assert.Equal("{Binding ElementName=WebsiteMoreButton}", (string?)popup.Attribute("PlacementTarget"));
         Assert.Equal("{Binding IsActionMenuOpen, Mode=TwoWay}", (string?)moreButton.Attribute("IsChecked"));
-        Assert.Equal("160", (string?)surface.Attribute("Width"));
+        Assert.Equal("110", (string?)surface.Attribute("Width"));
         Assert.Equal("12", (string?)surface.Attribute("CornerRadius"));
         Assert.Equal("#E5E5EA", (string?)surface.Attribute("BorderBrush"));
 

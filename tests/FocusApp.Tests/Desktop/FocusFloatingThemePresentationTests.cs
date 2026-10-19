@@ -98,9 +98,8 @@ public sealed class FocusFloatingThemePresentationTests
                     var surface = (Border)floating.FindName("FloatingSurface");
                     if (dark)
                     {
-                        var gradient = Assert.IsType<LinearGradientBrush>(surface.Background);
-                        Assert.Equal(3, gradient.GradientStops.Count);
-                        Assert.All(gradient.GradientStops, stop => Assert.True(stop.Color.B > stop.Color.G && stop.Color.G > stop.Color.R));
+                        Assert.Equal(Color.FromRgb(0x14, 0x1D, 0x2D), Assert.IsType<SolidColorBrush>(surface.Background).Color);
+                        Assert.Equal(Color.FromRgb(0x14, 0x1D, 0x2D), Assert.IsType<SolidColorBrush>(((Border)folded.FindName("CapsuleSurface")).Background).Color);
                         Assert.IsType<System.Windows.Media.Effects.DropShadowEffect>(surface.Effect);
                         Assert.Equal(Color.FromRgb(0x25, 0x3D, 0x60), ((SolidColorBrush)((ProgressBar)floating.FindName("FocusProgressBar")).Background).Color);
                         Assert.Equal(Color.FromRgb(0xF2, 0xF5, 0xFB), ((SolidColorBrush)((TextBlock)folded.FindName("FoldedCountdown")).Foreground).Color);

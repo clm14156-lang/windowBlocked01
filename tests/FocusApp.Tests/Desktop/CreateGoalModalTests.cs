@@ -281,7 +281,8 @@ public sealed class CreateGoalModalTests
         Assert.Equal("{Binding StatisticsPage}", (string?)modal.Attribute("DataContext"));
         Assert.Equal("-1", (string?)modal.Attribute("Margin"));
         var modalLayer = int.Parse(modal.Attribute("Panel.ZIndex")!.Value);
-        Assert.All(rootGrid.Elements().Where(e => e != modal), e =>
+        // Independent modal layers (such as the character picker) may sit above this dialog.
+        Assert.All(rootGrid.Elements().Where(e => e != modal && !e.Name.LocalName.EndsWith("Modal", StringComparison.Ordinal)), e =>
             Assert.True(int.Parse((string?)e.Attribute("Panel.ZIndex") ?? "0") < modalLayer));
     }
 

@@ -28,8 +28,12 @@ public sealed class MainWindowViewModelTests
         Assert.Empty(blocking.Websites);
     }
 
-    [Fact]
-    public void ForcedMode_StartRequiresTheCurrentVipAccessAndDoesNotFallBackToNormalFocus()
+    [Theory]
+    [InlineData(null, null)]
+    [InlineData("123", "123")]
+    [InlineData("456", "456")]
+    [InlineData("789", "789")]
+    public void ForcedMode_StartsForGuestsAndAllMemberships(string? loginAccount, string? password)
     {
         var duration = new HomeDurationOptionViewModel("25 minutes", string.Empty, true, 25);
         var homePage = new HomePageViewModel([duration]);
@@ -39,27 +43,23 @@ public sealed class MainWindowViewModelTests
         var settings = new SettingsPageViewModel([forcedMode], []);
         var viewModel = new MainWindowViewModel([home], account, homePage, settings);
 
-        homePage.SetForcedModeEnabled(true);
-        homePage.StartFocusCommand.Execute(null);
-
-        Assert.Equal(FocusApp.Core.FocusStartModeDecision.LoginRequired, homePage.LastFocusStartDecision);
-        Assert.Equal(FocusFlowStage.Idle, homePage.FocusSession.Stage);
-
-        viewModel.AuthModal.LoginAccount = "123";
-        viewModel.AuthModal.LoginPassword = "123";
-        viewModel.AuthModal.LoginCommand.Execute(null);
-        homePage.StartFocusCommand.Execute(null);
-
-        Assert.Equal(FocusApp.Core.FocusStartModeDecision.VipRequired, homePage.LastFocusStartDecision);
-        Assert.Equal(FocusFlowStage.Idle, homePage.FocusSession.Stage);
-
-        viewModel.AuthModal.LoginAccount = "456";
-        viewModel.AuthModal.LoginPassword = "456";
-        viewModel.AuthModal.LoginCommand.Execute(null);
-        homePage.SetForcedModeEnabled(true);
+        if (loginAccount is not null)
+        {
+            viewModel.AuthModal.LoginAccount = loginAccount;
+            viewModel.AuthModal.LoginPassword = password!;
+            viewModel.AuthModal.LoginCommand.Execute(null);
+        }
+        forcedMode.IsEnabled = true;
+        Assert.True(homePage.IsForcedModeRequested);
         homePage.StartFocusCommand.Execute(null);
 
         Assert.Equal(FocusApp.Core.FocusStartModeDecision.Forced, homePage.LastFocusStartDecision);
+        Assert.True(homePage.FocusSession.IsForcedModeActive);
+        homePage.FocusSession.AdvancePreparationBy(TimeSpan.FromSeconds(5));
+        Assert.Equal(FocusFlowStage.Focusing, homePage.FocusSession.Stage);
+        Assert.False(homePage.FocusSession.ShowEndFocus);
+        viewModel.LogoutCommand.Execute(null);
+        Assert.True(forcedMode.IsEnabled);
         Assert.True(homePage.FocusSession.IsForcedModeActive);
     }
 
@@ -676,7 +676,7 @@ public sealed class MainWindowViewModelTests
         Assert.Equal(expectedVip, viewModel.IsVipMember);
         Assert.Equal(expectedVip, viewModel.StatisticsPage.CanViewDailyFocusRecord);
         Assert.Equal(expectedVip, viewModel.StatisticsPage.CanViewGoalInvestmentDetails);
-        Assert.Equal(expectedVip, viewModel.SettingsPage.CanUseForcedMode);
+        Assert.True(viewModel.SettingsPage.CanUseForcedMode);
 
         viewModel.OpenAuthCommand.Execute(null);
         viewModel.OpenVipCommand.Execute(null);
@@ -711,7 +711,7 @@ public sealed class MainWindowViewModelTests
         Assert.False(viewModel.IsVipMember);
         Assert.False(viewModel.StatisticsPage.CanViewDailyFocusRecord);
         Assert.False(viewModel.StatisticsPage.CanViewGoalInvestmentDetails);
-        Assert.False(viewModel.SettingsPage.CanUseForcedMode);
+        Assert.True(viewModel.SettingsPage.CanUseForcedMode);
     }
 
     [Fact]

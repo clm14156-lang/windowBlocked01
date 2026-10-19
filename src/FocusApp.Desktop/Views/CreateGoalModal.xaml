@@ -4,7 +4,8 @@
              UseLayoutRounding="True"
              SnapsToDevicePixels="True"
              KeyboardNavigation.TabNavigation="Cycle"
-             PreviewKeyDown="Modal_PreviewKeyDown">
+             PreviewKeyDown="Modal_PreviewKeyDown"
+             PreviewMouseDown="Modal_PreviewMouseDown">
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <views:TargetIconSourceConverter x:Key="TargetIconSourceConverter" />
@@ -67,8 +68,16 @@
 
         <DataTemplate x:Key="TargetIconChoiceTemplate">
             <Button Command="{Binding DataContext.SelectTargetIconCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                    CommandParameter="{Binding}"
-                    Style="{StaticResource TargetIconChoiceButtonStyle}">
+                    CommandParameter="{Binding}">
+                <Button.Style>
+                    <Style TargetType="Button" BasedOn="{StaticResource TargetIconChoiceButtonStyle}">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                <Setter Property="Background" Value="#F1F2F4" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
                 <Image Width="30" Height="30" RenderOptions.BitmapScalingMode="HighQuality" Source="{Binding DisplayIconSource, Converter={x:Static views:TargetIconSourceConverter.Instance}}" Stretch="Uniform" />
             </Button>
         </DataTemplate>
@@ -174,7 +183,7 @@
                     </StackPanel>
                     <StackPanel Grid.Row="2" Margin="0,16,0,0">
                         <TextBlock Margin="0,0,0,6" FontSize="{DynamicResource SectionTitleFontSize}" FontWeight="{DynamicResource SectionTitleFontWeight}" Text="图标" />
-                        <Grid>
+                        <Grid x:Name="GoalIconChoices">
                             <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="38" /></Grid.ColumnDefinitions>
                             <ItemsControl ItemTemplate="{StaticResource TargetIconChoiceTemplate}" ItemsSource="{Binding QuickTargetIcons}">
                                 <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="6" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
@@ -216,7 +225,7 @@
                 </Grid>
             </Border>
         </Grid>
-        <Popup x:Name="GoalIconLibraryPopup" DataContext="{Binding}" AllowsTransparency="True" IsOpen="{Binding IsGoalIconLibraryOpen, Mode=TwoWay}" Placement="Custom" PlacementTarget="{Binding ElementName=DialogCard}" PopupAnimation="Fade" StaysOpen="False">
+        <Popup x:Name="GoalIconLibraryPopup" DataContext="{Binding}" AllowsTransparency="True" IsOpen="{Binding IsGoalIconLibraryOpen, Mode=TwoWay}" Placement="Custom" PlacementTarget="{Binding ElementName=DialogCard}" PopupAnimation="Fade" StaysOpen="True">
             <Border Width="344" Height="230" Padding="18" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" CornerRadius="16">
                 <Border.Effect><DropShadowEffect BlurRadius="22" Direction="270" Opacity="0.16" ShadowDepth="5" /></Border.Effect>
                 <ItemsControl ItemTemplate="{StaticResource TargetIconChoiceTemplate}" ItemsSource="{Binding AllTargetIcons}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="6" /></ItemsPanelTemplate></ItemsControl.ItemsPanel></ItemsControl>

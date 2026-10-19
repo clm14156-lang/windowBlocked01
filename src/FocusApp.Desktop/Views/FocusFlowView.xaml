@@ -732,8 +732,8 @@
             </Grid.Style>
             <Border Background="{DynamicResource ModalScrim}" />
             <Border x:Name="FocusEndConfirmationDialog"
-                    Width="330" Height="300" Background="{DynamicResource FocusEndDialogBackground}"
-                    BorderBrush="{DynamicResource FocusEndDialogBorder}" BorderThickness="1" CornerRadius="20"
+                    Width="330" Height="300" Background="{DynamicResource FocusEndConfirmationBackground}"
+                    BorderThickness="0" Padding="1" CornerRadius="20"
                     TextElement.FontFamily="{DynamicResource FontFamilyPrimary}">
                 <Border.Effect><DropShadowEffect BlurRadius="24" Direction="270" Opacity="0.22" ShadowDepth="6" /></Border.Effect>
                 <Grid>
@@ -769,7 +769,7 @@
                                 <TextBlock x:Name="FocusEndElapsedValue" Foreground="{DynamicResource FocusEndTitleBrush}"
                                            FontFamily="{DynamicResource FontFamilyNumeric}" FontSize="{DynamicResource TimerConfirmationFontSize}"
                                            FontWeight="{DynamicResource TimerFontWeight}" AutomationProperties.Name="{Binding EndConfirmationElapsedDisplay}">
-                                    <Run Text="{Binding EndConfirmationMinutesDisplay, Mode=OneWay}"/><Run Text=" 分 " Style="{StaticResource FocusEndTimeUnitRunStyle}"/><Run Text="{Binding EndConfirmationSecondsDisplay, Mode=OneWay}"/><Run Text=" 秒" Style="{StaticResource FocusEndTimeUnitRunStyle}"/>
+                                    <Run Text="{Binding EndConfirmationMinutesDisplay, Mode=OneWay}"/><Run Text="{Binding EndConfirmationMinutesUnitDisplay, Mode=OneWay}" Style="{StaticResource FocusEndTimeUnitRunStyle}"/><Run Text="{Binding EndConfirmationSecondsDisplay, Mode=OneWay}"/><Run Text=" 秒" Style="{StaticResource FocusEndTimeUnitRunStyle}"/>
                                 </TextBlock>
                             </Viewbox>
                         </Grid>
@@ -807,7 +807,7 @@
                             <Grid.RowDefinitions><RowDefinition Height="42"/><RowDefinition Height="8"/><RowDefinition Height="28"/></Grid.RowDefinitions>
                             <Button x:Name="FocusContinueConfirmationButton" Grid.Row="0" Height="42" HorizontalAlignment="Stretch" IsDefault="True"
                                     AutomationProperties.Name="{DynamicResource FocusContinueAction}" Command="{Binding ContinueFocusCommand}"
-                                    BorderThickness="0" Style="{StaticResource FocusEndConfirmationAccentButton}">
+                                    BorderThickness="0" FontWeight="{DynamicResource ButtonEmphasisFontWeight}" Style="{StaticResource FocusEndConfirmationAccentButton}">
                                 <Button.Effect><DropShadowEffect Color="{DynamicResource AccentShadowColor}" BlurRadius="18" Direction="270" Opacity="0.20" ShadowDepth="4"/></Button.Effect>
                                 <TextBlock FontSize="{Binding FontSize, RelativeSource={RelativeSource AncestorType=Button}}"
                                            FontWeight="{Binding FontWeight, RelativeSource={RelativeSource AncestorType=Button}}"

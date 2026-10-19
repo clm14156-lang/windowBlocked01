@@ -20,6 +20,16 @@ public static class BlockedAccessNotificationService
     private static bool _deliveryScheduled;
     private static bool _isShuttingDown;
     private static Dispatcher? _dispatcher;
+    private static IFaviconService? _faviconService;
+    private static IEnumerable<BlockingWebsiteItemViewModel> _websites = [];
+
+    public static void ConfigureWebsiteIcons(
+        IFaviconService faviconService,
+        IEnumerable<BlockingWebsiteItemViewModel> websites)
+    {
+        _faviconService = faviconService;
+        _websites = websites;
+    }
 
     public static void SetFocusSession(FocusSessionViewModel? focusSession)
     {
@@ -57,6 +67,8 @@ public static class BlockedAccessNotificationService
             _deliveryScheduled = false;
         }
         WebsiteThrottle.Dispose();
+        _faviconService = null;
+        _websites = [];
         SetFocusSession(null);
         _activeWindow?.Close();
     }
@@ -93,6 +105,10 @@ public static class BlockedAccessNotificationService
             data.Type,
             targetKindDisplay,
             sessionToken is null ? null : () => scope!.SuppressWebsiteNotifications(sessionToken));
+        if (_faviconService is not null)
+        {
+            _ = viewModel.LoadFaviconAsync(_faviconService, _websites);
+        }
         var window = new BlockedAccessNotificationWindow
         {
             DataContext = viewModel

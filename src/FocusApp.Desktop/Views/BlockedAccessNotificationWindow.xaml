@@ -247,7 +247,17 @@
                 <Grid Width="23"
                       Height="23"
                       VerticalAlignment="Center">
-                    <Viewbox Width="23" Height="23">
+                    <Viewbox x:Name="WebsiteFallbackIcon" Width="23" Height="23">
+                        <Viewbox.Style>
+                            <Style TargetType="Viewbox">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Favicon}" Value="{x:Null}">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Viewbox.Style>
                         <Grid Width="20" Height="20">
                             <Ellipse Stroke="#AEB5BE" StrokeThickness="1.4" />
                             <Ellipse Margin="5,0" Stroke="#AEB5BE" StrokeThickness="1.2" />
@@ -255,6 +265,9 @@
                             <Line X1="1" Y1="13" X2="19" Y2="13" Stroke="#AEB5BE" StrokeThickness="1.1" />
                         </Grid>
                     </Viewbox>
+                    <Image x:Name="WebsiteFavicon" Width="23" Height="23"
+                           Source="{Binding Favicon, Mode=OneWay}" Stretch="Uniform"
+                           RenderOptions.BitmapScalingMode="HighQuality" />
                 </Grid>
 
                 <Border Grid.Column="2"
@@ -264,9 +277,11 @@
                         Background="#656B72" />
 
                 <StackPanel Grid.Column="4" VerticalAlignment="Center">
-                    <TextBlock FontSize="14"
+                    <TextBlock x:Name="BlockedTargetName" FontSize="14"
                                FontWeight="Medium"
                                Foreground="#F5F6F8"
+                               TextWrapping="NoWrap"
+                               TextTrimming="CharacterEllipsis"
                                Text="{Binding Name, Mode=OneWay}" />
                     <TextBlock Margin="0,1,0,0"
                                FontSize="11"

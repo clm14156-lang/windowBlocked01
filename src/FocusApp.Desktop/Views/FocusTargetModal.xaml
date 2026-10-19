@@ -47,8 +47,8 @@
         </Style>
 
         <Style x:Key="TargetCardButton" TargetType="{x:Type Button}">
-            <Setter Property="Height" Value="48" />
-            <Setter Property="Padding" Value="12,0" />
+            <Setter Property="Height" Value="61" />
+            <Setter Property="Padding" Value="4,0" />
             <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Cursor" Value="Hand" />
@@ -81,7 +81,7 @@
             <Setter Property="Foreground" Value="{DynamicResource WhiteText}" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="FontSize" Value="{DynamicResource ButtonFontSize}" />
-            <Setter Property="FontWeight" Value="{DynamicResource ButtonFontWeight}" />
+            <Setter Property="FontWeight" Value="{DynamicResource FontWeightSemiBold}" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Template">
@@ -228,40 +228,45 @@
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Grid Height="49">
+                                <Grid Height="62">
                                     <Button AutomationProperties.Name="{Binding Name}"
+                                        AutomationProperties.HelpText="{Binding RecentFocusStatus}"
                                         Command="{Binding DataContext.SelectTargetCommand, RelativeSource={RelativeSource AncestorType={x:Type ItemsControl}}}"
                                         CommandParameter="{Binding}"
                                         Style="{StaticResource TargetCardButton}">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="32" />
+                                            <ColumnDefinition Width="56" />
                                             <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="24" />
+                                            <ColumnDefinition Width="26" />
                                         </Grid.ColumnDefinitions>
-                                        <Image Grid.Column="0"
-                                               Width="21"
-                                               Height="21"
-                                               HorizontalAlignment="Left"
-                                               RenderOptions.BitmapScalingMode="HighQuality"
-                                               Source="{Binding IconSource, Converter={x:Static views:TargetIconSourceConverter.Instance}}"
-                                               Stretch="Uniform" />
-                                        <TextBlock Grid.Column="1"
-                                                   Margin="3,0,8,0"
-                                                   VerticalAlignment="Center"
-                                                   Style="{StaticResource TargetNameTextStyle}"
-                                                   Text="{Binding Name}"
-                                                   TextTrimming="CharacterEllipsis">
-                                            <TextBlock.ToolTip><ToolTip Content="{Binding Name}" ContentTemplate="{StaticResource TargetNameTooltipTemplate}"/></TextBlock.ToolTip>
-                                        </TextBlock>
+                                        <Border x:Name="TargetIconBadge" Grid.Column="0"
+                                                Width="44" Height="44" CornerRadius="22"
+                                                HorizontalAlignment="Left" VerticalAlignment="Center">
+                                            <Image Width="28" Height="28"
+                                                   RenderOptions.BitmapScalingMode="HighQuality"
+                                                   Source="{Binding IconSource, Converter={x:Static views:TargetIconSourceConverter.Instance}}"
+                                                   Stretch="Uniform" />
+                                        </Border>
+                                        <StackPanel Grid.Column="1" Margin="0,0,8,0" VerticalAlignment="Center">
+                                            <TextBlock Style="{StaticResource TargetNameTextStyle}"
+                                                       Text="{Binding Name}" TextWrapping="NoWrap"
+                                                       TextTrimming="CharacterEllipsis">
+                                                <TextBlock.ToolTip><ToolTip Content="{Binding Name}" ContentTemplate="{StaticResource TargetNameTooltipTemplate}"/></TextBlock.ToolTip>
+                                            </TextBlock>
+                                            <TextBlock x:Name="TargetRecentFocusStatus" Margin="0,4,0,0"
+                                                       Style="{StaticResource StatisticsAuxiliaryTextStyle}"
+                                                       Text="{Binding RecentFocusStatus}" TextWrapping="NoWrap"
+                                                       TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
                                         <Border x:Name="TargetSelectionIndicator"
                                                 Grid.Column="2"
-                                                Width="20"
-                                                Height="20"
+                                                Width="22"
+                                                Height="22"
                                                 HorizontalAlignment="Right"
                                                 VerticalAlignment="Center"
                                                 BorderThickness="2"
-                                                CornerRadius="10">
+                                                CornerRadius="11">
                                             <Border.Style>
                                                 <Style TargetType="{x:Type Border}">
                                                     <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
@@ -289,7 +294,7 @@
                                         </Border>
                                     </Grid>
                                     </Button>
-                                    <Border x:Name="TargetRowDivider" Height="1" Margin="12,0,12,0" VerticalAlignment="Bottom" Background="#EEF0F3" IsHitTestVisible="False"/>
+                                    <Border x:Name="TargetRowDivider" Height="1" Margin="4,0,4,0" VerticalAlignment="Bottom" Background="#EEF0F3" IsHitTestVisible="False"/>
                                 </Grid>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>

@@ -15,7 +15,7 @@ public sealed class OverviewFocusChart : FrameworkElement
     private static readonly Brush TodayBrush = FrozenBrush("#FF8A25");
     private static readonly Pen GridPen = FrozenPen("#EAF0F6", 1, new DashStyle([2, 3], 0));
     private static readonly Pen BaselinePen = FrozenPen("#DDE4ED", 1);
-    private static readonly Brush ColumnBrush = CreateColumnBrush();
+    private static readonly Brush ColumnBrush = FrozenBrush("#FFAA63");
     private StatisticsDashboardViewModel? _subscribedModel;
     public StatisticsDashboardViewModel? Model { get => (StatisticsDashboardViewModel?)GetValue(ModelProperty); set => SetValue(ModelProperty, value); }
     public OverviewFocusBar? HoveredBar { get; private set; }
@@ -166,12 +166,6 @@ public sealed class OverviewFocusChart : FrameworkElement
         }
         geometry.Freeze();
         return geometry;
-    }
-    private static Brush CreateColumnBrush()
-    {
-        var brush = new LinearGradientBrush((Color)ColorConverter.ConvertFromString("#FFAF70"), (Color)ColorConverter.ConvertFromString("#FFF0E2"), new Point(0, 0), new Point(0, 1));
-        brush.Freeze();
-        return brush;
     }
     internal static Brush FrozenBrush(string color) { var brush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(color)); brush.Freeze(); return brush; }
     private static Pen FrozenPen(string color, double width, DashStyle? dash = null)

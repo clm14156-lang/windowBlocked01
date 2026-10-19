@@ -15,7 +15,8 @@ public sealed class CustomTimeModalViewModel : INotifyPropertyChanged
     private readonly Action<int> _deleteTime;
     private readonly RelayCommand<object> _confirmCommand;
     private bool _isOpen;
-    private string _minutesInput = "0";
+    private bool _isCustomDurationExpanded;
+    private string _minutesInput = string.Empty;
 
     public CustomTimeModalViewModel(Func<int, bool> confirm, IEnumerable<HomeDurationOptionViewModel>? commonTimes = null,
         Action<IReadOnlyList<int>, int>? saveSelection = null, Action<int>? deleteTime = null,
@@ -35,6 +36,7 @@ public sealed class CustomTimeModalViewModel : INotifyPropertyChanged
         CompleteEditCommand = new RelayCommand<object>(_ => IsEditing = false);
         DeleteTimeCommand = new RelayCommand<HomeDurationOptionViewModel>(DeleteTime);
         SelectTimeCommand = new RelayCommand<HomeDurationOptionViewModel>(SelectTime);
+        ToggleCustomDurationCommand = new RelayCommand<object>(_ => IsCustomDurationExpanded = !IsCustomDurationExpanded);
         RestoreSelection();
     }
 
@@ -50,6 +52,18 @@ public sealed class CustomTimeModalViewModel : INotifyPropertyChanged
     public ICommand CompleteEditCommand { get; }
     public ICommand DeleteTimeCommand { get; }
     public ICommand SelectTimeCommand { get; }
+    public ICommand ToggleCustomDurationCommand { get; }
+
+    public bool IsCustomDurationExpanded
+    {
+        get => _isCustomDurationExpanded;
+        private set
+        {
+            if (_isCustomDurationExpanded == value) return;
+            _isCustomDurationExpanded = value;
+            OnPropertyChanged();
+        }
+    }
 
     public ObservableCollection<HomeDurationOptionViewModel> CommonTimes { get; }
 
@@ -107,30 +121,33 @@ public sealed class CustomTimeModalViewModel : INotifyPropertyChanged
         }
     }
 
-    public bool IsDurationValid => Minutes is >= 5 and <= 480;
+    public bool IsDurationValid => !string.IsNullOrEmpty(MinutesInput) &&
+        MinutesInput.All(char.IsAsciiDigit) && Minutes is >= 5 and <= 480;
 
     public void Open()
     {
         IsEditing = false;
+        IsCustomDurationExpanded = false;
         RestoreSelection();
-        Minutes = 0;
+        MinutesInput = string.Empty;
         IsOpen = true;
     }
 
     private void Close()
     {
         IsEditing = false;
+        IsCustomDurationExpanded = false;
         RestoreSelection();
         IsOpen = false;
     }
 
     private void Confirm()
     {
+        if (!IsDurationValid) return;
         var minutes = Minutes;
-        if (minutes is < 5 or > 480) return;
         var isNewTime = CommonTimes.All(option => option.Minutes != minutes);
         if (isNewTime && !_confirm(minutes)) return;
-        Minutes = 0;
+        MinutesInput = string.Empty;
         InputResetRequested?.Invoke(this, EventArgs.Empty);
     }
 

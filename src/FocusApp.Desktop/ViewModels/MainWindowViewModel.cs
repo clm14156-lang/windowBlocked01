@@ -263,6 +263,36 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     public bool IsBackendAvailable => ServiceConnection?.IsConnected == true;
 
 #if DEBUG
+    private bool _debugFocusCompletionInProgress;
+
+    public async Task<bool> CompleteFocusForDebugAsync()
+    {
+        var session = HomePage.FocusSession;
+        if (_debugFocusCompletionInProgress || CurrentPage != NavigationPage.Home || !session.IsFocusing)
+            return false;
+
+        _debugFocusCompletionInProgress = true;
+        try
+        {
+            if (!session.IsServiceOwnedForcedSession) return session.CompleteForDebug();
+            if (ServiceConnection is not { IsConnected: true }) return false;
+
+            var sessionId = session.AuthoritativeSessionId;
+            var target = session.ActiveTarget;
+            var result = await ServiceConnection.EndForcedFocusForDebugAsync();
+            var completed = result.State.FocusSessions.FirstOrDefault(item =>
+                item.SessionId == sessionId && item.Status == LocalFocusSessionStatusDto.Completed);
+            if (completed is null) return false;
+            session.ApplyAuthoritativeSession(completed, target);
+            return session.IsCompleted;
+        }
+        catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException)
+        {
+            return false;
+        }
+        finally { _debugFocusCompletionInProgress = false; }
+    }
+
     public async Task<bool> EndForcedFocusForDebugAsync()
     {
         if (!HomePage.FocusSession.IsForcedModeActive ||
@@ -504,7 +534,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         try
         {
             var state = await ServiceConnection.RefreshStateAsync();
-            HomePage.FocusTargetModal.ApplyState(state.Targets, state.Tasks, null);
+            HomePage.FocusTargetModal.ApplyState(state.Targets, state.Tasks, null, state.FocusSessions);
         }
         catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException)
         {
@@ -615,7 +645,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         // after queued writes finish so an older snapshot cannot replace that edit.
         if (_pendingFocusTaskWrites > 0) return;
         HomePage.FocusSession.ApplyTaskSnapshot(() =>
-            HomePage.FocusTargetModal.ApplyState(state.Targets, state.Tasks, state.Settings.SelectedTargetId));
+            HomePage.FocusTargetModal.ApplyState(state.Targets, state.Tasks, state.Settings.SelectedTargetId, state.FocusSessions));
     }
 
     private async void SettingsPage_RulesChanged(object? sender, EventArgs e)

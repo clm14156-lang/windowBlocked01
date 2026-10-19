@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using FocusApp.Contracts;
+using FocusApp.Core;
 using FocusApp.Desktop.Services;
 
 namespace FocusApp.Desktop.ViewModels;
@@ -10,12 +11,15 @@ namespace FocusApp.Desktop.ViewModels;
 public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
 {
     private readonly ObservableCollection<FocusTargetViewModel> _targets;
+    private readonly Func<DateTime> _now;
+    private IReadOnlyList<LocalFocusSessionDto> _focusSessions = [];
     private FocusTargetViewModel _selectedTarget;
     private bool _isOpen;
     private bool _hasSelectedTarget;
 
-    public FocusTargetModalViewModel(bool useSampleData = true)
+    public FocusTargetModalViewModel(bool useSampleData = true, Func<DateTime>? now = null)
     {
+        _now = now ?? (() => DateTime.Now);
         _targets = useSampleData ?
         [
             new FocusTargetViewModel("写代码", ["整理功能需求", "完成页面交互"]),
@@ -88,11 +92,13 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
     public void ApplyState(
         IEnumerable<LocalTargetDto> targets,
         IEnumerable<LocalTaskDto> tasks,
-        string? selectedTargetId)
+        string? selectedTargetId,
+        IEnumerable<LocalFocusSessionDto>? focusSessions = null)
     {
         var selectedId = selectedTargetId ?? (HasSelectedTarget ? SelectedTarget.TargetId : null);
         var existingTargets = _targets.ToDictionary(item => item.TargetId, StringComparer.Ordinal);
         var persistedTasks = tasks.ToList();
+        _focusSessions = focusSessions?.ToArray() ?? [];
 
         _targets.Clear();
         foreach (var target in targets.Where(item => !item.IsArchived).OrderBy(item => item.SortOrder))
@@ -112,6 +118,7 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
             _targets.Add(viewModel);
         }
 
+        RefreshRecentFocusStatuses();
         SetSelectedTarget(_targets.FirstOrDefault(item => item.TargetId == selectedId));
         OnPropertyChanged(nameof(Targets));
         OnPropertyChanged(nameof(HasTargets));
@@ -175,11 +182,59 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
 
     public void Open()
     {
+        RefreshRecentFocusStatuses();
         IsOpen = true;
         Opened?.Invoke(this, EventArgs.Empty);
     }
 
     private void Close() => IsOpen = false;
+
+    private void RefreshRecentFocusStatuses()
+    {
+        var today = _now().Date;
+        var records = _focusSessions
+            .Where(session => session.Status == LocalFocusSessionStatusDto.Completed &&
+                              session.CompletedAtUtc is not null && session.ActualSeconds > 0 &&
+                              !string.IsNullOrWhiteSpace(session.TargetId))
+            .Select(session =>
+            {
+                var end = session.CompletedAtUtc!.Value.LocalDateTime;
+                return new FocusSessionRecord(
+                    TimeSpan.FromSeconds(session.ConfiguredSeconds),
+                    TimeSpan.FromSeconds(session.ActualSeconds),
+                    session.FocusStartedAtUtc?.LocalDateTime ?? end.AddSeconds(-session.ActualSeconds),
+                    end,
+                    session.CompletionKind == FocusCompletionKindDto.EarlyEnd
+                        ? FocusCompletionKind.EarlyEnd : FocusCompletionKind.Natural,
+                    session.IsForcedMode) { TargetId = session.TargetId };
+            });
+        // Use the shared daily slices so midnight boundaries and preparation time
+        // follow the same rules as the statistics pages.
+        var latestDays = FocusStatisticsCalculator.GetSlices(records)
+            .Where(slice => slice.StartsAt.Date <= today)
+            .GroupBy(slice => slice.Record.TargetId!)
+            .ToDictionary(group => group.Key, group => group
+                .GroupBy(slice => slice.StartsAt.Date)
+                .OrderByDescending(day => day.Key)
+                .First(), StringComparer.Ordinal);
+
+        foreach (var target in _targets)
+        {
+            var status = "暂无专注";
+            if (latestDays.TryGetValue(target.TargetId, out var day))
+            {
+                var daysAgo = (today - day.Key).Days;
+                var duration = TimeSpan.FromTicks(day.Sum(slice => slice.Duration.Ticks));
+                status = daysAgo switch
+                {
+                    0 => $"今日已投入 {OverviewDuration.Format(duration)}",
+                    1 => $"昨日已投入 {OverviewDuration.Format(duration)}",
+                    _ => $"{daysAgo}天前专注"
+                };
+            }
+            target.ApplyRecentFocusStatus(status);
+        }
+    }
 
     private void SelectTarget(FocusTargetViewModel? target)
     {

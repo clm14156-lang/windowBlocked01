@@ -12,12 +12,11 @@ public sealed class CustomTimeModalPresentationTests
         XNamespace presentation = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
 
         Assert.Contains(root.Descendants(presentation + "TextBlock"), element =>
-            (string?)element.Attribute("Text") == "{DynamicResource CustomTimeDurationRange}" &&
-            (string?)element.Attribute("Foreground") == "{DynamicResource TextSecondary}" &&
-            (string?)element.Attribute("FontSize") == "{DynamicResource SecondaryFontSize}");
+            (string?)element.Attribute("Text") == "{DynamicResource CustomTimeInputPlaceholder}");
         Assert.Contains(root.Descendants(presentation + "TextBox"), element =>
             (string?)element.Attribute("Text") == "{Binding MinutesInput, UpdateSourceTrigger=PropertyChanged}" &&
-            (string?)element.Attribute("MaxLength") == "3" &&
+            (string?)element.Attribute("InputMethod.IsInputMethodEnabled") == "False" &&
+            (string?)element.Attribute("AllowDrop") == "False" &&
             element.Attribute("PreviewTextInput") is not null &&
             element.Attribute("DataObject.Pasting") is not null);
         Assert.Contains(root.Descendants(presentation + "Button"), element =>

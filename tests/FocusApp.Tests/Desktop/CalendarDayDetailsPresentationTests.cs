@@ -55,7 +55,10 @@ public sealed class CalendarDayDetailsPresentationTests
                 var plainMarker = (Border)plainView.FindName("FocusMarker");
                 Assert.True(plainMarker.IsVisible);
                 Assert.Equal(plainMarker.ActualWidth, plainMarker.ActualHeight);
-                Assert.Equal("自由专注", ((TextBlock)plainView.FindName("GoalName")).Text);
+                var plainGoalName = (TextBlock)plainView.FindName("GoalName");
+                Assert.Empty(plainGoalName.Text);
+                Assert.False(ToolTipService.GetIsEnabled(plainGoalName));
+                Assert.Equal("16:43 - 16:48", ((TextBlock)plainView.FindName("TimeRange")).Text);
                 Assert.Equal(Visibility.Collapsed, ((System.Windows.Shapes.Path)plainView.FindName("ExpandArrow")).Visibility);
                 Assert.Equal("时长 5分钟", ((TextBlock)plainView.FindName("FocusDuration")).Text);
                 Save(page, "calendar-records-collapsed");
@@ -87,7 +90,7 @@ public sealed class CalendarDayDetailsPresentationTests
                     var tick = Descendants<System.Windows.Shapes.Path>(taskRow).Single(item => item.Name == "TaskTick");
                     Assert.Equal(new CornerRadius(task.IsSubTask ? 8 : 3), check.CornerRadius);
                     Assert.Equal(task.IsCompleted ? Visibility.Visible : Visibility.Collapsed, tick.Visibility);
-                    Assert.Equal(task.IsCompleted, text.TextDecorations.Any(decoration => decoration.Location == TextDecorationLocation.Strikethrough));
+                    Assert.DoesNotContain(text.TextDecorations, decoration => decoration.Location == TextDecorationLocation.Strikethrough);
                     Assert.Equal(task.IsCompleted ? 255 : 0, ((SolidColorBrush)check.Background).Color.A);
                     Assert.Equal(task.IsSubTask ? 1 : 0, Grid.GetColumn(check));
                 }

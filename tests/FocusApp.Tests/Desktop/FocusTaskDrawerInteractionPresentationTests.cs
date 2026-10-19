@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using FocusApp.Core;
 using FocusApp.Desktop.ViewModels;
@@ -41,13 +42,27 @@ public sealed class FocusTaskDrawerInteractionPresentationTests
                 var title = Descendants<TextBlock>(rows[0]).Single(text => text.Name == "TaskTitle");
                 Rect TitleBounds() => new(title.TranslatePoint(new Point(), drawer), new Size(title.ActualWidth, title.ActualHeight));
                 var bounds = TitleBounds();
-                Assert.All(buttons, button => { Assert.Equal(0, button.Opacity, 2); Assert.False(button.IsHitTestVisible); Assert.Equal(24, button.ActualWidth); });
+                Assert.All(buttons, button => { Assert.Equal(0, button.Opacity, 2); Assert.False(button.IsHitTestVisible); Assert.Equal(28, button.ActualWidth); });
 
                 SetHover(rows[0], true); Settle();
                 Assert.Equal(1, buttons[0].Opacity, 2); Assert.True(buttons[0].IsHitTestVisible);
+                var moreIcon = Assert.Single(Descendants<System.Windows.Shapes.Path>(buttons[0]));
+                Assert.InRange(moreIcon.ActualWidth, 14.5, 15.5);
+                Assert.InRange(moreIcon.ActualHeight, 2.5, 3.5);
+                Assert.Equal(((SolidColorBrush)drawer.FindResource("FocusTaskActionIcon")).Color, ((SolidColorBrush)moreIcon.Fill).Color);
                 Assert.All(buttons.Skip(1), button => Assert.Equal(0, button.Opacity, 2));
                 Assert.Equal(((SolidColorBrush)drawer.FindResource("FocusTaskButtonHover")).Color, ((SolidColorBrush)rows[0].Background).Color);
                 Assert.Equal(bounds, TitleBounds());
+                var directory = Environment.GetEnvironmentVariable("FOCUSAPP_TASK_DRAWER_QA_DIR");
+                if (!string.IsNullOrEmpty(directory))
+                {
+                    Directory.CreateDirectory(directory);
+                    var bitmap = new RenderTargetBitmap(270, 710, 96, 96, PixelFormats.Pbgra32);
+                    bitmap.Render(drawer);
+                    var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));
+                    using var stream = File.Create(Path.Combine(directory, dark ? "task-drawer-hover-dark.png" : "task-drawer-hover-light.png"));
+                    encoder.Save(stream);
+                }
                 buttons[0].RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); Settle();
                 SetHover(rows[0], false); Settle();
                 Assert.True(buttons[0].ContextMenu.IsOpen); Assert.Equal(1, buttons[0].Opacity, 2);
@@ -62,11 +77,16 @@ public sealed class FocusTaskDrawerInteractionPresentationTests
                 var addBounds = new Rect(add.TranslatePoint(new Point(), drawer), new Size(add.ActualWidth, add.ActualHeight));
                 var surface = (Border)add.Template.FindName("CreateSurface", add);
                 Assert.Equal(new Size(42, 42), addBounds.Size); Assert.InRange(addBounds.X, 210, 213); Assert.InRange(addBounds.Y, 648, 651);
-                Assert.Equal(new Thickness(0), surface.BorderThickness); Assert.Equal(new CornerRadius(21), surface.CornerRadius);
-                Assert.Equal(Color.FromRgb(255, 150, 63), ((SolidColorBrush)surface.Background).Color);
-                Assert.IsType<DropShadowEffect>(surface.Effect);
-                Assert.Equal(Colors.White, ((SolidColorBrush)Assert.Single(Descendants<System.Windows.Shapes.Path>(surface)).Stroke).Color);
-                SetHover(add, true); Settle(); Assert.Equal(Color.FromRgb(245, 135, 46), ((SolidColorBrush)surface.Background).Color);
+                Assert.Equal(new Thickness(1), surface.BorderThickness); Assert.Equal(new CornerRadius(21), surface.CornerRadius);
+                Assert.Equal(((SolidColorBrush)drawer.FindResource("FocusTaskAddBackground")).Color, ((SolidColorBrush)surface.Background).Color);
+                Assert.Equal(((SolidColorBrush)drawer.FindResource("FocusTaskAddBorder")).Color, ((SolidColorBrush)surface.BorderBrush).Color);
+                if (dark) Assert.Null(surface.Effect);
+                else Assert.IsType<DropShadowEffect>(surface.Effect);
+                Assert.All(Descendants<TextBlock>(drawer).Where(text => text.Name == "TaskNumber"), text => Assert.Equal(10, text.FontSize));
+                Assert.Equal(((SolidColorBrush)drawer.FindResource("FocusTaskAddIcon")).Color, ((SolidColorBrush)Assert.Single(Descendants<System.Windows.Shapes.Path>(surface)).Stroke).Color);
+                SetHover(add, true); Settle();
+                Assert.Equal(((SolidColorBrush)drawer.FindResource("FocusTaskAddHover")).Color, ((SolidColorBrush)surface.Background).Color);
+                Assert.Equal(((SolidColorBrush)drawer.FindResource("FocusTaskAddHoverBorder")).Color, ((SolidColorBrush)surface.BorderBrush).Color);
                 Assert.Equal(addBounds, new Rect(add.TranslatePoint(new Point(), drawer), new Size(add.ActualWidth, add.ActualHeight)));
                 add.Command.Execute(null); Settle(); Assert.True(session.TaskDrawer.IsCreating);
                 session.TaskDrawer.DraftTitle = "新建任务"; session.TaskDrawer.CreateTaskCommand.Execute(null); Settle();

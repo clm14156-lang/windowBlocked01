@@ -10,6 +10,8 @@ namespace FocusApp.Desktop.Views;
 
 public partial class StatisticsPage : UserControl
 {
+    private ToggleButton? _openGoalMenuButton;
+
     internal static bool IsGoalNameTrimmed(TextBlock label)
     {
         if (string.IsNullOrEmpty(label.Text) || label.ActualWidth <= 0) return false;
@@ -31,11 +33,13 @@ public partial class StatisticsPage : UserControl
         InitializeComponent();
         InitializeCalendarInteraction();
         DataContextChanged += StatisticsPage_DataContextChanged;
+        Unloaded += (_, _) => CloseGoalMenu();
     }
 
     private void StatisticsPage_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
         CalendarRecordInteraction.Clear();
+        CloseGoalMenu();
         if (e.OldValue is StatisticsOverviewViewModel oldModel) oldModel.PropertyChanged -= StatisticsViewModel_PropertyChanged;
         if (e.NewValue is StatisticsOverviewViewModel newModel) newModel.PropertyChanged += StatisticsViewModel_PropertyChanged;
     }
@@ -44,6 +48,9 @@ public partial class StatisticsPage : UserControl
     {
         if (e.PropertyName is nameof(StatisticsOverviewViewModel.SelectedTab) or nameof(StatisticsOverviewViewModel.SelectedDateDisplay))
             CalendarRecordInteraction.Clear();
+        if (e.PropertyName is nameof(StatisticsOverviewViewModel.SelectedTab) or
+            nameof(StatisticsOverviewViewModel.SelectedGoal) or nameof(StatisticsOverviewViewModel.ShowArchivedGoals))
+            CloseGoalMenu();
     }
     private void CalendarVipUnlockButton_Click(object sender, RoutedEventArgs e)
     {
@@ -76,20 +83,52 @@ public partial class StatisticsPage : UserControl
 
     private void SelectArchivedGoalListButton_Click(object sender, RoutedEventArgs e) => ExecuteGoalListCommand("Archived");
 
-    private void GoalDetailMoreButton_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+    private void GoalListMoreButton_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is ToggleButton button)
+        if (sender is not ToggleButton button) return;
+        var shouldOpen = button.IsChecked == true;
+        CloseGoalMenu();
+        if (shouldOpen)
         {
-            button.SetCurrentValue(ToggleButton.IsCheckedProperty, false);
+            _openGoalMenuButton = button;
+            button.SetCurrentValue(ToggleButton.IsCheckedProperty, true);
+            GoalListMorePopup.PlacementTarget = button;
+            GoalListMorePopup.SetCurrentValue(Popup.IsOpenProperty, true);
         }
+        e.Handled = true;
     }
 
-    private void GoalDetailMoreButton_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+    private void GoalListMoreButton_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
-        if (e.NewValue is false && sender is ToggleButton button)
-        {
-            button.SetCurrentValue(ToggleButton.IsCheckedProperty, false);
-        }
+        if (ReferenceEquals(sender, _openGoalMenuButton)) CloseGoalMenu();
+    }
+
+    private void GoalListMoreButton_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        if (e.NewValue is false && ReferenceEquals(sender, _openGoalMenuButton)) CloseGoalMenu();
+    }
+
+    private void GoalListMoreButton_Unloaded(object sender, RoutedEventArgs e)
+    {
+        if (ReferenceEquals(sender, _openGoalMenuButton)) CloseGoalMenu();
+    }
+
+    private void GoalListMorePopup_Closed(object? sender, EventArgs e) => CloseGoalMenu();
+
+    private void GoalListMorePopup_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Escape) return;
+        CloseGoalMenu();
+        e.Handled = true;
+    }
+
+    private void CloseGoalMenu()
+    {
+        var button = _openGoalMenuButton;
+        _openGoalMenuButton = null;
+        GoalListMorePopup.SetCurrentValue(Popup.IsOpenProperty, false);
+        GoalListMorePopup.PlacementTarget = null;
+        button?.SetCurrentValue(ToggleButton.IsCheckedProperty, false);
     }
 
     private void SaveGoalRenameButton_Click(object sender, RoutedEventArgs e)
@@ -145,7 +184,7 @@ public partial class StatisticsPage : UserControl
     {
         if (sender is FrameworkElement { DataContext: GoalOverviewItemViewModel goal } && DataContext is StatisticsOverviewViewModel viewModel)
         {
-            GoalDetailMoreButton.SetCurrentValue(ToggleButton.IsCheckedProperty, false);
+            CloseGoalMenu();
             commandSelector(viewModel).Execute(goal);
         }
     }

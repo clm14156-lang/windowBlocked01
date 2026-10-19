@@ -85,7 +85,7 @@ public sealed class CalendarRefactorTests
         Assert.Equal(2, model.MonthlyFocusDays);
         var record = Assert.Single(model.SelectedDayRecords);
         Assert.Equal("09:00 - 10:32", record.TimeRangeDisplay);
-        Assert.Equal("自由专注", record.CalendarTitle);
+        Assert.Empty(record.CalendarTitle);
         Assert.Equal("1h 32m", record.CompactDurationDisplay);
         SelectDate(model, Local(1).Date);
         Assert.Equal(30, model.SelectedDayMinutes);
@@ -194,7 +194,7 @@ public sealed class CalendarRefactorTests
     [Fact]
     public void GoalNamesUseAvailableWidthInCurrentAndArchivedLists()
     {
-        const string fittingName = "这是超过六字的目标";
+        const string fittingName = "超过六字的目标";
         const string longName = "Windows专注软件产品开发优化与交互设计完整目标名称";
         RunPage(model =>
         {
@@ -230,20 +230,21 @@ public sealed class CalendarRefactorTests
                     label => label.Name is "GoalTodayDurationText" or "GoalTotalDurationText");
                 var buttons = Descendants<Button>(page)
                     .Where(button => button.Name == "GoalSelectionButton" && button.IsVisible).ToArray();
-                Assert.All(buttons, button => Assert.InRange(fitting.ActualWidth, button.ActualWidth - 61, button.ActualWidth - 57));
+                Assert.All(buttons, button => Assert.InRange(fitting.ActualWidth, button.ActualWidth - 89, button.ActualWidth - 85));
                 buttons.Single(button => button.DataContext == overflowing.DataContext).Command.Execute(overflowing.DataContext);
                 Pump();
                 Assert.Equal(longName, model.SelectedGoal!.Name);
                 SavePreview(page, archived ? "archived-goal-sidebar" : "current-goal-sidebar");
                 var fullWidth = overflowing.ActualWidth;
-                Assert.DoesNotContain(Descendants<ToggleButton>(page), button => button.Name == "GoalListMoreButton");
-                var more = (ToggleButton)page.FindName("GoalDetailMoreButton");
+                Assert.Null(page.FindName("GoalDetailMoreButton"));
+                var more = Descendants<ToggleButton>(page).Single(button => button.Name == "GoalListMoreButton" && button.DataContext == overflowing.DataContext);
                 Assert.Same(overflowing.DataContext, more.DataContext);
-                more.IsChecked = true;
+                GoalDetailRedesignTests.SetRowHover(more, true);
+                GoalDetailRedesignTests.Invoke(more);
                 Pump();
                 Assert.Equal(fullWidth, overflowing.ActualWidth, 1);
-                Assert.True(((Popup)page.FindName("GoalDetailMorePopup")).IsOpen);
-                more.IsChecked = false;
+                Assert.True(((Popup)page.FindName("GoalListMorePopup")).IsOpen);
+                GoalDetailRedesignTests.Invoke(more);
                 Pump();
                 Assert.Equal(fullWidth, overflowing.ActualWidth, 1);
             }

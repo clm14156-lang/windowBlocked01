@@ -195,6 +195,8 @@
     <system:String x:Key="CustomTimeDurationRange">5&#x2013;480 分钟</system:String>
     <system:String x:Key="CustomTimeUnit">分钟</system:String>
     <system:String x:Key="CustomTimeCommonLabel">常用时间</system:String>
+    <system:String x:Key="CustomTimeExpandLabel">自定义时长</system:String>
+    <system:String x:Key="CustomTimeInputPlaceholder">输入 5–480 分钟</system:String>
     <system:String x:Key="CustomTimePreset15">15分钟</system:String>
     <system:String x:Key="CustomTimeCancel">取消</system:String>
     <system:String x:Key="CustomTimeConfirm">添加</system:String>
@@ -343,7 +345,14 @@
     <system:String x:Key="AccountPanelLogout">退出登录</system:String>
     <system:String x:Key="VipModalClose">关闭 VIP 弹窗</system:String>
     <system:String x:Key="VipModalTitle">专注 VIP</system:String>
-    <system:String x:Key="VipModalSubtitle">解锁完整专注体验</system:String>
+    <system:String x:Key="VipModalSubtitle">让专注更简单，让坚持更轻松</system:String>
+    <system:String x:Key="VipFreeTitle">免费版</system:String>
+    <system:String x:Key="VipComparisonTitle">VIP 会员</system:String>
+    <system:String x:Key="VipFreeFocus">基础专注功能</system:String>
+    <system:String x:Key="VipFullFocus">完整专注功能</system:String>
+    <system:String x:Key="VipFreeBlocking">手动设置屏蔽规则</system:String>
+    <system:String x:Key="VipFreeStatistics">基础记录与统计</system:String>
+    <system:String x:Key="VipComparisonGoalDetails">详细的目标投入明细</system:String>
     <system:String x:Key="VipModalBenefitsTitle">会员专享权益</system:String>
     <system:String x:Key="VipBenefitForcedMode">强制专注模式</system:String>
     <system:String x:Key="VipBenefitForcedModeHint">防止中途退出</system:String>
@@ -360,7 +369,7 @@
     <system:String x:Key="VipPlanMonthly">月会员</system:String>
     <system:String x:Key="VipPlanMonthlyPrice">15</system:String>
     <system:String x:Key="VipPlanMonthlyUnit">/月</system:String>
-    <system:String x:Key="VipPlanMonthlyHint">¥15 每月自动续费</system:String>
+    <system:String x:Key="VipPlanMonthlyHint">按月订阅</system:String>
     <system:String x:Key="VipPlanYearly">年会员</system:String>
     <system:String x:Key="VipPlanYearlyPrice">98</system:String>
     <system:String x:Key="VipPlanYearlyUnit">/年</system:String>
@@ -371,6 +380,9 @@
     <system:String x:Key="VipPlanLifetimePrice">198</system:String>
     <system:String x:Key="VipPlanLifetimeHint">一次付费，永久可用</system:String>
     <system:String x:Key="VipUpgradeAction">立即升级</system:String>
+    <system:String x:Key="VipUpgradeMonthlyAction">开通月会员 · ¥15</system:String>
+    <system:String x:Key="VipUpgradeYearlyAction">开通年会员 · ¥98</system:String>
+    <system:String x:Key="VipUpgradeLifetimeAction">开通永久会员 · ¥198</system:String>
     <system:String x:Key="VipUpgradeFeedback">功能暂未开放</system:String>
     <system:String x:Key="VipLaterAction">稍后再说</system:String>
     <system:String x:Key="MembershipCenterClose">关闭会员中心</system:String>

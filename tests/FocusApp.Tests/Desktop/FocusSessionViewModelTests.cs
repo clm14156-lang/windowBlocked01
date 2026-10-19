@@ -186,6 +186,12 @@ public sealed class FocusSessionViewModelTests
     }
 
     [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(16)]
+    [InlineData(59)]
+    [InlineData(60)]
+    [InlineData(61)]
     [InlineData(138)]
     [InlineData(299)]
     [InlineData(300)]
@@ -197,6 +203,9 @@ public sealed class FocusSessionViewModelTests
         viewModel.FocusDiscarded += (_, _) => discards++;
         viewModel.RequestEndCommand.Execute(null);
         var display = viewModel.EndConfirmationElapsedDisplay;
+        Assert.Equal(initialSeconds < 60 ? $"{initialSeconds}秒" : $"{initialSeconds / 60}分{initialSeconds % 60}秒", display);
+        Assert.Equal(initialSeconds < 60 ? string.Empty : (initialSeconds / 60).ToString(), viewModel.EndConfirmationMinutesDisplay);
+        Assert.Equal(initialSeconds < 60 ? string.Empty : " 分 ", viewModel.EndConfirmationMinutesUnitDisplay);
         Advance(viewModel, 1000);
         Assert.Equal(initialSeconds, viewModel.ElapsedFocusSeconds);
         Assert.Equal(display, viewModel.EndConfirmationElapsedDisplay);

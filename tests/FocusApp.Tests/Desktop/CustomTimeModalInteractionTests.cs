@@ -50,7 +50,7 @@ public sealed class CustomTimeModalInteractionTests
             Layout(modal, 320, 420);
             Assert.Equal(Color.FromRgb(255, 247, 240), BrushColor(first.Background));
             Assert.Equal(Color.FromRgb(255, 211, 176), BrushColor(first.BorderBrush));
-            Assert.Equal(Color.FromRgb(58, 58, 60), BrushColor(first.Foreground));
+            Assert.Equal(Color.FromRgb(55, 65, 81), BrushColor(first.Foreground));
             Render(modal, "custom-time-hover");
             SetPressed(first, true);
             Layout(modal, 320, 420);
@@ -62,7 +62,7 @@ public sealed class CustomTimeModalInteractionTests
             Assert.Equal(Colors.White, BrushColor(first.Background));
 
             Invoke(first); Layout(modal, 320, 420);
-            Assert.Equal("0", ((TextBox)modal.FindName("MinutesTextBox")).Text);
+            Assert.Equal(string.Empty, ((TextBox)modal.FindName("MinutesTextBox")).Text);
             AssertActive(first);
             Invoke(buttons[1]); Layout(modal, 320, 420);
             AssertActive(buttons[1]);
@@ -97,6 +97,7 @@ public sealed class CustomTimeModalInteractionTests
                 Assert.Equal(40, button.Height);
             });
 
+            Invoke((Button)modal.FindName("ToggleCustomDurationButton")); Layout(modal, 320, 420);
             foreach (var button in Descendants<Button>(modal).Where(button =>
                 Equals(button.Command, model.ToggleEditCommand) || Equals(button.Command, model.CancelCommand) || Equals(button.Command, model.ConfirmCommand)))
             {
@@ -161,7 +162,7 @@ public sealed class CustomTimeModalInteractionTests
     }
 
     [Fact]
-    public void AddRemainsVisibleAtFullWidthWithGrayDisabledStateAndAnIndependentCloseEntry()
+    public void CustomInputStartsCollapsedAndExpandsWithAnIndependentAddAndCloseEntry()
     {
         RunSta(() =>
         {
@@ -172,7 +173,11 @@ public sealed class CustomTimeModalInteractionTests
             AddResources(modal); Layout(modal, 320, 420);
             var add = (Button)modal.FindName("AddCustomTimeButton");
             var close = (Button)modal.FindName("CloseCustomTimeButton");
-            Assert.Equal(280, add.ActualWidth);
+            var collapsedHeight = modal.ActualHeight;
+            Assert.False(add.IsVisible);
+            Invoke((Button)modal.FindName("ToggleCustomDurationButton")); Layout(modal, 320, 420);
+            Assert.True(modal.ActualHeight > collapsedHeight);
+            Assert.Equal(72, add.ActualWidth);
             Assert.Equal(Visibility.Visible, add.Visibility);
             Assert.False(add.IsEnabled);
             Assert.Equal(Color.FromRgb(229, 231, 235), BrushColor(Descendants<Border>(add).First().Background));
@@ -184,7 +189,7 @@ public sealed class CustomTimeModalInteractionTests
             Assert.Equal(Color.FromRgb(255, 144, 53), BrushColor(Descendants<Border>(add).First().Background));
             Render(modal, "custom-time-add-ready");
             Invoke(add); Layout(modal, 320, 420);
-            Assert.Equal("0", ((TextBox)modal.FindName("MinutesTextBox")).Text);
+            Assert.Equal(string.Empty, ((TextBox)modal.FindName("MinutesTextBox")).Text);
             Assert.False(add.IsEnabled);
             Assert.Equal([30], model.SelectedMinutes);
             Assert.Single(model.CommonTimes.Where(option => option.Minutes == 45));
@@ -195,6 +200,101 @@ public sealed class CustomTimeModalInteractionTests
             Assert.False(model.IsOpen);
             Assert.Equal([30], home.VisibleDurationOptions.Where(option => option.Icon.Length == 0).Select(option => option.Minutes));
         });
+    }
+
+    [Fact]
+    public void NumericInputRejectsInvalidTypingAndPasteAndEnterSubmitsOnlyValidMinutes()
+    {
+        RunSta(() =>
+        {
+            var home = new HomePageViewModel([new("30", "", true, 30)]);
+            var model = home.CustomTimeModal;
+            model.Open();
+            var modal = new CustomTimeModal { DataContext = model };
+            AddResources(modal);
+            var host = new Window
+            {
+                Content = modal, SizeToContent = SizeToContent.WidthAndHeight,
+                WindowStyle = WindowStyle.None, ShowInTaskbar = false, ShowActivated = false,
+                Left = -32000, Top = -32000
+            };
+            try
+            {
+                host.Show();
+                var collapsed = modal.ActualHeight;
+                Invoke((Button)modal.FindName("ToggleCustomDurationButton"));
+                PumpAnimation();
+                Assert.True(modal.ActualHeight > collapsed);
+                var input = (TextBox)modal.FindName("MinutesTextBox");
+                var add = (Button)modal.FindName("AddCustomTimeButton");
+                Assert.False(InputMethod.GetIsInputMethodEnabled(input));
+                Assert.False(input.AllowDrop);
+                foreach (var text in new[] { "a", "中文", "-1", "+1", "1.5", " ", "120\n", "１２０", "12 0" })
+                {
+                    var typing = new TextCompositionEventArgs(Keyboard.PrimaryDevice,
+                        new TextComposition(InputManager.Current, input, text))
+                        { RoutedEvent = TextCompositionManager.PreviewTextInputEvent };
+                    input.RaiseEvent(typing);
+                    Assert.True(typing.Handled);
+                    var paste = new DataObjectPastingEventArgs(new DataObject(DataFormats.UnicodeText, text), false, DataFormats.UnicodeText)
+                        { RoutedEvent = DataObject.PastingEvent };
+                    input.RaiseEvent(paste);
+                    Assert.True(paste.CommandCancelled);
+                }
+                var digits = new TextCompositionEventArgs(Keyboard.PrimaryDevice,
+                    new TextComposition(InputManager.Current, input, "120"))
+                    { RoutedEvent = TextCompositionManager.PreviewTextInputEvent };
+                input.RaiseEvent(digits);
+                Assert.False(digits.Handled);
+                var validPaste = new DataObjectPastingEventArgs(new DataObject(DataFormats.UnicodeText, "480"), false, DataFormats.UnicodeText)
+                    { RoutedEvent = DataObject.PastingEvent };
+                input.RaiseEvent(validPaste);
+                Assert.False(validPaste.CommandCancelled);
+                Assert.True(SendKey(Key.Space));
+                foreach (var invalid in new[] { "", "0", "4", "481", "1200", "99999999999999999" })
+                {
+                    input.Text = invalid;
+                    Layout(modal, 320, 600);
+                    Assert.False(add.IsEnabled);
+                    Assert.True(SendKey(Key.Enter));
+                    Assert.Single(model.CommonTimes);
+                }
+                input.Text = "120";
+                Layout(modal, 320, 600);
+                Assert.True(add.IsEnabled);
+                Assert.True(SendKey(Key.Enter));
+                Assert.Single(model.CommonTimes.Where(option => option.Minutes == 120));
+                Assert.Equal(string.Empty, input.Text);
+                Assert.False(add.IsEnabled);
+                Assert.Equal(new[] { 30 }, model.SelectedMinutes);
+                // Reversing an in-flight transition must settle in the latest requested state.
+                Invoke((Button)modal.FindName("ToggleCustomDurationButton"));
+                Invoke((Button)modal.FindName("ToggleCustomDurationButton"));
+                PumpAnimation();
+                Assert.True(input.IsVisible);
+                Invoke((Button)modal.FindName("ToggleCustomDurationButton"));
+                PumpAnimation();
+                Assert.False(input.IsVisible);
+
+                bool SendKey(Key key)
+                {
+                    var args = new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(input)!, 0, key)
+                        { RoutedEvent = Keyboard.PreviewKeyDownEvent };
+                    input.RaiseEvent(args);
+                    return args.Handled;
+                }
+            }
+            finally { host.Close(); }
+        });
+    }
+
+    private static void PumpAnimation()
+    {
+        var frame = new DispatcherFrame();
+        var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(220) };
+        timer.Tick += (_, _) => { timer.Stop(); frame.Continue = false; };
+        timer.Start();
+        Dispatcher.PushFrame(frame);
     }
 
     private static void AssertActive(Button button)
@@ -223,7 +323,7 @@ public sealed class CustomTimeModalInteractionTests
     }
     private static void Layout(FrameworkElement view, double width, double height)
     {
-        view.Measure(new Size(width, height)); view.Arrange(new Rect(0, 0, width, height)); view.UpdateLayout();
+        view.Measure(new Size(width, height)); view.Arrange(new Rect(new Point(), view.DesiredSize)); view.UpdateLayout();
         view.Dispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle); view.UpdateLayout();
     }
     private static IEnumerable<T> Descendants<T>(DependencyObject root) where T : DependencyObject

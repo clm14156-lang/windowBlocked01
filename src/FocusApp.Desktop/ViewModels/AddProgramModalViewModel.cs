@@ -18,13 +18,17 @@ public sealed class AddProgramModalViewModel : INotifyPropertyChanged
     };
 
     private readonly List<RecentProgramRecordViewModel> _recentPrograms = [];
+    private readonly IRecentProgramSource? _recentProgramSource;
+    private CancellationTokenSource? _refreshCancellation;
+    private int _refreshVersion;
     private bool _isOpen;
     private string _searchText = string.Empty;
     private bool _wasChooseProgramPressed;
     private RecentProgramRecordViewModel? _selectedProgram;
 
-    public AddProgramModalViewModel(IEnumerable<RecentProgramRecord>? recentPrograms = null)
+    public AddProgramModalViewModel(IEnumerable<RecentProgramRecord>? recentPrograms = null, IRecentProgramSource? recentProgramSource = null)
     {
+        _recentProgramSource = recentProgramSource;
         CloseCommand = new RelayCommand<object>(_ => Close());
         SaveCommand = new RelayCommand<object>(_ => Save());
         ChooseProgramCommand = new RelayCommand<object>(_ => RequestProgramSelection());
@@ -40,6 +44,7 @@ public sealed class AddProgramModalViewModel : INotifyPropertyChanged
     public ICommand SaveCommand { get; }
     public ICommand ChooseProgramCommand { get; }
     public ICommand SelectProgramCommand { get; }
+    public Task RefreshTask { get; private set; } = Task.CompletedTask;
 
     public IEnumerable<RecentProgramRecordViewModel> RecentPrograms => _recentPrograms
         .Where(MatchesSearch).OrderByDescending(program => program.LastRunTime);
@@ -83,6 +88,49 @@ public sealed class AddProgramModalViewModel : INotifyPropertyChanged
         SelectedProgram = null;
         WasChooseProgramPressed = false;
         IsOpen = true;
+        if (_recentProgramSource is not null)
+        {
+            _refreshCancellation?.Cancel();
+            _refreshCancellation?.Dispose();
+            _refreshCancellation = new CancellationTokenSource();
+            RefreshTask = RefreshRecentProgramsAsync(++_refreshVersion, _refreshCancellation.Token);
+        }
+    }
+
+    private async Task RefreshRecentProgramsAsync(int version, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var programs = await _recentProgramSource!.GetRecentProgramsAsync(cancellationToken);
+            if (cancellationToken.IsCancellationRequested || !IsOpen || version != _refreshVersion) return;
+            var previous = _recentPrograms.ToDictionary(program => program.ExePath, StringComparer.OrdinalIgnoreCase);
+            var selected = SelectedProgram;
+            _recentPrograms.Clear();
+            foreach (var program in programs.Where(program => !string.IsNullOrWhiteSpace(program.ExePath) && !IsIgnoredProcess(program.ProcessName))
+                         .GroupBy(program => program.ExePath, StringComparer.OrdinalIgnoreCase)
+                         .Select(group => group.MaxBy(program => program.LastRunTime)!))
+            {
+                if (previous.TryGetValue(program.ExePath, out var existing))
+                {
+                    existing.UpdateLastRunTime(program.LastRunTime);
+                    _recentPrograms.Add(existing);
+                }
+                else _recentPrograms.Add(new RecentProgramRecordViewModel(program));
+            }
+            // Do not discard a program explicitly chosen while the background scan was running.
+            if (selected is not null && !_recentPrograms.Any(program => string.Equals(program.ExePath, selected.ExePath, StringComparison.OrdinalIgnoreCase)))
+                _recentPrograms.Add(selected);
+            NotifyRecentProgramsChanged();
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
+        catch (Exception exception)
+        {
+            DesktopDiagnostics.RecordException("RecentPrograms.Refresh", exception);
+            if (cancellationToken.IsCancellationRequested || !IsOpen || version != _refreshVersion) return;
+            _recentPrograms.Clear();
+            if (SelectedProgram is { } selected) _recentPrograms.Add(selected);
+            NotifyRecentProgramsChanged();
+        }
     }
 
     public void RecordProgramRun(RecentProgramRecord program)
@@ -96,6 +144,11 @@ public sealed class AddProgramModalViewModel : INotifyPropertyChanged
         var existing = _recentPrograms.FirstOrDefault(item => string.Equals(item.ExePath, program.ExePath, StringComparison.OrdinalIgnoreCase));
         if (existing is null) _recentPrograms.Add(new RecentProgramRecordViewModel(program));
         else if (program.LastRunTime > existing.LastRunTime) existing.UpdateLastRunTime(program.LastRunTime);
+        NotifyRecentProgramsChanged();
+    }
+
+    private void NotifyRecentProgramsChanged()
+    {
         OnPropertyChanged(nameof(RecentPrograms));
         OnPropertyChanged(nameof(HasRecentPrograms));
         OnPropertyChanged(nameof(HasVisibleRecentPrograms));
@@ -145,7 +198,11 @@ public sealed class AddProgramModalViewModel : INotifyPropertyChanged
         Close();
     }
 
-    private void Close() => IsOpen = false;
+    private void Close()
+    {
+        IsOpen = false;
+        _refreshCancellation?.Cancel();
+    }
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 }
 

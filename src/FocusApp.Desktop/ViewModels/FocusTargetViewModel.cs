@@ -43,6 +43,8 @@ public sealed class FocusTargetViewModel : INotifyPropertyChanged
     public string IconColorHex { get; private set; }
     public string IconSource => TargetIconCatalog.GetIconSource(IconFileName, IconColorHex);
 
+    public string RecentFocusStatus { get; private set; } = "暂无专注";
+
     public bool IsArchived { get; private set; }
 
     public bool IsSelected
@@ -122,6 +124,13 @@ public sealed class FocusTargetViewModel : INotifyPropertyChanged
     public void ApplyArchived(bool archived) => IsArchived = archived;
 
     internal void ApplySelection(bool selected) => IsSelected = selected;
+
+    internal void ApplyRecentFocusStatus(string status)
+    {
+        if (RecentFocusStatus == status) return;
+        RecentFocusStatus = status;
+        OnPropertyChanged(nameof(RecentFocusStatus));
+    }
 
     public void ApplyName(string name)
     {

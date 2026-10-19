@@ -84,8 +84,8 @@ public sealed class FocusEndConfirmationPresentationTests
                 Assert.InRange(dialog.ActualHeight, 299.5, 300.5); // Physical-pixel rounding at 150% DPI.
                 Assert.Equal("结束专注？", title.Text);
                 Assert.Equal(HorizontalAlignment.Center, title.HorizontalAlignment);
-                Assert.Equal("0分16秒", model.EndConfirmationElapsedDisplay);
-                Assert.Equal("0 分 16 秒", InlineText(elapsed));
+                Assert.Equal("16秒", model.EndConfirmationElapsedDisplay);
+                Assert.Equal("16 秒", InlineText(elapsed));
                 Assert.Equal(36, elapsed.FontSize);
                 Assert.Equal(26, title.FontSize);
                 Assert.Equal(FontWeights.Bold, title.FontWeight);
@@ -94,9 +94,13 @@ public sealed class FocusEndConfirmationPresentationTests
                 Assert.Equal(42, resume.ActualHeight);
                 Assert.InRange(resume.ActualWidth, 279, 280.5); // Border rounding at 150% DPI.
                 Assert.Equal(14, resume.FontSize);
+                Assert.Equal(FontWeights.SemiBold, resume.FontWeight);
+                Assert.Equal(FontWeights.SemiBold, ((TextBlock)resume.Content).FontWeight);
+                Assert.Equal(new Thickness(0), dialog.BorderThickness);
+                Assert.Null(dialog.BorderBrush);
                 Assert.Equal(((SolidColorBrush)view.FindResource("FocusEndSecondaryBrush")).Color, ((SolidColorBrush)((TextBlock)end.Content).Foreground).Color);
-                Assert.Same(view.FindResource("FocusEndDialogBackground"), dialog.Background);
-                Assert.Equal(dark, dialog.Background is LinearGradientBrush);
+                Assert.Same(view.FindResource("FocusEndConfirmationBackground"), dialog.Background);
+                Assert.Equal((Color)ColorConverter.ConvertFromString(dark ? "#0B152A" : "#FFFEFD"), Assert.IsType<SolidColorBrush>(dialog.Background).Color);
                 Assert.Equal(((SolidColorBrush)view.FindResource("FocusEndTitleBrush")).Color, ((SolidColorBrush)title.Foreground).Color);
                 Assert.Equal(((SolidColorBrush)view.FindResource("FocusEndSecondaryBrush")).Color, ((SolidColorBrush)elapsed.Inlines.OfType<Run>().ElementAt(1).Foreground).Color);
                 Assert.True(Bounds(resume, view).Bottom < Bounds(end, view).Top);
@@ -122,13 +126,26 @@ public sealed class FocusEndConfirmationPresentationTests
                 }
                 model.ApplyFocusTheme(dark ? FocusThemeMode.Light : FocusThemeMode.Dark);
                 Pump();
-                Assert.Equal(!dark, dialog.Background is LinearGradientBrush);
+                Assert.Equal((Color)ColorConverter.ConvertFromString(dark ? "#FFFEFD" : "#0B152A"), Assert.IsType<SolidColorBrush>(dialog.Background).Color);
                 Assert.Equal(dark ? 255 : 0, ((SolidColorBrush)status.Background).Color.A);
                 Assert.Equal(before, regions.Select(region => Bounds(region, view)).ToArray());
                 model.ApplyFocusTheme(dark ? FocusThemeMode.Dark : FocusThemeMode.Light);
                 Pump();
                 model.ContinueFocusCommand.Execute(null);
-                for (var second = 16; second < 299; second++) model.AdvanceOneSecond();
+                for (var second = 16; second < 59; second++) model.AdvanceOneSecond();
+                model.RequestEndCommand.Execute(null);
+                Pump();
+                Assert.Equal("59秒", model.EndConfirmationElapsedDisplay);
+                Assert.Equal("59 秒", InlineText(elapsed));
+                model.ContinueFocusCommand.Execute(null);
+                model.AdvanceOneSecond();
+                model.RequestEndCommand.Execute(null);
+                Pump();
+                Assert.Equal("1分0秒", model.EndConfirmationElapsedDisplay);
+                Assert.Equal("1 分 0 秒", InlineText(elapsed));
+                Assert.Equal(before, regions.Select(region => Bounds(region, view)).ToArray());
+                model.ContinueFocusCommand.Execute(null);
+                for (var second = 60; second < 299; second++) model.AdvanceOneSecond();
                 model.RequestEndCommand.Execute(null);
                 Pump();
                 Assert.Equal("4分59秒", model.EndConfirmationElapsedDisplay);

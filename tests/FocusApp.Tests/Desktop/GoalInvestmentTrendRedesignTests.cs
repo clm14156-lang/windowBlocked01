@@ -284,8 +284,8 @@ public sealed class GoalInvestmentTrendRedesignTests
                     Assert.InRange(Bounds(tooltip).Top, Bounds(summary).Bottom, card.ActualHeight - tooltip.ActualHeight);
                     Assert.Equal(point.TooltipFullDateDisplay, ((TextBlock)modal.FindName("TooltipDate")).Text);
                     Assert.Equal(point.DurationDisplay, ((TextBlock)modal.FindName("TooltipFocusDuration")).Text);
-                    Assert.Equal(Colors.White, ((SolidColorBrush)((TextBlock)modal.FindName("TooltipFocusDuration")).Foreground).Color);
-                    Assert.Equal(Color.FromRgb(40,47,59), ((SolidColorBrush)tooltip.Background).Color);
+                    Assert.Equal(Color.FromRgb(24, 33, 47), ((SolidColorBrush)((TextBlock)modal.FindName("TooltipFocusDuration")).Foreground).Color);
+                    Assert.Equal(Colors.White, ((SolidColorBrush)tooltip.Background).Color);
                 }
                 var zeroPoint = model.TrendPoints[3];
                 chart.HoverAt(new Point(zeroPoint.ChartX, zeroPoint.ChartY + 20)); Pump();

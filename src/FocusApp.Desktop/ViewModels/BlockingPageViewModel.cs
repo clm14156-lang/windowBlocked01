@@ -35,7 +35,8 @@ public sealed class BlockingPageViewModel : INotifyPropertyChanged
         IEnumerable<RecentProgramRecord>? recentPrograms = null,
         AccessControlService? accessControlService = null,
         IProgramIconService? programIconService = null,
-        IWebsiteMetadataService? websiteMetadataService = null)
+        IWebsiteMetadataService? websiteMetadataService = null,
+        IRecentProgramSource? recentProgramSource = null)
     {
         Websites = new ObservableCollection<BlockingWebsiteItemViewModel>(websites);
         Applications = new ObservableCollection<BlockingApplicationItemViewModel>(applications);
@@ -45,7 +46,7 @@ public sealed class BlockingPageViewModel : INotifyPropertyChanged
         _websiteMetadataService = websiteMetadataService ?? new WebsiteMetadataService(_faviconService);
         _programIconService = programIconService ?? new ProgramIconService();
         _accessControlService = accessControlService ?? new AccessControlService();
-        ProgramModal = new AddProgramModalViewModel(recentPrograms);
+        ProgramModal = new AddProgramModalViewModel(recentPrograms, recentProgramSource);
 
         SelectWebsitesCommand = new RelayCommand<object>(_ => SelectedTab = BlockingTab.Websites);
         SelectApplicationsCommand = new RelayCommand<object>(_ => SelectedTab = BlockingTab.Applications);

@@ -59,6 +59,73 @@ public sealed class FocusTargetModalViewModelTests
     }
 
     [Fact]
+    public void RecentFocusStatus_UsesLatestRecordedDayAndSumsOnlyThatTargetsDailyDuration()
+    {
+        var today = new DateTime(2026, 10, 19);
+        var targets = Enumerable.Range(0, 4).Select(index => new LocalTargetDto(
+            $"goal-{index}", $"目标{index}", false, index, DateTimeOffset.Now, DateTimeOffset.Now)).ToArray();
+        var model = new FocusTargetModalViewModel(false, () => today.AddHours(12));
+
+        model.ApplyState(targets, [], null, [
+            Session("goal-0", today.AddHours(8), 3600),
+            Session("goal-0", today.AddHours(10), 1200) with { CompletionKind = FocusCompletionKindDto.EarlyEnd },
+            Session("goal-0", today.AddDays(-1).AddHours(8), 7200),
+            Session("goal-1", today.AddDays(-1).AddHours(8), 2700),
+            Session("goal-2", today.AddDays(-2).AddHours(8), 1800),
+            Session("goal-2", today.AddDays(-10).AddHours(8), 3600),
+            Session("other-goal", today.AddHours(8), 3600),
+            Session("goal-3", today.AddHours(8), 0),
+            Session("goal-3", today.AddHours(8), 60) with { Status = LocalFocusSessionStatusDto.Focusing },
+            Session("goal-3", today.AddHours(8), 60) with { CompletedAtUtc = null }
+        ]);
+
+        Assert.Equal(["今日已投入 1小时20分钟", "昨日已投入 45分钟", "2天前专注", "暂无专注"],
+            model.Targets.Select(target => target.RecentFocusStatus));
+    }
+
+    [Fact]
+    public void RecentFocusStatus_SplitsMidnightAndDoesNotInventActivityOnTheCompletionDate()
+    {
+        var today = new DateTime(2026, 10, 19);
+        var targets = Enumerable.Range(0, 3).Select(index => new LocalTargetDto(
+            $"goal-{index}", $"目标{index}", false, index, DateTimeOffset.Now, DateTimeOffset.Now)).ToArray();
+        var model = new FocusTargetModalViewModel(false, () => today.AddHours(12));
+
+        model.ApplyState(targets, [], null, [
+            Session("goal-0", today.AddMinutes(-30), 3600),
+            Session("goal-0", today.AddHours(8), 900),
+            Session("goal-1", today.AddHours(-1), 3600),
+            // Recorded actual focus excludes preparation before the final 30 seconds.
+            Session("goal-2", today.AddMinutes(-5), 330) with { ActualSeconds = 30 }
+        ]);
+
+        Assert.Equal(["今日已投入 45分钟", "昨日已投入 1小时", "今日已投入 不足1分钟"],
+            model.Targets.Select(target => target.RecentFocusStatus));
+    }
+
+    [Fact]
+    public void RecentFocusStatus_RefreshesExistingTargetsOnRecordChangesAndWhenReopenedAfterMidnight()
+    {
+        var now = new DateTime(2026, 10, 19, 12, 0, 0);
+        var target = new LocalTargetDto("goal-1", "目标一", false, 0, DateTimeOffset.Now, DateTimeOffset.Now);
+        var model = new FocusTargetModalViewModel(false, () => now);
+        model.ApplyState([target], [], target.TargetId, [Session(target.TargetId, now.AddHours(-2), 2700)]);
+        var originalTarget = Assert.Single(model.Targets);
+        var changed = new List<string?>();
+        originalTarget.PropertyChanged += (_, args) => changed.Add(args.PropertyName);
+
+        now = now.AddDays(1);
+        model.Open();
+
+        Assert.Equal("昨日已投入 45分钟", originalTarget.RecentFocusStatus);
+        Assert.Contains(nameof(FocusTargetViewModel.RecentFocusStatus), changed);
+        model.ApplyState([target], [], target.TargetId, []);
+        Assert.Same(originalTarget, Assert.Single(model.Targets));
+        Assert.Same(originalTarget, model.SelectedTarget);
+        Assert.Equal("暂无专注", originalTarget.RecentFocusStatus);
+    }
+
+    [Fact]
     public void SelectTargetCommand_UsesSingleSelectionAndAllowsClearingTheCurrentTarget()
     {
         var now = DateTimeOffset.UtcNow;
@@ -244,4 +311,10 @@ public sealed class FocusTargetModalViewModelTests
         Assert.Empty(learning.Tasks);
         Assert.Contains(codingTask, coding.Tasks);
     }
+
+    private static LocalFocusSessionDto Session(string targetId, DateTime start, int seconds) => new(
+        Guid.NewGuid(), LocalFocusSessionStatusDto.Completed, false, seconds, seconds,
+        new DateTimeOffset(start).ToUniversalTime(), new DateTimeOffset(start).ToUniversalTime(), null,
+        new DateTimeOffset(start.AddSeconds(seconds)).ToUniversalTime(), FocusCompletionKindDto.Natural,
+        targetId, "历史名称", false, null, null, []);
 }

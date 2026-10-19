@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using FocusApp.Contracts;
 using FocusApp.Desktop.ViewModels;
@@ -254,7 +255,7 @@ public sealed class GoalDetailRedesignTests
     }
 
     [Fact]
-    public void DetailMenuFollowsSelectionAndKeepsEditingArchivingRestoringAndDeleting()
+    public void ListRowMenuTargetsItsOwnGoalAndKeepsEditingArchivingRestoringAndDeleting()
     {
         RunSta(() =>
         {
@@ -268,35 +269,151 @@ public sealed class GoalDetailRedesignTests
             try
             {
                 window.Show(); Pump(page);
-                var more = (ToggleButton)page.FindName("GoalDetailMoreButton");
-                var popup = (Popup)page.FindName("GoalDetailMorePopup");
-                Assert.DoesNotContain(Descendants<ToggleButton>(page), button => button.Name == "GoalListMoreButton");
-                void Open() { more.IsChecked = true; Pump(page); Assert.True(popup.IsOpen); }
+                Assert.Null(page.FindName("GoalDetailMoreButton"));
+                var popup = (Popup)page.FindName("GoalListMorePopup");
+                ToggleButton More(GoalOverviewItemViewModel goal) => Descendants<ToggleButton>(page)
+                    .Single(button => button.Name == "GoalListMoreButton" && ReferenceEquals(button.DataContext, goal));
+                void Open(GoalOverviewItemViewModel goal)
+                {
+                    var more = More(goal);
+                    SetRowHover(more, true); Pump(page);
+                    Assert.True(more.IsVisible);
+                    Assert.Equal(1, more.Opacity); Assert.True(more.IsHitTestVisible);
+                    Invoke(more); Pump(page);
+                    Assert.True(popup.IsOpen); Assert.Same(goal, popup.DataContext);
+                    Assert.Same(more, popup.PlacementTarget);
+                }
                 Button Action(string text) => Descendants<Button>(popup.Child).Single(button => Equals(button.Content, text));
-                Open(); Assert.Same(first, popup.DataContext);
+                Assert.All(Descendants<ToggleButton>(page).Where(button => button.Name == "GoalListMoreButton"),
+                    button => { Assert.Equal(0, button.Opacity); Assert.False(button.IsHitTestVisible); });
+                var firstMore = More(first);
+                SetRowHover(firstMore, true); Pump(page); Assert.Equal(1, firstMore.Opacity);
+                SaveSummaryPreview(page, page, "goal-list-hover");
+                SetRowHover(firstMore, false); Pump(page); Assert.Equal(0, firstMore.Opacity);
+                Open(second); Assert.Same(first, model.SelectedGoal);
+                SaveSummaryPreview(page, (FrameworkElement)popup.Child, "goal-list-menu");
+                Open(first); Assert.Same(first, popup.DataContext);
                 model.SelectGoalCommand.Execute(second); Pump(page);
-                Assert.False(popup.IsOpen); Assert.Same(second, more.DataContext);
-                Open(); Invoke(Action("编辑")); Pump(page);
+                Assert.False(popup.IsOpen); Assert.False(firstMore.IsChecked);
+                Open(second);
+                var escape = new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(popup.Child), 0, Key.Escape)
+                    { RoutedEvent = Keyboard.PreviewKeyDownEvent };
+                popup.Child.RaiseEvent(escape); Pump(page);
+                Assert.True(escape.Handled); Assert.False(popup.IsOpen);
+                Open(second); popup.SetCurrentValue(Popup.IsOpenProperty, false); Pump(page); Assert.False(More(second).IsChecked);
+                Open(second); Invoke(Action("编辑")); Pump(page);
                 Assert.False(popup.IsOpen); Assert.True(model.IsCreateGoalDialogOpen);
                 Assert.Equal(second.Name, model.NewGoalName); model.CancelCreateGoalCommand.Execute(null);
-                Open(); Invoke(Action("归档")); Pump(page);
+                Open(second); Assert.False(Action("删除目标").IsVisible); Invoke(Action("归档")); Pump(page);
                 Assert.True(second.IsArchived); Assert.False(popup.IsOpen);
                 model.SelectGoalListCommand.Execute("Archived"); Pump(page);
-                Open(); Assert.Same(second, popup.DataContext); Assert.True(Action("恢复目标").IsVisible);
+                Open(second); Assert.False(Action("编辑").IsVisible); Assert.True(Action("恢复目标").IsVisible);
                 Invoke(Action("恢复目标")); Pump(page);
                 Assert.False(second.IsArchived); Assert.False(popup.IsOpen);
                 model.SelectGoalListCommand.Execute("Current"); model.SelectGoalCommand.Execute(second); Pump(page);
-                Open(); model.SelectCalendarCommand.Execute(null); Pump(page); Assert.False(popup.IsOpen);
+                Open(second); model.SelectCalendarCommand.Execute(null); Pump(page); Assert.False(popup.IsOpen);
                 model.SelectGoalsCommand.Execute(null); model.SetUserAccess(false, false); Pump(page);
-                Assert.True(more.IsVisible);
-                Open(); Invoke(Action("归档")); Pump(page);
+                Open(second); Invoke(Action("归档")); Pump(page);
                 model.SelectGoalListCommand.Execute("Archived"); Pump(page);
-                Open(); Invoke(Action("删除目标")); Pump(page);
+                Open(second); Invoke(Action("删除目标")); Pump(page);
                 Assert.DoesNotContain(second, model.Goals); Assert.False(popup.IsOpen);
             }
             finally { window.Close(); }
         });
     }
+
+    [Theory]
+    [InlineData(800)]
+    [InlineData(900)]
+    public void SummaryHeaderOmitsCreationDateAndTransfersThirtyPixelsToRecordsWithoutChangingTheirSpacing(int width)
+    {
+        RunSta(() =>
+        {
+            var now = new DateTime(2026, 10, 19, 12, 0, 0);
+            var created = new DateTimeOffset(new DateTime(2026, 10, 10, 12, 0, 0)).ToUniversalTime();
+            var model = new StatisticsOverviewViewModel(false, localNowProvider: () => now);
+            model.SetUserAccess(true, true); model.SelectGoalsCommand.Execute(null);
+            var goal = new GoalOverviewItemViewModel("g", "windows屏蔽软件开发", "", "", false, false, createdAtUtc: created);
+            model.Goals.Add(goal); model.SelectGoalCommand.Execute(goal);
+            model.FocusSessionRecords.Add(Record(now.AddDays(-1), 35));
+            var page = CreatePage(model);
+            var window = new Window { Width = width, Height = 710, Content = page, WindowStyle = WindowStyle.None,
+                ShowActivated = false, ShowInTaskbar = false, Left = -32000, Top = -32000 };
+            try
+            {
+                window.Show(); Pump(page);
+                var summary = (Border)page.FindName("GoalSummaryCard");
+                var name = (TextBlock)page.FindName("GoalDetailName");
+                Assert.Null(page.FindName("GoalDetailCreatedDate"));
+                var remark = (TextBlock)page.FindName("GoalDetailMetadata");
+                var metrics = (Grid)page.FindName("GoalInvestmentMetrics");
+                var records = (Border)page.FindName("GoalRecordsCard");
+                var history = (GoalFocusHistoryView)page.FindName("GoalFocusHistoryControl");
+                var filter = (Button)history.FindName("HistoryRangeButton");
+                var dayHeader = Descendants<Button>(history).Single(button => button.Name == "HistoryDayHeader");
+                var headerRow = ((Grid)summary.Child).RowDefinitions[0];
+                var compactHeaderHeight = headerRow.Height;
+                headerRow.Height = new GridLength(compactHeaderHeight.Value + 30); Pump(page);
+                var previousSummaryHeight = summary.ActualHeight;
+                var previousRecordsHeight = records.ActualHeight;
+                var previousFilterPosition = filter.TranslatePoint(new Point(), records);
+                var previousDayPosition = dayHeader.TranslatePoint(new Point(), records);
+                var previousDayHeight = dayHeader.ActualHeight;
+                headerRow.Height = compactHeaderHeight; Pump(page);
+                var height = summary.ActualHeight;
+                Assert.InRange(previousSummaryHeight - height, 29, 31);
+                Assert.InRange(records.ActualHeight - previousRecordsHeight, 29, 31);
+                Assert.InRange((previousFilterPosition - filter.TranslatePoint(new Point(), records)).Length, 0, 0.01);
+                Assert.InRange((previousDayPosition - dayHeader.TranslatePoint(new Point(), records)).Length, 0, 0.01);
+                Assert.Equal(previousDayHeight, dayHeader.ActualHeight);
+                Assert.Equal(Visibility.Collapsed, remark.Visibility);
+                var metricY = metrics.TranslatePoint(new Point(), summary).Y;
+                SaveSummaryPreview(page, summary, $"goal-summary-{width}-no-remark");
+
+                var fullRemark = string.Concat(Enumerable.Repeat("专注开发与交互优化", 12)) + "\n保留完整备注";
+                goal.UpdateDetails(fullRemark); Pump(page);
+                Assert.Equal(Visibility.Visible, remark.Visibility);
+                Assert.Equal(fullRemark.ReplaceLineEndings(" "), remark.Text);
+                Assert.Equal(TextWrapping.NoWrap, remark.TextWrapping);
+                Assert.Equal(TextTrimming.CharacterEllipsis, remark.TextTrimming);
+                Assert.True(StatisticsPage.IsGoalNameTrimmed(remark));
+                Assert.Equal(name.TranslatePoint(new Point(), summary).X, remark.TranslatePoint(new Point(), summary).X);
+                Assert.Equal(height, summary.ActualHeight);
+                Assert.Equal(metricY, metrics.TranslatePoint(new Point(), summary).Y);
+                var firstMetricIcon = Descendants<Border>((Button)page.FindName("GoalTotalInvestmentCard")).Single(border => border.Width == 32);
+                Assert.True(remark.TranslatePoint(new Point(0, remark.ActualHeight), summary).Y < firstMetricIcon.TranslatePoint(new Point(), summary).Y);
+                var tooltip = Assert.IsType<ToolTip>(remark.ToolTip);
+                tooltip.PlacementTarget = remark;
+                tooltip.IsOpen = true; Pump(page);
+                Assert.Equal(fullRemark, Assert.IsType<TextBlock>(tooltip.Content).Text);
+                tooltip.IsOpen = false;
+                Assert.Equal(35, model.GoalFocusHistory.TotalInvestment.TotalMinutes);
+                SaveSummaryPreview(page, summary, $"goal-summary-{width}-remark");
+                SaveSummaryPreview(page, page, $"goal-layout-{width}-remark");
+                goal.UpdateDetails(" \r\n "); Pump(page);
+                Assert.Equal(Visibility.Collapsed, remark.Visibility);
+                Assert.Equal(height, summary.ActualHeight);
+            }
+            finally { window.Close(); }
+        });
+    }
+
+    private static void SaveSummaryPreview(FrameworkElement page, FrameworkElement summary, string name)
+    {
+        var directory = Environment.GetEnvironmentVariable("FOCUSAPP_GOAL_SUMMARY_QA_PATH");
+        if (string.IsNullOrWhiteSpace(directory)) return;
+        Directory.CreateDirectory(directory);
+        var bitmap = new RenderTargetBitmap((int)Math.Ceiling(summary.ActualWidth), (int)Math.Ceiling(summary.ActualHeight), 96, 96, PixelFormats.Pbgra32);
+        var drawing = new DrawingVisual();
+        using (var context = drawing.RenderOpen())
+            context.DrawRectangle(new VisualBrush(summary), null, new Rect(new Size(summary.ActualWidth, summary.ActualHeight)));
+        bitmap.Render(drawing);
+        var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));
+        using var stream = File.Create(Path.Combine(directory, name + ".png")); encoder.Save(stream);
+    }
+
+    internal static void SetRowHover(FrameworkElement child, bool value) => ((UIElement)VisualTreeHelper.GetParent(child)).SetValue(
+        (DependencyPropertyKey)typeof(UIElement).GetField("IsMouseOverPropertyKey", BindingFlags.Static | BindingFlags.NonPublic)!.GetValue(null)!, value);
 
     internal static StatisticsPage CreatePage(StatisticsOverviewViewModel model)
     {
@@ -305,7 +422,7 @@ public sealed class GoalDetailRedesignTests
             page.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri($"/FocusApp.Desktop;component/Resources/{name}.xaml", UriKind.Relative) });
         return page;
     }
-    internal static void Invoke(Button button) => typeof(ButtonBase).GetMethod("OnClick", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(button, null);
+    internal static void Invoke(ButtonBase button) => button.GetType().GetMethod("OnClick", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(button, null);
     internal static void Pump(FrameworkElement page) { page.UpdateLayout(); page.Dispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle); page.UpdateLayout(); }
     internal static IEnumerable<T> Descendants<T>(DependencyObject root) where T : DependencyObject
     {
