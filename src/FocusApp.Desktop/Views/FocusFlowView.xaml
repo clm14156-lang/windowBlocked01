@@ -14,6 +14,25 @@
             </ResourceDictionary.MergedDictionaries>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <local:PositiveIntToVisibilityConverter x:Key="PositiveIntToVisibilityConverter" />
+        <local:FocusDayBackgroundOpacityConverter x:Key="FocusDayBackgroundOpacityConverter" />
+        <BitmapImage x:Key="FocusAfternoonBackground" CacheOption="OnLoad" UriSource="/FocusApp.Desktop;component/Assets/Images/focusPage/a2.png" />
+        <BitmapImage x:Key="FocusDuskBackground" CacheOption="OnLoad" UriSource="/FocusApp.Desktop;component/Assets/Images/focusPage/a3.png" />
+        <Style x:Key="FocusDayBackgroundLayerStyle" TargetType="Image">
+            <Setter Property="Panel.ZIndex" Value="-1" />
+            <Setter Property="IsHitTestVisible" Value="False" />
+            <Setter Property="Stretch" Value="UniformToFill" />
+            <Setter Property="RenderOptions.BitmapScalingMode" Value="HighQuality" />
+            <Setter Property="Visibility" Value="Collapsed" />
+            <Style.Triggers>
+                <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                        <Condition Binding="{Binding IsFocusing}" Value="True" />
+                        <Condition Binding="{Binding IsDarkFocusTheme}" Value="False" />
+                    </MultiDataTrigger.Conditions>
+                    <Setter Property="Visibility" Value="Visible" />
+                </MultiDataTrigger>
+            </Style.Triggers>
+        </Style>
         <TranslateTransform x:Key="FocusFlowCenterShift" X="11" />
         <LinearGradientBrush x:Key="FocusEndButtonBackground" StartPoint="0,0" EndPoint="0,1">
             <GradientStop Color="#FF8A00" Offset="0" />
@@ -290,6 +309,10 @@
             </ControlTemplate></Setter.Value></Setter>
         </Style>
 
+        <Style x:Key="FocusCompletionFooterActionStyle" TargetType="Button" BasedOn="{StaticResource FocusFooterActionStyle}">
+            <Style.Triggers><DataTrigger Binding="{Binding IsDarkFocusTheme}" Value="True"><Setter Property="Foreground" Value="White" /></DataTrigger></Style.Triggers>
+        </Style>
+
         <Style x:Key="FocusConfirmationTitle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="26" />
             <Setter Property="FontWeight" Value="Bold" />
@@ -417,6 +440,12 @@
             <Setter Property="BaselineAlignment" Value="Baseline" />
         </Style>
 
+        <LinearGradientBrush x:Key="FocusCompletionCapsuleBackground" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#CCFFFFFF" Offset="0" />
+            <GradientStop Color="#B3F3FAFF" Offset="1" />
+        </LinearGradientBrush>
+        <DropShadowEffect x:Key="FocusCompletionCapsuleShadow" Color="#507F9B" BlurRadius="20" ShadowDepth="4" Direction="270" Opacity="0.16" />
+
         <Style x:Key="FocusCompletionTitleTextStyle" TargetType="TextBlock">
             <Setter Property="FontFamily" Value="{DynamicResource FontFamilyPrimary}" />
             <Setter Property="FontSize" Value="18" />
@@ -429,6 +458,9 @@
             <Setter Property="FontWeight" Value="{DynamicResource BodyFontWeight}" />
             <Setter Property="Foreground" Value="{DynamicResource FocusCompletionSecondaryBrush}" />
         </Style>
+        <Style x:Key="FocusCompletionStatisticLabelTextStyle" TargetType="TextBlock" BasedOn="{StaticResource FocusCompletionLabelTextStyle}">
+            <Setter Property="Foreground" Value="{DynamicResource FocusCompletionStatisticLabelBrush}" />
+        </Style>
         <Style x:Key="FocusCompletionMetricTextStyle" TargetType="TextBlock">
             <Setter Property="FontFamily" Value="{DynamicResource FontFamilyNumeric}" />
             <Setter Property="FontSize" Value="20" />
@@ -440,7 +472,7 @@
             <Setter Property="FontFamily" Value="{DynamicResource FontFamilyPrimary}" />
             <Setter Property="FontSize" Value="{DynamicResource SecondaryFontSize}" />
             <Setter Property="FontWeight" Value="{DynamicResource BodyFontWeight}" />
-            <Setter Property="Foreground" Value="{DynamicResource FocusCompletionSecondaryBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource FocusCompletionStatisticLabelBrush}" />
             <Setter Property="BaselineAlignment" Value="Baseline" />
         </Style>
 
@@ -471,14 +503,9 @@
                                IsHitTestVisible="False" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"
                                Source="{DynamicResource FocusCompletionCheck}">
                             <Image.Style><Style TargetType="Image">
-                                <Setter Property="Width" Value="256" />
-                                <Setter Property="Height" Value="256" />
-                                <Setter Property="Margin" Value="0,-53,0,-53" />
-                                <Style.Triggers><DataTrigger Binding="{Binding IsDarkFocusTheme}" Value="True">
-                                    <Setter Property="Width" Value="128" />
-                                    <Setter Property="Height" Value="128" />
-                                    <Setter Property="Margin" Value="0,11,0,11" />
-                                </DataTrigger></Style.Triggers>
+                                <Setter Property="Width" Value="166.4" />
+                                <Setter Property="Height" Value="166.4" />
+                                <Setter Property="Margin" Value="0,-8.2,0,-8.2" />
                             </Style></Image.Style>
                         </Image>
                     </Grid>
@@ -506,35 +533,53 @@
                                            Text="{Binding TargetName, Mode=OneWay}" FontSize="{DynamicResource SectionTitleFontSize}" FontWeight="{DynamicResource SectionTitleFontWeight}" Foreground="{DynamicResource FocusTargetBrush}"
                                            TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" ToolTip="{Binding TargetName}" />
                             </Grid>
-                            <Grid x:Name="CompletionStatistics" Width="304" Height="48" Margin="0,10,0,0" HorizontalAlignment="Center">
+                            <Grid x:Name="CompletionStatistics" Width="304" Height="60" Margin="0,40,0,0" HorizontalAlignment="Center">
                                 <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="1"/><ColumnDefinition/></Grid.ColumnDefinitions>
-                                <Grid x:Name="CompletionTodayColumn" Margin="0,0,12,0" HorizontalAlignment="Center">
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="24"/><ColumnDefinition Width="10"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                    <views:SvgIcon x:Name="CompletionTodayIcon" Width="24" Height="24" VerticalAlignment="Center"
-                                                   Source="/FocusApp.Desktop;component/Assets/Icons/Common/time.svg" FillOverride="{DynamicResource FocusCompletionIconBrush}" />
-                                    <StackPanel Grid.Column="2" VerticalAlignment="Center" MaxWidth="104">
-                                        <TextBlock x:Name="CompletionTodayLabel" Text="{DynamicResource FocusTodayTotalShort}" Style="{StaticResource FocusCompletionLabelTextStyle}" />
-                                        <Viewbox Height="27" MaxWidth="104" HorizontalAlignment="Left" Stretch="Uniform" StretchDirection="DownOnly" Margin="0,2,0,0">
-                                            <TextBlock x:Name="CompletionTodayValue" Style="{StaticResource FocusCompletionMetricTextStyle}" AutomationProperties.Name="{Binding CompletionTodayDurationDisplay, Mode=OneWay}">
-                                                <Run Text="{Binding CompletionTodayPrimaryValue, Mode=OneWay}"/><Run Text="{Binding CompletionTodayPrimaryUnit, Mode=OneWay}" Style="{StaticResource FocusCompletionUnitRunStyle}"/><Run Text="{Binding CompletionTodaySecondaryValue, Mode=OneWay}"/><Run Text="{Binding CompletionTodaySecondaryUnit, Mode=OneWay}" Style="{StaticResource FocusCompletionUnitRunStyle}"/>
-                                            </TextBlock>
-                                        </Viewbox>
-                                    </StackPanel>
-                                </Grid>
-                                <Border x:Name="CompletionStatisticsDivider" Grid.Column="1" Width="1" Height="32" VerticalAlignment="Center" Background="{DynamicResource FocusCompletionDividerBrush}" />
-                                <Grid x:Name="CompletionClockColumn" Grid.Column="2" Margin="12,0,0,0" HorizontalAlignment="Center">
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="24"/><ColumnDefinition Width="10"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                    <Viewbox x:Name="CompletionClockIcon" Width="24" Height="24" VerticalAlignment="Center">
+                                <Border x:Name="CompletionStatisticsCapsule" Grid.ColumnSpan="3" Margin="-20,-10"
+                                        CornerRadius="40" IsHitTestVisible="False"
+                                        Background="{StaticResource FocusCompletionCapsuleBackground}"
+                                        Effect="{StaticResource FocusCompletionCapsuleShadow}">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsDarkFocusTheme}" Value="True">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                </Border>
+                                <Grid x:Name="CompletionTodayColumn" Margin="4,0,12,0" HorizontalAlignment="Left">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="24"/><ColumnDefinition Width="14"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions><RowDefinition Height="26"/><RowDefinition Height="34"/></Grid.RowDefinitions>
+                                    <Viewbox x:Name="CompletionTodayIcon" Width="24" Height="24" VerticalAlignment="Center">
                                         <Canvas Width="24" Height="24">
-                                            <Path Data="M 4,5 L 20,5 Q 22,5 22,7 L 22,20 Q 22,22 20,22 L 4,22 Q 2,22 2,20 L 2,7 Q 2,5 4,5 M 2,10 L 22,10 M 7,2 L 7,7 M 17,2 L 17,7"
-                                                  Stroke="{DynamicResource FocusCompletionIconBrush}" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
+                                            <Rectangle Width="4" Height="9" Canvas.Left="2" Canvas.Top="13" RadiusX="1" RadiusY="1" Fill="{DynamicResource FocusCompletionIconBrush}" />
+                                            <Rectangle Width="4" Height="14" Canvas.Left="10" Canvas.Top="8" RadiusX="1" RadiusY="1" Fill="{DynamicResource FocusCompletionIconBrush}" />
+                                            <Rectangle Width="4" Height="20" Canvas.Left="18" Canvas.Top="2" RadiusX="1" RadiusY="1" Fill="{DynamicResource FocusCompletionIconBrush}" />
                                         </Canvas>
                                     </Viewbox>
-                                    <StackPanel Grid.Column="2" VerticalAlignment="Center">
-                                        <TextBlock x:Name="CompletionClockLabel" Text="{DynamicResource FocusCompletedAt}" Style="{StaticResource FocusCompletionLabelTextStyle}" />
-                                        <TextBlock x:Name="CompletionClockValue" Text="{Binding CompletionClockDisplay, Mode=OneWay}" Style="{StaticResource FocusCompletionMetricTextStyle}"
-                                                   Height="27" Margin="0,2,0,0" />
-                                    </StackPanel>
+                                    <TextBlock x:Name="CompletionTodayLabel" Grid.Column="2" VerticalAlignment="Center" Text="{DynamicResource FocusTodayTotalShort}" Style="{StaticResource FocusCompletionStatisticLabelTextStyle}" />
+                                    <Viewbox Grid.Row="1" Grid.Column="2" Height="34" MaxWidth="104" HorizontalAlignment="Left" Stretch="Uniform" StretchDirection="DownOnly">
+                                        <TextBlock x:Name="CompletionTodayValue" Style="{StaticResource FocusCompletionMetricTextStyle}" AutomationProperties.Name="{Binding CompletionTodayDurationDisplay, Mode=OneWay}">
+                                            <Run Text="{Binding CompletionTodayPrimaryValue, Mode=OneWay}"/><Run Text="{Binding CompletionTodayPrimaryUnit, Mode=OneWay, StringFormat=' {0}'}" Style="{StaticResource FocusCompletionUnitRunStyle}"/><Run Text="{Binding CompletionTodaySecondaryValue, Mode=OneWay}"/><Run Text="{Binding CompletionTodaySecondaryUnit, Mode=OneWay}" Style="{StaticResource FocusCompletionUnitRunStyle}"/>
+                                        </TextBlock>
+                                    </Viewbox>
+                                </Grid>
+                                <Border x:Name="CompletionStatisticsDivider" Grid.Column="1" Width="1" Height="56" VerticalAlignment="Center" Background="{DynamicResource FocusCompletionDividerBrush}" />
+                                <Grid x:Name="CompletionClockColumn" Grid.Column="2" Margin="34,0,0,0" HorizontalAlignment="Left">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="24"/><ColumnDefinition Width="14"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions><RowDefinition Height="26"/><RowDefinition Height="34"/></Grid.RowDefinitions>
+                                    <Viewbox x:Name="CompletionClockIcon" Width="24" Height="24" VerticalAlignment="Center">
+                                        <Canvas Width="24" Height="24">
+                                            <Ellipse Width="21" Height="21" Canvas.Left="1.5" Canvas.Top="1.5" Stroke="{DynamicResource FocusCompletionIconBrush}" StrokeThickness="2" />
+                                            <Path Data="M12,6 L12,12 L17,15" Stroke="{DynamicResource FocusCompletionIconBrush}" StrokeThickness="2"
+                                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
+                                        </Canvas>
+                                    </Viewbox>
+                                    <TextBlock x:Name="CompletionClockLabel" Grid.Column="2" VerticalAlignment="Center" Text="{DynamicResource FocusCompletedAt}" Style="{StaticResource FocusCompletionStatisticLabelTextStyle}" />
+                                    <TextBlock x:Name="CompletionClockValue" Grid.Row="1" Grid.Column="2" Text="{Binding CompletionClockDisplay, Mode=OneWay}" Style="{StaticResource FocusCompletionMetricTextStyle}" Height="34" />
                                 </Grid>
                             </Grid>
                         </StackPanel>
@@ -544,7 +589,7 @@
                 <StackPanel x:Name="CompletionFooter" Margin="40,0,40,20" VerticalAlignment="Bottom">
                     <StackPanel x:Name="CompletionFooterActions" Orientation="Horizontal" HorizontalAlignment="Center">
                         <Button x:Name="CompletionAgainButton"
-                                Style="{StaticResource FocusFooterActionStyle}" Command="{Binding RequestFocusAgainCommand}"
+                                Style="{StaticResource FocusCompletionFooterActionStyle}" Command="{Binding RequestFocusAgainCommand}"
                                 AutomationProperties.Name="{DynamicResource FocusAgainShort}">
                             <StackPanel Orientation="Horizontal">
                                 <views:SvgIcon Width="20" Height="20" Margin="0,0,10,0" VerticalAlignment="Center"
@@ -556,7 +601,7 @@
                         </Button>
                         <Border x:Name="CompletionActionDivider" Width="1" Height="26" Margin="18,0" VerticalAlignment="Center" Background="{DynamicResource FocusDividerBrush}" />
                         <Button x:Name="CompletionHomeButton"
-                                Style="{StaticResource FocusFooterActionStyle}" Command="{Binding ReturnHomeCommand}"
+                                Style="{StaticResource FocusCompletionFooterActionStyle}" Command="{Binding ReturnHomeCommand}"
                                 AutomationProperties.Name="{DynamicResource FocusReturnHome}">
                             <StackPanel Orientation="Horizontal">
                                 <views:SvgIcon Width="20" Height="20" Margin="0,0,10,0" VerticalAlignment="Center"
@@ -574,10 +619,18 @@
     </UserControl.Resources>
 
     <Grid Background="{DynamicResource FocusSceneBaseBrush}">
+        <local:FocusSceneBackgroundPanel x:Name="FocusBackgroundViewport" Panel.ZIndex="-1" IsHitTestVisible="False">
         <Image x:Name="FocusBackground" Panel.ZIndex="-1" IsHitTestVisible="False"
                Source="{DynamicResource FocusSceneBackground}"
                Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"
                Visibility="{Binding IsFullScreenVisible, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+        <Image x:Name="FocusAfternoonBackgroundLayer" Style="{StaticResource FocusDayBackgroundLayerStyle}"
+               Source="{StaticResource FocusAfternoonBackground}"
+               Opacity="{Binding RemainingProgress, Converter={StaticResource FocusDayBackgroundOpacityConverter}, ConverterParameter=Afternoon}" />
+        <Image x:Name="FocusDuskBackgroundLayer" Style="{StaticResource FocusDayBackgroundLayerStyle}"
+               Source="{StaticResource FocusDuskBackground}"
+               Opacity="{Binding RemainingProgress, Converter={StaticResource FocusDayBackgroundOpacityConverter}, ConverterParameter=Dusk}" />
+        </local:FocusSceneBackgroundPanel>
         <views:FocusLeafLayer x:Name="FocusLeaves" Sources="{DynamicResource FocusSceneLeaves}" IsActive="{Binding IsFocusing}"
                              TotalFocusSeconds="{Binding TotalFocusSeconds}" RemainingFocusSeconds="{Binding RemainingFocusSeconds}"
                              WeatherBrush="{DynamicResource FocusWeatherBrush}"
@@ -606,6 +659,11 @@
         <Grid x:Name="FocusingView" Background="Transparent" MouseDown="TargetMode_MouseDown"
               Visibility="{Binding IsFocusing, Converter={StaticResource BooleanToVisibilityConverter}}">
             <Grid x:Name="FocusGreeting" Margin="40,40,0,0" HorizontalAlignment="Left" VerticalAlignment="Top">
+                <Grid.Style><Style TargetType="Grid">
+                    <Style.Triggers><DataTrigger Binding="{Binding IsGreetingReady}" Value="False">
+                        <Setter Property="Visibility" Value="Hidden" />
+                    </DataTrigger></Style.Triggers>
+                </Style></Grid.Style>
                 <Grid.ColumnDefinitions><ColumnDefinition Width="40"/><ColumnDefinition Width="12"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                 <Image x:Name="FocusGreetingIcon" Width="56" Height="56" VerticalAlignment="Top" Margin="0,-6,0,0"
                        Source="{Binding GreetingIconSource}" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality" IsHitTestVisible="False"/>
@@ -616,7 +674,7 @@
                 </StackPanel>
             </Grid>
             <Grid IsHitTestVisible="False">
-                <StackPanel x:Name="FocusCenter" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,128,0,0">
+                <StackPanel x:Name="FocusCenter" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,158,0,0">
                     <Viewbox x:Name="FocusTimerRegion" Width="440" Height="116" Stretch="Uniform" StretchDirection="DownOnly">
                         <TextBlock x:Name="FocusCountdown" Text="{Binding RemainingTimeDisplay}" Style="{StaticResource FocusCountdownTextStyle}"/>
                     </Viewbox>
@@ -635,27 +693,18 @@
                     </Grid>
                 </StackPanel>
             </Grid>
+            <Grid x:Name="FocusCharacterGroup" Margin="0,30,0,0" IsHitTestVisible="False">
             <Grid x:Name="FocusCharacterShadowLayers" Width="288" Height="36"
                   HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,540,0,0" IsHitTestVisible="False">
+                <Grid x:Name="FocusCharacterShadowAppearance" RenderTransformOrigin="0.5,0.5" Opacity="0.8">
+                    <Grid.RenderTransform><ScaleTransform ScaleX="1.25" ScaleY="1.25"/></Grid.RenderTransform>
                 <Image x:Name="FocusCharacterShadow" Source="{DynamicResource FocusSceneShadow}" Width="288" Height="36"
                        HorizontalAlignment="Center" VerticalAlignment="Top" Stretch="Uniform"
                        RenderOptions.BitmapScalingMode="HighQuality" />
-                <Image x:Name="FocusCharacterContactShadow" Width="216" Height="{Binding ActualHeight, ElementName=FocusCharacterShadow}" Opacity="0.4"
+                <Image x:Name="FocusCharacterContactShadow" Source="{DynamicResource FocusSceneContactShadow}" Width="216" Height="{Binding ActualHeight, ElementName=FocusCharacterShadow}" Opacity="0.4"
                        HorizontalAlignment="Center" VerticalAlignment="Top" Stretch="Uniform"
-                       RenderOptions.BitmapScalingMode="HighQuality">
-                    <Image.Style>
-                        <Style TargetType="Image">
-                            <Setter Property="Visibility" Value="Collapsed"/>
-                            <Setter Property="Source" Value="{x:Null}"/>
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding IsDarkFocusTheme}" Value="False">
-                                    <Setter Property="Visibility" Value="Visible"/>
-                                    <Setter Property="Source" Value="{DynamicResource FocusSceneContactShadow}"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Image.Style>
-                </Image>
+                       RenderOptions.BitmapScalingMode="HighQuality"/>
+                </Grid>
             </Grid>
             <Grid x:Name="FocusCharacterEntrance" IsHitTestVisible="False">
                 <Grid.RenderTransform><TranslateTransform /></Grid.RenderTransform>
@@ -672,6 +721,7 @@
                     </MultiBinding>
                 </views:FocusCharacterImage.Margin>
             </views:FocusCharacterImage>
+            </Grid>
             </Grid>
             <StackPanel x:Name="FocusFooter" Margin="40,0,40,20" VerticalAlignment="Bottom">
                 <StackPanel x:Name="FocusForceNotice" Orientation="Horizontal" HorizontalAlignment="Center" IsHitTestVisible="False"

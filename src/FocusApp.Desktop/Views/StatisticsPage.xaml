@@ -16,6 +16,20 @@
         </ResourceDictionary.MergedDictionaries>
         <views:GoalInverseVisibilityConverter x:Key="GoalInverseVisibilityConverter"/>
 
+        <!-- Trim transparent asset padding only for display; retain the 28 DIP icon slot. -->
+        <CroppedBitmap x:Key="CalendarDawnIcon" SourceRect="28,29,79,81">
+            <CroppedBitmap.Source><BitmapImage UriSource="/FocusApp.Desktop;component/Assets/Icons/Common/rili_04.png"/></CroppedBitmap.Source>
+        </CroppedBitmap>
+        <CroppedBitmap x:Key="CalendarMorningIcon" SourceRect="17,18,94,95">
+            <CroppedBitmap.Source><BitmapImage UriSource="/FocusApp.Desktop;component/Assets/Icons/Common/rili_03.png"/></CroppedBitmap.Source>
+        </CroppedBitmap>
+        <CroppedBitmap x:Key="CalendarAfternoonIcon" SourceRect="19,19,90,90">
+            <CroppedBitmap.Source><BitmapImage UriSource="/FocusApp.Desktop;component/Assets/Icons/Common/rili_02.png"/></CroppedBitmap.Source>
+        </CroppedBitmap>
+        <CroppedBitmap x:Key="CalendarNightIcon" SourceRect="24,25,81,81">
+            <CroppedBitmap.Source><BitmapImage UriSource="/FocusApp.Desktop;component/Assets/Icons/Common/rili_01.png"/></CroppedBitmap.Source>
+        </CroppedBitmap>
+
         <Style x:Key="VipUnlockButtonStyle" TargetType="Button" BasedOn="{StaticResource PrimaryActionButtonStyle}">
             <Style.Resources>
                 <ResourceDictionary>
@@ -53,6 +67,19 @@
             </ControlTemplate></Setter.Value></Setter>
         </Style>
 
+        <Style x:Key="CalendarMetricButtonStyle" TargetType="Button" BasedOn="{StaticResource GoalMetricCardButtonStyle}">
+            <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+                <Border x:Name="MetricSurface" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" CornerRadius="6">
+                    <ContentPresenter HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+                </Border>
+                <ControlTemplate.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="MetricSurface" Property="Background" Value="#F7F9FB"/></Trigger>
+                    <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="MetricSurface" Property="Background" Value="#F1F4F8"/></Trigger>
+                    <Trigger Property="IsPressed" Value="True"><Setter Property="Opacity" Value="0.75"/></Trigger>
+                </ControlTemplate.Triggers>
+            </ControlTemplate></Setter.Value></Setter>
+        </Style>
         <Style x:Key="GoalDetailMenuItemStyle" TargetType="Button">
             <Setter Property="Height" Value="33"/><Setter Property="Padding" Value="12,0"/>
             <Setter Property="HorizontalContentAlignment" Value="Left"/><Setter Property="Background" Value="Transparent"/>
@@ -366,48 +393,75 @@
                                         </Grid>
                                     </Border>
                                     <Border x:Name="CalendarDayMetricsDivider" Grid.Column="1" Width="1" Background="#ECEEF1" Margin="0,8,0,3"/>
-                                    <Border x:Name="CalendarDayCompletedMetric" Grid.Column="2" Background="Transparent" Padding="6,6,0,7">
+                                    <Button x:Name="CalendarDayCompletedMetric" Grid.Column="2" Style="{StaticResource CalendarMetricButtonStyle}" Padding="6,6,0,7"
+                                            Command="{Binding OpenCalendarCompletedTasksCommand}" Cursor="Hand" AutomationProperties.Name="查看当天已完成任务">
                                         <Grid><Grid.RowDefinitions><RowDefinition Height="28"/><RowDefinition/></Grid.RowDefinitions>
                                             <StackPanel Orientation="Horizontal">
                                                 <Border Width="28" Height="28" CornerRadius="14" Background="#DFF7E8"><Grid><Ellipse Width="21" Height="21" Fill="#19C363"/><Path Width="12" Height="10" Data="M 0,5 L 4,9 L 11,1" Stroke="White" StrokeThickness="2.1" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/></Grid></Border>
                                                 <TextBlock Style="{StaticResource CalendarSecondaryTextStyle}" FontSize="{DynamicResource BodyFontSize}" Text="完成任务" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                                                <Path x:Name="CalendarCompletedMetricArrow" Width="5" Height="8" Margin="7,0,0,0" Data="M 0,0 L 4,4 L 0,8"
+                                                      Stroke="{DynamicResource CalendarTextWeak}" StrokeThickness="1.2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" VerticalAlignment="Center"/>
                                             </StackPanel>
                                             <Viewbox Grid.Row="1" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Center" Margin="0,1,0,0"><TextBlock x:Name="CalendarDayCompletedTaskCount" FontFamily="{DynamicResource FontFamilyNumeric}" Foreground="{DynamicResource CalendarTextPrimary}"><Run Style="{StaticResource CalendarDayValueStyle}" Text="{Binding SelectedDayCompletedTasks, Mode=OneWay}"/><Run Style="{StaticResource CalendarUnitStyle}" Text=" 项"/></TextBlock></Viewbox>
                                         </Grid>
-                                    </Border>
+                                    </Button>
                                 </Grid>
                                 <views:CalendarFocusTimeline x:Name="CalendarDayTimeline" Grid.Row="3" Margin="5,14,5,9" Timeline="{Binding SelectedDayTimeline}"
                                                             FullDayStyle="True" InlineRecordDetails="True" ShowCurrentTime="False" TrackHeight="11" TrackTop="26" TickLabelFontSize="{DynamicResource CaptionFontSize}" TickLabelFontWeight="Normal" TickLabelForeground="{DynamicResource CalendarTextWeak}" AutomationProperties.Name="全天专注时间轴"/>
                                 <ScrollViewer x:Name="CalendarRecordsScrollViewer" Grid.Row="4" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
-                                              CanContentScroll="False" PanningMode="VerticalOnly" Visibility="{Binding HasSelectedDayRecords, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                              CanContentScroll="False" PanningMode="VerticalOnly">
                                     <ScrollViewer.Resources><Style TargetType="ScrollBar" BasedOn="{StaticResource StatisticsRecordScrollBarStyle}"/></ScrollViewer.Resources>
-                                    <ItemsControl x:Name="CalendarRecordItems" ItemsSource="{Binding SelectedDayRecordEntries}">
-                                        <ItemsControl.ItemTemplate><DataTemplate DataType="{x:Type vm:CalendarDayRecordViewModel}">
-                                            <StackPanel>
-                                                <Grid x:Name="CalendarRecordGap" Height="32" Margin="0,0,7,0" Visibility="{Binding HasGap, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                                    <Grid.ColumnDefinitions><ColumnDefinition Width="30"/><ColumnDefinition/></Grid.ColumnDefinitions>
-                                                    <Grid.RowDefinitions><RowDefinition Height="24"/><RowDefinition/></Grid.RowDefinitions>
-                                                    <Border x:Name="CalendarGapLine" Grid.RowSpan="2" Width="1" Background="#E6E8EB"/>
-                                                    <Grid x:Name="CalendarGapMarker" Width="10" Height="10" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False">
-                                                        <Ellipse Fill="#BFC5CE"/>
-                                                        <Path Data="M 5,2.2 L 5,5.3 L 7,6.7" Stroke="#FAFBFC" StrokeThickness="1" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/>
-                                                    </Grid>
-                                                    <TextBlock Grid.Column="1" Style="{StaticResource CalendarStatusTextStyle}" x:Name="CalendarGapText" Text="{Binding GapDisplay}" VerticalAlignment="Center"/>
-                                                </Grid>
-                                                <Border x:Name="CalendarRecordRow" Margin="0,0,2,0" Style="{StaticResource CalendarRecordRowStyle}"
-                                                        Loaded="CalendarRecordRow_Loaded" Unloaded="CalendarRecordRow_Unloaded" DataContextChanged="CalendarRecordRow_DataContextChanged"
-                                                        MouseEnter="CalendarRecordRow_MouseEnter" MouseLeave="CalendarRecordRow_MouseLeave"
-                                                        MouseLeftButtonDown="CalendarRecordRow_MouseLeftButtonDown" KeyDown="CalendarRecordRow_KeyDown">
-                                                    <views:CalendarDayRecordView/>
-                                                </Border>
-                                            </StackPanel>
-                                        </DataTemplate></ItemsControl.ItemTemplate>
-                                    </ItemsControl>
+                                    <StackPanel>
+                                        <ItemsControl x:Name="CalendarRecordItems" ItemsSource="{Binding SelectedDayPeriods}">
+                                            <ItemsControl.ItemTemplate><DataTemplate DataType="{x:Type vm:CalendarDayPeriodViewModel}">
+                                                <StackPanel x:Name="CalendarPeriodGroup" Margin="0,0,2,0" Visibility="{Binding HasRecords, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                    <ToggleButton x:Name="CalendarPeriodHeader" IsChecked="{Binding IsExpanded, Mode=TwoWay}" IsEnabled="{Binding HasRecords}" Height="48"
+                                                                  Background="Transparent" BorderThickness="0" Padding="0" Cursor="Hand"
+                                                                  HorizontalContentAlignment="Stretch" AutomationProperties.Name="{Binding Name}">
+                                                        <ToggleButton.Template><ControlTemplate TargetType="ToggleButton">
+                                                            <Border x:Name="GroupHeaderSurface" Background="{TemplateBinding Background}" CornerRadius="5"><ContentPresenter/></Border>
+                                                            <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="GroupHeaderSurface" Property="Background" Value="#F7F9FB"/></Trigger></ControlTemplate.Triggers>
+                                                        </ControlTemplate></ToggleButton.Template>
+                                                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="8"/><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="18"/></Grid.ColumnDefinitions>
+                                                            <Image x:Name="CalendarPeriodIcon" Width="22" Height="22" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality">
+                                                                <Image.Style><Style TargetType="Image">
+                                                                    <Setter Property="Source" Value="{StaticResource CalendarDawnIcon}"/>
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding Index}" Value="1"><Setter Property="Source" Value="{StaticResource CalendarMorningIcon}"/></DataTrigger>
+                                                                        <DataTrigger Binding="{Binding Index}" Value="2"><Setter Property="Source" Value="{StaticResource CalendarAfternoonIcon}"/></DataTrigger>
+                                                                        <DataTrigger Binding="{Binding Index}" Value="3"><Setter Property="Source" Value="{StaticResource CalendarNightIcon}"/></DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style></Image.Style>
+                                                            </Image>
+                                                            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                                                <TextBlock x:Name="CalendarPeriodName" Text="{Binding Name}" Style="{StaticResource CalendarSectionTitleStyle}" FontSize="{DynamicResource BodyFontSize}"/>
+                                                                <TextBlock x:Name="CalendarPeriodTimeRange" Text="{Binding TimeRangeDisplay}" Style="{StaticResource CalendarRecordTextStyle}" Foreground="{DynamicResource CalendarTextSecondary}" FontFamily="{DynamicResource FontFamilyEnglish}" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                                                            </StackPanel>
+                                                            <TextBlock x:Name="CalendarPeriodDuration" Grid.Column="3" Style="{StaticResource CalendarRecordTextStyle}" VerticalAlignment="Center" HorizontalAlignment="Right"><Run Text="{Binding DurationPrefix, Mode=OneWay}" Style="{StaticResource CalendarUnitStyle}"/><Run Text="{Binding DurationParts.HoursValue, Mode=OneWay}" Style="{StaticResource CalendarPeriodValueStyle}"/><Run Text="{Binding DurationParts.HoursUnit, Mode=OneWay}" Style="{StaticResource CalendarUnitStyle}"/><Run Text="{Binding DurationParts.MinutesValue, Mode=OneWay}" Style="{StaticResource CalendarPeriodValueStyle}"/><Run Text="{Binding DurationParts.MinutesUnit, Mode=OneWay}" Style="{StaticResource CalendarUnitStyle}"/></TextBlock>
+                                                            <Path x:Name="CalendarPeriodArrow" Grid.Column="4" Visibility="{Binding HasRecords, Converter={StaticResource BooleanToVisibilityConverter}}" Data="M 0,0 L 4,4 L 8,0" Width="8" Height="4" Stroke="#929DAE" StrokeThickness="1.3" VerticalAlignment="Center" HorizontalAlignment="Right" RenderTransformOrigin="0.5,0.5">
+                                                                <Path.Style><Style TargetType="Path"><Style.Triggers><DataTrigger Binding="{Binding IsExpanded}" Value="True"><Setter Property="RenderTransform"><Setter.Value><RotateTransform Angle="180"/></Setter.Value></Setter></DataTrigger></Style.Triggers></Style></Path.Style>
+                                                            </Path>
+                                                        </Grid>
+                                                    </ToggleButton>
+                                                    <ItemsControl x:Name="CalendarPeriodRecordItems" ItemsSource="{Binding Entries}" Margin="0,0,0,8" Visibility="{Binding IsExpanded, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                        <ItemsControl.ItemTemplate><DataTemplate DataType="{x:Type vm:CalendarDayRecordViewModel}">
+                                                            <Border x:Name="CalendarRecordRow" Style="{StaticResource CalendarRecordRowStyle}"
+                                                                    Loaded="CalendarRecordRow_Loaded" Unloaded="CalendarRecordRow_Unloaded" DataContextChanged="CalendarRecordRow_DataContextChanged"
+                                                                    MouseEnter="CalendarRecordRow_MouseEnter" MouseLeave="CalendarRecordRow_MouseLeave"
+                                                                    MouseLeftButtonDown="CalendarRecordRow_MouseLeftButtonDown" KeyDown="CalendarRecordRow_KeyDown">
+                                                                <views:CalendarDayRecordView/>
+                                                            </Border>
+                                                        </DataTemplate></ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                    <Border Height="1" Background="#EEF0F3"/>
+                                                </StackPanel>
+                                            </DataTemplate></ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        <StackPanel x:Name="CalendarRecordsEmptyState" HorizontalAlignment="Center" Margin="0,12,0,0" Visibility="{Binding HasSelectedDayPeriodRecords, Converter={StaticResource GoalInverseVisibilityConverter}}">
+                                            <TextBlock Style="{StaticResource CalendarBodyTextStyle}" Foreground="{DynamicResource CalendarTextSecondary}" Text="暂无专注记录"/>
+                                        </StackPanel>
+                                    </StackPanel>
                                 </ScrollViewer>
-                                <StackPanel x:Name="CalendarRecordsEmptyState" Grid.Row="4" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{Binding HasSelectedDayRecords, Converter={StaticResource GoalInverseVisibilityConverter}}">
-                                    <TextBlock Style="{StaticResource CalendarBodyTextStyle}" Foreground="{DynamicResource CalendarTextSecondary}" Text="暂无专注记录" HorizontalAlignment="Center"/>
-                                    <TextBlock Style="{StaticResource CalendarWeakTextStyle}" Text="完成一次专注后，这里会显示本日专注记录" HorizontalAlignment="Center" Margin="0,6,0,0"/>
-                                </StackPanel>
                             </Grid>
                             <Grid x:Name="DailyFocusRecordLockedPlaceholder"
                                   Visibility="{Binding CanViewDailyFocusRecord, Converter={StaticResource GoalInverseVisibilityConverter}}">

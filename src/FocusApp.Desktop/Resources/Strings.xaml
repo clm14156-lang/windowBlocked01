@@ -152,10 +152,10 @@
     <system:String x:Key="AutomaticRuleMergedClose">关闭规则合并提示</system:String>
     <system:String x:Key="AutomaticRuleLimitTitle">无法创建屏蔽规则</system:String>
     <system:String x:Key="AutomaticRuleLimitClose">关闭规则创建失败提示</system:String>
-    <system:String x:Key="AutomaticRuleActivationTitle">当前规则将立即生效</system:String>
-    <system:String x:Key="AutomaticRuleActivationDescription">当前时间处于规则范围内，&#x0a;开启后将立即开始自动屏蔽。</system:String>
+    <system:String x:Key="AutomaticRuleActivationTitle">开启后将立即屏蔽</system:String>
+    <system:String x:Key="AutomaticRuleActivationDescription" xml:space="preserve">当前时间处于此规则的生效时段，&#x0a;确认后将立即屏蔽相关网站和应用。</system:String>
     <system:String x:Key="AutomaticRuleActivationCancel">取消</system:String>
-    <system:String x:Key="AutomaticRuleActivationConfirm">确认开启</system:String>
+    <system:String x:Key="AutomaticRuleActivationConfirm">立即开启</system:String>
     <system:String x:Key="AutomaticRuleActivationClose">关闭规则开启确认</system:String>
     <system:String x:Key="AutomaticBlockingToastBrandName">专注时光</system:String>
     <system:String x:Key="AutomaticBlockingToastMinutes">5</system:String>
@@ -203,7 +203,7 @@
     <system:String x:Key="HomeBlockingTitle">当前屏蔽</system:String>
     <system:String x:Key="HomeAutomaticBlockingLabel">自动屏蔽</system:String>
     <system:String x:Key="HomeAutomaticBlockingStartLabel">开始屏蔽</system:String>
-    <system:String x:Key="HomeAutomaticRulePoptipTitle">自动屏蔽规则</system:String>
+    <system:String x:Key="HomeAutomaticRulePoptipTitle">自动屏蔽</system:String>
     <system:String x:Key="HomeBlockingCountSuffix"> 个网站和应用</system:String>
     <system:String x:Key="HomeBlockingEmpty">暂未添加屏蔽内容</system:String>
     <system:String x:Key="HomeManageAutomaticRule">管理自动规则</system:String>
@@ -292,6 +292,10 @@
     <system:String x:Key="FocusAgainConfirmationConfirm">确认</system:String>
     <system:String x:Key="FocusReturnHome">返回首页</system:String>
     <system:String x:Key="FocusTargetTitle">选择目标</system:String>
+    <system:String x:Key="FocusTargetGuestTitle">登录后创建专注目标</system:String>
+    <system:String x:Key="FocusTargetGuestDescription" xml:space="preserve">为重要的事情设定目标，&#x0a;记录每一次投入与进展。</system:String>
+    <system:String x:Key="FocusTargetGuestLogin">登录 / 注册</system:String>
+    <system:String x:Key="FocusTargetGuestContinue">暂不登录，继续自由专注</system:String>
     <system:String x:Key="FocusTargetManage">管理目标 &gt;</system:String>
     <system:String x:Key="FocusTargetStartFocus">开始专注</system:String>
     <system:String x:Key="FocusTargetRecent">当前目标</system:String>

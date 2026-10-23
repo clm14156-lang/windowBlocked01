@@ -12,9 +12,15 @@ public sealed class CalendarDayRecordViewModel : INotifyPropertyChanged
     public bool HasGoal => Record.HasGoal && !string.IsNullOrWhiteSpace(Record.GoalName);
     public bool HasDetails => HasGoal || HasTasks;
     public bool IsInterrupted => Record.CompletionKind == FocusCompletionKind.EarlyEnd;
-    public string DurationDisplay => FormatDuration(Record.FocusDuration);
+    public TimeSpan DisplayFocusDuration { get; }
+    public DateTime DisplayStartTime { get; }
+    public DateTime DisplayEndTime { get; }
+    public string TimeRangeDisplay => $"{DisplayStartTime:HH:mm} - {(DisplayEndTime.Date > DisplayStartTime.Date ? "24:00" : DisplayEndTime.ToString("HH:mm"))}";
+    public string DurationDisplay => FormatDuration(DisplayFocusDuration);
     public string FocusDurationDisplay => $"时长 {DurationDisplay}";
     public string TaskCountDisplay => $"{Record.CalendarCompletedTaskCount}个任务";
+    public string TasksTitle => $"本次专注关联的任务（{Record.CalendarCompletedTaskCount}）";
+    public IReadOnlyList<CalendarDayTaskRow> PreviewTasks { get; }
     public TimeSpan Gap { get; }
     public bool HasGap => FocusRecordTimelineRules.ShowGap(Gap);
     public bool ConnectsFromPrevious { get; }
@@ -39,9 +45,12 @@ public sealed class CalendarDayRecordViewModel : INotifyPropertyChanged
     public event PropertyChangedEventHandler? PropertyChanged;
 
     private CalendarDayRecordViewModel(FocusSessionRecordViewModel record, TimeSpan gap, DateTime? gapStartsAt,
-        bool connectsFromPrevious, bool connectsToNext)
+        bool connectsFromPrevious, bool connectsToNext, DateTime? displayStart = null, DateTime? displayEnd = null)
     {
         Record = record;
+        DisplayStartTime = displayStart ?? record.StartTime;
+        DisplayEndTime = displayEnd ?? record.EndTime;
+        DisplayFocusDuration = displayStart is not null ? DisplayEndTime - DisplayStartTime : record.FocusDuration;
         Gap = gap;
         GapTimeRangeDisplay = gapStartsAt is { } start ? $"{start:HH:mm} - {record.StartTime:HH:mm}" : string.Empty;
         ConnectsFromPrevious = connectsFromPrevious;
@@ -67,6 +76,7 @@ public sealed class CalendarDayRecordViewModel : INotifyPropertyChanged
             }
         }
         Tasks = tasks;
+        PreviewTasks = tasks.Where(task => !task.IsSubTask).ToArray();
     }
 
     public static IReadOnlyList<CalendarDayRecordViewModel> Create(IEnumerable<FocusSessionRecordViewModel> records)
@@ -82,7 +92,10 @@ public sealed class CalendarDayRecordViewModel : INotifyPropertyChanged
         }).ToArray();
     }
 
-    private static string FormatDuration(TimeSpan duration)
+    public static CalendarDayRecordViewModel CreateSlice(FocusSessionRecordViewModel record, DateTime start, DateTime end)
+        => new(record, TimeSpan.Zero, null, true, true, start, end);
+
+    internal static string FormatDuration(TimeSpan duration)
     {
         if (duration < TimeSpan.FromMinutes(1)) return "不足1分钟";
         var minutes = (int)duration.TotalMinutes;

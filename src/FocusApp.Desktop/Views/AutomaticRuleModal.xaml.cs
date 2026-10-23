@@ -25,6 +25,13 @@ public partial class AutomaticRuleModal : UserControl
     private (double Start, double End)? _draft;
     private Border? _draftBlock;
     private readonly DispatcherTimer _scrollTimer = new() { Interval = TimeSpan.FromMilliseconds(30) };
+    private readonly DispatcherTimer _currentTimeTimer = new(DispatcherPriority.Background);
+    private readonly Canvas _currentTimePointer = new() { IsHitTestVisible = false, UseLayoutRounding = false };
+    private readonly TextBlock _currentTimeLabel = new() { FontSize = 12, FontWeight = FontWeights.Normal, MaxWidth = 35 };
+    private readonly Ellipse _currentTimeDot = new() { Width = 7, Height = 7 };
+    private readonly Line _currentTimeLine = new() { StrokeThickness = 1 };
+    private readonly List<TextBlock> _hourLabels = [];
+    internal Func<DateTime> LocalNowProvider { get; set; } = () => DateTime.Now;
     private AutomaticRuleModalViewModel? _subscribed;
     private AutomaticRuleEditorWindow? _editorWindow;
     private AutomaticRuleEditorAdorner? _editorAdorner;
@@ -34,13 +41,25 @@ public partial class AutomaticRuleModal : UserControl
 
     public AutomaticRuleModal()
     {
+        var currentTimeBrush = Brush("#EA4335");
+        currentTimeBrush.Freeze();
+        _currentTimeLabel.Foreground = currentTimeBrush;
+        _currentTimeDot.Fill = currentTimeBrush;
+        _currentTimeLine.Stroke = currentTimeBrush;
+        _currentTimePointer.Children.Add(_currentTimeLine);
+        _currentTimePointer.Children.Add(_currentTimeDot);
+        _currentTimePointer.Children.Add(_currentTimeLabel);
+        Panel.SetZIndex(_currentTimePointer, 2000);
         InitializeComponent();
         _scrollTimer.Tick += (_, _) => AutoScroll();
+        _currentTimeTimer.Tick += (_, _) => RefreshCurrentTimePointer();
         DataContextChanged += (_, _) => Subscribe();
+        IsVisibleChanged += (_, _) => UpdateCurrentTimeTimer();
     }
     private void OnLoaded(object sender, RoutedEventArgs e) => Subscribe();
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
+        _currentTimeTimer.Stop();
         CloseEditorWindow();
         CancelDrag();
         if (_subscribed is not null) _subscribed.PropertyChanged -= ModelChanged;
@@ -52,6 +71,7 @@ public partial class AutomaticRuleModal : UserControl
         _subscribed = Model;
         if (_subscribed is not null) _subscribed.PropertyChanged += ModelChanged;
         RenderTimeline();
+        UpdateCurrentTimeTimer();
         if (IsLoaded && Model?.IsEditorOpen == true) ShowEditorWindow();
     }
     private void ModelChanged(object? sender, PropertyChangedEventArgs e)
@@ -68,6 +88,7 @@ public partial class AutomaticRuleModal : UserControl
             CancelDrag();
             if (Model?.IsOpen == true) { TimelineScroll.ScrollToTop(); RenderTimeline(); }
             else CloseEditorWindow();
+            UpdateCurrentTimeTimer();
         }
         if (e.PropertyName == nameof(AutomaticRuleModalViewModel.IsEditorOpen))
         {
@@ -137,6 +158,7 @@ public partial class AutomaticRuleModal : UserControl
         // Capture belongs to the stable canvas, rather than a generated block.
         if (_anchor is not null && !_moving) return;
         Timeline.Children.Clear();
+        _hourLabels.Clear();
         var width = Math.Max(0, Timeline.ActualWidth - LabelWidth - 8);
         for (var hour = 0; hour <= 24; hour++)
         {
@@ -150,9 +172,12 @@ public partial class AutomaticRuleModal : UserControl
                 IsHitTestVisible = false
             };
             Canvas.SetTop(label, y - 7); Timeline.Children.Add(label);
+            _hourLabels.Add(label);
             var line = new Line { X1 = LabelWidth, X2 = LabelWidth + width, Y1 = y, Y2 = y, Stroke = Brush("#EDEDF1"), StrokeThickness = 1, IsHitTestVisible = false };
             Timeline.Children.Add(line);
         }
+        Timeline.Children.Add(_currentTimePointer);
+        RefreshCurrentTimePointer();
         if (Model is null) return;
         foreach (var rule in Model.GetRules())
         foreach (var segment in RuleTimelineRange.Segments(rule.StartMinutes, rule.EndMinutes))
@@ -176,6 +201,40 @@ public partial class AutomaticRuleModal : UserControl
         _draftBlock = null;
         DrawDraft();
         RequestSelectedRuleScroll();
+    }
+
+    private void UpdateCurrentTimeTimer()
+    {
+        _currentTimeTimer.Stop();
+        RefreshCurrentTimePointer();
+        if (IsLoaded && IsVisible && Model?.IsOpen == true) _currentTimeTimer.Start();
+    }
+
+    internal void RefreshCurrentTimePointer()
+    {
+        if (Timeline is null) return;
+        var now = LocalNowProvider();
+        var minute = now.Hour * 60 + now.Minute;
+        var y = TopInset + minute;
+        var dotX = LabelWidth - 20;
+        var show = Model?.IsOpen == true;
+        _currentTimePointer.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+        _currentTimePointer.Width = Timeline.ActualWidth;
+        _currentTimePointer.Height = Timeline.Height;
+        _currentTimeLabel.Text = now.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture);
+        Canvas.SetTop(_currentTimeLabel, y - 8);
+        Canvas.SetLeft(_currentTimeDot, dotX - 3.5);
+        Canvas.SetTop(_currentTimeDot, y - 3.5);
+        _currentTimeLine.X1 = dotX;
+        _currentTimeLine.X2 = Math.Max(dotX, Timeline.ActualWidth - 8);
+        _currentTimeLine.Y1 = _currentTimeLine.Y2 = y;
+        // Only replace nearby labels; keep the hour grid and every other tick unchanged.
+        for (var hour = 0; hour < _hourLabels.Count; hour++)
+            _hourLabels[hour].Visibility = show && Math.Abs(hour * 60 - minute) < 16
+                ? Visibility.Hidden : Visibility.Visible;
+        // Align updates to wall-clock minute boundaries, including rollover at midnight.
+        _currentTimeTimer.Interval = TimeSpan.FromTicks(
+            TimeSpan.TicksPerMinute - now.TimeOfDay.Ticks % TimeSpan.TicksPerMinute);
     }
 
     private void RequestSelectedRuleScroll()

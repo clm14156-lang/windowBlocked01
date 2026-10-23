@@ -33,6 +33,7 @@ public static class BlockedAccessNotificationService
 
     public static void SetFocusSession(FocusSessionViewModel? focusSession)
     {
+        ToastThemeService.SetFocusSession(focusSession);
         _dispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
         _sessionScope?.Dispose();
         _sessionScope = focusSession is null ? null : new BlockedAccessNotificationSessionScope(focusSession);

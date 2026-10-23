@@ -44,6 +44,9 @@
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsLoggedIn}" Value="False"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger>
+            </Style.Triggers>
         </Style>
 
         <Style x:Key="TargetCardButton" TargetType="{x:Type Button}">
@@ -110,6 +113,34 @@
             </Setter>
         </Style>
 
+        <Style x:Key="GuestTargetLoginButton" TargetType="Button" BasedOn="{StaticResource TargetStartFocusButton}">
+            <Setter Property="Height" Value="48" />
+            <Setter Property="Background" Value="{DynamicResource ModalCommitBackgroundBrush}" />
+            <Setter Property="FontSize" Value="{DynamicResource ButtonEmphasisFontSize}" />
+            <Setter Property="ContentTemplate" Value="{DynamicResource ThemedButtonTextContentTemplate}" />
+        </Style>
+        <Style x:Key="GuestTargetContinueButton" TargetType="Button">
+            <Setter Property="Height" Value="34" />
+            <Setter Property="FontSize" Value="{DynamicResource BodyFontSize}" />
+            <Setter Property="FontWeight" Value="{DynamicResource BodyFontWeight}" />
+            <Setter Property="Foreground" Value="{DynamicResource StatisticsSecondaryBrush}" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="ContentTemplate" Value="{DynamicResource ThemedButtonTextContentTemplate}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="ContinueSurface" Padding="6,4" Background="Transparent" CornerRadius="7">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ContinueSurface" Property="Background" Value="{DynamicResource FocusTargetSubtleHoverBrush}" /></Trigger>
+                            <Trigger Property="IsPressed" Value="True"><Setter TargetName="ContinueSurface" Property="Opacity" Value="0.75" /></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
         <Style x:Key="EmptyTargetCreateButton" TargetType="{x:Type Button}">
             <Setter Property="Width" Value="206" />
             <Setter Property="Height" Value="42" />
@@ -146,7 +177,7 @@
       </ResourceDictionary>
     </UserControl.Resources>
 
-    <Border Background="{DynamicResource SurfacePrimary}"
+    <Border x:Name="ModalSurface" Background="{DynamicResource SurfacePrimary}"
             BorderBrush="{DynamicResource OverlayBorder}"
             BorderThickness="1"
             CornerRadius="20">
@@ -173,6 +204,13 @@
                                Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
                                Text="{DynamicResource FocusTargetManage}" />
                 </Button>
+                <Grid HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <Grid.Style><Style TargetType="Grid">
+                        <Style.Triggers><DataTrigger Binding="{Binding IsLoggedIn}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers>
+                    </Style></Grid.Style>
+                    <Button x:Name="GuestCloseButton" Width="26" Height="26" Margin="0" VerticalAlignment="Center" Command="{Binding CloseCommand}"
+                            AutomationProperties.Name="{DynamicResource FocusTargetClose}" Style="{DynamicResource ModalCloseButtonStyle}" />
+                </Grid>
             </Grid>
 
             <Grid x:Name="ExistingTargetState"
@@ -186,6 +224,7 @@
                             <DataTrigger Binding="{Binding HasTargets}" Value="True">
                                 <Setter Property="Visibility" Value="Visible" />
                             </DataTrigger>
+                            <DataTrigger Binding="{Binding IsLoggedIn}" Value="False"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger>
                         </Style.Triggers>
                     </Style>
                 </Grid.Style>
@@ -326,6 +365,7 @@
                             <DataTrigger Binding="{Binding HasTargets}" Value="True">
                                 <Setter Property="Visibility" Value="Collapsed" />
                             </DataTrigger>
+                            <DataTrigger Binding="{Binding IsLoggedIn}" Value="False"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger>
                         </Style.Triggers>
                     </Style>
                 </Grid.Style>
@@ -377,6 +417,47 @@
                         </Grid>
                     </Button>
                 </StackPanel>
+            </Grid>
+            <Grid x:Name="GuestTargetState" Grid.Row="1" Margin="4,16,4,2" Panel.ZIndex="3">
+                <Grid.Style><Style TargetType="Grid">
+                    <Style.Triggers><DataTrigger Binding="{Binding IsLoggedIn}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers>
+                </Style></Grid.Style>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="84" />
+                    <RowDefinition Height="18" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="10" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="48" />
+                    <RowDefinition Height="12" />
+                    <RowDefinition Height="34" />
+                </Grid.RowDefinitions>
+                <Border x:Name="GuestTargetIcon" Width="84" Height="84" CornerRadius="42"
+                        Background="{DynamicResource AccentTint}" HorizontalAlignment="Center">
+                    <Viewbox Width="48" Height="48" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False">
+                        <Canvas Width="52" Height="52">
+                            <Path Data="M19,9 A20,20 0 1 0 33,9" Stroke="{DynamicResource AccentPrimary}" StrokeThickness="3.2"
+                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                            <Ellipse Width="26" Height="26" Canvas.Left="13" Canvas.Top="15"
+                                     Stroke="{DynamicResource AccentPrimary}" StrokeThickness="3.2" />
+                            <Path Data="M26,3 L26,24" Stroke="{DynamicResource AccentPrimary}" StrokeThickness="3.2"
+                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                        </Canvas>
+                    </Viewbox>
+                </Border>
+                <TextBlock x:Name="GuestTargetTitle" Grid.Row="2" HorizontalAlignment="Center" TextAlignment="Center"
+                           FontSize="{DynamicResource PageTitleFontSize}" FontWeight="{DynamicResource PageTitleFontWeight}"
+                           Foreground="{DynamicResource StatisticsPrimaryBrush}" Text="{DynamicResource FocusTargetGuestTitle}" />
+                <TextBlock x:Name="GuestTargetDescription" Grid.Row="4" TextAlignment="Center" TextWrapping="Wrap" LineHeight="20"
+                           FontSize="{DynamicResource BodyFontSize}" FontWeight="{DynamicResource BodyFontWeight}"
+                           Foreground="{DynamicResource StatisticsSecondaryBrush}" Text="{DynamicResource FocusTargetGuestDescription}" />
+                <Button x:Name="GuestLoginButton" Grid.Row="6" Command="{Binding LoginCommand}"
+                        Content="{DynamicResource FocusTargetGuestLogin}" AutomationProperties.Name="{DynamicResource FocusTargetGuestLogin}"
+                        Style="{StaticResource GuestTargetLoginButton}" />
+                <Button x:Name="GuestContinueButton" Grid.Row="8" HorizontalAlignment="Center" Command="{Binding CloseCommand}"
+                        Content="{DynamicResource FocusTargetGuestContinue}" AutomationProperties.Name="{DynamicResource FocusTargetGuestContinue}"
+                        Style="{StaticResource GuestTargetContinueButton}" />
             </Grid>
         </Grid>
     </Border>

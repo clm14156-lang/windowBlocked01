@@ -1,74 +1,79 @@
 <UserControl x:Class="FocusApp.Desktop.Views.CalendarDayRecordView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:views="clr-namespace:FocusApp.Desktop.Views"
              FontFamily="{DynamicResource FontFamilyPrimary}" UseLayoutRounding="True">
     <UserControl.Resources>
         <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries><ResourceDictionary Source="/FocusApp.Desktop;component/Resources/CalendarTypography.xaml"/></ResourceDictionary.MergedDictionaries>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/FocusApp.Desktop;component/Resources/CalendarTypography.xaml"/>
+                <ResourceDictionary Source="/FocusApp.Desktop;component/Resources/PoptipStyles.xaml"/>
+                <ResourceDictionary Source="/FocusApp.Desktop;component/Resources/StatisticsScrollStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
             <BooleanToVisibilityConverter x:Key="VisibleWhenTrue"/>
+            <Style x:Key="TaskLinkStyle" TargetType="Button">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="Foreground" Value="{DynamicResource CalendarTextWeak}"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="Padding" Value="3,0"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="MinHeight" Value="28"/>
+                <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+                    <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" CornerRadius="4">
+                        <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                    </Border>
+                </ControlTemplate></Setter.Value></Setter>
+                <Style.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#F4F6F8"/><Setter Property="Foreground" Value="{DynamicResource CalendarTextBody}"/></Trigger>
+                    <Trigger Property="IsKeyboardFocused" Value="True"><Setter Property="Background" Value="#F4F6F8"/></Trigger>
+                </Style.Triggers>
+            </Style>
         </ResourceDictionary>
     </UserControl.Resources>
-    <Grid Margin="0,0,5,0">
-        <Grid.ColumnDefinitions><ColumnDefinition Width="30"/><ColumnDefinition/></Grid.ColumnDefinitions>
-        <Grid.RowDefinitions><RowDefinition Height="24"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-        <Border x:Name="TimelineSpine" Grid.RowSpan="2" Width="1" Background="#E6E8EB" IsHitTestVisible="False"/>
+    <Grid Height="36" Margin="0,0,3,0">
+        <Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="98"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+        <Border x:Name="TimelineSpine" Width="1" Background="#E6E8EB" IsHitTestVisible="False"/>
         <Border x:Name="FocusMarker" Width="9" Height="9" CornerRadius="4.5" VerticalAlignment="Center" IsHitTestVisible="False">
             <Border.Style><Style TargetType="Border"><Setter Property="Background" Value="#19C463"/><Style.Triggers><DataTrigger Binding="{Binding IsInterrupted}" Value="True"><Setter Property="Background" Value="#FF861F"/></DataTrigger></Style.Triggers></Style></Border.Style>
         </Border>
-        <Grid Grid.Column="1">
-            <Grid.ColumnDefinitions><ColumnDefinition Width="104"/><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-            <TextBlock Style="{StaticResource CalendarRecordTextStyle}" x:Name="TimeRange" Text="{Binding Record.TimeRangeDisplay}" FontFamily="{DynamicResource FontFamilyEnglish}" VerticalAlignment="Center"/>
-            <TextBlock Style="{StaticResource CalendarBodyTextStyle}" x:Name="GoalName" Grid.Column="1" Text="{Binding Record.CalendarTitle}" Margin="0,0,6,0" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" ToolTipService.IsEnabled="{Binding HasGoal}"><TextBlock.ToolTip><ToolTip Style="{StaticResource CalendarToolTipStyle}" Content="{Binding Record.CalendarTitle}"/></TextBlock.ToolTip></TextBlock>
-            <TextBlock Style="{StaticResource CalendarWeakTextStyle}" x:Name="Summary" Grid.Column="2" Text="{Binding TaskCountDisplay}" VerticalAlignment="Center" Visibility="{Binding HasTasks, Converter={StaticResource VisibleWhenTrue}}"/>
-            <Path x:Name="ExpandArrow" Grid.Column="3" Width="5" Height="9" Margin="5,0,0,0" Data="M 0,0 L 4,4 L 0,8"
-                  Stroke="#959CA7" StrokeThickness="1.3" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
-                  VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5" Visibility="{Binding HasTasks, Converter={StaticResource VisibleWhenTrue}}">
-                <Path.RenderTransform><RotateTransform x:Name="ArrowRotation"/></Path.RenderTransform>
-            </Path>
-        </Grid>
-        <StackPanel Grid.Column="1" Grid.Row="1" Margin="0,0,0,14">
-            <TextBlock Style="{StaticResource CalendarWeakTextStyle}" x:Name="FocusDuration" Text="{Binding FocusDurationDisplay}" Margin="0,1,0,0"/>
-            <Border x:Name="TaskExpansion" Height="0" Opacity="0" ClipToBounds="True">
-                <ItemsControl x:Name="TaskItems" ItemsSource="{Binding Tasks}" Margin="4,4,0,0">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Grid x:Name="TaskRow" MinHeight="32">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="24"/><ColumnDefinition Width="26"/><ColumnDefinition/></Grid.ColumnDefinitions>
-                                <Grid x:Name="ChildConnector" Width="24" Visibility="Collapsed">
-                                    <Border x:Name="ChildStem" Width="1" Background="#E8EBEF" HorizontalAlignment="Left" Margin="8,0,0,0"/>
-                                    <Border Width="11" Height="1" Background="#E8EBEF" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="8,0,0,0"/>
-                                </Grid>
-                                <Border x:Name="TaskCheck" Grid.Column="1" Width="16" Height="16" CornerRadius="8" BorderBrush="{DynamicResource AccentPrimary}" BorderThickness="1.2"
-                                        VerticalAlignment="Center" HorizontalAlignment="Left" Background="Transparent">
-                                    <Path x:Name="TaskTick" Visibility="Collapsed" Data="M 3,7 L 6,10 L 11,4" Stroke="White" StrokeThickness="1.6"
-                                          StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/>
+        <TextBlock Style="{StaticResource CalendarRecordTextStyle}" x:Name="TimeRange" Grid.Column="1" Text="{Binding TimeRangeDisplay}"
+                   FontFamily="{DynamicResource FontFamilyEnglish}" VerticalAlignment="Center"/>
+        <TextBlock Style="{StaticResource CalendarBodyTextStyle}" x:Name="GoalName" Grid.Column="2" Text="{Binding Record.CalendarTitle}"
+                   Margin="0,0,5,0" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" ToolTipService.IsEnabled="{Binding HasGoal}">
+            <TextBlock.ToolTip><ToolTip Style="{StaticResource CalendarToolTipStyle}" Content="{Binding Record.CalendarTitle}"/></TextBlock.ToolTip>
+        </TextBlock>
+        <Button x:Name="TaskCountButton" Grid.Column="3" Style="{StaticResource TaskLinkStyle}"
+                Visibility="{Binding HasTasks, Converter={StaticResource VisibleWhenTrue}}" Click="TaskCountButton_Click"
+                AutomationProperties.Name="{Binding TasksTitle}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock x:Name="Summary" Text="{Binding TaskCountDisplay}" FontSize="12" FontWeight="Normal" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+                <Path x:Name="ExpandArrow" Width="5" Height="8" Margin="5,0,0,0" Data="M 0,0 L 4,4 L 0,8"
+                      Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.2" StrokeLineJoin="Round" VerticalAlignment="Center"/>
+            </StackPanel>
+        </Button>
+        <Popup x:Name="TaskPopup" PlacementTarget="{Binding ElementName=TaskCountButton}" Placement="Custom"
+               CustomPopupPlacementCallback="TaskPopup_Placement" AllowsTransparency="True" StaysOpen="False"
+               DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}"
+               Opened="TaskPopup_Opened" Closed="TaskPopup_Closed"
+               Mouse.PreviewMouseDownOutsideCapturedElement="TaskPopup_MouseDownOutside">
+            <views:PoptipChrome x:Name="TaskPoptipSurface" Width="240" Style="{StaticResource PoptipSurfaceStyle}" PointerOnTop="True" PointerLeft="196">
+                <ScrollViewer x:Name="TaskPreviewScroll" MaxHeight="150" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" CanContentScroll="False" PanningMode="VerticalOnly">
+                    <ScrollViewer.Resources><Style TargetType="ScrollBar" BasedOn="{StaticResource StatisticsThinScrollBarStyle}"/></ScrollViewer.Resources>
+                    <ItemsControl x:Name="TaskPreviewItems" ItemsSource="{Binding PreviewTasks}">
+                        <ItemsControl.ItemTemplate><DataTemplate>
+                            <Grid x:Name="TaskRow" Height="30"><Grid.ColumnDefinitions><ColumnDefinition Width="24"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                <Border x:Name="TaskCheck" Width="17" Height="17" CornerRadius="3" BorderBrush="{DynamicResource AccentPrimary}" BorderThickness="1" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                    <Border.Style><Style TargetType="Border"><Setter Property="Background" Value="Transparent"/><Style.Triggers><DataTrigger Binding="{Binding IsCompleted}" Value="True"><Setter Property="Background" Value="{DynamicResource AccentPrimary}"/></DataTrigger></Style.Triggers></Style></Border.Style>
+                                    <Path Data="M 3,8 L 6,11 L 13,4" Stroke="White" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round">
+                                        <Path.Style><Style TargetType="Path"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding IsCompleted}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Path.Style>
+                                    </Path>
                                 </Border>
-                                <TextBlock Style="{StaticResource CalendarBodyTextStyle}" x:Name="TaskText" Grid.Column="2" Text="{Binding Name}"
-                                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ><TextBlock.ToolTip><ToolTip Style="{StaticResource CalendarToolTipStyle}" Content="{Binding Name}"/></TextBlock.ToolTip></TextBlock>
-                                <Border x:Name="TaskSeparator" Grid.ColumnSpan="3" Height="1" Background="#F3F4F6" VerticalAlignment="Bottom" Visibility="Collapsed"/>
+                                <TextBlock Grid.Column="1" Text="{Binding Name}" Style="{StaticResource CalendarBodyTextStyle}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding Name}"/>
                             </Grid>
-                            <DataTemplate.Triggers>
-                                <DataTrigger Binding="{Binding IsSubTask}" Value="False">
-                                    <Setter TargetName="TaskCheck" Property="Grid.Column" Value="0"/>
-                                    <Setter TargetName="TaskCheck" Property="CornerRadius" Value="3"/>
-                                    <Setter TargetName="TaskText" Property="Grid.Column" Value="1"/>
-                                    <Setter TargetName="TaskText" Property="Grid.ColumnSpan" Value="2"/>
-                                    <Setter TargetName="TaskRow" Property="MinHeight" Value="36"/>
-                                    <Setter TargetName="TaskSeparator" Property="Visibility" Value="Collapsed"/>
-                                </DataTrigger>
-                                <DataTrigger Binding="{Binding IsSubTask}" Value="True"><Setter TargetName="ChildConnector" Property="Visibility" Value="Visible"/></DataTrigger>
-                                <DataTrigger Binding="{Binding HasChildren}" Value="True"><Setter TargetName="TaskSeparator" Property="Visibility" Value="Collapsed"/></DataTrigger>
-                                <DataTrigger Binding="{Binding IsLastChild}" Value="True"><Setter TargetName="ChildStem" Property="Margin" Value="8,0,0,16"/></DataTrigger>
-                                <DataTrigger Binding="{Binding IsCompleted}" Value="True">
-                                    <Setter TargetName="TaskCheck" Property="Background" Value="{DynamicResource AccentPrimary}"/>
-                                    <Setter TargetName="TaskTick" Property="Visibility" Value="Visible"/>
-                                    <Setter TargetName="TaskText" Property="Foreground" Value="{DynamicResource CalendarTextWeak}"/>
-                                </DataTrigger>
-                            </DataTemplate.Triggers>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </Border>
-        </StackPanel>
+                        </DataTemplate></ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </views:PoptipChrome>
+        </Popup>
     </Grid>
 </UserControl>

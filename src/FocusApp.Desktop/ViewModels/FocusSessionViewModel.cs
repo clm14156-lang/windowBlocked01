@@ -42,6 +42,11 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     private string _completionSubtitle = string.Empty;
     private Func<DateTime, FocusSessionRecord?, FocusDailySummary>? _completionStatisticsProvider;
     private readonly FocusGreetingProvider _greetings;
+    private int _entryGreetingVersion;
+    private bool _isGreetingReady = true;
+    public bool IsGreetingReady => _isGreetingReady;
+    internal Task EntryGreetingReady { get; private set; } = Task.CompletedTask;
+    internal TimeSpan TimerInterval => _timer.Interval;
     private FocusThemeMode _focusTheme = FocusThemeMode.System;
     private bool _isDarkFocusTheme;
     private string _focusCharacterId = FocusCharacters.DefaultId;
@@ -272,6 +277,10 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             }
 
             _stage = value;
+            _timer.Interval = value == FocusFlowStage.Preparing
+                ? TimeSpan.FromMilliseconds(16)
+                : TimeSpan.FromMilliseconds(250);
+            if (value != FocusFlowStage.Focusing) _entryGreetingVersion++;
             // This is page navigation; window restore/float operations never change Stage.
             if (value == FocusFlowStage.Focusing) RefreshGreeting(enteringPage: true);
             if (value == FocusFlowStage.Completed)
@@ -377,15 +386,54 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
 
     private void RefreshGreeting(bool enteringPage = false)
     {
-        var state = _nowProvider().Hour switch
+        var state = CurrentGreetingState();
+        if (enteringPage)
         {
-            >= 5 and < 12 => FocusGreetingState.Morning,
-            >= 12 and < 18 => FocusGreetingState.Afternoon,
-            >= 18 and < 23 => FocusGreetingState.Evening,
-            _ => FocusGreetingState.LateNight
-        };
-        if (!enteringPage && state == _greetingState && _greetingSubtitle.Length > 0) return;
-        if (enteringPage) _greetings.Reload();
+            // Theme selection is immediate; file IO finishes before the greeting is revealed.
+            _greetingState = state;
+            RefreshFocusTheme();
+            _isGreetingReady = false;
+            OnPropertyChanged(nameof(IsGreetingReady));
+            EntryGreetingReady = ReloadEntryGreetingAsync(++_entryGreetingVersion);
+            return;
+        }
+        if (!EntryGreetingReady.IsCompleted)
+        {
+            if (state != _greetingState)
+            {
+                _greetingState = state;
+                RefreshFocusTheme();
+                OnPropertyChanged(nameof(GreetingState));
+                OnPropertyChanged(nameof(GreetingTitle));
+                OnPropertyChanged(nameof(GreetingIconSource));
+            }
+            return;
+        }
+        if (state == _greetingState && _greetingSubtitle.Length > 0) return;
+        ApplyGreeting(state);
+    }
+
+    private FocusGreetingState CurrentGreetingState() => _nowProvider().Hour switch
+    {
+        >= 5 and < 12 => FocusGreetingState.Morning,
+        >= 12 and < 18 => FocusGreetingState.Afternoon,
+        >= 18 and < 23 => FocusGreetingState.Evening,
+        _ => FocusGreetingState.LateNight
+    };
+
+    private async Task ReloadEntryGreetingAsync(int version)
+    {
+        await _greetings.ReloadAsync();
+        if (version == _entryGreetingVersion && IsFocusing)
+        {
+            ApplyGreeting(CurrentGreetingState(), enteringPage: true);
+            _isGreetingReady = true;
+            OnPropertyChanged(nameof(IsGreetingReady));
+        }
+    }
+
+    private void ApplyGreeting(FocusGreetingState state, bool enteringPage = false)
+    {
         _greetingState = state;
         // Initialize off-page bindings without counting this as a displayed selection.
         _greetingSubtitle = !enteringPage && _greetingSubtitle.Length == 0
@@ -782,7 +830,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         {
             // Preparation progress is a visual animation and needs a render-rate
             // cadence. The authoritative clock still comes from the service.
-            _timer.Interval = session.Status == LocalFocusSessionStatusDto.Preparing
+            _timer.Interval = IsPreparing
                 ? TimeSpan.FromMilliseconds(16)
                 : TimeSpan.FromMilliseconds(250);
             _timer.Start();
@@ -1424,9 +1472,12 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
 
     private void SyncFromEngine()
     {
-        _totalFocusSeconds = _engine.ConfiguredSeconds;
-        OnPropertyChanged(nameof(TotalFocusSeconds));
-        OnPropertyChanged(nameof(FocusAgainConfirmationTitle));
+        if (_totalFocusSeconds != _engine.ConfiguredSeconds)
+        {
+            _totalFocusSeconds = _engine.ConfiguredSeconds;
+            OnPropertyChanged(nameof(TotalFocusSeconds));
+            OnPropertyChanged(nameof(FocusAgainConfirmationTitle));
+        }
         PreparationSeconds = _engine.PreparationSeconds;
         PreparationProgress = _engine.PreparationProgress;
         RemainingFocusSeconds = _engine.RemainingFocusSeconds;

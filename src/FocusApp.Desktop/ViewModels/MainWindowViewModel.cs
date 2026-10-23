@@ -93,6 +93,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         HomePage.FocusTargetModal.CreateTargetRequested += FocusTargetModal_CreateTargetRequested;
         HomePage.FocusTargetModal.ManageTargetsRequested += FocusTargetModal_ManageTargetsRequested;
         HomePage.FocusTargetModal.Opened += FocusTargetModal_Opened;
+        HomePage.FocusTargetModal.LoginRequested += FocusTargetModal_LoginRequested;
         HomePage.FocusSession.CompletionRecorded += FocusSession_CompletionRecorded;
         HomePage.FocusSession.FocusDiscarded += FocusSession_FocusDiscarded;
         HomePage.FocusSession.FocusResultReturnedHome += FocusSession_FocusResultReturnedHome;
@@ -411,6 +412,12 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         MembershipType = e.MembershipType;
         OnPropertyChanged(nameof(CurrentUserEmail));
         IsLoggedIn = true;
+        // A saved VIP role cannot be restored until the account has unlocked it.
+        if (IsVipMember && _pendingFocusCharacterWrites == 0 && ServiceConnection?.State is { } state)
+        {
+            SettingsPage.ApplyFocusCharacterState(state.Settings.FocusCharacterId);
+            HomePage.FocusSession.ApplyFocusCharacter(SettingsPage.FocusCharacterId);
+        }
         IsAccountPanelOpen = false;
     }
 
@@ -494,6 +501,8 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         Navigate(settingsNavigationItem);
         SettingsPage.RequestAutomaticRuleFocus(ruleId);
     }
+
+    private void FocusTargetModal_LoginRequested(object? sender, EventArgs e) => OpenAuth();
 
     private void FocusTargetModal_CreateTargetRequested(object? sender, EventArgs e)
     {

@@ -69,6 +69,11 @@
     <Style x:Key="CalendarMonthValueStyle" TargetType="Run" BasedOn="{StaticResource StatisticsValueRunStyle}"/>
     <Style x:Key="CalendarDayValueStyle" TargetType="Run" BasedOn="{StaticResource CalendarMonthValueStyle}"/>
     <Style x:Key="CalendarUnitStyle" TargetType="Run" BasedOn="{StaticResource StatisticsUnitRunStyle}"/>
+    <Style x:Key="CalendarPeriodValueStyle" TargetType="Run" BasedOn="{StaticResource StatisticsValueRunStyle}">
+        <Setter Property="FontSize" Value="{DynamicResource BodyMediumFontSize}"/>
+        <Setter Property="FontWeight" Value="{DynamicResource BodyMediumFontWeight}"/>
+        <Setter Property="Foreground" Value="{DynamicResource CalendarTextBody}"/>
+    </Style>
     <Style x:Key="CalendarToolTipStyle" TargetType="ToolTip">
         <!-- ToolTips have a detached visual tree, so resolve their defaults here. -->
         <Setter Property="FontFamily" Value="{StaticResource FontFamilyPrimary}"/>

@@ -291,8 +291,13 @@ public partial class MainWindow : Window
 
     private void FocusSession_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
-        if (e.PropertyName != nameof(FocusSessionViewModel.Stage) ||
-            sender is not FocusSessionViewModel session)
+        if (sender is not FocusSessionViewModel session) return;
+        if (e.PropertyName == nameof(FocusSessionViewModel.PreparationProgress) &&
+            session.IsPreparing && session.PreparationProgress is >= 0.98 and < 1 && _entranceFromHome &&
+            IsLoaded && IsVisible && WindowState != WindowState.Minimized)
+            FocusScene.PrepareEntranceSnapshot(HomeSurface);
+
+        if (e.PropertyName != nameof(FocusSessionViewModel.Stage))
         {
             return;
         }
@@ -301,6 +306,7 @@ public partial class MainWindow : Window
         _lastFocusStage = session.Stage;
         if (session.IsPreparing)
         {
+            FocusScene.FinishEntrance();
             // "Focus again" skips the preparation page; do not flash a home snapshot
             // when returning directly from the completion scene.
             _entranceFromHome = previousStage == FocusFlowStage.Idle;

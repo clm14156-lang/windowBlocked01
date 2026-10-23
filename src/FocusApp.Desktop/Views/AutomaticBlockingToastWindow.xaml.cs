@@ -1,12 +1,17 @@
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
+using FocusApp.Desktop.Services;
 
 namespace FocusApp.Desktop.Views;
 
 public partial class AutomaticBlockingToastWindow : Window
 {
-    public AutomaticBlockingToastWindow() => InitializeComponent();
+    public AutomaticBlockingToastWindow()
+    {
+        InitializeComponent();
+        ToastThemeService.Apply(this);
+    }
 
     protected override void OnSourceInitialized(EventArgs e)
     {

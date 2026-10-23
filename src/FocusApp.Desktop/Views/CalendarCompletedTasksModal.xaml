@@ -1,0 +1,71 @@
+<UserControl x:Class="FocusApp.Desktop.Views.CalendarCompletedTasksModal"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:views="clr-namespace:FocusApp.Desktop.Views"
+             FontFamily="{DynamicResource FontFamilyPrimary}" UseLayoutRounding="True" SnapsToDevicePixels="True"
+             Focusable="True" KeyboardNavigation.TabNavigation="Cycle" PreviewKeyDown="Modal_PreviewKeyDown">
+    <UserControl.Style><Style TargetType="UserControl"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers>
+        <DataTrigger Binding="{Binding IsCalendarCompletedTasksOpen}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger>
+    </Style.Triggers></Style></UserControl.Style>
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/FocusApp.Desktop;component/Resources/CalendarTypography.xaml"/>
+                <ResourceDictionary Source="/FocusApp.Desktop;component/Resources/StatisticsScrollStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <BooleanToVisibilityConverter x:Key="VisibleIf"/>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <Grid x:Name="Overlay" Background="#26000000" MouseDown="Overlay_MouseDown">
+        <Border x:Name="ModalSurface" Width="400" Height="420" HorizontalAlignment="Center" VerticalAlignment="Center"
+                Background="White" BorderBrush="#E8EAEE" BorderThickness="1" CornerRadius="14">
+            <Border.Effect><DropShadowEffect Color="#424954" BlurRadius="18" Opacity="0.08" ShadowDepth="3"/></Border.Effect>
+            <Grid>
+                <Grid Margin="22,20,22,20">
+                    <Grid.RowDefinitions><RowDefinition Height="30"/><RowDefinition Height="18"/><RowDefinition/></Grid.RowDefinitions>
+                    <TextBlock x:Name="CompletedTasksTitle" Text="{Binding CalendarCompletedTasksTitle}" Margin="0,0,26,0"
+                               FontSize="{DynamicResource DialogTitleFontSize}" FontWeight="{DynamicResource DialogTitleFontWeight}"
+                               Foreground="{DynamicResource CalendarTextPrimary}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                    <ScrollViewer x:Name="CompletedTasksScrollViewer" Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                                  CanContentScroll="False" PanningMode="VerticalOnly" Visibility="{Binding HasSelectedDayCompletedTasks, Converter={StaticResource VisibleIf}}">
+                        <ScrollViewer.Resources><Style TargetType="ScrollBar" BasedOn="{StaticResource StatisticsThinScrollBarStyle}"/></ScrollViewer.Resources>
+                        <ItemsControl x:Name="CompletedTaskGroups" ItemsSource="{Binding SelectedDayCompletedTaskGroups}">
+                            <ItemsControl.ItemTemplate><DataTemplate>
+                                <StackPanel Margin="0,0,0,16">
+                                    <Grid Margin="0,0,0,8"><Grid.ColumnDefinitions><ColumnDefinition Width="18"/><ColumnDefinition Width="10"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                        <Image Width="18" Height="18" Source="{Binding IconSource, Converter={x:Static views:TargetIconSourceConverter.Instance}}"
+                                               Stretch="Uniform" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                        <TextBlock x:Name="CompletedGoalName" Grid.Column="2" Text="{Binding HeaderDisplay}" Style="{StaticResource CalendarSectionTitleStyle}"
+                                                   FontWeight="{DynamicResource SectionTitleFontWeight}" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                                    </Grid>
+                                    <ItemsControl x:Name="CompletedGroupTasks" ItemsSource="{Binding Tasks}" Margin="28,0,0,0">
+                                        <ItemsControl.ItemTemplate><DataTemplate>
+                                            <Border BorderBrush="#F0F2F5" BorderThickness="0,0,0,1" MinHeight="40" Padding="0,8,0,8">
+                                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="20"/><ColumnDefinition Width="10"/><ColumnDefinition/><ColumnDefinition Width="12"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                    <Grid Width="20" Height="20" VerticalAlignment="Top">
+                                                        <Ellipse Fill="#19C363"/>
+                                                        <Path Data="M 5,10 L 8.5,13.5 L 15,6.5" Stroke="White" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/>
+                                                    </Grid>
+                                                    <TextBlock x:Name="CompletedTaskName" Grid.Column="2" Text="{Binding Name}" Style="{StaticResource CalendarBodyTextStyle}" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                                                    <TextBlock x:Name="CompletedTaskTime" Grid.Column="4" Text="{Binding TimeDisplay}" Style="{StaticResource CalendarSecondaryTextStyle}"
+                                                               FontFamily="{DynamicResource FontFamilyEnglish}" Typography.NumeralAlignment="Tabular" VerticalAlignment="Top" Margin="0,1,1,0"/>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate></ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </DataTemplate></ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                    <TextBlock x:Name="CompletedTasksEmptyState" Grid.Row="2" Text="当天暂无已完成任务"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,28">
+                        <TextBlock.Style><Style TargetType="TextBlock" BasedOn="{StaticResource CalendarSecondaryTextStyle}"><Setter Property="Visibility" Value="Visible"/><Style.Triggers>
+                            <DataTrigger Binding="{Binding HasSelectedDayCompletedTasks}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
+                        </Style.Triggers></Style></TextBlock.Style>
+                    </TextBlock>
+                </Grid>
+                <Button x:Name="CloseModalButton" Style="{DynamicResource ModalCloseButtonStyle}" Command="{Binding CloseCalendarCompletedTasksCommand}" AutomationProperties.Name="关闭已完成任务"/>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

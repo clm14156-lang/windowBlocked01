@@ -11,6 +11,7 @@ public sealed class FocusGreetingProvider
     private static readonly Dictionary<FocusGreetingState, string[]> Defaults = Parse(DefaultTemplate);
     private readonly Dictionary<FocusGreetingState, string> _lastSelections = [];
     private Dictionary<FocusGreetingState, string[]> _greetings = Defaults;
+    private int _reloadVersion;
 
     public FocusGreetingProvider(string? configPath = null)
     {
@@ -24,7 +25,19 @@ public sealed class FocusGreetingProvider
 
     public void Reload()
     {
-        _greetings = Defaults;
+        Interlocked.Increment(ref _reloadVersion);
+        _greetings = ReadGreetings();
+    }
+
+    public async Task ReloadAsync()
+    {
+        var version = Interlocked.Increment(ref _reloadVersion);
+        var greetings = await Task.Run(ReadGreetings);
+        if (version == Volatile.Read(ref _reloadVersion)) _greetings = greetings;
+    }
+
+    private Dictionary<FocusGreetingState, string[]> ReadGreetings()
+    {
         try
         {
             if (!File.Exists(ConfigPath))
@@ -36,11 +49,12 @@ public sealed class FocusGreetingProvider
                 writer.Write(DefaultTemplate);
             }
 
-            _greetings = Parse(File.ReadAllText(ConfigPath, Utf8));
+            return Parse(File.ReadAllText(ConfigPath, Utf8));
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or DecoderFallbackException)
         {
             // Missing permissions, a file being edited, or invalid UTF-8 never blocks focus.
+            return Defaults;
         }
     }
 

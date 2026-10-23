@@ -55,13 +55,20 @@
                        Text="{DynamicResource HomeForcedModeEnabled}" />
         </StackPanel>
 
-        <Grid Width="238"
+        <Grid x:Name="HomeFocusArea"
+              Width="238"
               Height="238"
               Margin="0,119,24,0"
               HorizontalAlignment="Center"
               VerticalAlignment="Top">
-            <Button AutomationProperties.Name="{DynamicResource HomeStartFocus}"
-                    Command="{Binding StartFocusCommand}">
+            <Button x:Name="HomeStartFocusButton"
+                    views:RippleEffect.IsEnabled="True"
+                    views:RippleEffect.Color="#CC5500"
+                    views:RippleEffect.PeakOpacity="0.28"
+                    views:RippleEffect.IsCircular="True"
+                    views:RippleEffect.OverlayTarget="{Binding ElementName=HomeFocusArea}"
+                    AutomationProperties.Name="{DynamicResource HomeStartFocus}"
+                    Command="{Binding StartFocusWithDelayCommand}">
                 <Button.Style>
                     <Style TargetType="{x:Type Button}" BasedOn="{StaticResource HomeFocusButtonStyle}">
                         <Setter Property="Visibility" Value="Visible" />
@@ -218,10 +225,17 @@
                     <Button.Template>
                         <ControlTemplate TargetType="{x:Type Button}">
                             <Grid Background="Transparent">
-                                <Ellipse Width="18" Height="18" Stroke="White" StrokeThickness="1.3" />
-                                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center"
-                                           Margin="0,-1,0,0" FontSize="12" FontWeight="SemiBold"
-                                           Foreground="White" Text="?" />
+                                <Viewbox Width="18" Height="18" HorizontalAlignment="Center"
+                                         VerticalAlignment="Center" IsHitTestVisible="False">
+                                    <Canvas Width="18" Height="18" UseLayoutRounding="False">
+                                        <Ellipse Width="18" Height="18" Stroke="White" StrokeThickness="1.3" />
+                                        <Path Stroke="White" StrokeThickness="1.4"
+                                              StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                              StrokeLineJoin="Round"
+                                              Data="M 6.4,6.6 C 6.4,3.8 11.6,3.8 11.6,6.6 C 11.6,8.5 9,8.4 9,10.4" />
+                                        <Ellipse Width="1.4" Height="1.4" Canvas.Left="8.3" Canvas.Top="12.8" Fill="White" />
+                                    </Canvas>
+                                </Viewbox>
                             </Grid>
                         </ControlTemplate>
                     </Button.Template>
@@ -230,87 +244,94 @@
 
             <Popup x:Name="NextAutomaticBlockingPopup"
                    AllowsTransparency="True"
-                   HorizontalOffset="0"
-                   VerticalOffset="-154"
+                   HorizontalOffset="-11"
+                   VerticalOffset="-91"
                    Placement="Right"
                    PlacementTarget="{Binding ElementName=NextAutomaticBlockingHelpButton}"
                    PopupAnimation="Fade"
                    StaysOpen="True"
                    MouseEnter="NextAutomaticBlockingPopup_MouseEnter"
                    MouseLeave="NextAutomaticBlockingPopup_MouseLeave">
-                <Grid Width="272" Height="190">
-                    <Border Width="260" Height="190" Margin="12,0,0,0"
-                            HorizontalAlignment="Left" Background="White"
-                            BorderBrush="#E1E4E9" BorderThickness="1" CornerRadius="10">
-                        <Border.Effect>
-                            <DropShadowEffect BlurRadius="12" ShadowDepth="2" Opacity="0.12" Color="#545B68" />
-                        </Border.Effect>
-                        <Grid Margin="16,12,16,8">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="30" />
-                                <RowDefinition Height="1" />
-                                <RowDefinition Height="*" />
-                                <RowDefinition Height="1" />
-                                <RowDefinition Height="36" />
-                            </Grid.RowDefinitions>
-                            <TextBlock Grid.Row="0" VerticalAlignment="Top"
-                                       FontSize="14" FontWeight="SemiBold" Foreground="#1D1D1F"
-                                       Text="{DynamicResource HomeAutomaticRulePoptipTitle}" />
-                            <Border Grid.Row="1" Background="#E8E9ED" />
-                            <StackPanel Grid.Row="2" Margin="0,12,0,0">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" FontSize="14" FontWeight="SemiBold"
-                                               Foreground="#1D1D1F" Text="{Binding NextAutomaticTimeRangeDisplay}" />
-                                    <TextBlock Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center"
-                                               FontSize="12" FontWeight="SemiBold"
-                                               Foreground="{DynamicResource AccentPrimary}"
-                                               Text="{Binding NextAutomaticCountdownDisplay}" />
+                <Border Padding="10" Background="Transparent">
+                    <Button x:Name="NextAutomaticBlockingCard"
+                            Width="260" Height="115" Padding="0"
+                            Background="White" BorderBrush="#E8EBF0" BorderThickness="1"
+                            HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"
+                            FocusVisualStyle="{x:Null}" Cursor="Hand"
+                            AutomationProperties.Name="查看下一次自动屏蔽"
+                            Command="{Binding ManageNextAutomaticRuleCommand}"
+                            Click="NextAutomaticBlockingCard_Click">
+                        <Button.Template>
+                            <ControlTemplate TargetType="{x:Type Button}">
+                                <Grid Background="Transparent">
+                                    <Border x:Name="CardSurface" Width="250" Height="115"
+                                            HorizontalAlignment="Right" CornerRadius="14"
+                                            Background="{TemplateBinding Background}"
+                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                            BorderThickness="{TemplateBinding BorderThickness}">
+                                        <Border.Effect>
+                                            <DropShadowEffect BlurRadius="14" ShadowDepth="2"
+                                                              Opacity="0.10" Color="#343B48" />
+                                        </Border.Effect>
+                                    </Border>
+                                    <ContentPresenter Margin="10,0,0,0"
+                                                      HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
+                                    <Canvas Width="11" Height="16" HorizontalAlignment="Left"
+                                            VerticalAlignment="Bottom" Margin="0,0,0,16"
+                                            IsHitTestVisible="False">
+                                        <Path x:Name="CardPointer" Data="M 11,0 L 1,8 L 11,16"
+                                              Fill="{TemplateBinding Background}"
+                                              Stroke="{TemplateBinding BorderBrush}" StrokeThickness="1" />
+                                    </Canvas>
                                 </Grid>
-                                <TextBlock Margin="0,8,0,0" FontSize="11" Foreground="#86868B"
-                                           Text="{Binding NextAutomaticWeekdaysDisplay}" TextWrapping="Wrap">
-                                    <TextBlock.Style>
-                                        <Style TargetType="{x:Type TextBlock}">
-                                            <Setter Property="Visibility" Value="Collapsed" />
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding NextAutomaticHasCustomDays}" Value="True">
-                                                    <Setter Property="Visibility" Value="Visible" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
-                                <TextBlock Margin="0,8,0,0" FontSize="11" Foreground="#86868B"
-                                           Text="{Binding NextAutomaticBlockedContentDisplay}" />
-                            </StackPanel>
-                            <Border Grid.Row="3" Background="#E8E9ED" />
-                            <Button Grid.Row="4" Padding="0" HorizontalContentAlignment="Stretch"
-                                    Background="Transparent" BorderThickness="0" Cursor="Hand"
-                                    Command="{Binding ManageNextAutomaticRuleCommand}">
-                                <Button.Template>
-                                    <ControlTemplate TargetType="{x:Type Button}">
-                                        <Grid Background="Transparent">
-                                            <TextBlock VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold"
-                                                       Foreground="{DynamicResource AccentPrimary}"
-                                                       Text="{DynamicResource HomeManageAutomaticRule}" />
-                                            <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center"
-                                                       FontFamily="Segoe MDL2 Assets" FontSize="11"
-                                                       Foreground="#86868B" Text="&#xE76C;" />
-                                        </Grid>
-                                    </ControlTemplate>
-                                </Button.Template>
-                            </Button>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="CardSurface" Property="Background" Value="#FAFBFC" />
+                                        <Setter TargetName="CardPointer" Property="Fill" Value="#FAFBFC" />
+                                    </Trigger>
+                                    <Trigger Property="IsPressed" Value="True">
+                                        <Setter TargetName="CardSurface" Property="Background" Value="#F5F6F8" />
+                                        <Setter TargetName="CardPointer" Property="Fill" Value="#F5F6F8" />
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                        <Grid Margin="16,18,16,19">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="18" />
+                                <RowDefinition Height="6" />
+                                <RowDefinition Height="30" />
+                                <RowDefinition Height="6" />
+                                <RowDefinition Height="18" />
+                            </Grid.RowDefinitions>
+                            <Grid Grid.Row="0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock VerticalAlignment="Center" FontSize="12.5"
+                                           FontWeight="Normal" Foreground="#626A75"
+                                           Text="{DynamicResource HomeAutomaticRulePoptipTitle}" />
+                                <TextBlock Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center"
+                                           FontSize="12.5" FontWeight="SemiBold" Foreground="#FD7E05"
+                                           Text="{Binding NextAutomaticCountdownDisplay}" />
+                            </Grid>
+                            <TextBlock Grid.Row="2" Margin="0,0,18,0" VerticalAlignment="Center"
+                                       FontFamily="{DynamicResource FontFamilyNumeric}"
+                                       FontSize="22" FontWeight="SemiBold" Foreground="#17191D"
+                                       Text="{Binding NextAutomaticTimeRangeDisplay}" />
+                            <TextBlock Grid.Row="4" Margin="0,0,18,0" VerticalAlignment="Center"
+                                       FontSize="12" FontWeight="Normal" Foreground="#8A9099"
+                                       TextTrimming="CharacterEllipsis"
+                                       Text="{Binding NextAutomaticBlockedContentDisplay}" />
+                            <Path Grid.Row="2" Grid.RowSpan="3" Width="6" Height="11"
+                                  HorizontalAlignment="Right" VerticalAlignment="Center"
+                                  Stroke="#AFB5BE" StrokeThickness="1.4"
+                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                  Data="M 0,0 L 5.5,5.5 L 0,11" />
                         </Grid>
-                    </Border>
-                    <Canvas Width="12" Height="18" HorizontalAlignment="Left" VerticalAlignment="Bottom"
-                            Margin="0,0,0,20" Panel.ZIndex="1">
-                        <Path Data="M 12,0 L 0,9 L 12,18 Z" Fill="White"
-                              Stroke="#E1E4E9" StrokeThickness="1" />
-                    </Canvas>
-                </Grid>
+                    </Button>
+                </Border>
             </Popup>
         </Grid>
 

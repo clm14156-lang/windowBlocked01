@@ -2,7 +2,7 @@ using System.Windows;
 
 namespace FocusApp.Desktop.Views;
 
-/// <summary>Applies focus-only resources without changing the rest of the application's theme.</summary>
+/// <summary>Applies focus-derived resources without changing the rest of the application's theme.</summary>
 public static class FocusThemeScope
 {
     public static readonly DependencyProperty IsDarkProperty = DependencyProperty.RegisterAttached(
@@ -10,7 +10,7 @@ public static class FocusThemeScope
 
     public static readonly DependencyProperty ResourcePrefixProperty = DependencyProperty.RegisterAttached(
         "ResourcePrefix", typeof(string), typeof(FocusThemeScope), new PropertyMetadata("FocusTheme", ThemeChanged),
-        value => value is "FocusTheme" or "FocusFloatingTheme");
+        value => value is "FocusTheme" or "FocusFloatingTheme" or "ToastTheme");
 
     public static bool GetIsDark(DependencyObject element) => (bool)element.GetValue(IsDarkProperty);
     public static void SetIsDark(DependencyObject element, bool value) => element.SetValue(IsDarkProperty, value);
@@ -29,7 +29,8 @@ public static class FocusThemeScope
         {
             var source = resources[index].Source?.OriginalString;
             if (source?.Contains("/FocusTheme.", StringComparison.Ordinal) != true &&
-                source?.Contains("/FocusFloatingTheme.", StringComparison.Ordinal) != true) continue;
+                source?.Contains("/FocusFloatingTheme.", StringComparison.Ordinal) != true &&
+                source?.Contains("/ToastTheme.", StringComparison.Ordinal) != true) continue;
             resources[index] = theme;
             return;
         }

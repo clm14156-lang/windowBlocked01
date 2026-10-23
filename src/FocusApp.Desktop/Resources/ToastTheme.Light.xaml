@@ -1,0 +1,38 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <LinearGradientBrush x:Key="ToastBlockedBackground" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#FCFEFF" Offset="0" />
+        <GradientStop Color="#F7FBFF" Offset="0.44" />
+        <GradientStop Color="#F0F7FD" Offset="1" />
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="ToastAutomaticBackground" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#FCFEFF" Offset="0" />
+        <GradientStop Color="#F7FBFF" Offset="0.44" />
+        <GradientStop Color="#F0F7FD" Offset="1" />
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="ToastMenuBackground" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#FFFFFF" Offset="0" />
+        <GradientStop Color="#F5F9FD" Offset="1" />
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="ToastBlockedBorderBrush" Color="#D5E2EE" />
+    <SolidColorBrush x:Key="ToastAutomaticBorderBrush" Color="#D5E2EE" />
+    <SolidColorBrush x:Key="ToastTitleBrush" Color="#101C2F" />
+    <SolidColorBrush x:Key="ToastPrimaryBrush" Color="#243347" />
+    <SolidColorBrush x:Key="ToastSecondaryBrush" Color="#667085" />
+    <SolidColorBrush x:Key="ToastMutedBrush" Color="#5F6F84" />
+    <SolidColorBrush x:Key="ToastIconBrush" Color="#7A8CA3" />
+    <SolidColorBrush x:Key="ToastControlBrush" Color="#73839B" />
+    <SolidColorBrush x:Key="ToastDividerBrush" Color="#CEDBE6" />
+    <SolidColorBrush x:Key="ToastMoreHoverBrush" Color="#E7F0F8" />
+    <SolidColorBrush x:Key="ToastMenuHoverBrush" Color="#E8F1F8" />
+    <SolidColorBrush x:Key="ToastCloseHoverBrush" Color="#E8F1F8" />
+    <SolidColorBrush x:Key="ToastAutomaticBrandBrush" Color="#243347" />
+    <SolidColorBrush x:Key="ToastAutomaticSecondaryBrush" Color="#667085" />
+    <SolidColorBrush x:Key="ToastAutomaticIconBrush" Color="#73839B" />
+    <SolidColorBrush x:Key="ToastAutomaticRuleBrush" Color="#243347" />
+    <SolidColorBrush x:Key="ToastLinkBrush" Color="#465775" />
+    <SolidColorBrush x:Key="ToastAutomaticControlBrush" Color="#73839B" />
+    <SolidColorBrush x:Key="ToastAutomaticCloseHoverBrush" Color="#E8F1F8" />
+    <SolidColorBrush x:Key="ToastAccentBrush" Color="#D87300" />
+    <Color x:Key="ToastShadowColor">#4F6B83</Color>
+</ResourceDictionary>

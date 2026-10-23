@@ -1,71 +1,80 @@
-using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Media.Animation;
+using System.Windows.Controls.Primitives;
+using System.Windows.Input;
+using System.Windows.Media;
 using FocusApp.Desktop.ViewModels;
 
 namespace FocusApp.Desktop.Views;
 
 public partial class CalendarDayRecordView : UserControl
 {
-    private static readonly Duration ExpansionDuration = new(TimeSpan.FromMilliseconds(180));
-    private CalendarDayRecordViewModel? _entry;
-    private int _animationVersion;
-
+    private ScrollViewer? _scroll;
+    private Window? _owner;
     public CalendarDayRecordView()
     {
         InitializeComponent();
-        Loaded += (_, _) => { AttachEntry(); UpdateExpansion(false); };
-        Unloaded += (_, _) => { DetachEntry(); StopAnimations(); };
-        IsVisibleChanged += (_, _) => { if (!IsVisible) StopAnimations(); else if (IsLoaded) UpdateExpansion(false); };
-        DataContextChanged += (_, _) => { DetachEntry(); if (IsLoaded) AttachEntry(); UpdateExpansion(false); };
-        SizeChanged += (_, e) => { if (e.WidthChanged && _entry?.IsExpanded == true) UpdateExpansion(false); };
+        Loaded += (_, _) =>
+        {
+            _scroll = Ancestor<ScrollViewer>(this);
+            if (_scroll is not null) _scroll.ScrollChanged += ScrollChanged;
+        };
+        Unloaded += (_, _) =>
+        {
+            CloseTaskPreview();
+            if (_scroll is not null) _scroll.ScrollChanged -= ScrollChanged;
+            _scroll = null;
+        };
+        DataContextChanged += (_, _) => CloseTaskPreview();
+        IsVisibleChanged += (_, _) => { if (!IsVisible) CloseTaskPreview(); };
     }
 
-    private void AttachEntry()
+    public void CloseTaskPreview() => TaskPopup.IsOpen = false;
+    private void ScrollChanged(object sender, ScrollChangedEventArgs e)
+    { if (ReferenceEquals(e.OriginalSource, _scroll) && (e.VerticalChange != 0 || e.HorizontalChange != 0)) CloseTaskPreview(); }
+
+    private void TaskCountButton_Click(object sender, RoutedEventArgs e)
     {
-        if (ReferenceEquals(_entry, DataContext)) return;
-        _entry = DataContext as CalendarDayRecordViewModel;
-        if (_entry is not null) _entry.PropertyChanged += EntryChanged;
+        if (DataContext is CalendarDayRecordViewModel { HasTasks: true } entry)
+        {
+            Ancestor<StatisticsPage>(this)?.CalendarRecordInteraction.Select(entry.Record);
+            TaskPopup.IsOpen = !TaskPopup.IsOpen;
+        }
+        e.Handled = true;
     }
-    private void DetachEntry()
+
+    private CustomPopupPlacement[] TaskPopup_Placement(Size popupSize, Size targetSize, Point offset)
+        => [new(new Point(targetSize.Width - popupSize.Width + 4, targetSize.Height + 2), PopupPrimaryAxis.Vertical),
+            new(new Point(targetSize.Width - popupSize.Width + 4, -popupSize.Height - 2), PopupPrimaryAxis.Vertical)];
+
+    private void TaskPopup_Opened(object? sender, EventArgs e)
     {
-        if (_entry is not null) _entry.PropertyChanged -= EntryChanged;
-        _entry = null;
+        _owner = Window.GetWindow(this);
+        if (_owner is not null) _owner.PreviewKeyDown += Owner_KeyDown;
+        TaskPoptipSurface.PointerOnTop = TaskPoptipSurface.PointToScreen(new Point()).Y >= TaskCountButton.PointToScreen(new Point()).Y;
+        var anchor = TaskCountButton.PointToScreen(new Point(TaskCountButton.ActualWidth / 2, 0));
+        var local = TaskPoptipSurface.PointFromScreen(anchor);
+        TaskPoptipSurface.PointerLeft = PoptipChrome.PointerLeftForAnchor(local.X, TaskPoptipSurface.ActualWidth);
     }
-    private void EntryChanged(object? sender, PropertyChangedEventArgs e)
+    private void TaskPopup_Closed(object? sender, EventArgs e)
     {
-        if (e.PropertyName == nameof(CalendarDayRecordViewModel.IsExpanded)) UpdateExpansion(true);
+        if (_owner is not null) _owner.PreviewKeyDown -= Owner_KeyDown;
+        _owner = null;
     }
-    private void StopAnimations()
+    private void TaskPopup_MouseDownOutside(object sender, MouseButtonEventArgs e)
     {
-        _animationVersion++;
-        TaskExpansion.BeginAnimation(HeightProperty, null);
-        TaskExpansion.BeginAnimation(OpacityProperty, null);
-        ArrowRotation.BeginAnimation(System.Windows.Media.RotateTransform.AngleProperty, null);
+        // Consume the anchor click that dismisses the captured Popup so it cannot immediately reopen.
+        if (!new Rect(TaskCountButton.RenderSize).Contains(e.GetPosition(TaskCountButton))) return;
+        CloseTaskPreview();
+        e.Handled = true;
     }
-    private void UpdateExpansion(bool animate)
+    private void Owner_KeyDown(object sender, KeyEventArgs e)
+    { if (e.Key == Key.Escape) { CloseTaskPreview(); e.Handled = true; } }
+
+    private static T? Ancestor<T>(DependencyObject child) where T : DependencyObject
     {
-        var expanded = (DataContext as CalendarDayRecordViewModel)?.IsExpanded == true;
-        TaskItems.Measure(new Size(Math.Max(1, ActualWidth - 42), double.PositiveInfinity));
-        var target = expanded ? TaskItems.DesiredSize.Height : 0;
-        var currentHeight = TaskExpansion.ActualHeight;
-        var currentOpacity = TaskExpansion.Opacity;
-        var currentAngle = ArrowRotation.Angle;
-        StopAnimations();
-        TaskExpansion.Height = target;
-        TaskExpansion.Opacity = expanded ? 1 : 0;
-        ArrowRotation.Angle = expanded ? 90 : 0;
-        if (!animate || !IsVisible || !SystemParameters.ClientAreaAnimation) return;
-        var version = _animationVersion;
-        var height = CreateAnimation(currentHeight, target);
-        height.Completed += (_, _) => { if (version == _animationVersion) StopAnimations(); };
-        TaskExpansion.BeginAnimation(HeightProperty, height);
-        TaskExpansion.BeginAnimation(OpacityProperty, CreateAnimation(currentOpacity, expanded ? 1 : 0));
-        ArrowRotation.BeginAnimation(System.Windows.Media.RotateTransform.AngleProperty, CreateAnimation(currentAngle, expanded ? 90 : 0));
+        for (var parent = VisualTreeHelper.GetParent(child); parent is not null; parent = VisualTreeHelper.GetParent(parent))
+            if (parent is T found) return found;
+        return null;
     }
-    private static DoubleAnimation CreateAnimation(double from, double to) => new(from, to, ExpansionDuration)
-    {
-        EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut }, FillBehavior = FillBehavior.Stop
-    };
 }

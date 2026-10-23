@@ -2,7 +2,7 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Color x:Key="AccentShadowColor">#FF8A18</Color>
     <SolidColorBrush x:Key="TransparentBrush" Color="Transparent" />
-    <SolidColorBrush x:Key="BackgroundPrimary" Color="#F9F9FA" />
+    <SolidColorBrush x:Key="BackgroundPrimary" Color="#F9FAFE" />
     <SolidColorBrush x:Key="BackgroundSecondary" Color="#F2F2F4" />
     <SolidColorBrush x:Key="SurfacePrimary" Color="#FFFFFF" />
     <SolidColorBrush x:Key="TextPrimary" Color="#1D1D1F" />

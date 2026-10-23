@@ -28,6 +28,7 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
     private bool _isApplyingPersistedDurations;
     private bool _isUpdatingDurationSelection;
     private string _focusStartError = string.Empty;
+    private CancellationTokenSource? _pendingFocusStartDelay;
 
     public event PropertyChangedEventHandler? PropertyChanged;
     public event EventHandler? DurationOptionsChanged;
@@ -80,6 +81,7 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
         BlockedContentModal = new BlockedContentModalViewModel();
         SelectDurationCommand = new RelayCommand<HomeDurationOptionViewModel>(SelectDuration);
         StartFocusCommand = new RelayCommand<object>(_ => StartFocus());
+        StartFocusWithDelayCommand = new RelayCommand<object>(_ => _ = StartFocusWithDelayAsync());
         OpenFocusTargetCommand = new RelayCommand<object>(_ => FocusTargetModal.Open());
         OpenBlockedContentCommand = new RelayCommand<object>(_ => OpenBlockedContent());
         ManageNextAutomaticRuleCommand = new RelayCommand<object>(_ => ManageNextAutomaticRule());
@@ -94,6 +96,8 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
     public ICommand SelectDurationCommand { get; }
 
     public ICommand StartFocusCommand { get; }
+
+    public ICommand StartFocusWithDelayCommand { get; }
 
     public ICommand OpenFocusTargetCommand { get; }
 
@@ -192,6 +196,7 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
 
     public void SetUserAccess(bool isLoggedIn, bool isVip)
     {
+        FocusTargetModal.SetUserAccess(isLoggedIn);
         if (_isLoggedIn == isLoggedIn && _isVip == isVip)
         {
             return;
@@ -437,6 +442,34 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(DurationOptions));
         NotifyDurationOptionsChanged();
         return true;
+    }
+
+    public void CancelPendingFocusStart()
+    {
+        var pending = _pendingFocusStartDelay;
+        _pendingFocusStartDelay = null;
+        pending?.Cancel();
+    }
+
+    private async Task StartFocusWithDelayAsync()
+    {
+        if (_pendingFocusStartDelay is not null || FocusSession.IsPreparing || FocusSession.IsFocusing || IsStartingForcedFocus) return;
+
+        using var pending = new CancellationTokenSource();
+        _pendingFocusStartDelay = pending;
+        try
+        {
+            // Delay the command itself so the full preparation clock begins after the ripple's first 75ms.
+            await Task.Delay(TimeSpan.FromMilliseconds(75), pending.Token);
+            if (!pending.IsCancellationRequested && !FocusSession.IsPreparing && !FocusSession.IsFocusing &&
+                !IsStartingForcedFocus && StartFocusCommand.CanExecute(null))
+                StartFocusCommand.Execute(null);
+        }
+        catch (OperationCanceledException) when (pending.IsCancellationRequested) { }
+        finally
+        {
+            if (ReferenceEquals(_pendingFocusStartDelay, pending)) _pendingFocusStartDelay = null;
+        }
     }
 
     private void StartFocus(

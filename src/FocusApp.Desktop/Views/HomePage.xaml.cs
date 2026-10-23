@@ -1,3 +1,4 @@
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Threading;
@@ -26,8 +27,14 @@ public partial class HomePage : UserControl
         };
         Unloaded += (_, _) =>
         {
+            (DataContext as HomePageViewModel)?.CancelPendingFocusStart();
             _automaticRulePopupCloseTimer.Stop();
             NextAutomaticBlockingPopup.IsOpen = false;
+        };
+        DataContextChanged += (_, args) => (args.OldValue as HomePageViewModel)?.CancelPendingFocusStart();
+        IsVisibleChanged += (_, args) =>
+        {
+            if (args.NewValue is false) (DataContext as HomePageViewModel)?.CancelPendingFocusStart();
         };
     }
 
@@ -49,5 +56,11 @@ public partial class HomePage : UserControl
 
     private void NextAutomaticBlockingPopup_MouseLeave(object sender, MouseEventArgs e)
         => _automaticRulePopupCloseTimer.Start();
+
+    private void NextAutomaticBlockingCard_Click(object sender, RoutedEventArgs e)
+    {
+        _automaticRulePopupCloseTimer.Stop();
+        NextAutomaticBlockingPopup.IsOpen = false;
+    }
 
 }

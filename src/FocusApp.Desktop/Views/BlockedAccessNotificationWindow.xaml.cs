@@ -4,6 +4,7 @@ using System.Windows.Input;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using FocusApp.Desktop.ViewModels;
+using FocusApp.Desktop.Services;
 
 namespace FocusApp.Desktop.Views;
 
@@ -22,6 +23,7 @@ public partial class BlockedAccessNotificationWindow : Window
     public BlockedAccessNotificationWindow()
     {
         InitializeComponent();
+        ToastThemeService.Apply(this);
         _autoCloseTimer = new DispatcherTimer(DispatcherPriority.Background)
         {
             Interval = AutoCloseDelay

@@ -34,6 +34,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     private bool _isVip;
     private bool _isDailyFocusRecordVipGuideOpen;
     private bool _isGoalInvestmentDetailsVipGuideOpen;
+    private bool _isCalendarCompletedTasksOpen;
     private bool _usesPersistedState;
     private readonly bool _useSampleData;
     private readonly Func<DateTime> _localNowProvider;
@@ -83,6 +84,8 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         SelectCalendarDateCommand = new RelayCommand<CalendarDayViewModel>(SelectCalendarDay,
             day => day?.CanSelect == true && CalendarDays.Any(item => item.Date == day.Date && item.CanSelect));
         ReturnToTodayCommand = new RelayCommand<object>(_ => ReturnToToday());
+        OpenCalendarCompletedTasksCommand = new RelayCommand<object>(_ => IsCalendarCompletedTasksOpen = true);
+        CloseCalendarCompletedTasksCommand = new RelayCommand<object>(_ => IsCalendarCompletedTasksOpen = false);
         SelectGoalCommand = new RelayCommand<GoalOverviewItemViewModel>(SelectGoal);
         SelectGoalListCommand = new RelayCommand<object>(SelectGoalList);
         ToggleGoalListMenuCommand = new RelayCommand<object>(_ => IsGoalListMenuOpen = !IsGoalListMenuOpen);
@@ -395,6 +398,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
         if (couldViewDetails != CanViewDailyFocusRecord)
         {
+            if (!CanViewDailyFocusRecord) IsCalendarCompletedTasksOpen = false;
             OnPropertyChanged(nameof(CanViewDailyFocusRecord));
             OnPropertyChanged(nameof(CanViewGoalInvestmentDetails));
             if (CanViewDailyFocusRecord)
@@ -410,6 +414,19 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     public ICommand SelectOverviewCommand { get; }
 
     public ICommand SelectCalendarCommand { get; }
+    public ICommand OpenCalendarCompletedTasksCommand { get; }
+    public ICommand CloseCalendarCompletedTasksCommand { get; }
+    public bool IsCalendarCompletedTasksOpen
+    {
+        get => _isCalendarCompletedTasksOpen;
+        set
+        {
+            value &= CanViewDailyFocusRecord && IsCalendarSelected;
+            if (_isCalendarCompletedTasksOpen == value) return;
+            _isCalendarCompletedTasksOpen = value;
+            OnPropertyChanged();
+        }
+    }
 
     public ICommand SelectGoalsCommand { get; }
 
@@ -460,12 +477,17 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     public ObservableCollection<FocusSessionRecordViewModel> SelectedDayRecords { get; } = [];
     public IReadOnlyList<CalendarDayRecordViewModel> SelectedDayRecordEntries { get; private set; } = [];
+    public IReadOnlyList<CalendarDayPeriodViewModel> SelectedDayPeriods { get; private set; } = [];
+    public bool HasSelectedDayPeriodRecords => SelectedDayPeriods.Any(period => period.HasRecords);
     public CalendarFocusTimelineViewModel SelectedDayTimeline { get; private set; } = CalendarFocusTimelineViewModel.Create(DateTime.Today, [], fullDay: true);
     public ObservableCollection<CalendarTimeDistributionViewModel> SelectedDayDistributions { get; } = [];
     public bool HasSelectedDayFocusData => SelectedDayMinutes > 0 || SelectedDayRecords.Count > 0;
     public bool HasSelectedDayDistributions => SelectedDayDistributions.Count > 0;
     public bool HasSelectedDayRecords => SelectedDayRecords.Count > 0;
     public IReadOnlyList<CalendarCompletedTaskViewModel> SelectedDayCompletedTaskItems { get; private set; } = [];
+    public IReadOnlyList<CalendarCompletedTaskGroupViewModel> SelectedDayCompletedTaskGroups { get; private set; } = [];
+    public bool HasSelectedDayCompletedTasks => SelectedDayCompletedTaskItems.Count > 0;
+    public string CalendarCompletedTasksTitle => $"{(_selectedCalendarDay?.Date ?? _localNowProvider().Date):M月d日}已完成任务";
     public ObservableCollection<GoalOverviewItemViewModel> Goals { get; } = [];
 
     private void Goals_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
@@ -889,6 +911,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             }
 
             _selectedTab = value;
+            if (_selectedTab != StatisticsTab.Calendar) IsCalendarCompletedTasksOpen = false;
             if (_selectedTab != StatisticsTab.Goals) GoalCompletedTasks.CloseCommand.Execute(null);
             if (_selectedTab == StatisticsTab.Goals) GoalFocusHistory.ApplyState(SelectedGoal, FocusSessionRecords, _goalTaskSnapshot);
             Overview.ClearDistributionSelection();
@@ -1414,7 +1437,10 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             SelectedDayRecords.Add(record);
         }
         OnPropertyChanged(nameof(HasSelectedDayRecords));
-        SelectedDayRecordEntries = CalendarDayRecordViewModel.Create(SelectedDayRecords);
+        SelectedDayPeriods = CalendarDayPeriodViewModel.Create(date, SelectedDayRecords, SelectedDayPeriods);
+        OnPropertyChanged(nameof(SelectedDayPeriods));
+        OnPropertyChanged(nameof(HasSelectedDayPeriodRecords));
+        SelectedDayRecordEntries = SelectedDayPeriods.SelectMany(period => period.Entries).ToArray();
         OnPropertyChanged(nameof(SelectedDayRecordEntries));
         SelectedDayTimeline = CalendarFocusTimelineViewModel.Create(date, SelectedDayRecords, fullDay: true);
         OnPropertyChanged(nameof(SelectedDayTimeline));
@@ -1613,8 +1639,16 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     private void NotifySelectedDayCompletedTasksChanged()
     {
+        SelectedDayCompletedTaskGroups = SelectedDayCompletedTaskItems
+            .GroupBy(task => task.HasGoal ? task.GoalId : string.Empty, StringComparer.Ordinal)
+            .Select(group => new CalendarCompletedTaskGroupViewModel(group.Key,
+                group.First().HasGoal ? group.First().GoalName : "未关联目标", group.First().GoalIconSource, group.ToArray()))
+            .ToArray();
         OnPropertyChanged(nameof(SelectedDayCompletedTasks));
         OnPropertyChanged(nameof(SelectedDayCompletedTaskItems));
+        OnPropertyChanged(nameof(SelectedDayCompletedTaskGroups));
+        OnPropertyChanged(nameof(HasSelectedDayCompletedTasks));
+        OnPropertyChanged(nameof(CalendarCompletedTasksTitle));
     }
 
     private static string FormatDuration(int totalMinutes)

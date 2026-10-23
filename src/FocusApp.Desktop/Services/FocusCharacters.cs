@@ -3,7 +3,7 @@ using System.Windows.Media.Imaging;
 namespace FocusApp.Desktop.Services;
 
 public sealed record FocusCharacter(string Id, string Name, string DayFile, string NightFile, bool IsHuman,
-    double DayVerticalOffset = 0, double NightVerticalOffset = 0, double SceneScale = 1);
+    double DayVerticalOffset = 0, double NightVerticalOffset = 0, double SceneScale = 1, bool IsFree = false);
 
 public static class FocusCharacters
 {
@@ -11,8 +11,8 @@ public static class FocusCharacters
 
     // Previews always use the white_ day set; the focus scene uses dark_ at night.
     public static IReadOnlyList<FocusCharacter> All { get; } = Array.AsReadOnly<FocusCharacter>([
-        new(DefaultId, "短发男生", "white_boy01.png", "dark_boy01.png", true, 6, 6),
-        new("white_gril01", "短发女生", "white_gril01.png", "dark_gril01.png", true, 10, 6),
+        new(DefaultId, "短发男生", "white_boy01.png", "dark_boy01.png", true, 6, 6, IsFree: true),
+        new("white_gril01", "短发女生", "white_gril01.png", "dark_gril01.png", true, 10, 6, IsFree: true),
         new("white_twintailsgril", "双马尾女生", "white_twintailsgril.png", "dark_twintailsGril.png", true, 4, 4),
         new("white_leisuregril", "休闲女生", "white_leisuregril.png", "dark_leisuregril.png", true, 4, 4),
         new("white_pajamasgril", "睡衣女生", "white_pajamasgril.png", "dark_pajamasgril.png", true, 7, 5),

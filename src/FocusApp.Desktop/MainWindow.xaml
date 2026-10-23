@@ -14,9 +14,13 @@
         PreviewMouseDown="Window_PreviewMouseDown"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None">
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="0" CornerRadius="12" GlassFrameThickness="0"
+                      ResizeBorderThickness="0" UseAeroCaptionButtons="False" />
+    </WindowChrome.WindowChrome>
     <Grid Width="{Binding HomePage.FocusSession.FocusWindowWidth, FallbackValue=800}">
     <Border Width="800" HorizontalAlignment="Left" BorderBrush="{DynamicResource BorderPrimary}"
-            Background="{DynamicResource BackgroundPrimary}">
+            Background="{DynamicResource BackgroundPrimary}" CornerRadius="12">
         <Border.Style>
             <Style TargetType="{x:Type Border}">
                 <Setter Property="BorderThickness" Value="1" />
@@ -938,6 +942,9 @@
                                    HorizontalAlignment="Stretch"
                                    VerticalAlignment="Stretch"
                                    DataContext="{Binding StatisticsPage}" />
+            <views:CalendarCompletedTasksModal Grid.ColumnSpan="2" Panel.ZIndex="209" Margin="-1"
+                                               HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                                               DataContext="{Binding StatisticsPage}" />
             <views:GoalCompletedTasksModal Grid.ColumnSpan="2" Panel.ZIndex="207" Margin="-1"
                                             HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
                                             DataContext="{Binding StatisticsPage.GoalCompletedTasks}" />

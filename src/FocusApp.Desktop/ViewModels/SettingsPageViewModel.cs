@@ -275,6 +275,7 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
         var couldUseForcedMode = CanUseForcedMode;
         _isLoggedIn = isLoggedIn;
         _isVip = isVip;
+        FocusCharacterPicker.SetUserAccess(isLoggedIn, isVip);
 
         if (couldUseForcedMode != CanUseForcedMode)
         {
@@ -745,6 +746,9 @@ public sealed class AutomaticRuleItemViewModel : INotifyPropertyChanged
 
     public string ScheduleRepeatDisplayText => HasScheduleRepeat ? $"（{_repeatText}）" : string.Empty;
 
+    public IReadOnlyList<string> ScheduleRepeatDays => HasScheduleRepeat
+        ? _repeatText.Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) : [];
+
     public string ScheduleDisplayText => HasScheduleRepeat
         ? $"{_timeRangeText} {ScheduleRepeatDisplayText}" : _timeRangeText;
 
@@ -791,6 +795,7 @@ public sealed class AutomaticRuleItemViewModel : INotifyPropertyChanged
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ScheduleDisplayText)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasScheduleRepeat)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ScheduleRepeatDisplayText)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ScheduleRepeatDays)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DayKeys)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(StartMinutes)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(EndMinutes)));

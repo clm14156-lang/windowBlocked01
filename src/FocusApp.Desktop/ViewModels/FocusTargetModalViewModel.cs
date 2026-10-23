@@ -16,6 +16,7 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
     private FocusTargetViewModel _selectedTarget;
     private bool _isOpen;
     private bool _hasSelectedTarget;
+    private bool _isLoggedIn;
 
     public FocusTargetModalViewModel(bool useSampleData = true, Func<DateTime>? now = null)
     {
@@ -35,17 +36,23 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
         SelectTargetCommand = new RelayCommand<FocusTargetViewModel>(SelectTarget);
         StartFocusCommand = new RelayCommand<object>(_ => RequestStartFocus(), _ => CanStartFocus);
         ManageTargetsCommand = new RelayCommand<object>(_ => RequestManageTargets());
+        LoginCommand = new RelayCommand<object>(_ => RequestLogin());
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
     public event EventHandler? CreateTargetRequested;
     public event EventHandler? ManageTargetsRequested;
     public event EventHandler? Opened;
+    public event EventHandler? LoginRequested;
     public event Action<FocusTargetViewModel>? StartFocusRequested;
 
     public IReadOnlyList<FocusTargetViewModel> Targets => _targets;
 
     public bool HasTargets => _targets.Count > 0;
+
+    public bool IsLoggedIn => _isLoggedIn;
+
+    public void SetUserAccess(bool isLoggedIn) => SetField(ref _isLoggedIn, isLoggedIn, nameof(IsLoggedIn));
 
     public ICommand OpenCommand { get; }
 
@@ -58,6 +65,8 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
     public ICommand StartFocusCommand { get; }
 
     public ICommand ManageTargetsCommand { get; }
+
+    public ICommand LoginCommand { get; }
 
     public bool IsOpen
     {
@@ -188,6 +197,13 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
     }
 
     private void Close() => IsOpen = false;
+
+    private void RequestLogin()
+    {
+        if (IsLoggedIn || !IsOpen) return;
+        Close();
+        LoginRequested?.Invoke(this, EventArgs.Empty);
+    }
 
     private void RefreshRecentFocusStatuses()
     {

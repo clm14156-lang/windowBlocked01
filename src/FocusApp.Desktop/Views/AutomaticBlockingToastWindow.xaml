@@ -19,71 +19,70 @@
         WindowStartupLocation="Manual"
         WindowStyle="None">
     <Window.Resources>
-        <Style x:Key="ToastCloseButtonStyle" TargetType="Button">
-            <Setter Property="Width" Value="32" />
-            <Setter Property="Height" Value="32" />
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="CloseHitArea"
-                                Background="{TemplateBinding Background}"
-                                CornerRadius="16">
-                            <Path Width="16"
-                                  Height="16"
-                                  HorizontalAlignment="Center"
-                                  VerticalAlignment="Center"
-                                  Data="M 1,1 L 15,15 M 15,1 L 1,15"
-                                  Stroke="#D4D9DF"
-                                  StrokeEndLineCap="Round"
-                                  StrokeStartLineCap="Round"
-                                  StrokeThickness="1.4" />
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="CloseHitArea" Property="Background" Value="#505761" />
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="../Resources/ToastTheme.Light.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <Style x:Key="ToastCloseButtonStyle" TargetType="Button">
+                <Setter Property="Width" Value="32" />
+                <Setter Property="Height" Value="32" />
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="CloseHitArea"
+                                    Background="{TemplateBinding Background}"
+                                    CornerRadius="16">
+                                <Path Width="16"
+                                      Height="16"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"
+                                      Data="M 1,1 L 15,15 M 15,1 L 1,15"
+                                      Stroke="{DynamicResource ToastAutomaticControlBrush}"
+                                      StrokeEndLineCap="Round"
+                                      StrokeStartLineCap="Round"
+                                      StrokeThickness="1.4" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="CloseHitArea" Property="Background" Value="{DynamicResource ToastAutomaticCloseHoverBrush}" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
 
-        <Style x:Key="ToastLinkButtonStyle" TargetType="Button">
-            <Setter Property="MinHeight" Value="28" />
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <ContentPresenter HorizontalAlignment="Center"
-                                          VerticalAlignment="Center" />
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
+            <Style x:Key="ToastLinkButtonStyle" TargetType="Button">
+                <Setter Property="MinHeight" Value="28" />
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+        </ResourceDictionary>
     </Window.Resources>
 
-    <Border Margin="2"
-            BorderBrush="#626973"
+    <Border x:Name="RootCard" Margin="2"
+            Background="{DynamicResource ToastAutomaticBackground}"
+            BorderBrush="{DynamicResource ToastAutomaticBorderBrush}"
             BorderThickness="1"
             CornerRadius="18">
-        <Border.Background>
-            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                <GradientStop Color="#F53D434B" Offset="0" />
-                <GradientStop Color="#F5343A42" Offset="0.44" />
-                <GradientStop Color="#F530353C" Offset="1" />
-            </LinearGradientBrush>
-        </Border.Background>
         <Border.Effect>
-            <DropShadowEffect BlurRadius="18"
+            <DropShadowEffect Color="{DynamicResource ToastShadowColor}" BlurRadius="18"
                               Direction="270"
                               Opacity="0.14"
                               ShadowDepth="2" />
@@ -120,7 +119,7 @@
                            VerticalAlignment="Center"
                            FontSize="14"
                            FontWeight="Medium"
-                           Foreground="#F6F7F9"
+                           Foreground="{DynamicResource ToastAutomaticBrandBrush}"
                            Text="{DynamicResource AutomaticBlockingToastBrandName}" />
 
                 <Button Grid.Column="3"
@@ -134,11 +133,11 @@
                        VerticalAlignment="Center"
                        FontSize="19"
                        FontWeight="SemiBold"
-                       Foreground="#FFFFFF"
+                       Foreground="{DynamicResource ToastTitleBrush}"
                        TextWrapping="NoWrap">
                 <Run FontSize="32"
                      FontWeight="Bold"
-                     Foreground="#FF9448"
+                     Foreground="{DynamicResource ToastAccentBrush}"
                      Text="{DynamicResource AutomaticBlockingToastMinutes}" /><Run Text="{DynamicResource AutomaticBlockingToastTitleSuffix}" />
             </TextBlock>
 
@@ -146,7 +145,7 @@
                        VerticalAlignment="Center"
                        FontSize="12"
                        FontWeight="Normal"
-                       Foreground="#B8BEC7"
+                       Foreground="{DynamicResource ToastAutomaticSecondaryBrush}"
                        Text="{DynamicResource AutomaticBlockingToastDescription}"
                        TextTrimming="CharacterEllipsis"
                        TextWrapping="NoWrap" />
@@ -162,14 +161,14 @@
                 <TextBlock VerticalAlignment="Center"
                            FontFamily="Segoe MDL2 Assets"
                            FontSize="19"
-                           Foreground="#E3E7EC"
+                           Foreground="{DynamicResource ToastAutomaticIconBrush}"
                            Text="&#xE823;" />
 
                 <TextBlock Grid.Column="2"
                            VerticalAlignment="Center"
                            FontSize="13"
                            FontWeight="Normal"
-                           Foreground="#F0F2F5"
+                           Foreground="{DynamicResource ToastAutomaticRuleBrush}"
                            Text="{DynamicResource AutomaticBlockingToastRule}" />
 
                 <Button Grid.Column="3"
@@ -180,13 +179,13 @@
                         <TextBlock VerticalAlignment="Center"
                                    FontSize="13"
                                    FontWeight="Medium"
-                                   Foreground="#F3F5F7"
+                                   Foreground="{DynamicResource ToastLinkBrush}"
                                    Text="{DynamicResource AutomaticBlockingToastView}" />
                         <TextBlock Margin="6,0,0,0"
                                    VerticalAlignment="Center"
                                    FontSize="17"
                                    FontWeight="Normal"
-                                   Foreground="#F3F5F7"
+                                   Foreground="{DynamicResource ToastLinkBrush}"
                                    Text="{DynamicResource AutomaticBlockingToastViewArrow}" />
                     </StackPanel>
                 </Button>

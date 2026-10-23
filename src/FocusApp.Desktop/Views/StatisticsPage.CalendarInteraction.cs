@@ -94,7 +94,6 @@ public partial class StatisticsPage
     {
         if (GetCalendarRecord(row.DataContext) is not { } record) return;
         CalendarDayTimeline.SelectRecord(record);
-        if (row.DataContext is CalendarDayRecordViewModel entry) entry.IsExpanded = !entry.IsExpanded;
         row.Focus();
     }
 
@@ -114,6 +113,12 @@ public partial class StatisticsPage
 
     private void CalendarTimeline_RecordSelected(object? sender, FocusSessionRecordViewModel record)
     {
+        if (DataContext is StatisticsOverviewViewModel model)
+        {
+            var period = model.SelectedDayPeriods.FirstOrDefault(group => group.Entries.Any(entry => ReferenceEquals(entry.Record, record)));
+            if (period is not null) period.IsExpanded = true;
+            UpdateLayout();
+        }
         var row = _calendarRecordRows.FirstOrDefault(item => ReferenceEquals(GetCalendarRecord(item.DataContext), record));
         if (row is null) return;
         row.BringIntoView(new Rect(0, 0, row.ActualWidth, Math.Min(row.ActualHeight, CalendarRecordsScrollViewer.ViewportHeight)));
