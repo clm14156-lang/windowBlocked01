@@ -11,14 +11,8 @@ public sealed class CalendarRecordInteractionState
     public static bool GetIsHovered(DependencyObject element) => (bool)element.GetValue(IsHoveredProperty);
     public static void SetIsHovered(DependencyObject element, bool value) => element.SetValue(IsHoveredProperty, value);
 
-    public static readonly DependencyProperty IsSelectedProperty = DependencyProperty.RegisterAttached(
-        "IsSelected", typeof(bool), typeof(CalendarRecordInteractionState), new PropertyMetadata(false));
-    public static bool GetIsSelected(DependencyObject element) => (bool)element.GetValue(IsSelectedProperty);
-    public static void SetIsSelected(DependencyObject element, bool value) => element.SetValue(IsSelectedProperty, value);
-
     public FocusSessionRecordViewModel? HoveredRecord { get; private set; }
     public FocusSessionRecordViewModel? HoveredTimelineRecord { get; private set; }
-    public FocusSessionRecordViewModel? SelectedRecord { get; private set; }
     public event EventHandler? Changed;
 
     public void Hover(FocusSessionRecordViewModel? record)
@@ -33,27 +27,6 @@ public sealed class CalendarRecordInteractionState
         if (ReferenceEquals(HoveredRecord, record)) Hover(null);
     }
 
-    public void ToggleSelection(FocusSessionRecordViewModel record)
-    {
-        if (ReferenceEquals(SelectedRecord, record))
-        {
-            // Consume the second click as deselection, including any stale hover preview.
-            Clear();
-            return;
-        }
-        SelectedRecord = record;
-        HoveredTimelineRecord = null;
-        Changed?.Invoke(this, EventArgs.Empty);
-    }
-
-    public void Select(FocusSessionRecordViewModel record)
-    {
-        if (ReferenceEquals(SelectedRecord, record)) return;
-        SelectedRecord = record;
-        HoveredTimelineRecord = null;
-        Changed?.Invoke(this, EventArgs.Empty);
-    }
-
     public void HoverTimeline(FocusSessionRecordViewModel? record)
     {
         if (ReferenceEquals(HoveredTimelineRecord, record)) return;
@@ -66,19 +39,10 @@ public sealed class CalendarRecordInteractionState
         if (ReferenceEquals(HoveredTimelineRecord, record)) HoverTimeline(null);
     }
 
-    public void ClearSelection()
-    {
-        if (SelectedRecord is null) return;
-        SelectedRecord = null;
-        HoveredTimelineRecord = null;
-        Changed?.Invoke(this, EventArgs.Empty);
-    }
-
     public void Clear()
     {
         HoveredRecord = null;
         HoveredTimelineRecord = null;
-        SelectedRecord = null;
         Changed?.Invoke(this, EventArgs.Empty);
     }
 }

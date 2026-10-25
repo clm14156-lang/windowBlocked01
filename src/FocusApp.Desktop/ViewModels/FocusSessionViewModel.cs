@@ -173,6 +173,22 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         RefreshTaskGroups();
     }
 
+    internal bool AddTaskSubTask(FocusTaskViewModel parent, string title)
+    {
+        if (!IsFocusing || ActiveTarget is not { } target || !target.Tasks.Contains(parent) ||
+            parent.IsCompleted || !parent.CanAddSubTask || string.IsNullOrWhiteSpace(title)) return false;
+        var now = DateTimeOffset.UtcNow;
+        var child = new LocalSubTaskDto(Guid.NewGuid().ToString("N"), parent.TaskId,
+            title.Trim(), false, parent.SubTasks.Count, now, now);
+        return SaveDrawerTask(new LocalTaskDto(parent.TaskId, target.TargetId, parent.Name, parent.IsCompleted,
+            target.Tasks.IndexOf(parent), parent.CreatedAtUtc, now)
+        {
+            Description = parent.Description,
+            CompletedAtUtc = parent.CompletedAtUtc,
+            SubTasks = parent.ExportSubTasks().Append(child).ToArray()
+        });
+    }
+
     internal bool SaveDrawerTask(LocalTaskDto source)
     {
         if (!IsFocusing || ActiveTarget is not { } target || source.TargetId != target.TargetId ||

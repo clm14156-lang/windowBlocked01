@@ -21,6 +21,9 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
     private FocusTaskViewModel? _draft;
     private FocusTaskViewModel? _editingTask;
     private FocusTaskViewModel? _selectedTask;
+    private FocusTaskViewModel? _inlineSubTaskParent;
+    private string _inlineSubTaskTitle = string.Empty;
+    private bool _isSubmittingInlineSubTask;
     private readonly HashSet<FocusTaskViewModel> _exitingTasks = [];
 
     public FocusTaskDrawerViewModel(FocusSessionViewModel session)
@@ -40,6 +43,7 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
         ToggleExpandedCommand = new RelayCommand<FocusTaskViewModel>(task =>
         {
             if (task is null) return;
+            CancelInlineSubTaskCreation();
             if (task == SelectedTask) task.IsExpanded = !task.IsExpanded;
             else SelectTask(task);
         });
@@ -83,13 +87,68 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
         private set
         {
             if (!Set(ref _isOpen, value)) return;
-            if (!value) { FinishCompletionAnimations(); CancelCreation(); SelectTask(null); }
+            if (!value) { CancelInlineSubTaskCreation(); FinishCompletionAnimations(); CancelCreation(); SelectTask(null); }
             _session.NotifyTaskDrawerChanged();
         }
     }
     public bool IsCreating { get => _isCreating; private set => Set(ref _isCreating, value); }
     public bool IsEditingTask => _editingTask is not null;
-    public string CommitButtonText => IsEditingTask ? "保存修改" : "创建";
+    public string CommitButtonText => IsEditingTask ? "保存" : "创建";
+    public FocusTaskViewModel? InlineSubTaskParent => _inlineSubTaskParent;
+    public bool IsCreatingInlineSubTask => InlineSubTaskParent is not null;
+    public string InlineSubTaskTitle
+    {
+        get => _inlineSubTaskTitle;
+        set => Set(ref _inlineSubTaskTitle, value ?? string.Empty);
+    }
+
+    public bool BeginShortcutCreation(FocusTaskViewModel? parent = null)
+    {
+        if (!_session.IsFocusing || !_session.HasTarget || _session.IsEndConfirmationOpen ||
+            IsCreating || IsCreatingInlineSubTask || parent is not null && !IsValidInlineParent(parent)) return false;
+        IsOpen = true;
+        if (parent is null) BeginCreation();
+        else
+        {
+            SelectTask(parent);
+            _inlineSubTaskParent = parent;
+            InlineSubTaskTitle = string.Empty;
+            NotifyInlineCreationChanged();
+        }
+        return true;
+    }
+
+    private bool IsValidInlineParent(FocusTaskViewModel parent) => !parent.IsCompleted && parent.CanAddSubTask &&
+        _session.ActiveTarget?.Tasks.Contains(parent) == true;
+
+    public bool SubmitInlineSubTask()
+    {
+        if (_isSubmittingInlineSubTask || InlineSubTaskParent is not { } parent ||
+            !_session.IsFocusing || !IsOpen || !IsValidInlineParent(parent)) return false;
+        _isSubmittingInlineSubTask = true;
+        try
+        {
+            if (!_session.AddTaskSubTask(parent, InlineSubTaskTitle)) return false;
+            InlineSubTaskTitle = string.Empty;
+            if (!parent.CanAddSubTask) CancelInlineSubTaskCreation();
+            return true;
+        }
+        finally { _isSubmittingInlineSubTask = false; }
+    }
+
+    public void CancelInlineSubTaskCreation()
+    {
+        if (!IsCreatingInlineSubTask) return;
+        _inlineSubTaskParent = null;
+        InlineSubTaskTitle = string.Empty;
+        NotifyInlineCreationChanged();
+    }
+
+    private void NotifyInlineCreationChanged()
+    {
+        OnPropertyChanged(nameof(InlineSubTaskParent));
+        OnPropertyChanged(nameof(IsCreatingInlineSubTask));
+    }
     public string DraftTitle
     {
         get => _draftTitle;
@@ -144,6 +203,8 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
 
     internal void RefreshTasks()
     {
+        if (!_isSubmittingInlineSubTask && InlineSubTaskParent is { } parent &&
+            (!_session.IsFocusing || !IsValidInlineParent(parent))) CancelInlineSubTaskCreation();
         var current = (_session.ActiveTarget?.Tasks.AsEnumerable() ?? []).ToArray();
         var pending = current.Where(item => !item.IsCompleted).ToArray();
         var completed = _session.CompletedTasks.OrderBy(item => item.CompletedAtUtc).ToArray();
@@ -206,7 +267,7 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
 
     public bool MoveTask(FocusTaskViewModel task, int destinationIndex)
     {
-        if (!_session.IsFocusing || IsCreating || task.IsCompleted || _session.ActiveTarget is not { } target ||
+        if (!_session.IsFocusing || IsCreating || IsCreatingInlineSubTask || task.IsCompleted || _session.ActiveTarget is not { } target ||
             !Tasks.Contains(task) || destinationIndex < 0 || destinationIndex >= Tasks.Count)
             return false;
         var oldIndex = target.Tasks.IndexOf(task);
@@ -239,6 +300,7 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
     private void BeginCreation()
     {
         if (!_session.IsFocusing || _session.ActiveTarget is not { } target) return;
+        CancelInlineSubTaskCreation();
         SelectTask(null);
         CancelCreation();
         var now = DateTimeOffset.UtcNow;
@@ -256,6 +318,7 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
     private void BeginTaskEdit(FocusTaskViewModel? task)
     {
         if (task is null || !_session.IsFocusing || _session.ActiveTarget?.Tasks.Contains(task) != true) return;
+        CancelInlineSubTaskCreation();
         CancelCreation();
         _editingTask = task;
         _draft = new FocusTaskViewModel(task.TargetId, task.Name, taskId: task.TaskId, createdAtUtc: task.CreatedAtUtc)
@@ -265,7 +328,7 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
         foreach (var source in task.ExportSubTasks()) _draft.SubTasks.Add(new FocusSubTaskViewModel(source));
         _draft.SubTasks.CollectionChanged += DraftSubTasksChanged;
         _draft.PropertyChanged += DraftPropertyChanged;
-        IsDescriptionExpanded = true;
+        IsDescriptionExpanded = task.HasDescription;
         IsSubTasksExpanded = task.SubTasks.Count > 0;
         DraftTitle = task.Name;
         SubTaskInput = string.Empty;

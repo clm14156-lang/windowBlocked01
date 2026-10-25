@@ -39,7 +39,7 @@ public sealed class CalendarFocusTimeline : FrameworkElement
         nameof(InlineRecordDetails), typeof(bool), typeof(CalendarFocusTimeline),
         new PropertyMetadata(false, (owner, _) => ((CalendarFocusTimeline)owner).ResetSessionToolTip()));
     public bool InlineRecordDetails { get => (bool)GetValue(InlineRecordDetailsProperty); set => SetValue(InlineRecordDetailsProperty, value); }
-    public event EventHandler<FocusSessionRecordViewModel>? RecordSelected;
+    public event EventHandler<FocusSessionRecordViewModel>? RecordNavigationRequested;
 
     public static readonly DependencyProperty GoalHistoryStyleProperty = DependencyProperty.Register(
         nameof(GoalHistoryStyle), typeof(bool), typeof(CalendarFocusTimeline),
@@ -119,18 +119,6 @@ public sealed class CalendarFocusTimeline : FrameworkElement
         if (FullDayStyle && !GoalHistoryStyle) _recordPoptip?.Synchronize();
     }
 
-    internal void SelectRecord(FocusSessionRecordViewModel record)
-    {
-        if (InlineRecordDetails)
-        {
-            InteractionState?.Select(record);
-            return;
-        }
-        _recordPoptip ??= new CalendarRecordPoptip(this);
-        _recordPoptip.CancelPendingLeave();
-        InteractionState?.ToggleSelection(record);
-        _recordPoptip.Synchronize();
-    }
     internal void EndTimelinePreview()
     {
         if (InlineRecordDetails) CloseSessionToolTip();
@@ -145,7 +133,6 @@ public sealed class CalendarFocusTimeline : FrameworkElement
         return segment is not null;
     }
     internal void LeaveRecordPoptip(FocusSessionRecordViewModel record) => _recordPoptip?.Leave(record);
-    internal bool IsWithinRecordPoptip(DependencyObject source) => _recordPoptip?.Contains(source) == true;
     internal void RepositionRecordPoptip() => _recordPoptip?.Reposition();
 
     private void OnTimelineChanged()
@@ -153,8 +140,7 @@ public sealed class CalendarFocusTimeline : FrameworkElement
         CloseSessionToolTip();
         _recordPoptip?.Reset();
         if (InteractionState is { } state &&
-            (state.SelectedRecord is { } selected && Timeline?.Segments.Any(segment => ReferenceEquals(segment.Record, selected)) != true ||
-             state.HoveredTimelineRecord is { } hovered && Timeline?.Segments.Any(segment => ReferenceEquals(segment.Record, hovered)) != true))
+            state.HoveredTimelineRecord is { } hovered && Timeline?.Segments.Any(segment => ReferenceEquals(segment.Record, hovered)) != true)
             state.Clear();
         _recordPoptip?.Synchronize();
         UpdateCurrentTimeTimer();
@@ -243,7 +229,7 @@ public sealed class CalendarFocusTimeline : FrameworkElement
         foreach (var segment in Timeline.Segments)
         {
             if (FullDayStyle && !GoalHistoryStyle && InteractionState is { } activeState &&
-                (ReferenceEquals(segment.Record, activeState.HoveredTimelineRecord) || ReferenceEquals(segment.Record, activeState.SelectedRecord))) continue;
+                ReferenceEquals(segment.Record, activeState.HoveredTimelineRecord)) continue;
             // Never impose a minimum width: position and duration remain proportional to real timestamps.
             drawingContext.DrawRoundedRectangle(accentBrush, GoalHistoryStyle ? new Pen(Brushes.White, 0.6) : null,
                 SegmentBounds(segment), GoalHistoryStyle ? 3 : 1.5, GoalHistoryStyle ? 3 : 1.5);
@@ -251,18 +237,16 @@ public sealed class CalendarFocusTimeline : FrameworkElement
         if (FullDayStyle && !GoalHistoryStyle && InteractionState is { } state)
         {
             foreach (var segment in Timeline.Segments.Where(segment =>
-                ReferenceEquals(segment.Record, state.HoveredTimelineRecord) || ReferenceEquals(segment.Record, state.SelectedRecord)))
+                ReferenceEquals(segment.Record, state.HoveredTimelineRecord)))
             {
-                var selected = ReferenceEquals(segment.Record, state.SelectedRecord);
                 var bounds = SegmentBounds(segment);
                 var center = bounds.Left + bounds.Width / 2;
                 var haloWidth = Math.Max(20, bounds.Width + 12);
                 var halo = new Rect(center - haloWidth / 2, bounds.Top - 6, haloWidth, bounds.Height + 10);
-                drawingContext.DrawRoundedRectangle(new SolidColorBrush(selected ? Color.FromArgb(16, 255, 132, 31)
-                    : Color.FromRgb(247, 247, 248)), null, halo, 6, 6);
+                drawingContext.DrawRoundedRectangle(new SolidColorBrush(Color.FromRgb(247, 247, 248)), null, halo, 6, 6);
                 // The original duration width stays unchanged; the active mark gets only a subtle lift.
                 var active = new Rect(center - bounds.Width * 1.12 / 2, bounds.Top - 2, bounds.Width * 1.12, bounds.Height + 2);
-                drawingContext.DrawRoundedRectangle(new SolidColorBrush(selected ? Color.FromRgb(255, 128, 0) : Color.FromRgb(255, 158, 75)), null, active, 2, 2);
+                drawingContext.DrawRoundedRectangle(new SolidColorBrush(Color.FromRgb(255, 158, 75)), null, active, 2, 2);
             }
         }
         DrawCurrentTimeMarker(drawingContext);
@@ -319,7 +303,7 @@ public sealed class CalendarFocusTimeline : FrameworkElement
     private void UpdateSessionHover(Point position)
     {
         var segment = FindSessionAt(position);
-        Cursor = segment is null ? Cursors.Arrow : Cursors.Hand;
+        Cursor = segment is not null && (!FullDayStyle || GoalHistoryStyle || InlineRecordDetails) ? Cursors.Hand : Cursors.Arrow;
         if (ReferenceEquals(segment, _hoveredSegment)) return;
         if (FullDayStyle && !GoalHistoryStyle && !InlineRecordDetails)
         {
@@ -336,7 +320,7 @@ public sealed class CalendarFocusTimeline : FrameworkElement
         }
         CloseSessionToolTip();
         if (segment is null) return;
-        Cursor = Cursors.Hand;
+        Cursor = FullDayStyle && !GoalHistoryStyle && !InlineRecordDetails ? Cursors.Arrow : Cursors.Hand;
         _hoveredSegment = segment;
         if (InlineRecordDetails)
         {
@@ -410,22 +394,15 @@ public sealed class CalendarFocusTimeline : FrameworkElement
     protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
     {
         base.OnMouseLeftButtonDown(e);
-        if (!FullDayStyle || GoalHistoryStyle || InteractionState is null) return;
-        HandleSessionClick(e.GetPosition(this));
-        e.Handled = true;
+        if (HandleSessionClick(e.GetPosition(this))) e.Handled = true;
     }
 
-    private void HandleSessionClick(Point position)
+    private bool HandleSessionClick(Point position)
     {
-        if (!FullDayStyle || GoalHistoryStyle || InteractionState is null) return;
-        var segment = FindSessionAt(position);
-        if (segment is null) InteractionState.Clear();
-        else if (InlineRecordDetails)
-        {
-            CloseSessionToolTip();
-            InteractionState.Select(segment.Record);
-            RecordSelected?.Invoke(this, segment.Record);
-        }
+        if (!FullDayStyle || GoalHistoryStyle || !InlineRecordDetails || FindSessionAt(position) is not { } segment)
+            return false;
+        RecordNavigationRequested?.Invoke(this, segment.Record);
+        return true;
     }
 
     private void CloseSessionToolTip()

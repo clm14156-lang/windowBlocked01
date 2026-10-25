@@ -2,7 +2,9 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:views="clr-namespace:FocusApp.Desktop.Views"
-             FontFamily="{DynamicResource FontFamilyPrimary}" UseLayoutRounding="True">
+             FontFamily="{DynamicResource FontFamilyPrimary}" UseLayoutRounding="True" Background="Transparent"
+             ToolTipService.InitialShowDelay="180" ToolTipService.BetweenShowDelay="80" ToolTipService.ShowDuration="2147483647"
+             ToolTipOpening="RecordHoverTip_Opening">
     <UserControl.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -11,25 +13,28 @@
                 <ResourceDictionary Source="/FocusApp.Desktop;component/Resources/StatisticsScrollStyles.xaml"/>
             </ResourceDictionary.MergedDictionaries>
             <BooleanToVisibilityConverter x:Key="VisibleWhenTrue"/>
-            <Style x:Key="TaskLinkStyle" TargetType="Button">
+            <Style x:Key="TaskLinkStyle" TargetType="Border">
                 <Setter Property="Background" Value="Transparent"/>
-                <Setter Property="Foreground" Value="{DynamicResource CalendarTextWeak}"/>
-                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="TextElement.Foreground" Value="{DynamicResource CalendarTextWeak}"/>
                 <Setter Property="Padding" Value="3,0"/>
-                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Cursor" Value="Arrow"/>
+                <Setter Property="CornerRadius" Value="4"/>
                 <Setter Property="MinHeight" Value="28"/>
-                <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
-                    <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" CornerRadius="4">
-                        <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="Center"/>
-                    </Border>
-                </ControlTemplate></Setter.Value></Setter>
                 <Style.Triggers>
-                    <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#F4F6F8"/><Setter Property="Foreground" Value="{DynamicResource CalendarTextBody}"/></Trigger>
-                    <Trigger Property="IsKeyboardFocused" Value="True"><Setter Property="Background" Value="#F4F6F8"/></Trigger>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#F4F6F8"/><Setter Property="TextElement.Foreground" Value="{DynamicResource CalendarTextBody}"/></Trigger>
                 </Style.Triggers>
             </Style>
         </ResourceDictionary>
     </UserControl.Resources>
+    <UserControl.ToolTip>
+        <ToolTip x:Name="RecordHoverTip" Placement="Custom"
+                 DataContext="{Binding PlacementTarget.DataContext.Record, RelativeSource={RelativeSource Self}}"
+                 CustomPopupPlacementCallback="RecordHoverTip_Placement" Opened="RecordHoverTip_Opened" Closed="RecordHoverTip_Closed"
+                 Padding="0" BorderThickness="0" Background="Transparent" HasDropShadow="False" IsHitTestVisible="False">
+            <ToolTip.Template><ControlTemplate TargetType="ToolTip"><ContentPresenter /></ControlTemplate></ToolTip.Template>
+            <views:CalendarRecordHoverToolTip x:Name="RecordHoverContent" />
+        </ToolTip>
+    </UserControl.ToolTip>
     <Grid Height="36" Margin="0,0,3,0">
         <Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="98"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
         <Border x:Name="TimelineSpine" Width="1" Background="#E6E8EB" IsHitTestVisible="False"/>
@@ -39,24 +44,23 @@
         <TextBlock Style="{StaticResource CalendarRecordTextStyle}" x:Name="TimeRange" Grid.Column="1" Text="{Binding TimeRangeDisplay}"
                    FontFamily="{DynamicResource FontFamilyEnglish}" VerticalAlignment="Center"/>
         <TextBlock Style="{StaticResource CalendarBodyTextStyle}" x:Name="GoalName" Grid.Column="2" Text="{Binding Record.CalendarTitle}"
-                   Margin="0,0,5,0" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" ToolTipService.IsEnabled="{Binding HasGoal}">
-            <TextBlock.ToolTip><ToolTip Style="{StaticResource CalendarToolTipStyle}" Content="{Binding Record.CalendarTitle}"/></TextBlock.ToolTip>
-        </TextBlock>
-        <Button x:Name="TaskCountButton" Grid.Column="3" Style="{StaticResource TaskLinkStyle}"
-                Visibility="{Binding HasTasks, Converter={StaticResource VisibleWhenTrue}}" Click="TaskCountButton_Click"
+                   Foreground="{DynamicResource CalendarTextSecondary}" Margin="0,0,5,0" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+        <Border x:Name="TaskCountAnchor" Grid.Column="3" Style="{StaticResource TaskLinkStyle}"
+                Visibility="{Binding HasTasks, Converter={StaticResource VisibleWhenTrue}}"
+                MouseEnter="TaskCountAnchor_MouseEnter" MouseLeave="TaskPreview_MouseLeave"
                 AutomationProperties.Name="{Binding TasksTitle}">
-            <StackPanel Orientation="Horizontal">
-                <TextBlock x:Name="Summary" Text="{Binding TaskCountDisplay}" FontSize="12" FontWeight="Normal" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center">
+                <TextBlock x:Name="Summary" Text="{Binding TaskCountDisplay}" FontSize="12" FontWeight="Normal" Foreground="{Binding Path=(TextElement.Foreground), ElementName=TaskCountAnchor}"/>
                 <Path x:Name="ExpandArrow" Width="5" Height="8" Margin="5,0,0,0" Data="M 0,0 L 4,4 L 0,8"
-                      Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.2" StrokeLineJoin="Round" VerticalAlignment="Center"/>
+                      Stroke="{Binding Foreground, ElementName=Summary}" StrokeThickness="1.2" StrokeLineJoin="Round" VerticalAlignment="Center"/>
             </StackPanel>
-        </Button>
-        <Popup x:Name="TaskPopup" PlacementTarget="{Binding ElementName=TaskCountButton}" Placement="Custom"
-               CustomPopupPlacementCallback="TaskPopup_Placement" AllowsTransparency="True" StaysOpen="False"
+        </Border>
+        <Popup x:Name="TaskPopup" PlacementTarget="{Binding ElementName=TaskCountAnchor}" Placement="Custom"
+               CustomPopupPlacementCallback="TaskPopup_Placement" AllowsTransparency="True" StaysOpen="True"
                DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}"
-               Opened="TaskPopup_Opened" Closed="TaskPopup_Closed"
-               Mouse.PreviewMouseDownOutsideCapturedElement="TaskPopup_MouseDownOutside">
-            <views:PoptipChrome x:Name="TaskPoptipSurface" Width="240" Style="{StaticResource PoptipSurfaceStyle}" PointerOnTop="True" PointerLeft="196">
+               Opened="TaskPopup_Opened" Closed="TaskPopup_Closed">
+            <views:PoptipChrome x:Name="TaskPoptipSurface" Width="240" Style="{StaticResource PoptipSurfaceStyle}" PointerOnTop="False" PointerLeft="196"
+                                MouseEnter="TaskPreview_MouseEnter" MouseLeave="TaskPreview_MouseLeave">
                 <ScrollViewer x:Name="TaskPreviewScroll" MaxHeight="150" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" CanContentScroll="False" PanningMode="VerticalOnly">
                     <ScrollViewer.Resources><Style TargetType="ScrollBar" BasedOn="{StaticResource StatisticsThinScrollBarStyle}"/></ScrollViewer.Resources>
                     <ItemsControl x:Name="TaskPreviewItems" ItemsSource="{Binding PreviewTasks}">

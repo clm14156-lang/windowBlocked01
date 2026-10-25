@@ -2,7 +2,7 @@
 
 ## 实现边界
 
-复用 `focusPage` 中浅色三张、暗色两张透明叶子 PNG，保持背景、人物、阴影、倒计时、字体、布局、TodoList 和结束流程不变。
+复用 `focusPage` 中浅色三张（`shuye_001.png`、`shuye_002.png`、`shuye_003.png`）、暗色两张（`dark_yezi01.png`、`dark_yezi02.png`）透明叶子 PNG，保持背景、人物、阴影、倒计时、字体、布局、TodoList 和结束流程不变。
 原有 `FocusLeafLayer` 名称及 `FocusLeaves` XAML 名称保留，内部改为单个 `FrameworkElement.OnRender` 天气绘制层。
 移除不再使用的 `FocusLeafMotion` Storyboard 实现，没有新增第三方依赖或设置入口。
 

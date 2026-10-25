@@ -97,12 +97,17 @@ public sealed class FocusEndConfirmationPresentationTests
                 Assert.Equal(FontWeights.SemiBold, resume.FontWeight);
                 Assert.Equal(FontWeights.SemiBold, ((TextBlock)resume.Content).FontWeight);
                 Assert.Equal(new Thickness(0), dialog.BorderThickness);
+                Assert.Equal(new Thickness(1), dialog.Padding);
                 Assert.Null(dialog.BorderBrush);
-                Assert.Equal(((SolidColorBrush)view.FindResource("FocusEndSecondaryBrush")).Color, ((SolidColorBrush)((TextBlock)end.Content).Foreground).Color);
+                var outline = (Border)view.FindName("FocusEndConfirmationOutline");
+                Assert.Equal(new Thickness(dark ? 1 : 0), outline.BorderThickness);
+                Assert.Equal((Color)ColorConverter.ConvertFromString(dark ? "#1AFFFFFF" : "#00FFFFFF"), Assert.IsType<SolidColorBrush>(outline.BorderBrush).Color);
+                Assert.Equal(((SolidColorBrush)view.FindResource("FocusEndConfirmationSecondaryBrush")).Color, ((SolidColorBrush)((TextBlock)end.Content).Foreground).Color);
                 Assert.Same(view.FindResource("FocusEndConfirmationBackground"), dialog.Background);
-                Assert.Equal((Color)ColorConverter.ConvertFromString(dark ? "#0B152A" : "#FFFEFD"), Assert.IsType<SolidColorBrush>(dialog.Background).Color);
+                Assert.Equal((Color)ColorConverter.ConvertFromString(dark ? "#1F2D46" : "#FFFEFD"), Assert.IsType<SolidColorBrush>(dialog.Background).Color);
+                Assert.Equal((Color)ColorConverter.ConvertFromString(dark ? "#66000000" : "#99000000"), Assert.IsType<SolidColorBrush>(((Border)view.FindName("FocusEndConfirmationScrim")).Background).Color);
                 Assert.Equal(((SolidColorBrush)view.FindResource("FocusEndTitleBrush")).Color, ((SolidColorBrush)title.Foreground).Color);
-                Assert.Equal(((SolidColorBrush)view.FindResource("FocusEndSecondaryBrush")).Color, ((SolidColorBrush)elapsed.Inlines.OfType<Run>().ElementAt(1).Foreground).Color);
+                Assert.Equal(((SolidColorBrush)view.FindResource("FocusEndConfirmationSecondaryBrush")).Color, ((SolidColorBrush)elapsed.Inlines.OfType<Run>().ElementAt(1).Foreground).Color);
                 Assert.True(Bounds(resume, view).Bottom < Bounds(end, view).Top);
                 Assert.True(close.IsVisible);
                 Assert.Same(model.ContinueFocusCommand, close.Command);
@@ -126,7 +131,10 @@ public sealed class FocusEndConfirmationPresentationTests
                 }
                 model.ApplyFocusTheme(dark ? FocusThemeMode.Light : FocusThemeMode.Dark);
                 Pump();
-                Assert.Equal((Color)ColorConverter.ConvertFromString(dark ? "#FFFEFD" : "#0B152A"), Assert.IsType<SolidColorBrush>(dialog.Background).Color);
+                Assert.Equal((Color)ColorConverter.ConvertFromString(dark ? "#FFFEFD" : "#1F2D46"), Assert.IsType<SolidColorBrush>(dialog.Background).Color);
+                Assert.Equal(new Thickness(dark ? 0 : 1), outline.BorderThickness);
+                Assert.Equal(new Thickness(0), dialog.BorderThickness);
+                Assert.Equal(new Thickness(1), dialog.Padding);
                 Assert.Equal(dark ? 255 : 0, ((SolidColorBrush)status.Background).Color.A);
                 Assert.Equal(before, regions.Select(region => Bounds(region, view)).ToArray());
                 model.ApplyFocusTheme(dark ? FocusThemeMode.Dark : FocusThemeMode.Light);

@@ -26,10 +26,12 @@ public sealed class FocusFloatingWindowViewModel : INotifyPropertyChanged, IDisp
     private double? _presentationListHeight;
     private double _presentationHeaderHeight = TaskHeaderHeight;
     public const double TaskCreationHeight = 44;
+    public const double SubTaskCreationHeight = 36;
     private bool _isCreatingTask;
     private bool _isSubmittingTask;
     private string _taskTitle = string.Empty;
     private string? _creationTargetId;
+    private FocusTaskViewModel? _subTaskCreationParent;
     private double _creationHeight;
     private double? _creationTaskAreaHeight;
 
@@ -38,7 +40,10 @@ public sealed class FocusFloatingWindowViewModel : INotifyPropertyChanged, IDisp
         _session = session ?? throw new ArgumentNullException(nameof(session));
         ToggleTaskCompletedCommand = new RelayCommand<FocusTaskViewModel>(task =>
         {
-            if (!_isDisposed) _session.CompleteTaskAndSubTasks(task);
+            if (_isDisposed || !_session.IsFocusing || task is null ||
+                _session.ActiveTarget is not { } target || !target.Tasks.Contains(task)) return;
+            if (task.IsCompleted) _session.ToggleTaskCompletedCommand.Execute(task);
+            else _session.CompleteTaskAndSubTasks(task);
         });
         _session.PropertyChanged += Session_PropertyChanged;
         _session.PendingTasks.CollectionChanged += PendingTasks_CollectionChanged;
@@ -52,6 +57,7 @@ public sealed class FocusFloatingWindowViewModel : INotifyPropertyChanged, IDisp
     public event EventHandler<FocusTaskViewModel>? CompletionAnimationCancelled;
     public event EventHandler? TaskCreationStateChanged;
     public event EventHandler<FocusTaskViewModel>? TaskCreated;
+    public event EventHandler<FocusTaskViewModel>? SubTaskCreated;
     public ObservableCollection<FocusTaskViewModel> VisibleTasks { get; } = [];
 
     public FocusSessionViewModel Session => _session;
@@ -73,12 +79,14 @@ public sealed class FocusFloatingWindowViewModel : INotifyPropertyChanged, IDisp
 
     public int TaskRowCount => PendingTasks.Sum(task => 1 + task.SubTasks.Count);
 
-    public bool HasTaskOverflow => VisibleTasks.Sum(task => 1 + task.SubTasks.Count) * TaskRowHeight > AvailableTaskListHeight;
+    private double VisibleTaskRowsHeight => VisibleTasks.Sum(task => 1 + task.SubTasks.Count) * TaskRowHeight
+        + (IsCreatingSubTask ? SubTaskCreationHeight : 0);
+
+    public bool HasTaskOverflow => VisibleTaskRowsHeight > AvailableTaskListHeight;
 
     private double AvailableTaskListHeight => TaskRowHeight * VisibleTaskLimit - CreationHeight;
 
-    public double TaskListHeight => Math.Min(AvailableTaskListHeight, _presentationListHeight ??
-        VisibleTasks.Sum(task => 1 + task.SubTasks.Count) * TaskRowHeight);
+    public double TaskListHeight => Math.Min(AvailableTaskListHeight, _presentationListHeight ?? VisibleTaskRowsHeight);
 
     public bool HasDisplayedTasks => VisibleTasks.Count > 0;
 
@@ -86,10 +94,13 @@ public sealed class FocusFloatingWindowViewModel : INotifyPropertyChanged, IDisp
     public double NaturalTaskAreaHeight => HasDisplayedTasks ? _presentationHeaderHeight + TaskListHeight : 0;
     internal double GetTaskAreaHeightForCreation(double creationHeight) => HasDisplayedTasks
         ? _presentationHeaderHeight + Math.Min(TaskRowHeight * VisibleTaskLimit - creationHeight,
-            _presentationListHeight ?? VisibleTasks.Sum(task => 1 + task.SubTasks.Count) * TaskRowHeight) : 0;
+            _presentationListHeight ?? VisibleTaskRowsHeight) : 0;
     public double TaskAreaHeight => _creationTaskAreaHeight ?? NaturalTaskAreaHeight;
     public double CreationHeight => _creationHeight;
     public bool IsCreatingTask => _isCreatingTask;
+    public bool IsCreatingSubTask => IsCreatingTask && _subTaskCreationParent is not null;
+    public bool IsCreatingRootTask => IsCreatingTask && _subTaskCreationParent is null;
+    public FocusTaskViewModel? SubTaskCreationParent => _subTaskCreationParent;
     public string TaskTitle
     {
         get => _taskTitle;
@@ -101,13 +112,22 @@ public sealed class FocusFloatingWindowViewModel : INotifyPropertyChanged, IDisp
         }
     }
 
-    public bool BeginTaskCreation()
+    public bool BeginTaskCreation() => BeginCreation(null);
+
+    public bool BeginSubTaskCreation(FocusTaskViewModel parent) => parent is not null && IsValidSubTaskParent(parent)
+        && BeginCreation(parent);
+
+    private bool IsValidSubTaskParent(FocusTaskViewModel parent) => !parent.IsCompleted && parent.CanAddSubTask
+        && _session.ActiveTarget?.Tasks.Contains(parent) == true;
+
+    private bool BeginCreation(FocusTaskViewModel? parent)
     {
         if (_isDisposed || !IsFocusing || !HasTarget || IsCreatingTask || _isSubmittingTask) return false;
         _creationTargetId = _session.ActiveTarget!.TargetId;
+        _subTaskCreationParent = parent;
         TaskTitle = string.Empty;
         _isCreatingTask = true;
-        OnPropertyChanged(nameof(IsCreatingTask));
+        NotifyCreationModeChanged();
         RefreshCreationPresentation();
         return true;
     }
@@ -119,10 +139,19 @@ public sealed class FocusFloatingWindowViewModel : INotifyPropertyChanged, IDisp
             string.IsNullOrWhiteSpace(TaskTitle)) return false;
         _isSubmittingTask = true;
         // Keep the existing area while the shared save publishes its collection changes.
-        _creationTaskAreaHeight = TaskAreaHeight;
+        if (IsCreatingRootTask) _creationTaskAreaHeight = TaskAreaHeight;
         try
         {
             var now = DateTimeOffset.UtcNow;
+            if (_subTaskCreationParent is { } parent)
+            {
+                if (!IsValidSubTaskParent(parent)) { CancelTaskCreation(); return false; }
+                if (!_session.AddTaskSubTask(parent, TaskTitle)) return false;
+                TaskTitle = string.Empty;
+                if (parent.CanAddSubTask) SubTaskCreated?.Invoke(this, parent);
+                else CancelTaskCreation();
+                return true;
+            }
             var source = new LocalTaskDto(Guid.NewGuid().ToString("N"), target.TargetId,
                 TaskTitle.Trim(), false, target.Tasks.Count, now, now);
             if (!_session.SaveDrawerTask(source)) { _creationTaskAreaHeight = null; return false; }
@@ -130,7 +159,11 @@ public sealed class FocusFloatingWindowViewModel : INotifyPropertyChanged, IDisp
             TaskCreated?.Invoke(this, target.Tasks.Single(task => task.TaskId == source.TaskId));
             return true;
         }
-        finally { _isSubmittingTask = false; }
+        finally
+        {
+            _isSubmittingTask = false;
+            if (IsCreatingSubTask) SetCreationPresentation(0);
+        }
     }
 
     public void CancelTaskCreation()
@@ -138,15 +171,24 @@ public sealed class FocusFloatingWindowViewModel : INotifyPropertyChanged, IDisp
         if (!IsCreatingTask) return;
         _isCreatingTask = false;
         _creationTargetId = null;
+        _subTaskCreationParent = null;
         TaskTitle = string.Empty;
-        OnPropertyChanged(nameof(IsCreatingTask));
+        NotifyCreationModeChanged();
         RefreshCreationPresentation();
+    }
+
+    private void NotifyCreationModeChanged()
+    {
+        OnPropertyChanged(nameof(IsCreatingTask));
+        OnPropertyChanged(nameof(IsCreatingSubTask));
+        OnPropertyChanged(nameof(IsCreatingRootTask));
+        OnPropertyChanged(nameof(SubTaskCreationParent));
     }
 
     private void RefreshCreationPresentation()
     {
         if (TaskCreationStateChanged is { } handler) handler.Invoke(this, EventArgs.Empty);
-        else SetCreationPresentation(IsCreatingTask ? TaskCreationHeight : 0);
+        else SetCreationPresentation(IsCreatingRootTask ? TaskCreationHeight : 0);
     }
 
     public void SetCreationPresentation(double height, double? taskAreaHeight = null)
@@ -244,6 +286,9 @@ public sealed class FocusFloatingWindowViewModel : INotifyPropertyChanged, IDisp
 
     public ICommand ToggleTaskCompletedCommand { get; }
 
+    public bool MoveTask(FocusTaskViewModel task, int destinationIndex) =>
+        !_isDisposed && !IsCreatingTask && _session.TaskDrawer.MoveTask(task, destinationIndex);
+
     public void Dispose()
     {
         if (_isDisposed)
@@ -306,6 +351,8 @@ public sealed class FocusFloatingWindowViewModel : INotifyPropertyChanged, IDisp
 
     private void NotifyPendingTasksChanged()
     {
+        if (!_isSubmittingTask && _subTaskCreationParent is { } parent && !IsValidSubTaskParent(parent))
+            CancelTaskCreation();
         RefreshPresentation();
         OnPropertyChanged(nameof(PendingTasks));
         OnPropertyChanged(nameof(PendingTaskCount));

@@ -21,6 +21,10 @@
             <Style x:Key="OverviewMetricLabel" TargetType="TextBlock" BasedOn="{StaticResource StatisticsMetricLabelStyle}"/>
             <Style x:Key="OverviewNumber" TargetType="Run" BasedOn="{StaticResource StatisticsValueRunStyle}"/>
             <Style x:Key="OverviewUnit" TargetType="Run" BasedOn="{StaticResource StatisticsUnitRunStyle}"/>
+            <Style x:Key="OverviewDurationGap" TargetType="Border">
+                <Setter Property="Width" Value="4"/>
+                <Setter Property="Height" Value="0"/>
+            </Style>
             <Style x:Key="OverviewNumericSecondary" TargetType="TextBlock" BasedOn="{StaticResource StatisticsAuxiliaryTextStyle}">
                 <Setter Property="FontFamily" Value="{DynamicResource FontFamilyEnglish}"/>
                 <Setter Property="Typography.NumeralAlignment" Value="Tabular"/>
@@ -76,9 +80,9 @@
                     </Button>
                     <Border x:Name="OverviewPeriodSegments" Grid.Column="2" HorizontalAlignment="Right" Width="208" Height="32" Background="#FFFFFF" BorderBrush="#E7ECF3" BorderThickness="1" CornerRadius="11">
                         <StackPanel Orientation="Horizontal">
+                            <RadioButton x:Name="DayPeriodButton" Content="日" GroupName="OverviewPeriod" Style="{StaticResource OverviewSegment}" Command="{Binding SelectDayCommand}" IsChecked="{Binding IsDay, Mode=TwoWay}" AutomationProperties.Name="按日统计"/>
                             <RadioButton x:Name="WeekPeriodButton" Content="周" GroupName="OverviewPeriod" Style="{StaticResource OverviewSegment}" Command="{Binding SelectWeekCommand}" IsChecked="{Binding IsWeek, Mode=TwoWay}" AutomationProperties.Name="按周统计"/>
                             <RadioButton x:Name="MonthPeriodButton" Content="月" GroupName="OverviewPeriod" Style="{StaticResource OverviewSegment}" Command="{Binding SelectMonthCommand}" IsChecked="{Binding IsMonth, Mode=TwoWay}" AutomationProperties.Name="按月统计"/>
-                            <RadioButton x:Name="YearPeriodButton" Content="年" GroupName="OverviewPeriod" Style="{StaticResource OverviewSegment}" Command="{Binding SelectYearCommand}" IsChecked="{Binding IsYear, Mode=TwoWay}" AutomationProperties.Name="按年统计"/>
                         </StackPanel>
                     </Border>
                 </Grid>
@@ -93,7 +97,7 @@
                             <Grid Grid.Column="2"><Grid.RowDefinitions><RowDefinition Height="21"/><RowDefinition/></Grid.RowDefinitions>
                             <StackPanel Orientation="Horizontal"><TextBlock Text="总专注时长" Style="{StaticResource OverviewMetricLabel}"/><TextBlock Style="{StaticResource OverviewInfo}" ToolTip="当前周期内实际专注时长的总和"/></StackPanel>
                             <Viewbox Grid.Row="1" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" VerticalAlignment="Bottom">
-                                <TextBlock x:Name="OverviewTotalDuration" Style="{StaticResource StatisticsBodyTextStyle}"><Run Text="{Binding TotalHoursValue, Mode=OneWay}" Style="{StaticResource OverviewNumber}"/><Run Text="{Binding TotalHoursUnit, Mode=OneWay}" Style="{StaticResource OverviewUnit}"/><Run Text="{Binding TotalMinutesValue, Mode=OneWay}" Style="{StaticResource OverviewNumber}"/><Run Text=" 分钟" Style="{StaticResource OverviewUnit}"/></TextBlock>
+                                <TextBlock x:Name="OverviewTotalDuration" Style="{StaticResource StatisticsBodyTextStyle}"><Run Text="{Binding TotalHoursValue, Mode=OneWay}" Style="{StaticResource OverviewNumber}"/><InlineUIContainer BaselineAlignment="Baseline"><Border Style="{StaticResource OverviewDurationGap}" Visibility="{Binding HasHours, Converter={StaticResource VisibleWhenTrue}}"/></InlineUIContainer><Run Text="{Binding TotalHoursUnit, Mode=OneWay}" Style="{StaticResource OverviewUnit}"/><InlineUIContainer BaselineAlignment="Baseline"><Border Style="{StaticResource OverviewDurationGap}" Width="8" Visibility="{Binding HasHours, Converter={StaticResource VisibleWhenTrue}}"/></InlineUIContainer><Run Text="{Binding TotalMinutesValue, Mode=OneWay}" Style="{StaticResource OverviewNumber}"/><InlineUIContainer BaselineAlignment="Baseline"><Border Style="{StaticResource OverviewDurationGap}"/></InlineUIContainer><Run Text="分钟" Style="{StaticResource OverviewUnit}"/></TextBlock>
                             </Viewbox>
                         </Grid>
                         </Grid>
@@ -118,7 +122,7 @@
                     </Border>
                 </Grid>
                 <Border x:Name="OverviewTrendCard" Grid.Row="4" Style="{StaticResource OverviewCard}" Padding="16,14,16,12">
-                    <Grid><Grid.RowDefinitions><RowDefinition Height="22"/><RowDefinition Height="8"/><RowDefinition/></Grid.RowDefinitions><TextBlock Text="每日专注时长" Style="{StaticResource OverviewHeading}"/><views:OverviewFocusChart x:Name="FocusChart" Grid.Row="2" Model="{Binding}" AutomationProperties.Name="周期专注时长柱状图"/></Grid>
+                    <Grid><Grid.RowDefinitions><RowDefinition Height="22"/><RowDefinition Height="8"/><RowDefinition/></Grid.RowDefinitions><TextBlock Text="{Binding ChartTitle}" Style="{StaticResource OverviewHeading}"/><views:OverviewFocusChart x:Name="FocusChart" Grid.Row="2" Model="{Binding}" AutomationProperties.Name="周期专注时长柱状图"/></Grid>
                 </Border>
                 <Border x:Name="OverviewDistributionCard" Grid.Row="6" Style="{StaticResource OverviewCard}" Padding="16,14,16,12">
                     <Grid><Grid.RowDefinitions><RowDefinition Height="22"/><RowDefinition/></Grid.RowDefinitions><TextBlock Text="时间分布" Style="{StaticResource OverviewHeading}"/>
@@ -179,13 +183,15 @@
         <Popup x:Name="OverviewTip" AllowsTransparency="True" Focusable="False" IsHitTestVisible="False" Placement="Relative" PlacementTarget="{Binding ElementName=DashboardRoot}" PopupAnimation="Fade" Opened="OverviewTip_Opened" Closed="OverviewTip_Closed">
             <views:PoptipChrome x:Name="OverviewTipSurface" Style="{StaticResource ChartPoptipSurfaceStyle}" IsHitTestVisible="False">
                 <StackPanel>
-                    <TextBlock x:Name="TipTitle" Style="{StaticResource ChartPoptipSecondaryTextStyle}" MaxWidth="210"/>
-                    <Grid Margin="0,7,0,0">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="8"/><ColumnDefinition Width="8"/><ColumnDefinition/></Grid.ColumnDefinitions>
-                        <Ellipse x:Name="TipMarker" Width="8" Height="8" Fill="#FF8B28" VerticalAlignment="Center"/>
-                        <TextBlock Grid.Column="2" Style="{StaticResource ChartPoptipBodyTextStyle}"><Run Text="专注时长  "/><Run x:Name="TipDuration" Style="{StaticResource ChartPoptipValueStyle}"/></TextBlock>
+                    <TextBlock x:Name="TipTitle" Style="{StaticResource ChartPoptipSecondaryTextStyle}"/>
+                    <TextBlock x:Name="TipDateRange" Margin="0,4,0,0" Style="{StaticResource ChartPoptipSecondaryTextStyle}" Visibility="Collapsed"/>
+                    <Grid Margin="0,10,0,0">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="10"/><ColumnDefinition Width="10"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="12"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                        <Ellipse x:Name="TipMarker" Width="10" Height="10" Fill="#FF8B28" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="2" Text="专注时长" Style="{StaticResource ChartPoptipBodyTextStyle}"/>
+                        <TextBlock x:Name="TipDurationText" Grid.Column="4" Style="{StaticResource ChartPoptipBodyTextStyle}" LineHeight="22"><Run x:Name="TipDuration" Style="{StaticResource ChartPoptipValueStyle}"/></TextBlock>
                     </Grid>
-                    <TextBlock x:Name="TipPercentage" Margin="0,6,0,0" Style="{StaticResource ChartPoptipSecondaryTextStyle}"/>
+                    <TextBlock x:Name="TipPercentage" Margin="0,8,0,0" Style="{StaticResource ChartPoptipPercentageTextStyle}"/>
                 </StackPanel>
             </views:PoptipChrome>
         </Popup>

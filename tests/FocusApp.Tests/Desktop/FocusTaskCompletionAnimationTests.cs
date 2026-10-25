@@ -98,18 +98,24 @@ public sealed class FocusTaskCompletionAnimationTests
     }
 
     [Theory]
-    [InlineData(0, false)]
-    [InlineData(1, false)]
-    [InlineData(1, true)]
-    public void ActualWpfExitShowsFeedbackThenShrinksTheEntireParentBeforeMovingIt(int childCount, bool expanded)
+    [InlineData(0, false, false)]
+    [InlineData(1, false, false)]
+    [InlineData(1, true, false)]
+    [InlineData(0, false, true)]
+    [InlineData(1, false, true)]
+    [InlineData(1, true, true)]
+    public void ActualWpfExitShowsFeedbackThenShrinksTheEntireParentBeforeMovingIt(int childCount, bool expanded, bool dark)
     {
         Sta(() =>
         {
             var (session, target) = CreateSession(childCount);
+            session.ApplyFocusTheme(dark ? FocusApp.Core.FocusThemeMode.Dark : FocusApp.Core.FocusThemeMode.Light);
             var parent = target.Tasks[0];
             parent.IsExpanded = expanded;
             using var ui = new DrawerWindow(session);
             var row = ui.Row(parent);
+            var title = Descendants<TextBlock>(row).Single(item => item.Name == "TaskTitle");
+            var originalColor = ((SolidColorBrush)title.Foreground).Color;
             var following = ui.Row(target.Tasks[1]);
             var height = row.ActualHeight;
             var followingY = following.TranslatePoint(new Point(), ui.View).Y;
@@ -126,9 +132,9 @@ public sealed class FocusTaskCompletionAnimationTests
             var check = Descendants<CheckBox>(row).Single(item => item.Name == "TaskCompletionCheck");
             Assert.True(check.IsChecked);
             var chrome = (Border)check.Template.FindName("CheckChrome", check);
-            Assert.Equal(Color.FromRgb(0xFF, 0x7A, 0x19), ((SolidColorBrush)chrome.Background).Color);
-            var title = Descendants<TextBlock>(row).Single(item => item.Name == "TaskTitle");
+            Assert.Equal(Color.FromRgb(0xFD, 0x7E, 0x05), ((SolidColorBrush)chrome.Background).Color);
             PumpUntil(() => title.TextDecorations.Count > 0 && title.TextDecorations[0].Pen?.Brush.Opacity > 0.2);
+            Assert.Equal(originalColor, ((SolidColorBrush)title.Foreground).Color);
             Assert.Equal(1, row.Opacity);
             Assert.InRange(row.ActualHeight, height - 1, height + 1);
             PumpUntil(() => row.Opacity < 0.9 && row.ActualHeight < height - 2);
@@ -139,7 +145,8 @@ public sealed class FocusTaskCompletionAnimationTests
             Assert.Equal(1, saves);
             Assert.Single(session.SessionCompletedTasks);
             Assert.NotNull(parent.CompletedAtUtc);
-            Assert.Equal(session.IsDarkFocusTheme ? 0.72 : 1, ui.Row(parent).Opacity);
+            Assert.Equal(1, ui.Row(parent).Opacity);
+            Assert.Equal(originalColor, ((SolidColorBrush)Descendants<TextBlock>(ui.Row(parent)).Single(item => item.Name == "TaskTitle").Foreground).Color);
             Assert.True(double.IsNaN(ui.Row(parent).Height));
         });
     }

@@ -52,10 +52,12 @@ public sealed class StatisticsDashboardPresentationTests
         Sta(() =>
         {
             using var host = new Host();
+            Assert.True(host.Named<RadioButton>("DayPeriodButton").IsChecked);
+            Assert.Null(host.View.FindName("YearPeriodButton"));
+            Invoke(host.Named<RadioButton>("DayPeriodButton")); Pump();
+            Assert.True(host.Model.IsDay); Assert.Equal(7, host.Model.Bars.Count);
             Invoke(host.Named<RadioButton>("MonthPeriodButton")); Pump();
-            Assert.True(host.Model.IsMonth); Assert.Equal(31, host.Model.Bars.Count);
-            Invoke(host.Named<RadioButton>("YearPeriodButton")); Pump();
-            Assert.True(host.Model.IsYear); Assert.Equal(12, host.Model.Bars.Count);
+            Assert.True(host.Model.IsMonth); Assert.Equal(12, host.Model.Bars.Count);
             Assert.All(host.Model.Bars, item => Assert.True(item.IsMonthBucket));
             Assert.Null(host.View.FindName("PreviousOverviewPeriod"));
             host.Model.PreviousPeriodCommand.Execute(null); Pump();
@@ -63,7 +65,8 @@ public sealed class StatisticsDashboardPresentationTests
             Assert.Equal(TimeSpan.Zero, host.Model.TotalDuration);
             Assert.Empty(host.Model.Distribution);
             Assert.Equal(Visibility.Visible, host.Named<StackPanel>("DistributionEmptyState").Visibility);
-            Invoke(host.Named<RadioButton>("WeekPeriodButton")); Pump(); Assert.Equal(7, host.Model.Bars.Count);
+            Invoke(host.Named<RadioButton>("WeekPeriodButton")); Pump(); Assert.Equal(52, host.Model.Bars.Count);
+            Assert.All(host.Model.Bars, item => Assert.True(item.IsWeekBucket));
         });
     }
 
@@ -164,7 +167,7 @@ public sealed class StatisticsDashboardPresentationTests
     }
 
     [Fact]
-    public void BarHitTestingUsesPositiveDataAndTooltipPreservesExactSecondsAtBothEdges()
+    public void BarTooltipsOmitSecondsAndPreserveRawDurationsAtBothEdges()
     {
         Sta(() =>
         {
@@ -176,6 +179,7 @@ public sealed class StatisticsDashboardPresentationTests
                 var last = host.Model.PeriodEndExclusive.AddDays(-1).AddHours(9);
                 host.Model.ApplyData([new(first, first.AddSeconds(31), "g0", "工作", "", 0),
                     new(last, last.AddSeconds(65), "g0", "工作", "", 0)], []); Pump();
+                Assert.Equal(TimeSpan.FromSeconds(96), host.Model.TotalDuration);
                 var bounds = host.Chart.PlotBounds;
                 Assert.Same(host.Model.Bars[0], host.Chart.HitTestBar(new Point(bounds.Left + .1, bounds.Bottom - 1)));
                 Assert.Same(host.Model.Bars[^1], host.Chart.HitTestBar(new Point(bounds.Right - .1, bounds.Bottom - 1)));
@@ -186,7 +190,10 @@ public sealed class StatisticsDashboardPresentationTests
                     var bar = host.Chart.HoveredBar!;
                     Assert.True(host.Tip.IsOpen);
                     Assert.Equal(bar.TooltipDate, host.Named<TextBlock>("TipTitle").Text);
+                    Assert.Equal(bar.TooltipDateRange, host.Named<TextBlock>("TipDateRange").Text);
+                    Assert.Equal(bar.IsWeekBucket ? Visibility.Visible : Visibility.Collapsed, host.Named<TextBlock>("TipDateRange").Visibility);
                     Assert.Equal(bar.DurationDisplay, host.Named<System.Windows.Documents.Run>("TipDuration").Text);
+                    Assert.Equal(bar.Duration.TotalSeconds < 60 ? "不足1分钟" : "1分钟", host.Named<System.Windows.Documents.Run>("TipDuration").Text);
                     var tipSurface = host.Named<PoptipChrome>("OverviewTipSurface");
                     Assert.InRange(host.Tip.HorizontalOffset, 0, host.View.ActualWidth - tipSurface.DesiredSize.Width);
                     Assert.InRange(host.Tip.VerticalOffset, 0, host.View.ActualHeight - tipSurface.DesiredSize.Height);
@@ -206,15 +213,15 @@ public sealed class StatisticsDashboardPresentationTests
 
     [Theory]
     [InlineData(StatisticsPeriod.Week)]
+    [InlineData(StatisticsPeriod.Day)]
     [InlineData(StatisticsPeriod.Month)]
-    [InlineData(StatisticsPeriod.Year)]
     public void EmptyBucketsCloseTheSharedPoptipWhileSubMinuteDataRemainsHoverable(StatisticsPeriod period)
     {
         Sta(() =>
         {
             using var host = new Host();
             host.Model.Period = period;
-            var date = period == StatisticsPeriod.Year ? host.Model.PeriodStart.AddMonths(1) : host.Model.PeriodStart.AddDays(1);
+            var date = period == StatisticsPeriod.Month ? host.Model.PeriodStart.AddMonths(1) : host.Model.PeriodStart.AddDays(1);
             var start = date.AddHours(9);
             host.Model.ApplyData([new(start, start.AddSeconds(30), "g0", "工作", "", 0),
                 new(start.AddDays(1), start.AddDays(1), "g0", "工作", "", 0)], []); Pump();
@@ -227,7 +234,7 @@ public sealed class StatisticsDashboardPresentationTests
             Assert.Same(bars[active], host.Chart.HitTestBar(Center(active)));
             host.Chart.HoverAt(Center(active)); Pump();
             Assert.True(host.Tip.IsOpen);
-            Assert.Equal("30秒", host.Named<System.Windows.Documents.Run>("TipDuration").Text);
+            Assert.Equal("不足1分钟", host.Named<System.Windows.Documents.Run>("TipDuration").Text);
             host.Chart.HoverAt(Center(empty)); Pump();
             Assert.Null(host.Chart.HoveredBar); Assert.False(host.Tip.IsOpen);
             host.Model.ToggleDistribution(host.Model.Distribution[0]); Pump(); Assert.True(host.Tip.IsOpen);
@@ -277,6 +284,55 @@ public sealed class StatisticsDashboardPresentationTests
             Assert.InRange(host.Ring.Activation, .99, 1);
             Assert.Equal("g0", host.Model.ActiveDistribution!.TargetId);
         });
+    }
+
+    [Theory]
+    [InlineData(620, 2025, 52)]
+    [InlineData(694, 2026, 53)]
+    [InlineData(900, 2026, 53)]
+    public void AnnualWeeklyChartPaintsEveryColumnAndKeepsBoundaryWeekTooltipsInsideTheWindow(int width, int year, int weeks)
+    {
+        Sta(() =>
+        {
+            using var host = new Host(width, 614);
+            host.Model.SelectWeekCommand.Execute(null);
+            if (year == 2025) host.Model.PreviousPeriodCommand.Execute(null);
+            var start = host.Model.PeriodStart;
+            host.Model.ApplyData(Enumerable.Range(0, weeks).Select(index =>
+            {
+                var date = start.AddDays(index * 7).AddHours(9);
+                return new FocusSessionRecordViewModel(date, date.AddMinutes(index + 1), "g", "工作", "", 0);
+            }), []);
+            Pump();
+            var columns = All(VisualTreeHelper.GetDrawing(host.Chart)).OfType<GeometryDrawing>()
+                .Where(drawing => drawing.Brush is SolidColorBrush brush && brush.Color == Color.FromRgb(255, 170, 99)).ToArray();
+            Assert.Equal(weeks, columns.Length);
+            Assert.Equal(weeks, host.Model.Bars.Count);
+            Assert.True(columns[0].Bounds.Right < columns[^1].Bounds.Left);
+            var plot = host.Chart.PlotBounds;
+            var slot = plot.Width / weeks;
+            foreach (var index in new[] { 0, weeks - 1 })
+            {
+                host.Chart.HoverAt(new Point(plot.Left + (index + .5) * slot, plot.Bottom - 1)); Pump();
+                Assert.Same(host.Model.Bars[index], host.Chart.HoveredBar);
+                Assert.True(host.Tip.IsOpen);
+                Assert.Equal(host.Model.Bars[index].TooltipDate, host.Named<TextBlock>("TipTitle").Text);
+                Assert.Equal(host.Model.Bars[index].TooltipDateRange, host.Named<TextBlock>("TipDateRange").Text);
+                Assert.Equal(Visibility.Visible, host.Named<TextBlock>("TipDateRange").Visibility);
+                var surface = host.Named<PoptipChrome>("OverviewTipSurface");
+                Assert.InRange(host.Tip.HorizontalOffset, 0, host.View.ActualWidth - surface.DesiredSize.Width);
+                Assert.InRange(host.Tip.VerticalOffset, 0, host.View.ActualHeight - surface.DesiredSize.Height);
+            }
+        });
+
+        static IEnumerable<Drawing> All(Drawing? drawing)
+        {
+            if (drawing is null) yield break;
+            yield return drawing;
+            if (drawing is DrawingGroup group)
+                foreach (var child in group.Children)
+                    foreach (var nested in All(child)) yield return nested;
+        }
     }
 
     private sealed class Host : IDisposable

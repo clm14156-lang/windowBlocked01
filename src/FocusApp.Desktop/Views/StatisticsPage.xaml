@@ -183,14 +183,15 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <SolidColorBrush x:Key="CalendarRecordRowHoverBackground" Color="#F5F6F8"/>
         <Style x:Key="CalendarRecordRowStyle" TargetType="Border">
-            <Setter Property="Background" Value="White"/>
+            <Setter Property="views:CalendarRecordRowFeedback.TargetBackground" Value="{DynamicResource SurfacePrimary}"/>
             <Setter Property="CornerRadius" Value="6"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Focusable" Value="True"/>
+            <Setter Property="Cursor" Value="Arrow"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
             <Style.Triggers>
-                <Trigger Property="views:CalendarRecordInteractionState.IsHovered" Value="True"><Setter Property="Background" Value="White"/></Trigger>
-                <Trigger Property="views:CalendarRecordInteractionState.IsSelected" Value="True"><Setter Property="Background" Value="#F4F5F7"/></Trigger>
+                <Trigger Property="views:CalendarRecordInteractionState.IsHovered" Value="True"><Setter Property="views:CalendarRecordRowFeedback.TargetBackground" Value="{DynamicResource CalendarRecordRowHoverBackground}"/></Trigger>
             </Style.Triggers>
         </Style>
         <Style x:Key="CalendarRecordTimeTextStyle" TargetType="TextBlock">
@@ -353,6 +354,29 @@
                             </Grid>
                         </Border>
                         <Border x:Name="CalendarMonthlySummary" Grid.Row="2" Padding="18,16" Style="{StaticResource CalendarSurface}">
+                            <Border.Resources>
+                                <Style x:Key="MonthlyNumberUnitGap" TargetType="Border">
+                                    <Setter Property="Width" Value="4"/>
+                                    <Setter Property="Height" Value="0"/>
+                                </Style>
+                                <Style x:Key="MonthlyHoursUnitGap" TargetType="Border" BasedOn="{StaticResource MonthlyNumberUnitGap}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding MonthlyTotalHoursUnitDisplay}" Value=""><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                                <Style x:Key="MonthlyMinutesUnitGap" TargetType="Border" BasedOn="{StaticResource MonthlyNumberUnitGap}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding MonthlyTotalMinutesUnitDisplay}" Value=""><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                                <Style x:Key="MonthlyDurationGroupGap" TargetType="Border" BasedOn="{StaticResource MonthlyNumberUnitGap}">
+                                    <Setter Property="Width" Value="8"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding MonthlyTotalHoursUnitDisplay}" Value=""><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
+                                        <DataTrigger Binding="{Binding MonthlyTotalMinutesUnitDisplay}" Value=""><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Resources>
                             <Grid>
                                 <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/></Grid.RowDefinitions>
                                 <TextBlock Style="{StaticResource CalendarSectionTitleStyle}" Text="本月统计" VerticalAlignment="Top"/>
@@ -360,12 +384,12 @@
                                     <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="24"/><ColumnDefinition/></Grid.ColumnDefinitions>
                                     <StackPanel>
                                         <TextBlock Style="{StaticResource CalendarSecondaryTextStyle}" FontSize="{DynamicResource BodyFontSize}" Text="专注总时长"/>
-                                        <Viewbox Height="43" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" Margin="0,3,0,0"><TextBlock x:Name="MonthlyTotalDuration" FontFamily="{DynamicResource FontFamilyNumeric}" Foreground="{DynamicResource CalendarTextPrimary}"><Run Style="{StaticResource CalendarMonthValueStyle}" Text="{Binding MonthlyTotalHoursValueDisplay, Mode=OneWay}"/><Run Style="{StaticResource CalendarUnitStyle}" Text="{Binding MonthlyTotalHoursUnitDisplay, Mode=OneWay}"/><Run Style="{StaticResource CalendarMonthValueStyle}" Text="{Binding MonthlyTotalMinutesValueDisplay, Mode=OneWay}"/><Run Style="{StaticResource CalendarUnitStyle}" Text="{Binding MonthlyTotalMinutesUnitDisplay, Mode=OneWay}"/></TextBlock></Viewbox>
+                                        <Viewbox Height="43" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" Margin="0,3,0,0"><TextBlock x:Name="MonthlyTotalDuration" FontFamily="{DynamicResource FontFamilyNumeric}" Foreground="{DynamicResource CalendarTextPrimary}"><Run Style="{StaticResource CalendarMonthValueStyle}" Text="{Binding MonthlyTotalHoursValueDisplay, Mode=OneWay}"/><InlineUIContainer BaselineAlignment="Baseline"><Border Style="{StaticResource MonthlyHoursUnitGap}"/></InlineUIContainer><Run Style="{StaticResource CalendarUnitStyle}" Text="{Binding MonthlyTotalHoursUnitDisplay, Mode=OneWay}"/><InlineUIContainer BaselineAlignment="Baseline"><Border Style="{StaticResource MonthlyDurationGroupGap}"/></InlineUIContainer><Run Style="{StaticResource CalendarMonthValueStyle}" Text="{Binding MonthlyTotalMinutesValueDisplay, Mode=OneWay}"/><InlineUIContainer BaselineAlignment="Baseline"><Border Style="{StaticResource MonthlyMinutesUnitGap}"/></InlineUIContainer><Run Style="{StaticResource CalendarUnitStyle}" Text="{Binding MonthlyTotalMinutesUnitDisplay, Mode=OneWay}"/></TextBlock></Viewbox>
                                     </StackPanel>
                                     <Border Grid.Column="1" Width="1" Background="#ECEEF1" Margin="0,2,0,0"/>
                                     <StackPanel Grid.Column="2" Margin="16,0,0,0">
                                         <TextBlock Style="{StaticResource CalendarSecondaryTextStyle}" FontSize="{DynamicResource BodyFontSize}" Text="专注天数"/>
-                                        <Viewbox Height="43" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" Margin="0,3,0,0"><TextBlock x:Name="MonthlyFocusDays" FontFamily="{DynamicResource FontFamilyNumeric}" Foreground="{DynamicResource CalendarTextPrimary}"><Run Style="{StaticResource CalendarMonthValueStyle}" Text="{Binding MonthlyFocusDaysValueDisplay, Mode=OneWay}"/><Run Style="{StaticResource CalendarUnitStyle}" Text=" 天"/></TextBlock></Viewbox>
+                                        <Viewbox Height="43" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" Margin="0,3,0,0"><TextBlock x:Name="MonthlyFocusDays" FontFamily="{DynamicResource FontFamilyNumeric}" Foreground="{DynamicResource CalendarTextPrimary}"><Run Style="{StaticResource CalendarMonthValueStyle}" Text="{Binding MonthlyFocusDaysValueDisplay, Mode=OneWay}"/><InlineUIContainer BaselineAlignment="Baseline"><Border Style="{StaticResource MonthlyNumberUnitGap}"/></InlineUIContainer><Run Style="{StaticResource CalendarUnitStyle}" Text="{Binding MonthlyFocusDaysUnitDisplay, Mode=OneWay}"/></TextBlock></Viewbox>
                                     </StackPanel>
                                 </Grid>
                             </Grid>
@@ -435,9 +459,9 @@
                                                             </Image>
                                                             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                                                                 <TextBlock x:Name="CalendarPeriodName" Text="{Binding Name}" Style="{StaticResource CalendarSectionTitleStyle}" FontSize="{DynamicResource BodyFontSize}"/>
-                                                                <TextBlock x:Name="CalendarPeriodTimeRange" Text="{Binding TimeRangeDisplay}" Style="{StaticResource CalendarRecordTextStyle}" Foreground="{DynamicResource CalendarTextSecondary}" FontFamily="{DynamicResource FontFamilyEnglish}" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                                                                <TextBlock x:Name="CalendarPeriodTimeRange" Text="{Binding TimeRangeDisplay}" Style="{StaticResource CalendarPeriodTimeRangeStyle}" Margin="6,0,0,0" VerticalAlignment="Center"/>
                                                             </StackPanel>
-                                                            <TextBlock x:Name="CalendarPeriodDuration" Grid.Column="3" Style="{StaticResource CalendarRecordTextStyle}" VerticalAlignment="Center" HorizontalAlignment="Right"><Run Text="{Binding DurationPrefix, Mode=OneWay}" Style="{StaticResource CalendarUnitStyle}"/><Run Text="{Binding DurationParts.HoursValue, Mode=OneWay}" Style="{StaticResource CalendarPeriodValueStyle}"/><Run Text="{Binding DurationParts.HoursUnit, Mode=OneWay}" Style="{StaticResource CalendarUnitStyle}"/><Run Text="{Binding DurationParts.MinutesValue, Mode=OneWay}" Style="{StaticResource CalendarPeriodValueStyle}"/><Run Text="{Binding DurationParts.MinutesUnit, Mode=OneWay}" Style="{StaticResource CalendarUnitStyle}"/></TextBlock>
+                                                            <TextBlock x:Name="CalendarPeriodDuration" Grid.Column="3" Style="{StaticResource CalendarRecordTextStyle}" VerticalAlignment="Center" HorizontalAlignment="Right"><Run Text="{Binding DurationPrefix, Mode=OneWay}" Style="{StaticResource CalendarPeriodUnitStyle}"/><Run Text="{Binding DurationParts.HoursValue, Mode=OneWay}" Style="{StaticResource CalendarPeriodValueStyle}"/><InlineUIContainer BaselineAlignment="Baseline"><Border Style="{StaticResource CalendarPeriodUnitGap}" Tag="{Binding DurationParts.HoursUnit}"/></InlineUIContainer><Run Text="{Binding DurationParts.HoursUnit, Mode=OneWay}" Style="{StaticResource CalendarPeriodUnitStyle}"/><InlineUIContainer BaselineAlignment="Baseline"><Border Style="{StaticResource CalendarPeriodDurationGroupGap}" Tag="{Binding DurationParts.MinutesUnit}"/></InlineUIContainer><Run Text="{Binding DurationParts.MinutesValue, Mode=OneWay}" Style="{StaticResource CalendarPeriodValueStyle}"/><InlineUIContainer BaselineAlignment="Baseline"><Border Style="{StaticResource CalendarPeriodUnitGap}" Tag="{Binding DurationParts.MinutesUnit}"/></InlineUIContainer><Run Text="{Binding DurationParts.MinutesUnit, Mode=OneWay}" Style="{StaticResource CalendarPeriodUnitStyle}"/></TextBlock>
                                                             <Path x:Name="CalendarPeriodArrow" Grid.Column="4" Visibility="{Binding HasRecords, Converter={StaticResource BooleanToVisibilityConverter}}" Data="M 0,0 L 4,4 L 8,0" Width="8" Height="4" Stroke="#929DAE" StrokeThickness="1.3" VerticalAlignment="Center" HorizontalAlignment="Right" RenderTransformOrigin="0.5,0.5">
                                                                 <Path.Style><Style TargetType="Path"><Style.Triggers><DataTrigger Binding="{Binding IsExpanded}" Value="True"><Setter Property="RenderTransform"><Setter.Value><RotateTransform Angle="180"/></Setter.Value></Setter></DataTrigger></Style.Triggers></Style></Path.Style>
                                                             </Path>
@@ -447,8 +471,7 @@
                                                         <ItemsControl.ItemTemplate><DataTemplate DataType="{x:Type vm:CalendarDayRecordViewModel}">
                                                             <Border x:Name="CalendarRecordRow" Style="{StaticResource CalendarRecordRowStyle}"
                                                                     Loaded="CalendarRecordRow_Loaded" Unloaded="CalendarRecordRow_Unloaded" DataContextChanged="CalendarRecordRow_DataContextChanged"
-                                                                    MouseEnter="CalendarRecordRow_MouseEnter" MouseLeave="CalendarRecordRow_MouseLeave"
-                                                                    MouseLeftButtonDown="CalendarRecordRow_MouseLeftButtonDown" KeyDown="CalendarRecordRow_KeyDown">
+                                                                    MouseEnter="CalendarRecordRow_MouseEnter" MouseLeave="CalendarRecordRow_MouseLeave">
                                                                 <views:CalendarDayRecordView/>
                                                             </Border>
                                                         </DataTemplate></ItemsControl.ItemTemplate>

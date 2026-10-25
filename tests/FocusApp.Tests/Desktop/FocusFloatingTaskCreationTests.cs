@@ -49,7 +49,7 @@ public sealed class FocusFloatingTaskCreationTests
             Assert.InRange(host.Model.WindowHeight, 115, 301);
             Assert.Equal(timerPosition, timer.TranslatePoint(new Point(), host.View));
             Assert.True(host.View.IsInteractiveRegion(host.Input));
-            var inputBorder = theme == FocusThemeMode.Dark ? Color.FromRgb(143, 171, 211) : Color.FromRgb(255, 173, 112);
+            var inputBorder = theme == FocusThemeMode.Dark ? Color.FromRgb(137, 150, 166) : Color.FromRgb(255, 173, 112);
             Assert.Equal(inputBorder, ((SolidColorBrush)((Border)host.View.FindName("TaskCreationSurface")).BorderBrush).Color);
             Render(host.View, $"creation-{count}-tasks");
             if (count > 3)

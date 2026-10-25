@@ -7,7 +7,7 @@ using FocusApp.Core;
 
 namespace FocusApp.Desktop.ViewModels;
 
-public enum StatisticsPeriod { Week, Month, Year }
+public enum StatisticsPeriod { Day, Week, Month }
 
 /// <summary>One calendar period and one source of truth for every overview metric.</summary>
 public sealed class StatisticsDashboardViewModel : INotifyPropertyChanged
@@ -28,9 +28,9 @@ public sealed class StatisticsDashboardViewModel : INotifyPropertyChanged
     {
         _localNowProvider = localNowProvider ?? (() => DateTime.Now);
         _anchor = _localNowProvider().Date;
+        SelectDayCommand = new RelayCommand<object>(_ => Period = StatisticsPeriod.Day);
         SelectWeekCommand = new RelayCommand<object>(_ => Period = StatisticsPeriod.Week);
         SelectMonthCommand = new RelayCommand<object>(_ => Period = StatisticsPeriod.Month);
-        SelectYearCommand = new RelayCommand<object>(_ => Period = StatisticsPeriod.Year);
         PreviousPeriodCommand = new RelayCommand<object>(_ => MovePeriod(-1), _ => PeriodStart.Year > 1);
         NextPeriodCommand = new RelayCommand<object>(_ => MovePeriod(1), _ => PeriodEndExclusive.Year < 9999);
         TogglePeriodPickerCommand = new RelayCommand<object>(_ => IsPeriodPickerOpen = !IsPeriodPickerOpen);
@@ -40,9 +40,9 @@ public sealed class StatisticsDashboardViewModel : INotifyPropertyChanged
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
+    public ICommand SelectDayCommand { get; }
     public ICommand SelectWeekCommand { get; }
     public ICommand SelectMonthCommand { get; }
-    public ICommand SelectYearCommand { get; }
     public ICommand PreviousPeriodCommand { get; }
     public ICommand NextPeriodCommand { get; }
     public ICommand TogglePeriodPickerCommand { get; }
@@ -66,16 +66,21 @@ public sealed class StatisticsDashboardViewModel : INotifyPropertyChanged
             Refresh();
         }
     }
+    public bool IsDay { get => Period == StatisticsPeriod.Day; set { if (value) Period = StatisticsPeriod.Day; } }
     public bool IsWeek { get => Period == StatisticsPeriod.Week; set { if (value) Period = StatisticsPeriod.Week; } }
     public bool IsMonth { get => Period == StatisticsPeriod.Month; set { if (value) Period = StatisticsPeriod.Month; } }
-    public bool IsYear { get => Period == StatisticsPeriod.Year; set { if (value) Period = StatisticsPeriod.Year; } }
     public DateTime PeriodStart { get; private set; }
     public DateTime PeriodEndExclusive { get; private set; }
-    public string DateRangeDisplay => Period == StatisticsPeriod.Year ? $"{PeriodStart:yyyy年}"
-        : Period == StatisticsPeriod.Month ? $"{PeriodStart:yyyy年M月}"
+    public string DateRangeDisplay => !IsDay ? $"{_anchor:yyyy年}"
         : PeriodStart.Year == PeriodEndExclusive.AddDays(-1).Year
             ? $"{PeriodStart:yyyy年M月d日} - {PeriodEndExclusive.AddDays(-1):M月d日}"
             : $"{PeriodStart:yyyy年M月d日} - {PeriodEndExclusive.AddDays(-1):yyyy年M月d日}";
+    public string ChartTitle => Period switch
+    {
+        StatisticsPeriod.Day => "每日专注时长",
+        StatisticsPeriod.Week => "每周专注时长",
+        _ => "每月专注时长"
+    };
     public TimeSpan TotalDuration { get; private set; }
     public int CompletedTaskCount { get; private set; }
     public int FocusDayCount { get; private set; }
@@ -151,9 +156,8 @@ public sealed class StatisticsDashboardViewModel : INotifyPropertyChanged
     {
         _anchor = Period switch
         {
-            StatisticsPeriod.Week => PeriodStart.AddDays(offset * 7),
-            StatisticsPeriod.Month => PeriodStart.AddMonths(offset),
-            _ => PeriodStart.AddYears(offset)
+            StatisticsPeriod.Day => PeriodStart.AddDays(offset * 7 + 3),
+            _ => new DateTime(_anchor.Year + offset, 1, 4)
         };
         IsPeriodPickerOpen = false;
         Refresh();
@@ -162,17 +166,20 @@ public sealed class StatisticsDashboardViewModel : INotifyPropertyChanged
     private void SelectAvailablePeriod(OverviewPeriodOption? option)
     {
         if (option is null || option.Period != Period || !AvailablePeriods.Contains(option)) return;
-        _anchor = option.Start;
+        // An ISO year's first Monday can be in December of the previous calendar year.
+        _anchor = IsWeek ? new DateTime(ISOWeek.GetYear(option.Start), 1, 4) : IsDay ? option.Start.AddDays(3) : option.Start;
         IsPeriodPickerOpen = false;
         Refresh();
     }
 
     private static DateTime StartOfPeriod(DateTime date, StatisticsPeriod period) => period switch
     {
-        StatisticsPeriod.Week => date.Date.AddDays(-((int)date.DayOfWeek + 6) % 7),
-        StatisticsPeriod.Month => new DateTime(date.Year, date.Month, 1),
+        StatisticsPeriod.Day => StartOfWeek(date),
+        StatisticsPeriod.Week => ISOWeek.ToDateTime(ISOWeek.GetYear(date), 1, DayOfWeek.Monday),
         _ => new DateTime(date.Year, 1, 1)
     };
+
+    private static DateTime StartOfWeek(DateTime date) => date.Date.AddDays(-((int)date.DayOfWeek + 6) % 7);
 
     internal void RefreshCurrentDate()
     {
@@ -183,11 +190,11 @@ public sealed class StatisticsDashboardViewModel : INotifyPropertyChanged
     {
         _displayDate = _localNowProvider().Date;
         var selectedId = resetInteraction ? null : _selectedDistribution?.TargetId;
-        PeriodStart = StartOfPeriod(_anchor, Period);
+        PeriodStart = IsWeek ? ISOWeek.ToDateTime(_anchor.Year, 1, DayOfWeek.Monday) : StartOfPeriod(_anchor, Period);
         PeriodEndExclusive = Period switch
         {
-            StatisticsPeriod.Week => PeriodStart.AddDays(7),
-            StatisticsPeriod.Month => PeriodStart.AddMonths(1),
+            StatisticsPeriod.Day => PeriodStart.AddDays(7),
+            StatisticsPeriod.Week => PeriodStart.AddDays(ISOWeek.GetWeeksInYear(_anchor.Year) * 7),
             _ => PeriodStart.AddYears(1)
         };
 
@@ -201,8 +208,8 @@ public sealed class StatisticsDashboardViewModel : INotifyPropertyChanged
             .OrderByDescending(date => date)
             .Select(date => new OverviewPeriodOption(date, Period, Period switch
             {
-                StatisticsPeriod.Week => $"{ISOWeek.GetYear(date)} 第{ISOWeek.GetWeekOfYear(date)}周",
-                StatisticsPeriod.Month => $"{date:yyyy年M月}",
+                StatisticsPeriod.Day => $"{ISOWeek.GetYear(date)} 第{ISOWeek.GetWeekOfYear(date)}周",
+                StatisticsPeriod.Week => $"{ISOWeek.GetYear(date)}年",
                 _ => $"{date:yyyy年}"
             }, date == PeriodStart)).ToArray();
         var slices = allSlices
@@ -211,14 +218,15 @@ public sealed class StatisticsDashboardViewModel : INotifyPropertyChanged
         FocusDayCount = slices.Select(slice => slice.StartsAt.Date).Distinct().Count();
         CompletedTaskCount = CountCompletedTasks();
 
-        var buckets = slices.GroupBy(slice => IsYear ? new DateTime(slice.StartsAt.Year, slice.StartsAt.Month, 1) : slice.StartsAt.Date)
+        var buckets = slices.GroupBy(slice => IsWeek ? StartOfWeek(slice.StartsAt)
+                : IsMonth ? new DateTime(slice.StartsAt.Year, slice.StartsAt.Month, 1) : slice.StartsAt.Date)
             .ToDictionary(group => group.Key, group => TimeSpan.FromTicks(group.Sum(slice => slice.Duration.Ticks)));
-        var count = IsYear ? 12 : (PeriodEndExclusive - PeriodStart).Days;
+        var count = IsWeek ? ISOWeek.GetWeeksInYear(_anchor.Year) : IsMonth ? 12 : (PeriodEndExclusive - PeriodStart).Days;
         Bars = Enumerable.Range(0, count).Select(index =>
         {
-            var date = IsYear ? PeriodStart.AddMonths(index) : PeriodStart.AddDays(index);
-            return new OverviewFocusBar(date, buckets.GetValueOrDefault(date), IsYear, IsWeek)
-            { IsToday = !IsYear && date == _displayDate };
+            var date = IsWeek ? PeriodStart.AddDays(index * 7) : IsMonth ? PeriodStart.AddMonths(index) : PeriodStart.AddDays(index);
+            return new OverviewFocusBar(date, buckets.GetValueOrDefault(date), Period)
+            { IsToday = IsDay && date == _displayDate };
         }).ToArray();
         var maximum = Math.Max(1, Bars.Max(bar => bar.Duration.TotalMinutes));
         var target = maximum / 4;
@@ -296,13 +304,21 @@ public sealed class StatisticsDashboardViewModel : INotifyPropertyChanged
 
 public sealed record OverviewPeriodOption(DateTime Start, StatisticsPeriod Period, string Label, bool IsSelected);
 
-public sealed record OverviewFocusBar(DateTime Date, TimeSpan Duration, bool IsMonthBucket, bool ShowWeekday)
+public sealed record OverviewFocusBar(DateTime Date, TimeSpan Duration, StatisticsPeriod Period)
 {
     public bool IsToday { get; init; }
-    public string AxisLabel => IsMonthBucket ? $"{Date.Month}月" : ShowWeekday ? Date.ToString("M/d", CultureInfo.InvariantCulture) : Date.Day.ToString(CultureInfo.InvariantCulture);
-    public string Weekday => IsToday ? "今天" : ShowWeekday ? new[] { "周日", "周一", "周二", "周三", "周四", "周五", "周六" }[(int)Date.DayOfWeek] : string.Empty;
-    public string TooltipDate => Date.ToString(IsMonthBucket ? "yyyy年M月" : "yyyy年M月d日", CultureInfo.InvariantCulture);
-    public string DurationDisplay => OverviewDuration.Format(Duration, includeSeconds: true);
+    public bool IsMonthBucket => Period == StatisticsPeriod.Month;
+    public bool IsWeekBucket => Period == StatisticsPeriod.Week;
+    public string AxisLabel => IsMonthBucket ? $"{Date.Month}月" : IsWeekBucket ? $"{ISOWeek.GetWeekOfYear(Date)}周" : Date.ToString("M/d", CultureInfo.InvariantCulture);
+    public string Weekday => IsToday ? "今天" : Period == StatisticsPeriod.Day
+        ? new[] { "周日", "周一", "周二", "周三", "周四", "周五", "周六" }[(int)Date.DayOfWeek] : string.Empty;
+    public string TooltipDate => IsWeekBucket
+        ? $"{ISOWeek.GetYear(Date)}年 第{ISOWeek.GetWeekOfYear(Date)}周"
+        : Date.ToString(IsMonthBucket ? "yyyy年M月" : "yyyy年M月d日", CultureInfo.InvariantCulture);
+    public string TooltipDateRange => !IsWeekBucket ? string.Empty : Date.Year == Date.AddDays(6).Year
+        ? $"{Date:MM.dd} - {Date.AddDays(6):MM.dd}"
+        : $"{Date:yyyy.MM.dd} - {Date.AddDays(6):yyyy.MM.dd}";
+    public string DurationDisplay => OverviewDuration.Format(Duration);
 }
 
 public sealed record OverviewAxisTick(double Minutes, bool UseHours)

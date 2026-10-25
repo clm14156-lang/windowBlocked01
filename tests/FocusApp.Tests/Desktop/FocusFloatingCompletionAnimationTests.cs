@@ -61,7 +61,7 @@ public sealed class FocusFloatingCompletionAnimationTests
         model.CompletionAnimationRequested += (_, e) => { requests++; e.Handled = true; };
         var saves = 0; session.TargetTasksChanged += (_, _) => saves++;
         model.ToggleTaskCompletedCommand.Execute(tasks[0]);
-        model.ToggleTaskCompletedCommand.Execute(tasks[0]);
+        tasks[0].IsCompleted = true; // Reapplying the same saved state does not repeat feedback or saving.
         model.ToggleTaskCompletedCommand.Execute(tasks[1]);
         Assert.Equal(2, saves);
         Assert.Equal(2, requests);
@@ -103,11 +103,11 @@ public sealed class FocusFloatingCompletionAnimationTests
             Assert.Contains(parent, host.Model.VisibleTasks);
             PumpFor(25);
             Assert.Same(row, host.Row(parent));
-            Assert.False(row.IsEnabled);
+            Assert.True(row.IsEnabled);
             var check = Check(row, "ParentTaskCheck");
             Assert.True(check.IsChecked);
-            Assert.Equal(Colors.White, ((SolidColorBrush)Find<System.Windows.Shapes.Path>(check, "CheckMark").Stroke).Color);
-            Assert.Equal(((SolidColorBrush)host.View.FindResource("AccentPrimary")).Color, ((SolidColorBrush)((Border)check.Template.FindName("CheckSurface", check)).Background).Color);
+            Assert.Equal(Colors.White, ((SolidColorBrush)Find<System.Windows.Shapes.Path>(check, "Tick").Stroke).Color);
+            Assert.Equal(Color.FromRgb(0xFD, 0x7E, 0x05), ((SolidColorBrush)((Border)check.Template.FindName("CheckChrome", check)).Background).Color);
             var title = Find<TextBlock>(row, "ParentTaskTitle");
             PumpUntil(() => StrikeOpacity(title) > 0.2);
             Assert.Equal(1, row.Opacity);
@@ -150,7 +150,7 @@ public sealed class FocusFloatingCompletionAnimationTests
             Assert.True(parent.SubTasks[0].IsCompleted);
             Assert.False(parent.IsCompleted);
             Assert.Equal(Colors.White, ((SolidColorBrush)Find<System.Windows.Shapes.Path>(check, "Tick").Stroke).Color);
-            Assert.Equal(((SolidColorBrush)host.View.FindResource("AccentPrimary")).Color, ((SolidColorBrush)Descendants<Border>(check).First().Background).Color);
+            Assert.Equal(Color.FromRgb(0xFD, 0x7E, 0x05), ((SolidColorBrush)Descendants<Border>(check).First().Background).Color);
             PumpUntil(() => StrikeOpacity(title) > 0.2);
             Assert.Equal(1, row.Opacity);
             Assert.True(double.IsNaN(row.Height));

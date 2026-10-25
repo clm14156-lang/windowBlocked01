@@ -7,7 +7,7 @@ using FocusApp.Desktop.ViewModels;
 
 namespace FocusApp.Desktop.Views;
 
-/// <summary>An interactive poptip in the owner window, sharing the timeline/row selection.</summary>
+/// <summary>A hover poptip in the owner window, sharing the timeline preview.</summary>
 internal sealed class CalendarRecordPoptip
 {
     private readonly CalendarFocusTimeline _timeline;
@@ -55,7 +55,7 @@ internal sealed class CalendarRecordPoptip
 
     public void Synchronize()
     {
-        var record = _timeline.InteractionState?.SelectedRecord ?? _timeline.InteractionState?.HoveredTimelineRecord;
+        var record = _timeline.InteractionState?.HoveredTimelineRecord;
         if (record is null || !_timeline.TryGetRecordBounds(record, out _)) { Close(); return; }
         Content.DataContext = record;
         IsOpen = true;
@@ -77,17 +77,6 @@ internal sealed class CalendarRecordPoptip
             }
         }
         Reposition();
-    }
-
-    public bool Contains(DependencyObject source)
-    {
-        for (DependencyObject? current = source; current is not null;)
-        {
-            if (ReferenceEquals(current, Content)) return true;
-            current = current is Visual or System.Windows.Media.Media3D.Visual3D
-                ? VisualTreeHelper.GetParent(current) : LogicalTreeHelper.GetParent(current);
-        }
-        return false;
     }
 
     public void Reposition()

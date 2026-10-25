@@ -124,7 +124,7 @@ public sealed class CalendarRecordPoptipTests
     }
 
     [Fact]
-    public void HoverCanEnterPoptipAndExpandedTasksScrollWithoutGrowingOrClearingSelection()
+    public void HoverCanEnterPoptipAndExpandedTasksScrollUntilThePointerLeaves()
     {
         Sta(() =>
         {
@@ -168,11 +168,15 @@ public sealed class CalendarRecordPoptipTests
                 WaitForLeave(page);
                 Assert.False(IsOpen());
 
-                void ClickRow() => row.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left)
-                    { RoutedEvent = UIElement.MouseLeftButtonDownEvent });
-                ClickRow();
+                void HoverBlock()
+                {
+                    typeof(CalendarFocusTimeline).GetMethod("UpdateSessionHover", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(timeline, [new Point()]);
+                    typeof(CalendarFocusTimeline).GetMethod("UpdateSessionHover", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(timeline, [center]);
+                    content.RaiseEvent(new MouseEventArgs(Mouse.PrimaryDevice, 0) { RoutedEvent = Mouse.MouseEnterEvent });
+                }
+                HoverBlock();
                 Pump(page);
-                Assert.Same(record, page.CalendarRecordInteraction.SelectedRecord);
+                Assert.Same(record, page.CalendarRecordInteraction.HoveredTimelineRecord);
                 Assert.Same(PresentationSource.FromVisual(page), PresentationSource.FromVisual(content));
                 var initialHeight = content.ActualHeight;
                 var taskScroll = (ScrollViewer)content.FindName("TaskScroll");
@@ -194,7 +198,7 @@ public sealed class CalendarRecordPoptipTests
                     item.DataContext is CalendarPoptipTaskRow { IsSubTask: true }).Visibility);
                 more.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left)
                     { RoutedEvent = Mouse.PreviewMouseDownEvent });
-                Assert.Same(record, page.CalendarRecordInteraction.SelectedRecord);
+                Assert.Same(record, page.CalendarRecordInteraction.HoveredTimelineRecord);
                 typeof(ButtonBase).GetMethod("OnClick", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(more, null);
                 Pump(page);
                 Assert.True(IsOpen());
@@ -207,18 +211,17 @@ public sealed class CalendarRecordPoptipTests
                 Assert.True(taskScroll.ExtentHeight > taskScroll.ViewportHeight);
                 content.RaiseEvent(new MouseEventArgs(Mouse.PrimaryDevice, 0) { RoutedEvent = Mouse.MouseLeaveEvent });
                 WaitForLeave(page);
-                Assert.True(IsOpen());
-                Assert.Same(record, page.CalendarRecordInteraction.SelectedRecord);
+                Assert.False(IsOpen());
+                Assert.Null(page.CalendarRecordInteraction.HoveredTimelineRecord);
                 // Repeated close/reopen must detach the old visual/logical parent.
                 for (var index = 0; index < 3; index++)
                 {
-                    page.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left)
-                        { RoutedEvent = Mouse.PreviewMouseDownEvent });
-                    Assert.False(IsOpen());
-                    Assert.Null(page.CalendarRecordInteraction.SelectedRecord);
-                    ClickRow();
+                    HoverBlock();
                     Pump(page);
                     Assert.True(IsOpen());
+                    CalendarHoverTestInput.Leave(content);
+                    Assert.False(IsOpen());
+                    Assert.Null(page.CalendarRecordInteraction.HoveredTimelineRecord);
                 }
             }
             finally { window.Close(); }

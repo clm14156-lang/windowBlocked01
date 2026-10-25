@@ -55,7 +55,7 @@ public partial class MainWindow : Window
         Closed += MainWindow_Closed;
         SizeChanged += MainWindow_SizeChanged;
         StateChanged += (_, _) => { if (WindowState == WindowState.Minimized) FocusScene.FinishEntrance(); };
-        PreviewKeyDown += EmptyTaskDrawer_PreviewKeyDown;
+        PreviewKeyDown += FocusTaskCreation_PreviewKeyDown;
 #if DEBUG
         var completeFocusForDebug = new RoutedCommand(nameof(MainWindowViewModel.CompleteFocusForDebugAsync), typeof(MainWindow));
         InputBindings.Add(new KeyBinding(completeFocusForDebug, Key.W, ModifierKeys.Control));
@@ -77,7 +77,7 @@ public partial class MainWindow : Window
     }
 #endif
 
-    private void EmptyTaskDrawer_PreviewKeyDown(object sender, KeyEventArgs e)
+    private void FocusTaskCreation_PreviewKeyDown(object sender, KeyEventArgs e)
     {
         if (!IsActive || e.Key != Key.Tab ||
             DataContext is not MainWindowViewModel { CurrentPage: NavigationPage.Home } model ||
@@ -90,7 +90,7 @@ public partial class MainWindow : Window
             !ReferenceEquals(FindVisualAncestor<FocusTaskDrawer>(source), FocusTaskDrawerPanel))
             return;
 
-        FocusTaskDrawerPanel.TryBeginEmptyStateCreation(e);
+        FocusTaskDrawerPanel.TryHandleCreationKey(e, allowOpening: true);
     }
 
     private void MainWindow_SizeChanged(object sender, SizeChangedEventArgs e)

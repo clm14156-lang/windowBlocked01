@@ -8,9 +8,9 @@
     <SolidColorBrush x:Key="PoptipSecondaryBrush" Color="#909399" />
     <SolidColorBrush x:Key="PoptipAccentBrush" Color="#FF7A2F" />
     <SolidColorBrush x:Key="ChartPoptipBackgroundBrush" Color="#FFFFFF" />
-    <SolidColorBrush x:Key="ChartPoptipBorderBrush" Color="#DFE2E7" />
-    <SolidColorBrush x:Key="ChartPoptipSecondaryBrush" Color="#667085" />
-    <SolidColorBrush x:Key="ChartPoptipBodyBrush" Color="#374151" />
+    <SolidColorBrush x:Key="ChartPoptipBorderBrush" Color="#E3E7EE" />
+    <SolidColorBrush x:Key="ChartPoptipSecondaryBrush" Color="#8A919F" />
+    <SolidColorBrush x:Key="ChartPoptipBodyBrush" Color="#8A919F" />
     <SolidColorBrush x:Key="ChartPoptipValueBrush" Color="#18212F" />
     <Style x:Key="PoptipSurfaceStyle" TargetType="views:PoptipChrome">
         <Setter Property="Margin" Value="4" />
@@ -48,20 +48,34 @@
         <Setter Property="BorderBrush" Value="{StaticResource ChartPoptipBorderBrush}" />
         <Setter Property="ShowPointer" Value="False" />
         <Setter Property="Effect">
-            <Setter.Value><DropShadowEffect Color="#17202D" Opacity="0.12" BlurRadius="12" ShadowDepth="2" /></Setter.Value>
+            <Setter.Value><DropShadowEffect Color="#17202D" Opacity="0.06" BlurRadius="12" ShadowDepth="2" /></Setter.Value>
         </Setter>
     </Style>
     <Style x:Key="ChartPoptipSecondaryTextStyle" TargetType="TextBlock" BasedOn="{StaticResource PoptipSecondaryTextStyle}">
+        <Setter Property="FontSize" Value="{DynamicResource BodyFontSize}" />
         <Setter Property="Foreground" Value="{StaticResource ChartPoptipSecondaryBrush}" />
-    </Style>
-    <Style x:Key="ChartPoptipBodyTextStyle" TargetType="TextBlock" BasedOn="{StaticResource PoptipSecondaryTextStyle}">
-        <Setter Property="Foreground" Value="{StaticResource ChartPoptipBodyBrush}" />
         <Setter Property="LineHeight" Value="20" />
     </Style>
+    <Style x:Key="ChartPoptipTitleTextStyle" TargetType="TextBlock" BasedOn="{StaticResource PoptipPrimaryTextStyle}">
+        <Setter Property="FontWeight" Value="{DynamicResource FontWeightMedium}" />
+        <Setter Property="Foreground" Value="{StaticResource ChartPoptipValueBrush}" />
+        <Setter Property="LineHeight" Value="22" />
+    </Style>
+    <Style x:Key="ChartPoptipHeadingTextStyle" TargetType="TextBlock" BasedOn="{StaticResource ChartPoptipTitleTextStyle}">
+        <Setter Property="FontWeight" Value="{DynamicResource FontWeightSemiBold}" />
+    </Style>
+    <Style x:Key="ChartPoptipBodyTextStyle" TargetType="TextBlock" BasedOn="{StaticResource ChartPoptipSecondaryTextStyle}">
+        <Setter Property="Foreground" Value="{StaticResource ChartPoptipBodyBrush}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style x:Key="ChartPoptipPercentageTextStyle" TargetType="TextBlock" BasedOn="{StaticResource ChartPoptipSecondaryTextStyle}">
+        <Setter Property="FontSize" Value="{DynamicResource SecondaryFontSize}" />
+        <Setter Property="LineHeight" Value="18" />
+    </Style>
     <Style x:Key="ChartPoptipValueStyle" TargetType="Run">
-        <Setter Property="FontFamily" Value="{DynamicResource FontFamilyEnglish}" />
+        <Setter Property="FontFamily" Value="{DynamicResource FontFamilyPrimary}" />
         <Setter Property="FontSize" Value="{DynamicResource BodyFontSize}" />
-        <Setter Property="FontWeight" Value="Medium" />
+        <Setter Property="FontWeight" Value="{DynamicResource FontWeightSemiBold}" />
         <Setter Property="Foreground" Value="{StaticResource ChartPoptipValueBrush}" />
         <Setter Property="Typography.NumeralAlignment" Value="Tabular" />
     </Style>

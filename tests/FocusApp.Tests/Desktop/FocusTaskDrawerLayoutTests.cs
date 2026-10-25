@@ -89,7 +89,7 @@ public sealed class FocusTaskDrawerLayoutTests
                 var chrome = (Border)mainCheck.Template.FindName("CheckChrome", mainCheck);
                 var number = (TextBlock)mainCheck.Template.FindName("TaskNumber", mainCheck);
                 Assert.Equal(new CornerRadius(3), chrome.CornerRadius);
-                Assert.Equal("1", number.Text);
+                Assert.Empty(number.Text);
                 Assert.Equal(10, number.FontSize);
                 Assert.Equal(HorizontalAlignment.Center, number.HorizontalAlignment);
                 Assert.Equal(VerticalAlignment.Center, number.VerticalAlignment);
@@ -211,7 +211,7 @@ public sealed class FocusTaskDrawerLayoutTests
                 var origin = completedCard.TranslatePoint(new Point(70, 20), list);
                 DragCall("PrepareTaskDrag", completedCard, completedCard, origin);
                 DragCall("UpdateTaskDrag", origin, MouseButtonState.Pressed);
-                Assert.Equal(session.IsDarkFocusTheme ? 0.72 : 1, completedCard.Opacity);
+                Assert.Equal(1, completedCard.Opacity);
                 Assert.Equal(false, DragCall("CompleteTaskDrag", new Point(70, 2)));
                 Assert.Equal(new[] { next, task }, vm.VisibleTasks);
 

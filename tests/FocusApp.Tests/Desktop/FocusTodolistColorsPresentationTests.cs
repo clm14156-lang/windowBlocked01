@@ -48,7 +48,7 @@ public sealed class FocusTodolistColorsPresentationTests
                 var indicator = (Border)progress.Template.FindName("PART_Indicator", progress);
                 var track = (Grid)progress.Template.FindName("PART_Track", progress);
                 Assert.InRange(Math.Abs(indicator.ActualWidth / track.ActualWidth - progress.Value), 0, 0.005);
-                Assert.Equal(ColorFrom(dark ? "#344C79" : "#F3F1F0"), ((SolidColorBrush)progress.Background).Color);
+                Assert.Equal(ColorFrom(dark ? "#2B323D" : "#F3F1F0"), ((SolidColorBrush)progress.Background).Color);
                 Save(drawer, dark ? "todolist-dark-orange-progress" : "todolist-light-orange-progress");
 
                 session.TaskDrawer.AddTaskCommand.Execute(null); Pump(drawer);

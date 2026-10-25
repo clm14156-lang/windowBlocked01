@@ -4,14 +4,18 @@
     <system:Double x:Key="FocusTaskHeadingFontSize">17</system:Double>
     <system:Double x:Key="FocusTaskNumberFontSize">10</system:Double>
     <FontWeight x:Key="FocusTaskNameFontWeight">Medium</FontWeight>
-    <system:Double x:Key="FocusCompletedTaskRowOpacity">0.72</system:Double>
+    <system:Double x:Key="FocusCompletedTaskRowOpacity">1</system:Double>
     <LinearGradientBrush x:Key="FocusEndDialogBackground" StartPoint="0,0" EndPoint="1,1">
         <GradientStop Color="#07152F" Offset="0" />
         <GradientStop Color="#07152F" Offset="0.6" />
         <GradientStop Color="#07152F" Offset="1" />
     </LinearGradientBrush>
     <SolidColorBrush x:Key="FocusEndDialogBorder" Color="#2D394D" />
-    <SolidColorBrush x:Key="FocusEndConfirmationBackground" Color="#0B152A" />
+    <SolidColorBrush x:Key="FocusEndConfirmationBackground" Color="#1F2D46" />
+    <SolidColorBrush x:Key="FocusEndConfirmationScrim" Color="#66000000" />
+    <SolidColorBrush x:Key="FocusEndConfirmationSecondaryBrush" Color="#BAC6D8" />
+    <SolidColorBrush x:Key="FocusEndConfirmationBorderBrush" Color="#1AFFFFFF" />
+    <Thickness x:Key="FocusEndConfirmationBorderThickness">1</Thickness>
     <SolidColorBrush x:Key="FocusEndTitleBrush" Color="#F7F9FC" />
     <SolidColorBrush x:Key="FocusEndSecondaryBrush" Color="#A5AFC3" />
     <SolidColorBrush x:Key="FocusAgainCancelBorder" Color="#59667C" />
@@ -19,7 +23,7 @@
     <SolidColorBrush x:Key="FocusEndWarningIconBrush" Color="#FF8A00" />
     <SolidColorBrush x:Key="FocusEndWarningTextBrush" Color="#E7ECF5" />
     <SolidColorBrush x:Key="FocusTitleBrush" Color="#F7F9FF" />
-    <SolidColorBrush x:Key="FocusSubtitleBrush" Color="#A5C9FB" />
+    <SolidColorBrush x:Key="FocusSubtitleBrush" Color="#A8B8CE" />
     <SolidColorBrush x:Key="FocusCompletionSecondaryBrush" Color="#A5B8D5" />
     <SolidColorBrush x:Key="FocusCompletionStatisticLabelBrush" Color="#FFFFFF" />
     <SolidColorBrush x:Key="FocusCompletionValueBrush" Color="#FFFFFF" />
@@ -29,16 +33,20 @@
     <SolidColorBrush x:Key="FocusTargetBrush" Color="#E6F0FF" />
     <SolidColorBrush x:Key="FocusFooterBrush" Color="#A4C6FB" />
     <SolidColorBrush x:Key="FocusFooterHoverBrush" Color="#D3E2FF" />
+    <SolidColorBrush x:Key="FocusFooterActionHoverForeground" Color="#D3E2FF" />
+    <SolidColorBrush x:Key="FocusFooterActionPressedForeground" Color="#E6EEFF" />
+    <SolidColorBrush x:Key="FocusFooterActionHoverBackground" Color="#12FFFFFF" />
+    <SolidColorBrush x:Key="FocusFooterActionPressedBackground" Color="#1FFFFFFF" />
     <SolidColorBrush x:Key="FocusRuleBrush" Color="#6D86B8" />
     <SolidColorBrush x:Key="FocusDividerBrush" Color="#6D86B8" />
     <SolidColorBrush x:Key="FocusNoticeBrush" Color="#98B8E8" />
     <SolidColorBrush x:Key="FocusChromeHoverBrush" Color="#203859" />
-    <SolidColorBrush x:Key="FocusTaskSurface" Color="#192C4B" />
+    <SolidColorBrush x:Key="FocusTaskSurface" Color="#242A33" />
     <SolidColorBrush x:Key="FocusTaskCard" Color="Transparent" />
     <SolidColorBrush x:Key="FocusTaskTickWhite" Color="#FFFFFF" />
-    <SolidColorBrush x:Key="FocusDrawerSurface" Color="#141D2D" />
-    <SolidColorBrush x:Key="FocusTaskBodyText" Color="#F5F8FF" />
-    <SolidColorBrush x:Key="FocusTaskTitleText" Color="#FAFBFF" />
+    <SolidColorBrush x:Key="FocusDrawerSurface" Color="#1C2026" />
+    <SolidColorBrush x:Key="FocusTaskBodyText" Color="#CCD2DA" />
+    <SolidColorBrush x:Key="FocusTaskTitleText" Color="#E2E6EC" />
     <SolidColorBrush x:Key="FocusTaskMenuItemText" Color="#D5E4FB" />
     <SolidColorBrush x:Key="DrawerTaskMenuBackground" Color="#18202B" />
     <SolidColorBrush x:Key="DrawerTaskMenuBorder" Color="#384656" />
@@ -48,35 +56,35 @@
     <SolidColorBrush x:Key="FocusTaskDraftTitleText" Color="#EDF3FE" />
     <SolidColorBrush x:Key="FocusTaskEmptyText" Color="#B6CAE9" />
     <SolidColorBrush x:Key="FocusTaskDraftText" Color="#B6CAE9" />
-    <SolidColorBrush x:Key="FocusTaskActionIcon" Color="#A6C3EC" />
-    <SolidColorBrush x:Key="FocusTaskCloseHoverText" Color="#C9DCFA" />
+    <SolidColorBrush x:Key="FocusTaskActionIcon" Color="#98A4B3" />
+    <SolidColorBrush x:Key="FocusTaskCloseHoverText" Color="#CCD2DA" />
     <SolidColorBrush x:Key="FocusTaskCancelText" Color="#B0C5E8" />
     <SolidColorBrush x:Key="FocusTaskSubTaskLabel" Color="#C9CDD7" />
     <SolidColorBrush x:Key="FocusTaskSubTaskChevron" Color="#C9CDD7" />
     <SolidColorBrush x:Key="FocusTaskDescriptionText" Color="#91AAD0" />
     <SolidColorBrush x:Key="FocusTaskDraftActionText" Color="#A1BCE3" />
-    <SolidColorBrush x:Key="FocusTaskProgressText" Color="#ACCDF6" />
+    <SolidColorBrush x:Key="FocusTaskProgressText" Color="#98A4B3" />
     <SolidColorBrush x:Key="FocusTaskDraftPlaceholder" Color="#8CA3C7" />
     <SolidColorBrush x:Key="FocusTaskDraftCounter" Color="#8CA3C7" />
     <SolidColorBrush x:Key="FocusTaskShortcutText" Color="#8EADD7" />
     <SolidColorBrush x:Key="FocusTaskPlaceholder" Color="#879FC4" />
-    <SolidColorBrush x:Key="FocusTaskCloseText" Color="#91AEDC" />
-    <SolidColorBrush x:Key="FocusTaskSecondaryText" Color="#87A4CF" />
+    <SolidColorBrush x:Key="FocusTaskCloseText" Color="#8996A6" />
+    <SolidColorBrush x:Key="FocusTaskSecondaryText" Color="#98A4B3" />
     <SolidColorBrush x:Key="FocusTaskNumberText" Color="#C9CDD7" />
     <SolidColorBrush x:Key="FocusTaskCompletedCheck" Color="#6A82AF" />
     <SolidColorBrush x:Key="FocusTaskDisabledText" Color="#6D85AD" />
     <SolidColorBrush x:Key="FocusTaskDraftCheckBorder" Color="#87A7D7" />
-    <SolidColorBrush x:Key="FocusTaskCheckBorder" Color="#C9CDD7" />
+    <SolidColorBrush x:Key="FocusTaskCheckBorder" Color="#75808F" />
     <SolidColorBrush x:Key="FocusTaskNewSubTaskBorder" Color="#87A7D7" />
     <SolidColorBrush x:Key="FocusTaskKeycapBorder" Color="#354D78" />
-    <SolidColorBrush x:Key="FocusTaskBorder" Color="#31496F" />
-    <SolidColorBrush x:Key="FocusTaskClosePressed" Color="#2B4268" />
+    <SolidColorBrush x:Key="FocusTaskBorder" Color="#303844" />
+    <SolidColorBrush x:Key="FocusTaskClosePressed" Color="#303844" />
     <SolidColorBrush x:Key="FocusTaskDisabledSurface" Color="#263A5B" />
-    <SolidColorBrush x:Key="FocusTaskRowDivider" Color="#304669" />
-    <SolidColorBrush x:Key="FocusTaskDivider" Color="#31496F" />
+    <SolidColorBrush x:Key="FocusTaskRowDivider" Color="#2C333D" />
+    <SolidColorBrush x:Key="FocusTaskDivider" Color="#2C333D" />
     <SolidColorBrush x:Key="FocusTaskSubTaskSurface" Color="#222F44" />
-    <SolidColorBrush x:Key="FocusTaskProgressTrack" Color="#344C79" />
-    <SolidColorBrush x:Key="FocusTaskCloseHover" Color="#243C60" />
+    <SolidColorBrush x:Key="FocusTaskProgressTrack" Color="#2B323D" />
+    <SolidColorBrush x:Key="FocusTaskCloseHover" Color="#252C36" />
     <SolidColorBrush x:Key="FocusTaskKeycapSurface" Color="#182D4D" />
     <SolidColorBrush x:Key="FocusTaskCreateAccent" Color="#405982" />
     <SolidColorBrush x:Key="FocusTaskProgressAccent" Color="#7C99D1" />
@@ -84,17 +92,17 @@
         <GradientStop Color="#FFA12D" Offset="0" />
         <GradientStop Color="#FF8816" Offset="1" />
     </LinearGradientBrush>
-    <SolidColorBrush x:Key="FocusTaskAddIcon" Color="#ACC9FF" />
-    <SolidColorBrush x:Key="FocusTaskAddBackground" Color="#192C4B" />
-    <SolidColorBrush x:Key="FocusTaskAddHoverBorder" Color="#9FBCF0" />
-    <SolidColorBrush x:Key="FocusTaskCheckHover" Color="#C9CDD7" />
-    <SolidColorBrush x:Key="FocusTaskAddBorder" Color="#6E88B9" />
-    <SolidColorBrush x:Key="FocusTaskAddPressed" Color="#2B426D" />
-    <SolidColorBrush x:Key="FocusTaskAddHover" Color="#22395C" />
+    <SolidColorBrush x:Key="FocusTaskAddIcon" Color="#A3ADBA" />
+    <SolidColorBrush x:Key="FocusTaskAddBackground" Color="#252D37" />
+    <SolidColorBrush x:Key="FocusTaskAddHoverBorder" Color="#8996A6" />
+    <SolidColorBrush x:Key="FocusTaskCheckHover" Color="#75808F" />
+    <SolidColorBrush x:Key="FocusTaskAddBorder" Color="#6C7988" />
+    <SolidColorBrush x:Key="FocusTaskAddPressed" Color="#303844" />
+    <SolidColorBrush x:Key="FocusTaskAddHover" Color="#2B333F" />
     <SolidColorBrush x:Key="FocusTaskInputText" Color="#EBF2FD" />
     <SolidColorBrush x:Key="FocusTaskBorderlessText" Color="#EBF2FD" />
     <SolidColorBrush x:Key="FocusTaskMenuText" Color="#D5E4FB" />
-    <SolidColorBrush x:Key="FocusTaskText" Color="#EDF3FE" />
+    <SolidColorBrush x:Key="FocusTaskText" Color="#CCD2DA" />
     <SolidColorBrush x:Key="FocusTaskSheetText" Color="#BBCFEF" />
     <SolidColorBrush x:Key="FocusTaskButtonText" Color="#98B5DF" />
     <SolidColorBrush x:Key="FocusTaskTick" Color="#C9CDD7" />
@@ -104,14 +112,14 @@
     <SolidColorBrush x:Key="FocusTaskInputFocusBorder" Color="#7090C7" />
     <SolidColorBrush x:Key="FocusTaskScrollbar" Color="#4D668F" />
     <SolidColorBrush x:Key="FocusTaskInputBorder" Color="#364E77" />
-    <SolidColorBrush x:Key="FocusTaskMenuHover" Color="#253D62" />
-    <SolidColorBrush x:Key="FocusTaskButtonHover" Color="#253D62" />
+    <SolidColorBrush x:Key="FocusTaskMenuHover" Color="#252C36" />
+    <SolidColorBrush x:Key="FocusTaskButtonHover" Color="#252C36" />
     <SolidColorBrush x:Key="FocusTaskSelectedAccent" Color="#809ED6" />
     <SolidColorBrush x:Key="FocusTaskDisabledAccent" Color="#40597F" />
     <SolidColorBrush x:Key="FocusSceneBaseBrush" Color="#172642" />
     <BitmapImage x:Key="FocusSceneBackground" CacheOption="OnLoad" UriSource="/FocusApp.Desktop;component/Assets/Images/focusPage/dark_background02.png" />
     <BitmapImage x:Key="FocusCompletionCheck" UriSource="/FocusApp.Desktop;component/Assets/Images/focusPage/gouxuan01.png" />
-    <BitmapImage x:Key="FocusSceneShadow" CacheOption="OnLoad" UriSource="/FocusApp.Desktop;component/Assets/Images/focusPage/white_shadow02.png" />
+    <BitmapImage x:Key="FocusSceneShadow" CacheOption="OnLoad" UriSource="/FocusApp.Desktop;component/Assets/Images/focusPage/dark_shadow02.png" />
     <BitmapImage x:Key="FocusSceneContactShadow" CacheOption="OnLoad" DecodePixelWidth="512" UriSource="/FocusApp.Desktop;component/Assets/Images/focusPage/white_shadow01.png" />
     <SolidColorBrush x:Key="FocusWeatherBrush" Color="#A7CCFF" />
     <x:Array x:Key="FocusSceneLeaves" Type="{x:Type ImageSource}">

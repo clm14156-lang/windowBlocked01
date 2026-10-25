@@ -221,7 +221,7 @@ public sealed class StatisticsOverviewPresentationTests
         Assert.Contains(content.Descendants(Presentation + "TextBlock"), text =>
             (string?)text.Attribute("Text") == "{Binding SelectedDayDateDisplay}");
         Assert.Contains(content.Descendants(Presentation + "ItemsControl"), control =>
-            (string?)control.Attribute("ItemsSource") == "{Binding SelectedDayRecordEntries}");
+            (string?)control.Attribute("ItemsSource") == "{Binding SelectedDayPeriods}");
 
         var locked = Assert.Single(card.Descendants(Presentation + "Grid").Where(element =>
             (string?)element.Attribute(Xaml + "Name") == "DailyFocusRecordLockedPlaceholder"));

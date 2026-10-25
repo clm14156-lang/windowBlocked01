@@ -278,6 +278,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
                     CompletionKind = session.CompletionKind == FocusCompletionKindDto.EarlyEnd
                         ? FocusCompletionKind.EarlyEnd : FocusCompletionKind.Natural,
                     RecordedFocusDuration = TimeSpan.FromSeconds(Math.Max(0, session.ActualSeconds)),
+                    ConfiguredDuration = TimeSpan.FromSeconds(Math.Max(0, session.ConfiguredSeconds)),
                     CompletedTaskSnapshots = session.CompletedTasks,
                     CompletedTaskIds = session.CompletedTasks.OrderBy(task => task.SortOrder)
                         .Select(task => task.TaskId).ToArray(),
@@ -893,7 +894,13 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             goalName!,
             taskNames.FirstOrDefault() ?? string.Empty,
             taskNames.Count,
-            taskNames) { CompletionKind = record.CompletionKind, CompletedTaskIds = record.CompletedTaskIds, IconSource = Goals.FirstOrDefault(goal => goal.GoalId == goalId)?.IconSource ?? TargetIconCatalog.GetIconSource(null) });
+            taskNames)
+        {
+            CompletionKind = record.CompletionKind,
+            ConfiguredDuration = record.ConfiguredDuration,
+            CompletedTaskIds = record.CompletedTaskIds,
+            IconSource = Goals.FirstOrDefault(goal => goal.GoalId == goalId)?.IconSource ?? TargetIconCatalog.GetIconSource(null)
+        });
         if (_isInitialized)
         {
             RefreshOverview();
@@ -1722,6 +1729,13 @@ public sealed class FocusSessionRecordViewModel : INotifyPropertyChanged
 {
     public Guid? SessionId { get; init; }
     public FocusCompletionKind CompletionKind { get; init; } = FocusCompletionKind.Natural;
+    public TimeSpan? ConfiguredDuration { get; init; }
+    public bool IsInterrupted => CompletionKind == FocusCompletionKind.EarlyEnd;
+    public bool HasPoptipGoal => HasGoal && !string.IsNullOrWhiteSpace(GoalName);
+    public bool ShowPoptipPlan => IsInterrupted && ConfiguredDuration is { } duration && duration > TimeSpan.Zero;
+    public string PoptipActualMinutesDisplay => DurationMinutes < 1 ? "<1" : DurationMinutes.ToString();
+    public string PoptipPlannedMinutesDisplay => ConfiguredDuration is { } duration && duration > TimeSpan.Zero
+        ? duration.TotalMinutes < 1 ? "<1" : ((int)duration.TotalMinutes).ToString() : string.Empty;
     public IReadOnlyList<DateTime?> CompletedTaskTimes { get; init; } = [];
     public IReadOnlyList<LocalFocusSessionTaskSnapshotDto> CompletedTaskSnapshots { get; init; } = [];
     public IReadOnlyList<string> CompletedTaskIds { get; init; } = [];
@@ -1803,13 +1817,14 @@ public sealed class FocusSessionRecordViewModel : INotifyPropertyChanged
             _goalId = value;
             OnPropertyChanged();
             OnPropertyChanged(nameof(HasGoal));
+            OnPropertyChanged(nameof(HasPoptipGoal));
         }
     }
 
     public bool HasGoal =>
         !string.IsNullOrWhiteSpace(GoalId) &&
         !string.Equals(GoalId, "goal-unassigned", StringComparison.Ordinal);
-    public string GoalName { get => _goalName; set { if (_goalName == value) return; _goalName = value; OnPropertyChanged(); } }
+    public string GoalName { get => _goalName; set { if (_goalName == value) return; _goalName = value; OnPropertyChanged(); OnPropertyChanged(nameof(HasPoptipGoal)); } }
     public IReadOnlyList<string> CompletedTaskNames { get; }
     public string TaskName { get => _taskName; set { if (_taskName == value) return; _taskName = value; OnPropertyChanged(); } }
     public int CompletedTaskCount
@@ -1844,6 +1859,7 @@ public sealed class FocusSessionRecordViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(CompactDurationDisplay));
         OnPropertyChanged(nameof(CalendarDurationDisplay));
         OnPropertyChanged(nameof(CalendarPoptipSummaryDisplay));
+        OnPropertyChanged(nameof(PoptipActualMinutesDisplay));
         OnPropertyChanged(nameof(CalendarCompletedTaskCount));
         OnPropertyChanged(nameof(HasCalendarCompletedTasks));
         OnPropertyChanged(nameof(CalendarCompletedTaskCountDisplay));

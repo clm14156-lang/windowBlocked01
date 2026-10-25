@@ -70,6 +70,9 @@ public partial class StatisticsDashboard : UserControl
     {
         if (FocusChart.HoveredBar is not { } bar) { CloseTip(); return; }
         TipTitle.Text = bar.TooltipDate;
+        TipTitle.SetResourceReference(StyleProperty, bar.IsWeekBucket ? "ChartPoptipHeadingTextStyle" : "ChartPoptipSecondaryTextStyle");
+        TipDateRange.Text = bar.TooltipDateRange;
+        TipDateRange.Visibility = bar.IsWeekBucket ? Visibility.Visible : Visibility.Collapsed;
         TipDuration.Text = bar.DurationDisplay;
         TipMarker.Fill = OverviewFocusChart.FrozenBrush("#FF8B28");
         TipPercentage.Visibility = Visibility.Collapsed;
@@ -103,6 +106,8 @@ public partial class StatisticsDashboard : UserControl
     {
         if (_model?.ActiveDistribution is not { } item || !IsVisible || FocusChart.IsMouseOver && FocusChart.HoveredBar is null) { CloseTip(); return; }
         TipTitle.Text = item.TargetName;
+        TipTitle.SetResourceReference(StyleProperty, "ChartPoptipTitleTextStyle");
+        TipDateRange.Visibility = Visibility.Collapsed;
         TipDuration.Text = item.DurationDisplay;
         TipMarker.Fill = item.Color;
         TipPercentage.Text = $"占比  {item.PercentageDisplay}";

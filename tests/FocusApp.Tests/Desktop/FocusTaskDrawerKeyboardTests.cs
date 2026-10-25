@@ -37,12 +37,13 @@ public sealed class FocusTaskDrawerKeyboardTests
             Assert.Equal(Visibility.Collapsed, host.EmptyState.Visibility);
             Assert.Equal(remaining, host.Session.RemainingFocusSeconds);
             Assert.Equal(270, host.Drawer.ActualWidth); Assert.Equal(710, host.Drawer.ActualHeight);
-            Assert.False(host.Key(host.Drawer, Key.Tab));
+            Assert.True(host.Key(host.Drawer, Key.Tab));
+            Assert.True(host.Model.IsCreating);
         });
     }
 
     [Fact]
-    public void EscapeCancelsAndClosedHiddenOrNonEmptyDrawersKeepNormalTabNavigation()
+    public void EscapeCancelsAndOnlyClosedHiddenOrInactiveDrawersKeepNormalTabNavigation()
     {
         Sta(() =>
         {
@@ -64,8 +65,8 @@ public sealed class FocusTaskDrawerKeyboardTests
         {
             using var host = new Host(1);
             Assert.Equal(Visibility.Collapsed, host.EmptyState.Visibility);
-            Assert.False(host.Key(host.Drawer, Key.Tab));
-            Assert.False(host.Model.IsCreating);
+            Assert.True(host.Key(host.Drawer, Key.Tab));
+            Assert.True(host.Model.IsCreating);
         });
     }
 
@@ -79,7 +80,7 @@ public sealed class FocusTaskDrawerKeyboardTests
             {
                 var args = new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(host.Drawer)!, 0, Key.Tab)
                     { RoutedEvent = Keyboard.PreviewKeyDownEvent, Source = source };
-                var handled = (bool)typeof(FocusTaskDrawer).GetMethod("TryBeginEmptyStateCreation", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(host.Drawer, [args])!;
+                var handled = host.Drawer.TryHandleCreationKey(args);
                 Assert.False(handled); Assert.False(args.Handled); Assert.False(host.Model.IsCreating);
             }
         });

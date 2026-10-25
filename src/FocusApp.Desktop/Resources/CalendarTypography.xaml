@@ -70,9 +70,30 @@
     <Style x:Key="CalendarDayValueStyle" TargetType="Run" BasedOn="{StaticResource CalendarMonthValueStyle}"/>
     <Style x:Key="CalendarUnitStyle" TargetType="Run" BasedOn="{StaticResource StatisticsUnitRunStyle}"/>
     <Style x:Key="CalendarPeriodValueStyle" TargetType="Run" BasedOn="{StaticResource StatisticsValueRunStyle}">
-        <Setter Property="FontSize" Value="{DynamicResource BodyMediumFontSize}"/>
-        <Setter Property="FontWeight" Value="{DynamicResource BodyMediumFontWeight}"/>
-        <Setter Property="Foreground" Value="{DynamicResource CalendarTextBody}"/>
+        <Setter Property="FontFamily" Value="{DynamicResource FontFamilyPrimary}"/>
+        <Setter Property="FontSize" Value="{DynamicResource BodyFontSize}"/>
+        <Setter Property="FontWeight" Value="{DynamicResource FontWeightMedium}"/>
+        <Setter Property="Foreground" Value="{DynamicResource CalendarTextSecondary}"/>
+    </Style>
+    <Style x:Key="CalendarPeriodUnitStyle" TargetType="Run" BasedOn="{StaticResource CalendarPeriodValueStyle}"/>
+    <Style x:Key="CalendarPeriodTimeRangeStyle" TargetType="TextBlock" BasedOn="{StaticResource CalendarWeakTextStyle}">
+        <Setter Property="FontFamily" Value="{DynamicResource FontFamilyEnglish}"/>
+        <Setter Property="Typography.NumeralAlignment" Value="Tabular"/>
+    </Style>
+    <Style x:Key="CalendarPeriodUnitGap" TargetType="Border">
+        <Setter Property="Width" Value="3"/>
+        <Setter Property="Height" Value="0"/>
+        <Style.Triggers>
+            <Trigger Property="Tag" Value=""><Setter Property="Visibility" Value="Collapsed"/></Trigger>
+            <Trigger Property="Tag" Value="{x:Null}"><Setter Property="Visibility" Value="Collapsed"/></Trigger>
+        </Style.Triggers>
+    </Style>
+    <Style x:Key="CalendarPeriodDurationGroupGap" TargetType="Border" BasedOn="{StaticResource CalendarPeriodUnitGap}">
+        <Setter Property="Width" Value="6"/>
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding DurationParts.HoursUnit}" Value=""><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
+            <DataTrigger Binding="{Binding DurationParts.HoursUnit}" Value="{x:Null}"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
+        </Style.Triggers>
     </Style>
     <Style x:Key="CalendarToolTipStyle" TargetType="ToolTip">
         <!-- ToolTips have a detached visual tree, so resolve their defaults here. -->

@@ -14,6 +14,9 @@
     <SolidColorBrush x:Key="FloatingTaskHeaderBrush" Color="#263347"/>
     <SolidColorBrush x:Key="FloatingTaskTextBrush" Color="#3C485B"/>
     <SolidColorBrush x:Key="FloatingCompletedTaskBrush" Color="#7D8CA2"/>
+    <SolidColorBrush x:Key="FloatingTaskRowHoverBrush" Color="#F2F4F6"/>
+    <SolidColorBrush x:Key="FloatingTaskRowDragBrush" Color="#E8EDF2"/>
+    <SolidColorBrush x:Key="FloatingTaskDragHandleBrush" Color="#ADB5C0"/>
     <SolidColorBrush x:Key="FloatingCheckBorderBrush" Color="#AEBCCF"/>
     <SolidColorBrush x:Key="FloatingCheckBackgroundBrush" Color="#FFFFFF"/>
     <SolidColorBrush x:Key="FloatingButtonHoverBrush" Color="#EEF2F6"/>

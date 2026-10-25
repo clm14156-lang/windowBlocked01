@@ -28,7 +28,7 @@ public partial class FocusTaskDrawer
     {
         ResetTaskDrag();
         if (row.DataContext is not FocusTaskViewModel { IsCompleted: false } task ||
-            ViewModel is not { IsCreating: false } ||
+            ViewModel is not { IsCreating: false, IsCreatingInlineSubTask: false } ||
             !IsTaskDragSource(source, row)) return;
         _dragRow = row;
         _dragTask = task;
@@ -56,7 +56,7 @@ public partial class FocusTaskDrawer
     private void UpdateTaskDrag(Point pointer, MouseButtonState leftButton)
     {
         if (_dragRow is null) return;
-        if (leftButton != MouseButtonState.Pressed || ViewModel is not { IsCreating: false } vm ||
+        if (leftButton != MouseButtonState.Pressed || ViewModel is not { IsCreating: false, IsCreatingInlineSubTask: false } vm ||
             _dragTask is null || _dragTask.IsCompleted || !vm.Tasks.Contains(_dragTask))
         {
             ResetTaskDrag();
@@ -184,12 +184,14 @@ public partial class FocusTaskDrawer
     private void Drawer_Unloaded(object sender, RoutedEventArgs e)
     {
         ResetTaskDrag();
+        DetachCreationPresentation();
         DetachCompletionPresentation();
     }
     private void Drawer_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
         ResetTaskDrag();
+        DetachCreationPresentation();
         DetachCompletionPresentation();
-        if (IsLoaded) AttachCompletionPresentation();
+        if (IsLoaded) { AttachCompletionPresentation(); AttachCreationPresentation(); }
     }
 }

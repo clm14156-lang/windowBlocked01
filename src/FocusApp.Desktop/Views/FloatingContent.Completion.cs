@@ -20,19 +20,20 @@ public partial class FloatingContent
     internal Func<bool> CompletionAnimationPreference { get; set; } = () => SystemParameters.ClientAreaAnimation;
     private Color FloatingTaskColor => ((SolidColorBrush)FindResource("FloatingTaskTextBrush")).Color;
     private Color FloatingCompletedTaskColor => ((SolidColorBrush)FindResource("FloatingCompletedTaskBrush")).Color;
-    private Color FloatingAccentColor => ((SolidColorBrush)FindResource("AccentPrimary")).Color;
+    private Color FloatingAccentColor => ((SolidColorBrush)FindResource("FocusTaskCheckAccentBrush")).Color;
 
-    private void Content_Loaded(object sender, RoutedEventArgs e) { AttachCompletionPresentation(); AttachCreationPresentation(); }
-    private void Content_Unloaded(object sender, RoutedEventArgs e) { DetachCreationPresentation(); DetachCompletionPresentation(); }
+    private void Content_Loaded(object sender, RoutedEventArgs e) { AttachCompletionPresentation(); AttachCreationPresentation(); AttachTaskDrag(); }
+    private void Content_Unloaded(object sender, RoutedEventArgs e) { DetachTaskDrag(); DetachCreationPresentation(); DetachCompletionPresentation(); }
     private void Content_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
+        DetachTaskDrag();
         DetachCreationPresentation();
         DetachCompletionPresentation();
-        if (IsLoaded) { AttachCompletionPresentation(); AttachCreationPresentation(); }
+        if (IsLoaded) { AttachCompletionPresentation(); AttachCreationPresentation(); AttachTaskDrag(); }
     }
     private void Content_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
-        if (!(bool)e.NewValue) { CancelCreationPresentation(); FinishFeedback(); }
+        if (!(bool)e.NewValue) { ResetTaskDrag(); StopTaskReorderMotion(); CancelCreationPresentation(); FinishFeedback(); }
     }
     private void AttachCompletionPresentation()
     {
@@ -69,7 +70,7 @@ public partial class FloatingContent
     private void AnimationSettingsChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(SystemParameters.ClientAreaAnimation) && !CompletionAnimationPreference())
-            Dispatcher.Invoke(FinishFeedback);
+            Dispatcher.Invoke(() => { StopTaskReorderMotion(); FinishFeedback(); });
     }
     private void CompletionModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
@@ -79,6 +80,8 @@ public partial class FloatingContent
     }
     private void ParentCompletionRequested(object? sender, TaskCompletionPresentationEventArgs e)
     {
+        ResetTaskDrag();
+        StopTaskReorderMotion();
         if (!IsLoaded || !IsVisible || !CompletionAnimationPreference() || !e.Task.IsCompleted ||
             e.Task.SubTasks.Any(child => !child.IsCompleted)) return;
         if (_parentAnimations.ContainsKey(e.Task.TaskId)) { e.Handled = true; return; }
@@ -90,8 +93,7 @@ public partial class FloatingContent
         var animation = CreateCompletionFeedback(check, title, parent: true,
             FloatingTaskColor, FloatingCompletedTaskColor, accentColor: FloatingAccentColor);
         _parentAnimations.Add(e.Task.TaskId, animation);
-        // The business state is already complete; ignore further input during its visual exit.
-        animation.Set(row, IsEnabledProperty, false);
+        // Keep the checkbox available so another click can cancel completion during feedback.
         animation.Set(row, RenderTransformProperty, new TranslateTransform());
         AddCompletionKeys(animation.Storyboard, row, OpacityProperty, (0, 1), (350, 1), (500, 0));
         AddCompletionKeys(animation.Storyboard, row, new PropertyPath("(0).(1)", RenderTransformProperty, TranslateTransform.YProperty),

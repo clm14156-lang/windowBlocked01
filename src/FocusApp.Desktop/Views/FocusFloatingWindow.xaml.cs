@@ -28,6 +28,7 @@ public partial class FocusFloatingWindow : Window
     {
         InitializeComponent();
         FloatingContentView.ExpandRequested += FloatingContentView_ExpandRequested;
+        FloatingContentView.TaskReorderStateChanged += FloatingTaskReorderStateChanged;
         _collapseTimer = new DispatcherTimer(DispatcherPriority.Input)
         {
             Interval = TimeSpan.FromMilliseconds(140)
@@ -173,6 +174,14 @@ public partial class FocusFloatingWindow : Window
         ExpandRequested?.Invoke(this, EventArgs.Empty);
     }
 
+    private void FloatingTaskReorderStateChanged(object? sender, EventArgs e)
+    {
+        _collapseTimer.Stop();
+        if (IsVisible && !FloatingContentView.IsTaskReordering && _stateMachine.IsExpandedFromFold &&
+            !IsMouseOver && (DataContext as FocusFloatingWindowViewModel)?.IsCreatingTask != true)
+            _collapseTimer.Start();
+    }
+
     private void Window_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         DesktopDiagnostics.RecordAction("Floating.MouseDown",
@@ -250,7 +259,7 @@ public partial class FocusFloatingWindow : Window
             return;
         }
 
-        if (_stateMachine.IsExpandedFromFold && !_isDragging && (DataContext as FocusFloatingWindowViewModel)?.IsCreatingTask != true)
+        if (_stateMachine.IsExpandedFromFold && !_isDragging && !FloatingContentView.IsTaskReordering && (DataContext as FocusFloatingWindowViewModel)?.IsCreatingTask != true)
         {
             _collapseTimer.Stop();
             _collapseTimer.Start();
@@ -260,7 +269,7 @@ public partial class FocusFloatingWindow : Window
     private void CollapseTimer_Tick(object? sender, EventArgs e)
     {
         _collapseTimer.Stop();
-        if (!_isDragging && _stateMachine.IsExpandedFromFold && !IsMouseOver && (DataContext as FocusFloatingWindowViewModel)?.IsCreatingTask != true)
+        if (!_isDragging && !FloatingContentView.IsTaskReordering && _stateMachine.IsExpandedFromFold && !IsMouseOver && (DataContext as FocusFloatingWindowViewModel)?.IsCreatingTask != true)
         {
             CollapseToFold();
         }
@@ -420,6 +429,7 @@ public partial class FocusFloatingWindow : Window
         _windowSource?.RemoveHook(WindowMessages);
         _collapseTimer.Tick -= CollapseTimer_Tick;
         FloatingContentView.ExpandRequested -= FloatingContentView_ExpandRequested;
+        FloatingContentView.TaskReorderStateChanged -= FloatingTaskReorderStateChanged;
         if (DataContext is FocusFloatingWindowViewModel model) model.PropertyChanged -= Model_PropertyChanged;
         base.OnClosed(e);
     }

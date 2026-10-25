@@ -28,7 +28,7 @@ public sealed class StatisticsOverviewDatePickerTests
     }
 
     [Fact]
-    public void MonthsAndYearsFollowActualFocusSlicesIncludingMidnightAndSubMinuteRecords()
+    public void DailyWeeksAndAnnualMonthsFollowActualFocusSlicesIncludingMidnightAndSubMinuteRecords()
     {
         var now = new DateTime(2027, 1, 1);
         var end = now.AddMinutes(10);
@@ -38,16 +38,16 @@ public sealed class StatisticsOverviewDatePickerTests
         { RecordedFocusDuration = TimeSpan.FromSeconds(30) };
         var model = new StatisticsDashboardViewModel(() => now);
         model.ApplyData([crossYear, delayed, Record(new DateTime(2026, 10, 10, 9, 0, 0), 15)], []);
-        model.SelectMonthCommand.Execute(null);
+        model.SelectDayCommand.Execute(null);
 
-        Assert.Equal(new[] { "2027年1月", "2026年12月", "2026年10月", "2026年6月" }, model.AvailablePeriods.Select(item => item.Label));
+        Assert.Equal(new[] { "2026 第53周", "2026 第41周", "2026 第23周" }, model.AvailablePeriods.Select(item => item.Label));
         Assert.DoesNotContain(model.AvailablePeriods, item => item.Start.Month == 5);
         model.SelectAvailablePeriodCommand.Execute(model.AvailablePeriods[^1]);
         Assert.Equal(TimeSpan.FromSeconds(30), model.TotalDuration);
         Assert.Single(model.Distribution);
         Assert.Equal(1, model.FocusDayCount);
         Assert.Equal(model.TotalDuration, model.Bars.Single(bar => bar.Duration > TimeSpan.Zero).Duration);
-        model.SelectYearCommand.Execute(null);
+        model.SelectMonthCommand.Execute(null);
         Assert.Equal(new[] { "2027年", "2026年" }, model.AvailablePeriods.Select(item => item.Label));
     }
 
@@ -59,32 +59,33 @@ public sealed class StatisticsOverviewDatePickerTests
         var september = Record(new DateTime(2026, 9, 2, 9, 0, 0), 25, "sep", "任务二");
         var model = new StatisticsDashboardViewModel(() => now);
         model.ApplyData([october, september], []);
-        model.SelectMonthCommand.Execute(null);
+        model.SelectDayCommand.Execute(null);
         model.TogglePeriodPickerCommand.Execute(null);
-        model.SelectAvailablePeriodCommand.Execute(model.AvailablePeriods.Single(item => item.Start.Month == 9));
+        var septemberWeek = new DateTime(2026, 8, 31);
+        model.SelectAvailablePeriodCommand.Execute(model.AvailablePeriods.Single(item => item.Start == septemberWeek));
 
         Assert.False(model.IsPeriodPickerOpen);
-        Assert.Equal("2026年9月", model.DateRangeDisplay);
+        Assert.Equal("2026年8月31日 - 9月6日", model.DateRangeDisplay);
         Assert.Equal(25, model.TotalMinutes);
         Assert.Equal(1, model.CompletedTaskCount);
         Assert.Equal(1, model.FocusDayCount);
-        Assert.Equal(30, model.Bars.Count);
+        Assert.Equal(7, model.Bars.Count);
         Assert.Equal(25, model.Bars.Sum(bar => bar.Duration.TotalMinutes));
         Assert.Equal("sep", Assert.Single(model.Distribution).TargetId);
-        Assert.True(model.AvailablePeriods.Single(item => item.Start.Month == 9).IsSelected);
+        Assert.True(model.AvailablePeriods.Single(item => item.Start == septemberWeek).IsSelected);
 
-        var stale = model.AvailablePeriods.Single(item => item.Start.Month == 9);
+        var stale = model.AvailablePeriods.Single(item => item.Start == septemberWeek);
         model.ApplyData([october], []);
-        Assert.Equal("2026年9月", model.DateRangeDisplay);
+        Assert.Equal("2026年8月31日 - 9月6日", model.DateRangeDisplay);
         Assert.Equal(0, model.TotalMinutes);
         Assert.Single(model.AvailablePeriods);
         Assert.DoesNotContain(model.AvailablePeriods, item => item.IsSelected);
         model.SelectAvailablePeriodCommand.Execute(stale);
-        Assert.Equal("2026年9月", model.DateRangeDisplay);
+        Assert.Equal("2026年8月31日 - 9月6日", model.DateRangeDisplay);
         model.SelectAvailablePeriodCommand.Execute(model.AvailablePeriods[0]);
         Assert.Equal(45, model.TotalMinutes);
         model.TogglePeriodPickerCommand.Execute(null);
-        model.SelectYearCommand.Execute(null);
+        model.SelectMonthCommand.Execute(null);
         Assert.False(model.IsPeriodPickerOpen);
         model.ApplyData([], []);
         Assert.Empty(model.AvailablePeriods);
@@ -107,14 +108,35 @@ public sealed class StatisticsOverviewDatePickerTests
         Assert.Equal(10, model.TotalMinutes);
         Assert.Equal(now.Date, Assert.Single(model.Bars.Where(bar => bar.IsToday)).Date);
         Assert.NotNull(model.SelectedDistribution);
-        model.SelectMonthCommand.Execute(null);
+        model.SelectDayCommand.Execute(null);
         var today = Assert.Single(model.Bars.Where(bar => bar.IsToday));
-        Assert.False(today.ShowWeekday);
+        Assert.Equal(StatisticsPeriod.Day, today.Period);
         Assert.Equal("今天", today.Weekday);
-        model.SelectYearCommand.Execute(null);
+        model.SelectMonthCommand.Execute(null);
         Assert.DoesNotContain(model.Bars, bar => bar.IsToday || bar.Weekday == "今天");
         model.PreviousPeriodCommand.Execute(null);
         Assert.DoesNotContain(model.Bars, bar => bar.IsToday);
+    }
+
+    [Fact]
+    public void AnnualWeekPickerUsesIsoYearsAndSwitchingToMonthlyKeepsTheSelectedYear()
+    {
+        var model = new StatisticsDashboardViewModel(() => new DateTime(2027, 1, 1)) { Period = StatisticsPeriod.Week };
+        model.ApplyData([Record(new(2025, 12, 29, 9, 0, 0), 20), Record(new(2026, 12, 28, 9, 0, 0), 30),
+            Record(new(2027, 1, 1, 9, 0, 0), 40), Record(new(2025, 6, 1, 9, 0, 0), 15)], []);
+        Assert.Equal(new[] { "2026年", "2025年" }, model.AvailablePeriods.Select(item => item.Label));
+        model.SelectAvailablePeriodCommand.Execute(model.AvailablePeriods[0]);
+        Assert.Equal("2026年", model.DateRangeDisplay);
+        Assert.Equal(new DateTime(2025, 12, 29), model.PeriodStart);
+        Assert.Equal(53, model.Bars.Count);
+        Assert.Equal(90, model.TotalMinutes);
+        Assert.Equal(20, model.Bars[0].Duration.TotalMinutes);
+        Assert.Equal(70, model.Bars[^1].Duration.TotalMinutes);
+        model.SelectMonthCommand.Execute(null);
+        Assert.Equal("2026年", model.DateRangeDisplay);
+        Assert.Equal(new DateTime(2026, 1, 1), model.PeriodStart);
+        Assert.Equal(30, model.TotalMinutes);
+        Assert.Equal(12, model.Bars.Count);
     }
 
     private static FocusSessionRecordViewModel Record(DateTime start, double minutes, string goal = "g", string task = "") =>

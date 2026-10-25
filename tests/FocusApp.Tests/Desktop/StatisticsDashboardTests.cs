@@ -10,7 +10,7 @@ public sealed class StatisticsDashboardTests
     private static readonly DateTime Today = new(2026, 10, 16, 12, 0, 0);
 
     [Fact]
-    public void AllMetricsAndChartsUseTheSameNaturalWeekMonthAndYear()
+    public void DailyWeeklyAndMonthlyViewsKeepEveryMetricAndChartInTheSameRange()
     {
         var model = new StatisticsDashboardViewModel(() => Today);
         var records = new[]
@@ -31,16 +31,18 @@ public sealed class StatisticsDashboardTests
         Assert.Single(model.Distribution);
         AssertConserved(model);
 
-        model.SelectMonthCommand.Execute(null);
-        Assert.Equal(31, model.Bars.Count);
-        Assert.Equal(3, model.CompletedTaskCount);
-        Assert.Equal(3, model.FocusDayCount);
-        Assert.Equal(135, model.TotalDuration.TotalMinutes);
-        Assert.Equal(2, model.Distribution.Count);
-        Assert.False(model.Bars[0].ShowWeekday);
+        Assert.True(model.IsDay);
+        model.SelectWeekCommand.Execute(null);
+        Assert.Equal(53, model.Bars.Count);
+        Assert.Equal(5, model.CompletedTaskCount);
+        Assert.Equal(5, model.FocusDayCount);
+        Assert.Equal(345, model.TotalDuration.TotalMinutes);
+        Assert.Equal(3, model.Distribution.Count);
+        Assert.All(model.Bars, bar => Assert.True(bar.IsWeekBucket));
+        Assert.Equal(210, model.Bars[0].Duration.TotalMinutes);
         AssertConserved(model);
 
-        model.SelectYearCommand.Execute(null);
+        model.SelectMonthCommand.Execute(null);
         Assert.Equal(12, model.Bars.Count);
         Assert.Equal(4, model.CompletedTaskCount);
         Assert.Equal(4, model.FocusDayCount);
@@ -54,17 +56,20 @@ public sealed class StatisticsDashboardTests
 
     [Theory]
     [InlineData(2024, 2, 29)] [InlineData(2025, 2, 28)] [InlineData(2026, 4, 30)] [InlineData(2026, 12, 31)]
-    public void CalendarNavigationSupportsLeapMonthsAndYearBoundaries(int year, int month, int dayCount)
+    public void DailyWeekNavigationSupportsLeapDaysAndYearBoundaries(int year, int month, int day)
     {
-        var model = new StatisticsDashboardViewModel(() => new DateTime(year, month, 15));
-        model.SelectMonthCommand.Execute(null);
-        Assert.Equal(dayCount, model.Bars.Count);
+        var selected = new DateTime(year, month, day);
+        var model = new StatisticsDashboardViewModel(() => selected);
+        model.SelectDayCommand.Execute(null);
+        Assert.Equal(7, model.Bars.Count);
+        Assert.Equal(DayOfWeek.Monday, model.PeriodStart.DayOfWeek);
+        Assert.Contains(model.Bars, bar => bar.Date == selected);
         var original = model.PeriodStart;
         model.NextPeriodCommand.Execute(null);
-        Assert.Equal(original.AddMonths(1), model.PeriodStart);
+        Assert.Equal(original.AddDays(7), model.PeriodStart);
         model.PreviousPeriodCommand.Execute(null);
         Assert.Equal(original, model.PeriodStart);
-        model.SelectYearCommand.Execute(null);
+        model.SelectMonthCommand.Execute(null);
         model.PreviousPeriodCommand.Execute(null);
         Assert.Equal(new DateTime(year - 1, 1, 1), model.PeriodStart);
         model.NextPeriodCommand.Execute(null);
@@ -72,7 +77,7 @@ public sealed class StatisticsDashboardTests
     }
 
     [Fact]
-    public void WeekAcrossTwoYearsAndPreviousNextPeriodsKeepAllProjectionsAligned()
+    public void DailyWeekAcrossTwoYearsAndPreviousNextPeriodsKeepAllProjectionsAligned()
     {
         var model = new StatisticsDashboardViewModel(() => new DateTime(2026, 1, 2));
         model.ApplyData([Record(new(2025, 12, 29, 9, 0, 0), 20), Record(new(2026, 1, 4, 9, 0, 0), 40)], []);
@@ -102,13 +107,11 @@ public sealed class StatisticsDashboardTests
         model.ApplyData([record], []);
         Assert.Equal(TimeSpan.FromMinutes(10) + TimeSpan.FromSeconds(20), model.TotalDuration);
         Assert.Equal(1, model.FocusDayCount);
-        Assert.Equal("10分钟20秒", model.Bars[0].DurationDisplay);
+        Assert.Equal("10分钟", model.Bars[0].DurationDisplay);
         AssertConserved(model);
         model.PreviousPeriodCommand.Execute(null);
         Assert.Equal(TimeSpan.FromMinutes(20) + TimeSpan.FromSeconds(20), model.TotalDuration);
         AssertConserved(model);
-        model.SelectYearCommand.Execute(null);
-        Assert.Equal(2025, model.PeriodStart.Year);
         Assert.Equal(TimeSpan.FromMinutes(20) + TimeSpan.FromSeconds(20), model.Bars[11].Duration);
         model.NextPeriodCommand.Execute(null);
         Assert.Equal(TimeSpan.FromMinutes(10) + TimeSpan.FromSeconds(20), model.Bars[0].Duration);
@@ -155,7 +158,7 @@ public sealed class StatisticsDashboardTests
     }
 
     [Theory]
-    [InlineData(StatisticsPeriod.Week)] [InlineData(StatisticsPeriod.Month)] [InlineData(StatisticsPeriod.Year)]
+    [InlineData(StatisticsPeriod.Week)] [InlineData(StatisticsPeriod.Day)] [InlineData(StatisticsPeriod.Month)]
     public void EmptyAndSubMinuteDataHaveValidAxesTotalsAndNoFakeSegments(StatisticsPeriod period)
     {
         var model = new StatisticsDashboardViewModel(() => Today) { Period = period };
@@ -178,7 +181,7 @@ public sealed class StatisticsDashboardTests
     [Fact]
     public void YearAxisDoesNotCapMonthlyTotalsAtTwentyFourHours()
     {
-        var model = new StatisticsDashboardViewModel(() => Today) { Period = StatisticsPeriod.Year };
+        var model = new StatisticsDashboardViewModel(() => Today) { Period = StatisticsPeriod.Month };
         model.ApplyData(Enumerable.Range(1, 20).Select(day => Record(new(2026, 10, day, 8, 0, 0), 480)), []);
         Assert.Equal(9600, model.Bars[9].Duration.TotalMinutes);
         Assert.True(model.AxisMaximumMinutes >= 9600);
@@ -209,7 +212,7 @@ public sealed class StatisticsDashboardTests
         Assert.Null(model.SelectedDistribution);
         model.ToggleDistribution(second); model.ClearDistributionSelection();
         Assert.Null(model.ActiveDistribution);
-        model.ToggleDistribution(first); model.SelectYearCommand.Execute(null);
+        model.ToggleDistribution(first); model.SelectMonthCommand.Execute(null);
         Assert.Null(model.ActiveDistribution);
         Assert.Null(model.SelectedDistribution);
         model.HoverDistribution(first);
@@ -226,7 +229,7 @@ public sealed class StatisticsDashboardTests
         record.EndTime = record.StartTime.AddMinutes(45);
         Assert.Equal(45, parent.Overview.TotalMinutes);
         parent.SelectCalendarCommand.Execute(null);
-        parent.Overview.SelectMonthCommand.Execute(null);
+        parent.Overview.SelectDayCommand.Execute(null);
         Assert.True(parent.IsCalendarSelected);
         parent.AddGoalCommand.Execute(null); parent.NewGoalName = "保留创建目标"; parent.ConfirmCreateGoalCommand.Execute(null);
         Assert.Contains(parent.Goals, goal => goal.Name == "保留创建目标");
@@ -246,6 +249,44 @@ public sealed class StatisticsDashboardTests
         model.ApplyData([Record(Today.AddHours(1), 20, "b")], []);
         Assert.Null(model.SelectedDistribution);
         Assert.Null(model.ActiveDistribution);
+    }
+
+    [Theory]
+    [InlineData(2020, 53)]
+    [InlineData(2021, 52)]
+    [InlineData(2026, 53)]
+    [InlineData(2027, 52)]
+    public void WeeklyYearHasEveryIsoWeekAndClipsBoundarySessionsWithoutLosingDuration(int year, int weeks)
+    {
+        var model = new StatisticsDashboardViewModel(() => new DateTime(year, 6, 15)) { Period = StatisticsPeriod.Week };
+        Assert.Equal(weeks, model.Bars.Count);
+        Assert.Equal($"{year}年", model.DateRangeDisplay);
+        Assert.Equal("每周专注时长", model.ChartTitle);
+        Assert.Equal(model.PeriodStart.AddDays(weeks * 7), model.PeriodEndExclusive);
+        for (var index = 0; index < weeks; index++)
+        {
+            Assert.Equal(DayOfWeek.Monday, model.Bars[index].Date.DayOfWeek);
+            Assert.Equal(index + 1, System.Globalization.ISOWeek.GetWeekOfYear(model.Bars[index].Date));
+            Assert.Equal(year, System.Globalization.ISOWeek.GetYear(model.Bars[index].Date));
+            Assert.True(model.Bars[index].IsWeekBucket);
+            Assert.Equal(model.PeriodStart.AddDays(index * 7), model.Bars[index].Date);
+        }
+        var start = model.PeriodStart;
+        var end = model.PeriodEndExclusive;
+        model.ApplyData([Record(start.AddMinutes(-10), 30), Record(end.AddMinutes(-10), 30)], []);
+        Assert.Equal(20, model.Bars[0].Duration.TotalMinutes);
+        Assert.Equal(10, model.Bars[^1].Duration.TotalMinutes);
+        Assert.Equal(30, model.TotalMinutes);
+        Assert.Contains($"{year}年 第1周", model.Bars[0].TooltipDate);
+        Assert.Contains(start.ToString(start.Year == start.AddDays(6).Year ? "MM.dd" : "yyyy.MM.dd"), model.Bars[0].TooltipDateRange);
+        Assert.Contains(start.AddDays(6).ToString(start.Year == start.AddDays(6).Year ? "MM.dd" : "yyyy.MM.dd"), model.Bars[0].TooltipDateRange);
+        AssertConserved(model);
+        model.NextPeriodCommand.Execute(null);
+        Assert.Equal($"{year + 1}年", model.DateRangeDisplay);
+        Assert.Equal(System.Globalization.ISOWeek.GetWeeksInYear(year + 1), model.Bars.Count);
+        model.PreviousPeriodCommand.Execute(null);
+        Assert.Equal(start, model.PeriodStart);
+        Assert.Equal(30, model.TotalMinutes);
     }
 
     private static FocusSessionRecordViewModel Record(DateTime start, double minutes, string goal = "g", string name = "目标", params string[] tasks) =>

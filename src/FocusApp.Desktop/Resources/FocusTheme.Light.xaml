@@ -1,13 +1,17 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:system="clr-namespace:System;assembly=System.Runtime">
     <!-- Match the neutral text hierarchy used by the statistics pages. -->
-    <system:Double x:Key="FocusGreetingTitleFontSize">18</system:Double>
+    <system:Double x:Key="FocusGreetingTitleFontSize">20</system:Double>
     <system:Double x:Key="FocusTaskHeadingFontSize">18</system:Double>
     <system:Double x:Key="FocusTaskNumberFontSize">10</system:Double>
     <FontWeight x:Key="FocusTaskNameFontWeight">Medium</FontWeight>
     <system:Double x:Key="FocusCompletedTaskRowOpacity">1</system:Double>
     <SolidColorBrush x:Key="FocusEndDialogBackground" Color="#FFFEFD" />
     <SolidColorBrush x:Key="FocusEndConfirmationBackground" Color="#FFFEFD" />
+    <SolidColorBrush x:Key="FocusEndConfirmationScrim" Color="#99000000" />
+    <SolidColorBrush x:Key="FocusEndConfirmationSecondaryBrush" Color="#737B88" />
+    <SolidColorBrush x:Key="FocusEndConfirmationBorderBrush" Color="Transparent" />
+    <Thickness x:Key="FocusEndConfirmationBorderThickness">0</Thickness>
     <SolidColorBrush x:Key="FocusEndDialogBorder" Color="#E9EDF2" />
     <SolidColorBrush x:Key="FocusEndTitleBrush" Color="#101722" />
     <SolidColorBrush x:Key="FocusEndSecondaryBrush" Color="#737B88" />
@@ -16,7 +20,7 @@
     <SolidColorBrush x:Key="FocusEndWarningIconBrush" Color="#FF983E" />
     <SolidColorBrush x:Key="FocusEndWarningTextBrush" Color="#6F7785" />
     <SolidColorBrush x:Key="FocusTitleBrush" Color="#18212F" />
-    <SolidColorBrush x:Key="FocusSubtitleBrush" Color="#667085" />
+    <SolidColorBrush x:Key="FocusSubtitleBrush" Color="#52647A" />
     <SolidColorBrush x:Key="FocusCompletionSecondaryBrush" Color="#667085" />
     <SolidColorBrush x:Key="FocusCompletionStatisticLabelBrush" Color="#667085" />
     <SolidColorBrush x:Key="FocusCompletionValueBrush" Color="#374151" />
@@ -26,6 +30,10 @@
     <SolidColorBrush x:Key="FocusTargetBrush" Color="#374151" />
     <SolidColorBrush x:Key="FocusFooterBrush" Color="#374151" />
     <SolidColorBrush x:Key="FocusFooterHoverBrush" Color="#FF7A19" />
+    <SolidColorBrush x:Key="FocusFooterActionHoverForeground" Color="#18212F" />
+    <SolidColorBrush x:Key="FocusFooterActionPressedForeground" Color="#111827" />
+    <SolidColorBrush x:Key="FocusFooterActionHoverBackground" Color="#0D18212F" />
+    <SolidColorBrush x:Key="FocusFooterActionPressedBackground" Color="#1718212F" />
     <SolidColorBrush x:Key="FocusRuleBrush" Color="#E4E7EC" />
     <SolidColorBrush x:Key="FocusDividerBrush" Color="#E4E7EC" />
     <SolidColorBrush x:Key="FocusNoticeBrush" Color="#667085" />
@@ -112,8 +120,8 @@
     <BitmapImage x:Key="FocusSceneContactShadow" CacheOption="OnLoad" DecodePixelWidth="512" UriSource="/FocusApp.Desktop;component/Assets/Images/focusPage/white_shadow01.png" />
     <SolidColorBrush x:Key="FocusWeatherBrush" Color="#648BAB" />
     <x:Array x:Key="FocusSceneLeaves" Type="{x:Type ImageSource}">
-        <BitmapImage CacheOption="OnLoad" DecodePixelWidth="64" UriSource="/FocusApp.Desktop;component/Assets/Images/focusPage/white_yezi01.png" />
-        <BitmapImage CacheOption="OnLoad" DecodePixelWidth="64" UriSource="/FocusApp.Desktop;component/Assets/Images/focusPage/white_yezi02.png" />
-        <BitmapImage CacheOption="OnLoad" DecodePixelWidth="64" UriSource="/FocusApp.Desktop;component/Assets/Images/focusPage/white_yezi03.png" />
+        <BitmapImage CacheOption="OnLoad" DecodePixelWidth="64" UriSource="/FocusApp.Desktop;component/Assets/Images/focusPage/shuye_001.png" />
+        <BitmapImage CacheOption="OnLoad" DecodePixelWidth="64" UriSource="/FocusApp.Desktop;component/Assets/Images/focusPage/shuye_002.png" />
+        <BitmapImage CacheOption="OnLoad" DecodePixelWidth="64" UriSource="/FocusApp.Desktop;component/Assets/Images/focusPage/shuye_003.png" />
     </x:Array>
 </ResourceDictionary>

@@ -22,7 +22,7 @@ internal static class TaskCompletionMotion
             if ((check.Template.FindName("CheckChrome", check) ?? check.Template.FindName("CheckSurface", check)
                 ?? FindCompletionElement<Border>(check, string.Empty)) is Border chrome)
             {
-                var accent = new SolidColorBrush(accentColor ?? Color.FromRgb(0xFF, 0x7A, 0x19));
+                var accent = new SolidColorBrush(accentColor ?? ((SolidColorBrush)check.FindResource("FocusTaskCheckAccentBrush")).Color);
                 animation.Set(chrome, Border.BackgroundProperty, accent);
                 animation.Set(chrome, Border.BorderBrushProperty, accent);
                 if (accentChild && FindCompletionElement<System.Windows.Shapes.Path>(check, "Tick") is { } tick)
@@ -31,15 +31,19 @@ internal static class TaskCompletionMotion
         }
         var pending = pendingColor ?? Color.FromRgb(0x53, 0x59, 0x65);
         var completed = completedColor ?? Color.FromRgb(0xA0, 0xA4, 0xAC);
-        var foreground = new SolidColorBrush(pending);
-        animation.Set(title, TextBlock.ForegroundProperty, foreground);
-        var color = new ColorAnimationUsingKeyFrames();
-        color.KeyFrames.Add(new DiscreteColorKeyFrame(pending, KeyTime.FromTimeSpan(TimeSpan.Zero)));
-        color.KeyFrames.Add(new DiscreteColorKeyFrame(pending, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(120))));
-        color.KeyFrames.Add(new LinearColorKeyFrame(completed, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(250))));
-        Storyboard.SetTarget(color, title);
-        Storyboard.SetTargetProperty(color, new PropertyPath("(0).(1)", TextBlock.ForegroundProperty, SolidColorBrush.ColorProperty));
-        animation.Storyboard.Children.Add(color);
+        // Matching colors keep the title's dynamic theme brush throughout completion feedback.
+        if (pending != completed)
+        {
+            var foreground = new SolidColorBrush(pending);
+            animation.Set(title, TextBlock.ForegroundProperty, foreground);
+            var color = new ColorAnimationUsingKeyFrames();
+            color.KeyFrames.Add(new DiscreteColorKeyFrame(pending, KeyTime.FromTimeSpan(TimeSpan.Zero)));
+            color.KeyFrames.Add(new DiscreteColorKeyFrame(pending, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(120))));
+            color.KeyFrames.Add(new LinearColorKeyFrame(completed, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(250))));
+            Storyboard.SetTarget(color, title);
+            Storyboard.SetTargetProperty(color, new PropertyPath("(0).(1)", TextBlock.ForegroundProperty, SolidColorBrush.ColorProperty));
+            animation.Storyboard.Children.Add(color);
+        }
         var strike = new SolidColorBrush(completed) { Opacity = 0 };
         animation.Set(title, TextBlock.TextDecorationsProperty, new TextDecorationCollection
         {

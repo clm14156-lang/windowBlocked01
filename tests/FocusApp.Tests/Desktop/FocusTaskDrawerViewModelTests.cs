@@ -103,7 +103,7 @@ public sealed class FocusTaskDrawerViewModelTests
         Assert.Same(task, drawer.SelectedTask);
         drawer.EditTaskCommand.Execute(task);
         Assert.True(drawer.IsEditingTask);
-        Assert.Equal("保存修改", drawer.CommitButtonText);
+        Assert.Equal("保存", drawer.CommitButtonText);
         Assert.Equal("原描述", drawer.Draft!.Description);
         Assert.Equal(subId, drawer.Draft.SubTasks[0].Id);
         drawer.DraftTitle = "未保存";

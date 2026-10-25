@@ -15,12 +15,19 @@ public partial class FocusTaskDrawer
     private readonly Dictionary<FrameworkElement, SubTaskFeedback> _subTaskFeedback = [];
     private Storyboard? _progressCollapse;
     private object _progressClipToBounds = DependencyProperty.UnsetValue;
+    private Color TaskTextColor => ((SolidColorBrush)FindResource("FocusTaskText")).Color;
 
-    private void Drawer_Loaded(object sender, RoutedEventArgs e) => AttachCompletionPresentation();
+    private void Drawer_Loaded(object sender, RoutedEventArgs e) { AttachCompletionPresentation(); AttachCreationPresentation(); }
 
     private void Drawer_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
-        if (!(bool)e.NewValue) _presentationModel?.FinishCompletionAnimations();
+        if (!(bool)e.NewValue)
+        {
+            _hoveredCreationTask = null;
+            _inlineFocusOperation?.Abort();
+            ViewModel?.CancelInlineSubTaskCreation();
+            _presentationModel?.FinishCompletionAnimations();
+        }
     }
 
     private void AttachCompletionPresentation()
@@ -67,7 +74,7 @@ public partial class FocusTaskDrawer
 
         if (ReferenceEquals(_dragTask, e.Task)) ResetTaskDrag();
         check.GetBindingExpression(CheckBox.IsCheckedProperty)?.UpdateTarget();
-        var animation = CreateCompletionFeedback(check, title, parent: true);
+        var animation = CreateCompletionFeedback(check, title, parent: true, TaskTextColor, TaskTextColor);
         _completionAnimations.Add(e.Task, animation);
         animation.Set(row, ClipToBoundsProperty, true);
         var translation = new TranslateTransform();
@@ -145,7 +152,7 @@ public partial class FocusTaskDrawer
                 FindCompletionElement<CheckBox>(row, "SubTaskCompletionCheck") is not { } check ||
                 FindCompletionElement<TextBlock>(row, "SubTaskTitle") is not { } title) return;
             check.GetBindingExpression(CheckBox.IsCheckedProperty)?.UpdateTarget();
-            var animation = CreateCompletionFeedback(check, title, parent: false);
+            var animation = CreateCompletionFeedback(check, title, parent: false, TaskTextColor, TaskTextColor);
             feedback.Animation = animation;
             animation.Storyboard.Duration = TimeSpan.FromMilliseconds(250);
             animation.Storyboard.Completed += (_, _) =>

@@ -180,12 +180,16 @@ public sealed class FocusFloatingWindowViewModelTests
         Assert.DoesNotContain(parent, session.TaskDrawer.Tasks);
         Assert.Equal("下一个任务", model.CurrentTaskName);
         Assert.Empty(session.CompletionHistory);
-        model.ToggleTaskCompletedCommand.Execute(parent); // A stale double click cannot undo or save again.
-        Assert.Equal(1, saves);
-        Assert.Equal(1, completions);
-        Assert.Equal(time.ToUniversalTime(), parent.CompletedAtUtc);
+        model.ToggleTaskCompletedCommand.Execute(parent); // A second checkbox click restores the task.
+        Assert.Equal(2, saves);
+        Assert.Equal(2, completions);
+        Assert.False(parent.IsCompleted);
+        Assert.Null(parent.CompletedAtUtc);
+        Assert.Contains(parent, model.PendingTasks);
+        Assert.Empty(session.SessionCompletedTasks);
 
-        parent.SubTasks[2].IsCompleted = false; // Restoring in the main TodoList updates the floating window.
+        model.ToggleTaskCompletedCommand.Execute(parent);
+        parent.SubTasks[2].IsCompleted = false; // Restoring in the main TodoList still updates the floating window.
         Assert.False(parent.IsCompleted);
         Assert.Null(parent.CompletedAtUtc);
         Assert.Contains(parent, model.PendingTasks);
@@ -238,6 +242,38 @@ public sealed class FocusFloatingWindowViewModelTests
         model.ToggleTaskCompletedCommand.Execute(other.Tasks[0]);
         Assert.False(other.Tasks[0].IsCompleted);
         Assert.Empty(session.SessionCompletedTasks);
+    }
+
+    [Fact]
+    public void FloatingReorderUsesTheMainTodoListSaveAndLeavesCompletedTasksAtTheBottom()
+    {
+        var target = new FocusTargetViewModel("目标", ["第一项", "第二项", "已完成"]);
+        var tasks = target.Tasks.ToArray();
+        var session = CreateFocusingSession(25, target);
+        session.ToggleTaskCompletedCommand.Execute(tasks[2]);
+        using var model = new FocusFloatingWindowViewModel(session);
+        var saves = 0;
+        FocusTaskViewModel[]? saved = null;
+        session.TargetTasksChanged += (_, value) => { saves++; saved = value.Tasks.ToArray(); };
+        Assert.True(model.MoveTask(tasks[1], 0));
+        Assert.Equal(new[] { tasks[1], tasks[0], tasks[2] }, target.Tasks);
+        Assert.Equal(target.Tasks, session.TaskDrawer.VisibleTasks);
+        Assert.Equal(target.Tasks, saved);
+        Assert.Equal(new[] { tasks[1], tasks[0] }, model.VisibleTasks);
+        Assert.Equal(1, saves);
+        Assert.False(model.MoveTask(tasks[1], 0));
+        Assert.False(model.MoveTask(tasks[2], 0));
+        Assert.False(model.MoveTask(tasks[0], -1));
+        Assert.False(model.MoveTask(tasks[0], 2));
+        Assert.False(model.MoveTask(new FocusTargetViewModel("其他目标", ["其他任务"]).Tasks[0], 0));
+        Assert.True(model.BeginTaskCreation());
+        Assert.False(model.MoveTask(tasks[0], 0));
+        model.CancelTaskCreation();
+        session.TaskDrawer.AddTaskCommand.Execute(null);
+        Assert.False(model.MoveTask(tasks[0], 0));
+        Assert.Equal(1, saves);
+        model.Dispose();
+        Assert.False(model.MoveTask(tasks[0], 0));
     }
 
     private static FocusSessionViewModel CreateFocusingSession(
