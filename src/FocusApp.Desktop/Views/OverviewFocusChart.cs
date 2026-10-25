@@ -21,7 +21,7 @@ public sealed class OverviewFocusChart : FrameworkElement
     public OverviewFocusBar? HoveredBar { get; private set; }
     public Point HoverAnchor { get; private set; }
     public event EventHandler? HoverChanged;
-    internal Rect PlotBounds => new(36, 12, Math.Max(0, ActualWidth - 48), Math.Max(0, ActualHeight - (Model?.IsDay == true ? 58 : 42)));
+    internal Rect PlotBounds => new(36, 12, Math.Max(0, ActualWidth - 48), Math.Max(0, ActualHeight - (Model?.IsYear == true ? 42 : 58)));
 
     public OverviewFocusChart()
     {
@@ -70,21 +70,8 @@ public sealed class OverviewFocusChart : FrameworkElement
             DrawText(drawing, tick.Label, 11, new Point(0, y - 7), 32);
         }
         var slot = plot.Width / model.Bars.Count;
-        var width = Math.Min(model.IsMonth ? 30 : model.IsWeek ? 10 : 44, slot * .5);
-        // Thin dense labels without hiding any daily or weekly data columns.
-        var dense = model.IsWeek;
-        var labelWidth = model.IsWeek ? 32 : slot;
-        var labelStep = dense ? Math.Max(1, (int)Math.Ceiling(labelWidth / slot)) : 1;
-        var occupiedLabels = new List<Rect>();
-        if (model.IsWeek)
-            occupiedLabels.Add(new Rect(plot.Right - slot / 2 - labelWidth / 2, plot.Bottom + 8, labelWidth, 16));
-        if (model.IsDay)
-        {
-            var todayIndex = model.Bars.ToList().FindIndex(bar => bar.IsToday);
-            if (todayIndex >= 0)
-                occupiedLabels.Add(new Rect(plot.Left + (todayIndex + .5) * slot - labelWidth / 2,
-                    plot.Bottom + 8, labelWidth, 16));
-        }
+        var width = Math.Min(model.IsYear ? 30 : model.IsMonth ? 10 : 44, slot * .5);
+        var labelWidth = slot;
         for (var index = 0; index < model.Bars.Count; index++)
         {
             var bar = model.Bars[index];
@@ -98,13 +85,9 @@ public sealed class OverviewFocusChart : FrameworkElement
                 drawing.Pop();
             }
             var labelBounds = new Rect(center - labelWidth / 2, plot.Bottom + 8, labelWidth, 16);
-            if (!dense || bar.IsToday || model.IsWeek && index == model.Bars.Count - 1 ||
-                (index % labelStep == 0 && !occupiedLabels.Any(bounds => bounds.IntersectsWith(labelBounds))))
-            {
-                DrawText(drawing, bar.AxisLabel, 11, labelBounds.TopLeft, labelWidth, TextAlignment.Center, bar.IsToday);
-                if (dense && !bar.IsToday) occupiedLabels.Add(labelBounds);
-            }
-            if (model.IsDay)
+            // Every day retains its label, including dates with no recorded focus.
+            DrawText(drawing, bar.AxisLabel, 11, labelBounds.TopLeft, labelWidth, TextAlignment.Center, bar.IsToday);
+            if (!model.IsYear && !string.IsNullOrEmpty(bar.Weekday))
             {
                 var weekdayWidth = bar.IsToday ? Math.Max(28, slot) : slot;
                 DrawText(drawing, bar.Weekday, 11, new Point(center - weekdayWidth / 2, plot.Bottom + 25), weekdayWidth, TextAlignment.Center, bar.IsToday);

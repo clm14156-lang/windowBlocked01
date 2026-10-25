@@ -58,11 +58,20 @@ public sealed class StatisticsOverviewDatePickerPresentationTests
                 Click(previous); Pump(view);
                 Assert.False(popup.IsOpen); Assert.Equal(expected, model.PeriodStart);
 
-                Click((RadioButton)view.FindName("DayPeriodButton")); Pump(view); Open();
+                Click((RadioButton)view.FindName("WeekPeriodButton")); Pump(view); Open();
                 Assert.All(model.AvailablePeriods, item => Assert.EndsWith("周", item.Label));
                 Click(Children<Button>(popup.Child).Single(item => item.DataContext is OverviewPeriodOption { Start.Month: 9 })); Pump(view);
                 Assert.Equal(25, model.TotalMinutes); Assert.Equal("2026年9月14日 - 9月20日", ((TextBlock)view.FindName("OverviewDateRange")).Text);
                 Click((RadioButton)view.FindName("MonthPeriodButton")); Pump(view); Open();
+                Assert.Equal(new[] { "2026年10月", "2026年9月", "2025年10月" }, model.AvailablePeriods.Select(item => item.Label));
+                Click(Children<Button>(popup.Child).Single(item => item.DataContext is OverviewPeriodOption { Start.Month: 9 })); Pump(view);
+                Assert.Equal(30, model.Bars.Count); Assert.Equal(25, model.TotalMinutes);
+                Assert.Equal("2026年9月", ((TextBlock)view.FindName("OverviewDateRange")).Text);
+                Open();
+                Click(Children<Button>(popup.Child).Single(item => item.DataContext is OverviewPeriodOption { Start.Year: 2026, Start.Month: 10 })); Pump(view);
+                Assert.Equal(31, model.Bars.Count); Assert.Equal(60, model.TotalMinutes);
+                Assert.Equal("2026年10月", ((TextBlock)view.FindName("OverviewDateRange")).Text);
+                Click((RadioButton)view.FindName("YearPeriodButton")); Pump(view); Open();
                 Assert.Equal(new[] { "2026年", "2025年" }, model.AvailablePeriods.Select(item => item.Label));
                 Assert.True(((PoptipChrome)view.FindName("OverviewPeriodPopupSurface")).ActualWidth <= weekWidth);
                 var escape = new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(popup.Child)!, 0, Key.Escape) { RoutedEvent = Keyboard.PreviewKeyDownEvent };
@@ -101,7 +110,7 @@ public sealed class StatisticsOverviewDatePickerPresentationTests
                     Assert.Contains("今天", labels);
                 }
                 VerifyToday();
-                Click((RadioButton)view.FindName("DayPeriodButton")); Pump(view); VerifyToday();
+                Click((RadioButton)view.FindName("MonthPeriodButton")); Pump(view); VerifyToday();
                 var center = (StackPanel)view.FindName("DistributionCenter");
                 var value = (TextBlock)view.FindName("DistributionCenterValue");
                 Assert.Null(view.FindName("DistributionCenterTitle"));
@@ -112,7 +121,7 @@ public sealed class StatisticsOverviewDatePickerPresentationTests
                 Assert.True(center.ActualWidth < 104);
                 Assert.Equal("10小时", string.Concat(value.Inlines.OfType<System.Windows.Documents.Run>().Select(run => run.Text)));
                 Assert.Equal("24分钟", model.DonutRemainder);
-                Click((RadioButton)view.FindName("MonthPeriodButton")); Pump(view);
+                Click((RadioButton)view.FindName("YearPeriodButton")); Pump(view);
                 Assert.DoesNotContain(Drawings(VisualTreeHelper.GetDrawing(chart)).OfType<GlyphRunDrawing>(),
                     item => item.ForegroundBrush is SolidColorBrush brush && brush.Color == Color.FromRgb(255, 138, 37));
             }

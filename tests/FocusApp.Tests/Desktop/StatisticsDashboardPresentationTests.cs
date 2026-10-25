@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using FocusApp.Desktop.ViewModels;
 using FocusApp.Desktop.Views;
@@ -52,12 +53,12 @@ public sealed class StatisticsDashboardPresentationTests
         Sta(() =>
         {
             using var host = new Host();
-            Assert.True(host.Named<RadioButton>("DayPeriodButton").IsChecked);
-            Assert.Null(host.View.FindName("YearPeriodButton"));
-            Invoke(host.Named<RadioButton>("DayPeriodButton")); Pump();
-            Assert.True(host.Model.IsDay); Assert.Equal(7, host.Model.Bars.Count);
-            Invoke(host.Named<RadioButton>("MonthPeriodButton")); Pump();
-            Assert.True(host.Model.IsMonth); Assert.Equal(12, host.Model.Bars.Count);
+            Assert.True(host.Named<RadioButton>("WeekPeriodButton").IsChecked);
+            Assert.Null(host.View.FindName("DayPeriodButton"));
+            Invoke(host.Named<RadioButton>("WeekPeriodButton")); Pump();
+            Assert.True(host.Model.IsWeek); Assert.Equal(7, host.Model.Bars.Count);
+            Invoke(host.Named<RadioButton>("YearPeriodButton")); Pump();
+            Assert.True(host.Model.IsYear); Assert.Equal(12, host.Model.Bars.Count);
             Assert.All(host.Model.Bars, item => Assert.True(item.IsMonthBucket));
             Assert.Null(host.View.FindName("PreviousOverviewPeriod"));
             host.Model.PreviousPeriodCommand.Execute(null); Pump();
@@ -65,8 +66,13 @@ public sealed class StatisticsDashboardPresentationTests
             Assert.Equal(TimeSpan.Zero, host.Model.TotalDuration);
             Assert.Empty(host.Model.Distribution);
             Assert.Equal(Visibility.Visible, host.Named<StackPanel>("DistributionEmptyState").Visibility);
-            Invoke(host.Named<RadioButton>("WeekPeriodButton")); Pump(); Assert.Equal(52, host.Model.Bars.Count);
-            Assert.All(host.Model.Bars, item => Assert.True(item.IsWeekBucket));
+            Invoke(host.Named<RadioButton>("MonthPeriodButton")); Pump(); Assert.Equal(31, host.Model.Bars.Count);
+            Assert.True(host.Model.IsMonth);
+            Assert.Equal("2025年1月", host.Named<TextBlock>("OverviewDateRange").Text);
+            Assert.Equal(new[] { "周", "月", "年" }, Descendants<RadioButton>(host.Named<Border>("OverviewPeriodSegments")).Select(button => button.Content));
+            var selected = host.Named<RadioButton>("MonthPeriodButton");
+            var selectedFill = Assert.IsType<LinearGradientBrush>(((Border)selected.Template.FindName("SegmentSurface", selected)).Background);
+            Assert.Equal(new[] { Color.FromRgb(255, 162, 71), Color.FromRgb(255, 139, 48) }, selectedFill.GradientStops.Select(stop => stop.Color));
         });
     }
 
@@ -190,8 +196,8 @@ public sealed class StatisticsDashboardPresentationTests
                     var bar = host.Chart.HoveredBar!;
                     Assert.True(host.Tip.IsOpen);
                     Assert.Equal(bar.TooltipDate, host.Named<TextBlock>("TipTitle").Text);
-                    Assert.Equal(bar.TooltipDateRange, host.Named<TextBlock>("TipDateRange").Text);
-                    Assert.Equal(bar.IsWeekBucket ? Visibility.Visible : Visibility.Collapsed, host.Named<TextBlock>("TipDateRange").Visibility);
+                    Assert.Empty(host.Named<TextBlock>("TipDateRange").Text);
+                    Assert.Equal(Visibility.Collapsed, host.Named<TextBlock>("TipDateRange").Visibility);
                     Assert.Equal(bar.DurationDisplay, host.Named<System.Windows.Documents.Run>("TipDuration").Text);
                     Assert.Equal(bar.Duration.TotalSeconds < 60 ? "不足1分钟" : "1分钟", host.Named<System.Windows.Documents.Run>("TipDuration").Text);
                     var tipSurface = host.Named<PoptipChrome>("OverviewTipSurface");
@@ -212,16 +218,16 @@ public sealed class StatisticsDashboardPresentationTests
     }
 
     [Theory]
-    [InlineData(StatisticsPeriod.Week)]
-    [InlineData(StatisticsPeriod.Day)]
     [InlineData(StatisticsPeriod.Month)]
+    [InlineData(StatisticsPeriod.Week)]
+    [InlineData(StatisticsPeriod.Year)]
     public void EmptyBucketsCloseTheSharedPoptipWhileSubMinuteDataRemainsHoverable(StatisticsPeriod period)
     {
         Sta(() =>
         {
             using var host = new Host();
             host.Model.Period = period;
-            var date = period == StatisticsPeriod.Month ? host.Model.PeriodStart.AddMonths(1) : host.Model.PeriodStart.AddDays(1);
+            var date = period == StatisticsPeriod.Year ? host.Model.PeriodStart.AddMonths(1) : host.Model.PeriodStart.AddDays(1);
             var start = date.AddHours(9);
             host.Model.ApplyData([new(start, start.AddSeconds(30), "g0", "工作", "", 0),
                 new(start.AddDays(1), start.AddDays(1), "g0", "工作", "", 0)], []); Pump();
@@ -287,42 +293,97 @@ public sealed class StatisticsDashboardPresentationTests
     }
 
     [Theory]
-    [InlineData(620, 2025, 52)]
-    [InlineData(694, 2026, 53)]
-    [InlineData(900, 2026, 53)]
-    public void AnnualWeeklyChartPaintsEveryColumnAndKeepsBoundaryWeekTooltipsInsideTheWindow(int width, int year, int weeks)
+    [InlineData(620, 2025, 2, 28)]
+    [InlineData(694, 2024, 2, 29)]
+    [InlineData(694, 2026, 4, 30)]
+    [InlineData(694, 2026, 10, 31)]
+    [InlineData(900, 2026, 10, 31)]
+    public void MonthlyChartPaintsEveryDayAndKeepsBoundaryTooltipsInsideTheWindow(int width, int year, int month, int days)
     {
         Sta(() =>
         {
             using var host = new Host(width, 614);
-            host.Model.SelectWeekCommand.Execute(null);
-            if (year == 2025) host.Model.PreviousPeriodCommand.Execute(null);
-            var start = host.Model.PeriodStart;
-            host.Model.ApplyData(Enumerable.Range(0, weeks).Select(index =>
+            host.Model.SelectMonthCommand.Execute(null);
+            var start = new DateTime(year, month, 1);
+            host.Model.ApplyData(Enumerable.Range(0, days).Select(index =>
             {
-                var date = start.AddDays(index * 7).AddHours(9);
-                return new FocusSessionRecordViewModel(date, date.AddMinutes(index + 1), "g", "工作", "", 0);
+                var date = start.AddDays(index).AddHours(9);
+                return new FocusSessionRecordViewModel(date, date.AddMinutes((index + 1) * 15), "g", "工作", "", 0);
             }), []);
+            host.Model.SelectAvailablePeriodCommand.Execute(host.Model.AvailablePeriods.Single());
             Pump();
             var columns = All(VisualTreeHelper.GetDrawing(host.Chart)).OfType<GeometryDrawing>()
                 .Where(drawing => drawing.Brush is SolidColorBrush brush && brush.Color == Color.FromRgb(255, 170, 99)).ToArray();
-            Assert.Equal(weeks, columns.Length);
-            Assert.Equal(weeks, host.Model.Bars.Count);
+            Assert.Equal(days, columns.Length);
+            Assert.Equal(days, host.Model.Bars.Count);
             Assert.True(columns[0].Bounds.Right < columns[^1].Bounds.Left);
             var plot = host.Chart.PlotBounds;
-            var slot = plot.Width / weeks;
-            foreach (var index in new[] { 0, weeks - 1 })
+            var slot = plot.Width / days;
+            var labels = All(VisualTreeHelper.GetDrawing(host.Chart)).OfType<GlyphRunDrawing>()
+                .Where(drawing => drawing.Bounds.Top > plot.Bottom && drawing.Bounds.Top < plot.Bottom + 25)
+                .Select(drawing => new string((drawing.GlyphRun.Characters ?? []).ToArray())).ToArray();
+            Assert.Equal(Enumerable.Range(1, days).Select(day => day.ToString()), labels);
+            Capture(host, $"month-{year}-{month}-{width}");
+            foreach (var index in new[] { 0, days - 1 })
             {
                 host.Chart.HoverAt(new Point(plot.Left + (index + .5) * slot, plot.Bottom - 1)); Pump();
                 Assert.Same(host.Model.Bars[index], host.Chart.HoveredBar);
                 Assert.True(host.Tip.IsOpen);
                 Assert.Equal(host.Model.Bars[index].TooltipDate, host.Named<TextBlock>("TipTitle").Text);
-                Assert.Equal(host.Model.Bars[index].TooltipDateRange, host.Named<TextBlock>("TipDateRange").Text);
-                Assert.Equal(Visibility.Visible, host.Named<TextBlock>("TipDateRange").Visibility);
+                Assert.Empty(host.Named<TextBlock>("TipDateRange").Text);
+                Assert.Equal(Visibility.Collapsed, host.Named<TextBlock>("TipDateRange").Visibility);
                 var surface = host.Named<PoptipChrome>("OverviewTipSurface");
                 Assert.InRange(host.Tip.HorizontalOffset, 0, host.View.ActualWidth - surface.DesiredSize.Width);
                 Assert.InRange(host.Tip.VerticalOffset, 0, host.View.ActualHeight - surface.DesiredSize.Height);
             }
+        });
+
+        static IEnumerable<Drawing> All(Drawing? drawing)
+        {
+            if (drawing is null) yield break;
+            yield return drawing;
+            if (drawing is DrawingGroup group)
+                foreach (var child in group.Children)
+                    foreach (var nested in All(child)) yield return nested;
+        }
+    }
+
+    private static void Capture(Host host, string state)
+    {
+        var directory = Environment.GetEnvironmentVariable("FOCUSAPP_OVERVIEW_MONTH_QA_PATH");
+        if (string.IsNullOrEmpty(directory)) return;
+        Directory.CreateDirectory(directory);
+        var dpi = VisualTreeHelper.GetDpi(host.View);
+        var bitmap = new RenderTargetBitmap((int)Math.Ceiling(host.View.ActualWidth * dpi.DpiScaleX), (int)Math.Ceiling(host.View.ActualHeight * dpi.DpiScaleY), dpi.PixelsPerInchX, dpi.PixelsPerInchY, PixelFormats.Pbgra32);
+        bitmap.Render(host.View); var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));
+        using var stream = File.Create(System.IO.Path.Combine(directory, state + ".png")); encoder.Save(stream);
+    }
+
+    [Fact]
+    public void MonthlyZeroDaysKeepEveryDateTickAndTodayEvenWithoutADrawnColumn()
+    {
+        Sta(() =>
+        {
+            using var host = new Host();
+            host.Model.SelectMonthCommand.Execute(null);
+            var first = host.Model.PeriodStart.AddHours(9);
+            var last = host.Model.PeriodEndExclusive.AddDays(-1).AddHours(9);
+            host.Model.ApplyData([new(first, first.AddMinutes(30), "g", "工作", "", 0),
+                new(last, last.AddMinutes(45), "g", "工作", "", 0)], []); Pump();
+            var drawings = All(VisualTreeHelper.GetDrawing(host.Chart)).ToArray();
+            var columns = drawings.OfType<GeometryDrawing>().Where(drawing => drawing.Brush is SolidColorBrush brush && brush.Color == Color.FromRgb(255, 170, 99)).ToArray();
+            Assert.Equal(2, columns.Length); Assert.Equal(31, host.Model.Bars.Count);
+            Assert.Equal(29, host.Model.Bars.Count(bar => bar.Duration == TimeSpan.Zero));
+            var plot = host.Chart.PlotBounds;
+            var labels = drawings.OfType<GlyphRunDrawing>().Where(drawing => drawing.Bounds.Top > plot.Bottom && drawing.Bounds.Top < plot.Bottom + 25)
+                .Select(drawing => new string((drawing.GlyphRun.Characters ?? []).ToArray()));
+            Assert.Equal(Enumerable.Range(1, 31).Select(day => day.ToString()), labels);
+            var today = Assert.Single(host.Model.Bars.Where(bar => bar.IsToday));
+            Assert.Equal(TimeSpan.Zero, today.Duration);
+            var orange = drawings.OfType<GlyphRunDrawing>().Where(drawing => drawing.ForegroundBrush is SolidColorBrush brush && brush.Color == Color.FromRgb(255, 138, 37));
+            var highlightedText = string.Concat(orange.Select(drawing => new string((drawing.GlyphRun.Characters ?? []).ToArray())));
+            Assert.Contains(today.AxisLabel, highlightedText); Assert.Contains("今天", highlightedText);
+            Capture(host, "month-zero-days");
         });
 
         static IEnumerable<Drawing> All(Drawing? drawing)

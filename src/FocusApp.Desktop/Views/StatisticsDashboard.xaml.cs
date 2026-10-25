@@ -70,9 +70,9 @@ public partial class StatisticsDashboard : UserControl
     {
         if (FocusChart.HoveredBar is not { } bar) { CloseTip(); return; }
         TipTitle.Text = bar.TooltipDate;
-        TipTitle.SetResourceReference(StyleProperty, bar.IsWeekBucket ? "ChartPoptipHeadingTextStyle" : "ChartPoptipSecondaryTextStyle");
-        TipDateRange.Text = bar.TooltipDateRange;
-        TipDateRange.Visibility = bar.IsWeekBucket ? Visibility.Visible : Visibility.Collapsed;
+        TipTitle.SetResourceReference(StyleProperty, "ChartPoptipSecondaryTextStyle");
+        TipDateRange.Text = string.Empty;
+        TipDateRange.Visibility = Visibility.Collapsed;
         TipDuration.Text = bar.DurationDisplay;
         TipMarker.Fill = OverviewFocusChart.FrozenBrush("#FF8B28");
         TipPercentage.Visibility = Visibility.Collapsed;

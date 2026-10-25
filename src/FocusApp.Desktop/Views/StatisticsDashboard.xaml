@@ -80,9 +80,9 @@
                     </Button>
                     <Border x:Name="OverviewPeriodSegments" Grid.Column="2" HorizontalAlignment="Right" Width="208" Height="32" Background="#FFFFFF" BorderBrush="#E7ECF3" BorderThickness="1" CornerRadius="11">
                         <StackPanel Orientation="Horizontal">
-                            <RadioButton x:Name="DayPeriodButton" Content="日" GroupName="OverviewPeriod" Style="{StaticResource OverviewSegment}" Command="{Binding SelectDayCommand}" IsChecked="{Binding IsDay, Mode=TwoWay}" AutomationProperties.Name="按日统计"/>
                             <RadioButton x:Name="WeekPeriodButton" Content="周" GroupName="OverviewPeriod" Style="{StaticResource OverviewSegment}" Command="{Binding SelectWeekCommand}" IsChecked="{Binding IsWeek, Mode=TwoWay}" AutomationProperties.Name="按周统计"/>
                             <RadioButton x:Name="MonthPeriodButton" Content="月" GroupName="OverviewPeriod" Style="{StaticResource OverviewSegment}" Command="{Binding SelectMonthCommand}" IsChecked="{Binding IsMonth, Mode=TwoWay}" AutomationProperties.Name="按月统计"/>
+                            <RadioButton x:Name="YearPeriodButton" Content="年" GroupName="OverviewPeriod" Style="{StaticResource OverviewSegment}" Command="{Binding SelectYearCommand}" IsChecked="{Binding IsYear, Mode=TwoWay}" AutomationProperties.Name="按年统计"/>
                         </StackPanel>
                     </Border>
                 </Grid>
