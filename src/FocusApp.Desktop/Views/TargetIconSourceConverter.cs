@@ -10,7 +10,7 @@ using FocusApp.Desktop.Services;
 
 namespace FocusApp.Desktop.Views;
 
-/// <summary>Loads target SVG artwork as a scalable WPF drawing, optionally tinted by its URI fragment.</summary>
+/// <summary>Loads native color PNGs and scalable SVG artwork, with optional tinting for SVGs.</summary>
 public sealed class TargetIconSourceConverter : IValueConverter, IMultiValueConverter
 {
     public static TargetIconSourceConverter Instance { get; } = new();
@@ -40,7 +40,14 @@ public sealed class TargetIconSourceConverter : IValueConverter, IMultiValueConv
         var parts = source.Split('#', 2);
         if (!parts[0].EndsWith(".svg", StringComparison.OrdinalIgnoreCase))
         {
-            var bitmap = new BitmapImage(new Uri(source, UriKind.RelativeOrAbsolute));
+            var uri = new Uri(parts[0], UriKind.RelativeOrAbsolute);
+            if (!uri.IsAbsoluteUri && parts[0].StartsWith('/'))
+                uri = new Uri("pack://application:,,," + parts[0], UriKind.Absolute);
+            var bitmap = new BitmapImage();
+            bitmap.BeginInit();
+            bitmap.CacheOption = BitmapCacheOption.OnLoad;
+            bitmap.UriSource = uri;
+            bitmap.EndInit();
             bitmap.Freeze();
             return bitmap;
         }

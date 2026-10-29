@@ -28,6 +28,12 @@
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>
     <Resource Include="Assets\Icons\targetSelected_Svg\*.svg" />
+    <Resource Include="..\..\icon\icons04\*.png">
+      <Link>Assets\Icons\TargetColor\%(Filename)%(Extension)</Link>
+    </Resource>
+    <Resource Include="..\..\icon\poptipicons\*.svg">
+      <Link>Assets\Icons\TaskMarkers\%(Filename)%(Extension)</Link>
+    </Resource>
   </ItemGroup>
 
   <ItemGroup>

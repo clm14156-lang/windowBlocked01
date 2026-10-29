@@ -552,12 +552,17 @@
                     <!-- The supplied check illustration has transparent padding above and below. -->
                     <Grid Width="256" Height="150" HorizontalAlignment="Center" ClipToBounds="True">
                         <Image x:Name="CompletionCheck"
-                               IsHitTestVisible="False" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"
+                               IsHitTestVisible="False" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality" RenderTransformOrigin="0.5,0.5"
                                Source="{DynamicResource FocusCompletionCheck}">
                             <Image.Style><Style TargetType="Image">
                                 <Setter Property="Width" Value="166.4" />
                                 <Setter Property="Height" Value="166.4" />
                                 <Setter Property="Margin" Value="0,-8.2,0,-8.2" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsDarkFocusTheme}" Value="False">
+                                        <Setter Property="RenderTransform"><Setter.Value><ScaleTransform ScaleX="0.8" ScaleY="0.8"/></Setter.Value></Setter>
+                                    </DataTrigger>
+                                </Style.Triggers>
                             </Style></Image.Style>
                         </Image>
                     </Grid>
@@ -588,15 +593,15 @@
                             <Grid x:Name="CompletionStatistics" Width="304" Height="60" Margin="0,40,0,0" HorizontalAlignment="Center">
                                 <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="1"/><ColumnDefinition/></Grid.ColumnDefinitions>
                                 <Border x:Name="CompletionStatisticsCapsule" Grid.ColumnSpan="3" Margin="-20,-10"
-                                        CornerRadius="40" IsHitTestVisible="False"
-                                        Background="{StaticResource FocusCompletionCapsuleBackground}"
-                                        Effect="{StaticResource FocusCompletionCapsuleShadow}">
+                                        CornerRadius="40" IsHitTestVisible="False">
                                     <Border.Style>
                                         <Style TargetType="Border">
-                                            <Setter Property="Visibility" Value="Visible" />
+                                            <Setter Property="Background" Value="{StaticResource FocusCompletionCapsuleBackground}" />
+                                            <Setter Property="Effect" Value="{StaticResource FocusCompletionCapsuleShadow}" />
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding IsDarkFocusTheme}" Value="True">
-                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                    <Setter Property="Background" Value="{DynamicResource FocusCompletionNightCapsuleBackground}" />
+                                                    <Setter Property="Effect" Value="{x:Null}" />
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
@@ -789,8 +794,15 @@
                     </Grid>
                     <TextBlock Text="{DynamicResource FocusForcedModeStatus}" FontSize="14" Foreground="{DynamicResource FocusNoticeBrush}" VerticalAlignment="Center"/>
                 </StackPanel>
-                <Border x:Name="FocusFooterRule" Height="1" Background="{DynamicResource FocusRuleBrush}" Margin="0,0,0,18"
-                        Visibility="{Binding ShowFocusActions, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                <Border x:Name="FocusFooterRule" Height="2" Background="{DynamicResource FocusRuleBrush}" Margin="0,0,0,18"
+                        Visibility="{Binding ShowFocusActions, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <Rectangle x:Name="FocusCountdownProgress" Fill="{DynamicResource FocusCountdownProgressBrush}"
+                               RenderTransformOrigin="0,0.5" SnapsToDevicePixels="False" IsHitTestVisible="False">
+                        <Rectangle.RenderTransform>
+                            <ScaleTransform ScaleX="{Binding RemainingProgress, Mode=OneWay}" />
+                        </Rectangle.RenderTransform>
+                    </Rectangle>
+                </Border>
                 <StackPanel x:Name="FocusFooterActions" Orientation="Horizontal" HorizontalAlignment="Center"
                             Visibility="{Binding ShowFocusActions, Converter={StaticResource BooleanToVisibilityConverter}}">
                     <Button x:Name="FocusEndActionButton" Command="{Binding RequestEndCommand}" Style="{StaticResource FocusSceneFooterActionStyle}"

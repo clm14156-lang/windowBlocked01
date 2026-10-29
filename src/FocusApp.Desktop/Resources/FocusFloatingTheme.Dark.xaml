@@ -13,7 +13,7 @@
     <SolidColorBrush x:Key="FloatingDividerBrush" Color="#2C333D"/>
     <SolidColorBrush x:Key="FloatingTaskHeaderBrush" Color="#D7DDE5"/>
     <SolidColorBrush x:Key="FloatingTaskTextBrush" Color="#CCD2DA"/>
-    <SolidColorBrush x:Key="FloatingCompletedTaskBrush" Color="#CCD2DA"/>
+    <SolidColorBrush x:Key="FloatingCompletedTaskBrush" Color="#839CBF"/>
     <SolidColorBrush x:Key="FloatingTaskRowHoverBrush" Color="#252C36"/>
     <SolidColorBrush x:Key="FloatingTaskRowDragBrush" Color="#2B333F"/>
     <SolidColorBrush x:Key="FloatingTaskDragHandleBrush" Color="#75808F"/>

@@ -8,6 +8,7 @@ using FocusApp.Core;
 namespace FocusApp.Desktop.ViewModels;
 
 public enum StatisticsPeriod { Week, Month, Year }
+public enum AnnualChartGrouping { Month, Week }
 
 /// <summary>One calendar period and one source of truth for every overview metric.</summary>
 public sealed class StatisticsDashboardViewModel : INotifyPropertyChanged
@@ -24,6 +25,8 @@ public sealed class StatisticsDashboardViewModel : INotifyPropertyChanged
     private GoalOverviewItemViewModel[] _goals = [];
     private DateTime _anchor;
     private StatisticsPeriod _period;
+    private AnnualChartGrouping _annualGrouping;
+    private IReadOnlyList<FocusStatisticsSlice> _allSlices = [];
     private bool _isPeriodPickerOpen;
     private DateTime _displayDate;
     private FocusDistributionItemViewModel? _hoveredDistribution;
@@ -74,6 +77,27 @@ public sealed class StatisticsDashboardViewModel : INotifyPropertyChanged
     public bool IsWeek { get => Period == StatisticsPeriod.Week; set { if (value) Period = StatisticsPeriod.Week; } }
     public bool IsMonth { get => Period == StatisticsPeriod.Month; set { if (value) Period = StatisticsPeriod.Month; } }
     public bool IsYear { get => Period == StatisticsPeriod.Year; set { if (value) Period = StatisticsPeriod.Year; } }
+    public AnnualChartGrouping AnnualGrouping
+    {
+        get => _annualGrouping;
+        set
+        {
+            if (_annualGrouping == value || !Enum.IsDefined(value)) return;
+            _annualGrouping = value;
+            RefreshChart();
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(IsAnnualMonthly));
+            OnPropertyChanged(nameof(IsAnnualWeekly));
+            OnPropertyChanged(nameof(IsAnnualWeeklyChart));
+            OnPropertyChanged(nameof(ChartTitle));
+            OnPropertyChanged(nameof(AxisTicks));
+            OnPropertyChanged(nameof(AxisMaximumMinutes));
+            OnPropertyChanged(nameof(Bars));
+        }
+    }
+    public bool IsAnnualMonthly { get => AnnualGrouping == AnnualChartGrouping.Month; set { if (value) AnnualGrouping = AnnualChartGrouping.Month; } }
+    public bool IsAnnualWeekly { get => AnnualGrouping == AnnualChartGrouping.Week; set { if (value) AnnualGrouping = AnnualChartGrouping.Week; } }
+    public bool IsAnnualWeeklyChart => IsYear && IsAnnualWeekly;
     public DateTime PeriodStart { get; private set; }
     public DateTime PeriodEndExclusive { get; private set; }
     public string DateRangeDisplay => IsYear ? $"{PeriodStart:yyyy年}"
@@ -81,7 +105,7 @@ public sealed class StatisticsDashboardViewModel : INotifyPropertyChanged
         : PeriodStart.Year == PeriodEndExclusive.AddDays(-1).Year
             ? $"{PeriodStart:yyyy年M月d日} - {PeriodEndExclusive.AddDays(-1):M月d日}"
             : $"{PeriodStart:yyyy年M月d日} - {PeriodEndExclusive.AddDays(-1):yyyy年M月d日}";
-    public string ChartTitle => IsYear ? "每月专注时长" : "每日专注时长";
+    public string ChartTitle => IsYear ? IsAnnualWeekly ? "每周专注时长" : "每月专注时长" : "每日专注时长";
     public TimeSpan TotalDuration { get; private set; }
     public int CompletedTaskCount { get; private set; }
     public int FocusDayCount { get; private set; }
@@ -205,7 +229,7 @@ public sealed class StatisticsDashboardViewModel : INotifyPropertyChanged
         var coreRecords = _records.Select(record => new FocusSessionRecord(
             record.EndTime - record.StartTime, record.FocusDuration, record.StartTime, record.EndTime,
             FocusCompletionKind.Natural, false) { TargetId = NormalizeGoalId(record.GoalId), TargetName = record.GoalName }).ToArray();
-        var allSlices = FocusStatisticsCalculator.GetSlices(coreRecords);
+        var allSlices = _allSlices = FocusStatisticsCalculator.GetSlices(coreRecords);
         AvailablePeriods = allSlices.Select(slice => StartOfPeriod(slice.StartsAt, Period)).Distinct()
             .OrderByDescending(date => date)
             .Select(date => new OverviewPeriodOption(date, Period, Period switch
@@ -220,23 +244,7 @@ public sealed class StatisticsDashboardViewModel : INotifyPropertyChanged
         FocusDayCount = slices.Select(slice => slice.StartsAt.Date).Distinct().Count();
         CompletedTaskCount = CountCompletedTasks();
 
-        var buckets = slices.GroupBy(slice => IsYear ? new DateTime(slice.StartsAt.Year, slice.StartsAt.Month, 1) : slice.StartsAt.Date)
-            .ToDictionary(group => group.Key, group => TimeSpan.FromTicks(group.Sum(slice => slice.Duration.Ticks)));
-        var count = IsYear ? 12 : (PeriodEndExclusive - PeriodStart).Days;
-        Bars = Enumerable.Range(0, count).Select(index =>
-        {
-            var date = IsYear ? PeriodStart.AddMonths(index) : PeriodStart.AddDays(index);
-            return new OverviewFocusBar(date, buckets.GetValueOrDefault(date), Period)
-            { IsToday = !IsYear && date == _displayDate };
-        }).ToArray();
-        var maximum = Math.Max(1, Bars.Max(bar => bar.Duration.TotalMinutes));
-        var target = maximum / 4;
-        double[] intervals = [1, 2, 5, 10, 15, 30, 60, 120, 180, 240, 360, 720, 1440, 2880, 7200, 14400, 28800, 72000];
-        var interval = TotalDuration == TimeSpan.Zero ? 15 : intervals.FirstOrDefault(value => value >= target);
-        if (interval == 0) interval = Math.Ceiling(target / 1440) * 1440;
-        AxisMaximumMinutes = Math.Max(interval * 4, Math.Ceiling(maximum / interval) * interval);
-        AxisTicks = Enumerable.Range(0, (int)Math.Round(AxisMaximumMinutes / interval) + 1)
-            .Select(index => new OverviewAxisTick(index * interval, AxisMaximumMinutes >= 120)).ToArray();
+        RefreshChart();
 
         _hoveredDistribution = null;
         _selectedDistribution = null;
@@ -260,6 +268,34 @@ public sealed class StatisticsDashboardViewModel : INotifyPropertyChanged
         // show different intermediate periods during an input or snapshot update.
         OnPropertyChanged(string.Empty);
         CommandManager.InvalidateRequerySuggested();
+    }
+
+    private void RefreshChart()
+    {
+        // Only the annual weekly chart uses complete ISO weeks. Existing summary cards,
+        // distribution and monthly columns retain their calendar-year boundaries.
+        var weekly = IsAnnualWeeklyChart;
+        var count = weekly ? ISOWeek.GetWeeksInYear(PeriodStart.Year) : IsYear ? 12 : (PeriodEndExclusive - PeriodStart).Days;
+        var start = weekly ? ISOWeek.ToDateTime(PeriodStart.Year, 1, DayOfWeek.Monday) : PeriodStart;
+        var end = weekly ? start.AddDays(count * 7) : PeriodEndExclusive;
+        var buckets = _allSlices.Where(slice => slice.StartsAt >= start && slice.StartsAt < end)
+            .GroupBy(slice => weekly ? StartOfWeek(slice.StartsAt)
+                : IsYear ? new DateTime(slice.StartsAt.Year, slice.StartsAt.Month, 1) : slice.StartsAt.Date)
+            .ToDictionary(group => group.Key, group => TimeSpan.FromTicks(group.Sum(slice => slice.Duration.Ticks)));
+        Bars = Enumerable.Range(0, count).Select(index =>
+        {
+            var date = weekly ? start.AddDays(index * 7) : IsYear ? start.AddMonths(index) : start.AddDays(index);
+            return new OverviewFocusBar(date, buckets.GetValueOrDefault(date), Period)
+            { IsWeekBucket = weekly, IsToday = !IsYear && date == _displayDate };
+        }).ToArray();
+        var maximum = Math.Max(1, Bars.Max(bar => bar.Duration.TotalMinutes));
+        var target = maximum / 4;
+        double[] intervals = [1, 2, 5, 10, 15, 30, 60, 120, 180, 240, 360, 720, 1440, 2880, 7200, 14400, 28800, 72000];
+        var interval = buckets.Count == 0 ? 15 : intervals.FirstOrDefault(value => value >= target);
+        if (interval == 0) interval = Math.Ceiling(target / 1440) * 1440;
+        AxisMaximumMinutes = Math.Max(interval * 4, Math.Ceiling(maximum / interval) * interval);
+        AxisTicks = Enumerable.Range(0, (int)Math.Round(AxisMaximumMinutes / interval) + 1)
+            .Select(index => new OverviewAxisTick(index * interval, AxisMaximumMinutes >= 120)).ToArray();
     }
 
     private int CountCompletedTasks()
@@ -304,11 +340,15 @@ public sealed record OverviewPeriodOption(DateTime Start, StatisticsPeriod Perio
 public sealed record OverviewFocusBar(DateTime Date, TimeSpan Duration, StatisticsPeriod Period)
 {
     public bool IsToday { get; init; }
-    public bool IsMonthBucket => Period == StatisticsPeriod.Year;
-    public string AxisLabel => IsMonthBucket ? $"{Date.Month}月" : Period == StatisticsPeriod.Month ? Date.Day.ToString(CultureInfo.InvariantCulture) : Date.ToString("M/d", CultureInfo.InvariantCulture);
+    public bool IsWeekBucket { get; init; }
+    public bool IsMonthBucket => Period == StatisticsPeriod.Year && !IsWeekBucket;
+    public string AxisLabel => IsWeekBucket ? $"第{ISOWeek.GetWeekOfYear(Date)}周" : IsMonthBucket ? $"{Date.Month}月" : Period == StatisticsPeriod.Month ? Date.Day.ToString(CultureInfo.InvariantCulture) : Date.ToString("M/d", CultureInfo.InvariantCulture);
     public string Weekday => IsToday ? "今天" : Period == StatisticsPeriod.Week
         ? new[] { "周日", "周一", "周二", "周三", "周四", "周五", "周六" }[(int)Date.DayOfWeek] : string.Empty;
-    public string TooltipDate => Date.ToString(IsMonthBucket ? "yyyy年M月" : "yyyy年M月d日", CultureInfo.InvariantCulture);
+    public string TooltipDate => IsWeekBucket ? $"{ISOWeek.GetYear(Date)}年 第{ISOWeek.GetWeekOfYear(Date)}周"
+        : Date.ToString(IsMonthBucket ? "yyyy年M月" : "yyyy年M月d日", CultureInfo.InvariantCulture);
+    public string TooltipDateRange => !IsWeekBucket ? string.Empty : Date.Year == Date.AddDays(6).Year
+        ? $"{Date:MM.dd} - {Date.AddDays(6):MM.dd}" : $"{Date:yyyy.MM.dd} - {Date.AddDays(6):yyyy.MM.dd}";
     public string DurationDisplay => OverviewDuration.Format(Duration);
 }
 

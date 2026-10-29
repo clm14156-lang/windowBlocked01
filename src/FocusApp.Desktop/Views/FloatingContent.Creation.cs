@@ -99,6 +99,17 @@ public partial class FloatingContent
         }
         if (e.Handled || !IsVisible || DataContext is not FocusFloatingWindowViewModel model || !model.IsFocusing ||
             Keyboard.Modifiers != ModifierKeys.None || e.Key == Key.ImeProcessed) return;
+        if (model.IsEditingTask)
+        {
+            if (e.Key is Key.Enter or Key.Escape or Key.Tab)
+            {
+                e.Handled = true;
+                if (e.IsRepeat) return;
+                if (e.Key == Key.Enter) model.SubmitTaskEdit();
+                else if (e.Key == Key.Escape) model.CancelTaskEdit();
+            }
+            return;
+        }
         if (e.Key == Key.Tab)
         {
             DesktopDiagnostics.RecordAction("Floating.Tab", $"Creating={model.IsCreatingTask}; Repeat={e.IsRepeat}; Active={Window.GetWindow(this)?.IsActive}");

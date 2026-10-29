@@ -63,7 +63,7 @@ public partial class FloatingContent
 
     private void TaskDragModelChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(FocusFloatingWindowViewModel.IsCreatingTask) or nameof(FocusFloatingWindowViewModel.IsFocusing))
+        if (e.PropertyName is nameof(FocusFloatingWindowViewModel.HasTaskInteraction) or nameof(FocusFloatingWindowViewModel.IsCreatingTask) or nameof(FocusFloatingWindowViewModel.IsFocusing))
             ResetTaskDrag();
     }
     private void TaskDragSessionChanged(object? sender, PropertyChangedEventArgs e)
@@ -91,7 +91,7 @@ public partial class FloatingContent
     private bool PrepareTaskDrag(Grid row, DependencyObject source, Point origin)
     {
         ResetTaskDrag();
-        if (_taskDragModel is not { IsCreatingTask: false, IsFocusing: true } model ||
+        if (_taskDragModel is not { HasTaskInteraction: false, IsFocusing: true } model ||
             model.Session.TaskDrawer.IsCreating || _parentAnimations.Count > 0 ||
             row.DataContext is not FocusTaskViewModel { IsCompleted: false } task ||
             !model.PendingTasks.Contains(task) || !IsTaskDragSource(source, row)) return false;
@@ -137,7 +137,7 @@ public partial class FloatingContent
     {
         if (_taskDragTask is null) return;
         if (leftButton != MouseButtonState.Pressed || _taskDragTask.IsCompleted ||
-            _taskDragModel is not { IsCreatingTask: false, IsFocusing: true } model ||
+            _taskDragModel is not { HasTaskInteraction: false, IsFocusing: true } model ||
             model.Session.TaskDrawer.IsCreating || !model.PendingTasks.Contains(_taskDragTask))
         {
             ResetTaskDrag();

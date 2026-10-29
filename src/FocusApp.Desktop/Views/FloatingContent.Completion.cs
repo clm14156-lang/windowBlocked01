@@ -22,18 +22,19 @@ public partial class FloatingContent
     private Color FloatingCompletedTaskColor => ((SolidColorBrush)FindResource("FloatingCompletedTaskBrush")).Color;
     private Color FloatingAccentColor => ((SolidColorBrush)FindResource("FocusTaskCheckAccentBrush")).Color;
 
-    private void Content_Loaded(object sender, RoutedEventArgs e) { AttachCompletionPresentation(); AttachCreationPresentation(); AttachTaskDrag(); }
-    private void Content_Unloaded(object sender, RoutedEventArgs e) { DetachTaskDrag(); DetachCreationPresentation(); DetachCompletionPresentation(); }
+    private void Content_Loaded(object sender, RoutedEventArgs e) { AttachCompletionPresentation(); AttachCreationPresentation(); AttachTaskDrag(); AttachTaskEditing(); }
+    private void Content_Unloaded(object sender, RoutedEventArgs e) { DetachTaskEditing(); DetachTaskDrag(); DetachCreationPresentation(); DetachCompletionPresentation(); }
     private void Content_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
+        DetachTaskEditing();
         DetachTaskDrag();
         DetachCreationPresentation();
         DetachCompletionPresentation();
-        if (IsLoaded) { AttachCompletionPresentation(); AttachCreationPresentation(); AttachTaskDrag(); }
+        if (IsLoaded) { AttachCompletionPresentation(); AttachCreationPresentation(); AttachTaskDrag(); AttachTaskEditing(); }
     }
     private void Content_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
-        if (!(bool)e.NewValue) { ResetTaskDrag(); StopTaskReorderMotion(); CancelCreationPresentation(); FinishFeedback(); }
+        if (!(bool)e.NewValue) { CloseTaskMenus(); _editingModel?.CancelTaskEdit(); ResetTaskDrag(); StopTaskReorderMotion(); CancelCreationPresentation(); FinishFeedback(); }
     }
     private void AttachCompletionPresentation()
     {

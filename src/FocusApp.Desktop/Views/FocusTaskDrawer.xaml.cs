@@ -11,18 +11,16 @@ namespace FocusApp.Desktop.Views;
 
 public partial class FocusTaskDrawer : UserControl
 {
-    public FocusTaskDrawer() => InitializeComponent();
+    public FocusTaskDrawer()
+    {
+        InitializeComponent();
+        Loaded += (_, _) => AttachMenuOwner();
+        Unloaded += (_, _) => { CloseTaskContextMenu(); DetachMenuOwner(); };
+        IsVisibleChanged += (_, _) => { if (!IsVisible) CloseTaskContextMenu(); };
+        DataContextChanged += (_, _) => DetachMenuOwner();
+    }
     private FocusTaskDrawerViewModel? ViewModel => DataContext as FocusTaskDrawerViewModel;
 
-    private void TaskMoreButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is not Button { ContextMenu: { } menu } button) return;
-        menu.PlacementTarget = button;
-        menu.Placement = PlacementMode.Left;
-        menu.VerticalOffset = -4;
-        menu.IsOpen = true;
-        e.Handled = true;
-    }
     private void DraftAddDescriptionButton_Click(object sender, RoutedEventArgs e)
     {
         Dispatcher.BeginInvoke(DispatcherPriority.Input, () => DraftTaskDescriptionInput.Focus());
@@ -70,7 +68,6 @@ public partial class FocusTaskDrawer : UserControl
         }
         if (e.Key != Key.Escape || ViewModel is not { } vm) return;
         if (vm.IsCreating) vm.CancelCreationCommand.Execute(null);
-        else if (vm.SelectedTask is { } task) vm.ToggleExpandedCommand.Execute(task);
         else vm.CloseCommand.Execute(null);
         e.Handled = true;
     }

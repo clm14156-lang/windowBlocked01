@@ -13,10 +13,28 @@
              Loaded="Content_Loaded" Unloaded="Content_Unloaded" DataContextChanged="Content_DataContextChanged" IsVisibleChanged="Content_IsVisibleChanged">
     <UserControl.Resources>
         <ResourceDictionary>
-        <ResourceDictionary.MergedDictionaries><ResourceDictionary Source="FocusTaskResources.xaml" /><ResourceDictionary Source="../Resources/FocusFloatingTheme.Light.xaml" /></ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary.MergedDictionaries><ResourceDictionary Source="FocusTaskResources.xaml" /><ResourceDictionary Source="TaskContextMenuResources.xaml" /><ResourceDictionary Source="../Resources/FocusFloatingTheme.Light.xaml" /></ResourceDictionary.MergedDictionaries>
         <BooleanToVisibilityConverter x:Key="TaskVisibility"/>
         <views:CompactSubTaskProgressConverter x:Key="CompactSubTaskProgress"/>
         <views:CustomTimeSelectionConverter x:Key="SameTask"/>
+        <Style x:Key="FloatingTaskEditInput" TargetType="TextBox">
+            <Setter Property="Visibility" Value="Collapsed"/>
+            <Setter Property="FontFamily" Value="{DynamicResource FontFamilyPrimary}"/><Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="{DynamicResource FloatingTaskTextBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource FloatingInputBackgroundBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource FloatingInputFocusBrush}"/><Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CaretBrush" Value="{DynamicResource AccentPrimary}"/>
+            <Setter Property="Padding" Value="3,0"/><Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="AcceptsReturn" Value="False"/><Setter Property="AcceptsTab" Value="False"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TextBox">
+                <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6">
+                    <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalAlignment="Center" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled"/>
+                </Border>
+            </ControlTemplate></Setter.Value></Setter>
+            <Style.Triggers><DataTrigger Value="True"><DataTrigger.Binding><MultiBinding Converter="{StaticResource SameTask}">
+                <Binding/><Binding Path="DataContext.EditingItem" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+            </MultiBinding></DataTrigger.Binding><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers>
+        </Style>
         <Style x:Key="DarkChildDecoration" TargetType="FrameworkElement">
             <Setter Property="Visibility" Value="Collapsed"/>
             <Setter Property="IsHitTestVisible" Value="False"/>
@@ -64,7 +82,7 @@
             <Setter Property="FontSize" Value="13"/><Setter Property="Foreground" Value="{DynamicResource FloatingTaskTextBrush}"/>
             <Setter Property="VerticalAlignment" Value="Center"/><Setter Property="TextTrimming" Value="CharacterEllipsis"/>
             <Style.Triggers><DataTrigger Binding="{Binding IsCompleted}" Value="True">
-                <Setter Property="TextDecorations" Value="Strikethrough"/><Setter Property="Foreground" Value="{DynamicResource FloatingCompletedTaskBrush}"/>
+                <Setter Property="Foreground" Value="{DynamicResource FloatingCompletedTaskBrush}"/>
             </DataTrigger></Style.Triggers>
         </Style>
         <Style x:Key="FloatingTaskRowHover" TargetType="Border">
@@ -126,41 +144,66 @@
                             <ItemsControl.ItemTemplate><DataTemplate>
                                 <Grid x:Name="FloatingTaskRow" ClipToBounds="True" MouseEnter="TaskRow_CreationMouseEnter" MouseLeave="TaskRow_CreationMouseLeave">
                                 <Grid.RowDefinitions><RowDefinition Height="28"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-                                <Grid x:Name="FloatingTaskHeader" Height="28" Background="Transparent" PreviewMouseLeftButtonDown="TaskRow_MouseDown"
+                                <Grid x:Name="FloatingTaskHeader" Height="28" Background="Transparent" PreviewMouseLeftButtonDown="TaskRow_MouseDown" MouseRightButtonUp="TaskRow_MouseRightButtonUp"
                                       AutomationProperties.HelpText="按住任务行拖动可调整排序；悬停后按 Tab 添加子任务">
                                 <Border x:Name="TaskHoverSurface" Style="{StaticResource FloatingTaskRowHover}"/>
                                 <Border x:Name="TaskDragSurface" Style="{StaticResource FloatingTaskDragHighlight}"/>
-                                <Grid Margin="0,0,7,0"><Grid.ColumnDefinitions><ColumnDefinition Width="20"/><ColumnDefinition Width="12"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                <Grid Margin="0,0,7,0"><Grid.ColumnDefinitions><ColumnDefinition Width="20"/><ColumnDefinition Width="Auto" MinWidth="12"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                     <CheckBox x:Name="ParentTaskCheck" Style="{StaticResource FloatingTaskCheckBox}" IsChecked="{Binding IsCompleted, Mode=OneWay}"
                                               Command="{Binding DataContext.ToggleTaskCompletedCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}" CommandParameter="{Binding}"
                                               AutomationProperties.Name="{Binding Name}" ToolTip="{DynamicResource FocusFloatingCompleteTask}"/>
-                                    <TextBlock x:Name="ParentTaskTitle" Grid.Column="2" Text="{Binding Name}" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource FloatingTaskTextBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding Name}">
-                                        <TextBlock.Style><Style TargetType="TextBlock"><Style.Triggers><MultiDataTrigger><MultiDataTrigger.Conditions>
-                                            <Condition Binding="{Binding DataContext.Session.IsDarkFocusTheme, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}" Value="True"/>
-                                            <Condition Binding="{Binding HasSubTasks}" Value="True"/>
-                                        </MultiDataTrigger.Conditions><Setter Property="Padding" Value="0,0,46,0"/></MultiDataTrigger></Style.Triggers></Style></TextBlock.Style>
+                                    <ToggleButton x:Name="SubTaskToggle" Grid.Column="1" Margin="2,0,4,0" Style="{StaticResource TaskSubTaskToggle}"
+                                                  Foreground="{DynamicResource FloatingSecondaryBrush}" IsChecked="{Binding IsSubTasksExpanded, Mode=TwoWay}"
+                                                  Visibility="{Binding HasSubTasks, Converter={StaticResource TaskVisibility}}" AutomationProperties.Name="展开或折叠子任务"/>
+                                    <DockPanel Grid.Column="2" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                        <TextBlock x:Name="TaskSubTaskProgress" DockPanel.Dock="Right" Margin="6,0,4,0" FontSize="11" VerticalAlignment="Center"
+                                                   FontFamily="{DynamicResource FontFamilyNumeric}" Foreground="{DynamicResource FloatingSecondaryBrush}"
+                                                   Text="{Binding SubTaskProgress, Converter={StaticResource CompactSubTaskProgress}}"
+                                                   Visibility="{Binding HasSubTasks, Converter={StaticResource TaskVisibility}}"/>
+                                    <views:HoverScrollText VerticalAlignment="Center" UseOverflowToolTip="True" IsHovered="{Binding IsMouseOver, ElementName=FloatingTaskHeader}">
+                                    <TextBlock x:Name="ParentTaskTitle" Text="{Binding Name}" FontSize="13" FontWeight="Medium" VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
+                                        <TextBlock.Style><Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="{DynamicResource FloatingTaskTextBrush}"/>
+                                            <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsCompleted}" Value="True"><Setter Property="Foreground" Value="{DynamicResource FloatingCompletedTaskBrush}"/></DataTrigger>
+                                            </Style.Triggers></Style></TextBlock.Style>
                                     </TextBlock>
-                                    <Border x:Name="SubTaskProgressCapsule" Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" Height="20" MinWidth="36" Padding="6,0" CornerRadius="10"
-                                            Style="{StaticResource DarkChildDecoration}" Background="{DynamicResource FloatingProgressCapsuleBrush}" BorderBrush="{DynamicResource FloatingProgressCapsuleBorderBrush}" BorderThickness="1">
-                                        <TextBlock Text="{Binding SubTaskProgress, Converter={StaticResource CompactSubTaskProgress}}" FontFamily="{DynamicResource FontFamilyNumeric}" FontSize="12" Foreground="{DynamicResource FloatingIconBrush}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
-                                    </Border>
+                                    </views:HoverScrollText>
+                                    </DockPanel>
+                                    <TextBox x:Name="ParentTaskEditInput" Grid.Column="2" Panel.ZIndex="2" Margin="0,2" Style="{StaticResource FloatingTaskEditInput}"
+                                             Text="{Binding DataContext.EditTitle, RelativeSource={RelativeSource AncestorType=UserControl}, UpdateSourceTrigger=PropertyChanged}"
+                                             InputMethod.IsInputMethodEnabled="True" AutomationProperties.Name="编辑任务名称"/>
+                                    <Button x:Name="ParentTaskMarker" Grid.Column="3" Style="{StaticResource FloatingPlainButton}" Click="TaskMarker_Click"
+                                            Visibility="{Binding HasFlag, Converter={StaticResource TaskVisibility}}" AutomationProperties.Name="{Binding MarkerLabel}">
+                                        <Image Source="{Binding MarkerIcon}" Width="22" Height="22"/>
+                                    </Button>
                                 </Grid>
                                 </Grid>
-                                <ItemsControl x:Name="SubTaskList" Grid.Row="1" Margin="32,0,7,0" ItemsSource="{Binding SubTasks}">
+                                <ItemsControl x:Name="SubTaskList" Grid.Row="1" Margin="32,0,7,0" ItemsSource="{Binding SubTasks}"
+                                              Visibility="{Binding HasVisibleSubTasks, Converter={StaticResource TaskVisibility}}">
                                     <ItemsControl.Template><ControlTemplate TargetType="ItemsControl"><Grid>
                                         <Path x:Name="SubTaskConnectorStem" Style="{StaticResource DarkChildDecoration}" HorizontalAlignment="Left" Width="1" Margin="-23,0,0,14" Data="M 0,0 L 0,1" Stretch="Fill"
                                               Stroke="{DynamicResource FloatingConnectorBrush}" StrokeThickness="1" StrokeDashArray="3,2"/>
                                         <ItemsPresenter/>
                                     </Grid></ControlTemplate></ItemsControl.Template>
                                     <ItemsControl.ItemTemplate><DataTemplate>
-                                        <Grid x:Name="FloatingChildRow" Height="28" Background="Transparent" Loaded="ChildRow_Loaded" Unloaded="ChildRow_Unloaded" DataContextChanged="ChildRow_DataContextChanged"><Grid.ColumnDefinitions><ColumnDefinition Width="20"/><ColumnDefinition Width="12"/><ColumnDefinition/></Grid.ColumnDefinitions>
-                                            <Border x:Name="ChildHoverSurface" Grid.ColumnSpan="3" Style="{StaticResource FloatingTaskRowHover}"/>
+                                        <Grid x:Name="FloatingChildRow" Height="28" Background="Transparent" MouseRightButtonUp="TaskRow_MouseRightButtonUp" Loaded="ChildRow_Loaded" Unloaded="ChildRow_Unloaded" DataContextChanged="ChildRow_DataContextChanged"><Grid.ColumnDefinitions><ColumnDefinition Width="20"/><ColumnDefinition Width="12"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                            <Border x:Name="ChildHoverSurface" Grid.ColumnSpan="4" Style="{StaticResource FloatingTaskRowHover}"/>
                                             <Path x:Name="SubTaskConnectorBranch" Grid.ColumnSpan="3" Width="12" Height="1" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="-23,0,0,0" Data="M 0,0 L 12,0"
                                                   Stroke="{DynamicResource FloatingConnectorBrush}" StrokeThickness="1" StrokeDashArray="3,2" IsHitTestVisible="False"
                                                   Visibility="{Binding DataContext.Session.IsDarkFocusTheme, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}, Converter={StaticResource TaskVisibility}}"/>
                                             <CheckBox x:Name="SubTaskCheck" Style="{StaticResource CircleCheck}" VerticalAlignment="Center"
-                                                      IsChecked="{Binding IsCompleted, Mode=TwoWay}" AutomationProperties.Name="{Binding Title}" ToolTip="{Binding Title}"/>
-                                            <TextBlock x:Name="SubTaskTitle" Grid.Column="2" Text="{Binding Title}" Style="{StaticResource FloatingSubTaskTitle}" ToolTip="{Binding Title}"/>
+                                                      IsChecked="{Binding IsCompleted, Mode=TwoWay}" AutomationProperties.Name="{Binding Title}" ToolTip="切换子任务完成状态"/>
+                                            <views:HoverScrollText Grid.Column="2" VerticalAlignment="Center" UseOverflowToolTip="True" IsHovered="{Binding IsMouseOver, ElementName=FloatingChildRow}">
+                                                <TextBlock x:Name="SubTaskTitle" Text="{Binding Title}" Style="{StaticResource FloatingSubTaskTitle}"/>
+                                            </views:HoverScrollText>
+                                            <TextBox x:Name="ChildTaskEditInput" Grid.Column="2" Margin="0,2" Style="{StaticResource FloatingTaskEditInput}"
+                                                     Text="{Binding DataContext.EditTitle, RelativeSource={RelativeSource AncestorType=UserControl}, UpdateSourceTrigger=PropertyChanged}"
+                                                     InputMethod.IsInputMethodEnabled="True" AutomationProperties.Name="编辑子任务名称"/>
+                                            <Button x:Name="ChildTaskMarker" Grid.Column="3" Style="{StaticResource FloatingPlainButton}" Click="TaskMarker_Click"
+                                                    Visibility="{Binding HasFlag, Converter={StaticResource TaskVisibility}}" AutomationProperties.Name="{Binding MarkerLabel}">
+                                                <Image Source="{Binding MarkerIcon}" Width="22" Height="22"/>
+                                            </Button>
                                         </Grid>
                                     </DataTemplate></ItemsControl.ItemTemplate>
                                 </ItemsControl>

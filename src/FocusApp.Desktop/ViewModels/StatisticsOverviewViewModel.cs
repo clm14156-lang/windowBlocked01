@@ -58,6 +58,8 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
                     fileName,
                     TargetIconCatalog.GetIconSource(fileName),
                     () => SelectedGoalColorHex)));
+        GoalPickerIcons = TargetIconCatalog.GetPickerIconFileNames()
+            .Select(name => AllTargetIcons.Single(icon => icon.FileName == name)).ToArray();
         QuickTargetIcons = [];
         _selectedTargetIcon = AllTargetIcons.FirstOrDefault(icon =>
                                   string.Equals(
@@ -166,6 +168,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             {
                 CompletedAtUtc = task.CompletedAtUtc,
                 Description = task.Description,
+                FlagColor = task.FlagColor,
                 SubTasks = task.ExportSubTasks()
             })).ToArray();
         if (!_isInitialized)
@@ -514,6 +517,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     public bool IsGoalCreationGuideVisible => IsCurrentGoalList && !Goals.Any(goal => !goal.IsArchived);
 
     public ObservableCollection<TargetIconOptionViewModel> AllTargetIcons { get; }
+    public IReadOnlyList<TargetIconOptionViewModel> GoalPickerIcons { get; }
 
     public ObservableCollection<TargetIconOptionViewModel> QuickTargetIcons { get; }
 
@@ -523,19 +527,9 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         new("黄色", "#FFD332"), new("绿色", "#2BC46D"), new("蓝色", "#299BFA"), new("紫色", "#A66AF3")
     ];
 
-    private int _goalRemarkVisibleLines = 1;
-    public double GoalDialogHeight => 328 + (_goalRemarkVisibleLines - 1) * 20;
-    public double GoalRemarkInputHeight => _goalRemarkVisibleLines * 20;
+    public double GoalDialogHeight => 300;
+    public double GoalRemarkInputHeight => 60;
     public bool IsGoalRemarkAtLimit => _newGoalRemark.Length >= 150;
-
-    public void SetGoalRemarkLineCount(int lineCount)
-    {
-        var visibleLines = Math.Clamp(lineCount, 1, 3);
-        if (_goalRemarkVisibleLines == visibleLines) return;
-        _goalRemarkVisibleLines = visibleLines;
-        OnPropertyChanged(nameof(GoalDialogHeight));
-        OnPropertyChanged(nameof(GoalRemarkInputHeight));
-    }
 
     public ICommand SelectGoalColorCommand { get; }
     public string SelectedGoalColorHex => GoalColors.First(color => color.IsSelected).ColorHex;
@@ -605,7 +599,6 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             OnPropertyChanged();
             OnPropertyChanged(nameof(RemarkCharacterCountDisplay));
             OnPropertyChanged(nameof(IsGoalRemarkAtLimit));
-            if (normalized.Length == 0) SetGoalRemarkLineCount(1);
         }
     }
 
@@ -1079,10 +1072,9 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
         NewGoalName = string.Empty;
         NewGoalRemark = string.Empty;
-        SetGoalRemarkLineCount(1);
         SelectGoalColor(GoalColors[0]);
         IsGoalIconLibraryOpen = false;
-        SelectTargetIcon(QuickTargetIcons.FirstOrDefault() ?? AllTargetIcons.FirstOrDefault());
+        SelectTargetIcon(GoalPickerIcons.FirstOrDefault() ?? AllTargetIcons.FirstOrDefault());
         IsCreateGoalDialogOpen = true;
     }
 
@@ -1090,7 +1082,6 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     {
         IsGoalIconLibraryOpen = false;
         IsCreateGoalDialogOpen = false;
-        SetGoalRemarkLineCount(1);
         SetEditingGoal(null);
         NewGoalName = string.Empty;
         NewGoalRemark = string.Empty;
@@ -1169,7 +1160,6 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         if (goal is null || goal.IsArchived || IsCreateGoalDialogOpen || !Goals.Contains(goal)) return;
         IsGoalListMenuOpen = false;
         SetEditingGoal(goal);
-        SetGoalRemarkLineCount(1);
         SelectGoalColor(GoalColors.FirstOrDefault(color => color.ColorHex == goal.IconColorHex) ?? GoalColors[2]);
         NewGoalName = goal.Name;
         NewGoalRemark = goal.Remark ?? string.Empty;
@@ -1186,6 +1176,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         if (selected is null) return;
         SelectedTargetIcon = selected;
         EnsureSelectedIconShortcut();
+        IsGoalIconLibraryOpen = false;
     }
 
     private void EnsureSelectedIconShortcut()

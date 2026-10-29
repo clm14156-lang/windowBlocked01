@@ -187,6 +187,7 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
 {
     private string _description = string.Empty;
     private bool _isExpanded;
+    private bool _isSubTasksExpanded = true;
     private bool _isDrawerSelected;
     private int _drawerNumber;
     private bool _applyingDetails;
@@ -250,9 +251,40 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
             if (!_applyingDetails) DetailsChanged?.Invoke(this, EventArgs.Empty);
         }
     }
+    private string? _flagColor;
+    public string? FlagColor
+    {
+        get => _flagColor;
+        set
+        {
+            var color = TaskFlagColors.Normalize(value);
+            if (_flagColor == color) return;
+            _flagColor = color;
+            OnPropertyChanged(); OnPropertyChanged(nameof(HasFlag)); OnPropertyChanged(nameof(FlagBrush));
+            OnPropertyChanged(nameof(MarkerIcon)); OnPropertyChanged(nameof(MarkerLabel));
+            if (!_applyingDetails) DetailsChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+    public bool HasFlag => FlagColor is not null;
+    public System.Windows.Media.Brush FlagBrush => FocusTaskFlags.BrushFor(FlagColor);
+    public System.Windows.Media.ImageSource? MarkerIcon => TaskMarkerCatalog.Find(FlagColor)?.Icon;
+    public string? MarkerLabel => TaskMarkerCatalog.Find(FlagColor)?.Label;
     public bool HasDescription => !string.IsNullOrWhiteSpace(Description);
     public string RemarkActionLabel => HasDescription ? "编辑备注" : "添加备注";
     public bool HasSubTasks => SubTasks.Count > 0;
+    // Shared presentation state for the focus drawer and floating task list.
+    public bool IsSubTasksExpanded
+    {
+        get => _isSubTasksExpanded;
+        set
+        {
+            if (_isSubTasksExpanded == value) return;
+            _isSubTasksExpanded = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(HasVisibleSubTasks));
+        }
+    }
+    public bool HasVisibleSubTasks => HasSubTasks && IsSubTasksExpanded;
     public bool HasExpandedSubTasks => HasSubTasks && IsExpanded;
     public string SubTaskProgress => $"子任务 · {SubTasks.Count(item => item.IsCompleted)}/{SubTasks.Count}";
     public bool CanAddSubTask => SubTasks.Count < 20;
@@ -282,7 +314,7 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
 
     private void SubTaskChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(FocusSubTaskViewModel.Title) or nameof(FocusSubTaskViewModel.IsCompleted))
+        if (e.PropertyName is nameof(FocusSubTaskViewModel.Title) or nameof(FocusSubTaskViewModel.IsCompleted) or nameof(FocusSubTaskViewModel.FlagColor))
             NotifyDetailsChanged();
     }
 
@@ -293,6 +325,7 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
         CompletionChangedWithDetails = false;
         try
         {
+            foreach (var child in SubTasks) child.IsLastSibling = ReferenceEquals(child, SubTasks.Last());
             if (!_applyingDetails)
                 ApplyCompletion(_isCompleted, _completedAtUtc);
             if (!HasSubTasks) IsExpanded = false;
@@ -301,6 +334,7 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(CanAddSubTask));
             OnPropertyChanged(nameof(DrawerSubTaskToggleLabel));
             OnPropertyChanged(nameof(HasSubTasks));
+            OnPropertyChanged(nameof(HasVisibleSubTasks));
             OnPropertyChanged(nameof(HasExpandedSubTasks));
             if (!_applyingDetails) DetailsChanged?.Invoke(this, EventArgs.Empty);
         }
@@ -330,6 +364,7 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
         try
         {
             Description = source.Description;
+            FlagColor = source.FlagColor;
             var desired = source.SubTasks.OrderBy(item => item.SortOrder).ToArray();
             foreach (var removed in SubTasks.Where(item => desired.All(value => value.Id != item.Id)).ToArray())
                 SubTasks.Remove(removed);
@@ -356,7 +391,8 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
     }
 
     public IReadOnlyList<LocalSubTaskDto> ExportSubTasks() => SubTasks.Select((item, index) =>
-        new LocalSubTaskDto(item.Id, TaskId, item.Title, item.IsCompleted, index, item.CreatedAtUtc, item.UpdatedAtUtc)).ToArray();
+        new LocalSubTaskDto(item.Id, TaskId, item.Title, item.IsCompleted, index, item.CreatedAtUtc, item.UpdatedAtUtc)
+        { FlagColor = item.FlagColor }).ToArray();
 
     public LocalTaskDetailsSnapshotDto CaptureHistoryDetails() => new(Description,
         SubTasks.Select(child => new LocalSubTaskSnapshotDto(child.Title, child.IsCompleted)).ToArray());

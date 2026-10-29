@@ -8,6 +8,7 @@ namespace FocusApp.Desktop.Services;
 public static class TargetIconCatalog
 {
     public const string DefaultIconFileName = "tools.svg";
+    public const string DefaultPickerIconFileName = "folder-orange.png";
     public const int MaximumRecentIconCount = 6;
 
     private static readonly string[] PreferredQuickIcons =
@@ -25,15 +26,25 @@ public static class TargetIconCatalog
 
     public static IReadOnlyList<string> GetAvailableIconFileNames() => AvailableIconFileNames.Value;
 
+    public static IReadOnlyList<string> GetPickerIconFileNames()
+    {
+        string[] preferred = [DefaultPickerIconFileName, "graduation-cap.png", "open-book.png", "dumbbell.png",
+            "water-bottle.png", "paint-palette.png", "heart-pulse.png", "star.png", "laptop.png", "leaf.png"];
+        var available = AvailableIconFileNames.Value.Where(name => name.EndsWith(".png", StringComparison.OrdinalIgnoreCase)).ToArray();
+        return preferred.Concat(available).Where(name => available.Contains(name, StringComparer.OrdinalIgnoreCase))
+            .Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+    }
+
     public static IReadOnlyList<string> GetPreferredQuickIconFileNames() => PreferredQuickIcons;
 
     public static string ResolveIconFileName(string? iconFileName)
     {
         var icons = AvailableIconFileNames.Value;
-        if (string.Equals(Path.GetExtension(iconFileName), ".png", StringComparison.OrdinalIgnoreCase))
-            iconFileName = Path.ChangeExtension(iconFileName, ".svg");
         var match = icons.FirstOrDefault(value =>
             string.Equals(value, iconFileName, StringComparison.OrdinalIgnoreCase));
+        // Keep legacy PNG-to-SVG aliases while preserving the new native color artwork.
+        if (match is null && string.Equals(Path.GetExtension(iconFileName), ".png", StringComparison.OrdinalIgnoreCase))
+            match = icons.FirstOrDefault(value => string.Equals(value, Path.ChangeExtension(iconFileName, ".svg"), StringComparison.OrdinalIgnoreCase));
         if (match is not null)
         {
             return match;
@@ -47,8 +58,13 @@ public static class TargetIconCatalog
 
     public const string DefaultColorHex = "#FF7F3F";
 
-    public static string GetIconSource(string? iconFileName, string? colorHex = null) =>
-        $"/FocusApp.Desktop;component/Assets/Icons/targetSelected_Svg/{ResolveIconFileName(iconFileName)}#{(colorHex ?? DefaultColorHex).TrimStart('#')}";
+    public static string GetIconSource(string? iconFileName, string? colorHex = null)
+    {
+        var resolved = ResolveIconFileName(iconFileName);
+        return resolved.EndsWith(".png", StringComparison.OrdinalIgnoreCase)
+            ? $"/FocusApp.Desktop;component/Assets/Icons/TargetColor/{resolved}"
+            : $"/FocusApp.Desktop;component/Assets/Icons/targetSelected_Svg/{resolved}#{(colorHex ?? DefaultColorHex).TrimStart('#')}";
+    }
     public static IReadOnlyList<string> ParseRecentIconFileNames(string? json)
     {
         try
@@ -74,7 +90,8 @@ public static class TargetIconCatalog
     {
         var available = AvailableIconFileNames.Value.ToHashSet(StringComparer.OrdinalIgnoreCase);
         return values
-            .Where(value => !string.IsNullOrWhiteSpace(value) && available.Contains(Path.ChangeExtension(value, ".svg")))
+            .Where(value => !string.IsNullOrWhiteSpace(value) &&
+                (available.Contains(value) || available.Contains(Path.ChangeExtension(value, ".svg"))))
             .Select(ResolveIconFileName)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .Take(MaximumRecentIconCount)
@@ -88,12 +105,13 @@ public static class TargetIconCatalog
         using var stream = typeof(TargetIconCatalog).Assembly.GetManifestResourceStream("FocusApp.Desktop.g.resources");
         if (stream is null) return [];
         using var resources = new ResourceReader(stream);
-        const string prefix = "assets/icons/targetselected_svg/";
+        const string legacyPrefix = "assets/icons/targetselected_svg/";
+        const string colorPrefix = "assets/icons/targetcolor/";
         return resources.Cast<DictionaryEntry>()
             .Select(entry => (string)entry.Key)
-            .Where(key => key.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) &&
-                          key.EndsWith(".svg", StringComparison.OrdinalIgnoreCase))
-            .Select(key => key[prefix.Length..])
+            .Where(key => (key.StartsWith(legacyPrefix, StringComparison.OrdinalIgnoreCase) && key.EndsWith(".svg", StringComparison.OrdinalIgnoreCase)) ||
+                          (key.StartsWith(colorPrefix, StringComparison.OrdinalIgnoreCase) && key.EndsWith(".png", StringComparison.OrdinalIgnoreCase)))
+            .Select(key => key[(key.LastIndexOf('/') + 1)..])
             .OrderBy(value => value, StringComparer.OrdinalIgnoreCase)
             .ToArray();
     }

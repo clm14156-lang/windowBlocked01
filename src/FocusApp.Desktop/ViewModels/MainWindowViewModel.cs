@@ -794,6 +794,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
                 {
                     CompletedAtUtc = task.IsCompleted ? task.CompletedAtUtc ?? existing?.CompletedAtUtc ?? now : null,
                     Description = task.Description,
+                    FlagColor = task.FlagColor,
                     SubTasks = task.ExportSubTasks()
                 };
             }).ToArray();

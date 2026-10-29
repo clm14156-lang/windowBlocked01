@@ -44,15 +44,6 @@ internal static class TaskCompletionMotion
             Storyboard.SetTargetProperty(color, new PropertyPath("(0).(1)", TextBlock.ForegroundProperty, SolidColorBrush.ColorProperty));
             animation.Storyboard.Children.Add(color);
         }
-        var strike = new SolidColorBrush(completed) { Opacity = 0 };
-        animation.Set(title, TextBlock.TextDecorationsProperty, new TextDecorationCollection
-        {
-            new TextDecoration { Location = TextDecorationLocation.Strikethrough, Pen = new Pen(strike, 1),
-                PenThicknessUnit = TextDecorationUnit.FontRecommended }
-        });
-        AddCompletionKeys(animation.Storyboard, title,
-            new PropertyPath("(0)[0].(1).(2).(3)", TextBlock.TextDecorationsProperty, TextDecoration.PenProperty, Pen.BrushProperty, Brush.OpacityProperty),
-            (0, 0), (120, 0), (250, 1));
         return animation;
     }
 

@@ -184,6 +184,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             target.Tasks.IndexOf(parent), parent.CreatedAtUtc, now)
         {
             Description = parent.Description,
+            FlagColor = parent.FlagColor,
             CompletedAtUtc = parent.CompletedAtUtc,
             SubTasks = parent.ExportSubTasks().Append(child).ToArray()
         });

@@ -10,15 +10,14 @@ namespace FocusApp.Desktop.Views;
 
 public partial class CreateGoalModal : UserControl
 {
-    private bool _remarkLayoutPending;
     private Window? _ownerWindow;
+
     public CreateGoalModal()
     {
         InitializeComponent();
         GoalIconLibraryPopup.CustomPopupPlacementCallback = PlaceGoalIconLibraryPopup;
         Loaded += (_, _) =>
         {
-            ScheduleRemarkLayout();
             _ownerWindow = Window.GetWindow(this);
             if (_ownerWindow is not null) _ownerWindow.Deactivated += OwnerWindow_Deactivated;
         };
@@ -28,7 +27,10 @@ public partial class CreateGoalModal : UserControl
             _ownerWindow = null;
             CloseIconLibrary();
         };
-        DataContextChanged += (_, _) => ScheduleRemarkLayout();
+        DataContextChanged += (_, args) =>
+        {
+            if (args.OldValue is StatisticsOverviewViewModel oldModel) oldModel.IsGoalIconLibraryOpen = false;
+        };
     }
 
     private void CloseIconLibrary()
@@ -42,13 +44,10 @@ public partial class CreateGoalModal : UserControl
     {
         if (DataContext is not StatisticsOverviewViewModel { IsGoalIconLibraryOpen: true } model ||
             e.OriginalSource is not DependencyObject source) return;
-
-        // Icon and color controls form one picker, including the separate Popup window.
-        if (IsWithin(source, GoalIconChoices) || IsWithin(source, GoalColorChoices) ||
-            IsWithin(source, GoalIconLibraryPopup.Child)) return;
+        if (IsWithin(source, GoalIconLibraryButton) || IsWithin(source, GoalIconLibraryPopup.Child)) return;
 
         model.IsGoalIconLibraryOpen = false;
-        // The first backdrop click dismisses the picker, preserving the goal draft.
+        // Dismiss the picker first so a backdrop click does not also discard the draft.
         if (ReferenceEquals(source, CreateGoalDialogOverlay)) e.Handled = true;
     }
 
@@ -62,83 +61,71 @@ public partial class CreateGoalModal : UserControl
 
     private void Overlay_MouseDown(object sender, MouseButtonEventArgs e)
     {
-        // Only the backdrop itself dismisses the dialog; card descendants never do.
-        if (ReferenceEquals(e.OriginalSource, sender) &&
-            DataContext is StatisticsOverviewViewModel viewModel)
-        {
-            viewModel.CancelCreateGoalCommand.Execute(null);
-        }
-
+        if (ReferenceEquals(e.OriginalSource, sender) && DataContext is StatisticsOverviewViewModel model)
+            model.CancelCreateGoalCommand.Execute(null);
         e.Handled = true;
     }
 
     private void Modal_PreviewKeyDown(object sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Escape && DataContext is StatisticsOverviewViewModel viewModel)
-        {
-            if (viewModel.IsGoalIconLibraryOpen) viewModel.IsGoalIconLibraryOpen = false;
-            else viewModel.CancelCreateGoalCommand.Execute(null);
-            e.Handled = true;
-        }
+        if (e.Key != Key.Escape || DataContext is not StatisticsOverviewViewModel model) return;
+        if (model.IsGoalIconLibraryOpen) model.IsGoalIconLibraryOpen = false;
+        else model.CancelCreateGoalCommand.Execute(null);
+        e.Handled = true;
     }
 
     private void NewGoalNameTextBox_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
-        if (sender is TextBox { IsVisible: true } textBox)
-        {
-            Dispatcher.BeginInvoke(() => textBox.Focus());
-        }
+        if (sender is TextBox { IsVisible: true } textBox) Dispatcher.BeginInvoke(() => textBox.Focus());
     }
 
     private void NewGoalNameTextBox_PreviewKeyDown(object sender, KeyEventArgs e)
     {
-        if (DataContext is not StatisticsOverviewViewModel viewModel)
+        if (e.Key == Key.Enter && DataContext is StatisticsOverviewViewModel model &&
+            model.ConfirmCreateGoalCommand.CanExecute(null))
         {
-            return;
-        }
-
-        if (e.Key == Key.Enter && viewModel.ConfirmCreateGoalCommand.CanExecute(null))
-        {
-            viewModel.ConfirmCreateGoalCommand.Execute(null);
+            model.ConfirmCreateGoalCommand.Execute(null);
             e.Handled = true;
         }
     }
 
-    private void NewGoalRemarkTextBox_TextChanged(object sender, TextChangedEventArgs e) => ScheduleRemarkLayout();
-    private void NewGoalRemarkTextBox_SizeChanged(object sender, SizeChangedEventArgs e) => ScheduleRemarkLayout();
-
-    private void ScheduleRemarkLayout()
+    private void GoalIconLibraryPopup_Opened(object? sender, EventArgs e)
     {
-        if (_remarkLayoutPending) return;
-        _remarkLayoutPending = true;
         Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () =>
         {
-            _remarkLayoutPending = false;
-            if (DataContext is not StatisticsOverviewViewModel model || !model.IsCreateGoalDialogOpen) return;
-            NewGoalRemarkTextBox.UpdateLayout();
-            // LineCount includes automatic wrapping and explicit newlines, including a trailing Enter.
-            model.SetGoalRemarkLineCount(NewGoalRemarkTextBox.LineCount);
+            if (!GoalIconLibraryPopup.IsOpen) return;
+            var anchor = GoalIconLibraryButton.PointToScreen(new Point(GoalIconLibraryButton.ActualWidth / 2, GoalIconLibraryButton.ActualHeight / 2));
+            var relative = GoalIconPoptip.PointFromScreen(anchor);
+            GoalIconPoptip.PointerOnTop = relative.Y < 0;
+            GoalIconPoptip.PointerLeft = Math.Clamp(relative.X - PoptipChrome.PointerWidth / 2, 10,
+                Math.Max(10, GoalIconPoptip.ActualWidth - 10 - PoptipChrome.PointerWidth));
+            var selected = Descendants<Button>(GoalIconLibraryItems)
+                .FirstOrDefault(button => button.DataContext is TargetIconOptionViewModel { IsSelected: true });
+            selected?.BringIntoView();
+            if (_ownerWindow?.IsActive == true) selected?.Focus();
         });
     }
 
-    private CustomPopupPlacement[] PlaceGoalIconLibraryPopup(
-        Size popupSize,
-        Size targetSize,
-        Point offset)
+    private void GoalIconLibraryPopup_Closed(object? sender, EventArgs e)
     {
-        const double gap = 10;
-        var centeredTop = (targetSize.Height - popupSize.Height) / 2;
-        return
-        [
-            // Prefer the requested right-hand position. WPF evaluates the second
-            // candidate only when the first cannot fit on the current display.
-            new CustomPopupPlacement(
-                new Point(targetSize.Width + gap, centeredTop),
-                PopupPrimaryAxis.Horizontal),
-            new CustomPopupPlacement(
-                new Point(-popupSize.Width - gap, centeredTop),
-                PopupPrimaryAxis.Horizontal)
-        ];
+        if (_ownerWindow?.IsActive == true && DataContext is StatisticsOverviewViewModel { IsCreateGoalDialogOpen: true } &&
+            Keyboard.FocusedElement is DependencyObject focused && IsWithin(focused, GoalIconLibraryPopup.Child))
+            GoalIconLibraryButton.Focus();
     }
 
+    private static IEnumerable<T> Descendants<T>(DependencyObject root) where T : DependencyObject
+    {
+        for (var index = 0; index < VisualTreeHelper.GetChildrenCount(root); index++)
+        {
+            var child = VisualTreeHelper.GetChild(root, index);
+            if (child is T item) yield return item;
+            foreach (var descendant in Descendants<T>(child)) yield return descendant;
+        }
+    }
+
+    private static CustomPopupPlacement[] PlaceGoalIconLibraryPopup(Size popupSize, Size targetSize, Point offset) =>
+    [
+        new(new Point(-4, targetSize.Height + 2), PopupPrimaryAxis.Vertical),
+        new(new Point(-4, -popupSize.Height - 2), PopupPrimaryAxis.Vertical)
+    ];
 }

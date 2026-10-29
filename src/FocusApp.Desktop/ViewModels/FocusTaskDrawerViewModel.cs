@@ -111,6 +111,7 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
         else
         {
             SelectTask(parent);
+            parent.IsSubTasksExpanded = true;
             _inlineSubTaskParent = parent;
             InlineSubTaskTitle = string.Empty;
             NotifyInlineCreationChanged();
@@ -323,7 +324,8 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
         _editingTask = task;
         _draft = new FocusTaskViewModel(task.TargetId, task.Name, taskId: task.TaskId, createdAtUtc: task.CreatedAtUtc)
         {
-            Description = task.Description
+            Description = task.Description,
+            FlagColor = task.FlagColor
         };
         foreach (var source in task.ExportSubTasks()) _draft.SubTasks.Add(new FocusSubTaskViewModel(source));
         _draft.SubTasks.CollectionChanged += DraftSubTasksChanged;
@@ -380,6 +382,7 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
             _editingTask?.IsCompleted ?? false, _editingTask is null ? target.Tasks.Count : target.Tasks.IndexOf(_editingTask), _draft.CreatedAtUtc, now)
         {
             Description = _draft.Description.Trim(),
+            FlagColor = _draft.FlagColor,
             SubTasks = _draft.ExportSubTasks()
         };
         if (!_session.SaveDrawerTask(source)) return;

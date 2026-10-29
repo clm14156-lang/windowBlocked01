@@ -71,6 +71,7 @@ public sealed record LocalTask(
 {
     public DateTimeOffset? CompletedAtUtc { get; init; }
     public string Description { get; init; } = string.Empty;
+    public string? FlagColor { get; init; }
     public IReadOnlyList<LocalSubTask> SubTasks { get; init; } = [];
 }
 
@@ -81,7 +82,10 @@ public sealed record LocalSubTask(
     bool IsCompleted,
     int SortOrder,
     DateTimeOffset CreatedAtUtc,
-    DateTimeOffset UpdatedAtUtc);
+    DateTimeOffset UpdatedAtUtc)
+{
+    public string? FlagColor { get; init; }
+}
 
 public sealed record LocalWebsiteRule(
     Guid Id,

@@ -16,9 +16,12 @@ public sealed class OverviewFocusChart : FrameworkElement
     private static readonly Pen GridPen = FrozenPen("#EAF0F6", 1, new DashStyle([2, 3], 0));
     private static readonly Pen BaselinePen = FrozenPen("#DDE4ED", 1);
     private static readonly Brush ColumnBrush = FrozenBrush("#FFAA63");
+    private static readonly Brush ActiveColumnBrush = FrozenBrush("#FF8A25");
     private StatisticsDashboardViewModel? _subscribedModel;
     public StatisticsDashboardViewModel? Model { get => (StatisticsDashboardViewModel?)GetValue(ModelProperty); set => SetValue(ModelProperty, value); }
     public OverviewFocusBar? HoveredBar { get; private set; }
+    public OverviewFocusBar? SelectedBar { get; private set; }
+    public OverviewFocusBar? ActiveBar => HoveredBar ?? SelectedBar;
     public Point HoverAnchor { get; private set; }
     public event EventHandler? HoverChanged;
     internal Rect PlotBounds => new(36, 12, Math.Max(0, ActualWidth - 48), Math.Max(0, ActualHeight - (Model?.IsYear == true ? 42 : 58)));
@@ -27,8 +30,8 @@ public sealed class OverviewFocusChart : FrameworkElement
     {
         SnapsToDevicePixels = true;
         Loaded += (_, _) => SubscribeModel();
-        Unloaded += (_, _) => { UnsubscribeModel(); ClearHover(); };
-        IsVisibleChanged += (_, _) => { if (!IsVisible) ClearHover(); };
+        Unloaded += (_, _) => { UnsubscribeModel(); ClearInteraction(); };
+        IsVisibleChanged += (_, _) => { if (!IsVisible) ClearInteraction(); };
     }
 
     private static void ModelChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
@@ -36,7 +39,7 @@ public sealed class OverviewFocusChart : FrameworkElement
         var chart = (OverviewFocusChart)d;
         chart.UnsubscribeModel();
         if (chart.IsLoaded) chart.SubscribeModel();
-        chart.ClearHover();
+        chart.ClearInteraction();
     }
     private void SubscribeModel()
     {
@@ -51,8 +54,8 @@ public sealed class OverviewFocusChart : FrameworkElement
     }
     private void ModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (!string.IsNullOrEmpty(e.PropertyName)) return;
-        ClearHover();
+        if (!string.IsNullOrEmpty(e.PropertyName) && e.PropertyName != nameof(StatisticsDashboardViewModel.Bars)) return;
+        ClearInteraction();
         InvalidateVisual();
     }
 
@@ -70,8 +73,22 @@ public sealed class OverviewFocusChart : FrameworkElement
             DrawText(drawing, tick.Label, 11, new Point(0, y - 7), 32);
         }
         var slot = plot.Width / model.Bars.Count;
-        var width = Math.Min(model.IsYear ? 30 : model.IsMonth ? 10 : 44, slot * .5);
-        var labelWidth = slot;
+        var weekly = model.IsAnnualWeeklyChart;
+        var width = Math.Min(weekly ? 10 : model.IsYear ? 30 : model.IsMonth ? 10 : 44, slot * .5);
+        var labelWidth = weekly ? 46 : slot;
+        var labelStep = weekly ? Math.Max(4, (int)Math.Ceiling((labelWidth + 4) / slot)) : 1;
+        var occupiedLabels = new List<Rect>();
+        Rect LabelBounds(int index)
+        {
+            var x = plot.Left + (index + .5) * slot - labelWidth / 2;
+            if (weekly) x = Math.Clamp(x, 0, Math.Max(0, ActualWidth - labelWidth));
+            return new Rect(x, plot.Bottom + 8, labelWidth, 16);
+        }
+        if (weekly)
+        {
+            occupiedLabels.Add(LabelBounds(0));
+            occupiedLabels.Add(LabelBounds(model.Bars.Count - 1));
+        }
         for (var index = 0; index < model.Bars.Count; index++)
         {
             var bar = model.Bars[index];
@@ -80,13 +97,16 @@ public sealed class OverviewFocusChart : FrameworkElement
             if (height > 0)
             {
                 var bounds = new Rect(center - width / 2, plot.Bottom - height, width, height);
-                drawing.PushOpacity(ReferenceEquals(bar, HoveredBar) ? .84 : 1);
-                drawing.DrawGeometry(ColumnBrush, null, ColumnGeometry(bounds));
-                drawing.Pop();
+                drawing.DrawGeometry(ReferenceEquals(bar, ActiveBar) ? ActiveColumnBrush : ColumnBrush, null, ColumnGeometry(bounds));
             }
-            var labelBounds = new Rect(center - labelWidth / 2, plot.Bottom + 8, labelWidth, 16);
-            // Every day retains its label, including dates with no recorded focus.
-            DrawText(drawing, bar.AxisLabel, 11, labelBounds.TopLeft, labelWidth, TextAlignment.Center, bar.IsToday);
+            var labelBounds = LabelBounds(index);
+            // Weekly mode keeps every column and thins only its labels. Daily/monthly labels stay intact.
+            if (!weekly || index == 0 || index == model.Bars.Count - 1 ||
+                index % labelStep == 0 && !occupiedLabels.Any(bounds => bounds.IntersectsWith(labelBounds)))
+            {
+                DrawText(drawing, bar.AxisLabel, 11, labelBounds.TopLeft, labelWidth, TextAlignment.Center, bar.IsToday);
+                if (weekly && index != 0 && index != model.Bars.Count - 1) occupiedLabels.Add(labelBounds);
+            }
             if (!model.IsYear && !string.IsNullOrEmpty(bar.Weekday))
             {
                 var weekdayWidth = bar.IsToday ? Math.Max(28, slot) : slot;
@@ -115,20 +135,47 @@ public sealed class OverviewFocusChart : FrameworkElement
         else SetHover(bar);
     }
     protected override void OnMouseLeave(MouseEventArgs e) { base.OnMouseLeave(e); ClearHover(); }
+    protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
+    {
+        base.OnMouseLeftButtonDown(e);
+        if (SelectAt(e.GetPosition(this))) e.Handled = true;
+    }
+    internal bool SelectAt(Point point)
+    {
+        if (HitTestBar(point) is not { } bar) return false;
+        SelectedBar = ReferenceEquals(SelectedBar, bar) ? null : bar;
+        HoveredBar = null;
+        UpdateAnchor();
+        InvalidateVisual();
+        HoverChanged?.Invoke(this, EventArgs.Empty);
+        return true;
+    }
     private void SetHover(OverviewFocusBar? bar)
     {
         if (ReferenceEquals(HoveredBar, bar)) return;
         HoveredBar = bar;
-        if (bar is not null && Model is { } model)
+        UpdateAnchor();
+        InvalidateVisual();
+        HoverChanged?.Invoke(this, EventArgs.Empty);
+    }
+    private void UpdateAnchor()
+    {
+        if (ActiveBar is { } bar && Model is { } model)
         {
             var index = model.Bars.ToList().IndexOf(bar);
             HoverAnchor = new Point(PlotBounds.Left + (index + .5) * PlotBounds.Width / model.Bars.Count,
                 PlotBounds.Bottom - bar.Duration.TotalMinutes / model.AxisMaximumMinutes * PlotBounds.Height);
         }
+    }
+    internal void ClearHover() => SetHover(null);
+    internal void ClearInteraction()
+    {
+        if (HoveredBar is null && SelectedBar is null) return;
+        HoveredBar = null;
+        SelectedBar = null;
         InvalidateVisual();
         HoverChanged?.Invoke(this, EventArgs.Empty);
     }
-    internal void ClearHover() => SetHover(null);
     private void DrawText(DrawingContext drawing, string text, double size, Point origin, double width, TextAlignment alignment = TextAlignment.Left, bool isToday = false)
     {
         var formatted = new FormattedText(text, CultureInfo.CurrentCulture, FlowDirection.LeftToRight,

@@ -34,7 +34,8 @@
     <SolidColorBrush x:Key="FocusFooterActionPressedForeground" Color="#111827" />
     <SolidColorBrush x:Key="FocusFooterActionHoverBackground" Color="#0D18212F" />
     <SolidColorBrush x:Key="FocusFooterActionPressedBackground" Color="#1718212F" />
-    <SolidColorBrush x:Key="FocusRuleBrush" Color="#E4E7EC" />
+    <SolidColorBrush x:Key="FocusRuleBrush" Color="#55DDE2E8" />
+    <SolidColorBrush x:Key="FocusCountdownProgressBrush" Color="#80FFFFFF" />
     <SolidColorBrush x:Key="FocusDividerBrush" Color="#E4E7EC" />
     <SolidColorBrush x:Key="FocusNoticeBrush" Color="#667085" />
     <SolidColorBrush x:Key="FocusChromeHoverBrush" Color="#EAF0F6" />

@@ -33,8 +33,10 @@ internal static class LocalDataContractMapper
         {
             CompletedAtUtc = source.CompletedAtUtc,
             Description = source.Description,
+            FlagColor = TaskFlagColors.Normalize(source.FlagColor),
             SubTasks = source.SubTasks.Select(item => new LocalSubTask(item.Id, item.TaskId, item.Title,
-                item.IsCompleted, item.SortOrder, item.CreatedAtUtc, item.UpdatedAtUtc)).ToArray()
+                item.IsCompleted, item.SortOrder, item.CreatedAtUtc, item.UpdatedAtUtc)
+                { FlagColor = TaskFlagColors.Normalize(item.FlagColor) }).ToArray()
         };
 
     public static LocalWebsiteRule ToCore(LocalWebsiteRuleDto source)
@@ -150,8 +152,10 @@ internal static class LocalDataContractMapper
         {
             CompletedAtUtc = source.CompletedAtUtc,
             Description = source.Description,
+            FlagColor = source.FlagColor,
             SubTasks = source.SubTasks.Select(item => new LocalSubTaskDto(item.Id, item.TaskId, item.Title,
-                item.IsCompleted, item.SortOrder, item.CreatedAtUtc, item.UpdatedAtUtc)).ToArray()
+                item.IsCompleted, item.SortOrder, item.CreatedAtUtc, item.UpdatedAtUtc)
+                { FlagColor = item.FlagColor }).ToArray()
         };
 
     private static LocalWebsiteRuleDto ToDto(LocalWebsiteRule source)

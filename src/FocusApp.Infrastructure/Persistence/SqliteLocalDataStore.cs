@@ -656,8 +656,8 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
         task = TaskCompletionPolicy.Normalize(task);
         await using var command = CreateCommand(connection, transaction, """
             INSERT INTO tasks (
-                task_id, target_id, name, is_completed, sort_order, created_utc, updated_utc, completed_utc, description)
-            VALUES ($id, $targetId, $name, $completed, $sort, $created, $updated, $completedAt, $description);
+                task_id, target_id, name, is_completed, sort_order, created_utc, updated_utc, completed_utc, description, flag_color)
+            VALUES ($id, $targetId, $name, $completed, $sort, $created, $updated, $completedAt, $description, $flag);
             """);
         command.Parameters.AddWithValue("$id", task.TaskId);
         command.Parameters.AddWithValue("$targetId", task.TargetId);
@@ -668,12 +668,13 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
         command.Parameters.AddWithValue("$updated", FormatDateTime(task.UpdatedAtUtc));
         command.Parameters.AddWithValue("$completedAt", FormatNullableDateTime(task.CompletedAtUtc));
         command.Parameters.AddWithValue("$description", task.Description);
+        command.Parameters.AddWithValue("$flag", (object?)TaskFlagColors.Normalize(task.FlagColor) ?? DBNull.Value);
         await command.ExecuteNonQueryAsync(cancellationToken);
         foreach (var subTask in task.SubTasks.OrderBy(item => item.SortOrder))
         {
             await using var subCommand = CreateCommand(connection, transaction, """
-                INSERT INTO subtasks (id, task_id, title, is_completed, sort_order, created_utc, updated_utc)
-                VALUES ($id, $taskId, $title, $completed, $sort, $created, $updated);
+                INSERT INTO subtasks (id, task_id, title, is_completed, sort_order, created_utc, updated_utc, flag_color)
+                VALUES ($id, $taskId, $title, $completed, $sort, $created, $updated, $flag);
                 """);
             subCommand.Parameters.AddWithValue("$id", subTask.Id);
             subCommand.Parameters.AddWithValue("$taskId", task.TaskId);
@@ -682,6 +683,7 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
             subCommand.Parameters.AddWithValue("$sort", subTask.SortOrder);
             subCommand.Parameters.AddWithValue("$created", FormatDateTime(subTask.CreatedAtUtc));
             subCommand.Parameters.AddWithValue("$updated", FormatDateTime(subTask.UpdatedAtUtc));
+            subCommand.Parameters.AddWithValue("$flag", (object?)TaskFlagColors.Normalize(subTask.FlagColor) ?? DBNull.Value);
             await subCommand.ExecuteNonQueryAsync(cancellationToken);
         }
     }
@@ -883,7 +885,7 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
         await using (var subCommand = connection.CreateCommand())
         {
             subCommand.Transaction = transaction;
-            subCommand.CommandText = "SELECT id, task_id, title, is_completed, sort_order, created_utc, updated_utc FROM subtasks ORDER BY task_id, sort_order, id;";
+            subCommand.CommandText = "SELECT id, task_id, title, is_completed, sort_order, created_utc, updated_utc, flag_color FROM subtasks ORDER BY task_id, sort_order, id;";
             await using var subReader = await subCommand.ExecuteReaderAsync(cancellationToken);
             while (await subReader.ReadAsync(cancellationToken))
             {
@@ -891,14 +893,14 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
                 if (!subTasks.TryGetValue(taskId, out var items)) subTasks[taskId] = items = [];
                 items.Add(new LocalSubTask(subReader.GetString(0), taskId, subReader.GetString(2),
                     subReader.GetBoolean(3), subReader.GetInt32(4), ParseDateTime(subReader.GetString(5)),
-                    ParseDateTime(subReader.GetString(6))));
+                    ParseDateTime(subReader.GetString(6))) { FlagColor = subReader.IsDBNull(7) ? null : subReader.GetString(7) });
             }
         }
         var values = new List<LocalTask>();
         await using var command = connection.CreateCommand();
         command.Transaction = transaction;
         command.CommandText = """
-            SELECT task_id, target_id, name, is_completed, sort_order, created_utc, updated_utc, completed_utc, description
+            SELECT task_id, target_id, name, is_completed, sort_order, created_utc, updated_utc, completed_utc, description, flag_color
             FROM tasks ORDER BY target_id, sort_order, task_id;
             """;
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
@@ -915,6 +917,7 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
             {
                 CompletedAtUtc = ReadNullableDateTime(reader, 7),
                 Description = reader.GetString(8),
+                FlagColor = reader.IsDBNull(9) ? null : reader.GetString(9),
                 SubTasks = subTasks.TryGetValue(reader.GetString(0), out var items) ? items.ToArray() : Array.Empty<LocalSubTask>()
             });
         }

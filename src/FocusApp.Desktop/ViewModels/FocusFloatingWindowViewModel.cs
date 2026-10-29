@@ -11,12 +11,12 @@ namespace FocusApp.Desktop.ViewModels;
 /// Presentation-only adapter for the focus floating window. The session remains
 /// the single source of truth for time and task state.
 /// </summary>
-public sealed class FocusFloatingWindowViewModel : INotifyPropertyChanged, IDisposable
+public sealed partial class FocusFloatingWindowViewModel : INotifyPropertyChanged, IDisposable
 {
     public const double EmptyWindowHeight = 115;
     public const double TaskHeaderHeight = 46;
     public const double TaskRowHeight = 28;
-    public const int VisibleTaskLimit = 5;
+    public const int VisibleTaskLimit = 8;
     public const double MaximumWindowHeight = EmptyWindowHeight + TaskHeaderHeight + TaskRowHeight * VisibleTaskLimit;
     private readonly FocusSessionViewModel _session;
     private readonly HashSet<FocusTaskViewModel> _subscribedTasks = [];
@@ -77,9 +77,11 @@ public sealed class FocusFloatingWindowViewModel : INotifyPropertyChanged, IDisp
 
     public int PendingTaskCount => PendingTasks.Count;
 
-    public int TaskRowCount => PendingTasks.Sum(task => 1 + task.SubTasks.Count);
+    public int TaskRowCount => PendingTasks.Sum(DisplayedRowCount);
 
-    private double VisibleTaskRowsHeight => VisibleTasks.Sum(task => 1 + task.SubTasks.Count) * TaskRowHeight
+    private static int DisplayedRowCount(FocusTaskViewModel task) => 1 + (task.HasVisibleSubTasks ? task.SubTasks.Count : 0);
+
+    private double VisibleTaskRowsHeight => VisibleTasks.Sum(DisplayedRowCount) * TaskRowHeight
         + (IsCreatingSubTask ? SubTaskCreationHeight : 0);
 
     public bool HasTaskOverflow => VisibleTaskRowsHeight > AvailableTaskListHeight;
@@ -122,9 +124,10 @@ public sealed class FocusFloatingWindowViewModel : INotifyPropertyChanged, IDisp
 
     private bool BeginCreation(FocusTaskViewModel? parent)
     {
-        if (_isDisposed || !IsFocusing || !HasTarget || IsCreatingTask || _isSubmittingTask) return false;
+        if (_isDisposed || !IsFocusing || !HasTarget || IsCreatingTask || IsEditingTask || _isSubmittingTask) return false;
         _creationTargetId = _session.ActiveTarget!.TargetId;
         _subTaskCreationParent = parent;
+        if (parent is not null) parent.IsSubTasksExpanded = true;
         TaskTitle = string.Empty;
         _isCreatingTask = true;
         NotifyCreationModeChanged();
@@ -179,6 +182,7 @@ public sealed class FocusFloatingWindowViewModel : INotifyPropertyChanged, IDisp
 
     private void NotifyCreationModeChanged()
     {
+        OnPropertyChanged(nameof(HasTaskInteraction));
         OnPropertyChanged(nameof(IsCreatingTask));
         OnPropertyChanged(nameof(IsCreatingSubTask));
         OnPropertyChanged(nameof(IsCreatingRootTask));
@@ -287,7 +291,7 @@ public sealed class FocusFloatingWindowViewModel : INotifyPropertyChanged, IDisp
     public ICommand ToggleTaskCompletedCommand { get; }
 
     public bool MoveTask(FocusTaskViewModel task, int destinationIndex) =>
-        !_isDisposed && !IsCreatingTask && _session.TaskDrawer.MoveTask(task, destinationIndex);
+        !_isDisposed && !HasTaskInteraction && _session.TaskDrawer.MoveTask(task, destinationIndex);
 
     public void Dispose()
     {
@@ -296,6 +300,7 @@ public sealed class FocusFloatingWindowViewModel : INotifyPropertyChanged, IDisp
             return;
         }
 
+        CancelTaskEdit();
         CancelTaskCreation();
         _isDisposed = true;
         FinishCompletionAnimations();
@@ -309,6 +314,7 @@ public sealed class FocusFloatingWindowViewModel : INotifyPropertyChanged, IDisp
     {
         if (e.PropertyName == nameof(FocusSessionViewModel.ActiveTarget))
         {
+            CancelTaskEdit();
             CancelTaskCreation();
             SubscribeTarget();
             OnPropertyChanged(nameof(HasTarget));
@@ -322,7 +328,7 @@ public sealed class FocusFloatingWindowViewModel : INotifyPropertyChanged, IDisp
             OnPropertyChanged(e.PropertyName);
             if (e.PropertyName == nameof(FocusSessionViewModel.IsFocusing))
             {
-                if (!IsFocusing) CancelTaskCreation();
+                if (!IsFocusing) { CancelTaskEdit(); CancelTaskCreation(); }
                 NotifyPendingTasksChanged();
             }
         }
@@ -351,6 +357,7 @@ public sealed class FocusFloatingWindowViewModel : INotifyPropertyChanged, IDisp
 
     private void NotifyPendingTasksChanged()
     {
+        if (IsEditingTask && !IsValidEditTarget()) CancelTaskEdit();
         if (!_isSubmittingTask && _subTaskCreationParent is { } parent && !IsValidSubTaskParent(parent))
             CancelTaskCreation();
         RefreshPresentation();
@@ -398,6 +405,15 @@ public sealed class FocusFloatingWindowViewModel : INotifyPropertyChanged, IDisp
             OnPropertyChanged(nameof(CurrentTaskName));
         }
         if (e.PropertyName == nameof(FocusTaskViewModel.IsCompleted)) NotifyPendingTasksChanged();
+        if (e.PropertyName == nameof(FocusTaskViewModel.IsSubTasksExpanded))
+        {
+            if (sender is FocusTaskViewModel { IsSubTasksExpanded: false } parent)
+            {
+                if (ReferenceEquals(parent, _subTaskCreationParent)) CancelTaskCreation();
+                if (ReferenceEquals(parent, _editParent) && _editChild is not null) CancelTaskEdit();
+            }
+            NotifyPendingTasksChanged();
+        }
     }
 
     private void SubTasks_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) => NotifyPendingTasksChanged();

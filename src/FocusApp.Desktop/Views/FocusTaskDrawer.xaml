@@ -1,7 +1,7 @@
 <UserControl x:Class="FocusApp.Desktop.Views.FocusTaskDrawer"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:views="clr-namespace:FocusApp.Desktop.Views"
+             xmlns:views="clr-namespace:FocusApp.Desktop.Views" xmlns:vm="clr-namespace:FocusApp.Desktop.ViewModels"
              xmlns:system="clr-namespace:System;assembly=System.Runtime"
              views:FocusThemeScope.IsDark="{Binding Session.IsDarkFocusTheme}"
              Width="270" Height="710" Background="{DynamicResource FocusDrawerSurface}" FontFamily="{DynamicResource FontFamilyPrimary}"
@@ -13,7 +13,7 @@
     <UserControl.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="FocusTaskResources.xaml" />
+                <ResourceDictionary Source="FocusTaskResources.xaml" /><ResourceDictionary Source="TaskContextMenuResources.xaml" />
                 <ResourceDictionary Source="../Resources/FocusTheme.Light.xaml" />
             </ResourceDictionary.MergedDictionaries>
         <views:CustomTimeSelectionConverter x:Key="SameTask"/>
@@ -82,59 +82,70 @@
         </Style>
         <DataTemplate x:Key="TaskRow">
             <Grid x:Name="TaskRowSurface" Background="{DynamicResource FocusTaskCard}" PreviewMouseLeftButtonDown="TaskRow_PreviewMouseLeftButtonDown"
-                  MouseEnter="TaskRow_CreationMouseEnter" MouseLeave="TaskRow_CreationMouseLeave">
+                  MouseRightButtonUp="TaskRow_MouseRightButtonUp">
                 <StackPanel Margin="18,14,14,15">
-                    <Grid MinHeight="24">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="35" /><ColumnDefinition Width="*" /><ColumnDefinition Width="24" /></Grid.ColumnDefinitions>
+                    <Border x:Name="ParentTaskHoverRegion" Margin="-18,-14,-14,-5" Padding="18,14,14,5"
+                            MouseEnter="TaskRow_CreationMouseEnter" MouseLeave="TaskRow_CreationMouseLeave">
+                        <Border.Style><Style TargetType="Border">
+                            <Setter Property="Background" Value="{DynamicResource FocusTaskCard}"/>
+                            <Style.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="{DynamicResource FocusTaskButtonHover}"/></Trigger></Style.Triggers>
+                        </Style></Border.Style>
+                        <StackPanel>
+                    <Grid x:Name="TaskHeader" MinHeight="24">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="35" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                         <CheckBox x:Name="TaskCompletionCheck" IsChecked="{Binding IsCompleted, Mode=OneWay}" Command="{Binding DataContext.ToggleTaskCompletedCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
                                   HorizontalAlignment="Left" VerticalAlignment="Center" Style="{StaticResource DrawerTaskCheck}" AutomationProperties.Name="切换任务完成状态" />
-                        <TextBlock x:Name="TaskTitle" Grid.Column="1" VerticalAlignment="Center" Text="{Binding Name}" FontSize="14" FontWeight="{DynamicResource FocusTaskNameFontWeight}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" Style="{StaticResource CompletedTitle}" />
-                        <Button x:Name="TaskMoreButton" Tag="{Binding DataContext.Session.IsDarkFocusTheme, RelativeSource={RelativeSource AncestorType=UserControl}}" Grid.Column="2" Width="28" Height="28" Margin="-2" VerticalAlignment="Center" Foreground="{DynamicResource FocusTaskActionIcon}" FontSize="17" AutomationProperties.Name="更多任务操作" Click="TaskMoreButton_Click">
-                            <Path Width="15" Height="3" Stretch="Fill" Data="M 0,1.5 A 1.5,1.5 0 1 0 3,1.5 A 1.5,1.5 0 1 0 0,1.5 M 6,1.5 A 1.5,1.5 0 1 0 9,1.5 A 1.5,1.5 0 1 0 6,1.5 M 12,1.5 A 1.5,1.5 0 1 0 15,1.5 A 1.5,1.5 0 1 0 12,1.5" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
-                            <Button.Style><Style TargetType="Button" BasedOn="{StaticResource PlainButton}">
-                                <Setter Property="Opacity" Value="1"/>
-                                <Style.Triggers>
-                                    <MultiDataTrigger>
-                                        <MultiDataTrigger.Conditions>
-                                            <Condition Binding="{Binding IsMouseOver, ElementName=TaskRowSurface}" Value="False"/>
-                                            <Condition Binding="{Binding ContextMenu.IsOpen, RelativeSource={RelativeSource Self}}" Value="False"/>
-                                        </MultiDataTrigger.Conditions>
-                                        <Setter Property="Opacity" Value="0"/><Setter Property="IsHitTestVisible" Value="False"/>
-                                        <MultiDataTrigger.EnterActions><BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.09"/></Storyboard></BeginStoryboard></MultiDataTrigger.EnterActions>
-                                        <MultiDataTrigger.ExitActions><BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.09"/></Storyboard></BeginStoryboard></MultiDataTrigger.ExitActions>
-                                    </MultiDataTrigger>
-                                </Style.Triggers>
-                            </Style></Button.Style>
-                            <Button.ContextMenu><ContextMenu Style="{StaticResource DrawerTaskMenuStyle}" views:FocusThemeScope.IsDark="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource Self}}" DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
-                                <MenuItem Header="编辑任务" Click="EditTaskMenu_Click" Foreground="{DynamicResource DrawerTaskMenuEdit}">
-                                    <MenuItem.Icon><Path Width="14" Height="14" Data="M 2,11 L 2,14 L 5,14 L 13,6 L 10,3 Z M 10,3 L 12,1 L 15,4 L 13,6" Stroke="{DynamicResource DrawerTaskMenuEdit}" StrokeThickness="1.4" Fill="Transparent" StrokeLineJoin="Round" /></MenuItem.Icon>
-                                </MenuItem>
-                                <Separator Style="{StaticResource DrawerTaskMenuSeparatorStyle}" />
-                                <MenuItem Header="删除任务" Foreground="{DynamicResource DrawerTaskMenuDelete}" Click="DeleteTaskMenu_Click">
-                                    <MenuItem.Icon><Path Width="14" Height="14" Data="M 2,4 L 14,4 M 5,4 L 5,14 L 11,14 L 11,4 M 6,2 L 10,2 M 7,7 L 7,11 M 9,7 L 9,11" Stroke="{DynamicResource DrawerTaskMenuDelete}" StrokeThickness="1.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Fill="Transparent" /></MenuItem.Icon>
-                                </MenuItem>
-                            </ContextMenu></Button.ContextMenu>
+                        <ToggleButton x:Name="SubTaskToggle" Width="14" HorizontalAlignment="Right" Style="{StaticResource TaskSubTaskToggle}"
+                                      IsChecked="{Binding IsSubTasksExpanded, Mode=TwoWay}" Visibility="{Binding HasSubTasks, Converter={StaticResource BoolVisibility}}"
+                                      AutomationProperties.Name="展开或折叠子任务"/>
+                        <DockPanel Grid.Column="1" HorizontalAlignment="Left" VerticalAlignment="Center">
+                            <TextBlock x:Name="TaskSubTaskProgress" DockPanel.Dock="Right" Margin="6,0,4,0" VerticalAlignment="Center" FontSize="11"
+                                       FontFamily="{DynamicResource FontFamilyNumeric}" Foreground="{DynamicResource FocusTaskDescriptionText}"
+                                       Text="{Binding SubTaskProgress, Converter={StaticResource CompactTaskProgress}}"
+                                       Visibility="{Binding HasSubTasks, Converter={StaticResource BoolVisibility}}"/>
+                        <views:HoverScrollText VerticalAlignment="Center" UseOverflowToolTip="True" IsHovered="{Binding IsMouseOver, ElementName=TaskHeader}">
+                            <TextBlock x:Name="TaskTitle" VerticalAlignment="Center" Text="{Binding Name}" FontSize="13" FontWeight="{DynamicResource FocusTaskNameFontWeight}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" Style="{StaticResource CompletedTitle}" />
+                        </views:HoverScrollText>
+                        </DockPanel>
+                        <Button x:Name="TaskFlag" Grid.Column="2" Width="24" Height="24" VerticalAlignment="Center"
+                                Style="{StaticResource PlainButton}" Click="TaskMarker_Click" AutomationProperties.Name="{Binding MarkerLabel}"
+                                Visibility="{Binding HasFlag, Converter={StaticResource BoolVisibility}}">
+                            <Image Source="{Binding MarkerIcon}" Width="22" Height="22"/>
                         </Button>
                     </Grid>
                     <TextBlock x:Name="InlineDescription" Margin="35,5,2,0" Text="{Binding Description}" FontSize="{DynamicResource SecondaryFontSize}" FontWeight="{DynamicResource SecondaryFontWeight}" Foreground="{DynamicResource FocusTaskDescriptionText}" TextWrapping="Wrap" LineHeight="18" MaxHeight="36" TextTrimming="CharacterEllipsis" Visibility="{Binding HasDescription, Converter={StaticResource BoolVisibility}}" />
-                    <Button x:Name="SubTaskToggle" Margin="35,9,0,0" Padding="10,0" Height="25" HorizontalAlignment="Left" Background="{DynamicResource FocusTaskSubTaskSurface}" Style="{StaticResource PlainButton}" Command="{Binding DataContext.ToggleExpandedCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Visibility="{Binding HasSubTasks, Converter={StaticResource BoolVisibility}}" AutomationProperties.Name="展开或收起子任务">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center"><TextBlock Text="{Binding DrawerSubTaskToggleLabel}" FontSize="{DynamicResource SecondaryMediumFontSize}" FontWeight="{DynamicResource SecondaryMediumFontWeight}" Foreground="{DynamicResource FocusTaskSubTaskLabel}" />
-                            <Path Width="6" Height="9" Margin="7,0,0,0" VerticalAlignment="Center" Data="M 0,0 L 5,4.5 L 0,9" Stroke="{DynamicResource FocusTaskSubTaskChevron}" StrokeThickness="1.3" StrokeStartLineCap="Round" StrokeEndLineCap="Round">
-                                <Path.Style><Style TargetType="Path"><Style.Triggers><DataTrigger Binding="{Binding IsExpanded}" Value="True"><Setter Property="RenderTransform"><Setter.Value><RotateTransform Angle="90" CenterX="3" CenterY="4.5" /></Setter.Value></Setter></DataTrigger></Style.Triggers></Style></Path.Style>
-                            </Path>
                         </StackPanel>
-                    </Button>
-                    <Border Margin="45,10,0,0" Visibility="{Binding IsExpanded, Converter={StaticResource BoolVisibility}}">
-                        <ItemsControl x:Name="InlineSubTaskList" Margin="14,0,0,0" ItemsSource="{Binding SubTasks}">
-                            <ItemsControl.ItemTemplate><DataTemplate>
-                                <Grid x:Name="SubTaskRow" MinHeight="33" Loaded="SubTaskRow_Loaded" Unloaded="SubTaskRow_Unloaded" DataContextChanged="SubTaskRow_DataContextChanged"><Grid.ColumnDefinitions><ColumnDefinition Width="26" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                    <CheckBox x:Name="SubTaskCompletionCheck" IsChecked="{Binding IsCompleted, Mode=TwoWay}" Style="{StaticResource CircleCheck}" VerticalAlignment="Center" AutomationProperties.Name="切换子任务完成状态" />
-                                    <TextBlock x:Name="SubTaskTitle" Grid.Column="1" VerticalAlignment="Center" Text="{Binding Title}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" FontSize="11.5" Style="{StaticResource CompletedTitle}" />
-                                </Grid>
-                            </DataTemplate></ItemsControl.ItemTemplate>
-                        </ItemsControl>
                     </Border>
-                    <Border x:Name="InlineSubTaskCreation" Margin="59,6,0,0" Height="32" CornerRadius="6" BorderThickness="1"
+                    <ItemsControl x:Name="InlineSubTaskList" Margin="0,10,0,0" ItemsSource="{Binding SubTasks}"
+                                  Visibility="{Binding HasVisibleSubTasks, Converter={StaticResource BoolVisibility}}">
+                        <ItemsControl.ItemTemplate><DataTemplate>
+                            <Grid x:Name="SubTaskRow" MinHeight="33" MouseRightButtonUp="TaskRow_MouseRightButtonUp"
+                                  Loaded="SubTaskRow_Loaded" Unloaded="SubTaskRow_Unloaded" DataContextChanged="SubTaskRow_DataContextChanged">
+                                <Grid.Style><Style TargetType="Grid">
+                                    <Setter Property="Background" Value="Transparent"/>
+                                    <Style.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="{DynamicResource FocusTaskButtonHover}"/></Trigger></Style.Triggers>
+                                </Style></Grid.Style>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="35"/><ColumnDefinition Width="26"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <Path x:Name="SubTaskSpine" Data="M 9.5,0 L 9.5,33" Stroke="{DynamicResource FocusTaskRowDivider}" StrokeThickness="1"
+                                      Stretch="Fill" Width="1" Margin="9,0,0,0" HorizontalAlignment="Left" IsHitTestVisible="False"
+                                      Visibility="{Binding HasNextSibling, Converter={StaticResource BoolVisibility}}"/>
+                                <Path x:Name="SubTaskBranch" Data="M 9.5,0 L 9.5,10.5 Q 9.5,16.5 15.5,16.5 L 27,16.5"
+                                      Stroke="{DynamicResource FocusTaskRowDivider}" StrokeThickness="1" StrokeLineJoin="Round" IsHitTestVisible="False"/>
+                                <CheckBox x:Name="SubTaskCompletionCheck" Grid.Column="1" IsChecked="{Binding IsCompleted, Mode=TwoWay}"
+                                          Style="{StaticResource CircleCheck}" HorizontalAlignment="Left" VerticalAlignment="Center" AutomationProperties.Name="切换子任务完成状态"/>
+                                <views:HoverScrollText Grid.Column="2" VerticalAlignment="Center" UseOverflowToolTip="True" IsHovered="{Binding IsMouseOver, ElementName=SubTaskRow}">
+                                    <TextBlock x:Name="SubTaskTitle" VerticalAlignment="Center" Text="{Binding Title}" TextWrapping="NoWrap"
+                                               TextTrimming="CharacterEllipsis" FontSize="12" Style="{StaticResource CompletedTitle}"/>
+                                </views:HoverScrollText>
+                                <Button x:Name="SubTaskFlag" Grid.Column="3" Width="24" Height="24" VerticalAlignment="Center"
+                                        Style="{StaticResource PlainButton}" Click="TaskMarker_Click" AutomationProperties.Name="{Binding MarkerLabel}"
+                                        Visibility="{Binding HasFlag, Converter={StaticResource BoolVisibility}}">
+                                    <Image Source="{Binding MarkerIcon}" Width="22" Height="22"/>
+                                </Button>
+                            </Grid>
+                        </DataTemplate></ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Border x:Name="InlineSubTaskCreation" Margin="35,6,0,0" Height="32" CornerRadius="6" BorderThickness="1"
                             Background="{DynamicResource FocusTaskSurface}" BorderBrush="{DynamicResource FocusTaskSelectedAccent}">
                         <Border.Style><Style TargetType="Border"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers>
                             <DataTrigger Value="True"><DataTrigger.Binding><MultiBinding Converter="{StaticResource SameTask}">
@@ -156,8 +167,6 @@
                 <Border VerticalAlignment="Bottom" Height="1" Margin="18,0,14,0" Background="{DynamicResource FocusTaskRowDivider}" />
             </Grid>
             <DataTemplate.Triggers>
-                <Trigger SourceName="TaskRowSurface" Property="IsMouseOver" Value="True"><Setter TargetName="TaskRowSurface" Property="Background" Value="{DynamicResource FocusTaskButtonHover}"/></Trigger>
-                <DataTrigger Binding="{Binding ContextMenu.IsOpen, ElementName=TaskMoreButton}" Value="True"><Setter TargetName="TaskRowSurface" Property="Background" Value="{DynamicResource FocusTaskButtonHover}"/></DataTrigger>
                 <DataTrigger Binding="{Binding IsCompleted}" Value="True"><Setter TargetName="TaskRowSurface" Property="Opacity" Value="{DynamicResource FocusCompletedTaskRowOpacity}" /></DataTrigger>
             </DataTemplate.Triggers>
         </DataTemplate>

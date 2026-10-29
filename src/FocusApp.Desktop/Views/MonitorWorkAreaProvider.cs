@@ -10,6 +10,18 @@ internal static class MonitorWorkAreaProvider
 {
     private const uint MonitorDefaultToNearest = 2;
 
+    public static Rect GetWorkAreaAtScreenPoint(Point point)
+    {
+        var monitor = GetNativeMonitors().MinBy(item =>
+        {
+            var area = item.WorkAreaPixels;
+            var dx = point.X - Math.Clamp(point.X, area.Left, area.Right);
+            var dy = point.Y - Math.Clamp(point.Y, area.Top, area.Bottom);
+            return dx * dx + dy * dy;
+        });
+        return monitor?.WorkAreaPixels ?? SystemParameters.WorkArea;
+    }
+
     public static void RestorePosition(Window window, Window owner, FocusFloatingPosition? saved)
     {
         new WindowInteropHelper(window).EnsureHandle();

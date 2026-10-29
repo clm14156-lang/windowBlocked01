@@ -70,14 +70,18 @@
     <Style x:Key="CalendarDayValueStyle" TargetType="Run" BasedOn="{StaticResource CalendarMonthValueStyle}"/>
     <Style x:Key="CalendarUnitStyle" TargetType="Run" BasedOn="{StaticResource StatisticsUnitRunStyle}"/>
     <Style x:Key="CalendarPeriodValueStyle" TargetType="Run" BasedOn="{StaticResource StatisticsValueRunStyle}">
-        <Setter Property="FontFamily" Value="{DynamicResource FontFamilyPrimary}"/>
+        <Setter Property="FontFamily" Value="{DynamicResource FontFamilyEnglish}"/>
         <Setter Property="FontSize" Value="{DynamicResource BodyFontSize}"/>
         <Setter Property="FontWeight" Value="{DynamicResource FontWeightMedium}"/>
         <Setter Property="Foreground" Value="{DynamicResource CalendarTextSecondary}"/>
     </Style>
-    <Style x:Key="CalendarPeriodUnitStyle" TargetType="Run" BasedOn="{StaticResource CalendarPeriodValueStyle}"/>
+    <Style x:Key="CalendarPeriodUnitStyle" TargetType="Run" BasedOn="{StaticResource CalendarPeriodValueStyle}">
+        <Setter Property="FontFamily" Value="{DynamicResource FontFamilyPrimary}"/>
+    </Style>
     <Style x:Key="CalendarPeriodTimeRangeStyle" TargetType="TextBlock" BasedOn="{StaticResource CalendarWeakTextStyle}">
         <Setter Property="FontFamily" Value="{DynamicResource FontFamilyEnglish}"/>
+        <Setter Property="FontSize" Value="{DynamicResource BodyFontSize}"/>
+        <Setter Property="FontWeight" Value="Medium"/>
         <Setter Property="Typography.NumeralAlignment" Value="Tabular"/>
     </Style>
     <Style x:Key="CalendarPeriodUnitGap" TargetType="Border">

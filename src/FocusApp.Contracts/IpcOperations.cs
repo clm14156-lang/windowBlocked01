@@ -296,6 +296,7 @@ public sealed record LocalTaskDto(
 {
     public DateTimeOffset? CompletedAtUtc { get; init; }
     public string Description { get; init; } = string.Empty;
+    public string? FlagColor { get; init; }
     public IReadOnlyList<LocalSubTaskDto> SubTasks { get; init; } = [];
 }
 
@@ -306,7 +307,10 @@ public sealed record LocalSubTaskDto(
     bool IsCompleted,
     int SortOrder,
     DateTimeOffset CreatedAtUtc,
-    DateTimeOffset UpdatedAtUtc);
+    DateTimeOffset UpdatedAtUtc)
+{
+    public string? FlagColor { get; init; }
+}
 
 public sealed record LocalWebsiteRuleDto(Guid Id, string Name, string Address, bool IsEnabled, int SortOrder);
 

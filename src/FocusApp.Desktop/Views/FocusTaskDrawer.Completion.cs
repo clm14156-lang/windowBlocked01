@@ -16,6 +16,7 @@ public partial class FocusTaskDrawer
     private Storyboard? _progressCollapse;
     private object _progressClipToBounds = DependencyProperty.UnsetValue;
     private Color TaskTextColor => ((SolidColorBrush)FindResource("FocusTaskText")).Color;
+    private Color CompletedTaskTextColor => ((SolidColorBrush)FindResource("FocusTaskCompletedText")).Color;
 
     private void Drawer_Loaded(object sender, RoutedEventArgs e) { AttachCompletionPresentation(); AttachCreationPresentation(); }
 
@@ -74,7 +75,7 @@ public partial class FocusTaskDrawer
 
         if (ReferenceEquals(_dragTask, e.Task)) ResetTaskDrag();
         check.GetBindingExpression(CheckBox.IsCheckedProperty)?.UpdateTarget();
-        var animation = CreateCompletionFeedback(check, title, parent: true, TaskTextColor, TaskTextColor);
+        var animation = CreateCompletionFeedback(check, title, parent: true, TaskTextColor, CompletedTaskTextColor);
         _completionAnimations.Add(e.Task, animation);
         animation.Set(row, ClipToBoundsProperty, true);
         var translation = new TranslateTransform();
@@ -152,7 +153,7 @@ public partial class FocusTaskDrawer
                 FindCompletionElement<CheckBox>(row, "SubTaskCompletionCheck") is not { } check ||
                 FindCompletionElement<TextBlock>(row, "SubTaskTitle") is not { } title) return;
             check.GetBindingExpression(CheckBox.IsCheckedProperty)?.UpdateTarget();
-            var animation = CreateCompletionFeedback(check, title, parent: false, TaskTextColor, TaskTextColor);
+            var animation = CreateCompletionFeedback(check, title, parent: false, TaskTextColor, CompletedTaskTextColor);
             feedback.Animation = animation;
             animation.Storyboard.Duration = TimeSpan.FromMilliseconds(250);
             animation.Storyboard.Completed += (_, _) =>

@@ -5,6 +5,25 @@
         <ResourceDictionary Source="../Resources/FocusTheme.Light.xaml" />
     </ResourceDictionary.MergedDictionaries>
         <BooleanToVisibilityConverter x:Key="BoolVisibility" />
+        <views:CompactSubTaskProgressConverter x:Key="CompactTaskProgress"/>
+        <Style x:Key="TaskSubTaskToggle" TargetType="ToggleButton">
+            <Setter Property="Width" Value="18"/><Setter Property="Height" Value="24"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Foreground" Value="{DynamicResource FocusTaskDescriptionText}"/>
+            <Setter Property="Cursor" Value="Hand"/><Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ToggleButton">
+                <Border Background="{TemplateBinding Background}" CornerRadius="4">
+                    <Path x:Name="Arrow" Width="5" Height="8" Data="M 0,0 L 4,4 L 0,8" Stretch="Uniform"
+                          Stroke="{TemplateBinding Foreground}" StrokeThickness="1.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                          StrokeLineJoin="Round" HorizontalAlignment="Center" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5"/>
+                </Border>
+                <ControlTemplate.Triggers>
+                    <Trigger Property="IsChecked" Value="True"><Setter TargetName="Arrow" Property="RenderTransform"><Setter.Value><RotateTransform Angle="90"/></Setter.Value></Setter></Trigger>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="{DynamicResource FocusTaskButtonHover}"/></Trigger>
+                </ControlTemplate.Triggers>
+            </ControlTemplate></Setter.Value></Setter>
+        </Style>
         <Style TargetType="ScrollBar">
             <Setter Property="Width" Value="5" /><Setter Property="MinWidth" Value="5" />
             <Setter Property="Background" Value="Transparent" />
@@ -176,7 +195,7 @@
 
     <Style x:Key="CompletedTitle" TargetType="TextBlock">
         <Setter Property="Foreground" Value="{DynamicResource FocusTaskText}" />
-        <Style.Triggers><DataTrigger Binding="{Binding IsCompleted}" Value="True"><Setter Property="TextDecorations" Value="Strikethrough" /></DataTrigger></Style.Triggers>
+        <Style.Triggers><DataTrigger Binding="{Binding IsCompleted}" Value="True"><Setter Property="Foreground" Value="{DynamicResource FocusTaskCompletedText}" /></DataTrigger></Style.Triggers>
     </Style>
     <Style TargetType="ContextMenu">
         <Setter Property="OverridesDefaultStyle" Value="True" /><Setter Property="FontFamily" Value="Microsoft YaHei UI, Segoe UI" /><Setter Property="FontSize" Value="12" /><Setter Property="HasDropShadow" Value="False" />

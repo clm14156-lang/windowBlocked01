@@ -25,7 +25,7 @@ public partial class StatisticsDashboard : UserControl
         Unloaded += (_, _) => { _dateRefreshTimer.Stop(); ClosePeriodPicker(); CloseTip(); _model?.ClearDistributionSelection(); DetachModel(); };
         IsVisibleChanged += (_, _) =>
         {
-            if (!IsVisible) { _dateRefreshTimer.Stop(); ClosePeriodPicker(); CloseTip(); _model?.ClearDistributionSelection(); FocusChart.ClearHover(); }
+            if (!IsVisible) { _dateRefreshTimer.Stop(); ClosePeriodPicker(); CloseTip(); _model?.ClearDistributionSelection(); FocusChart.ClearInteraction(); }
             else if (IsLoaded) { _model?.RefreshCurrentDate(); _dateRefreshTimer.Start(); }
         };
         FocusChart.HoverChanged += FocusChart_HoverChanged;
@@ -64,15 +64,16 @@ public partial class StatisticsDashboard : UserControl
             }
         }
         else if (e.PropertyName == nameof(StatisticsDashboardViewModel.ActiveDistribution)) UpdateDistributionTip();
+        else if (e.PropertyName == nameof(StatisticsDashboardViewModel.Bars)) { CloseTip(); FocusChart.ClearInteraction(); }
         else if (e.PropertyName == nameof(StatisticsDashboardViewModel.IsPeriodPickerOpen) && _model?.IsPeriodPickerOpen == true) CloseTip();
     }
     private void FocusChart_HoverChanged(object? sender, EventArgs e)
     {
-        if (FocusChart.HoveredBar is not { } bar) { CloseTip(); return; }
+        if (FocusChart.ActiveBar is not { } bar) { CloseTip(); return; }
         TipTitle.Text = bar.TooltipDate;
-        TipTitle.SetResourceReference(StyleProperty, "ChartPoptipSecondaryTextStyle");
-        TipDateRange.Text = string.Empty;
-        TipDateRange.Visibility = Visibility.Collapsed;
+        TipTitle.SetResourceReference(StyleProperty, bar.IsWeekBucket ? "ChartPoptipHeadingTextStyle" : "ChartPoptipSecondaryTextStyle");
+        TipDateRange.Text = bar.TooltipDateRange;
+        TipDateRange.Visibility = bar.IsWeekBucket ? Visibility.Visible : Visibility.Collapsed;
         TipDuration.Text = bar.DurationDisplay;
         TipMarker.Fill = OverviewFocusChart.FrozenBrush("#FF8B28");
         TipPercentage.Visibility = Visibility.Collapsed;
@@ -140,6 +141,7 @@ public partial class StatisticsDashboard : UserControl
         ClosePeriodPicker();
         _hoveredRow = null;
         _model?.ClearDistributionSelection();
+        FocusChart.ClearInteraction();
         CloseTip();
     }
     private void Dashboard_PreviewKeyDown(object sender, KeyEventArgs e)
@@ -148,6 +150,7 @@ public partial class StatisticsDashboard : UserControl
         ClosePeriodPicker();
         _hoveredRow = null;
         _model?.ClearDistributionSelection();
+        FocusChart.ClearInteraction();
         CloseTip();
         e.Handled = true;
     }

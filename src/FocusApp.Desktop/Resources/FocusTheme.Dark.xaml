@@ -29,6 +29,7 @@
     <SolidColorBrush x:Key="FocusCompletionValueBrush" Color="#FFFFFF" />
     <SolidColorBrush x:Key="FocusCompletionIconBrush" Color="#FFFFFF" />
     <SolidColorBrush x:Key="FocusCompletionDividerBrush" Color="#4A638F" />
+    <SolidColorBrush x:Key="FocusCompletionNightCapsuleBackground" Color="#99132955" />
     <SolidColorBrush x:Key="FocusCountdownBrush" Color="#FCFDFF" />
     <SolidColorBrush x:Key="FocusTargetBrush" Color="#E6F0FF" />
     <SolidColorBrush x:Key="FocusFooterBrush" Color="#A4C6FB" />
@@ -37,7 +38,8 @@
     <SolidColorBrush x:Key="FocusFooterActionPressedForeground" Color="#E6EEFF" />
     <SolidColorBrush x:Key="FocusFooterActionHoverBackground" Color="#12FFFFFF" />
     <SolidColorBrush x:Key="FocusFooterActionPressedBackground" Color="#1FFFFFFF" />
-    <SolidColorBrush x:Key="FocusRuleBrush" Color="#6D86B8" />
+    <SolidColorBrush x:Key="FocusRuleBrush" Color="#337F96B8" />
+    <SolidColorBrush x:Key="FocusCountdownProgressBrush" Color="#668FA8C9" />
     <SolidColorBrush x:Key="FocusDividerBrush" Color="#6D86B8" />
     <SolidColorBrush x:Key="FocusNoticeBrush" Color="#98B8E8" />
     <SolidColorBrush x:Key="FocusChromeHoverBrush" Color="#203859" />
