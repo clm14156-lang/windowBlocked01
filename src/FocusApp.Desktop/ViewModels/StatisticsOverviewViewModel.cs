@@ -42,6 +42,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     private bool _isInitialized;
     private bool _isApplyingState;
     private LocalDataSnapshotDto? _pendingState;
+    private Func<string, Task>? _deleteGoalHandler;
     public StatisticsOverviewViewModel(bool useSampleData = true, bool deferInitialization = false, Func<DateTime>? localNowProvider = null)
     {
         _useSampleData = useSampleData;
@@ -52,6 +53,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         GoalCompletedTasks = new GoalCompletedTasksViewModel(_localNowProvider);
         GoalInvestmentTrend = new GoalInvestmentTrendViewModel(_localNowProvider);
         Overview = new StatisticsDashboardViewModel(_localNowProvider);
+        GoalDeletion = new GoalDeletionViewModel(DeleteGoalPermanentlyAsync);
         AllTargetIcons = new ObservableCollection<TargetIconOptionViewModel>(
             TargetIconCatalog.GetAvailableIconFileNames()
                 .Select(fileName => new TargetIconOptionViewModel(
@@ -117,6 +119,8 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     public event EventHandler<GoalOverviewItemViewModel>? GoalChanged;
     public event EventHandler<string>? GoalDeleted;
     public event EventHandler? FocusHistoryChanged;
+    public GoalDeletionViewModel GoalDeletion { get; }
+    internal void SetGoalDeletionHandler(Func<string, Task> handler) => _deleteGoalHandler = handler;
     public void ApplyState(LocalDataSnapshotDto state)
     {
         ArgumentNullException.ThrowIfNull(state);
@@ -1221,6 +1225,12 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     private void SelectGoal(GoalOverviewItemViewModel? goal)
     {
+        if (goal is not null)
+        {
+            var current = Goals.FirstOrDefault(item => item.GoalId == goal.GoalId);
+            if (current is null) return;
+            goal = current;
+        }
         IsGoalListMenuOpen = false;
         foreach (var item in Goals) item.IsSelected = ReferenceEquals(item, goal);
         SelectedGoal = goal;
@@ -1277,16 +1287,30 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     private void DeleteGoal(GoalOverviewItemViewModel? goal)
     {
-        if (goal is null || !goal.IsArchived) return;
-        var wasSelected = ReferenceEquals(SelectedGoal, goal);
-        Goals.Remove(goal);
-        GoalDeleted?.Invoke(this, goal.GoalId);
-        foreach (var record in FocusSessionRecords.Where(record => record.GoalId == goal.GoalId).ToArray())
+        if (goal is not null && goal.IsArchived && Goals.Contains(goal)) GoalDeletion.Open(goal);
+    }
+
+    private async Task DeleteGoalPermanentlyAsync(GoalOverviewItemViewModel goal)
+    {
+        if (Goals.FirstOrDefault(item => item.GoalId == goal.GoalId) is { IsArchived: false })
+            throw new InvalidOperationException("该目标已恢复，请先归档后再删除。");
+        if (_deleteGoalHandler is not null) await _deleteGoalHandler(goal.GoalId);
+        var wasSelected = SelectedGoal?.GoalId == goal.GoalId;
+        _isApplyingState = true;
+        try
         {
-            FocusSessionRecords.Remove(record);
+            _goalTaskSnapshot = _goalTaskSnapshot.Where(task => task.TargetId != goal.GoalId).ToArray();
+            foreach (var item in Goals.Where(item => item.GoalId == goal.GoalId).ToArray()) Goals.Remove(item);
+            foreach (var record in FocusSessionRecords.Where(record => record.GoalId == goal.GoalId).ToArray())
+                FocusSessionRecords.Remove(record);
         }
+        finally { _isApplyingState = false; }
         if (wasSelected) SelectFirstVisibleGoal();
+        GoalCompletedTasks.CloseCommand.Execute(null);
+        GoalInvestmentTrend.Close();
+        RefreshFocusSessionData();
         OnPropertyChanged(nameof(VisibleGoals));
+        GoalDeleted?.Invoke(this, goal.GoalId);
     }
 
     private void SubscribeToFocusSessionRecords()

@@ -139,11 +139,10 @@
             <ItemsControl ItemsSource="{Binding Days}" Margin="0,0,3,0"><ItemsControl.ItemTemplate><DataTemplate>
                 <StackPanel>
                     <Button x:Name="HistoryDayHeader" Height="40" Command="{Binding ToggleCommand}" Style="{StaticResource HistoryDayButtonStyle}" AutomationProperties.Name="{Binding FullDateDisplay}">
-                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="18"/></Grid.ColumnDefinitions>
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="18"/></Grid.ColumnDefinitions>
                             <TextBlock Text="{Binding HeaderDateDisplay}" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource StatisticsBodyBrush}" VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="1" Text="{Binding WeekdayDisplay}" FontSize="{DynamicResource SecondaryFontSize}" Foreground="{DynamicResource StatisticsWeakBrush}" Margin="10,0,0,0" VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="2" Text="{Binding SummaryDisplay}" FontSize="{DynamicResource SecondaryFontSize}" Foreground="{DynamicResource StatisticsWeakBrush}" VerticalAlignment="Center" Margin="8,0,5,0"/>
-                            <Path Grid.Column="3" Width="6" Height="9" Data="M 0,0 L 5,4.5 L 0,9" Stretch="Uniform" Stroke="#556176" StrokeThickness="1.3" VerticalAlignment="Center" HorizontalAlignment="Right" RenderTransformOrigin="0.5,0.5"><Path.Style><Style TargetType="Path"><Style.Triggers><DataTrigger Binding="{Binding IsExpanded}" Value="True"><Setter Property="RenderTransform"><Setter.Value><RotateTransform Angle="-90"/></Setter.Value></Setter></DataTrigger></Style.Triggers></Style></Path.Style></Path>
+                            <TextBlock Grid.Column="1" Text="{Binding SummaryDisplay}" FontSize="{DynamicResource SecondaryFontSize}" Foreground="{DynamicResource StatisticsWeakBrush}" VerticalAlignment="Center" Margin="8,0,5,0"/>
+                            <Path Grid.Column="2" Width="6" Height="9" Data="M 0,0 L 5,4.5 L 0,9" Stretch="Uniform" Stroke="#556176" StrokeThickness="1.3" VerticalAlignment="Center" HorizontalAlignment="Right" RenderTransformOrigin="0.5,0.5"><Path.Style><Style TargetType="Path"><Style.Triggers><DataTrigger Binding="{Binding IsExpanded}" Value="True"><Setter Property="RenderTransform"><Setter.Value><RotateTransform Angle="-90"/></Setter.Value></Setter></DataTrigger></Style.Triggers></Style></Path.Style></Path>
                         </Grid>
                     </Button>
                     <ItemsControl x:Name="HistoryDaySessions" ItemsSource="{Binding Sessions}" Visibility="{Binding IsExpanded, Converter={StaticResource HistoryVisibility}}" Margin="5,12,3,6"><ItemsControl.ItemTemplate><DataTemplate>
@@ -164,7 +163,7 @@
                                                             <Border x:Name="HistoryParentCompletionMark" Width="16" Height="16" CornerRadius="3" Background="{DynamicResource AccentPrimary}" HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False">
                                                                 <Path Width="9" Height="6" Data="M 0,3 L 3,6 L 9,0" Stretch="Fill" Stroke="White" StrokeThickness="1.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                             </Border>
-                                                            <TextBlock x:Name="HistoryParentTaskName" Grid.Column="1" Text="{Binding Name}" Style="{StaticResource StatisticsBodyTextStyle}" Foreground="{DynamicResource StatisticsWeakBrush}" TextDecorations="Strikethrough" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" ToolTip="{Binding Description}"/>
+                                                            <TextBlock x:Name="HistoryParentTaskName" Grid.Column="1" Text="{Binding Name}" Style="{StaticResource StatisticsBodyTextStyle}" Foreground="{DynamicResource StatisticsWeakBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" ToolTip="{Binding Description}"/>
                                                             <ItemsControl x:Name="HistorySubTasks" Grid.Row="1" Grid.ColumnSpan="2" ItemsSource="{Binding SubTasks}" Margin="0,2,0,0" Visibility="{Binding HasSubTasks, Converter={StaticResource HistoryVisibility}}">
                                                                 <ItemsControl.ItemTemplate><DataTemplate>
                                                                     <Grid x:Name="HistorySubTask" MinHeight="26">
@@ -184,7 +183,6 @@
                                                                             <Setter TargetName="HistorySubTaskCircle" Property="Fill" Value="{DynamicResource AccentPrimary}"/>
                                                                             <Setter TargetName="HistorySubTaskTick" Property="Visibility" Value="Visible"/>
                                                                             <Setter TargetName="HistorySubTaskName" Property="Foreground" Value="{DynamicResource StatisticsWeakBrush}"/>
-                                                                            <Setter TargetName="HistorySubTaskName" Property="TextDecorations" Value="Strikethrough"/>
                                                                         </DataTrigger>
                                                                     </DataTemplate.Triggers>
                                                                 </DataTemplate></ItemsControl.ItemTemplate>

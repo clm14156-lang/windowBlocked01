@@ -166,11 +166,24 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
 
         await ExecuteWriteAsync(async (connection, transaction) =>
         {
+            await using (var active = CreateCommand(connection, transaction,
+                "SELECT count(*) FROM focus_sessions WHERE target_id = $id AND status IN (0, 1);"))
+            {
+                active.Parameters.AddWithValue("$id", targetId);
+                if (Convert.ToInt32(await active.ExecuteScalarAsync(cancellationToken)) > 0)
+                    throw new LocalDataException("该目标正在专注中，请结束专注后再删除。");
+            }
             await using var command = CreateCommand(
                 connection,
                 transaction,
-                "DELETE FROM targets WHERE target_id = $id;");
+                """
+                DELETE FROM focus_sessions WHERE target_id = $id;
+                UPDATE automatic_rules SET target_id = NULL, updated_utc = $updated WHERE target_id = $id;
+                UPDATE app_settings SET selected_target_id = NULL, updated_utc = $updated WHERE selected_target_id = $id;
+                DELETE FROM targets WHERE target_id = $id;
+                """);
             command.Parameters.AddWithValue("$id", targetId);
+            command.Parameters.AddWithValue("$updated", FormatDateTime(DateTimeOffset.UtcNow));
             await command.ExecuteNonQueryAsync(cancellationToken);
         }, cancellationToken);
     }

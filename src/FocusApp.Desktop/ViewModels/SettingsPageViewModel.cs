@@ -38,7 +38,11 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
     {
         _clock = clock ?? (() => DateTime.Now);
         ToggleItems = new ReadOnlyCollection<SettingsToggleItemViewModel>(toggleItems.ToList());
-        EntryItems = new ReadOnlyCollection<SettingsEntryItemViewModel>(entryItems.ToList());
+        BrowserExtensionEntry = new("BrowserExtension", "浏览器插件", "安装插件，让浏览器中的网站屏蔽生效", string.Empty);
+        var entries = entryItems.ToList();
+        var exportIndex = entries.FindIndex(item => item.Key == "ExportRecords");
+        entries.Insert(exportIndex < 0 ? entries.Count : exportIndex + 1, BrowserExtensionEntry);
+        EntryItems = new ReadOnlyCollection<SettingsEntryItemViewModel>(entries);
         GeneralToggleItems = new ReadOnlyCollection<SettingsToggleItemViewModel>(ToggleItems.Take(5).ToList());
         FloatingWindowItem = ToggleItems.FirstOrDefault(item => item.Key == "FloatingWindow");
         AutomaticBlockingItem = ToggleItems.FirstOrDefault(item => item.Key == "AutomaticBlocking");
@@ -111,6 +115,8 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public event EventHandler? RulesChanged;
+    public event EventHandler? BrowserExtensionRequested;
+    public event EventHandler? AboutAppRequested;
     public event EventHandler<FocusThemeMode>? FocusThemeChanged;
     public event EventHandler<string>? FocusCharacterChanged;
     public FocusCharacterPickerViewModel FocusCharacterPicker { get; }
@@ -143,6 +149,7 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
     public ReadOnlyCollection<SettingsToggleItemViewModel> ToggleItems { get; }
 
     public ReadOnlyCollection<SettingsToggleItemViewModel> GeneralToggleItems { get; }
+    public SettingsEntryItemViewModel BrowserExtensionEntry { get; }
 
     public ReadOnlyCollection<SettingsEntryItemViewModel> EntryItems { get; }
 
@@ -695,6 +702,8 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
         {
             ExportRecordsModal.Open();
         }
+        else if (entry.Key == "BrowserExtension") BrowserExtensionRequested?.Invoke(this, EventArgs.Empty);
+        else if (entry.Key == "About") AboutAppRequested?.Invoke(this, EventArgs.Empty);
     }
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null)

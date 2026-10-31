@@ -12,8 +12,8 @@
             <ResourceDictionary Source="/FocusApp.Desktop;component/Resources/StatisticsTypography.xaml"/>
         </ResourceDictionary.MergedDictionaries>
         <SolidColorBrush x:Key="TrendAxisTextBrush" Color="{StaticResource StatisticsWeakColor}"/>
-        <SolidColorBrush x:Key="TrendAxisLineBrush" Color="#D3D7E0"/>
-        <SolidColorBrush x:Key="TrendGridLineBrush" Color="#E6E8EE"/>
+        <SolidColorBrush x:Key="TrendAxisLineBrush" Color="#D9DEE7"/>
+        <SolidColorBrush x:Key="TrendGridLineBrush" Color="#E8ECF2"/>
         <Style TargetType="{x:Type TextBlock}" BasedOn="{StaticResource StatisticsBodyTextStyle}"/>
         <Style x:Key="TrendAxisTextStyle" TargetType="TextBlock" BasedOn="{StaticResource StatisticsAuxiliaryTextStyle}">
             <Setter Property="FontFamily" Value="{DynamicResource FontFamilyEnglish}"/>
@@ -30,9 +30,9 @@
       </ResourceDictionary>
     </UserControl.Resources>
     <Grid ClipToBounds="False">
-      <Grid x:Name="PlotLayer" Width="642" Height="188" Margin="0,20,0,0" VerticalAlignment="Top">
-        <Line X1="48" X2="48" Y1="20" Y2="146" Stroke="{StaticResource TrendAxisLineBrush}" StrokeThickness="1" IsHitTestVisible="False"/>
-        <Line x:Name="TrendBaseline" X1="48" X2="636" Y1="146" Y2="146" Stroke="{StaticResource TrendAxisLineBrush}" StrokeThickness="1" IsHitTestVisible="False"/>
+      <Grid x:Name="PlotLayer" Width="642" Height="188" VerticalAlignment="Top">
+        <Line X1="24" X2="24" Y1="20" Y2="146" Stroke="{StaticResource TrendAxisLineBrush}" StrokeThickness="1" IsHitTestVisible="False"/>
+        <Line x:Name="TrendBaseline" X1="24" X2="636" Y1="146" Y2="146" Stroke="{StaticResource TrendAxisLineBrush}" StrokeThickness="1" IsHitTestVisible="False"/>
         <ItemsControl IsHitTestVisible="False" ItemsSource="{Binding ChartYAxisTicks}">
             <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
             <ItemsControl.ItemContainerStyle>
@@ -41,8 +41,8 @@
             <ItemsControl.ItemTemplate>
                 <DataTemplate DataType="{x:Type vm:GoalInvestmentTrendChartTickViewModel}">
                     <Canvas Width="642" Height="1">
-                        <TextBlock Canvas.Left="0" Canvas.Top="-7" Width="40" TextAlignment="Right" Style="{StaticResource TrendAxisTextStyle}" Text="{Binding Label}"/>
-                        <Line X1="48" X2="636" StrokeThickness="1">
+                        <TextBlock Canvas.Left="-24" Canvas.Top="-7" Width="40" TextAlignment="Right" Style="{StaticResource TrendAxisTextStyle}" Text="{Binding Label}"/>
+                        <Line X1="24" X2="636" StrokeThickness="1">
                             <Line.Style><Style TargetType="Line"><Setter Property="Stroke" Value="{StaticResource TrendGridLineBrush}"/><Setter Property="StrokeDashArray" Value="3,4"/><Style.Triggers><DataTrigger Binding="{Binding ShowGuideLine}" Value="False"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></Line.Style>
                         </Line>
                     </Canvas>
@@ -54,7 +54,7 @@
             <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
             <ItemsControl.ItemContainerStyle><Style TargetType="ContentPresenter"><Setter Property="Canvas.Left" Value="{Binding BarLeft}"/><Setter Property="Canvas.Top" Value="{Binding ChartY}"/></Style></ItemsControl.ItemContainerStyle>
             <ItemsControl.ItemTemplate><DataTemplate DataType="{x:Type vm:GoalInvestmentTrendPointViewModel}">
-                <Border x:Name="TrendBar" Width="{Binding BarWidth}" Height="{Binding BarHeight}" CornerRadius="5,5,0,0" Background="#FFAA63">
+                <Border x:Name="TrendBar" Width="{Binding BarWidth}" Height="{Binding BarHeight}" CornerRadius="6,6,0,0" Background="#FFAA63">
                     <Border.Style><Style TargetType="Border"><Style.Triggers><DataTrigger Binding="{Binding Minutes}" Value="0"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></Border.Style>
                 </Border>
             </DataTemplate></ItemsControl.ItemTemplate>
@@ -94,7 +94,7 @@
             <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
             <ItemsControl.ItemContainerStyle><Style TargetType="ContentPresenter"><Setter Property="Canvas.Left" Value="{Binding ChartX}"/><Setter Property="Canvas.Top" Value="{Binding ChartY}"/></Style></ItemsControl.ItemContainerStyle>
             <ItemsControl.ItemTemplate><DataTemplate>
-                <TextBlock Text="{Binding BarValueDisplay}" Width="58" Margin="-29,-22,0,0" TextAlignment="Center" Foreground="{DynamicResource StatisticsSecondaryBrush}">
+                <TextBlock Text="{Binding BarValueDisplay}" Width="58" Margin="-29,-22,0,0" TextAlignment="Center" FontSize="12" Foreground="#4B576B">
                     <TextBlock.Style><Style TargetType="TextBlock" BasedOn="{StaticResource TrendAxisTextStyle}"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers>
                         <DataTrigger Binding="{Binding DataContext.IsSevenDaysRange, RelativeSource={RelativeSource AncestorType=views:GoalInvestmentTrendChart}}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger>
                         <DataTrigger Binding="{Binding IsHovered}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger>
@@ -112,7 +112,7 @@
                 </TextBlock>
             </DataTemplate></ItemsControl.ItemTemplate>
         </ItemsControl>
-        <Border x:Name="TrendInteractionArea" Width="588" Height="141" Margin="48,10,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Panel.ZIndex="4" Background="Transparent"
+        <Border x:Name="TrendInteractionArea" Width="612" Height="141" Margin="24,10,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Panel.ZIndex="4" Background="Transparent"
                 MouseMove="InteractionArea_MouseMove" MouseLeave="InteractionArea_MouseLeave"/>
 
       </Grid>

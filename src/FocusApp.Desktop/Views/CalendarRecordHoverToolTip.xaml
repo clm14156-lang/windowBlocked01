@@ -2,7 +2,7 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:views="clr-namespace:FocusApp.Desktop.Views"
-             Width="240" MaxWidth="240" FontFamily="{DynamicResource FontFamilyPrimary}"
+             Width="{x:Static views:CalendarRecordHoverToolTip.MaximumWidth}" MaxWidth="{x:Static views:CalendarRecordHoverToolTip.MaximumWidth}" FontFamily="{DynamicResource FontFamilyPrimary}"
              UseLayoutRounding="True" SnapsToDevicePixels="True">
     <UserControl.Resources>
         <ResourceDictionary>
@@ -14,11 +14,12 @@
                 <Setter Property="FontSize" Value="{DynamicResource BodyFontSize}" />
                 <Setter Property="FontWeight" Value="{DynamicResource BodyFontWeight}" />
                 <Setter Property="Foreground" Value="{DynamicResource StatisticsSecondaryBrush}" />
+                <Setter Property="Opacity" Value="0.72" />
                 <Setter Property="VerticalAlignment" Value="Center" />
             </Style>
             <Style x:Key="RecordPoptipDuration" TargetType="TextBlock">
-                <Setter Property="FontSize" Value="{DynamicResource BodyFontSize}" />
-                <Setter Property="FontWeight" Value="{DynamicResource FontWeightMedium}" />
+                <Setter Property="FontSize" Value="13" />
+                <Setter Property="FontWeight" Value="Normal" />
                 <Setter Property="Foreground" Value="{DynamicResource StatisticsPrimaryBrush}" />
                 <Setter Property="VerticalAlignment" Value="Center" />
                 <Style.Triggers>
@@ -30,22 +31,22 @@
         </ResourceDictionary>
     </UserControl.Resources>
     <views:PoptipChrome x:Name="RecordPoptipSurface" Style="{StaticResource PoptipSurfaceStyle}"
+                        MaxWidth="{Binding MaxWidth, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
                         Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource BorderPrimary}"
-                        PointerOnTop="True">
+                        PointerOnTop="False">
         <StackPanel>
-            <StackPanel x:Name="GoalHeader" Visibility="{Binding HasPoptipGoal, Converter={StaticResource VisibleWhenTrue}}">
-                <TextBlock x:Name="GoalTitle" Text="{Binding GoalName}" FontSize="{DynamicResource SectionTitleFontSize}"
-                           FontWeight="{DynamicResource FontWeightSemiBold}" Foreground="{DynamicResource StatisticsPrimaryBrush}"
-                           LineHeight="20" LineStackingStrategy="BlockLineHeight" TextWrapping="NoWrap"
+            <StackPanel x:Name="GoalHeader" Margin="0,0,0,12" Visibility="{Binding HasPoptipGoal, Converter={StaticResource VisibleWhenTrue}}">
+                <TextBlock x:Name="GoalTitle" Text="{Binding GoalName}" FontSize="14"
+                           FontWeight="Normal" Foreground="{DynamicResource StatisticsPrimaryBrush}" Opacity="0.82"
+                           LineHeight="22" LineStackingStrategy="BlockLineHeight" TextWrapping="NoWrap"
                            TextTrimming="CharacterEllipsis" ToolTip="{Binding GoalName}" AutomationProperties.Name="{Binding GoalName}" />
-                <Border x:Name="GoalDivider" Height="1" Margin="0,8,0,8" Background="{DynamicResource BorderPrimary}" />
             </StackPanel>
-            <Grid x:Name="DurationRow" Height="22">
+            <Grid x:Name="DurationRow" Height="24">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="14" /><ColumnDefinition Width="8" /><ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="14" /><ColumnDefinition Width="14" /><ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="10" /><ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
-                <Ellipse x:Name="CompletionDot" Width="9" Height="9" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Ellipse x:Name="CompletionDot" Width="10" Height="10" HorizontalAlignment="Center" VerticalAlignment="Center">
                     <Ellipse.Style><Style TargetType="Ellipse"><Setter Property="Fill" Value="{DynamicResource SuccessPositive}" />
                         <Style.Triggers><DataTrigger Binding="{Binding IsInterrupted}" Value="True">
                             <Setter Property="Fill" Value="{DynamicResource AccentPrimary}" />
@@ -55,7 +56,7 @@
                 <TextBlock Grid.Column="2" Text="专注时长" Style="{StaticResource RecordPoptipLabel}" />
                 <StackPanel Grid.Column="4" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                     <TextBlock x:Name="ActualDuration" Style="{StaticResource RecordPoptipDuration}">
-                        <Run Text="{Binding PoptipActualMinutesDisplay, Mode=OneWay}" FontFamily="{DynamicResource FontFamilyNumeric}" /><Run Text="分钟" FontFamily="{DynamicResource FontFamilyPrimary}" FontSize="{DynamicResource SecondaryFontSize}" FontWeight="{DynamicResource SecondaryFontWeight}" />
+                        <Run Text="{Binding PoptipActualMinutesDisplay, Mode=OneWay}" FontFamily="{DynamicResource FontFamilyNumeric}" /><Run Text="分钟" FontFamily="{DynamicResource FontFamilyPrimary}" />
                     </TextBlock>
                     <TextBlock x:Name="PlannedDuration" FontSize="{DynamicResource SecondaryFontSize}" FontWeight="{DynamicResource SecondaryFontWeight}"
                                Foreground="{DynamicResource StatisticsSecondaryBrush}" VerticalAlignment="Center"
@@ -64,20 +65,20 @@
                     </TextBlock>
                 </StackPanel>
             </Grid>
-            <Grid x:Name="TimeRow" Height="22" Margin="0,6,0,0">
+            <Grid x:Name="TimeRow" Height="24" Margin="0,8,0,0">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="14" /><ColumnDefinition Width="8" /><ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="14" /><ColumnDefinition Width="14" /><ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="10" /><ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
-                <Grid Width="14" Height="14" VerticalAlignment="Center" IsHitTestVisible="False">
-                    <Ellipse Stroke="{DynamicResource StatisticsSecondaryBrush}" StrokeThickness="1.3" />
-                    <Path Data="M 7,3.5 L 7,7.5 L 10,7.5" Stroke="{DynamicResource StatisticsSecondaryBrush}" StrokeThickness="1.3"
+                <Grid Width="14" Height="14" VerticalAlignment="Center" IsHitTestVisible="False" Opacity="0.72">
+                    <Ellipse Stroke="{DynamicResource StatisticsSecondaryBrush}" StrokeThickness="1.2" />
+                    <Path Data="M 7,3.5 L 7,7.5 L 10,7.5" Stroke="{DynamicResource StatisticsSecondaryBrush}" StrokeThickness="1.2"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
                 </Grid>
                 <TextBlock Grid.Column="2" Text="专注时间" Style="{StaticResource RecordPoptipLabel}" />
                 <TextBlock x:Name="TimeRange" Grid.Column="4" Text="{Binding TimeRangeDisplay}" HorizontalAlignment="Right" VerticalAlignment="Center"
-                           FontFamily="{DynamicResource FontFamilyEnglish}" FontSize="{DynamicResource BodyFontSize}"
-                           FontWeight="{DynamicResource FontWeightMedium}" Foreground="{DynamicResource StatisticsPrimaryBrush}"
+                           FontFamily="{DynamicResource FontFamilyEnglish}" FontSize="13"
+                           FontWeight="Normal" Foreground="{DynamicResource StatisticsPrimaryBrush}"
                            Typography.NumeralAlignment="Tabular" />
             </Grid>
         </StackPanel>

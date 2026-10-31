@@ -57,8 +57,9 @@
         <Setter Property="LineHeight" Value="20" />
     </Style>
     <Style x:Key="ChartPoptipTitleTextStyle" TargetType="TextBlock" BasedOn="{StaticResource PoptipPrimaryTextStyle}">
+        <Setter Property="FontSize" Value="{DynamicResource BodyFontSize}" />
         <Setter Property="FontWeight" Value="{DynamicResource FontWeightMedium}" />
-        <Setter Property="Foreground" Value="{StaticResource ChartPoptipValueBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource ChartPoptipBodyBrush}" />
         <Setter Property="LineHeight" Value="22" />
     </Style>
     <Style x:Key="ChartPoptipHeadingTextStyle" TargetType="TextBlock" BasedOn="{StaticResource ChartPoptipTitleTextStyle}">
@@ -75,7 +76,7 @@
     <Style x:Key="ChartPoptipValueStyle" TargetType="Run">
         <Setter Property="FontFamily" Value="{DynamicResource FontFamilyPrimary}" />
         <Setter Property="FontSize" Value="{DynamicResource BodyFontSize}" />
-        <Setter Property="FontWeight" Value="{DynamicResource FontWeightSemiBold}" />
+        <Setter Property="FontWeight" Value="Normal" />
         <Setter Property="Foreground" Value="{StaticResource ChartPoptipValueBrush}" />
         <Setter Property="Typography.NumeralAlignment" Value="Tabular" />
     </Style>

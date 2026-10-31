@@ -46,7 +46,7 @@
         <Setter Property="Foreground" Value="{DynamicResource CalendarTextPrimary}"/>
     </Style>
     <Style x:Key="CalendarRecordTextStyle" TargetType="TextBlock" BasedOn="{StaticResource CalendarBodyTextStyle}">
-        <Setter Property="FontWeight" Value="Medium"/>
+        <Setter Property="FontWeight" Value="Normal"/>
         <Setter Property="Typography.NumeralAlignment" Value="Tabular"/>
     </Style>
     <Style x:Key="CalendarSecondaryTextStyle" TargetType="TextBlock" BasedOn="{StaticResource CalendarBodyTextStyle}">
@@ -72,7 +72,7 @@
     <Style x:Key="CalendarPeriodValueStyle" TargetType="Run" BasedOn="{StaticResource StatisticsValueRunStyle}">
         <Setter Property="FontFamily" Value="{DynamicResource FontFamilyEnglish}"/>
         <Setter Property="FontSize" Value="{DynamicResource BodyFontSize}"/>
-        <Setter Property="FontWeight" Value="{DynamicResource FontWeightMedium}"/>
+        <Setter Property="FontWeight" Value="Normal"/>
         <Setter Property="Foreground" Value="{DynamicResource CalendarTextSecondary}"/>
     </Style>
     <Style x:Key="CalendarPeriodUnitStyle" TargetType="Run" BasedOn="{StaticResource CalendarPeriodValueStyle}">
@@ -81,7 +81,7 @@
     <Style x:Key="CalendarPeriodTimeRangeStyle" TargetType="TextBlock" BasedOn="{StaticResource CalendarWeakTextStyle}">
         <Setter Property="FontFamily" Value="{DynamicResource FontFamilyEnglish}"/>
         <Setter Property="FontSize" Value="{DynamicResource BodyFontSize}"/>
-        <Setter Property="FontWeight" Value="Medium"/>
+        <Setter Property="FontWeight" Value="Normal"/>
         <Setter Property="Typography.NumeralAlignment" Value="Tabular"/>
     </Style>
     <Style x:Key="CalendarPeriodUnitGap" TargetType="Border">

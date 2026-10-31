@@ -186,5 +186,5 @@ public sealed class GoalCompletedTasksViewModel : INotifyPropertyChanged
 public sealed record GoalCompletedTaskEntryViewModel(LocalTaskDto Source, ICommand RestoreCommand, ICommand DeleteCommand)
 {
     public string Name => Source.Name;
-    public string TimeDisplay => GoalCompletedTasksViewModel.CompletionTime(Source)?.ToString("M月d日 HH:mm") ?? "—";
+    public string TimeDisplay => GoalCompletedTasksViewModel.CompletionTime(Source)?.ToString("M月d日") ?? "—";
 }

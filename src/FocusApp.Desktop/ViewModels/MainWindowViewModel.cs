@@ -50,7 +50,8 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         BlockingPageViewModel? blockingPage = null,
         StatisticsOverviewViewModel? statisticsPage = null,
         DesktopServiceConnection? serviceConnection = null,
-        IAudioService? audioService = null)
+        IAudioService? audioService = null,
+        BrowserExtensionModalViewModel? browserExtensionModal = null)
     {
         PrimaryNavigationItems = new ReadOnlyCollection<NavigationItemViewModel>(
             primaryNavigationItems.ToList());
@@ -61,6 +62,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         }
 
         AccountNavigationItem = accountNavigationItem;
+        BrowserExtensionModal = browserExtensionModal ?? new BrowserExtensionModalViewModel();
         HomePage = homePage;
         StatisticsPage = statisticsPage ?? new StatisticsOverviewViewModel();
         StatisticsPage.SetUserAccess(IsLoggedIn, IsVipMember);
@@ -78,6 +80,14 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         SettingsPage.FocusSoundChanged += SettingsPage_FocusSoundChanged;
         SettingsPage.FocusThemeChanged += SettingsPage_FocusThemeChanged;
         SettingsPage.FocusCharacterChanged += SettingsPage_FocusCharacterChanged;
+        SettingsPage.BrowserExtensionRequested += (_, _) => BrowserExtensionModal.OpenFromSettings();
+        SettingsPage.AboutAppRequested += (_, _) => AboutAppModal.Open();
+        HomePage.SetManualFocusStartPrompt(BrowserExtensionModal.OpenForFocus);
+        HomePage.FocusSession.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(FocusSessionViewModel.Stage) &&
+                (HomePage.FocusSession.IsPreparing || HomePage.FocusSession.IsFocusing)) BrowserExtensionModal.Close();
+        };
         if (ServiceConnection?.State is { } initialState)
         {
             SettingsPage.ApplyFocusThemeState(ParseFocusTheme(initialState.Settings.FocusTheme));
@@ -101,7 +111,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         HomePage.FocusSession.TargetTasksChanged += FocusSession_TargetTasksChanged;
         HomePage.FocusSession.PropertyChanged += FocusSession_PropertyChanged;
         StatisticsPage.GoalChanged += StatisticsPage_GoalChanged;
-        StatisticsPage.GoalDeleted += StatisticsPage_GoalDeleted;
+        StatisticsPage.SetGoalDeletionHandler(DeleteStatisticsGoalAsync);
         StatisticsPage.GoalCompletedTasks.MutationHandler = MutateCompletedTaskAsync;
         StateCoordinator = new FocusStateCoordinator(HomePage, SettingsPage, BlockingPage, StatisticsPage);
         SettingsPage.SetUserAccess(IsLoggedIn, IsVipMember);
@@ -162,6 +172,8 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     public AccountSyncModalViewModel AccountSyncModal { get; } = new();
 
     public VipModalViewModel VipModal { get; } = new();
+    public BrowserExtensionModalViewModel BrowserExtensionModal { get; }
+    public AboutAppModalViewModel AboutAppModal { get; } = new();
 
     public MembershipCenterViewModel MembershipCenter { get; } = new();
 
@@ -627,7 +639,11 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         {
             return;
         }
+        ApplyServiceSnapshot(state);
+    }
 
+    private void ApplyServiceSnapshot(LocalDataSnapshotDto state)
+    {
         SettingsPage.RuleModal.ApplyTargets(state.Targets);
         if (_pendingAutomaticRuleWrites == 0) SettingsPage.ApplyAutomaticRules(state.AutomaticRules);
         SettingsPage.ApplyLaunchAtStartupState(state.Settings.LaunchAtStartup);
@@ -1059,14 +1075,25 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         }
     }
 
-    private async void StatisticsPage_GoalDeleted(object? sender, string targetId)
+    private async Task DeleteStatisticsGoalAsync(string targetId)
     {
-        if (ServiceConnection is null || !ServiceConnection.IsConnected) return;
+        if (HomePage.FocusSession.IsActive && HomePage.FocusSession.ActiveTarget?.TargetId == targetId)
+            throw new InvalidOperationException("该目标正在专注中，请结束专注后再删除。");
+        if (ServiceConnection is null)
+        {
+            HomePage.FocusSession.ApplyTaskSnapshot(() => HomePage.FocusTargetModal.RemoveTarget(targetId));
+            foreach (var rule in SettingsPage.AutomaticRules.Where(rule => rule.TargetId == targetId)) rule.SetTarget(null, string.Empty);
+            var now = DateTimeOffset.UtcNow;
+            SettingsPage.RuleModal.ApplyTargets(StatisticsPage.Goals.Where(goal => goal.GoalId != targetId)
+                .Select((goal, index) => new LocalTargetDto(goal.GoalId, goal.Name, goal.IsArchived, index, now, now)));
+            return;
+        }
+        if (!ServiceConnection.IsConnected) throw new InvalidOperationException("本地服务未连接，请稍后重试。");
         await _targetPersistenceGate.WaitAsync();
         try
         {
-            try { await ServiceConnection.DeleteTargetAsync(new DeleteTargetCommand(targetId)); }
-            catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException) { }
+            var result = await ServiceConnection.DeleteTargetAsync(new DeleteTargetCommand(targetId));
+            ApplyServiceSnapshot(ServiceConnection.State ?? result.State);
         }
         finally { _targetPersistenceGate.Release(); }
     }

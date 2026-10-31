@@ -177,6 +177,9 @@ public sealed class ServiceStateCoordinator : IAsyncDisposable
                 IpcOperations.DeleteTarget => await MutateAsync(request, async token =>
                 {
                     var command = request.ReadPayload<DeleteTargetCommand>();
+                    var state = await _store.LoadAsync(token);
+                    if (state.FocusSessions.Any(session => session.TargetId == command.TargetId && IsActiveSession(session)))
+                        throw new ServiceBusinessException("该目标正在专注中，请结束专注后再删除。");
                     await _store.DeleteTargetAsync(command.TargetId, token);
                 }, cancellationToken),
                 IpcOperations.DeleteFocusRecord => await MutateAsync(request, async token =>

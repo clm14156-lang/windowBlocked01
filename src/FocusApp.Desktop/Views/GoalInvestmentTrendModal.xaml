@@ -43,13 +43,16 @@
         </Style>
         <Style x:Key="TrendSectionTitle" TargetType="TextBlock" BasedOn="{StaticResource StatisticsHeadingTextStyle}"><Setter Property="VerticalAlignment" Value="Center"/></Style>
         <Style x:Key="TrendMetricGroup" TargetType="Border">
-            <Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/><Setter Property="Padding" Value="8,0"/>
+            <Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/>
         </Style>
-        <Style x:Key="TrendMetricDivider" TargetType="Border"><Setter Property="Width" Value="1"/><Setter Property="Height" Value="56"/><Setter Property="Background" Value="#ECEEF1"/><Setter Property="VerticalAlignment" Value="Center"/></Style>
-        <Style x:Key="TrendMetricIcon" TargetType="Path"><Setter Property="Width" Value="22"/><Setter Property="Height" Value="22"/><Setter Property="Stretch" Value="Uniform"/><Setter Property="Stroke" Value="#7A8798"/><Setter Property="StrokeThickness" Value="1.6"/><Setter Property="StrokeStartLineCap" Value="Round"/><Setter Property="StrokeEndLineCap" Value="Round"/><Setter Property="StrokeLineJoin" Value="Round"/><Setter Property="IsHitTestVisible" Value="False"/></Style>
-        <Style x:Key="TrendMetricLabel" TargetType="TextBlock" BasedOn="{StaticResource StatisticsMetricLabelStyle}"/>
+        <Style x:Key="TrendMetricDivider" TargetType="Border"><Setter Property="Width" Value="1"/><Setter Property="Height" Value="66"/><Setter Property="Background" Value="#E8EBF0"/><Setter Property="VerticalAlignment" Value="Top"/></Style>
+        <Style x:Key="TrendMetricIconBadge" TargetType="Border"><Setter Property="Width" Value="42"/><Setter Property="Height" Value="42"/><Setter Property="CornerRadius" Value="21"/><Setter Property="VerticalAlignment" Value="Top"/></Style>
+        <Style x:Key="TrendMetricIcon" TargetType="Path"><Setter Property="Width" Value="22"/><Setter Property="Height" Value="22"/><Setter Property="Stretch" Value="Uniform"/><Setter Property="StrokeThickness" Value="2"/><Setter Property="StrokeStartLineCap" Value="Round"/><Setter Property="StrokeEndLineCap" Value="Round"/><Setter Property="StrokeLineJoin" Value="Round"/><Setter Property="HorizontalAlignment" Value="Center"/><Setter Property="VerticalAlignment" Value="Center"/><Setter Property="IsHitTestVisible" Value="False"/></Style>
+        <Style x:Key="TrendMetricLabel" TargetType="TextBlock" BasedOn="{StaticResource StatisticsMetricLabelStyle}"><Setter Property="Foreground" Value="#576174"/></Style>
         <Style x:Key="TrendMetricValue" TargetType="TextBlock" BasedOn="{StaticResource StatisticsBodyTextStyle}"/>
-        <DataTemplate x:Key="TrendMetricDuration"><TextBlock Style="{StaticResource TrendMetricValue}" TextWrapping="NoWrap"><Run Text="{Binding HoursValue, Mode=OneWay}" Style="{StaticResource StatisticsValueRunStyle}"/><Run Text="{Binding HoursUnitWithLeadingSpace, Mode=OneWay}" Style="{StaticResource StatisticsUnitRunStyle}"/><Run Text="{Binding MinutesValueWithLeadingSpace, Mode=OneWay}" Style="{StaticResource StatisticsValueRunStyle}"/><Run Text="{Binding MinutesUnitWithLeadingSpace, Mode=OneWay}" Style="{StaticResource StatisticsUnitRunStyle}"/></TextBlock></DataTemplate>
+        <Style x:Key="TrendMetricNumberRunStyle" TargetType="Run" BasedOn="{StaticResource StatisticsValueRunStyle}"><Setter Property="FontSize" Value="34"/><Setter Property="FontWeight" Value="Bold"/><Setter Property="Foreground" Value="#101E2D"/></Style>
+        <Style x:Key="TrendMetricUnitRunStyle" TargetType="Run" BasedOn="{StaticResource StatisticsUnitRunStyle}"><Setter Property="FontSize" Value="13"/><Setter Property="Foreground" Value="#576174"/></Style>
+        <DataTemplate x:Key="TrendMetricDuration"><TextBlock Style="{StaticResource TrendMetricValue}" TextWrapping="NoWrap"><Run Text="{Binding HoursValue, Mode=OneWay}" Style="{StaticResource TrendMetricNumberRunStyle}"/><Run Text="{Binding HoursUnitWithLeadingSpace, Mode=OneWay}" Style="{StaticResource TrendMetricUnitRunStyle}"/><Run Text="{Binding MinutesValueWithLeadingSpace, Mode=OneWay}" Style="{StaticResource TrendMetricNumberRunStyle}"/><Run Text="{Binding MinutesUnitWithLeadingSpace, Mode=OneWay}" Style="{StaticResource TrendMetricUnitRunStyle}"/></TextBlock></DataTemplate>
         <Style x:Key="TrendYearNavigationButton" TargetType="Button">
             <Setter Property="Width" Value="30"/><Setter Property="Height" Value="30"/><Setter Property="Padding" Value="0"/>
             <Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/>
@@ -93,7 +96,7 @@
             <Border.Effect><DropShadowEffect BlurRadius="20" ShadowDepth="3" Direction="270" Opacity="0.08"/></Border.Effect>
             <Grid x:Name="CloseButtonHost">
                 <Grid Margin="24,20,24,20">
-                    <Grid.RowDefinitions><RowDefinition Height="30"/><RowDefinition Height="20"/><RowDefinition Height="32"/><RowDefinition Height="12"/><RowDefinition Height="76"/><RowDefinition Height="14"/><RowDefinition Height="254"/></Grid.RowDefinitions>
+                    <Grid.RowDefinitions><RowDefinition Height="30"/><RowDefinition Height="16"/><RowDefinition Height="32"/><RowDefinition Height="16"/><RowDefinition Height="76"/><RowDefinition Height="14"/><RowDefinition Height="254"/></Grid.RowDefinitions>
                     <TextBlock x:Name="TrendModalTitle" Text="投入趋势" Style="{StaticResource StatisticsPageTitleTextStyle}" VerticalAlignment="Center"/>
                     <Grid Grid.Row="2">
                         <TextBlock x:Name="DataOverviewTitle" Text="数据概况" Style="{StaticResource TrendSectionTitle}"/>
@@ -134,40 +137,38 @@
                             </Border>
                         </Popup>
                     <Grid x:Name="InvestmentSummary" Grid.Row="4">
-                        <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="8"/><ColumnDefinition/><ColumnDefinition Width="8"/><ColumnDefinition/><ColumnDefinition Width="8"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                        <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="32"/><ColumnDefinition/><ColumnDefinition Width="32"/><ColumnDefinition/></Grid.ColumnDefinitions>
                         <Border x:Name="PeriodInvestmentCard" Grid.Column="0" Style="{StaticResource TrendMetricGroup}">
-                            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="22"/><ColumnDefinition Width="10"/><ColumnDefinition/></Grid.ColumnDefinitions><Grid.RowDefinitions><RowDefinition Height="28"/><RowDefinition/></Grid.RowDefinitions>
-                                    <Path x:Name="PeriodInvestmentIcon" VerticalAlignment="Center" Style="{StaticResource TrendMetricIcon}" Stroke="#FF8A25" Data="M 12,1.5 A 10.5,10.5 0 1 1 11.99,1.5 M 12,5 L 12,12 L 17,14"/>
+                            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="42"/><ColumnDefinition Width="12"/><ColumnDefinition/></Grid.ColumnDefinitions><Grid.RowDefinitions><RowDefinition Height="28"/><RowDefinition/></Grid.RowDefinitions>
+                                <Border Grid.RowSpan="2" Style="{StaticResource TrendMetricIconBadge}" Background="#FFF3E8">
+                                    <Path x:Name="PeriodInvestmentIcon" Style="{StaticResource TrendMetricIcon}" Stroke="#FF8219" Data="M 12,2 A 10,10 0 1 1 11.99,2 M 12,6 L 12,12 L 16.5,14.5"/>
+                                </Border>
                                     <TextBlock Grid.Column="2" Text="累计投入" Style="{StaticResource TrendMetricLabel}"/>
-                                <Viewbox Grid.Column="0" Grid.ColumnSpan="3" Grid.Row="1" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" VerticalAlignment="Top"><ContentControl Content="{Binding PeriodInvestment}" ContentTemplate="{StaticResource TrendMetricDuration}"/></Viewbox>
+                                <Viewbox Grid.Column="2" Grid.Row="1" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" VerticalAlignment="Top"><ContentControl Content="{Binding PeriodInvestment}" ContentTemplate="{StaticResource TrendMetricDuration}"/></Viewbox>
                             </Grid>
                         </Border>
                         <Border Grid.Column="1" Style="{StaticResource TrendMetricDivider}"/>
                         <Border x:Name="DailyAverageInvestmentCard" Grid.Column="2" Style="{StaticResource TrendMetricGroup}">
-                            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="22"/><ColumnDefinition Width="10"/><ColumnDefinition/></Grid.ColumnDefinitions><Grid.RowDefinitions><RowDefinition Height="28"/><RowDefinition/></Grid.RowDefinitions>
-                                    <Path x:Name="DailyAverageInvestmentIcon" VerticalAlignment="Center" Style="{StaticResource TrendMetricIcon}" Stroke="#1888FA" Data="M 2,20 L 22,20 M 3,15 L 8,8 L 13,12 L 21,2"/>
+                            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="42"/><ColumnDefinition Width="12"/><ColumnDefinition/></Grid.ColumnDefinitions><Grid.RowDefinitions><RowDefinition Height="28"/><RowDefinition/></Grid.RowDefinitions>
+                                <Border Grid.RowSpan="2" Style="{StaticResource TrendMetricIconBadge}" Background="#EDF5FF">
+                                    <Path x:Name="DailyAverageInvestmentIcon" Style="{StaticResource TrendMetricIcon}" Stroke="#1684F8" Data="M 2,21 L 11,21 M 2,16 L 8,9 L 13,14 L 22,4 M 17,4 L 22,4 L 22,9"/>
+                                </Border>
                                     <TextBlock Grid.Column="2" Text="日均投入" Style="{StaticResource TrendMetricLabel}"/>
-                                <Viewbox Grid.Column="0" Grid.ColumnSpan="3" Grid.Row="1" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" VerticalAlignment="Top"><ContentControl Content="{Binding DailyAverageInvestment}" ContentTemplate="{StaticResource TrendMetricDuration}"/></Viewbox>
+                                <Viewbox Grid.Column="2" Grid.Row="1" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" VerticalAlignment="Top"><ContentControl Content="{Binding DailyAverageInvestment}" ContentTemplate="{StaticResource TrendMetricDuration}"/></Viewbox>
                             </Grid>
                         </Border>
                         <Border Grid.Column="3" Style="{StaticResource TrendMetricDivider}"/>
                         <Border x:Name="ActiveDaysCard" Grid.Column="4" Style="{StaticResource TrendMetricGroup}">
-                            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="22"/><ColumnDefinition Width="10"/><ColumnDefinition/></Grid.ColumnDefinitions><Grid.RowDefinitions><RowDefinition Height="28"/><RowDefinition/></Grid.RowDefinitions>
-                                    <Path x:Name="ActiveDaysIcon" VerticalAlignment="Center" Style="{StaticResource TrendMetricIcon}" Stroke="#16B75D" Data="M 3,4 L 21,4 L 21,22 L 3,22 Z M 3,9 L 21,9 M 7,1 L 7,6 M 17,1 L 17,6"/>
+                            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="42"/><ColumnDefinition Width="12"/><ColumnDefinition/></Grid.ColumnDefinitions><Grid.RowDefinitions><RowDefinition Height="28"/><RowDefinition/></Grid.RowDefinitions>
+                                <Border Grid.RowSpan="2" Style="{StaticResource TrendMetricIconBadge}" Background="#E8F8EF">
+                                    <Path x:Name="ActiveDaysIcon" Style="{StaticResource TrendMetricIcon}" Stroke="#20B76B" Data="M 4,4 L 20,4 Q 21,4 21,5 L 21,21 Q 21,22 20,22 L 4,22 Q 3,22 3,21 L 3,5 Q 3,4 4,4 Z M 3,9 L 21,9 M 7,2 L 7,6 M 17,2 L 17,6 M 12,16 L 16,12"/>
+                                </Border>
                                     <TextBlock Grid.Column="2" Text="活跃天数" Style="{StaticResource TrendMetricLabel}"/>
-                                <Viewbox Grid.Column="0" Grid.ColumnSpan="3" Grid.Row="1" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" VerticalAlignment="Top"><TextBlock Style="{StaticResource TrendMetricValue}" TextWrapping="NoWrap"><Run Text="{Binding ActiveDays, Mode=OneWay}" Style="{StaticResource StatisticsValueRunStyle}"/><Run Text=" 天" Style="{StaticResource StatisticsUnitRunStyle}"/></TextBlock></Viewbox>
-                            </Grid>
-                        </Border>
-                        <Border Grid.Column="5" Style="{StaticResource TrendMetricDivider}"/>
-                        <Border x:Name="LongestDayInvestmentCard" Grid.Column="6" Style="{StaticResource TrendMetricGroup}">
-                            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="22"/><ColumnDefinition Width="10"/><ColumnDefinition/></Grid.ColumnDefinitions><Grid.RowDefinitions><RowDefinition Height="28"/><RowDefinition/></Grid.RowDefinitions>
-                                    <Path x:Name="LongestDayInvestmentIcon" VerticalAlignment="Center" Style="{StaticResource TrendMetricIcon}" Stroke="#FF8A25" Data="M 4,21 L 4,14 M 12,21 L 12,3 M 20,21 L 20,10"/>
-                                    <TextBlock Grid.Column="2" Text="最长单日" Style="{StaticResource TrendMetricLabel}"/>
-                                <Viewbox Grid.Column="0" Grid.ColumnSpan="3" Grid.Row="1" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" VerticalAlignment="Top"><ContentControl Content="{Binding LongestDayInvestment}" ContentTemplate="{StaticResource TrendMetricDuration}"/></Viewbox>
+                                <Viewbox Grid.Column="2" Grid.Row="1" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" VerticalAlignment="Top"><TextBlock Style="{StaticResource TrendMetricValue}" TextWrapping="NoWrap"><Run Text="{Binding ActiveDays, Mode=OneWay}" Style="{StaticResource TrendMetricNumberRunStyle}"/><Run Text=" 天" Style="{StaticResource TrendMetricUnitRunStyle}"/></TextBlock></Viewbox>
                             </Grid>
                         </Border>
                     </Grid>
-                    <Border x:Name="TrendChartCard" Grid.Row="6" Background="White" BorderBrush="#ECEEF2" BorderThickness="0" Padding="0,14,0,0">
+                    <Border x:Name="TrendChartCard" Grid.Row="6" Background="White" BorderBrush="#ECEEF2" BorderThickness="0" Padding="0,6,0,0">
                         <Grid><Grid.RowDefinitions><RowDefinition Height="26"/><RowDefinition Height="212"/></Grid.RowDefinitions>
                             <Grid x:Name="TrendChartHeading"><TextBlock x:Name="TrendSectionHeading" Text="投入趋势" Style="{StaticResource TrendSectionTitle}"/></Grid>
                             <views:GoalInvestmentTrendChart x:Name="TrendChart" Grid.Row="1" HorizontalAlignment="Center"/>
@@ -176,14 +177,14 @@
         <Canvas x:Name="TrendTooltipOverlay" Grid.RowSpan="7" Panel.ZIndex="10" IsHitTestVisible="False">
             <Border x:Name="TrendTooltip" Canvas.Left="{Binding TooltipLeft}" Canvas.Top="{Binding TooltipTop}" Width="196" Height="68" CornerRadius="10" Padding="13,10" Background="{StaticResource ChartPoptipBackgroundBrush}" BorderBrush="{StaticResource ChartPoptipBorderBrush}" BorderThickness="1"
                     Visibility="{Binding IsTooltipOpen, Converter={StaticResource BooleanToVisibilityConverter}}">
-                <Border.RenderTransform><TransformGroup><TranslateTransform Y="20"/><TranslateTransform x:Name="TrendTooltipOrigin"/></TransformGroup></Border.RenderTransform>
+                <Border.RenderTransform><TranslateTransform x:Name="TrendTooltipOrigin"/></Border.RenderTransform>
                 <Border.Effect><DropShadowEffect Color="#17202D" BlurRadius="12" Opacity="0.12" ShadowDepth="2"/></Border.Effect>
                 <StackPanel>
-                    <TextBlock x:Name="TooltipDate" Text="{Binding HoveredPoint.TooltipFullDateDisplay}" Style="{StaticResource StatisticsAuxiliaryTextStyle}" Foreground="{StaticResource ChartPoptipSecondaryBrush}"/>
+                    <TextBlock x:Name="TooltipDate" Text="{Binding HoveredPoint.TooltipFullDateDisplay}" Style="{StaticResource StatisticsAuxiliaryTextStyle}" FontSize="13" FontWeight="Normal" Foreground="{StaticResource ChartPoptipSecondaryBrush}"/>
                     <Grid Margin="0,7,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="8"/><ColumnDefinition Width="8"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="8"/><ColumnDefinition/></Grid.ColumnDefinitions>
                         <Ellipse Width="8" Height="8" Fill="#FF8B28" VerticalAlignment="Center"/>
-                        <TextBlock x:Name="TooltipFocusLabel" Grid.Column="2" Text="专注时长" Style="{StaticResource StatisticsAuxiliaryTextStyle}" Foreground="{StaticResource ChartPoptipBodyBrush}" VerticalAlignment="Center"/>
-                        <Viewbox Grid.Column="4" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" VerticalAlignment="Center"><TextBlock x:Name="TooltipFocusDuration" Text="{Binding HoverFocusDurationDisplay}" Style="{StaticResource StatisticsTimeTextStyle}" Foreground="{StaticResource ChartPoptipValueBrush}"/></Viewbox>
+                        <TextBlock x:Name="TooltipFocusLabel" Grid.Column="2" Text="专注时长" Style="{StaticResource StatisticsAuxiliaryTextStyle}" FontSize="13" FontWeight="Normal" Foreground="{StaticResource ChartPoptipBodyBrush}" VerticalAlignment="Center"/>
+                        <Viewbox Grid.Column="4" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" VerticalAlignment="Center"><TextBlock x:Name="TooltipFocusDuration" Text="{Binding HoverFocusDurationDisplay}" Style="{StaticResource StatisticsTimeTextStyle}" FontSize="13" FontWeight="Normal" Foreground="{StaticResource ChartPoptipValueBrush}"/></Viewbox>
                     </Grid>
                 </StackPanel>
             </Border>

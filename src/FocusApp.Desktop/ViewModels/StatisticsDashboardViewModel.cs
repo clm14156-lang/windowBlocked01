@@ -11,7 +11,7 @@ public enum StatisticsPeriod { Week, Month, Year }
 public enum AnnualChartGrouping { Month, Week }
 
 /// <summary>One calendar period and one source of truth for every overview metric.</summary>
-public sealed partial class StatisticsDashboardViewModel : INotifyPropertyChanged
+public sealed class StatisticsDashboardViewModel : INotifyPropertyChanged
 {
     // Soft categorical colors, followed by dynamically generated colors instead of cycling.
     private static readonly string[] Palette =
@@ -44,22 +44,6 @@ public sealed partial class StatisticsDashboardViewModel : INotifyPropertyChange
         TogglePeriodPickerCommand = new RelayCommand<object>(_ => IsPeriodPickerOpen = !IsPeriodPickerOpen);
         SelectAvailablePeriodCommand = new RelayCommand<OverviewPeriodOption>(SelectAvailablePeriod);
         ToggleDistributionCommand = new RelayCommand<FocusDistributionItemViewModel>(ToggleDistribution);
-        OpenFocusDaysDetailsCommand = new RelayCommand<object>(_ =>
-        {
-            RefreshCurrentDate();
-            IsPeriodPickerOpen = false;
-            IsCompletedTasksOpen = false;
-            IsFocusDaysDetailsOpen = true;
-        });
-        CloseFocusDaysDetailsCommand = new RelayCommand<object>(_ => IsFocusDaysDetailsOpen = false);
-        OpenCompletedTasksCommand = new RelayCommand<object>(_ => OpenCompletedTasks());
-        CloseCompletedTasksCommand = new RelayCommand<object>(_ => IsCompletedTasksOpen = false);
-        _previousCompletedTasksPage = new RelayCommand<object>(_ => SetCompletedTasksPage(CompletedTasksPage - 1), _ => CompletedTasksPage > 1);
-        _nextCompletedTasksPage = new RelayCommand<object>(_ => SetCompletedTasksPage(CompletedTasksPage + 1), _ => CompletedTasksPage < CompletedTasksPageCount);
-        _goToCompletedTasksPage = new RelayCommand<CompletedTaskPageOption>(option =>
-        {
-            if (option?.PageNumber is { } page) SetCompletedTasksPage(page);
-        }, option => option?.PageNumber is { } page && page >= 1 && page <= CompletedTasksPageCount);
         Refresh();
     }
 
@@ -230,8 +214,6 @@ public sealed partial class StatisticsDashboardViewModel : INotifyPropertyChange
 
     private void Refresh(bool resetInteraction = true)
     {
-        var previousPeriodStart = PeriodStart;
-        var previousPeriodEnd = PeriodEndExclusive;
         _displayDate = _localNowProvider().Date;
         var selectedId = resetInteraction ? null : _selectedDistribution?.TargetId;
         PeriodStart = StartOfPeriod(_anchor, Period);
@@ -260,10 +242,7 @@ public sealed partial class StatisticsDashboardViewModel : INotifyPropertyChange
             .Where(slice => slice.StartsAt >= PeriodStart && slice.StartsAt < PeriodEndExclusive).ToArray();
         TotalDuration = TimeSpan.FromTicks(slices.Sum(slice => slice.Duration.Ticks));
         FocusDayCount = slices.Select(slice => slice.StartsAt.Date).Distinct().Count();
-        RefreshFocusDays(slices);
-        _periodCompletedTasks = BuildPeriodCompletedTasks();
-        CompletedTaskCount = _periodCompletedTasks.Count;
-        RefreshCompletedTasks(previousPeriodStart != PeriodStart || previousPeriodEnd != PeriodEndExclusive);
+        CompletedTaskCount = CountCompletedTasks();
 
         RefreshChart();
 
@@ -317,6 +296,34 @@ public sealed partial class StatisticsDashboardViewModel : INotifyPropertyChange
         AxisMaximumMinutes = Math.Max(interval * 4, Math.Ceiling(maximum / interval) * interval);
         AxisTicks = Enumerable.Range(0, (int)Math.Round(AxisMaximumMinutes / interval) + 1)
             .Select(index => new OverviewAxisTick(index * interval, AxisMaximumMinutes >= 120)).ToArray();
+    }
+
+    private int CountCompletedTasks()
+    {
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+        var legacyCount = 0;
+        foreach (var record in _records.Where(record => record.FocusDuration >= TimeSpan.FromMinutes(5)))
+        {
+            if (record.CompletedTaskSnapshots.Count > 0)
+            {
+                foreach (var task in record.CompletedTaskSnapshots)
+                    Add(task.TaskId, task.CompletedAtUtc?.LocalDateTime ?? record.EndTime);
+            }
+            else
+            {
+                var count = Math.Max(record.CompletedTaskIds.Count, record.CompletedTaskNames.Count);
+                for (var index = 0; index < count; index++)
+                    Add(record.CompletedTaskIds.ElementAtOrDefault(index), record.CompletedTaskTimes.ElementAtOrDefault(index) ?? record.EndTime);
+            }
+        }
+        return ids.Count + legacyCount;
+
+        void Add(string? id, DateTime date)
+        {
+            if (date < PeriodStart || date >= PeriodEndExclusive) return;
+            if (string.IsNullOrWhiteSpace(id)) legacyCount++;
+            else ids.Add(id);
+        }
     }
 
     private static string NormalizeGoalId(string? id) => string.IsNullOrWhiteSpace(id) ? "goal-unassigned" : id;

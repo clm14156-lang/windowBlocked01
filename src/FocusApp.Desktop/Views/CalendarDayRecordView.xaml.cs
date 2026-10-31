@@ -57,7 +57,7 @@ public partial class CalendarDayRecordView : UserControl
         if (TaskPopup.IsOpen || _taskOpenTimer.IsEnabled || DataContext is not CalendarDayRecordViewModel) { e.Handled = true; return; }
         RecordHoverTip.PlacementTarget = this;
         if (Window.GetWindow(this)?.Content is FrameworkElement root)
-            RecordHoverContent.MaxWidth = Math.Min(PoptipChrome.MaximumWidth, Math.Max(1, root.ActualWidth - 16));
+            RecordHoverContent.MaxWidth = Math.Min(CalendarRecordHoverToolTip.MaximumWidth, Math.Max(1, root.ActualWidth - 16));
     }
 
     private CustomPopupPlacement[] RecordHoverTip_Placement(Size popupSize, Size targetSize, Point offset)

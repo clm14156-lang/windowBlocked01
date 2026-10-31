@@ -8,7 +8,7 @@
     <UserControl.Style><Style TargetType="UserControl"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding IsOpen}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></UserControl.Style>
     <UserControl.Resources>
         <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries><ResourceDictionary Source="/FocusApp.Desktop;component/Resources/StatisticsScrollStyles.xaml"/><ResourceDictionary Source="/FocusApp.Desktop;component/Resources/StatisticsTypography.xaml"/></ResourceDictionary.MergedDictionaries>
+            <ResourceDictionary.MergedDictionaries><ResourceDictionary Source="/FocusApp.Desktop;component/Resources/StatisticsScrollStyles.xaml"/><ResourceDictionary Source="/FocusApp.Desktop;component/Resources/StatisticsTypography.xaml"/><ResourceDictionary Source="/FocusApp.Desktop;component/Resources/CompletedTaskSelectStyles.xaml"/></ResourceDictionary.MergedDictionaries>
             <BooleanToVisibilityConverter x:Key="VisibleIf"/>
             <Style x:Key="CompletedTableHeading" TargetType="TextBlock" BasedOn="{StaticResource StatisticsAuxiliaryTextStyle}">
                 <Setter Property="FontWeight" Value="Medium"/>
@@ -19,54 +19,6 @@
                 <Setter Property="FontFamily" Value="{DynamicResource FontFamilyEnglish}"/>
                 <Setter Property="Foreground" Value="{DynamicResource StatisticsSecondaryBrush}"/>
                 <Setter Property="Typography.NumeralAlignment" Value="Tabular"/>
-            </Style>
-            <DataTemplate x:Key="CompletedRangeTextTemplate">
-                <TextBlock Text="{Binding}" Style="{StaticResource StatisticsBodyTextStyle}"/>
-            </DataTemplate>
-            <Style x:Key="CompletedRangeOption" TargetType="ComboBoxItem">
-                <Setter Property="Height" Value="30"/><Setter Property="Padding" Value="9,0"/><Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                <Setter Property="FontFamily" Value="{DynamicResource FontFamilyPrimary}"/><Setter Property="FontWeight" Value="Normal"/>
-                <Setter Property="Foreground" Value="{DynamicResource StatisticsBodyBrush}"/><Setter Property="FontSize" Value="{DynamicResource BodyFontSize}"/>
-                <Setter Property="ContentTemplate" Value="{StaticResource CompletedRangeTextTemplate}"/>
-                <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ComboBoxItem">
-                    <Border x:Name="OptionSurface" Background="White" Padding="{TemplateBinding Padding}" CornerRadius="5">
-                        <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="16"/></Grid.ColumnDefinitions>
-                            <ContentPresenter VerticalAlignment="Center" TextElement.FontFamily="{TemplateBinding FontFamily}" TextElement.FontSize="{TemplateBinding FontSize}" TextElement.FontWeight="{TemplateBinding FontWeight}" TextElement.Foreground="{TemplateBinding Foreground}"/>
-                            <Path x:Name="SelectedMark" Grid.Column="1" Width="9" Height="7" Data="M 0,3 L 3,6 L 8,0" Stroke="#727E90" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" VerticalAlignment="Center" HorizontalAlignment="Right" Visibility="Collapsed"/>
-                        </Grid>
-                    </Border>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsHighlighted" Value="True"><Setter TargetName="OptionSurface" Property="Background" Value="#F5F6F8"/></Trigger>
-                        <Trigger Property="IsSelected" Value="True"><Setter TargetName="OptionSurface" Property="Background" Value="#F1F3F6"/><Setter TargetName="SelectedMark" Property="Visibility" Value="Visible"/></Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate></Setter.Value></Setter>
-            </Style>
-            <Style x:Key="CompletedRangeSelector" TargetType="ComboBox">
-                <Setter Property="Height" Value="32"/><Setter Property="FontSize" Value="{DynamicResource BodyFontSize}"/><Setter Property="Foreground" Value="{DynamicResource StatisticsBodyBrush}"/>
-                <Setter Property="FontFamily" Value="{DynamicResource FontFamilyPrimary}"/><Setter Property="FontWeight" Value="Normal"/>
-                <Setter Property="Background" Value="White"/><Setter Property="BorderBrush" Value="#DDE1E8"/><Setter Property="BorderThickness" Value="1"/>
-                <Setter Property="ItemContainerStyle" Value="{StaticResource CompletedRangeOption}"/>
-                <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
-                <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ComboBox">
-                    <Grid>
-                        <ToggleButton x:Name="RangeToggle" Focusable="False" ClickMode="Press" IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}">
-                            <ToggleButton.Template><ControlTemplate TargetType="ToggleButton">
-                                <Border x:Name="SelectorSurface" Background="{Binding Background, RelativeSource={RelativeSource AncestorType=ComboBox}}" BorderBrush="{Binding BorderBrush, RelativeSource={RelativeSource AncestorType=ComboBox}}" BorderThickness="1" CornerRadius="7">
-                                    <Path Width="8" Height="5" Data="M 0,0 L 4,4 L 8,0" Stroke="#6D788B" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,12,0"/>
-                                </Border>
-                                <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="SelectorSurface" Property="Background" Value="#FAFAFB"/></Trigger></ControlTemplate.Triggers>
-                            </ControlTemplate></ToggleButton.Template>
-                        </ToggleButton>
-                        <ContentPresenter Margin="12,0,30,0" VerticalAlignment="Center" Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{StaticResource CompletedRangeTextTemplate}" TextElement.FontFamily="{TemplateBinding FontFamily}" TextElement.FontSize="{TemplateBinding FontSize}" TextElement.FontWeight="{TemplateBinding FontWeight}" TextElement.Foreground="{TemplateBinding Foreground}" IsHitTestVisible="False"/>
-                        <Popup x:Name="PART_Popup" Placement="Bottom" VerticalOffset="3" IsOpen="{TemplateBinding IsDropDownOpen}" AllowsTransparency="True" Focusable="False" PopupAnimation="Fade">
-                            <Border MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}" Margin="4,4,8,8" Padding="4" Background="White" BorderBrush="#E7EAF0" BorderThickness="1" CornerRadius="8">
-                                <Border.Effect><DropShadowEffect Color="#293549" BlurRadius="10" ShadowDepth="2" Opacity="0.10"/></Border.Effect>
-                                <ScrollViewer CanContentScroll="True" HorizontalScrollBarVisibility="Disabled"><ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained"/></ScrollViewer>
-                            </Border>
-                        </Popup>
-                    </Grid>
-                    <ControlTemplate.Triggers><Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter Property="BorderBrush" Value="#B9C2D0"/></Trigger></ControlTemplate.Triggers>
-                </ControlTemplate></Setter.Value></Setter>
             </Style>
             <Style x:Key="CompletedTaskMenuItem" TargetType="MenuItem">
                 <Setter Property="Height" Value="32"/><Setter Property="MinWidth" Value="116"/><Setter Property="FontSize" Value="{StaticResource BodyFontSize}"/><Setter Property="Foreground" Value="{StaticResource StatisticsBodyBrush}"/>
@@ -146,11 +98,11 @@
                         <TextBlock x:Name="CompletedTaskCount" Grid.Column="4" Text="{Binding FilteredCountDisplay}" Style="{StaticResource StatisticsAuxiliaryTextStyle}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                     </Grid>
                     <Border x:Name="CompletedTasksTableHeader" Grid.Row="4" Background="#F6F6F8" CornerRadius="6" Padding="12,0,14,0">
-                        <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="116"/></Grid.ColumnDefinitions>
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="84"/></Grid.ColumnDefinitions>
                             <TextBlock Text="任务内容" Style="{StaticResource CompletedTableHeading}"/>
                             <Button x:Name="CompletionSortButton" Grid.Column="1" Command="{Binding ToggleSortCommand}" ToolTip="{Binding SortHint}" AutomationProperties.Name="{Binding SortHint}" HorizontalAlignment="Right" Background="Transparent" BorderThickness="0" Padding="4,0" Cursor="Hand" FocusVisualStyle="{x:Null}">
                                 <Button.Template><ControlTemplate TargetType="Button"><Border x:Name="SortSurface" Background="Transparent" CornerRadius="5" Padding="{TemplateBinding Padding}"><ContentPresenter VerticalAlignment="Center"/></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="SortSurface" Property="Background" Value="#ECEEF1"/></Trigger><Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="SortSurface" Property="Background" Value="#ECEEF1"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Button.Template>
-                                <StackPanel Orientation="Horizontal"><TextBlock Text="完成时间" Style="{StaticResource CompletedTableHeading}"/>
+                                <StackPanel Orientation="Horizontal"><TextBlock Text="完成日期" Style="{StaticResource CompletedTableHeading}"/>
                                     <StackPanel Margin="7,0,0,0" VerticalAlignment="Center">
                                         <Path Width="8" Height="5" Data="M 0,4 L 4,0 L 8,4" StrokeThickness="1.6" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"><Path.Style><Style TargetType="Path"><Setter Property="Stroke" Value="#BDC3CC"/><Style.Triggers><DataTrigger Binding="{Binding IsSortAscending}" Value="True"><Setter Property="Stroke" Value="#777F90"/></DataTrigger></Style.Triggers></Style></Path.Style></Path>
                                         <Path Width="8" Height="5" Margin="0,4,0,0" Data="M 0,0 L 4,4 L 8,0" StrokeThickness="1.6" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"><Path.Style><Style TargetType="Path"><Setter Property="Stroke" Value="#BDC3CC"/><Style.Triggers><DataTrigger Binding="{Binding IsSortDescending}" Value="True"><Setter Property="Stroke" Value="#777F90"/></DataTrigger></Style.Triggers></Style></Path.Style></Path>
@@ -168,9 +120,9 @@
                             <ListBox.ItemsPanel><ItemsPanelTemplate><VirtualizingStackPanel/></ItemsPanelTemplate></ListBox.ItemsPanel>
                             <ListBox.ItemTemplate><DataTemplate>
                                 <Grid x:Name="CompletedTaskRow" Margin="12,0,12,0">
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="18"/><ColumnDefinition Width="16"/><ColumnDefinition/><ColumnDefinition Width="116"/></Grid.ColumnDefinitions>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="18"/><ColumnDefinition Width="16"/><ColumnDefinition/><ColumnDefinition Width="84"/></Grid.ColumnDefinitions>
                                     <Border x:Name="CompletedParentMark" Width="18" Height="18" CornerRadius="4" Background="#FF871F" VerticalAlignment="Center" IsHitTestVisible="False"><Path Width="13" Height="11" Data="M 0,5 L 4,9 L 12,1" Stroke="White" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
-                                    <TextBlock x:Name="CompletedTaskName" Grid.Column="2" Text="{Binding Name}" Style="{StaticResource StatisticsBodyTextStyle}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,10,0" ToolTip="{Binding Name}"/>
+                                    <TextBlock x:Name="CompletedTaskName" Grid.Column="2" Text="{Binding Name}" Style="{StaticResource StatisticsBodyTextStyle}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,16,0" ToolTip="{Binding Name}"/>
                                     <TextBlock x:Name="CompletedTaskTime" Grid.Column="3" Text="{Binding TimeDisplay}" VerticalAlignment="Center" HorizontalAlignment="Right">
                                         <TextBlock.Style><Style TargetType="TextBlock" BasedOn="{StaticResource CompletedTimeText}"><Style.Triggers>
                                             <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True"><Setter Property="Visibility" Value="Hidden"/></DataTrigger>

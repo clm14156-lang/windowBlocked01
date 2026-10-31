@@ -29,6 +29,7 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
     private bool _isUpdatingDurationSelection;
     private string _focusStartError = string.Empty;
     private CancellationTokenSource? _pendingFocusStartDelay;
+    private Action<Action>? _manualFocusStartPrompt;
 
     public event PropertyChangedEventHandler? PropertyChanged;
     public event EventHandler? DurationOptionsChanged;
@@ -193,6 +194,8 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
 
     public void SetForcedFocusStartCanceller(Func<Task> canceller)
         => _forcedFocusStartCanceller = canceller ?? throw new ArgumentNullException(nameof(canceller));
+
+    public void SetManualFocusStartPrompt(Action<Action> prompt) => _manualFocusStartPrompt = prompt;
 
     public void SetUserAccess(bool isLoggedIn, bool isVip)
     {
@@ -476,7 +479,8 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
         int? minutes = null,
         Guid? automaticRuleId = null,
         DateTimeOffset? automaticOccurrenceStartedAtUtc = null,
-        FocusTargetViewModel? automaticTarget = null)
+        FocusTargetViewModel? automaticTarget = null,
+        bool showBrowserExtensionPrompt = true)
     {
         var decision = ForcedModeAccessPolicy.EvaluateStart(
             _isLoggedIn,
@@ -491,6 +495,16 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
         var selectedDuration = _currentDurationOption;
         var focusMinutes = minutes ?? selectedDuration.Minutes;
         var target = automaticTarget ?? (FocusTargetModal.HasSelectedTarget ? FocusTargetModal.SelectedTarget : null);
+        if (automaticRuleId is null && showBrowserExtensionPrompt && _manualFocusStartPrompt is not null &&
+            !IsStartingForcedFocus && !FocusSession.IsPreparing && !FocusSession.IsFocusing)
+        {
+            _manualFocusStartPrompt(() =>
+            {
+                if (!IsStartingForcedFocus && !FocusSession.IsPreparing && !FocusSession.IsFocusing)
+                    StartFocus(focusMinutes, automaticTarget: target, showBrowserExtensionPrompt: false);
+            });
+            return;
+        }
         if (decision == FocusStartModeDecision.Forced && _forcedFocusStarter is not null)
         {
             if (IsStartingForcedFocus ||

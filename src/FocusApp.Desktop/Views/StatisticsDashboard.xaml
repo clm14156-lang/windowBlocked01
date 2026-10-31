@@ -21,16 +21,6 @@
             <Style x:Key="OverviewMetricLabel" TargetType="TextBlock" BasedOn="{StaticResource StatisticsMetricLabelStyle}"/>
             <Style x:Key="OverviewNumber" TargetType="Run" BasedOn="{StaticResource StatisticsValueRunStyle}"/>
             <Style x:Key="OverviewUnit" TargetType="Run" BasedOn="{StaticResource StatisticsUnitRunStyle}"/>
-            <Style x:Key="OverviewMetricButton" TargetType="Button">
-                <Setter Property="Padding" Value="16"/><Setter Property="Background" Value="Transparent"/>
-                <Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="VerticalContentAlignment" Value="Center"/>
-                <Setter Property="Cursor" Value="Hand"/><Setter Property="FocusVisualStyle" Value="{x:Null}"/>
-                <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
-                    <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" CornerRadius="14">
-                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
-                    </Border>
-                </ControlTemplate></Setter.Value></Setter>
-            </Style>
             <Style x:Key="OverviewDurationGap" TargetType="Border">
                 <Setter Property="Width" Value="4"/>
                 <Setter Property="Height" Value="0"/>
@@ -123,8 +113,7 @@
                         </Grid>
                         </Grid>
                     </Border>
-                    <Border x:Name="OverviewCompletedCard" Grid.Column="2" Style="{StaticResource OverviewCard}" Padding="0">
-                        <Button x:Name="OverviewCompletedButton" Style="{StaticResource OverviewMetricButton}" Command="{Binding OpenCompletedTasksCommand}" AutomationProperties.Name="已完成任务详情">
+                    <Border x:Name="OverviewCompletedCard" Grid.Column="2" Style="{StaticResource OverviewCard}">
                         <Grid VerticalAlignment="Center"><Grid.ColumnDefinitions><ColumnDefinition Width="30"/><ColumnDefinition Width="14"/><ColumnDefinition/></Grid.ColumnDefinitions>
                             <Grid x:Name="OverviewCompletedIcon" Width="30" Height="30" VerticalAlignment="Center" IsHitTestVisible="False">
                                 <Grid.Resources><Style TargetType="Ellipse"><Setter Property="Fill" Value="{x:Null}"/><Setter Property="Stroke" Value="#2AC78D"/><Setter Property="StrokeThickness" Value="1.8"/></Style><Style TargetType="Path"><Setter Property="Fill" Value="{x:Null}"/><Setter Property="Stroke" Value="#2AC78D"/><Setter Property="StrokeThickness" Value="1.8"/><Setter Property="StrokeStartLineCap" Value="Round"/><Setter Property="StrokeEndLineCap" Value="Round"/><Setter Property="StrokeLineJoin" Value="Round"/></Style></Grid.Resources>
@@ -132,10 +121,8 @@
                             </Grid>
                             <Grid Grid.Column="2"><Grid.RowDefinitions><RowDefinition Height="21"/><RowDefinition/></Grid.RowDefinitions><StackPanel Orientation="Horizontal"><TextBlock Text="完成任务" Style="{StaticResource OverviewMetricLabel}"/></StackPanel><TextBlock x:Name="OverviewCompletedCount" Grid.Row="1" Style="{StaticResource StatisticsBodyTextStyle}" VerticalAlignment="Bottom"><Run Text="{Binding CompletedTaskCount, Mode=OneWay}" Style="{StaticResource OverviewNumber}"/><Run Text=" 项" Style="{StaticResource OverviewUnit}"/></TextBlock></Grid>
                         </Grid>
-                        </Button>
                     </Border>
-                    <Border x:Name="OverviewDaysCard" Grid.Column="4" Style="{StaticResource OverviewCard}" Padding="0">
-                        <Button x:Name="OverviewDaysButton" Style="{StaticResource OverviewMetricButton}" Command="{Binding OpenFocusDaysDetailsCommand}" AutomationProperties.Name="专注天数详情">
+                    <Border x:Name="OverviewDaysCard" Grid.Column="4" Style="{StaticResource OverviewCard}">
                         <Grid VerticalAlignment="Center"><Grid.ColumnDefinitions><ColumnDefinition Width="30"/><ColumnDefinition Width="14"/><ColumnDefinition/></Grid.ColumnDefinitions>
                             <Grid x:Name="OverviewDaysIcon" Width="30" Height="30" VerticalAlignment="Center" IsHitTestVisible="False">
                                 <Grid.Resources><Style TargetType="Ellipse"><Setter Property="Fill" Value="{x:Null}"/><Setter Property="Stroke" Value="#2788FA"/><Setter Property="StrokeThickness" Value="1.8"/></Style><Style TargetType="Path"><Setter Property="Fill" Value="{x:Null}"/><Setter Property="Stroke" Value="#2788FA"/><Setter Property="StrokeThickness" Value="1.8"/><Setter Property="StrokeStartLineCap" Value="Round"/><Setter Property="StrokeEndLineCap" Value="Round"/><Setter Property="StrokeLineJoin" Value="Round"/></Style></Grid.Resources>
@@ -143,7 +130,6 @@
                             </Grid>
                             <Grid Grid.Column="2"><Grid.RowDefinitions><RowDefinition Height="21"/><RowDefinition/></Grid.RowDefinitions><StackPanel Orientation="Horizontal"><TextBlock Text="专注天数" Style="{StaticResource OverviewMetricLabel}"/></StackPanel><TextBlock x:Name="OverviewFocusDays" Grid.Row="1" Style="{StaticResource StatisticsBodyTextStyle}" VerticalAlignment="Bottom"><Run Text="{Binding FocusDayCount, Mode=OneWay}" Style="{StaticResource OverviewNumber}"/><Run Text=" 天" Style="{StaticResource OverviewUnit}"/></TextBlock></Grid>
                         </Grid>
-                        </Button>
                     </Border>
                 </Grid>
                 <Border x:Name="OverviewTrendCard" Grid.Row="4" Style="{StaticResource OverviewCard}" Padding="16,14,16,12">
@@ -169,7 +155,7 @@
                                 <views:FocusDistributionChart x:Name="DistributionChart" Model="{Binding}" AutomationProperties.Name="目标时间分布环形图"/>
                                 <StackPanel x:Name="DistributionCenter" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False">
                                     <Viewbox MaxWidth="96" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Center">
-                                        <TextBlock x:Name="DistributionCenterValue" Style="{StaticResource StatisticsBodyTextStyle}"><Run Text="{Binding DonutValue, Mode=OneWay}" Style="{StaticResource OverviewNumber}"/><Run Text="{Binding DonutUnit, Mode=OneWay}" Style="{StaticResource OverviewUnit}"/></TextBlock>
+                                        <TextBlock x:Name="DistributionCenterValue" Style="{StaticResource StatisticsBodyTextStyle}"><Run Text="{Binding DonutValue, Mode=OneWay}" Style="{StaticResource OverviewNumber}" FontWeight="SemiBold"/><Run Text="{Binding DonutUnit, Mode=OneWay}" Style="{StaticResource OverviewUnit}"/></TextBlock>
                                     </Viewbox>
                                     <TextBlock Text="{Binding DonutRemainder}" Visibility="{Binding HasDonutRemainder, Converter={StaticResource VisibleWhenTrue}}" Style="{StaticResource OverviewNumericSecondary}" Margin="0,2,0,0" HorizontalAlignment="Center"/>
                                 </StackPanel>
@@ -227,10 +213,10 @@
                         <TextBlock x:Name="TipDateRange" Margin="0,4,0,0" Style="{StaticResource ChartPoptipSecondaryTextStyle}" Visibility="Collapsed"/>
                     </StackPanel>
                     <Grid Margin="0,10,0,0">
-                        <Grid.ColumnDefinitions><ColumnDefinition x:Name="TipMarkerColumn" Width="10"/><ColumnDefinition x:Name="TipMarkerGapColumn" Width="10"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="12"/><ColumnDefinition/></Grid.ColumnDefinitions>
-                        <Ellipse x:Name="TipMarker" Width="10" Height="10" Fill="#FF8B28" VerticalAlignment="Center"/>
+                        <Grid.ColumnDefinitions><ColumnDefinition x:Name="TipMarkerColumn" Width="0"/><ColumnDefinition x:Name="TipMarkerGapColumn" Width="0"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="12"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                        <Ellipse x:Name="TipMarker" Width="10" Height="10" Visibility="Collapsed" VerticalAlignment="Center"/>
                         <TextBlock x:Name="TipDurationLabel" Grid.Column="2" Text="专注时长" Style="{StaticResource ChartPoptipBodyTextStyle}"/>
-                        <TextBlock x:Name="TipDurationText" Grid.Column="4" Style="{StaticResource ChartPoptipDurationTextStyle}"><Run x:Name="TipDuration" Style="{StaticResource ChartPoptipValueStyle}"/></TextBlock>
+                        <TextBlock x:Name="TipDurationText" Grid.Column="4" TextAlignment="Right" Style="{StaticResource ChartPoptipDurationTextStyle}"><Run x:Name="TipDuration" Style="{StaticResource ChartPoptipValueStyle}"/></TextBlock>
                     </Grid>
                     <TextBlock x:Name="TipPercentage" Margin="0,8,0,0" Style="{StaticResource ChartPoptipPercentageTextStyle}"/>
                 </StackPanel>

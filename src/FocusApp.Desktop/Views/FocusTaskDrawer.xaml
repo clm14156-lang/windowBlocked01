@@ -91,7 +91,7 @@
                             <Style.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="{DynamicResource FocusTaskButtonHover}"/></Trigger></Style.Triggers>
                         </Style></Border.Style>
                         <StackPanel>
-                    <Grid x:Name="TaskHeader" MinHeight="24">
+                    <Grid x:Name="TaskHeader" MinHeight="28">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="35" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                         <CheckBox x:Name="TaskCompletionCheck" IsChecked="{Binding IsCompleted, Mode=OneWay}" Command="{Binding DataContext.ToggleTaskCompletedCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
                                   HorizontalAlignment="Left" VerticalAlignment="Center" Style="{StaticResource DrawerTaskCheck}" AutomationProperties.Name="切换任务完成状态" />
@@ -99,7 +99,10 @@
                                       IsChecked="{Binding IsSubTasksExpanded, Mode=TwoWay}" Visibility="{Binding HasSubTasks, Converter={StaticResource BoolVisibility}}"
                                       AutomationProperties.Name="展开或折叠子任务"/>
                         <DockPanel Grid.Column="1" HorizontalAlignment="Left" VerticalAlignment="Center">
-                            <TextBlock x:Name="TaskSubTaskProgress" DockPanel.Dock="Right" Margin="6,0,4,0" VerticalAlignment="Center" FontSize="11"
+                            <DockPanel.Style><Style TargetType="DockPanel"><Style.Triggers>
+                                <DataTrigger Binding="{Binding HasSubTasks}" Value="True"><Setter Property="Margin" Value="6,0,0,0"/></DataTrigger>
+                            </Style.Triggers></Style></DockPanel.Style>
+                            <TextBlock x:Name="TaskSubTaskProgress" DockPanel.Dock="Right" Margin="6,0,4,0" VerticalAlignment="Center" FontSize="12"
                                        FontFamily="{DynamicResource FontFamilyNumeric}" Foreground="{DynamicResource FocusTaskDescriptionText}"
                                        Text="{Binding SubTaskProgress, Converter={StaticResource CompactTaskProgress}}"
                                        Visibility="{Binding HasSubTasks, Converter={StaticResource BoolVisibility}}"/>
@@ -174,7 +177,7 @@
     </UserControl.Resources>
     <Border BorderBrush="{DynamicResource FocusTaskBorder}" BorderThickness="1,0,0,0" Background="{DynamicResource FocusDrawerSurface}">
         <Grid>
-            <Grid.RowDefinitions><RowDefinition Height="60" /><RowDefinition Height="Auto"/><RowDefinition /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+            <Grid.RowDefinitions><RowDefinition Height="60" /><RowDefinition Height="Auto"/><RowDefinition /></Grid.RowDefinitions>
             <Border BorderBrush="{DynamicResource FocusTaskDivider}" Margin="18,0,14,0">
                 <Border.Style><Style TargetType="Border"><Setter Property="BorderThickness" Value="0"/><Style.Triggers><DataTrigger Binding="{Binding HasPendingTasks}" Value="False"><Setter Property="BorderThickness" Value="0,0,0,1"/></DataTrigger></Style.Triggers></Style></Border.Style>
                 <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="32" /></Grid.ColumnDefinitions>
@@ -194,7 +197,7 @@
                 <Border Height="1" Background="{DynamicResource FocusTaskDivider}"/>
             </StackPanel>
             <ScrollViewer x:Name="TaskDrawerScrollViewer" Grid.Row="2" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-                <StackPanel>
+                <StackPanel Margin="0,0,0,80">
                     <ItemsControl x:Name="DrawerTaskList" ItemsSource="{Binding VisibleTasks}" ItemTemplate="{StaticResource TaskRow}"/>
                 </StackPanel>
             </ScrollViewer>
@@ -214,14 +217,14 @@
                     <TextBlock Text="快速添加任务" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource FocusTaskShortcutText}" VerticalAlignment="Center"/>
                 </StackPanel>
             </StackPanel>
-            <Border x:Name="TaskEditorScrim" Grid.RowSpan="4" Panel.ZIndex="1" Background="#280F172A"
+            <Canvas x:Name="TaskCreationOverlay" Grid.Row="2" Panel.ZIndex="1">
+                <Button x:Name="DrawerAddTaskButton" Canvas.Right="16" Canvas.Bottom="18"
+                        Style="{StaticResource DrawerAddTaskButtonStyle}" Command="{Binding AddTaskCommand}" AutomationProperties.Name="创建任务" ToolTip="添加任务"/>
+            </Canvas>
+            <Border x:Name="TaskEditorScrim" Grid.RowSpan="3" Panel.ZIndex="1" Background="#280F172A"
                     Visibility="{Binding IsCreating, Converter={StaticResource BoolVisibility}}"
                     MouseLeftButtonDown="TaskEditorScrim_MouseLeftButtonDown" />
-            <Grid Grid.Row="3">
-                <Button x:Name="DrawerAddTaskButton" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,14,16,18"
-                        Style="{StaticResource DrawerAddTaskButtonStyle}" Command="{Binding AddTaskCommand}" AutomationProperties.Name="创建任务" ToolTip="添加任务"/>
-            </Grid>
-            <Grid Grid.RowSpan="4" Panel.ZIndex="2" VerticalAlignment="Bottom">
+            <Grid Grid.RowSpan="3" Panel.ZIndex="2" VerticalAlignment="Bottom">
                 <Border x:Name="TaskEditorPanel" Background="{DynamicResource FocusTaskSurface}" BorderBrush="{DynamicResource FocusTaskBorder}" BorderThickness="0,1,0,0" CornerRadius="14,14,0,0"
                         MaxHeight="500" MinHeight="150" VerticalAlignment="Bottom" Padding="18,14,18,16"
                         Visibility="{Binding IsCreating, Converter={StaticResource BoolVisibility}}" IsVisibleChanged="TaskEditorPanel_IsVisibleChanged">
@@ -233,7 +236,7 @@
                         <ScrollViewer x:Name="DraftContentScroll" Grid.Row="1" MaxHeight="380" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                             <StackPanel Margin="4,6,4,0">
                                 <Grid>
-                                    <TextBox x:Name="DraftTaskTitleInput" Height="34" FontSize="17" FontWeight="Medium" Style="{StaticResource BorderlessInput}"
+                                    <TextBox x:Name="DraftTaskTitleInput" Height="34" FontSize="15" FontWeight="Medium" Style="{StaticResource BorderlessInput}"
                                              Text="{Binding DraftTitle, UpdateSourceTrigger=PropertyChanged}" KeyDown="DraftTaskTitleInput_KeyDown" AutomationProperties.Name="任务名称" />
                                     <TextBlock VerticalAlignment="Center" Text="要做什么？" FontSize="18" Foreground="{DynamicResource FocusTaskDraftActionText}" IsHitTestVisible="False">
                                         <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding DraftTitle}" Value=""><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
@@ -244,12 +247,12 @@
                                     <StackPanel>
                                         <Grid>
                                             <TextBox x:Name="DraftTaskDescriptionInput" MinHeight="42" MaxHeight="90" MaxLength="200" VerticalContentAlignment="Top" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
-                                                     FontSize="11.5" Foreground="{DynamicResource FocusTaskDraftText}" Style="{StaticResource BorderlessInput}" Text="{Binding DraftDescription, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="任务描述，最多200字"/>
-                                            <TextBlock Text="添加描述…" FontSize="11.5" Foreground="{DynamicResource FocusTaskSecondaryText}" IsHitTestVisible="False">
+                                                     FontSize="12" Foreground="{DynamicResource FocusTaskDraftText}" Style="{StaticResource BorderlessInput}" Text="{Binding DraftDescription, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="任务描述，最多200字"/>
+                                            <TextBlock Text="添加描述…" FontSize="12" Foreground="{DynamicResource FocusTaskSecondaryText}" IsHitTestVisible="False">
                                                 <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding DraftDescription}" Value=""><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
                                             </TextBlock>
                                         </Grid>
-                                        <TextBlock x:Name="DraftDescriptionCount" Text="{Binding DescriptionCountDisplay}" FontSize="10" Foreground="{DynamicResource FocusTaskDraftCounter}" HorizontalAlignment="Right" Margin="0,4,0,0"/>
+                                        <TextBlock x:Name="DraftDescriptionCount" Text="{Binding DescriptionCountDisplay}" FontSize="12" Foreground="{DynamicResource FocusTaskDraftCounter}" HorizontalAlignment="Right" Margin="0,4,0,0"/>
                                     </StackPanel>
                                 </Border>
                                 <StackPanel x:Name="DraftSubTaskArea" Margin="0,12,0,0" Visibility="{Binding IsSubTasksExpanded, Converter={StaticResource BoolVisibility}}">
@@ -281,11 +284,11 @@
                                 <WrapPanel Margin="-3,10,0,0">
                                     <Button x:Name="DraftAddDescriptionButton" Style="{StaticResource DraftActionButton}" Margin="0,0,14,0"
                                             Visibility="{Binding ShowAddDescription, Converter={StaticResource BoolVisibility}}" Command="{Binding ExpandDescriptionCommand}" Click="DraftAddDescriptionButton_Click">
-                                        <StackPanel Orientation="Horizontal"><TextBlock Text="+" FontSize="17" Foreground="{DynamicResource FocusTaskActionIcon}" Margin="0,0,6,0"/><TextBlock Text="添加描述" Foreground="{DynamicResource FocusTaskDraftActionText}" VerticalAlignment="Center"/></StackPanel>
+                                        <StackPanel Orientation="Horizontal"><TextBlock Text="+" FontSize="17" Foreground="{DynamicResource FocusTaskActionIcon}" Margin="0,0,6,0"/><TextBlock Text="添加描述" FontSize="12" Foreground="{DynamicResource FocusTaskDraftActionText}" VerticalAlignment="Center"/></StackPanel>
                                     </Button>
                                     <Button x:Name="DraftAddSubTaskButton" Style="{StaticResource DraftActionButton}" IsEnabled="{Binding CanEnterSubTask}"
                                             Visibility="{Binding ShowAddSubTask, Converter={StaticResource BoolVisibility}}" Command="{Binding BeginSubTaskCommand}" Click="DraftAddSubTaskButton_Click">
-                                        <StackPanel Orientation="Horizontal"><TextBlock Text="+" FontSize="17" Foreground="{DynamicResource FocusTaskActionIcon}" Margin="0,0,6,0"/><TextBlock Text="添加子任务" Foreground="{DynamicResource FocusTaskDraftActionText}" VerticalAlignment="Center"/></StackPanel>
+                                        <StackPanel Orientation="Horizontal"><TextBlock Text="+" FontSize="17" Foreground="{DynamicResource FocusTaskActionIcon}" Margin="0,0,6,0"/><TextBlock Text="添加子任务" FontSize="12" Foreground="{DynamicResource FocusTaskDraftActionText}" VerticalAlignment="Center"/></StackPanel>
                                     </Button>
                                 </WrapPanel>
                             </StackPanel>

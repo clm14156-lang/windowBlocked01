@@ -50,6 +50,16 @@ public sealed class FocusTargetModalViewModel : INotifyPropertyChanged
 
     public bool HasTargets => _targets.Count > 0;
 
+    internal void RemoveTarget(string targetId)
+    {
+        _focusSessions = _focusSessions.Where(session => session.TargetId != targetId).ToArray();
+        foreach (var target in _targets.Where(target => target.TargetId == targetId).ToArray()) _targets.Remove(target);
+        if (SelectedTarget.TargetId == targetId) SetSelectedTarget(null);
+        RefreshRecentFocusStatuses();
+        OnPropertyChanged(nameof(Targets));
+        OnPropertyChanged(nameof(HasTargets));
+    }
+
     public bool IsLoggedIn => _isLoggedIn;
 
     public void SetUserAccess(bool isLoggedIn) => SetField(ref _isLoggedIn, isLoggedIn, nameof(IsLoggedIn));

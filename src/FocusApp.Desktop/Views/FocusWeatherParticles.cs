@@ -72,7 +72,7 @@ internal struct WeatherRipple
 /// <summary>Fixed, reusable slots: no controls, per-particle timers, or frame-time image decoding.</summary>
 internal sealed class FocusWeatherParticles(Random random)
 {
-    internal const int MaximumLeaves = 10, BreezeLeafLimit = 5, MaximumDrops = 64;
+    internal const int MaximumLeaves = 20, BreezeLeafLimit = 10, MaximumDrops = 64;
     // All 64 in-flight drops may land together. Reserve another 32 for recent impacts
     // during the maximum 1.1-second ripple lifetime (rain intervals are at least 45 ms).
     internal const int MaximumRipples = MaximumDrops + 32;
@@ -172,7 +172,7 @@ internal sealed class FocusWeatherParticles(Random random)
             var entry = random.Next(3);
             Leaves[i] = new WeatherLeaf
             {
-                Active = true, Size = Between(20, 34), Lifetime = Between(8, 18),
+                Active = true, Size = Between(24, 40.8), Lifetime = Between(8, 18),
                 X = entry == 0 ? 8 : entry == 1 ? viewport.Width - 8 : Between(0.08, 0.92) * viewport.Width,
                 Y = entry == 2 ? -16 : Between(0.08, 0.4) * viewport.ClipHeight,
                 SpeedX = entry == 0 ? Between(20, 34) : entry == 1 ? Between(-34, -20) : Between(-8, 8),

@@ -70,6 +70,9 @@
     <Resource Include="Assets\Icons\Common\week_jianshao.png" />
     <Resource Include="Assets\Icons\Common\week_chiping.png" />
     <Resource Include="Assets\Images\Illustrations\create-target.png" />
+    <Resource Include="Assets\Images\Illustrations\chrom_chahua.png" />
+    <Resource Include="Assets\Images\Illustrations\chrom01.png" />
+    <Resource Include="Assets\Images\Illustrations\chrom_edge.png" />
     <Resource Include="Assets\Images\Illustrations\UserAvatar.png" />
     <Resource Include="Assets\Images\Illustrations\MemberCenter_Background.png" />
     <Resource Include="Assets\Images\Illustrations\MemberCenter_Crown.png" />

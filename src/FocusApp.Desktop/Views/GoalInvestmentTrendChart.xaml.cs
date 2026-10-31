@@ -17,7 +17,7 @@ public partial class GoalInvestmentTrendChart : UserControl
     internal void HoverAt(Point position)
     {
         if (DataContext is GoalInvestmentTrendViewModel viewModel)
-            viewModel.SetHoveredBarAt(new Point(position.X, position.Y - 20));
+            viewModel.SetHoveredBarAt(TranslatePoint(position, PlotLayer));
     }
 
     private void InteractionArea_MouseLeave(object sender, MouseEventArgs e)

@@ -11,7 +11,7 @@ namespace FocusApp.Desktop.ViewModels;
 
 public sealed class GoalInvestmentTrendViewModel : INotifyPropertyChanged
 {
-    internal const double PlotLeft = 48;
+    internal const double PlotLeft = 24;
     internal const double PlotRight = 636;
     internal const double PlotTop = 20;
     internal const double PlotBottom = 146;

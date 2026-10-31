@@ -168,19 +168,25 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="66" />
                             </Grid.ColumnDefinitions>
-                            <Border Grid.Column="0"
+                            <Border x:Name="EntryIconCircle" Grid.Column="0"
                                     Width="34"
                                     Height="34"
                                     HorizontalAlignment="Center"
                                     VerticalAlignment="Center"
                                     Background="{DynamicResource BackgroundSecondary}"
                                     CornerRadius="17">
-                                <TextBlock HorizontalAlignment="Center"
+                                <Grid>
+                                <TextBlock x:Name="EntryIcon" HorizontalAlignment="Center"
                                            VerticalAlignment="Center"
                                            FontFamily="Segoe MDL2 Assets"
                                            FontSize="20"
                                            Foreground="{DynamicResource TextSecondary}"
                                            Text="{Binding Icon}" />
+                                <Border x:Name="BrowserExtensionEntryIcon" Width="20" Height="20" Visibility="Collapsed"
+                                        Background="{DynamicResource AccentPrimary}" RenderOptions.BitmapScalingMode="HighQuality">
+                                    <Border.OpacityMask><ImageBrush ImageSource="/FocusApp.Desktop;component/Assets/Icons/TargetColor/puzzle-piece.png" Stretch="Uniform"/></Border.OpacityMask>
+                                </Border>
+                                </Grid>
                             </Border>
                             <StackPanel Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center">
                                 <TextBlock FontSize="13"
@@ -210,6 +216,11 @@
                                     Visibility="{Binding HasSeparator, Converter={StaticResource BooleanToVisibilityConverter}}" />
                         </Grid>
                         <ControlTemplate.Triggers>
+                            <DataTrigger Binding="{Binding Key}" Value="BrowserExtension">
+                                <Setter TargetName="EntryIconCircle" Property="Background" Value="{DynamicResource AccentTint}"/>
+                                <Setter TargetName="EntryIcon" Property="Visibility" Value="Collapsed"/>
+                                <Setter TargetName="BrowserExtensionEntryIcon" Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
                             <EventTrigger RoutedEvent="MouseEnter">
                                 <BeginStoryboard>
                                     <Storyboard>

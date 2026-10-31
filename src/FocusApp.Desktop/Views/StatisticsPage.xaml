@@ -90,6 +90,24 @@
                 <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="MenuItemSurface" Property="Background" Value="#F3F3F4"/></Trigger><Trigger Property="IsPressed" Value="True"><Setter TargetName="MenuItemSurface" Property="Background" Value="#E8E8EA"/></Trigger></ControlTemplate.Triggers>
             </ControlTemplate></Setter.Value></Setter>
         </Style>
+        <Geometry x:Key="GoalRestoreIcon">M4,6 A8,8 0 1 1 4,16 M4,6 L4,1 M4,6 L9,6</Geometry>
+        <Geometry x:Key="GoalDeleteIcon">M3,6 L17,6 M7,6 L7,3 L13,3 L13,6 M5,6 L5,18 Q5,19 6,19 L14,19 Q15,19 15,18 L15,6 M8,9 L8,16 M12,9 L12,16</Geometry>
+        <DataTemplate x:Key="GoalArchivedActionTemplate">
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="16"/><ColumnDefinition Width="12"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                <Path Width="16" Height="16" Stretch="Uniform" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.4"
+                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" VerticalAlignment="Center">
+                    <Path.Style><Style TargetType="Path"><Setter Property="Data" Value="{StaticResource GoalRestoreIcon}"/>
+                        <Style.Triggers><DataTrigger Binding="{Binding}" Value="删除目标"><Setter Property="Data" Value="{StaticResource GoalDeleteIcon}"/></DataTrigger></Style.Triggers>
+                    </Style></Path.Style>
+                </Path>
+                <TextBlock Grid.Column="2" Text="{Binding}" VerticalAlignment="Center" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+            </Grid>
+        </DataTemplate>
+        <Style x:Key="GoalArchivedMenuItemStyle" TargetType="Button" BasedOn="{StaticResource GoalDetailMenuItemStyle}">
+            <Setter Property="Height" Value="36"/><Setter Property="Foreground" Value="#5E6673"/>
+            <Setter Property="ContentTemplate" Value="{StaticResource GoalArchivedActionTemplate}"/>
+        </Style>
         <Style x:Key="GoalInlineActionStyle" TargetType="Button">
             <Setter Property="Padding" Value="4,2"/>
             <Setter Property="Background" Value="Transparent"/>
@@ -458,10 +476,10 @@
                                                                 </Style></Image.Style>
                                                             </Image>
                                                             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                                                                <TextBlock x:Name="CalendarPeriodName" Text="{Binding Name}" Style="{StaticResource CalendarSectionTitleStyle}"/>
+                                                                <TextBlock x:Name="CalendarPeriodName" Text="{Binding Name}" Style="{StaticResource CalendarSectionTitleStyle}" FontSize="{DynamicResource BodyFontSize}"/>
                                                                 <TextBlock x:Name="CalendarPeriodTimeRange" Text="{Binding TimeRangeDisplay}" Style="{StaticResource CalendarPeriodTimeRangeStyle}" Margin="6,0,0,0" VerticalAlignment="Center"/>
                                                             </StackPanel>
-                                                            <TextBlock x:Name="CalendarPeriodDuration" Grid.Column="3" Style="{StaticResource CalendarRecordTextStyle}" VerticalAlignment="Center" HorizontalAlignment="Right"><Run Text="{Binding DurationPrefix, Mode=OneWay}" Style="{StaticResource CalendarPeriodUnitStyle}"/><Run Text="{Binding DurationParts.HoursValue, Mode=OneWay}" Style="{StaticResource CalendarPeriodValueStyle}"/><InlineUIContainer BaselineAlignment="Baseline"><Border Style="{StaticResource CalendarPeriodUnitGap}" Tag="{Binding DurationParts.HoursUnit}"/></InlineUIContainer><Run Text="{Binding DurationParts.HoursUnit, Mode=OneWay}" Style="{StaticResource CalendarPeriodUnitStyle}"/><InlineUIContainer BaselineAlignment="Baseline"><Border Style="{StaticResource CalendarPeriodDurationGroupGap}" Tag="{Binding DurationParts.MinutesUnit}"/></InlineUIContainer><Run Text="{Binding DurationParts.MinutesValue, Mode=OneWay}" Style="{StaticResource CalendarPeriodValueStyle}"/><InlineUIContainer BaselineAlignment="Baseline"><Border Style="{StaticResource CalendarPeriodUnitGap}" Tag="{Binding DurationParts.MinutesUnit}"/></InlineUIContainer><Run Text="{Binding DurationParts.MinutesUnit, Mode=OneWay}" Style="{StaticResource CalendarPeriodUnitStyle}" FontSize="{DynamicResource SecondaryFontSize}"/></TextBlock>
+                                                            <TextBlock x:Name="CalendarPeriodDuration" Grid.Column="3" Style="{StaticResource CalendarRecordTextStyle}" VerticalAlignment="Center" HorizontalAlignment="Right"><Run Text="{Binding DurationPrefix, Mode=OneWay}" Style="{StaticResource CalendarPeriodUnitStyle}"/><Run Text="{Binding DurationParts.HoursValue, Mode=OneWay}" Style="{StaticResource CalendarPeriodValueStyle}"/><InlineUIContainer BaselineAlignment="Baseline"><Border Style="{StaticResource CalendarPeriodUnitGap}" Tag="{Binding DurationParts.HoursUnit}"/></InlineUIContainer><Run Text="{Binding DurationParts.HoursUnit, Mode=OneWay}" Style="{StaticResource CalendarPeriodUnitStyle}"/><InlineUIContainer BaselineAlignment="Baseline"><Border Style="{StaticResource CalendarPeriodDurationGroupGap}" Tag="{Binding DurationParts.MinutesUnit}"/></InlineUIContainer><Run Text="{Binding DurationParts.MinutesValue, Mode=OneWay}" Style="{StaticResource CalendarPeriodValueStyle}"/><InlineUIContainer BaselineAlignment="Baseline"><Border Style="{StaticResource CalendarPeriodUnitGap}" Tag="{Binding DurationParts.MinutesUnit}"/></InlineUIContainer><Run Text="{Binding DurationParts.MinutesUnit, Mode=OneWay}" Style="{StaticResource CalendarPeriodUnitStyle}"/></TextBlock>
                                                             <Path x:Name="CalendarPeriodArrow" Grid.Column="4" Visibility="{Binding HasRecords, Converter={StaticResource BooleanToVisibilityConverter}}" Data="M 0,0 L 4,4 L 8,0" Width="8" Height="4" Stroke="#929DAE" StrokeThickness="1.3" VerticalAlignment="Center" HorizontalAlignment="Right" RenderTransformOrigin="0.5,0.5">
                                                                 <Path.Style><Style TargetType="Path"><Style.Triggers><DataTrigger Binding="{Binding IsExpanded}" Value="True"><Setter Property="RenderTransform"><Setter.Value><RotateTransform Angle="180"/></Setter.Value></Setter></DataTrigger></Style.Triggers></Style></Path.Style>
                                                             </Path>
@@ -664,18 +682,22 @@
                                 </ItemsControl>
                             </ScrollViewer>
                         </DockPanel>
-                        <Popup x:Name="GoalListMorePopup" Width="132" DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}"
+                        <Popup x:Name="GoalListMorePopup" DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}"
                                IsOpen="{Binding PlacementTarget.IsChecked, RelativeSource={RelativeSource Self}, Mode=TwoWay}"
-                               Placement="Bottom" HorizontalOffset="-98" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade"
+                               Placement="Bottom" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade"
                                Closed="GoalListMorePopup_Closed">
-                            <Border Width="120" Margin="6" Padding="6" Background="White" BorderBrush="#E8E8EA" BorderThickness="1" CornerRadius="9"
+                            <Popup.Style><Style TargetType="Popup"><Setter Property="Width" Value="132"/><Setter Property="HorizontalOffset" Value="-98"/>
+                                <Style.Triggers><DataTrigger Binding="{Binding IsArchived}" Value="True"><Setter Property="Width" Value="160"/><Setter Property="HorizontalOffset" Value="-126"/></DataTrigger></Style.Triggers>
+                            </Style></Popup.Style>
+                            <Border Margin="6" Padding="6" Background="White" BorderBrush="#E8E8EA" BorderThickness="1" CornerRadius="9"
                                     PreviewKeyDown="GoalListMorePopup_PreviewKeyDown">
+                                <Border.Style><Style TargetType="Border"><Setter Property="Width" Value="120"/><Style.Triggers><DataTrigger Binding="{Binding IsArchived}" Value="True"><Setter Property="Width" Value="148"/></DataTrigger></Style.Triggers></Style></Border.Style>
                                 <Border.Effect><DropShadowEffect BlurRadius="14" Direction="270" ShadowDepth="3" Opacity="0.10" Color="#000000"/></Border.Effect>
                                 <StackPanel>
                                     <Button Content="编辑" Style="{StaticResource GoalDetailMenuItemStyle}" Click="EditGoalButton_Click" Visibility="{Binding IsArchived, Converter={StaticResource GoalInverseVisibilityConverter}}"/>
                                     <Button Content="归档" Style="{StaticResource GoalDetailMenuItemStyle}" Click="ArchiveGoalButton_Click" Visibility="{Binding IsArchived, Converter={StaticResource GoalInverseVisibilityConverter}}"/>
-                                    <Button Content="恢复目标" Style="{StaticResource GoalDetailMenuItemStyle}" Click="RestoreGoalButton_Click" Visibility="{Binding IsArchived, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                    <Button Content="删除目标" Foreground="{DynamicResource Danger}" Style="{StaticResource GoalDetailMenuItemStyle}" Click="DeleteGoalButton_Click" Visibility="{Binding IsArchived, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                    <Button Content="恢复目标" Style="{StaticResource GoalArchivedMenuItemStyle}" Click="RestoreGoalButton_Click" Visibility="{Binding IsArchived, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                    <Button Content="删除目标" Style="{StaticResource GoalArchivedMenuItemStyle}" Click="DeleteGoalButton_Click" Visibility="{Binding IsArchived, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                 </StackPanel>
                             </Border>
                         </Popup>

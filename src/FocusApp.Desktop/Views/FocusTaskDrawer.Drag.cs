@@ -17,11 +17,20 @@ public partial class FocusTaskDrawer
     private bool _isDragging;
     private int _insertionIndex = -1;
     private DispatcherTimer? _dragScrollTimer;
+    private readonly TaskRowExpansionClick _rowExpansionClick = new();
 
     private void TaskRow_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         if (sender is FrameworkElement row)
-            PrepareTaskDrag(row, e.OriginalSource as DependencyObject, e.GetPosition(TaskDrawerScrollViewer));
+            PrepareTaskRowInteraction(row, e.OriginalSource as DependencyObject, e.GetPosition(TaskDrawerScrollViewer));
+    }
+
+    private void PrepareTaskRowInteraction(FrameworkElement row, DependencyObject? source, Point origin)
+    {
+        PrepareTaskDrag(row, source, origin);
+        if (ViewModel is { IsCreating: false, IsCreatingInlineSubTask: false } &&
+            TaskCompletionMotion.FindCompletionElement<Border>(row, "ParentTaskHoverRegion") is { } header)
+            _rowExpansionClick.Begin(header, source, origin, TaskDrawerScrollViewer);
     }
 
     private void PrepareTaskDrag(FrameworkElement row, DependencyObject? source, Point origin)
@@ -55,6 +64,7 @@ public partial class FocusTaskDrawer
 
     private void UpdateTaskDrag(Point pointer, MouseButtonState leftButton)
     {
+        _rowExpansionClick.Move(pointer, TaskDrawerScrollViewer);
         if (_dragRow is null) return;
         if (leftButton != MouseButtonState.Pressed || ViewModel is not { IsCreating: false, IsCreatingInlineSubTask: false } vm ||
             _dragTask is null || _dragTask.IsCompleted || !vm.Tasks.Contains(_dragTask))
@@ -145,7 +155,13 @@ public partial class FocusTaskDrawer
 
     private void Drawer_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
-        if (CompleteTaskDrag(e.GetPosition(TaskDrawerScrollViewer))) e.Handled = true;
+        if (CompleteTaskRowInteraction(e.GetPosition(TaskDrawerScrollViewer))) e.Handled = true;
+    }
+
+    private bool CompleteTaskRowInteraction(Point pointer)
+    {
+        var expanded = !_isDragging && _rowExpansionClick.Complete(pointer, TaskDrawerScrollViewer);
+        return CompleteTaskDrag(pointer) || expanded;
     }
 
     private bool CompleteTaskDrag(Point pointer)
@@ -167,6 +183,7 @@ public partial class FocusTaskDrawer
 
     private void ResetTaskDrag()
     {
+        _rowExpansionClick.Cancel();
         _dragScrollTimer?.Stop();
         _dragRow?.ClearValue(OpacityProperty);
         _dragRow = null;

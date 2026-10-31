@@ -968,9 +968,9 @@
                 </Style>
             </views:FocusTaskDrawer.Style>
         </views:FocusTaskDrawer>
-        <views:FocusDaysDetailsModal x:Name="FocusDaysDetailsModalControl" Panel.ZIndex="32"
-                                     DataContext="{Binding StatisticsPage.Overview}"/>
-        <views:OverviewCompletedTasksModal x:Name="OverviewCompletedTasksModalControl" Panel.ZIndex="33"
-                                          DataContext="{Binding StatisticsPage.Overview}"/>
+        <views:BrowserExtensionModal x:Name="BrowserExtensionModalControl" Panel.ZIndex="30"
+                                     DataContext="{Binding BrowserExtensionModal}"/>
+        <views:AboutAppModal x:Name="AboutAppModalControl" Panel.ZIndex="31" DataContext="{Binding AboutAppModal}"/>
+        <views:DeleteGoalModal x:Name="DeleteGoalModalControl" Panel.ZIndex="32" DataContext="{Binding StatisticsPage.GoalDeletion}"/>
     </Grid>
 </Window>

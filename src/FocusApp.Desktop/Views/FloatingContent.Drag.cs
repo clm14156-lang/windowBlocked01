@@ -30,6 +30,7 @@ public partial class FloatingContent
     private object _taskDragCursor = DependencyProperty.UnsetValue;
     private DispatcherTimer? _taskDragScrollTimer;
     private readonly Dictionary<Grid, CompletionAnimation> _taskReorderMotion = [];
+    private readonly TaskRowExpansionClick _rowExpansionClick = new();
     internal Func<MouseButtonState> TaskDragButtonState { get; set; } = () => Mouse.LeftButton;
 
     internal bool IsTaskReordering => _taskDragTask is not null;
@@ -85,7 +86,14 @@ public partial class FloatingContent
     {
         if (sender is Grid { Parent: Grid row } &&
             e.OriginalSource is DependencyObject source &&
-            PrepareTaskDrag(row, source, e.GetPosition(TaskScrollViewer))) e.Handled = true;
+            PrepareTaskRowInteraction(row, source, e.GetPosition(TaskScrollViewer))) e.Handled = true;
+    }
+
+    private bool PrepareTaskRowInteraction(Grid row, DependencyObject source, Point origin)
+    {
+        if (!PrepareTaskDrag(row, source, origin)) return false;
+        if (_taskDragHeader is { } header) _rowExpansionClick.Begin(header, source, origin, TaskScrollViewer);
+        return true;
     }
 
     private bool PrepareTaskDrag(Grid row, DependencyObject source, Point origin)
@@ -135,6 +143,7 @@ public partial class FloatingContent
 
     private void UpdateTaskDrag(Point pointer, MouseButtonState leftButton)
     {
+        _rowExpansionClick.Move(pointer, TaskScrollViewer);
         if (_taskDragTask is null) return;
         if (leftButton != MouseButtonState.Pressed || _taskDragTask.IsCompleted ||
             _taskDragModel is not { HasTaskInteraction: false, IsFocusing: true } model ||
@@ -209,8 +218,14 @@ public partial class FloatingContent
     private void Content_TaskDragMouseUp(object sender, MouseButtonEventArgs e)
     {
         if (_taskDragTask is null) return;
-        CompleteTaskDrag(e.GetPosition(TaskScrollViewer));
+        CompleteTaskRowInteraction(e.GetPosition(TaskScrollViewer));
         e.Handled = true;
+    }
+
+    private bool CompleteTaskRowInteraction(Point pointer)
+    {
+        var expanded = !_taskDragStarted && _rowExpansionClick.Complete(pointer, TaskScrollViewer);
+        return CompleteTaskDrag(pointer) || expanded;
     }
 
     private bool CompleteTaskDrag(Point pointer)
@@ -263,6 +278,7 @@ public partial class FloatingContent
 
     private void ResetTaskDrag()
     {
+        _rowExpansionClick.Cancel();
         var hadGesture = _taskDragTask is not null;
         var hadDrag = _taskDragStarted;
         _taskDragScrollTimer?.Stop();
