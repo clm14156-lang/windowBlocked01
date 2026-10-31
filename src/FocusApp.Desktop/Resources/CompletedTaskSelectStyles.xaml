@@ -1,0 +1,50 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"><ResourceDictionary.MergedDictionaries><ResourceDictionary Source="StatisticsTypography.xaml"/></ResourceDictionary.MergedDictionaries>
+            <DataTemplate x:Key="CompletedRangeTextTemplate">
+                <TextBlock Text="{Binding}" Style="{StaticResource StatisticsBodyTextStyle}" TextTrimming="CharacterEllipsis"/>
+            </DataTemplate>
+            <Style x:Key="CompletedRangeOption" TargetType="ComboBoxItem">
+                <Setter Property="Height" Value="30"/><Setter Property="Padding" Value="9,0"/><Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                <Setter Property="FontFamily" Value="{DynamicResource FontFamilyPrimary}"/><Setter Property="FontWeight" Value="Normal"/>
+                <Setter Property="Foreground" Value="{DynamicResource StatisticsBodyBrush}"/><Setter Property="FontSize" Value="{DynamicResource BodyFontSize}"/>
+                <Setter Property="ContentTemplate" Value="{StaticResource CompletedRangeTextTemplate}"/>
+                <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ComboBoxItem">
+                    <Border x:Name="OptionSurface" Background="White" Padding="{TemplateBinding Padding}" CornerRadius="5">
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="16"/></Grid.ColumnDefinitions>
+                            <ContentPresenter VerticalAlignment="Center" TextElement.FontFamily="{TemplateBinding FontFamily}" TextElement.FontSize="{TemplateBinding FontSize}" TextElement.FontWeight="{TemplateBinding FontWeight}" TextElement.Foreground="{TemplateBinding Foreground}"/>
+                            <Path x:Name="SelectedMark" Grid.Column="1" Width="9" Height="7" Data="M 0,3 L 3,6 L 8,0" Stroke="#727E90" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" VerticalAlignment="Center" HorizontalAlignment="Right" Visibility="Collapsed"/>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsHighlighted" Value="True"><Setter TargetName="OptionSurface" Property="Background" Value="#F5F6F8"/></Trigger>
+                        <Trigger Property="IsSelected" Value="True"><Setter TargetName="OptionSurface" Property="Background" Value="#F1F3F6"/><Setter TargetName="SelectedMark" Property="Visibility" Value="Visible"/></Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate></Setter.Value></Setter>
+            </Style>
+            <Style x:Key="CompletedRangeSelector" TargetType="ComboBox">
+                <Setter Property="Height" Value="32"/><Setter Property="FontSize" Value="{DynamicResource BodyFontSize}"/><Setter Property="Foreground" Value="{DynamicResource StatisticsBodyBrush}"/>
+                <Setter Property="FontFamily" Value="{DynamicResource FontFamilyPrimary}"/><Setter Property="FontWeight" Value="Normal"/>
+                <Setter Property="Background" Value="White"/><Setter Property="BorderBrush" Value="#DDE1E8"/><Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="ItemContainerStyle" Value="{StaticResource CompletedRangeOption}"/>
+                <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
+                <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ComboBox">
+                    <Grid>
+                        <ToggleButton x:Name="RangeToggle" Focusable="False" ClickMode="Press" IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}">
+                            <ToggleButton.Template><ControlTemplate TargetType="ToggleButton">
+                                <Border x:Name="SelectorSurface" Background="{Binding Background, RelativeSource={RelativeSource AncestorType=ComboBox}}" BorderBrush="{Binding BorderBrush, RelativeSource={RelativeSource AncestorType=ComboBox}}" BorderThickness="1" CornerRadius="7">
+                                    <Path Width="8" Height="5" Data="M 0,0 L 4,4 L 8,0" Stroke="#6D788B" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                </Border>
+                                <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="SelectorSurface" Property="Background" Value="#FAFAFB"/></Trigger></ControlTemplate.Triggers>
+                            </ControlTemplate></ToggleButton.Template>
+                        </ToggleButton>
+                        <ContentPresenter Margin="12,0,30,0" VerticalAlignment="Center" Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{StaticResource CompletedRangeTextTemplate}" TextElement.FontFamily="{TemplateBinding FontFamily}" TextElement.FontSize="{TemplateBinding FontSize}" TextElement.FontWeight="{TemplateBinding FontWeight}" TextElement.Foreground="{TemplateBinding Foreground}" IsHitTestVisible="False"/>
+                        <Popup x:Name="PART_Popup" Placement="Bottom" VerticalOffset="3" IsOpen="{TemplateBinding IsDropDownOpen}" AllowsTransparency="True" Focusable="False" PopupAnimation="Fade">
+                            <Border MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}" Margin="4,4,8,8" Padding="4" Background="White" BorderBrush="#E7EAF0" BorderThickness="1" CornerRadius="8">
+                                <Border.Effect><DropShadowEffect Color="#293549" BlurRadius="10" ShadowDepth="2" Opacity="0.10"/></Border.Effect>
+                                <ScrollViewer CanContentScroll="True" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" MaxHeight="{TemplateBinding MaxDropDownHeight}"><ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained"/></ScrollViewer>
+                            </Border>
+                        </Popup>
+                    </Grid>
+                    <ControlTemplate.Triggers><Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter Property="BorderBrush" Value="#B9C2D0"/></Trigger></ControlTemplate.Triggers>
+                </ControlTemplate></Setter.Value></Setter>
+            </Style>
+</ResourceDictionary>

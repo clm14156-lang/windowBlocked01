@@ -968,5 +968,9 @@
                 </Style>
             </views:FocusTaskDrawer.Style>
         </views:FocusTaskDrawer>
+        <views:FocusDaysDetailsModal x:Name="FocusDaysDetailsModalControl" Panel.ZIndex="32"
+                                     DataContext="{Binding StatisticsPage.Overview}"/>
+        <views:OverviewCompletedTasksModal x:Name="OverviewCompletedTasksModalControl" Panel.ZIndex="33"
+                                          DataContext="{Binding StatisticsPage.Overview}"/>
     </Grid>
 </Window>

@@ -11,13 +11,13 @@ public enum StatisticsPeriod { Week, Month, Year }
 public enum AnnualChartGrouping { Month, Week }
 
 /// <summary>One calendar period and one source of truth for every overview metric.</summary>
-public sealed class StatisticsDashboardViewModel : INotifyPropertyChanged
+public sealed partial class StatisticsDashboardViewModel : INotifyPropertyChanged
 {
-    // AntV categorical colors, ordered to lead with the approved blue/mint/orange combination.
+    // Soft categorical colors, followed by dynamically generated colors instead of cycling.
     private static readonly string[] Palette =
     [
-        "#5B8FF9", "#61DDAA", "#F6903D", "#7262FD", "#F08BB4",
-        "#78D3F8", "#F6BD16", "#9661BC", "#008685", "#65789B"
+        "#759AD8", "#76BEA2", "#E5A16B", "#A78BCB", "#DE8FAB",
+        "#73BBCB", "#C8B361", "#579C94", "#D57774", "#8391AD"
     ];
     private readonly Dictionary<string, Brush> _colors = new(StringComparer.Ordinal);
     private readonly Func<DateTime> _localNowProvider;
@@ -44,6 +44,22 @@ public sealed class StatisticsDashboardViewModel : INotifyPropertyChanged
         TogglePeriodPickerCommand = new RelayCommand<object>(_ => IsPeriodPickerOpen = !IsPeriodPickerOpen);
         SelectAvailablePeriodCommand = new RelayCommand<OverviewPeriodOption>(SelectAvailablePeriod);
         ToggleDistributionCommand = new RelayCommand<FocusDistributionItemViewModel>(ToggleDistribution);
+        OpenFocusDaysDetailsCommand = new RelayCommand<object>(_ =>
+        {
+            RefreshCurrentDate();
+            IsPeriodPickerOpen = false;
+            IsCompletedTasksOpen = false;
+            IsFocusDaysDetailsOpen = true;
+        });
+        CloseFocusDaysDetailsCommand = new RelayCommand<object>(_ => IsFocusDaysDetailsOpen = false);
+        OpenCompletedTasksCommand = new RelayCommand<object>(_ => OpenCompletedTasks());
+        CloseCompletedTasksCommand = new RelayCommand<object>(_ => IsCompletedTasksOpen = false);
+        _previousCompletedTasksPage = new RelayCommand<object>(_ => SetCompletedTasksPage(CompletedTasksPage - 1), _ => CompletedTasksPage > 1);
+        _nextCompletedTasksPage = new RelayCommand<object>(_ => SetCompletedTasksPage(CompletedTasksPage + 1), _ => CompletedTasksPage < CompletedTasksPageCount);
+        _goToCompletedTasksPage = new RelayCommand<CompletedTaskPageOption>(option =>
+        {
+            if (option?.PageNumber is { } page) SetCompletedTasksPage(page);
+        }, option => option?.PageNumber is { } page && page >= 1 && page <= CompletedTasksPageCount);
         Refresh();
     }
 
@@ -135,7 +151,7 @@ public sealed class StatisticsDashboardViewModel : INotifyPropertyChanged
                      .Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal))
         {
             if (_colors.ContainsKey(key)) continue;
-            var brush = new SolidColorBrush(ColorForIndex(_colors.Count));
+            var brush = new SolidColorBrush(NextDistributionColor());
             brush.Freeze();
             _colors.Add(key, brush);
         }
@@ -214,6 +230,8 @@ public sealed class StatisticsDashboardViewModel : INotifyPropertyChanged
 
     private void Refresh(bool resetInteraction = true)
     {
+        var previousPeriodStart = PeriodStart;
+        var previousPeriodEnd = PeriodEndExclusive;
         _displayDate = _localNowProvider().Date;
         var selectedId = resetInteraction ? null : _selectedDistribution?.TargetId;
         PeriodStart = StartOfPeriod(_anchor, Period);
@@ -242,7 +260,10 @@ public sealed class StatisticsDashboardViewModel : INotifyPropertyChanged
             .Where(slice => slice.StartsAt >= PeriodStart && slice.StartsAt < PeriodEndExclusive).ToArray();
         TotalDuration = TimeSpan.FromTicks(slices.Sum(slice => slice.Duration.Ticks));
         FocusDayCount = slices.Select(slice => slice.StartsAt.Date).Distinct().Count();
-        CompletedTaskCount = CountCompletedTasks();
+        RefreshFocusDays(slices);
+        _periodCompletedTasks = BuildPeriodCompletedTasks();
+        CompletedTaskCount = _periodCompletedTasks.Count;
+        RefreshCompletedTasks(previousPeriodStart != PeriodStart || previousPeriodEnd != PeriodEndExclusive);
 
         RefreshChart();
 
@@ -298,39 +319,59 @@ public sealed class StatisticsDashboardViewModel : INotifyPropertyChanged
             .Select(index => new OverviewAxisTick(index * interval, AxisMaximumMinutes >= 120)).ToArray();
     }
 
-    private int CountCompletedTasks()
+    private static string NormalizeGoalId(string? id) => string.IsNullOrWhiteSpace(id) ? "goal-unassigned" : id;
+    private Color NextDistributionColor()
     {
-        var ids = new HashSet<string>(StringComparer.Ordinal);
-        var legacyCount = 0;
-        foreach (var record in _records.Where(record => record.FocusDuration >= TimeSpan.FromMinutes(5)))
-        {
-            if (record.CompletedTaskSnapshots.Count > 0)
-            {
-                foreach (var task in record.CompletedTaskSnapshots)
-                    Add(task.TaskId, task.CompletedAtUtc?.LocalDateTime ?? record.EndTime);
-            }
-            else
-            {
-                var count = Math.Max(record.CompletedTaskIds.Count, record.CompletedTaskNames.Count);
-                for (var index = 0; index < count; index++)
-                    Add(record.CompletedTaskIds.ElementAtOrDefault(index), record.CompletedTaskTimes.ElementAtOrDefault(index) ?? record.EndTime);
-            }
-        }
-        return ids.Count + legacyCount;
+        if (_colors.Count < Palette.Length)
+            return (Color)ColorConverter.ConvertFromString(Palette[_colors.Count]);
 
-        void Add(string? id, DateTime date)
+        var used = _colors.Values.Cast<SolidColorBrush>().Select(brush => brush.Color).ToArray();
+        var best = default(Color);
+        var bestDistance = 0d;
+        const int candidateCount = 96;
+        var offset = (_colors.Count - Palette.Length) * candidateCount;
+        // Spread hue with the golden angle and vary lightness/saturation in a soft range.
+        // Choose the candidate furthest from its nearest used color; compare the rounded
+        // RGB values so generated colors cannot collide after conversion to a brush.
+        for (var attempt = 0; attempt < candidateCount || bestDistance == 0; attempt++)
         {
-            if (date < PeriodStart || date >= PeriodEndExclusive) return;
-            if (string.IsNullOrWhiteSpace(id)) legacyCount++;
-            else ids.Add(id);
+            var index = offset + attempt;
+            var candidate = DistributionHslColor((210 + index * 137.507764) % 360,
+                .48 + index % 3 * .07, .56 + index / 3 % 3 * .07);
+            var distance = used.Min(color => DistributionColorDistance(candidate, color));
+            if (distance <= bestDistance) continue;
+            best = candidate;
+            bestDistance = distance;
         }
+        return best;
     }
 
-    private static string NormalizeGoalId(string? id) => string.IsNullOrWhiteSpace(id) ? "goal-unassigned" : id;
-    private static Color ColorForIndex(int index)
+    private static double DistributionColorDistance(Color first, Color second)
     {
-        // Reuse the fixed palette for long target lists instead of generating unrelated hues.
-        return (Color)ColorConverter.ConvertFromString(Palette[index % Palette.Length]);
+        // Weight channel differences to approximate their perceived contribution.
+        var redMean = (first.R + second.R) / 2d;
+        var red = first.R - second.R;
+        var green = first.G - second.G;
+        var blue = first.B - second.B;
+        return (2 + redMean / 256) * red * red + 4 * green * green + (2 + (255 - redMean) / 256) * blue * blue;
+    }
+
+    private static Color DistributionHslColor(double hue, double saturation, double lightness)
+    {
+        var chroma = (1 - Math.Abs(2 * lightness - 1)) * saturation;
+        var secondary = chroma * (1 - Math.Abs(hue / 60 % 2 - 1));
+        var offset = lightness - chroma / 2;
+        var (red, green, blue) = hue switch
+        {
+            < 60 => (chroma, secondary, 0d),
+            < 120 => (secondary, chroma, 0d),
+            < 180 => (0d, chroma, secondary),
+            < 240 => (0d, secondary, chroma),
+            < 300 => (secondary, 0d, chroma),
+            _ => (chroma, 0d, secondary)
+        };
+        return Color.FromRgb((byte)Math.Round((red + offset) * 255),
+            (byte)Math.Round((green + offset) * 255), (byte)Math.Round((blue + offset) * 255));
     }
     private void OnPropertyChanged([CallerMemberName] string? name = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }

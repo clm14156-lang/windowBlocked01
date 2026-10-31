@@ -22,10 +22,10 @@ public partial class StatisticsDashboard : UserControl
         _dateRefreshTimer.Tick += (_, _) => _model?.RefreshCurrentDate();
         DataContextChanged += (_, _) => AttachModel();
         Loaded += (_, _) => { AttachModel(); if (IsVisible) _dateRefreshTimer.Start(); };
-        Unloaded += (_, _) => { _dateRefreshTimer.Stop(); ClosePeriodPicker(); CloseTip(); _model?.ClearDistributionSelection(); DetachModel(); };
+        Unloaded += (_, _) => { _dateRefreshTimer.Stop(); ClosePeriodPicker(); CloseTip(); CloseDetails(); _model?.ClearDistributionSelection(); DetachModel(); };
         IsVisibleChanged += (_, _) =>
         {
-            if (!IsVisible) { _dateRefreshTimer.Stop(); ClosePeriodPicker(); CloseTip(); _model?.ClearDistributionSelection(); FocusChart.ClearInteraction(); }
+            if (!IsVisible) { _dateRefreshTimer.Stop(); ClosePeriodPicker(); CloseTip(); CloseDetails(); _model?.ClearDistributionSelection(); FocusChart.ClearInteraction(); }
             else if (IsLoaded) { _model?.RefreshCurrentDate(); _dateRefreshTimer.Start(); }
         };
         FocusChart.HoverChanged += FocusChart_HoverChanged;
@@ -42,6 +42,11 @@ public partial class StatisticsDashboard : UserControl
         CloseTip();
     }
     private void ClosePeriodPicker() { if (_model is not null) _model.IsPeriodPickerOpen = false; }
+    private void CloseDetails()
+    {
+        _model?.CloseFocusDaysDetailsCommand.Execute(null);
+        _model?.CloseCompletedTasksCommand.Execute(null);
+    }
     private void DetachModel()
     {
         if (_model is not null) _model.PropertyChanged -= Model_PropertyChanged;
@@ -66,18 +71,35 @@ public partial class StatisticsDashboard : UserControl
         else if (e.PropertyName == nameof(StatisticsDashboardViewModel.ActiveDistribution)) UpdateDistributionTip();
         else if (e.PropertyName == nameof(StatisticsDashboardViewModel.Bars)) { CloseTip(); FocusChart.ClearInteraction(); }
         else if (e.PropertyName == nameof(StatisticsDashboardViewModel.IsPeriodPickerOpen) && _model?.IsPeriodPickerOpen == true) CloseTip();
+        else if (e.PropertyName == nameof(StatisticsDashboardViewModel.IsFocusDaysDetailsOpen) && _model?.IsFocusDaysDetailsOpen == true) CloseTip();
+        else if (e.PropertyName == nameof(StatisticsDashboardViewModel.IsCompletedTasksOpen) && _model?.IsCompletedTasksOpen == true) CloseTip();
     }
     private void FocusChart_HoverChanged(object? sender, EventArgs e)
     {
         if (FocusChart.ActiveBar is not { } bar) { CloseTip(); return; }
-        TipTitle.Text = bar.TooltipDate;
-        TipTitle.SetResourceReference(StyleProperty, bar.IsWeekBucket ? "ChartPoptipHeadingTextStyle" : "ChartPoptipSecondaryTextStyle");
+        SetWeeklyTipLayout(bar.IsWeekBucket);
+        TipTitle.Text = bar.IsWeekBucket ? bar.TooltipDate.Replace("年 第", "年第", StringComparison.Ordinal) : bar.TooltipDate;
         TipDateRange.Text = bar.TooltipDateRange;
         TipDateRange.Visibility = bar.IsWeekBucket ? Visibility.Visible : Visibility.Collapsed;
         TipDuration.Text = bar.DurationDisplay;
         TipMarker.Fill = OverviewFocusChart.FrozenBrush("#FF8B28");
         TipPercentage.Visibility = Visibility.Collapsed;
         ShowTip(FocusChart.TranslatePoint(FocusChart.HoverAnchor, DashboardRoot));
+    }
+    private void SetWeeklyTipLayout(bool weekly)
+    {
+        OverviewTipSurface.SetResourceReference(StyleProperty, weekly ? "WeeklyChartPoptipSurfaceStyle" : "ChartPoptipSurfaceStyle");
+        TipContent.Margin = weekly ? new Thickness(4, 2, 4, 2) : new Thickness(0);
+        TipHeading.Orientation = weekly ? Orientation.Horizontal : Orientation.Vertical;
+        TipTitle.SetResourceReference(StyleProperty, weekly ? "WeeklyChartPoptipHeaderTextStyle" : "ChartPoptipSecondaryTextStyle");
+        TipDateSeparator.Visibility = weekly ? Visibility.Visible : Visibility.Collapsed;
+        TipDateRange.Margin = weekly ? new Thickness(0) : new Thickness(0, 4, 0, 0);
+        TipDateRange.SetResourceReference(StyleProperty, weekly ? "WeeklyChartPoptipHeaderTextStyle" : "ChartPoptipSecondaryTextStyle");
+        TipMarker.Visibility = weekly ? Visibility.Collapsed : Visibility.Visible;
+        TipMarkerColumn.Width = TipMarkerGapColumn.Width = new GridLength(weekly ? 0 : 10);
+        TipDurationLabel.SetResourceReference(StyleProperty, weekly ? "WeeklyChartPoptipBodyTextStyle" : "ChartPoptipBodyTextStyle");
+        TipDurationText.SetResourceReference(StyleProperty, weekly ? "WeeklyChartPoptipBodyTextStyle" : "ChartPoptipDurationTextStyle");
+        TipDuration.SetResourceReference(StyleProperty, weekly ? "WeeklyChartPoptipValueStyle" : "ChartPoptipValueStyle");
     }
     private void DistributionRow_MouseEnter(object sender, MouseEventArgs e) => ActivateRow(sender);
     private void DistributionRow_MouseLeave(object sender, MouseEventArgs e) => DeactivateRow(sender);
@@ -106,6 +128,7 @@ public partial class StatisticsDashboard : UserControl
     private void UpdateDistributionTip()
     {
         if (_model?.ActiveDistribution is not { } item || !IsVisible || FocusChart.IsMouseOver && FocusChart.HoveredBar is null) { CloseTip(); return; }
+        SetWeeklyTipLayout(false);
         TipTitle.Text = item.TargetName;
         TipTitle.SetResourceReference(StyleProperty, "ChartPoptipTitleTextStyle");
         TipDateRange.Visibility = Visibility.Collapsed;
@@ -120,18 +143,18 @@ public partial class StatisticsDashboard : UserControl
     }
     private void ShowTip(Point anchor)
     {
-        if (!IsLoaded || !IsVisible || ActualWidth <= 0 || ActualHeight <= 0 || _model?.IsPeriodPickerOpen == true) return;
+        if (!IsLoaded || !IsVisible || ActualWidth <= 0 || ActualHeight <= 0 || _model?.IsPeriodPickerOpen == true || _model?.IsFocusDaysDetailsOpen == true || _model?.IsCompletedTasksOpen == true) return;
         // Inline text changes can leave the popup's previous desired width cached until layout runs.
         OverviewTipSurface.InvalidateMeasure();
         OverviewTipSurface.UpdateLayout();
-        OverviewTipSurface.Measure(new Size(240, double.PositiveInfinity));
+        OverviewTipSurface.Measure(new Size(Math.Min(OverviewTipSurface.MaxWidth, ActualWidth - 4), double.PositiveInfinity));
         var size = OverviewTipSurface.DesiredSize;
         var x = Math.Clamp(anchor.X - size.Width / 2, 2, Math.Max(2, ActualWidth - size.Width - 2));
         var y = anchor.Y - size.Height - 8;
         if (y < 2) y = anchor.Y + 12;
         y = Math.Clamp(y, 2, Math.Max(2, ActualHeight - size.Height - 2));
         OverviewTipSurface.PointerOnTop = y >= anchor.Y;
-        OverviewTipSurface.PointerLeft = PoptipChrome.PointerLeftForAnchor(anchor.X - x, size.Width);
+        OverviewTipSurface.PointerLeft = PoptipChrome.PointerLeftForAnchor(anchor.X - x, size.Width, OverviewTipSurface.PointerSize.Width);
         OverviewTip.HorizontalOffset = x;
         OverviewTip.VerticalOffset = y;
         OverviewTip.IsOpen = true;

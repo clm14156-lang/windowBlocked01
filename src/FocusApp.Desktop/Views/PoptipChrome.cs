@@ -33,22 +33,28 @@ public sealed class PoptipChrome : Decorator
     public static readonly DependencyProperty PointerOnTopProperty = DependencyProperty.Register(
         nameof(PointerOnTop), typeof(bool), typeof(PoptipChrome),
         new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.AffectsArrange | FrameworkPropertyMetadataOptions.AffectsRender));
+    public static readonly DependencyProperty PointerSizeProperty = DependencyProperty.Register(
+        nameof(PointerSize), typeof(Size), typeof(PoptipChrome),
+        new FrameworkPropertyMetadata(new Size(PointerWidth, PointerHeight),
+            FrameworkPropertyMetadataOptions.AffectsMeasure | FrameworkPropertyMetadataOptions.AffectsArrange | FrameworkPropertyMetadataOptions.AffectsRender));
 
     public Brush Background { get => (Brush)GetValue(BackgroundProperty); set => SetValue(BackgroundProperty, value); }
     public Brush BorderBrush { get => (Brush)GetValue(BorderBrushProperty); set => SetValue(BorderBrushProperty, value); }
     public bool ShowPointer { get => (bool)GetValue(ShowPointerProperty); set => SetValue(ShowPointerProperty, value); }
     public double PointerLeft { get => (double)GetValue(PointerLeftProperty); set => SetValue(PointerLeftProperty, value); }
     public bool PointerOnTop { get => (bool)GetValue(PointerOnTopProperty); set => SetValue(PointerOnTopProperty, value); }
-    private double PointerSpace => ShowPointer ? PointerHeight : 0;
+    public Size PointerSize { get => (Size)GetValue(PointerSizeProperty); set => SetValue(PointerSizeProperty, value); }
+    private double PointerSpace => ShowPointer ? PointerSize.Height : 0;
 
     // Anchor coordinates include the shadow margin; the pointer is local to the surface.
-    public static double PointerLeftForAnchor(double anchorX, double outerWidth)
-        => Math.Clamp(anchorX - ShadowInset - PointerWidth / 2, 10,
-            Math.Max(10, outerWidth - ShadowInset * 2 - 10 - PointerWidth));
+    public static double PointerLeftForAnchor(double anchorX, double outerWidth, double pointerWidth = PointerWidth)
+        => Math.Clamp(anchorX - ShadowInset - pointerWidth / 2, 10,
+            Math.Max(10, outerWidth - ShadowInset * 2 - 10 - pointerWidth));
 
     protected override Size MeasureOverride(Size availableSize)
     {
-        var width = Math.Min(MaximumWidth - ShadowInset * 2, availableSize.Width);
+        var maximumWidth = double.IsPositiveInfinity(MaxWidth) ? MaximumWidth : MaxWidth;
+        var width = Math.Min(maximumWidth - ShadowInset * 2, availableSize.Width);
         Child?.Measure(new Size(Math.Max(0, width - HorizontalInset * 2),
             Math.Max(0, availableSize.Height - VerticalInset * 2 - PointerSpace)));
         var content = Child?.DesiredSize ?? new Size();
@@ -77,16 +83,17 @@ public sealed class PoptipChrome : Decorator
             context.DrawGeometry(Background, outline, body);
             return;
         }
-        var left = Math.Clamp(double.IsNaN(PointerLeft) ? (ActualWidth - PointerWidth) / 2 : PointerLeft,
-            10, Math.Max(10, ActualWidth - 10 - PointerWidth));
-        var edge = PointerOnTop ? bodyTop + 1 : ActualHeight - PointerHeight - 1;
+        var pointerWidth = PointerSize.Width;
+        var left = Math.Clamp(double.IsNaN(PointerLeft) ? (ActualWidth - pointerWidth) / 2 : PointerLeft,
+            10, Math.Max(10, ActualWidth - 10 - pointerWidth));
+        var edge = PointerOnTop ? bodyTop + 1 : ActualHeight - PointerSpace - 1;
         var tip = PointerOnTop ? .5 : ActualHeight - .5;
         var triangle = new StreamGeometry();
         using (var geometry = triangle.Open())
         {
             geometry.BeginFigure(new Point(left, edge), true, true);
-            geometry.LineTo(new Point(left + PointerWidth / 2, tip), true, false);
-            geometry.LineTo(new Point(left + PointerWidth, edge), true, false);
+            geometry.LineTo(new Point(left + pointerWidth / 2, tip), true, false);
+            geometry.LineTo(new Point(left + pointerWidth, edge), true, false);
         }
         // One outline avoids a horizontal seam where the pointer joins the border.
         var surface = Geometry.Combine(body, triangle, GeometryCombineMode.Union, null);

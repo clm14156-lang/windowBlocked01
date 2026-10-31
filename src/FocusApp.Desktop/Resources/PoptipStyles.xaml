@@ -79,4 +79,30 @@
         <Setter Property="Foreground" Value="{StaticResource ChartPoptipValueBrush}" />
         <Setter Property="Typography.NumeralAlignment" Value="Tabular" />
     </Style>
+    <Style x:Key="ChartPoptipDurationTextStyle" TargetType="TextBlock" BasedOn="{StaticResource ChartPoptipBodyTextStyle}">
+        <Setter Property="LineHeight" Value="22" />
+    </Style>
+    <Style x:Key="WeeklyChartPoptipSurfaceStyle" TargetType="views:PoptipChrome" BasedOn="{StaticResource ChartPoptipSurfaceStyle}">
+        <Setter Property="MaxWidth" Value="340" />
+        <Setter Property="ShowPointer" Value="True" />
+        <Setter Property="PointerSize" Value="24,12" />
+        <Setter Property="BorderBrush" Value="#E1E4E9" />
+    </Style>
+    <Style x:Key="WeeklyChartPoptipHeaderTextStyle" TargetType="TextBlock" BasedOn="{StaticResource ChartPoptipSecondaryTextStyle}">
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="Foreground" Value="#909399" />
+        <Setter Property="LineHeight" Value="20" />
+    </Style>
+    <Style x:Key="WeeklyChartPoptipBodyTextStyle" TargetType="TextBlock" BasedOn="{StaticResource ChartPoptipBodyTextStyle}">
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="Foreground" Value="#3D444F" />
+        <Setter Property="LineHeight" Value="24" />
+    </Style>
+    <Style x:Key="WeeklyChartPoptipValueStyle" TargetType="Run" BasedOn="{StaticResource ChartPoptipValueStyle}">
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="Foreground" Value="#3D444F" />
+    </Style>
 </ResourceDictionary>

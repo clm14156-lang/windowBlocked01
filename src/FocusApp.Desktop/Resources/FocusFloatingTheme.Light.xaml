@@ -17,6 +17,7 @@
     <SolidColorBrush x:Key="FloatingTaskRowHoverBrush" Color="#F2F4F6"/>
     <SolidColorBrush x:Key="FloatingTaskRowDragBrush" Color="#E8EDF2"/>
     <SolidColorBrush x:Key="FloatingTaskDragHandleBrush" Color="#ADB5C0"/>
+    <SolidColorBrush x:Key="FloatingConnectorBrush" Color="#C4CEDB"/>
     <SolidColorBrush x:Key="FloatingCheckBorderBrush" Color="#AEBCCF"/>
     <SolidColorBrush x:Key="FloatingCheckBackgroundBrush" Color="#FFFFFF"/>
     <SolidColorBrush x:Key="FloatingButtonHoverBrush" Color="#EEF2F6"/>
