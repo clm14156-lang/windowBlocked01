@@ -3,6 +3,11 @@
                     xmlns:system="clr-namespace:System;assembly=System.Runtime">
     <system:String x:Key="ApplicationName">FocusApp</system:String>
     <system:String x:Key="ApplicationMonogram">F</system:String>
+    <system:String x:Key="FocusRecordSynced">已同步至云端</system:String>
+    <system:String x:Key="FocusRecordSyncing">正在同步...</system:String>
+    <system:String x:Key="FocusRecordSavedLocal">已保存至本地</system:String>
+    <system:String x:Key="HomeCloudDisconnectedTitle">未连接云端</system:String>
+    <system:String x:Key="HomeCloudDisconnectedDescription">无法连接网络，记录将保存在本地，恢复后自动同步</system:String>
     <system:String x:Key="BlockedAccessNotificationTitle">访问已被阻止</system:String>
     <system:String x:Key="BlockedAccessNotificationBrandName">专注时光</system:String>
     <system:String x:Key="BlockedAccessNotificationFocusPrefix">专注期间，</system:String>
@@ -95,8 +100,8 @@
     <system:String x:Key="SettingsWindowsNotificationsDescription">访问被屏蔽的网站或应用时显示拦截提示</system:String>
     <system:String x:Key="SettingsFocusSound">专注结束提醒音</system:String>
     <system:String x:Key="SettingsFocusSoundDescription">专注结束时播放提示音</system:String>
-    <system:String x:Key="SettingsAutomaticBlocking">自动屏蔽功能</system:String>
-    <system:String x:Key="SettingsAutomaticBlockingDescription">自动识别并屏蔽分散注意力的应用与网站</system:String>
+    <system:String x:Key="SettingsAutomaticBlocking">自动屏蔽</system:String>
+    <system:String x:Key="SettingsAutomaticBlockingDescription">到达设定时间后，自动开启屏蔽</system:String>
     <system:String x:Key="SettingsForcedMode">强制模式</system:String>
     <system:String x:Key="SettingsForcedModeDescription">专注期间无法主动退出</system:String>
     <system:String x:Key="SettingsVipExclusive">VIP专享</system:String>

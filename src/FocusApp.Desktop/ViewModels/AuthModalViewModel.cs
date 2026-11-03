@@ -1,4 +1,6 @@
 using System.ComponentModel;
+using FocusApp.Desktop.Services.Cloud;
+using System.Net.Http;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using System.Windows.Threading;
@@ -25,19 +27,38 @@ public sealed class AuthModalViewModel : INotifyPropertyChanged
     private int _resendSecondsRemaining;
     private readonly DispatcherTimer _resendTimer;
 
-    public AuthModalViewModel()
+    private readonly IAccountClient _accounts;
+    private Guid _registerChallenge;
+    private Guid _resetChallenge;
+    private string _resetTicket = "";
+    private bool _isBusy;
+    private string _statusMessage = "";
+    private bool _agreementAccepted;
+    private string _sessionStatus = "";
+
+    public AuthModalViewModel(IAccountClient? accounts = null)
     {
+        _accounts = accounts ?? CloudAccountClient.CreateDefault();
+        if (_accounts is IDeviceSessionClient devices)
+            devices.SessionEnded += (_, _) =>
+            {
+                SessionStatus = "登录已失效";
+                StatusMessage = "当前登录已退出或失效，请重新登录。";
+                SessionCleared?.Invoke(this, EventArgs.Empty);
+            };
+        RegisterCommand = new AsyncCommand(() => RunAsync(RegisterAsync));
+        SendRegisterCodeCommand = new AsyncCommand(() => RunAsync(SendRegisterCodeAsync));
         CloseCommand = new RelayCommand<object>(_ => Close());
         ShowLoginCommand = new RelayCommand<object>(_ => ShowLogin());
         ShowRegisterCommand = new RelayCommand<object>(_ => ShowRegister());
-        LoginCommand = new RelayCommand<object>(_ => Login());
+        LoginCommand = new AsyncCommand(() => RunAsync(LoginAsync));
         StartPasswordRecoveryCommand = new RelayCommand<object>(_ => StartPasswordRecovery());
         PasswordRecoveryBackCommand = new RelayCommand<object>(_ => GoBackInPasswordRecovery());
-        ContinueRecoveryCommand = new RelayCommand<object>(_ => ContinueRecovery());
-        VerifyRecoveryCodeCommand = new RelayCommand<object>(_ => VerifyRecoveryCode());
-        CompletePasswordRecoveryCommand = new RelayCommand<object>(_ => CompletePasswordRecovery());
+        ContinueRecoveryCommand = new AsyncCommand(() => RunAsync(ContinueRecoveryAsync));
+        VerifyRecoveryCodeCommand = new AsyncCommand(() => RunAsync(VerifyRecoveryCodeAsync));
+        CompletePasswordRecoveryCommand = new AsyncCommand(() => RunAsync(CompletePasswordRecoveryAsync));
         ReturnToLoginCommand = new RelayCommand<object>(_ => ReturnToLogin());
-        ResendRecoveryCodeCommand = new RelayCommand<object>(_ => ResendRecoveryCode());
+        ResendRecoveryCodeCommand = new AsyncCommand(() => RunAsync(ResendRecoveryCodeAsync));
 
         _resendTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _resendTimer.Tick += (_, _) =>
@@ -280,8 +301,9 @@ public sealed class AuthModalViewModel : INotifyPropertyChanged
         IsOpen = true;
     }
 
-    public void ClearSimulatedAccountData()
+    public void ClearAccountForm()
     {
+        ClearPasswords();
         IsOpen = false;
         IsRegistration = false;
         IsPasswordRecovery = false;
@@ -297,6 +319,8 @@ public sealed class AuthModalViewModel : INotifyPropertyChanged
 
     private void Close()
     {
+        if (IsBusy) return;
+        ClearPasswords();
         _resendTimer.Stop();
         IsOpen = false;
     }
@@ -326,33 +350,35 @@ public sealed class AuthModalViewModel : INotifyPropertyChanged
         ResendSecondsRemaining = 0;
     }
 
-    private void ContinueRecovery()
+    private async Task ContinueRecoveryAsync()
     {
-        if (!CanContinueRecovery)
-        {
-            return;
-        }
-
+        if (!CanContinueRecovery) return;
+        var challenge = await _accounts.SendCodeAsync(RecoveryAccount.Trim(), true);
+        _resetChallenge = challenge.ChallengeId;
         PasswordRecoveryStep = PasswordRecoveryStep.Verification;
         RecoveryCode = string.Empty;
-        StartResendCountdown();
+        StartResendCountdown(challenge.ResendAfterSeconds);
+        StatusMessage = "如果邮箱已注册，验证码已发送，请检查收件箱。";
     }
 
-    private void VerifyRecoveryCode()
+    private async Task VerifyRecoveryCodeAsync()
     {
-        if (CanVerifyRecoveryCode)
-        {
-            _resendTimer.Stop();
-            PasswordRecoveryStep = PasswordRecoveryStep.NewPassword;
-        }
+        if (!CanVerifyRecoveryCode) return;
+        var ticket = await _accounts.VerifyResetAsync(_resetChallenge, RecoveryCode);
+        _resetTicket = ticket.ResetTicketValue;
+        _resendTimer.Stop();
+        PasswordRecoveryStep = PasswordRecoveryStep.NewPassword;
     }
 
-    private void CompletePasswordRecovery()
+    private async Task CompletePasswordRecoveryAsync()
     {
-        if (CanCompletePasswordRecovery)
-        {
-            PasswordRecoveryStep = PasswordRecoveryStep.Completed;
-        }
+        if (!CanCompletePasswordRecovery) return;
+        await _accounts.CompleteResetAsync(_resetTicket, RecoveryNewPassword);
+        _resetTicket = "";
+        ClearPasswords();
+        PasswordRecoveryStep = PasswordRecoveryStep.Completed;
+        await _accounts.LogoutAsync();
+        SessionCleared?.Invoke(this, EventArgs.Empty);
     }
 
     private void GoBackInPasswordRecovery()
@@ -384,24 +410,22 @@ public sealed class AuthModalViewModel : INotifyPropertyChanged
         ResetPasswordRecovery();
     }
 
-    private void ResendRecoveryCode()
+    private async Task ResendRecoveryCodeAsync()
     {
-        if (IsResendAvailable)
-        {
-            RecoveryCode = string.Empty;
-            StartResendCountdown();
-        }
+        if (IsResendAvailable) await ContinueRecoveryAsync();
     }
 
-    private void StartResendCountdown()
+    private void StartResendCountdown(int seconds = 60)
     {
-        ResendSecondsRemaining = 55;
+        ResendSecondsRemaining = seconds;
         _resendTimer.Stop();
         _resendTimer.Start();
     }
 
     private void ResetPasswordRecovery()
     {
+        _resetTicket = "";
+        _resetChallenge = Guid.Empty;
         _resendTimer.Stop();
         PasswordRecoveryStep = PasswordRecoveryStep.Account;
         RecoveryAccount = string.Empty;
@@ -411,27 +435,106 @@ public sealed class AuthModalViewModel : INotifyPropertyChanged
         ResendSecondsRemaining = 0;
     }
 
-    private void Login()
+    private async Task LoginAsync()
     {
-        var account = LoginAccount.Trim();
-        var membershipType = (account, LoginPassword) switch
-        {
-            ("123", "123") => MembershipType.Normal,
-            ("456", "456") => MembershipType.Annual,
-            ("789", "789") => MembershipType.Lifetime,
-            _ => (MembershipType?)null
-        };
+        var account = await _accounts.LoginAsync(LoginAccount.Trim(), LoginPassword);
+        HasLoginError = false;
+        ClearPasswords();
+        IsOpen = false;
+        LoginSucceeded?.Invoke(this, new LoginSucceededEventArgs(account.Email, account.Membership));
+    }
 
-        if (membershipType is null)
+    private async Task SendRegisterCodeAsync()
+    {
+        if (!IsResendAvailable) return;
+        var challenge = await _accounts.SendCodeAsync(RegisterEmail.Trim(), false);
+        _registerChallenge = challenge.ChallengeId;
+        StartResendCountdown(challenge.ResendAfterSeconds);
+        StatusMessage = "验证码已发送，请检查邮箱。";
+    }
+
+    private async Task RegisterAsync()
+    {
+        if (!AgreementAccepted) { StatusMessage = "请先阅读并同意用户协议和隐私政策。"; return; }
+        if (RegisterPassword != RegisterConfirmPassword) { StatusMessage = "两次输入的密码不一致。"; return; }
+        await _accounts.RegisterAsync(RegisterEmail.Trim(), _registerChallenge, RegisterCode, RegisterPassword);
+        LoginAccount = RegisterEmail.Trim();
+        ClearPasswords();
+        RegisterCode = "";
+        _registerChallenge = Guid.Empty;
+        ShowLogin();
+        StatusMessage = "注册成功，请使用邮箱和密码登录。";
+    }
+
+    public async Task RestoreSessionAsync()
+    {
+        if (IsBusy) return;
+        try
+        {
+            var account = await _accounts.RestoreAsync();
+            if (account is null) { SessionStatus = ""; SessionCleared?.Invoke(this, EventArgs.Empty); return; }
+            SessionStatus = account.IsOffline ? "离线：暂时无法验证云端会话" : "云端会话已连接";
+            LoginSucceeded?.Invoke(this, new LoginSucceededEventArgs(account.Email, account.Membership));
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or CloudApiException or
+            System.IO.IOException or System.UnauthorizedAccessException or System.Security.Cryptography.CryptographicException or System.Text.Json.JsonException)
+        { SessionStatus = "暂时无法恢复云端会话，请稍后重试。"; }
+    }
+
+    public Task LogoutAsync() => RunAsync(async () =>
+    {
+        await _accounts.LogoutAsync();
+        SessionCleared?.Invoke(this, EventArgs.Empty);
+    });
+
+    private async Task RunAsync(Func<Task> action)
+    {
+        if (IsBusy) return;
+        IsBusy = true;
+        StatusMessage = "正在处理，请稍候…";
+        try { await action(); if (StatusMessage == "正在处理，请稍候…") StatusMessage = ""; }
+        catch (CloudApiException ex)
         {
             HasLoginError = true;
-            return;
+            StatusMessage = ex.Code switch
+            {
+                "invalid_credentials" => "邮箱或密码不正确。",
+                "invalid_code" => "验证码无效、已使用或已过期，请重新获取。",
+                "email_registered" => "该邮箱已经注册，请登录或找回密码。",
+                "password_policy_failed" => "密码需要 8–128 个字符，并包含字母和数字。",
+                "invalid_reset_ticket" => "重置凭证已过期，请重新找回密码。",
+                "account_locked" => "登录失败次数过多，请在 15 分钟后重试。",
+                "email_rate_limited" or "rate_limit_exceeded" => "操作过于频繁，请稍后再试。",
+                "session_limit_reached" => "登录会话已达上限，请先退出已有设备或会话。",
+                "authentication_required" or "invalid_session" or "refresh_reused" => "登录已失效，请重新登录。",
+                "email_unavailable" => "邮件服务暂不可用，请稍后再试。",
+                "validation_failed" or "invalid_device" => "请检查邮箱、验证码和密码格式。",
+                _ => "请求未完成，请稍后重试。"
+            };
         }
-
-        HasLoginError = false;
-        IsOpen = false;
-        LoginSucceeded?.Invoke(this, new LoginSucceededEventArgs(account, membershipType.Value));
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        { HasLoginError = true; StatusMessage = "无法连接服务器，请检查网络后重试。"; }
+        catch (Exception ex) when (ex is System.IO.IOException or System.UnauthorizedAccessException or
+            System.Security.Cryptography.CryptographicException or System.Text.Json.JsonException)
+        { StatusMessage = "无法安全保存或读取账号状态，请稍后重试。"; }
+        finally { IsBusy = false; }
     }
+
+    private void ClearPasswords()
+    {
+        LoginPassword = RegisterPassword = RegisterConfirmPassword = RecoveryNewPassword = RecoveryConfirmPassword = "";
+        PasswordsCleared?.Invoke(this, EventArgs.Empty);
+    }
+
+    public event EventHandler? SessionCleared;
+    public event EventHandler? PasswordsCleared;
+    public ICommand RegisterCommand { get; }
+    public ICommand SendRegisterCodeCommand { get; }
+    public bool IsBusy { get => _isBusy; private set { SetField(ref _isBusy, value); OnPropertyChanged(nameof(IsIdle)); } }
+    public bool IsIdle => !IsBusy;
+    public string StatusMessage { get => _statusMessage; private set => SetField(ref _statusMessage, value); }
+    public string SessionStatus { get => _sessionStatus; private set => SetField(ref _sessionStatus, value); }
+    public bool AgreementAccepted { get => _agreementAccepted; set => SetField(ref _agreementAccepted, value); }
 
     private bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
     {

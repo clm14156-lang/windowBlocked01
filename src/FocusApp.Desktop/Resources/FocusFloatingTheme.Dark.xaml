@@ -28,6 +28,8 @@
     <SolidColorBrush x:Key="FloatingInputBackgroundBrush" Color="#242A33"/>
     <SolidColorBrush x:Key="FloatingInputBorderBrush" Color="#3A424E"/>
     <SolidColorBrush x:Key="FloatingInputFocusBrush" Color="#8996A6"/>
+    <SolidColorBrush x:Key="FloatingSubTaskEntryBackgroundBrush" Color="#272E38"/>
+    <SolidColorBrush x:Key="FloatingSubTaskEntryTextBrush" Color="#98A4B3"/>
     <SolidColorBrush x:Key="FoldedBorderBrush" Color="#3A424E"/>
     <SolidColorBrush x:Key="FoldedCountdownBrush" Color="#E2E6EC"/>
     <SolidColorBrush x:Key="FoldedTaskBrush" Color="#98A4B3"/>

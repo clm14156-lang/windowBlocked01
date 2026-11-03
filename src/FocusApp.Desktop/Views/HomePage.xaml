@@ -5,7 +5,70 @@
              Background="{DynamicResource BackgroundPrimary}"
              UseLayoutRounding="True"
              SnapsToDevicePixels="True">
+    <UserControl.Resources>
+        <SolidColorBrush x:Key="HomeCloudNoticeBackground" Color="#FFF7EF" />
+        <SolidColorBrush x:Key="HomeCloudNoticeBorder" Color="#FFE8D5" />
+        <Color x:Key="HomeCloudNoticeShadow">#493A2D</Color>
+    </UserControl.Resources>
     <Grid>
+        <!-- Fits in the existing 62-DIP top gap, preserving every home control's position. -->
+        <Border x:Name="CloudConnectionToast"
+                Height="54"
+                Margin="40,0,40,0"
+                VerticalAlignment="Top"
+                IsHitTestVisible="False"
+                AutomationProperties.Name="{DynamicResource HomeCloudDisconnectedTitle}"
+                AutomationProperties.LiveSetting="Polite"
+                Background="{StaticResource HomeCloudNoticeBackground}"
+                BorderBrush="{StaticResource HomeCloudNoticeBorder}"
+                BorderThickness="1"
+                CornerRadius="16">
+            <Border.Style>
+                <Style TargetType="{x:Type Border}">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsCloudConnectionUnavailable}" Value="True">
+                            <Setter Property="Visibility" Value="Visible" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="16" Direction="270" Opacity="0.10"
+                                  ShadowDepth="4" Color="{StaticResource HomeCloudNoticeShadow}" />
+            </Border.Effect>
+            <Grid>
+                <Border Width="4" Margin="-1" HorizontalAlignment="Left"
+                        Background="{DynamicResource AccentPrimary}" CornerRadius="16,0,0,16" />
+                <Grid Margin="20,7,18,7">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="28" />
+                        <ColumnDefinition Width="16" />
+                        <ColumnDefinition Width="1" />
+                        <ColumnDefinition Width="16" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Viewbox Width="28" Height="28" VerticalAlignment="Center">
+                        <Canvas Width="24" Height="24">
+                            <Path Data="M6.5,18 C3.7,18 2,16.1 2,13.6 C2,11.3 3.6,9.4 5.8,9 M8,5.3 C9.1,4.4 10.5,4 12,4 C15.1,4 17.7,6.1 18.3,9 C20.5,9.5 22,11.2 22,13.4 C22,14.7 21.4,15.9 20.5,16.7 M10,18 L15.5,18"
+                                  Stroke="{DynamicResource AccentPrimary}" StrokeThickness="1.8"
+                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
+                            <Path Data="M3,3 L21,21" Stroke="{DynamicResource AccentPrimary}"
+                                  StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                        </Canvas>
+                    </Viewbox>
+                    <Border Grid.Column="2" Height="28" Background="{StaticResource HomeCloudNoticeBorder}" />
+                    <StackPanel Grid.Column="4" VerticalAlignment="Center">
+                        <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}"
+                                   LineHeight="18" LineStackingStrategy="BlockLineHeight"
+                                   Text="{DynamicResource HomeCloudDisconnectedTitle}" />
+                        <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondary}"
+                                   LineHeight="17" LineStackingStrategy="BlockLineHeight"
+                                   Text="{DynamicResource HomeCloudDisconnectedDescription}" />
+                    </StackPanel>
+                </Grid>
+            </Grid>
+        </Border>
         <StackPanel Margin="0,62,24,0"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Top"

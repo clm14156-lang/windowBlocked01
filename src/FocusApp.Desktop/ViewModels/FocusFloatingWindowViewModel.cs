@@ -26,6 +26,7 @@ public sealed partial class FocusFloatingWindowViewModel : INotifyPropertyChange
     private double? _presentationListHeight;
     private double _presentationHeaderHeight = TaskHeaderHeight;
     public const double TaskCreationHeight = 44;
+    public const double TaskCreationUpgradeHeight = 68;
     public const double SubTaskCreationHeight = 36;
     private bool _isCreatingTask;
     private bool _isSubmittingTask;
@@ -34,6 +35,8 @@ public sealed partial class FocusFloatingWindowViewModel : INotifyPropertyChange
     private FocusTaskViewModel? _subTaskCreationParent;
     private double _creationHeight;
     private double? _creationTaskAreaHeight;
+    private RelayCommand<object>? _openSubTaskMembershipCommand;
+    private RelayCommand<object>? _openRootTaskMembershipCommand;
 
     public FocusFloatingWindowViewModel(FocusSessionViewModel session)
     {
@@ -58,6 +61,7 @@ public sealed partial class FocusFloatingWindowViewModel : INotifyPropertyChange
     public event EventHandler? TaskCreationStateChanged;
     public event EventHandler<FocusTaskViewModel>? TaskCreated;
     public event EventHandler<FocusTaskViewModel>? SubTaskCreated;
+    public event EventHandler? MembershipRequested;
     public ObservableCollection<FocusTaskViewModel> VisibleTasks { get; } = [];
 
     public FocusSessionViewModel Session => _session;
@@ -102,7 +106,51 @@ public sealed partial class FocusFloatingWindowViewModel : INotifyPropertyChange
     public bool IsCreatingTask => _isCreatingTask;
     public bool IsCreatingSubTask => IsCreatingTask && _subTaskCreationParent is not null;
     public bool IsCreatingRootTask => IsCreatingTask && _subTaskCreationParent is null;
+    public bool IsRootTaskLimitReached => _session.IsRootTaskLimitReached;
+    public bool CanCreateRootTask => IsCreatingRootTask && _session.CanCreateRootTask;
+    public bool ShowRootTaskUpgrade => IsCreatingRootTask && IsRootTaskLimitReached && !_session.IsVipMember;
+    public double RootTaskCreationHeight => ShowRootTaskUpgrade ? TaskCreationUpgradeHeight : TaskCreationHeight;
+    public string RootTaskPlaceholder => IsRootTaskLimitReached
+        ? $"任务已达上限 ({_session.PendingRootTaskCount}/{_session.RootTaskLimit})" : "输入任务名称...";
+    public ICommand OpenRootTaskMembershipCommand => _openRootTaskMembershipCommand ??= new RelayCommand<object>(
+        _ => MembershipRequested?.Invoke(this, EventArgs.Empty), _ => !_isDisposed && ShowRootTaskUpgrade);
+
+    private void NotifyRootTaskQuotaChanged(bool refreshPresentation = true)
+    {
+        OnPropertyChanged(nameof(IsRootTaskLimitReached));
+        OnPropertyChanged(nameof(CanCreateRootTask));
+        OnPropertyChanged(nameof(ShowRootTaskUpgrade));
+        OnPropertyChanged(nameof(RootTaskPlaceholder));
+        OnPropertyChanged(nameof(RootTaskCreationHeight));
+        _openRootTaskMembershipCommand?.NotifyCanExecuteChanged();
+        if (refreshPresentation && IsCreatingRootTask) RefreshCreationPresentation();
+    }
     public FocusTaskViewModel? SubTaskCreationParent => _subTaskCreationParent;
+    public int SubTaskLimit => _session.SubTaskLimit;
+    public int SubTaskCount => _subTaskCreationParent?.SubTasks.Count ?? 0;
+    public string SubTaskQuotaDisplay => $"{SubTaskCount}/{SubTaskLimit}";
+    public bool IsSubTaskLimitReached => _subTaskCreationParent is { } parent && !_session.CanAddSubTask(parent);
+    public bool ShowSubTaskUpgrade => IsCreatingSubTask && !_session.IsVipMember && IsSubTaskLimitReached;
+    public bool CanCreateSubTask => IsCreatingSubTask && _subTaskCreationParent is { } parent &&
+        _session.CanAddSubTask(parent) && IsValidSubTaskParent(parent) && IsFocusing;
+    public ICommand OpenSubTaskMembershipCommand => _openSubTaskMembershipCommand ??= new RelayCommand<object>(
+        _ => MembershipRequested?.Invoke(this, EventArgs.Empty), _ => !_isDisposed && ShowSubTaskUpgrade);
+
+    public void SetMembership(bool isVipMember)
+    {
+        if (!_isDisposed) _session.SetMembership(isVipMember);
+    }
+
+    private void NotifySubTaskQuotaChanged()
+    {
+        OnPropertyChanged(nameof(SubTaskLimit));
+        OnPropertyChanged(nameof(SubTaskCount));
+        OnPropertyChanged(nameof(SubTaskQuotaDisplay));
+        OnPropertyChanged(nameof(IsSubTaskLimitReached));
+        OnPropertyChanged(nameof(ShowSubTaskUpgrade));
+        OnPropertyChanged(nameof(CanCreateSubTask));
+        _openSubTaskMembershipCommand?.NotifyCanExecuteChanged();
+    }
     public string TaskTitle
     {
         get => _taskTitle;
@@ -119,7 +167,7 @@ public sealed partial class FocusFloatingWindowViewModel : INotifyPropertyChange
     public bool BeginSubTaskCreation(FocusTaskViewModel parent) => parent is not null && IsValidSubTaskParent(parent)
         && BeginCreation(parent);
 
-    private bool IsValidSubTaskParent(FocusTaskViewModel parent) => !parent.IsCompleted && parent.CanAddSubTask
+    private bool IsValidSubTaskParent(FocusTaskViewModel parent) => !parent.IsCompleted
         && _session.ActiveTarget?.Tasks.Contains(parent) == true;
 
     private bool BeginCreation(FocusTaskViewModel? parent)
@@ -149,16 +197,24 @@ public sealed partial class FocusFloatingWindowViewModel : INotifyPropertyChange
             if (_subTaskCreationParent is { } parent)
             {
                 if (!IsValidSubTaskParent(parent)) { CancelTaskCreation(); return false; }
+                if (!CanCreateSubTask) return false;
                 if (!_session.AddTaskSubTask(parent, TaskTitle)) return false;
                 TaskTitle = string.Empty;
-                if (parent.CanAddSubTask) SubTaskCreated?.Invoke(this, parent);
-                else CancelTaskCreation();
+                NotifySubTaskQuotaChanged();
+                SubTaskCreated?.Invoke(this, parent);
                 return true;
             }
             var source = new LocalTaskDto(Guid.NewGuid().ToString("N"), target.TargetId,
                 TaskTitle.Trim(), false, target.Tasks.Count, now, now);
+            if (!CanCreateRootTask) { _creationTaskAreaHeight = null; return false; }
             if (!_session.SaveDrawerTask(source)) { _creationTaskAreaHeight = null; return false; }
-            CancelTaskCreation();
+            if (IsRootTaskLimitReached)
+            {
+                TaskTitle = string.Empty;
+                _creationTaskAreaHeight = null;
+                NotifyRootTaskQuotaChanged();
+            }
+            else CancelTaskCreation();
             TaskCreated?.Invoke(this, target.Tasks.Single(task => task.TaskId == source.TaskId));
             return true;
         }
@@ -187,17 +243,19 @@ public sealed partial class FocusFloatingWindowViewModel : INotifyPropertyChange
         OnPropertyChanged(nameof(IsCreatingSubTask));
         OnPropertyChanged(nameof(IsCreatingRootTask));
         OnPropertyChanged(nameof(SubTaskCreationParent));
+        NotifySubTaskQuotaChanged();
+        NotifyRootTaskQuotaChanged(false);
     }
 
     private void RefreshCreationPresentation()
     {
         if (TaskCreationStateChanged is { } handler) handler.Invoke(this, EventArgs.Empty);
-        else SetCreationPresentation(IsCreatingRootTask ? TaskCreationHeight : 0);
+        else SetCreationPresentation(IsCreatingRootTask ? RootTaskCreationHeight : 0);
     }
 
     public void SetCreationPresentation(double height, double? taskAreaHeight = null)
     {
-        _creationHeight = Math.Clamp(height, 0, TaskCreationHeight);
+        _creationHeight = Math.Clamp(height, 0, TaskCreationUpgradeHeight);
         _creationTaskAreaHeight = taskAreaHeight;
         OnPropertyChanged(nameof(CreationHeight));
         OnPropertyChanged(nameof(TaskListHeight));
@@ -312,6 +370,8 @@ public sealed partial class FocusFloatingWindowViewModel : INotifyPropertyChange
 
     private void Session_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (e.PropertyName == nameof(FocusSessionViewModel.SubTaskLimit)) NotifySubTaskQuotaChanged();
+        if (e.PropertyName == nameof(FocusSessionViewModel.IsRootTaskLimitReached)) NotifyRootTaskQuotaChanged();
         if (e.PropertyName == nameof(FocusSessionViewModel.ActiveTarget))
         {
             CancelTaskEdit();
@@ -360,6 +420,7 @@ public sealed partial class FocusFloatingWindowViewModel : INotifyPropertyChange
         if (IsEditingTask && !IsValidEditTarget()) CancelTaskEdit();
         if (!_isSubmittingTask && _subTaskCreationParent is { } parent && !IsValidSubTaskParent(parent))
             CancelTaskCreation();
+        NotifySubTaskQuotaChanged();
         RefreshPresentation();
         OnPropertyChanged(nameof(PendingTasks));
         OnPropertyChanged(nameof(PendingTaskCount));

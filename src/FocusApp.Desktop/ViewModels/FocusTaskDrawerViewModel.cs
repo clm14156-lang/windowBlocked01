@@ -11,6 +11,7 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
     private readonly FocusSessionViewModel _session;
     private readonly RelayCommand<object> _createTaskCommand;
     private readonly RelayCommand<object> _addSubTaskCommand;
+    private readonly RelayCommand<object> _openSubTaskMembershipCommand;
     private bool _isOpen;
     private bool _isCreating;
     private bool _isDescriptionExpanded;
@@ -24,6 +25,7 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
     private FocusTaskViewModel? _inlineSubTaskParent;
     private string _inlineSubTaskTitle = string.Empty;
     private bool _isSubmittingInlineSubTask;
+    private bool _isRootTaskLimitHintOpen;
     private readonly HashSet<FocusTaskViewModel> _exitingTasks = [];
 
     public FocusTaskDrawerViewModel(FocusSessionViewModel session)
@@ -32,6 +34,13 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
         ToggleCommand = new RelayCommand<object>(_ => { if (_session.IsFocusing && _session.HasTarget) IsOpen = !IsOpen; });
         CloseCommand = new RelayCommand<object>(_ => Close());
         AddTaskCommand = new RelayCommand<object>(_ => BeginCreation());
+        CloseRootTaskLimitHintCommand = new RelayCommand<object>(_ => CloseRootTaskLimitHint());
+        OpenRootTaskMembershipCommand = new RelayCommand<object>(_ =>
+        {
+            if (_session.IsVipMember) return;
+            CloseRootTaskLimitHint();
+            MembershipRequested?.Invoke(this, EventArgs.Empty);
+        });
         CancelCreationCommand = new RelayCommand<object>(_ => CancelCreation());
         ExpandDescriptionCommand = new RelayCommand<object>(_ => { if (_draft is not null && HasDraftTitle) IsDescriptionExpanded = true; });
         BeginSubTaskCommand = new RelayCommand<object>(_ =>
@@ -54,14 +63,44 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
             _session.DeleteTaskCommand.Execute(task);
         });
         DeleteSubTaskCommand = new RelayCommand<FocusSubTaskViewModel>(item => { if (item is not null) _draft?.SubTasks.Remove(item); });
-        _createTaskCommand = new RelayCommand<object>(_ => CommitCreation(), _ => _draft is not null && !string.IsNullOrWhiteSpace(DraftTitle));
+        _createTaskCommand = new RelayCommand<object>(_ => CommitCreation(), _ => _draft is not null &&
+            !string.IsNullOrWhiteSpace(DraftTitle) && (_editingTask is not null || _session.CanCreateRootTask) &&
+            _session.CanSaveTaskSubTasks(_draft.TaskId, _draft.ExportSubTasks()));
         CreateTaskCommand = _createTaskCommand;
-        _addSubTaskCommand = new RelayCommand<object>(_ => AddSubTask(), _ => _draft is not null && _draft.SubTasks.Count < 20 && !string.IsNullOrWhiteSpace(SubTaskInput));
+        _addSubTaskCommand = new RelayCommand<object>(_ => AddSubTask(), _ => CanEnterSubTask && !string.IsNullOrWhiteSpace(SubTaskInput));
         AddSubTaskCommand = _addSubTaskCommand;
+        _openSubTaskMembershipCommand = new RelayCommand<object>(_ => MembershipRequested?.Invoke(this, EventArgs.Empty),
+            _ => ShowInlineSubTaskUpgrade || ShowDraftSubTaskUpgrade);
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
+    public event EventHandler? MembershipRequested;
+    public ICommand OpenSubTaskMembershipCommand => _openSubTaskMembershipCommand;
     public FocusSessionViewModel Session => _session;
+    public ICommand CloseRootTaskLimitHintCommand { get; }
+    public ICommand OpenRootTaskMembershipCommand { get; }
+    public bool IsRootTaskLimitReached => _session.IsRootTaskLimitReached;
+    public bool ShowRootTaskUpgrade => !_session.IsVipMember;
+    public string RootTaskLimitDescription => $"最多同时保留{_session.RootTaskLimit}个未完成任务，完成或删除后即可继续创建。";
+    public bool IsRootTaskLimitHintOpen => _isRootTaskLimitHintOpen;
+
+    public void ShowRootTaskLimitHint()
+    {
+        if (!_session.IsFocusing || !_session.HasTarget || !IsRootTaskLimitReached) return;
+        IsOpen = true;
+        Set(ref _isRootTaskLimitHintOpen, true, nameof(IsRootTaskLimitHintOpen));
+    }
+
+    public void CloseRootTaskLimitHint() => Set(ref _isRootTaskLimitHintOpen, false, nameof(IsRootTaskLimitHintOpen));
+
+    internal void RefreshRootTaskQuota()
+    {
+        OnPropertyChanged(nameof(IsRootTaskLimitReached));
+        OnPropertyChanged(nameof(ShowRootTaskUpgrade));
+        OnPropertyChanged(nameof(RootTaskLimitDescription));
+        _createTaskCommand.NotifyCanExecuteChanged();
+        if (!IsRootTaskLimitReached) CloseRootTaskLimitHint();
+    }
     public event EventHandler<TaskCompletionPresentationEventArgs>? CompletionAnimationRequested;
     public event EventHandler<FocusTaskViewModel>? CompletionAnimationCancelled;
     public ObservableCollection<FocusTaskViewModel> Tasks { get; } = [];
@@ -87,7 +126,7 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
         private set
         {
             if (!Set(ref _isOpen, value)) return;
-            if (!value) { CancelInlineSubTaskCreation(); FinishCompletionAnimations(); CancelCreation(); SelectTask(null); }
+            if (!value) { CloseRootTaskLimitHint(); CancelInlineSubTaskCreation(); FinishCompletionAnimations(); CancelCreation(); SelectTask(null); }
             _session.NotifyTaskDrawerChanged();
         }
     }
@@ -96,6 +135,12 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
     public string CommitButtonText => IsEditingTask ? "保存" : "创建";
     public FocusTaskViewModel? InlineSubTaskParent => _inlineSubTaskParent;
     public bool IsCreatingInlineSubTask => InlineSubTaskParent is not null;
+    public int SubTaskLimit => _session.SubTaskLimit;
+    public string InlineSubTaskCountDisplay => $"{InlineSubTaskParent?.SubTasks.Count ?? 0}/{SubTaskLimit}";
+    public bool IsInlineSubTaskLimitReached => InlineSubTaskParent is { } parent && !_session.CanAddSubTask(parent);
+    public bool CanCreateInlineSubTask => IsCreatingInlineSubTask && !IsInlineSubTaskLimitReached;
+    public bool ShowInlineSubTaskUpgrade => IsCreatingInlineSubTask && !_session.IsVipMember && IsInlineSubTaskLimitReached;
+    public bool ShowDraftSubTaskUpgrade => _draft is not null && !_session.IsVipMember && !CanEnterSubTask;
     public string InlineSubTaskTitle
     {
         get => _inlineSubTaskTitle;
@@ -119,19 +164,19 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
         return true;
     }
 
-    private bool IsValidInlineParent(FocusTaskViewModel parent) => !parent.IsCompleted && parent.CanAddSubTask &&
+    private bool IsValidInlineParent(FocusTaskViewModel parent) => !parent.IsCompleted &&
         _session.ActiveTarget?.Tasks.Contains(parent) == true;
 
     public bool SubmitInlineSubTask()
     {
         if (_isSubmittingInlineSubTask || InlineSubTaskParent is not { } parent ||
-            !_session.IsFocusing || !IsOpen || !IsValidInlineParent(parent)) return false;
+            !_session.IsFocusing || !IsOpen || !IsValidInlineParent(parent) || !CanCreateInlineSubTask) return false;
         _isSubmittingInlineSubTask = true;
         try
         {
             if (!_session.AddTaskSubTask(parent, InlineSubTaskTitle)) return false;
             InlineSubTaskTitle = string.Empty;
-            if (!parent.CanAddSubTask) CancelInlineSubTaskCreation();
+            RefreshSubTaskQuota();
             return true;
         }
         finally { _isSubmittingInlineSubTask = false; }
@@ -149,6 +194,7 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
     {
         OnPropertyChanged(nameof(InlineSubTaskParent));
         OnPropertyChanged(nameof(IsCreatingInlineSubTask));
+        RefreshSubTaskQuota();
     }
     public string DraftTitle
     {
@@ -175,7 +221,7 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
         private set { if (Set(ref _isSubTaskInputVisible, value)) RefreshDraftActions(); }
     }
     public bool ShowAddDescription => HasDraftTitle && !IsDescriptionExpanded;
-    public bool ShowAddSubTask => HasDraftTitle && !IsSubTaskInputVisible;
+    public bool ShowAddSubTask => HasDraftTitle && !IsSubTaskInputVisible && !ShowDraftSubTaskUpgrade;
     public string DraftDescription
     {
         get => _draft?.Description ?? string.Empty;
@@ -192,8 +238,8 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
         get => _subTaskInput;
         set { if (Set(ref _subTaskInput, value)) _addSubTaskCommand.NotifyCanExecuteChanged(); }
     }
-    public string SubTaskCountDisplay => $"{_draft?.SubTasks.Count ?? 0}/20";
-    public bool CanEnterSubTask => _draft?.SubTasks.Count < 20;
+    public string SubTaskCountDisplay => $"{_draft?.SubTasks.Count ?? 0}/{SubTaskLimit}";
+    public bool CanEnterSubTask => _draft is not null && _session.CanAddSubTask(_draft);
     public bool HasPendingTasks => Tasks.Count > 0 || _exitingTasks.Count > 0;
     public bool HasTodayCompletedTasks => TodayCompletedTasks.Count > 0;
     public bool IsEmpty => !HasPendingTasks && !HasTodayCompletedTasks;
@@ -246,6 +292,7 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(HasPendingTasks));
         OnPropertyChanged(nameof(HasTodayCompletedTasks));
         OnPropertyChanged(nameof(IsEmpty));
+        RefreshSubTaskQuota();
     }
 
     public void FinishCompletionAnimation(FocusTaskViewModel task)
@@ -301,6 +348,8 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
     private void BeginCreation()
     {
         if (!_session.IsFocusing || _session.ActiveTarget is not { } target) return;
+        if (IsRootTaskLimitReached) { ShowRootTaskLimitHint(); return; }
+        CloseRootTaskLimitHint();
         CancelInlineSubTaskCreation();
         SelectTask(null);
         CancelCreation();
@@ -319,6 +368,7 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
     private void BeginTaskEdit(FocusTaskViewModel? task)
     {
         if (task is null || !_session.IsFocusing || _session.ActiveTarget?.Tasks.Contains(task) != true) return;
+        CloseRootTaskLimitHint();
         CancelInlineSubTaskCreation();
         CancelCreation();
         _editingTask = task;
@@ -428,8 +478,21 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(DescriptionCountDisplay));
         OnPropertyChanged(nameof(SubTaskCountDisplay));
         OnPropertyChanged(nameof(CanEnterSubTask));
+        OnPropertyChanged(nameof(ShowDraftSubTaskUpgrade));
+        RefreshDraftActions();
         _addSubTaskCommand.NotifyCanExecuteChanged();
         _createTaskCommand.NotifyCanExecuteChanged();
+        _openSubTaskMembershipCommand?.NotifyCanExecuteChanged();
+    }
+
+    internal void RefreshSubTaskQuota()
+    {
+        OnPropertyChanged(nameof(SubTaskLimit));
+        OnPropertyChanged(nameof(InlineSubTaskCountDisplay));
+        OnPropertyChanged(nameof(IsInlineSubTaskLimitReached));
+        OnPropertyChanged(nameof(CanCreateInlineSubTask));
+        OnPropertyChanged(nameof(ShowInlineSubTaskUpgrade));
+        RefreshDraftCount();
     }
     private bool Set<T>(ref T field, T value, [CallerMemberName] string? name = null)
     {

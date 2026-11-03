@@ -16,7 +16,7 @@ internal static class LocalDataContractMapper
             source.AutomaticRules.Select(ToDto).ToArray(),
             ToDto(source.Settings),
             source.DurationPresets.Select(ToDto).ToArray(),
-            source.MonthlyFocusTargets.Select(ToDto).ToArray());
+            source.MonthlyFocusTargets.Select(ToDto).ToArray()) { FocusSyncVersion=5 };
 
     public static LocalTarget ToCore(LocalTargetDto source)
         => new LocalTarget(source.TargetId, source.Name, source.IsArchived, source.SortOrder, source.CreatedAtUtc, source.UpdatedAtUtc)
@@ -100,7 +100,7 @@ internal static class LocalDataContractMapper
                 CompletedAtUtc = task.CompletedAtUtc,
                 Details = task.Details is null ? null : new LocalTaskDetailsSnapshot(task.Details.Description,
                     task.Details.SubTasks.Select(child => new LocalSubTaskSnapshot(child.Title, child.IsCompleted)).ToArray())
-            }).ToArray());
+            }).ToArray()) { CloudBindingId = source.CloudBindingId };
 
     internal static LocalFocusSessionDto ToDto(LocalFocusSession source)
         => new LocalFocusSessionDto(
@@ -129,6 +129,7 @@ internal static class LocalDataContractMapper
                     task.Details.SubTasks.Select(child => new LocalSubTaskSnapshotDto(child.Title, child.IsCompleted)).ToArray())
             }).ToArray())
         {
+            CloudBindingId = source.CloudBindingId ?? Guid.Empty,
             WebsiteRuleSnapshots = source.Status == LocalFocusSessionStatus.Completed
                 ? []
                 : source.WebsiteRuleSnapshots.Select(ToDto).ToArray(),

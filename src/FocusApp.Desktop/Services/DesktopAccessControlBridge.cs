@@ -166,7 +166,7 @@ public sealed class DesktopAccessControlBridge : IDisposable
             {
                 await PersistRulesAsync(cancellationToken);
                 var expiresAt = DateTimeOffset.UtcNow.AddSeconds(Math.Max(1, _focusSession.RemainingFocusSeconds));
-                await _connection.ActivateAccessControlAsync(expiresAt, cancellationToken);
+                await _connection.ActivateAccessControlAsync(expiresAt, cancellationToken, automaticRuleId: _focusSession.AutomaticRuleId);
             }
             else if (_connection.AccessControlStatus?.State is
                      AccessControlRuntimeState.Active or

@@ -18,6 +18,7 @@ public partial class App : Application
     private DesktopFocusSessionBridge? _focusSessionBridge;
     private IconService? _iconService;
     private FocusRecordsExporter? _focusRecordsExporter;
+    private MainWindowViewModel? _mainViewModel;
 
     public App()
     {
@@ -93,6 +94,7 @@ public partial class App : Application
             new StatisticsOverviewViewModel(useSampleData: false, deferInitialization: true),
             _serviceConnection,
             new AudioService());
+        _mainViewModel = mainViewModel;
         BlockedAccessNotificationService.SetFocusSession(mainViewModel.HomePage.FocusSession);
         BlockedAccessNotificationService.ConfigureWebsiteIcons(_iconService, mainViewModel.BlockingPage.Websites);
         _accessControlBridge = new DesktopAccessControlBridge(
@@ -115,12 +117,19 @@ public partial class App : Application
         // responsive while the backend connection is established.
         Dispatcher.BeginInvoke(
             System.Windows.Threading.DispatcherPriority.ContextIdle,
-            new Action(() => _ = _serviceConnection.StartAsync()));
+            new Action(() =>
+            {
+                _ = _serviceConnection.StartAsync();
+                mainViewModel.StartCloudConnectionMonitoring();
+            }));
     }
 
     protected override void OnExit(ExitEventArgs e)
     {
         DesktopDiagnostics.RecordAction("Application.Exit", $"ExitCode={e.ApplicationExitCode}");
+        _mainViewModel?.StopCloudConnectionMonitoring();
+        _mainViewModel?.RecordRecovery?.CompletePendingDiskWrite();
+        _mainViewModel = null;
         BlockedAccessNotificationService.Shutdown();
         _focusSessionBridge?.Dispose();
         _accessControlBridge?.Dispose();

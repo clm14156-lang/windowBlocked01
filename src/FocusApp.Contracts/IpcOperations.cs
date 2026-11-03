@@ -82,7 +82,7 @@ public sealed record AgentStartupRegistrationActionResultCommand(
     bool Succeeded,
     string? ErrorMessage);
 
-public sealed record ActivateAccessControlCommand(DateTimeOffset ExpiresAtUtc);
+public sealed record ActivateAccessControlCommand(DateTimeOffset ExpiresAtUtc, Guid? AutomaticRuleId = null);
 
 public sealed record DeactivateAccessControlCommand;
 
@@ -92,7 +92,8 @@ public sealed record StartForcedFocusCommand(
     string? TargetNameSnapshot,
     IReadOnlyList<LocalFocusSessionTaskSnapshotDto> CompletedTasks,
     Guid? AutomaticRuleId = null,
-    DateTimeOffset? AutomaticOccurrenceStartedAtUtc = null);
+    DateTimeOffset? AutomaticOccurrenceStartedAtUtc = null,
+    Guid? CloudBindingId = null);
 
 public sealed record CancelForcedFocusStartingCommand(Guid SessionId);
 
@@ -220,7 +221,12 @@ public sealed record LocalDataSnapshotDto(
     IReadOnlyList<LocalAutomaticRuleDto> AutomaticRules,
     LocalAppSettingsDto Settings,
     IReadOnlyList<LocalDurationPresetDto> DurationPresets,
-    IReadOnlyList<LocalMonthlyFocusTargetDto> MonthlyFocusTargets);
+    IReadOnlyList<LocalMonthlyFocusTargetDto> MonthlyFocusTargets)
+{
+    public int FocusSyncVersion { get; init; }
+    public Guid? FocusHistoryToken { get; init; }
+    public int FocusHistoryCount { get; init; }
+}
 
 public enum LocalFocusSessionStatusDto
 {
@@ -253,6 +259,8 @@ public sealed record LocalFocusSessionDto(
     DateTimeOffset? AutomaticOccurrenceStartedAtUtc,
     IReadOnlyList<LocalFocusSessionTaskSnapshotDto> CompletedTasks)
 {
+    public Guid? CloudBindingId { get; init; }
+
     public IReadOnlyList<LocalWebsiteRuleDto> WebsiteRuleSnapshots { get; init; } = [];
 
     public IReadOnlyList<LocalApplicationRuleDto> ApplicationRuleSnapshots { get; init; } = [];

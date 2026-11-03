@@ -29,6 +29,25 @@ public sealed class DesktopServiceConnection : INotifyPropertyChanged, IAsyncDis
     private AccessControlStatusDto? _accessControlStatus;
     private FocusRuntimeStatusDto? _focusRuntimeStatus;
     private bool _disposed;
+    private readonly SemaphoreSlim historyRefreshGate=new(1,1);
+    private int historyRefreshRequested;
+    public Guid CloudBindingId { get; private set; }
+    public void ClearCloudBinding()
+    {
+        CloudBindingId=Guid.Empty;
+        if(State is not null)
+        {
+            var filtered=FilterFocusHistory(State);
+            if(filtered.FocusSessions.Count!=State.FocusSessions.Count)
+            {State=filtered;StateChanged?.Invoke(this,filtered);}
+        }
+    }
+
+    private LocalDataSnapshotDto FilterFocusHistory(LocalDataSnapshotDto state) => state with
+    {
+        FocusSessions=state.FocusSessions.Where(x=>x.Status!=LocalFocusSessionStatusDto.Completed ||
+            state.FocusSyncVersion>=5 && (x.CloudBindingId==Guid.Empty || CloudBindingId!=Guid.Empty&&x.CloudBindingId==CloudBindingId)).ToArray()
+    };
 
     public DesktopServiceConnection(
         string? pipeName = null,
@@ -182,11 +201,12 @@ public sealed class DesktopServiceConnection : INotifyPropertyChanged, IAsyncDis
     public async Task<AccessControlStatusDto> ActivateAccessControlAsync(
         DateTimeOffset expiresAtUtc,
         CancellationToken cancellationToken = default,
-        Guid? requestId = null)
+        Guid? requestId = null,
+        Guid? automaticRuleId = null)
     {
         var status = await GetConnectedClient().SendAsync<ActivateAccessControlCommand, AccessControlStatusDto>(
             IpcOperations.ActivateAccessControl,
-            new ActivateAccessControlCommand(expiresAtUtc),
+            new ActivateAccessControlCommand(expiresAtUtc, automaticRuleId),
             _requestTimeout,
             cancellationToken,
             requestId);
@@ -227,7 +247,7 @@ public sealed class DesktopServiceConnection : INotifyPropertyChanged, IAsyncDis
     {
         var result = await GetConnectedClient().SendAsync<StartForcedFocusCommand, FocusSessionMutationResult>(
             IpcOperations.StartForcedFocus,
-            command,
+            command with { CloudBindingId = CloudBindingId },
             _requestTimeout,
             cancellationToken,
             requestId);
@@ -272,7 +292,7 @@ public sealed class DesktopServiceConnection : INotifyPropertyChanged, IAsyncDis
         Guid? requestId = null)
         => SendMutationAsync(
             IpcOperations.RecordCompletedFocus,
-            new RecordCompletedFocusCommand(session),
+            new RecordCompletedFocusCommand(session with { CloudBindingId = session.CloudBindingId ?? CloudBindingId }),
             cancellationToken,
             requestId);
 
@@ -282,7 +302,7 @@ public sealed class DesktopServiceConnection : INotifyPropertyChanged, IAsyncDis
         Guid? requestId = null)
         => SendMutationAsync(
             IpcOperations.StartNormalFocus,
-            new StartNormalFocusCommand(session),
+            new StartNormalFocusCommand(session with { CloudBindingId = session.CloudBindingId ?? CloudBindingId }),
             cancellationToken,
             requestId);
 
@@ -514,14 +534,33 @@ public sealed class DesktopServiceConnection : INotifyPropertyChanged, IAsyncDis
             return;
         }
 
-        State = state;
-        StateChanged?.Invoke(this, state);
+        if(state.FocusHistoryToken is not null)
+        {Interlocked.Exchange(ref historyRefreshRequested,1);_ = RefreshPagedHistoryAsync();return;}
+
+        State = FilterFocusHistory(state);
+        StateChanged?.Invoke(this, State);
     }
 
     private void PublishAccessControlStatus(AccessControlStatusDto status)
     {
         AccessControlStatus = status;
         AccessControlStateChanged?.Invoke(this, status);
+    }
+
+    private async Task RefreshPagedHistoryAsync()
+    {
+        if(!await historyRefreshGate.WaitAsync(0))return;
+        try
+        {
+            do
+            {
+                Interlocked.Exchange(ref historyRefreshRequested,0);
+                await RefreshStateAsync(_lifetimeCancellation.Token);
+            }while(Volatile.Read(ref historyRefreshRequested)!=0&&!_lifetimeCancellation.IsCancellationRequested);
+        }
+        catch(Exception error)when(error is IpcConnectionException or IpcRemoteException or IpcProtocolException or OperationCanceledException)
+        {if(!_lifetimeCancellation.IsCancellationRequested)SetOnContext(()=>LastError=new(IpcErrorCode.PersistenceUnavailable,"完整历史尚未读取，请重连后重试。",true));}
+        finally{historyRefreshGate.Release();}
     }
 
     private void PublishFocusMutation(FocusSessionMutationResult result)
@@ -567,4 +606,7 @@ public sealed class DesktopServiceConnection : INotifyPropertyChanged, IAsyncDis
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    public Task<TResponse> FocusSyncRequestAsync<TRequest,TResponse>(string operation,TRequest command,CancellationToken ct=default)
+        => GetConnectedClient().SendAsync<TRequest,TResponse>(operation,command,_requestTimeout,ct);
+    public void UseCloudBinding(Guid bindingId) => CloudBindingId = bindingId;
 }

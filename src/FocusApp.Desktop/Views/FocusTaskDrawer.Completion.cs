@@ -24,6 +24,7 @@ public partial class FocusTaskDrawer
     {
         if (!(bool)e.NewValue)
         {
+            CloseTaskLimitPresentation();
             _hoveredCreationTask = null;
             _inlineFocusOperation?.Abort();
             ViewModel?.CancelInlineSubTaskCreation();

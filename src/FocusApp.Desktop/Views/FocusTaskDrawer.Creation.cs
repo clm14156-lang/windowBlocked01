@@ -25,6 +25,8 @@ public partial class FocusTaskDrawer
 
     private void DetachCreationPresentation()
     {
+        _creationModel?.CloseRootTaskLimitHint();
+        CloseTaskLimitPresentation();
         _inlineFocusOperation?.Abort();
         _hoveredCreationTask = null;
         if (_creationModel is not null)
@@ -37,7 +39,12 @@ public partial class FocusTaskDrawer
 
     private void CreationModelChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName != nameof(FocusTaskDrawerViewModel.InlineSubTaskParent)) return;
+        if (e.PropertyName == nameof(FocusTaskDrawerViewModel.IsRootTaskLimitHintOpen))
+        {
+            SynchronizeTaskLimitHint();
+            return;
+        }
+        if (e.PropertyName is not (nameof(FocusTaskDrawerViewModel.InlineSubTaskParent) or nameof(FocusTaskDrawerViewModel.CanCreateInlineSubTask))) return;
         if (_creationModel?.IsCreatingInlineSubTask == true) QueueInlineCreationFocus();
         else
         {
@@ -62,6 +69,11 @@ public partial class FocusTaskDrawer
             ViewModel is not { } vm || !vm.Session.IsFocusing || !vm.Session.HasTarget || vm.Session.IsEndConfirmationOpen ||
             (!allowOpening && (!IsVisible || !vm.IsOpen))) return false;
         if (Window.GetWindow(this)?.DataContext is MainWindowViewModel main && main.CurrentPage != NavigationPage.Home) return false;
+        if (e.Key == Key.Escape && vm.IsRootTaskLimitHintOpen)
+        {
+            vm.CloseRootTaskLimitHint();
+            return e.Handled = true;
+        }
 
         if (vm.IsCreatingInlineSubTask && e.Key == Key.Escape)
         {
@@ -86,6 +98,7 @@ public partial class FocusTaskDrawer
         var source = e.OriginalSource as DependencyObject ?? Keyboard.FocusedElement as DependencyObject;
         while (source is not null)
         {
+            if (ReferenceEquals(source, RootTaskLimitPopupRoot)) return false;
             if (source is TextBoxBase or PasswordBox or ComboBox { IsEditable: true }) return false;
             source = source is ContentElement content
                 ? ContentOperations.GetParent(content) ?? (content as FrameworkContentElement)?.Parent
@@ -106,9 +119,13 @@ public partial class FocusTaskDrawer
             if (!IsLoaded || !IsVisible || ViewModel is not { IsCreatingInlineSubTask: true, InlineSubTaskParent: { } parent }) return;
             UpdateLayout();
             var row = GetTaskRows().FirstOrDefault(item => ReferenceEquals(item.DataContext, parent));
-            if (row is null || FindCompletionElement<TextBox>(row, "InlineSubTaskTitleInput") is not { IsVisible: true } input) return;
-            input.Focus();
-            Keyboard.Focus(input);
+            if (row is null) return;
+            if (FindCompletionElement<TextBox>(row, "InlineSubTaskTitleInput") is { IsVisible: true, IsEnabled: true } input)
+            {
+                input.Focus();
+                Keyboard.Focus(input);
+            }
+            else if (Keyboard.FocusedElement is TextBox focused && IsAncestorOf(focused)) Focus();
             FindCompletionElement<Border>(row, "InlineSubTaskCreation")?.BringIntoView();
         }, DispatcherPriority.Input);
     }

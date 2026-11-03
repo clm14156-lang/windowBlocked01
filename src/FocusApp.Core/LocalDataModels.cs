@@ -25,6 +25,8 @@ public sealed record LocalFocusSession(
     DateTimeOffset? AutomaticOccurrenceStartedAtUtc,
     IReadOnlyList<LocalFocusSessionTaskSnapshot> CompletedTasks)
 {
+    public Guid? CloudBindingId { get; init; }
+
     public IReadOnlyList<LocalWebsiteRule> WebsiteRuleSnapshots { get; init; } = [];
 
     public IReadOnlyList<LocalApplicationRule> ApplicationRuleSnapshots { get; init; } = [];

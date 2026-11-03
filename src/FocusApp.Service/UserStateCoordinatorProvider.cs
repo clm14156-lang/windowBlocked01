@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using FocusApp.Infrastructure.Persistence;
+using FocusApp.Core;
 
 namespace FocusApp.Service;
 
@@ -32,9 +33,12 @@ public sealed class UserStateCoordinatorProvider : IUserStateCoordinatorProvider
 
         return _coordinators.GetOrAdd(
             windowsIdentity,
-            identity => new ServiceStateCoordinator(
-                new SqliteLocalDataStore(_pathProvider.GetDatabasePath(identity)),
-                _accessControlFactory.Create(identity)));
+            identity =>
+            {
+                var store = new SqliteLocalDataStore(_pathProvider.GetDatabasePath(identity));
+                return new ServiceStateCoordinator(store, _accessControlFactory.Create(identity),
+                    membershipAuthority: new MembershipAuthority(store, MembershipTrust.Resolve, MembershipTrust.MachineBinding(identity)));
+            });
     }
 
     public async ValueTask DisposeAsync()

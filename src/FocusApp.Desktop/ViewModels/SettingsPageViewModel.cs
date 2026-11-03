@@ -58,6 +58,7 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
         };
         _dailyLabel = dailyLabel;
         ActivateEntryCommand = new RelayCommand<SettingsEntryItemViewModel>(ActivateEntry);
+        OpenMembershipCommand = new RelayCommand<object>(_ => MembershipRequested?.Invoke(this, EventArgs.Empty));
         SelectFocusThemeCommand = new RelayCommand<object>(value =>
         {
             if (value is not FocusThemeMode mode || !Enum.IsDefined(mode) || FocusTheme == mode) return;
@@ -88,8 +89,8 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
         if (ForcedModeItem is not null)
         {
             ForcedModeItem.PropertyChanged += ForcedModeItem_PropertyChanged;
-            EnsureForcedModeAccessState();
         }
+        EnsureVipFeatureAccessState();
 
         LaunchAtStartupItem = ToggleItems.FirstOrDefault(item => item.Key == "LaunchAtStartup");
         if (LaunchAtStartupItem is not null)
@@ -117,6 +118,8 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
     public event EventHandler? RulesChanged;
     public event EventHandler? BrowserExtensionRequested;
     public event EventHandler? AboutAppRequested;
+    public event EventHandler? MembershipRequested;
+    public ICommand OpenMembershipCommand { get; }
     public event EventHandler<FocusThemeMode>? FocusThemeChanged;
     public event EventHandler<string>? FocusCharacterChanged;
     public FocusCharacterPickerViewModel FocusCharacterPicker { get; }
@@ -174,6 +177,7 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
     public event EventHandler<bool>? FocusSoundChanged;
 
     public bool CanUseForcedMode => ForcedModeAccessPolicy.CanUseForcedMode(_isLoggedIn, _isVip);
+    public bool CanUseAutomaticBlocking => VipFeatureAccessPolicy.CanUse(_isLoggedIn, _isVip);
 
     public AutomaticRuleModalViewModel RuleModal { get; }
 
@@ -287,9 +291,10 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
         if (couldUseForcedMode != CanUseForcedMode)
         {
             OnPropertyChanged(nameof(CanUseForcedMode));
+            OnPropertyChanged(nameof(CanUseAutomaticBlocking));
         }
 
-        EnsureForcedModeAccessState();
+        EnsureVipFeatureAccessState();
     }
 
     private void OpenCreateRule()
@@ -549,7 +554,7 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
     {
         if (e.PropertyName == nameof(SettingsToggleItemViewModel.IsEnabled))
         {
-            EnsureForcedModeAccessState();
+            EnsureVipFeatureAccessState();
         }
     }
 
@@ -611,18 +616,10 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
         finally { _isApplyingFocusSound = false; }
     }
 
-    private void EnsureForcedModeAccessState()
+    private void EnsureVipFeatureAccessState()
     {
-        if (ForcedModeItem is null)
-        {
-            return;
-        }
-
-        ForcedModeItem.IsVipRestricted = !CanUseForcedMode;
-        if (!CanUseForcedMode && ForcedModeItem.IsEnabled)
-        {
-            ForcedModeItem.IsEnabled = false;
-        }
+        if (AutomaticBlockingItem is not null) AutomaticBlockingItem.IsVipRestricted = !CanUseAutomaticBlocking;
+        if (ForcedModeItem is not null) ForcedModeItem.IsVipRestricted = !CanUseForcedMode;
     }
 
     private void ToggleRule(AutomaticRuleItemViewModel? rule)
@@ -874,6 +871,14 @@ public sealed class SettingsToggleItemViewModel : INotifyPropertyChanged
 
     public bool HasSeparator { get; }
 
+    public bool IsAutomaticBlockingFeature => Key == "AutomaticBlocking";
+    public string VipHintTitle => IsAutomaticBlockingFeature ? "自动屏蔽" : "会员专属";
+    public string VipHintDescription => IsAutomaticBlockingFeature
+        ? "到达设定时间后自动开启屏蔽，\n无需手动操作。"
+        : "开启后，专注期间无法关闭和退出，\n帮助你更专注地完成目标。";
+    // Preserve the preference while the effective switch is locked by membership.
+    public bool IsConfiguredEnabled => _isEnabled;
+
     public bool IsVipRestricted
     {
         get => _isVipRestricted;
@@ -884,22 +889,30 @@ public sealed class SettingsToggleItemViewModel : INotifyPropertyChanged
                 return;
             }
 
+            var previous = IsEnabled;
             _isVipRestricted = value;
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsVipRestricted)));
+            if (previous != IsEnabled) PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsEnabled)));
         }
     }
 
     public bool IsEnabled
     {
-        get => _isEnabled;
+        get => _isEnabled && !IsVipRestricted;
         set
         {
+            if (IsVipRestricted)
+            {
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsEnabled)));
+                return;
+            }
             if (_isEnabled == value)
             {
                 return;
             }
 
             _isEnabled = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsConfiguredEnabled)));
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsEnabled)));
         }
     }

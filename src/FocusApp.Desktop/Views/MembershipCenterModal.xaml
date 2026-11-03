@@ -319,7 +319,7 @@
                                    FontSize="17"
                                    FontWeight="SemiBold"
                                    Foreground="{DynamicResource TextPrimary}"
-                                   Text="{DynamicResource MembershipExpiryDate}" />
+                                   Text="{Binding ExpiryText}" />
                     </StackPanel>
                 </Grid>
             </Border>
@@ -348,7 +348,7 @@
                     </Border>
                     <StackPanel Grid.Column="1" VerticalAlignment="Center" Orientation="Horizontal">
                         <TextBlock VerticalAlignment="Center" FontSize="13" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource MembershipDaysPrefix}" />
-                        <TextBlock Margin="16,0,0,0" VerticalAlignment="Center" FontSize="24" FontWeight="SemiBold" Foreground="{DynamicResource AccentPrimary}" Text="{DynamicResource MembershipDaysValue}" />
+                        <TextBlock Margin="16,0,0,0" VerticalAlignment="Center" FontSize="24" FontWeight="SemiBold" Foreground="{DynamicResource AccentPrimary}" Text="{Binding DaysRemaining}" />
                         <TextBlock Margin="8,8,0,0" VerticalAlignment="Center" FontSize="13" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource MembershipDaysUnit}" />
                     </StackPanel>
                     <Border Grid.Column="2" Height="34" VerticalAlignment="Center" Background="{DynamicResource BorderPrimary}" />

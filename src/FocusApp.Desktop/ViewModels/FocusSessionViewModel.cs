@@ -61,6 +61,40 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     private bool _applyingAuthoritativeSession;
     private bool _isExternalStarting;
     private Action? _cancelExternalStarting;
+    private bool _isVipMember;
+
+    public bool IsVipMember => _isVipMember;
+    public int SubTaskLimit => SubTaskCreationPolicy.GetLimit(IsVipMember);
+    public int PendingRootTaskCount => ActiveTarget?.Tasks.Count(task => !task.IsCompleted) ?? 0;
+    public int RootTaskLimit => TaskCreationPolicy.GetLimit(IsVipMember);
+    public bool IsRootTaskLimitReached => !TaskCreationPolicy.CanCreate(PendingRootTaskCount, IsVipMember);
+    public bool CanCreateRootTask => HasTarget && !IsRootTaskLimitReached;
+
+    private void NotifyRootTaskQuotaChanged()
+    {
+        OnPropertyChanged(nameof(PendingRootTaskCount));
+        OnPropertyChanged(nameof(RootTaskLimit));
+        OnPropertyChanged(nameof(IsRootTaskLimitReached));
+        OnPropertyChanged(nameof(CanCreateRootTask));
+        TaskDrawer.RefreshRootTaskQuota();
+    }
+
+    public void SetMembership(bool isVipMember)
+    {
+        if (_isVipMember == isVipMember) return;
+        _isVipMember = isVipMember;
+        OnPropertyChanged(nameof(IsVipMember));
+        OnPropertyChanged(nameof(SubTaskLimit));
+        TaskDrawer.RefreshSubTaskQuota();
+        NotifyRootTaskQuotaChanged();
+    }
+
+    public bool CanAddSubTask(FocusTaskViewModel parent) => SubTaskCreationPolicy.CanAdd(parent.SubTasks.Count, IsVipMember);
+
+    internal bool CanSaveTaskSubTasks(string taskId, IReadOnlyCollection<LocalSubTaskDto> children) =>
+        SubTaskCreationPolicy.CanSave(
+            ActiveTarget?.Tasks.FirstOrDefault(task => task.TaskId == taskId)?.SubTasks.Select(child => child.Id).ToArray() ?? [],
+            children.Select(child => child.Id).ToArray(), IsVipMember);
 
     public FocusSessionViewModel(Func<DateTime>? nowProvider = null, bool runTimer = true,
         FocusGreetingProvider? greetings = null)
@@ -176,7 +210,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     internal bool AddTaskSubTask(FocusTaskViewModel parent, string title)
     {
         if (!IsFocusing || ActiveTarget is not { } target || !target.Tasks.Contains(parent) ||
-            parent.IsCompleted || !parent.CanAddSubTask || string.IsNullOrWhiteSpace(title)) return false;
+            parent.IsCompleted || !CanAddSubTask(parent) || string.IsNullOrWhiteSpace(title)) return false;
         var now = DateTimeOffset.UtcNow;
         var child = new LocalSubTaskDto(Guid.NewGuid().ToString("N"), parent.TaskId,
             title.Trim(), false, parent.SubTasks.Count, now, now);
@@ -193,7 +227,8 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     internal bool SaveDrawerTask(LocalTaskDto source)
     {
         if (!IsFocusing || ActiveTarget is not { } target || source.TargetId != target.TargetId ||
-            string.IsNullOrWhiteSpace(source.Name) || source.SubTasks.Count > 20) return false;
+            string.IsNullOrWhiteSpace(source.Name) || !CanSaveTaskSubTasks(source.TaskId, source.SubTasks)) return false;
+        if (!source.IsCompleted && !target.Tasks.Any(task => task.TaskId == source.TaskId) && !CanCreateRootTask) return false;
         var wasApplying = _applyingAuthoritativeSession;
         _applyingAuthoritativeSession = true;
         var completionChanged = false;
@@ -223,6 +258,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     public ObservableCollection<FocusTaskViewModel> SessionCompletedTasks { get; } = [];
 
     public IReadOnlyList<FocusSessionRecord> CompletionHistory => _completionHistory;
+    public CompletionRecordStatusViewModel CompletionRecordStatus { get; } = new();
 
     public FocusSessionRecord? LastCompletion => _completionHistory.Count == 0
         ? null
@@ -728,7 +764,10 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         ResetToIdleCore();
     }
 
-    public bool Start(int minutes, FocusTargetViewModel? target = null, bool forcedMode = false)
+    public Guid? AutomaticRuleId { get; private set; }
+    public DateTimeOffset? AutomaticOccurrenceStartedAtUtc { get; private set; }
+    public bool Start(int minutes, FocusTargetViewModel? target = null, bool forcedMode = false,
+        Guid? automaticRuleId = null, DateTimeOffset? automaticOccurrenceStartedAtUtc = null)
     {
         if (Stage is FocusFlowStage.Preparing or FocusFlowStage.Focusing)
         {
@@ -748,6 +787,8 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         _lastPreparationElapsed = TimeSpan.Zero;
         _lastFocusElapsed = TimeSpan.Zero;
         _sessionTarget = target;
+        AutomaticRuleId = automaticRuleId;
+        AutomaticOccurrenceStartedAtUtc = automaticOccurrenceStartedAtUtc;
         _engine.Start(
             minutes,
             forcedMode,
@@ -800,6 +841,8 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         }
         _authoritativeSessionId = session.SessionId;
         _authoritativeSession = session;
+        AutomaticRuleId = session.AutomaticRuleId;
+        AutomaticOccurrenceStartedAtUtc = session.AutomaticOccurrenceStartedAtUtc;
         OnPropertyChanged(nameof(IsServiceOwnedForcedSession));
         OnPropertyChanged(nameof(AuthoritativeSessionId));
         _totalFocusSeconds = session.ConfiguredSeconds;
@@ -1180,6 +1223,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         }
 
         CloseTaskMenus();
+        if (!CanCreateRootTask) { TaskDrawer.ShowRootTaskLimitHint(); return; }
         var task = ActiveTarget!.AddTask("新任务", isNew: true);
         task.BeginEdit();
         RefreshTaskGroups();
@@ -1337,6 +1381,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         {
             if (IsFocusing && sender is FocusTaskViewModel { IsUpdatingDetails: true } changedTask)
                 CompleteFromSubTasks(changedTask);
+            TaskDrawer.RefreshSubTaskQuota();
             TargetTasksChanged?.Invoke(this, ActiveTarget);
             if (IsServiceOwnedForcedSession && sender is FocusTaskViewModel task &&
                 (task.CompletionChangedWithDetails || _sessionCompletedTaskSet.Contains(task)))
@@ -1440,6 +1485,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         }
 
         TaskDrawer.RefreshTasks();
+        NotifyRootTaskQuotaChanged();
         OnPropertyChanged(nameof(PendingTaskCount));
         OnPropertyChanged(nameof(PendingTaskSummary));
         _toggleTaskPanelCompletedTasksCommand.NotifyCanExecuteChanged();

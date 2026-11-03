@@ -17,6 +17,13 @@
                 <ResourceDictionary Source="../Resources/FocusTheme.Light.xaml" />
             </ResourceDictionary.MergedDictionaries>
         <views:CustomTimeSelectionConverter x:Key="SameTask"/>
+        <Style x:Key="SubTaskMembershipLink" TargetType="Button">
+            <Setter Property="Foreground" Value="#FD7E05"/><Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/><Setter Property="Padding" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/><Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button"><Border Background="Transparent"><ContentPresenter VerticalAlignment="Center" HorizontalAlignment="Left"/></Border></ControlTemplate></Setter.Value></Setter>
+        </Style>
         <Style x:Key="DrawerTaskCheck" TargetType="CheckBox" BasedOn="{StaticResource FocusTaskCheckBoxStyle}">
             <Style.Resources><system:Double x:Key="TaskCheckChromeSize">19</system:Double></Style.Resources>
             <Setter Property="Width" Value="19"/><Setter Property="Height" Value="19"/>
@@ -42,21 +49,38 @@
         <Style x:Key="DrawerAddTaskButtonStyle" TargetType="Button" BasedOn="{StaticResource PlainButton}">
             <Setter Property="Width" Value="42"/><Setter Property="Height" Value="42"/>
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
-                <Border x:Name="CreateSurface" Background="{DynamicResource FocusTaskAddBackground}" BorderBrush="{DynamicResource FocusTaskAddBorder}" BorderThickness="1" CornerRadius="21" RenderTransformOrigin="0.5,0.5">
+                <Border x:Name="CreateSurface" Background="{DynamicResource PrimaryActionBackground}" BorderBrush="Transparent" BorderThickness="1" CornerRadius="21" RenderTransformOrigin="0.5,0.5">
                     <Border.RenderTransform><ScaleTransform/></Border.RenderTransform>
-                    <Path Width="14" Height="14" Data="M 0,7 L 14,7 M 7,0 L 7,14" Stroke="{DynamicResource FocusTaskAddIcon}" StrokeThickness="1.5"
+                    <Path Width="14" Height="14" Data="M 0,7 L 14,7 M 7,0 L 7,14" Stroke="White" StrokeThickness="1.5"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 </Border>
                 <ControlTemplate.Triggers>
                     <DataTrigger Binding="{Binding Session.IsDarkFocusTheme}" Value="False">
                         <Setter TargetName="CreateSurface" Property="Effect"><Setter.Value><DropShadowEffect Color="#C97738" BlurRadius="10" ShadowDepth="2" Opacity="0.18"/></Setter.Value></Setter>
                     </DataTrigger>
-                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="CreateSurface" Property="Background" Value="{DynamicResource FocusTaskAddHover}"/><Setter TargetName="CreateSurface" Property="BorderBrush" Value="{DynamicResource FocusTaskAddHoverBorder}"/></Trigger>
-                    <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="CreateSurface" Property="Background" Value="{DynamicResource FocusTaskAddHover}"/><Setter TargetName="CreateSurface" Property="BorderBrush" Value="{DynamicResource FocusTaskAddHoverBorder}"/></Trigger>
-                    <Trigger Property="IsPressed" Value="True"><Setter TargetName="CreateSurface" Property="Background" Value="{DynamicResource FocusTaskAddPressed}"/><Setter TargetName="CreateSurface" Property="RenderTransform"><Setter.Value><ScaleTransform ScaleX="0.94" ScaleY="0.94"/></Setter.Value></Setter></Trigger>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="CreateSurface" Property="Background" Value="{DynamicResource PrimaryActionHoverBackground}"/></Trigger>
+                    <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="CreateSurface" Property="Background" Value="{DynamicResource PrimaryActionHoverBackground}"/></Trigger>
+                    <Trigger Property="IsPressed" Value="True"><Setter TargetName="CreateSurface" Property="Background" Value="{DynamicResource PrimaryActionPressedBackground}"/><Setter TargetName="CreateSurface" Property="RenderTransform"><Setter.Value><ScaleTransform ScaleX="0.94" ScaleY="0.94"/></Setter.Value></Setter></Trigger>
+                    <DataTrigger Binding="{Binding IsRootTaskLimitReached}" Value="True">
+                        <Setter TargetName="CreateSurface" Property="Background" Value="{DynamicResource TaskLimitRestrictedBrush}"/>
+                        <Setter TargetName="CreateSurface" Property="BorderBrush" Value="Transparent"/>
+                        <Setter TargetName="CreateSurface" Property="Effect" Value="{x:Null}"/>
+                    </DataTrigger>
                 </ControlTemplate.Triggers>
             </ControlTemplate></Setter.Value></Setter>
             <Style.Triggers><DataTrigger Binding="{Binding IsCreating}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers>
+        </Style>
+        <Style x:Key="TaskLimitActionButton" TargetType="Button" BasedOn="{StaticResource PlainButton}">
+            <Setter Property="Height" Value="30"/><Setter Property="FontSize" Value="12"/><Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Background" Value="{DynamicResource TaskLimitButtonBrush}"/><Setter Property="Foreground" Value="{DynamicResource TaskLimitButtonTextBrush}"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+                <Border x:Name="ActionSurface" Background="{TemplateBinding Background}" CornerRadius="15">
+                    <TextBlock Text="{TemplateBinding Content}" FontSize="{TemplateBinding FontSize}" FontWeight="{TemplateBinding FontWeight}" Foreground="{TemplateBinding Foreground}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border><ControlTemplate.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ActionSurface" Property="Opacity" Value="0.85"/></Trigger>
+                    <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="ActionSurface" Property="BorderBrush" Value="{DynamicResource TaskLimitBodyBrush}"/><Setter TargetName="ActionSurface" Property="BorderThickness" Value="1"/></Trigger>
+                </ControlTemplate.Triggers>
+            </ControlTemplate></Setter.Value></Setter>
         </Style>
         <Style x:Key="DraftActionButton" TargetType="Button" BasedOn="{StaticResource PlainButton}">
             <Setter Property="Height" Value="30"/><Setter Property="FontSize" Value="11.5"/>
@@ -148,22 +172,43 @@
                             </Grid>
                         </DataTemplate></ItemsControl.ItemTemplate>
                     </ItemsControl>
-                    <Border x:Name="InlineSubTaskCreation" Margin="35,6,0,0" Height="32" CornerRadius="6" BorderThickness="1"
-                            Background="{DynamicResource FocusTaskSurface}" BorderBrush="{DynamicResource FocusTaskSelectedAccent}">
+                    <Border x:Name="InlineSubTaskCreation" Margin="35,6,0,0" Height="32" CornerRadius="9" BorderThickness="0"
+                            Background="{DynamicResource FocusTaskSubTaskSurface}">
                         <Border.Style><Style TargetType="Border"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers>
                             <DataTrigger Value="True"><DataTrigger.Binding><MultiBinding Converter="{StaticResource SameTask}">
                                 <Binding/><Binding Path="DataContext.InlineSubTaskParent" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
                             </MultiBinding></DataTrigger.Binding><Setter Property="Visibility" Value="Visible"/></DataTrigger>
                         </Style.Triggers></Style></Border.Style>
                         <Grid Margin="8,0">
-                            <TextBox x:Name="InlineSubTaskTitleInput" FontSize="11.5" Style="{StaticResource BorderlessInput}" VerticalContentAlignment="Center"
+                        <Grid x:Name="InlineSubTaskInputGroup">
+                            <Grid.Style><Style TargetType="Grid"><Style.Triggers>
+                                <DataTrigger Binding="{Binding DataContext.ShowInlineSubTaskUpgrade, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
+                                <DataTrigger Binding="{Binding DataContext.IsInlineSubTaskLimitReached, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True"><Setter Property="Opacity" Value="0.55"/></DataTrigger>
+                            </Style.Triggers></Style></Grid.Style>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="18"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <TextBlock Text="+" FontSize="16" Foreground="{DynamicResource FocusTaskPlaceholder}" VerticalAlignment="Center"/>
+                            <TextBox x:Name="InlineSubTaskTitleInput" Grid.Column="1" FontSize="11.5" VerticalContentAlignment="Center"
                                      Text="{Binding DataContext.InlineSubTaskTitle, RelativeSource={RelativeSource AncestorType=UserControl}, UpdateSourceTrigger=PropertyChanged}"
-                                     AcceptsReturn="False" AcceptsTab="False" InputMethod.IsInputMethodEnabled="True" AutomationProperties.Name="输入子任务，回车保存并继续，Esc取消"/>
-                            <TextBlock Text="输入子任务名称…" FontSize="11.5" Foreground="{DynamicResource FocusTaskPlaceholder}" VerticalAlignment="Center" IsHitTestVisible="False">
+                                     IsEnabled="{Binding DataContext.CanCreateInlineSubTask, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                     AcceptsReturn="False" AcceptsTab="False" InputMethod.IsInputMethodEnabled="True" AutomationProperties.Name="输入子任务，回车保存并继续，Esc取消">
+                                <TextBox.Style><Style TargetType="TextBox" BasedOn="{StaticResource BorderlessInput}"><Style.Triggers>
+                                    <DataTrigger Binding="{Binding DataContext.IsInlineSubTaskLimitReached, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True"><Setter Property="Visibility" Value="Hidden"/></DataTrigger>
+                                </Style.Triggers></Style></TextBox.Style>
+                            </TextBox>
+                            <TextBlock Grid.Column="1" Text="添加子任务" FontSize="11.5" Foreground="{DynamicResource FocusTaskPlaceholder}" VerticalAlignment="Center" IsHitTestVisible="False">
                                 <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers>
                                     <DataTrigger Binding="{Binding DataContext.InlineSubTaskTitle, RelativeSource={RelativeSource AncestorType=UserControl}}" Value=""><Setter Property="Visibility" Value="Visible"/></DataTrigger>
+                                    <DataTrigger Binding="{Binding DataContext.IsInlineSubTaskLimitReached, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger>
                                 </Style.Triggers></Style></TextBlock.Style>
                             </TextBlock>
+                            <TextBlock x:Name="InlineSubTaskQuota" Grid.Column="2" Margin="8,0,0,0" Text="{Binding DataContext.InlineSubTaskCountDisplay, RelativeSource={RelativeSource AncestorType=UserControl}}" FontSize="11.5" Foreground="{DynamicResource FocusTaskPlaceholder}" VerticalAlignment="Center"/>
+                        </Grid>
+                        <StackPanel x:Name="InlineSubTaskUpgrade" Orientation="Horizontal" VerticalAlignment="Center" Visibility="{Binding DataContext.ShowInlineSubTaskUpgrade, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolVisibility}}">
+                            <TextBlock Text="+ 已达上限，" FontSize="11.5" Foreground="{DynamicResource FocusTaskPlaceholder}" VerticalAlignment="Center"/>
+                            <Button Command="{Binding DataContext.OpenSubTaskMembershipCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" Style="{StaticResource SubTaskMembershipLink}" AutomationProperties.Name="开通会员创建更多">
+                                <TextBlock Text="开通会员创建更多" FontSize="11.5" Foreground="#FD7E05"/>
+                            </Button>
+                        </StackPanel>
                         </Grid>
                     </Border>
                 </StackPanel>
@@ -219,8 +264,42 @@
             </StackPanel>
             <Canvas x:Name="TaskCreationOverlay" Grid.Row="2" Panel.ZIndex="1">
                 <Button x:Name="DrawerAddTaskButton" Canvas.Right="16" Canvas.Bottom="18"
-                        Style="{StaticResource DrawerAddTaskButtonStyle}" Command="{Binding AddTaskCommand}" AutomationProperties.Name="创建任务" ToolTip="添加任务"/>
+                        Style="{StaticResource DrawerAddTaskButtonStyle}" Command="{Binding AddTaskCommand}" MouseEnter="DrawerAddTaskButton_MouseEnter" AutomationProperties.Name="创建任务"/>
             </Canvas>
+            <Popup x:Name="RootTaskLimitPopup" PlacementTarget="{Binding ElementName=DrawerAddTaskButton}" Placement="Custom" AllowsTransparency="True"
+                   StaysOpen="False" PopupAnimation="None" Opened="RootTaskLimitPopup_Opened" Closed="RootTaskLimitPopup_Closed">
+                <Grid x:Name="RootTaskLimitPopupRoot" Width="300" Background="Transparent" UseLayoutRounding="True" SnapsToDevicePixels="True" KeyboardNavigation.TabNavigation="Cycle">
+                    <views:PoptipChrome x:Name="RootTaskLimitSurface" Margin="10" MaxWidth="340" PointerSize="18,9"
+                                        Background="{DynamicResource TaskLimitSurfaceBrush}" BorderBrush="{DynamicResource TaskLimitBorderBrush}">
+                        <views:PoptipChrome.Effect><DropShadowEffect Color="#142035" BlurRadius="14" ShadowDepth="3" Opacity="0.16"/></views:PoptipChrome.Effect>
+                        <StackPanel>
+                            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="32"/><ColumnDefinition Width="10"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                <Border Width="32" Height="32" CornerRadius="16" VerticalAlignment="Top">
+                                    <Border.Style><Style TargetType="Border"><Setter Property="Background" Value="{DynamicResource TaskLimitLockAccentBackgroundBrush}"/><Style.Triggers>
+                                        <DataTrigger Binding="{Binding ShowRootTaskUpgrade}" Value="False"><Setter Property="Background" Value="{DynamicResource TaskLimitLockBackgroundBrush}"/></DataTrigger>
+                                    </Style.Triggers></Style></Border.Style>
+                                    <Viewbox Width="17" Height="20"><Grid Width="20" Height="24">
+                                        <Path Data="M 5,10 L 5,6 A 5,5 0 0 1 15,6 L 15,10 M 3,10 L 17,10 Q 19,10 19,12 L 19,22 Q 19,24 17,24 L 3,24 Q 1,24 1,22 L 1,12 Q 1,10 3,10 M 10,15 L 10,19" StrokeThickness="2" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round">
+                                            <Path.Style><Style TargetType="Path"><Setter Property="Stroke" Value="#FD950D"/><Style.Triggers><DataTrigger Binding="{Binding ShowRootTaskUpgrade}" Value="False"><Setter Property="Stroke" Value="{DynamicResource TaskLimitLockBrush}"/></DataTrigger></Style.Triggers></Style></Path.Style>
+                                        </Path>
+                                    </Grid></Viewbox>
+                                </Border>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="任务数量已达上限" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TaskLimitTitleBrush}"/>
+                                    <TextBlock x:Name="RootTaskLimitDescription" Text="{Binding RootTaskLimitDescription}" Margin="0,5,0,0" FontSize="12" FontWeight="Normal" LineHeight="18" TextWrapping="Wrap" Foreground="{DynamicResource TaskLimitBodyBrush}"/>
+                                </StackPanel>
+                            </Grid>
+                            <Grid Margin="0,14,0,0"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="10"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                <Button x:Name="RootTaskLimitDismiss" Content="知道了" Command="{Binding CloseRootTaskLimitHintCommand}">
+                                    <Button.Style><Style TargetType="Button" BasedOn="{StaticResource TaskLimitActionButton}"><Style.Triggers><DataTrigger Binding="{Binding ShowRootTaskUpgrade}" Value="False"><Setter Property="Grid.ColumnSpan" Value="3"/></DataTrigger></Style.Triggers></Style></Button.Style>
+                                </Button>
+                                <Button x:Name="RootTaskLimitUpgrade" Grid.Column="2" Content="开通会员" Style="{StaticResource TaskLimitActionButton}" Foreground="White" Background="{DynamicResource FocusTaskProgressFill}"
+                                        Command="{Binding OpenRootTaskMembershipCommand}" Visibility="{Binding ShowRootTaskUpgrade, Converter={StaticResource BoolVisibility}}"/>
+                            </Grid>
+                        </StackPanel>
+                    </views:PoptipChrome>
+                </Grid>
+            </Popup>
             <Border x:Name="TaskEditorScrim" Grid.RowSpan="3" Panel.ZIndex="1" Background="#280F172A"
                     Visibility="{Binding IsCreating, Converter={StaticResource BoolVisibility}}"
                     MouseLeftButtonDown="TaskEditorScrim_MouseLeftButtonDown" />
@@ -291,6 +370,12 @@
                                         <StackPanel Orientation="Horizontal"><TextBlock Text="+" FontSize="17" Foreground="{DynamicResource FocusTaskActionIcon}" Margin="0,0,6,0"/><TextBlock Text="添加子任务" FontSize="12" Foreground="{DynamicResource FocusTaskDraftActionText}" VerticalAlignment="Center"/></StackPanel>
                                     </Button>
                                 </WrapPanel>
+                                <StackPanel x:Name="DraftSubTaskUpgrade" Orientation="Horizontal" Margin="0,8,0,0" Visibility="{Binding ShowDraftSubTaskUpgrade, Converter={StaticResource BoolVisibility}}">
+                                    <TextBlock Text="+ 已达上限，" FontSize="12" Foreground="{DynamicResource FocusTaskPlaceholder}"/>
+                                    <Button Command="{Binding OpenSubTaskMembershipCommand}" Style="{StaticResource SubTaskMembershipLink}" AutomationProperties.Name="开通会员创建更多">
+                                        <TextBlock Text="开通会员创建更多" FontSize="12" Foreground="#FD7E05"/>
+                                    </Button>
+                                </StackPanel>
                             </StackPanel>
                         </ScrollViewer>
                         <StackPanel Grid.Row="2" HorizontalAlignment="Right" Orientation="Horizontal" Margin="0,18,0,0">

@@ -5,7 +5,7 @@ using Microsoft.Data.Sqlite;
 
 namespace FocusApp.Infrastructure.Persistence;
 
-public sealed class SqliteLocalDataStore : ILocalDataStore
+public sealed partial class SqliteLocalDataStore : ILocalDataStore
 {
     private readonly string _databasePath;
     private readonly SqliteLocalDataStoreOptions _options;
@@ -75,6 +75,7 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
                 sessionWebsiteRules,
                 sessionApplicationRules,
                 cancellationToken);
+            sessions = await ProjectFocusHistory(connection, sessions, cancellationToken);
             var targets = await LoadTargetsAsync(connection, cancellationToken);
             var tasks = await LoadNormalizedTasksAsync(connection, cancellationToken);
             var websiteRules = await LoadWebsiteRulesAsync(connection, cancellationToken);
@@ -173,11 +174,29 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
                 if (Convert.ToInt32(await active.ExecuteScalarAsync(cancellationToken)) > 0)
                     throw new LocalDataException("该目标正在专注中，请结束专注后再删除。");
             }
+            var deleting = new List<Guid>();
+            await using(var ids = CreateCommand(connection, transaction, "SELECT session_id FROM focus_sessions WHERE target_id=$id"))
+            {
+                ids.Parameters.AddWithValue("$id",targetId);
+                await using var reader=await ids.ExecuteReaderAsync(cancellationToken);
+                while(await reader.ReadAsync(cancellationToken)) deleting.Add(Guid.Parse(reader.GetString(0)));
+            }
+            foreach(var id in deleting)
+                if(await DeleteVisibleFocus(connection,transaction,id,cancellationToken))
+                    await SyncSql(connection,transaction,"DELETE FROM focus_sessions WHERE session_id=$session",cancellationToken,("$session",FormatGuid(id)));
+            var binding=await CurrentFocusBinding(connection,transaction,cancellationToken);
+            if(binding is not null)
+            {
+                var remoteIds=new List<Guid>();
+                await using(var ids=CreateCommand(connection,transaction,"SELECT record_id FROM focus_sync_remote WHERE binding_id=$binding AND target_id=$target AND is_deleted=0 AND local_deleted=0"))
+                {ids.Parameters.AddWithValue("$binding",FormatGuid(binding.BindingId));ids.Parameters.AddWithValue("$target",targetId);
+                 await using var rows=await ids.ExecuteReaderAsync(cancellationToken);while(await rows.ReadAsync(cancellationToken))remoteIds.Add(Guid.Parse(rows.GetString(0)));}
+                foreach(var id in remoteIds)await DeleteVisibleFocus(connection,transaction,id,cancellationToken);
+            }
             await using var command = CreateCommand(
                 connection,
                 transaction,
                 """
-                DELETE FROM focus_sessions WHERE target_id = $id;
                 UPDATE automatic_rules SET target_id = NULL, updated_utc = $updated WHERE target_id = $id;
                 UPDATE app_settings SET selected_target_id = NULL, updated_utc = $updated WHERE selected_target_id = $id;
                 DELETE FROM targets WHERE target_id = $id;
@@ -203,7 +222,10 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
 
         await ExecuteWriteAsync(async (connection, transaction) =>
         {
+            await ValidateFocusOwnership(connection, transaction, session, cancellationToken);
+            if (await FocusWasDeleted(connection, transaction, session.SessionId, cancellationToken)) return;
             await UpsertFocusSessionAsync(connection, transaction, session, cancellationToken);
+            await CaptureFocusOwner(connection, transaction, session, cancellationToken);
 
             await using (var deleteSnapshots = CreateCommand(
                              connection,
@@ -300,6 +322,7 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
                 command.Parameters.AddWithValue("$taskId", taskId);
                 await command.ExecuteNonQueryAsync(cancellationToken);
             }
+            await QueueCompletedFocus(connection, transaction, session, cancellationToken);
         }, cancellationToken);
     }
 
@@ -307,6 +330,7 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
     {
         await ExecuteWriteAsync(async (connection, transaction) =>
         {
+            if(!await DeleteVisibleFocus(connection, transaction, sessionId, cancellationToken))return;
             await using var command = CreateCommand(
                 connection,
                 transaction,
@@ -1108,7 +1132,7 @@ public sealed class SqliteLocalDataStore : ILocalDataStore
 
     private static SqliteCommand CreateCommand(
         SqliteConnection connection,
-        SqliteTransaction transaction,
+        SqliteTransaction? transaction,
         string sql)
     {
         var command = connection.CreateCommand();

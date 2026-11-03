@@ -198,31 +198,56 @@
                                         </Grid>
                                     </DataTemplate></ItemsControl.ItemTemplate>
                                 </ItemsControl>
-                                <Border x:Name="InlineSubTaskCreation" Grid.Row="2" Margin="32,4,7,0" Height="32" CornerRadius="7" BorderThickness="1"
-                                        Background="{DynamicResource FloatingInputBackgroundBrush}">
+                                <Border x:Name="InlineSubTaskCreation" Grid.Row="2" Margin="32,4,7,0" Height="32" CornerRadius="9" BorderThickness="0"
+                                        Background="{DynamicResource FloatingSubTaskEntryBackgroundBrush}">
                                     <Border.Style><Style TargetType="Border">
                                         <Setter Property="Visibility" Value="Collapsed"/>
-                                        <Setter Property="BorderBrush" Value="{DynamicResource FloatingInputBorderBrush}"/>
                                         <Style.Triggers>
                                             <DataTrigger Value="True"><DataTrigger.Binding><MultiBinding Converter="{StaticResource SameTask}">
                                                 <Binding/><Binding Path="DataContext.SubTaskCreationParent" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
                                             </MultiBinding></DataTrigger.Binding><Setter Property="Visibility" Value="Visible"/></DataTrigger>
-                                            <Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter Property="BorderBrush" Value="{DynamicResource FloatingInputFocusBrush}"/></Trigger>
                                         </Style.Triggers>
                                     </Style></Border.Style>
-                                    <Grid Margin="9,0">
-                                        <TextBox x:Name="InlineSubTaskTitleInput" Text="{Binding DataContext.TaskTitle, RelativeSource={RelativeSource AncestorType=UserControl}, UpdateSourceTrigger=PropertyChanged}"
-                                                 IsEnabled="{Binding DataContext.IsCreatingSubTask, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    <Grid Margin="10,0">
+                                    <Grid x:Name="SubTaskCreationInputGroup">
+                                        <Grid.Style><Style TargetType="Grid"><Style.Triggers>
+                                            <DataTrigger Binding="{Binding DataContext.ShowSubTaskUpgrade, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
+                                            <DataTrigger Binding="{Binding DataContext.IsSubTaskLimitReached, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True"><Setter Property="Opacity" Value="0.55"/></DataTrigger>
+                                        </Style.Triggers></Style></Grid.Style>
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="11"/><ColumnDefinition Width="9"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                        <Path Data="M 5,0 L 5,10 M 0,5 L 10,5" Width="10" Height="10" Stroke="{DynamicResource FloatingSubTaskEntryTextBrush}" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" VerticalAlignment="Center" IsHitTestVisible="False"/>
+                                        <TextBox x:Name="InlineSubTaskTitleInput" Grid.Column="2" Text="{Binding DataContext.TaskTitle, RelativeSource={RelativeSource AncestorType=UserControl}, UpdateSourceTrigger=PropertyChanged}"
+                                                 IsEnabled="{Binding DataContext.CanCreateSubTask, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                  FontFamily="{DynamicResource FontFamilyPrimary}" FontSize="13" FontWeight="Normal"
                                                  Foreground="{DynamicResource FloatingTaskTextBrush}" CaretBrush="{DynamicResource AccentPrimary}" Background="Transparent" BorderThickness="0"
                                                  VerticalContentAlignment="Center" Padding="0" AcceptsReturn="False" AcceptsTab="False" InputMethod.IsInputMethodEnabled="True" AutomationProperties.Name="子任务名称">
                                             <TextBox.Template><ControlTemplate TargetType="TextBox"><ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled"/></ControlTemplate></TextBox.Template>
+                                            <TextBox.Style><Style TargetType="TextBox"><Style.Triggers>
+                                                <DataTrigger Binding="{Binding DataContext.IsSubTaskLimitReached, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True"><Setter Property="Visibility" Value="Hidden"/></DataTrigger>
+                                            </Style.Triggers></Style></TextBox.Style>
                                         </TextBox>
-                                        <TextBlock Text="输入子任务名称…" FontFamily="{DynamicResource FontFamilyPrimary}" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource FloatingSecondaryBrush}" VerticalAlignment="Center" IsHitTestVisible="False">
+                                        <TextBlock Grid.Column="2" Text="添加子任务" FontFamily="{DynamicResource FontFamilyPrimary}" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource FloatingSubTaskEntryTextBrush}" VerticalAlignment="Center" IsHitTestVisible="False">
                                             <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers>
                                                 <DataTrigger Binding="{Binding DataContext.TaskTitle, RelativeSource={RelativeSource AncestorType=UserControl}}" Value=""><Setter Property="Visibility" Value="Visible"/></DataTrigger>
+                                                <DataTrigger Binding="{Binding DataContext.IsSubTaskLimitReached, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger>
                                             </Style.Triggers></Style></TextBlock.Style>
                                         </TextBlock>
+                                        <TextBlock x:Name="SubTaskQuota" Grid.Column="3" Margin="8,0,0,0" Text="{Binding DataContext.SubTaskQuotaDisplay, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                   FontFamily="{DynamicResource FontFamilyEnglish}" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource FloatingSubTaskEntryTextBrush}" VerticalAlignment="Center"/>
+                                    </Grid>
+                                    <Grid x:Name="SubTaskUpgradeEntry">
+                                        <Grid.Style><Style TargetType="Grid"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers>
+                                            <DataTrigger Binding="{Binding DataContext.ShowSubTaskUpgrade, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger>
+                                        </Style.Triggers></Style></Grid.Style>
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="11"/><ColumnDefinition Width="9"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <Path Data="M 5,0 L 5,10 M 0,5 L 10,5" Width="10" Height="10" Stroke="{DynamicResource FloatingSubTaskEntryTextBrush}" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="2" Text="已达上限，" FontFamily="{DynamicResource FontFamilyPrimary}" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource FloatingSubTaskEntryTextBrush}" VerticalAlignment="Center"/>
+                                        <Button x:Name="SubTaskMembershipLink" Grid.Column="3" Command="{Binding DataContext.OpenSubTaskMembershipCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                Foreground="#FD7E05" Background="Transparent" BorderThickness="0" Padding="0" Cursor="Hand" FocusVisualStyle="{x:Null}" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" AutomationProperties.Name="开通会员创建更多">
+                                            <Button.Template><ControlTemplate TargetType="Button"><Border Background="{TemplateBinding Background}"><ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center"/></Border></ControlTemplate></Button.Template>
+                                            <TextBlock Text="开通会员创建更多" FontFamily="{DynamicResource FontFamilyPrimary}" FontSize="12" FontWeight="Normal" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+                                        </Button>
+                                    </Grid>
                                     </Grid>
                                 </Border>
                                 </Grid>
@@ -235,23 +260,36 @@
             </Border>
             <Grid x:Name="TaskCreationArea" Grid.Row="2" Height="{Binding CreationHeight}" ClipToBounds="True">
                 <Grid.Style><Style TargetType="Grid"><Style.Triggers><DataTrigger Binding="{Binding CreationHeight}" Value="0"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></Grid.Style>
-                <Border x:Name="TaskCreationSurface" Height="32" Margin="0,12,0,0" VerticalAlignment="Top" Background="{DynamicResource FloatingInputBackgroundBrush}" BorderThickness="1" CornerRadius="7">
-                    <Border.Style><Style TargetType="Border"><Setter Property="BorderBrush" Value="{DynamicResource FloatingInputBorderBrush}"/><Style.Triggers>
+                <Border x:Name="TaskCreationSurface" Height="32" Margin="0,12,0,0" VerticalAlignment="Top" BorderThickness="1" CornerRadius="7">
+                    <Border.Style><Style TargetType="Border"><Setter Property="Background" Value="{DynamicResource FloatingInputBackgroundBrush}"/><Setter Property="BorderBrush" Value="{DynamicResource FloatingInputBorderBrush}"/><Style.Triggers>
                         <DataTrigger Binding="{Binding IsKeyboardFocusWithin, ElementName=TaskTitleInput}" Value="True"><Setter Property="BorderBrush" Value="{DynamicResource FloatingInputFocusBrush}"/></DataTrigger>
+                        <DataTrigger Binding="{Binding IsRootTaskLimitReached}" Value="True"><Setter Property="Background" Value="{DynamicResource FloatingSubTaskEntryBackgroundBrush}"/><Setter Property="BorderBrush" Value="{DynamicResource FloatingInputBorderBrush}"/></DataTrigger>
                     </Style.Triggers></Style></Border.Style>
                     <Grid Margin="9,0">
                         <TextBox x:Name="TaskTitleInput" Text="{Binding TaskTitle, UpdateSourceTrigger=PropertyChanged}"
-                                 IsEnabled="{Binding IsCreatingRootTask}" FontFamily="{DynamicResource FontFamilyPrimary}" FontSize="13" FontWeight="Normal"
+                                 IsEnabled="{Binding CanCreateRootTask}" FontFamily="{DynamicResource FontFamilyPrimary}" FontSize="13" FontWeight="Normal"
                                  Foreground="{DynamicResource FloatingTaskTextBrush}" CaretBrush="{DynamicResource AccentPrimary}" Background="Transparent" BorderThickness="0"
                                  VerticalContentAlignment="Center" Padding="0" AcceptsReturn="False" AcceptsTab="False" AutomationProperties.Name="任务名称"
                                  InputMethod.IsInputMethodEnabled="True">
                             <TextBox.Template><ControlTemplate TargetType="TextBox"><ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled"/></ControlTemplate></TextBox.Template>
+                            <TextBox.Style><Style TargetType="TextBox"><Style.Triggers>
+                                <DataTrigger Binding="{Binding IsRootTaskLimitReached}" Value="True"><Setter Property="Visibility" Value="Hidden"/></DataTrigger>
+                            </Style.Triggers></Style></TextBox.Style>
                         </TextBox>
-                        <TextBlock Text="输入任务名称…" FontFamily="{DynamicResource FontFamilyPrimary}" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource FloatingSecondaryBrush}" VerticalAlignment="Center" IsHitTestVisible="False">
-                            <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding TaskTitle}" Value=""><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                        <TextBlock x:Name="RootTaskPlaceholder" Text="{Binding RootTaskPlaceholder}" FontFamily="{DynamicResource FontFamilyPrimary}" FontSize="13" FontWeight="Normal" VerticalAlignment="Center" IsHitTestVisible="False">
+                            <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Foreground" Value="{DynamicResource FloatingSecondaryBrush}"/><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers>
+                                <DataTrigger Binding="{Binding TaskTitle}" Value=""><Setter Property="Visibility" Value="Visible"/></DataTrigger>
+                                <DataTrigger Binding="{Binding IsRootTaskLimitReached}" Value="True"><Setter Property="Visibility" Value="Visible"/><Setter Property="Foreground" Value="{DynamicResource FloatingSubTaskEntryTextBrush}"/></DataTrigger>
+                            </Style.Triggers></Style></TextBlock.Style>
                         </TextBlock>
                     </Grid>
                 </Border>
+                <Button x:Name="RootTaskMembershipLink" Margin="1,46,0,0" Height="20" VerticalAlignment="Top" HorizontalAlignment="Left"
+                        Visibility="{Binding ShowRootTaskUpgrade, Converter={StaticResource TaskVisibility}}" Command="{Binding OpenRootTaskMembershipCommand}"
+                        Background="Transparent" BorderThickness="0" Padding="0" Cursor="Hand" FocusVisualStyle="{x:Null}" AutomationProperties.Name="开通会员创建更多任务">
+                    <Button.Template><ControlTemplate TargetType="Button"><Border Background="Transparent"><ContentPresenter VerticalAlignment="Center"/></Border></ControlTemplate></Button.Template>
+                    <TextBlock Text="开通会员创建更多任务 ›" FontSize="12" FontWeight="Normal" Foreground="#FD7E05"/>
+                </Button>
             </Grid>
         </Grid>
     </Border>

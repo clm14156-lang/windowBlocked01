@@ -972,5 +972,9 @@
                                      DataContext="{Binding BrowserExtensionModal}"/>
         <views:AboutAppModal x:Name="AboutAppModalControl" Panel.ZIndex="31" DataContext="{Binding AboutAppModal}"/>
         <views:DeleteGoalModal x:Name="DeleteGoalModalControl" Panel.ZIndex="32" DataContext="{Binding StatisticsPage.GoalDeletion}"/>
+        <Border Panel.ZIndex="200" Grid.ColumnSpan="2" Margin="80,50,24,0" Padding="12" VerticalAlignment="Top" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" CornerRadius="8">
+            <Border.Style><Style TargetType="Border"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding RecordRecovery.HasWarning}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Border.Style>
+            <StackPanel><TextBlock FontSize="13" TextWrapping="Wrap" Text="{Binding RecordRecovery.Message}" /><Button Content="重试保存" HorizontalAlignment="Right" Command="{Binding RetryLocalRecordSaveCommand}" /></StackPanel>
+        </Border>
     </Grid>
 </Window>

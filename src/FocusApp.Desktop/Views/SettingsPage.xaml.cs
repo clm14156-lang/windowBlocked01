@@ -13,10 +13,12 @@ public partial class SettingsPage : UserControl
     {
         InitializeComponent();
         DataContextChanged += SettingsPage_DataContextChanged;
+        Unloaded += (_, _) => CloseVipFeatureHint();
     }
 
     private void SettingsPage_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
+        CloseVipFeatureHint();
         if (e.OldValue is SettingsPageViewModel oldViewModel)
         {
             oldViewModel.AutomaticRuleFocusRequested -= SettingsViewModel_AutomaticRuleFocusRequested;

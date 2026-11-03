@@ -216,6 +216,7 @@ public partial class MainWindow : Window
         }
 
         _focusFloatingViewModel = new FocusFloatingWindowViewModel(session);
+        _focusFloatingViewModel.MembershipRequested += FloatingSubTaskMembershipRequested;
         _focusFloatingWindow = new FocusFloatingWindow
         {
             DataContext = _focusFloatingViewModel
@@ -245,6 +246,13 @@ public partial class MainWindow : Window
     private void FocusFloatingWindow_ExpandRequested(object? sender, EventArgs e)
     {
         RestoreFromFocusFloatingWindow();
+    }
+
+    private void FloatingSubTaskMembershipRequested(object? sender, EventArgs e)
+    {
+        if (!ReferenceEquals(sender, _focusFloatingViewModel) || DataContext is not MainWindowViewModel model) return;
+        RestoreFromFocusFloatingWindow();
+        model.OpenVipCommand.Execute(null);
     }
 
     private void FocusFloatingWindow_Closed(object? sender, EventArgs e)

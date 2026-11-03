@@ -6,6 +6,15 @@ namespace FocusApp.Desktop.ViewModels;
 
 public sealed class MembershipCenterViewModel : INotifyPropertyChanged
 {
+    private FocusApp.Core.MembershipStatus? status;
+    public string ExpiryText => status?.Kind == "lifetime" && status.IsActive ? "永久有效" : status?.GrantExpiresAtUtc?.ToLocalTime().ToString("yyyy-MM-dd HH:mm") ?? "尚未验证";
+    public string DaysRemaining => status?.GrantExpiresAtUtc is { } end ? Math.Max(0, (int)Math.Ceiling((end - DateTimeOffset.UtcNow).TotalDays)).ToString() : "—";
+    public string VerificationText => status?.Error ?? (status?.LeaseExpiresAtUtc is { } expiry ? "离线凭证有效至 " + expiry.ToLocalTime().ToString("yyyy-MM-dd HH:mm") : "请联网验证会员");
+    public void ApplyStatus(FocusApp.Core.MembershipStatus value)
+    {
+        status = value; MembershipType = value.IsActive ? value.Kind == "lifetime" ? MembershipType.Lifetime : MembershipType.Annual : MembershipType.Normal;
+        OnPropertyChanged(nameof(ExpiryText)); OnPropertyChanged(nameof(DaysRemaining)); OnPropertyChanged(nameof(VerificationText));
+    }
     private bool _isOpen;
     private bool _hasRenewFeedback;
     private MembershipType _membershipType = MembershipType.Annual;

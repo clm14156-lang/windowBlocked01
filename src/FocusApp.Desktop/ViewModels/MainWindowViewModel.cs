@@ -1,3 +1,4 @@
+using FocusApp.Desktop.Services.Cloud;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
@@ -22,6 +23,10 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private readonly SemaphoreSlim _normalFocusPersistenceGate = new(1, 1);
     private readonly SemaphoreSlim _automaticRulesPersistenceGate = new(1, 1);
     private Guid? _normalFocusSessionId;
+    private Guid _normalFocusBindingId;
+    public LocalFocusRecordRecovery? RecordRecovery { get; }
+    public FocusUploadCoordinator? FocusUploads { get; }
+    public ICommand RetryLocalRecordSaveCommand { get; }
     private DateTimeOffset? _normalFocusStartedAtUtc;
     private readonly IAudioService? _audioService;
     private bool _isCompletionReminderVisible;
@@ -29,6 +34,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private string _completionReminderTimeRange = string.Empty;
     private string _completionReminderDetail = string.Empty;
     private readonly DispatcherTimer _focusResultToastTimer;
+    private readonly CloudConnectionMonitor? _cloudConnectionMonitor;
     private bool _isFocusResultToastVisible;
     private string _focusResultToastTitle = string.Empty;
     private string _focusResultToastSubtitle = string.Empty;
@@ -51,7 +57,8 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         StatisticsOverviewViewModel? statisticsPage = null,
         DesktopServiceConnection? serviceConnection = null,
         IAudioService? audioService = null,
-        BrowserExtensionModalViewModel? browserExtensionModal = null)
+        BrowserExtensionModalViewModel? browserExtensionModal = null,
+        IAccountClient? accountClient = null)
     {
         PrimaryNavigationItems = new ReadOnlyCollection<NavigationItemViewModel>(
             primaryNavigationItems.ToList());
@@ -82,6 +89,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         SettingsPage.FocusCharacterChanged += SettingsPage_FocusCharacterChanged;
         SettingsPage.BrowserExtensionRequested += (_, _) => BrowserExtensionModal.OpenFromSettings();
         SettingsPage.AboutAppRequested += (_, _) => AboutAppModal.Open();
+        SettingsPage.MembershipRequested += (_, _) => OpenVip();
         HomePage.SetManualFocusStartPrompt(BrowserExtensionModal.OpenForFocus);
         HomePage.FocusSession.PropertyChanged += (_, args) =>
         {
@@ -116,6 +124,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         StateCoordinator = new FocusStateCoordinator(HomePage, SettingsPage, BlockingPage, StatisticsPage);
         SettingsPage.SetUserAccess(IsLoggedIn, IsVipMember);
         HomePage.SetUserAccess(IsLoggedIn, IsVipMember);
+        HomePage.FocusSession.TaskDrawer.MembershipRequested += (_, _) => OpenVip();
         // Automatic rule evaluation is maintenance work; keep it below
         // input and rendering so it cannot steal time from the first frame.
         _automaticBlockingTimer = new DispatcherTimer(DispatcherPriority.Background)
@@ -133,8 +142,41 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             Interval = TimeSpan.FromSeconds(3)
         };
         _focusResultToastTimer.Tick += (_, _) => CloseFocusResultToast();
-        AuthModal = new AuthModalViewModel();
+        var accounts = accountClient ?? CloudAccountClient.CreateDefault();
+        if (ServiceConnection is not null && accounts is CloudAccountClient membershipCloud)
+        {
+            Membership = new MembershipCoordinator(ServiceConnection, membershipCloud);
+            Membership.Changed += (_, status) =>
+            {
+                MembershipType = status.IsActive ? status.Kind == "lifetime" ? MembershipType.Lifetime : MembershipType.Annual : MembershipType.Normal;
+                MembershipCenter.ApplyStatus(status);
+                OnPropertyChanged(nameof(MembershipStatusText));
+            };
+        }
+        if (accounts is ICloudConnectionProbe probe)
+        {
+            _cloudConnectionMonitor = new CloudConnectionMonitor(probe);
+            _cloudConnectionMonitor.PropertyChanged += CloudConnection_PropertyChanged;
+        }
+        if(accountClient is null && ServiceConnection is not null)
+        {
+            RecordRecovery=new LocalFocusRecordRecovery(ServiceConnection,completionStatus:HomePage.FocusSession.CompletionRecordStatus);
+            if(accounts is IFocusUploadClient uploader)FocusUploads=new FocusUploadCoordinator(ServiceConnection,uploader,localRecovery:RecordRecovery,
+                completionStatus:HomePage.FocusSession.CompletionRecordStatus);
+        }
+        RetryLocalRecordSaveCommand=new AsyncCommand(async()=>{if(RecordRecovery is not null)await RecordRecovery.FlushAsync();});
+        AccountSyncModal = new AccountSyncModalViewModel(accounts as IDeviceSessionClient,FocusUploads);
+        AuthModal = new AuthModalViewModel(accounts);
         AuthModal.LoginSucceeded += AuthModal_LoginSucceeded;
+        AuthModal.SessionCleared += (_, _) => ClearAccountSession();
+        // Only the real application owns the periodic cloud session maintenance.
+        if (accountClient is null && System.Windows.Application.Current is not null)
+        {
+            var accountTimer = new DispatcherTimer { Interval = TimeSpan.FromMinutes(1) };
+            accountTimer.Tick += async (_, _) => await AuthModal.RestoreSessionAsync();
+            accountTimer.Start();
+            Dispatcher.CurrentDispatcher.BeginInvoke(new Action(async () => await AuthModal.RestoreSessionAsync()));
+        }
         AccountSyncModal.AccountDeletionConfirmed += AccountSyncModal_AccountDeletionConfirmed;
         _currentNavigationItem = PrimaryNavigationItems[0];
         _currentNavigationItem.IsSelected = true;
@@ -143,6 +185,24 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         OpenAccountSyncCommand = new RelayCommand<object>(_ => OpenAccountSync());
         OpenVipCommand = new RelayCommand<object>(_ => OpenVip());
         LogoutCommand = new RelayCommand<object>(_ => Logout());
+    }
+
+    public MembershipCoordinator? Membership { get; }
+    public string MembershipStatusText => Membership?.Status.Error ?? string.Empty;
+    public void StartCloudConnectionMonitoring() { _cloudConnectionMonitor?.Start(); Membership?.Start(); }
+
+    public void StopCloudConnectionMonitoring()
+    {
+        Membership?.Dispose();
+        if (_cloudConnectionMonitor is null) return;
+        _cloudConnectionMonitor.PropertyChanged -= CloudConnection_PropertyChanged;
+        _cloudConnectionMonitor.Dispose();
+    }
+
+    private void CloudConnection_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(CloudConnectionMonitor.IsUnavailable) && _cloudConnectionMonitor is not null)
+            HomePage.SetCloudConnectionUnavailable(_cloudConnectionMonitor.IsUnavailable);
     }
 
     private void WebsiteModal_WebsiteAddressValidationFailed(object? sender, EventArgs e)
@@ -169,7 +229,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     public AuthModalViewModel AuthModal { get; }
 
-    public AccountSyncModalViewModel AccountSyncModal { get; } = new();
+    public AccountSyncModalViewModel AccountSyncModal { get; }
 
     public VipModalViewModel VipModal { get; } = new();
     public BrowserExtensionModalViewModel BrowserExtensionModal { get; }
@@ -404,7 +464,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     public string CurrentUserEmail => string.IsNullOrEmpty(_currentAccount)
         ? string.Empty
-        : $"{_currentAccount}@focusapp.local";
+        : _currentAccount;
 
     private void OpenAuth()
     {
@@ -420,8 +480,12 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     private void AuthModal_LoginSucceeded(object? sender, LoginSucceededEventArgs e)
     {
+        if (IsLoggedIn && _currentAccount == e.Account && MembershipType == e.MembershipType) return;
+        AccountSyncModal.ClearDevices();
         _currentAccount = e.Account;
-        MembershipType = e.MembershipType;
+        MembershipType = Membership is null ? e.MembershipType : Membership.Status.IsActive
+            ? Membership.Status.Kind == "lifetime" ? MembershipType.Lifetime : MembershipType.Annual : MembershipType.Normal;
+        if (Membership is not null) _ = Membership.RefreshAsync();
         OnPropertyChanged(nameof(CurrentUserEmail));
         IsLoggedIn = true;
         // A saved VIP role cannot be restored until the account has unlocked it.
@@ -457,13 +521,14 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         AccountSyncModal.Open();
     }
 
-    private void Logout()
+    private async void Logout()
     {
-        ClearAccountSession();
+        await AuthModal.LogoutAsync();
     }
 
-    private void AccountSyncModal_AccountDeletionConfirmed(object? sender, EventArgs e)
+    private async void AccountSyncModal_AccountDeletionConfirmed(object? sender, EventArgs e)
     {
+        await AuthModal.LogoutAsync();
         ClearAccountSession(clearSimulatedAccountData: true);
         var homeNavigationItem = PrimaryNavigationItems.FirstOrDefault(item => item.Page == NavigationPage.Home)
             ?? PrimaryNavigationItems[0];
@@ -478,9 +543,10 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         MembershipCenter.CloseCommand.Execute(null);
         if (clearSimulatedAccountData)
         {
-            AuthModal.ClearSimulatedAccountData();
+            AuthModal.ClearAccountForm();
         }
 
+        AccountSyncModal.ClearDevices();
         _currentAccount = string.Empty;
         MembershipType = MembershipType.Normal;
         OnPropertyChanged(nameof(CurrentUserEmail));
@@ -825,17 +891,27 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     private async void FocusSession_CompletionRecorded(object? sender, FocusSessionCompletedEventArgs e)
     {
-        if (!e.Record.IsForcedMode && ServiceConnection is not null && ServiceConnection.IsConnected)
+        var saveStatus=HomePage.FocusSession.CompletionRecordStatus;
+        if(e.Record.IsForcedMode)
+            saveStatus.Track(HomePage.FocusSession.AuthoritativeSessionId??Guid.NewGuid(),
+                HomePage.FocusSession.AuthoritativeSessionId is not null&&ServiceConnection is not null);
+        else if(ServiceConnection is null)saveStatus.Track(Guid.NewGuid());
+        if (!e.Record.IsForcedMode && ServiceConnection is not null)
         {
+            var completedSessionId = _normalFocusSessionId ?? Guid.NewGuid();
+            saveStatus.Track(completedSessionId);
+            var completedStart = _normalFocusStartedAtUtc;
+            var completedBinding = _normalFocusBindingId;
+            _normalFocusSessionId = null; _normalFocusStartedAtUtc = null; _normalFocusBindingId = Guid.Empty;
             await _normalFocusPersistenceGate.WaitAsync();
             try
             {
                 var record = e.Record;
                 var completedAt = new DateTimeOffset(record.CompletedAt).ToUniversalTime();
-                var focusStartedAt = _normalFocusStartedAtUtc ?? completedAt - record.ActualDuration;
+                var focusStartedAt = completedStart ?? completedAt - record.ActualDuration;
                 var target = HomePage.FocusTargetModal.Targets.FirstOrDefault(item => item.TargetId == record.TargetId);
                 var persistedSnapshots = ServiceConnection.State?.FocusSessions
-                    .FirstOrDefault(item => item.SessionId == _normalFocusSessionId)?.CompletedTasks
+                    .FirstOrDefault(item => item.SessionId == completedSessionId)?.CompletedTasks
                     .ToDictionary(item => item.TaskId, StringComparer.Ordinal)
                     ?? new Dictionary<string, LocalFocusSessionTaskSnapshotDto>(StringComparer.Ordinal);
                 var snapshots = record.CompletedTaskIds.Select((taskId, index) =>
@@ -850,7 +926,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
                     };
                 }).ToArray();
                 var session = new LocalFocusSessionDto(
-                    _normalFocusSessionId ?? Guid.NewGuid(), LocalFocusSessionStatusDto.Completed, false,
+                    completedSessionId, LocalFocusSessionStatusDto.Completed, false,
                     checked((int)record.ConfiguredDuration.TotalSeconds),
                     checked((int)record.ActualDuration.TotalSeconds),
                     new DateTimeOffset(record.StartedAt).ToUniversalTime(),
@@ -863,14 +939,17 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
                     false,
                     null,
                     null,
-                    snapshots);
-                try { await ServiceConnection.RecordCompletedFocusAsync(session); }
-                catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException) { }
-                finally
+                    snapshots) { CloudBindingId = completedBinding };
+                try
                 {
-                    _normalFocusSessionId = null;
-                    _normalFocusStartedAtUtc = null;
+                    if(RecordRecovery is not null) await RecordRecovery.SaveAsync(session);
+                    else
+                    {
+                        await ServiceConnection.RecordCompletedFocusAsync(session);
+                        saveStatus.LocalSaved(completedSessionId);
+                    }
                 }
+                catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException) { }
             }
             finally { _normalFocusPersistenceGate.Release(); }
         }
@@ -1015,28 +1094,32 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             HomePage.FocusSession.Stage != FocusFlowStage.Focusing ||
             HomePage.FocusSession.IsForcedModeActive ||
             _normalFocusSessionId is not null ||
-            ServiceConnection is null || !ServiceConnection.IsConnected)
+            ServiceConnection is null)
             return;
 
+        var now = DateTimeOffset.UtcNow;
+        var startId = Guid.NewGuid();
+        var startBinding = ServiceConnection.CloudBindingId;
+        var targetId = HomePage.FocusSession.ActiveTarget?.TargetId;
+        var targetName = HomePage.FocusSession.ActiveTarget?.Name;
+        var configuredSeconds = HomePage.FocusSession.TotalFocusSeconds;
+        _normalFocusSessionId = startId; _normalFocusStartedAtUtc = now; _normalFocusBindingId = startBinding;
         await _normalFocusPersistenceGate.WaitAsync();
         try
         {
-            if (_normalFocusSessionId is not null) return;
-            var now = DateTimeOffset.UtcNow;
-            _normalFocusSessionId = Guid.NewGuid();
-            _normalFocusStartedAtUtc = now;
-            var target = HomePage.FocusSession.ActiveTarget;
+
             var session = new LocalFocusSessionDto(
-                _normalFocusSessionId.Value, LocalFocusSessionStatusDto.Focusing, false,
-                HomePage.FocusSession.TotalFocusSeconds, 0,
+                startId, LocalFocusSessionStatusDto.Focusing, false,
+                configuredSeconds, 0,
                 now - FocusSessionEngine.PreparationDuration, now,
-                now.AddSeconds(HomePage.FocusSession.TotalFocusSeconds), null, null,
-                target?.TargetId, target?.Name, false, null, null, []);
+                now.AddSeconds(configuredSeconds), null, null,
+                targetId, targetName, false, HomePage.FocusSession.AutomaticRuleId,
+                HomePage.FocusSession.AutomaticOccurrenceStartedAtUtc, []) { CloudBindingId = startBinding };
+            if(!ServiceConnection.IsConnected)return;
             try { await ServiceConnection.StartNormalFocusAsync(session); }
             catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException)
             {
-                _normalFocusSessionId = null;
-                _normalFocusStartedAtUtc = null;
+                // Retain the ID/start/owner so completion can be recovered after reconnect.
             }
         }
         finally { _normalFocusPersistenceGate.Release(); }

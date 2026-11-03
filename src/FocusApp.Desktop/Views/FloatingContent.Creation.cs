@@ -32,6 +32,7 @@ public partial class FloatingContent
         _creationModel.TaskCreationStateChanged += CreationStateChanged;
         _creationModel.TaskCreated += CreatedTask;
         _creationModel.SubTaskCreated += CreatedSubTask;
+        _creationModel.PropertyChanged += CreationQuotaChanged;
         SystemParameters.StaticPropertyChanged += CreationAnimationSettingsChanged;
     }
 
@@ -43,6 +44,7 @@ public partial class FloatingContent
             _creationModel.TaskCreationStateChanged -= CreationStateChanged;
             _creationModel.TaskCreated -= CreatedTask;
             _creationModel.SubTaskCreated -= CreatedSubTask;
+            _creationModel.PropertyChanged -= CreationQuotaChanged;
         }
         SystemParameters.StaticPropertyChanged -= CreationAnimationSettingsChanged;
         _creationModel = null;
@@ -89,6 +91,14 @@ public partial class FloatingContent
 
     private void CreatedSubTask(object? sender, FocusTaskViewModel parent) => QueueCreationFocus();
 
+    private void CreationQuotaChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(FocusFloatingWindowViewModel.CanCreateSubTask) && _creationModel?.IsCreatingSubTask == true)
+            QueueCreationFocus();
+        if (e.PropertyName == nameof(FocusFloatingWindowViewModel.CanCreateRootTask) && _creationModel?.IsCreatingRootTask == true)
+            QueueCreationFocus();
+    }
+
     internal void HandleCreationKey(KeyEventArgs e)
     {
         if (IsTaskReordering)
@@ -112,6 +122,7 @@ public partial class FloatingContent
         }
         if (e.Key == Key.Tab)
         {
+            if (model.IsCreatingSubTask && !model.CanCreateSubTask) return;
             DesktopDiagnostics.RecordAction("Floating.Tab", $"Creating={model.IsCreatingTask}; Repeat={e.IsRepeat}; Active={Window.GetWindow(this)?.IsActive}");
             var hoveredParent = _hoveredCreationTask is { } hovered && model.VisibleTasks.Contains(hovered) ? hovered : null;
             if (model.IsCreatingTask || (hoveredParent is null ? model.BeginTaskCreation() : model.BeginSubTaskCreation(hoveredParent)))
@@ -155,13 +166,23 @@ public partial class FloatingContent
         // The first expansion frame can still be clipped or rounded to zero at high DPI.
         UpdateLayout();
         var input = CreationInput();
-        if (input is null || !input.IsVisible) return;
-        input.BringIntoView();
-        input.Focus();
-        Keyboard.Focus(input);
-        if (_creationModel.IsCreatingSubTask && input.Parent is FrameworkElement { Parent: Border editor })
+        if (_creationModel.IsCreatingRootTask && !_creationModel.CanCreateRootTask)
         {
-            // TextBox's caret request can expose only its inner text area. Keep the full input border in view.
+            if (TaskTitleInput.IsKeyboardFocusWithin) Focus();
+            _creationNeedsFocus = false;
+            return;
+        }
+        if (_creationModel.IsCreatingSubTask && _creationModel.SubTaskCreationParent is { } parent &&
+            TaskRows().Where(row => ReferenceEquals(row.DataContext, parent))
+                .Select(row => FindCompletionElement<Border>(row, "InlineSubTaskCreation")).FirstOrDefault() is { } editor)
+        {
+            if (_creationModel.CanCreateSubTask && input is { IsVisible: true, IsEnabled: true })
+            {
+                input.Focus();
+                Keyboard.Focus(input);
+            }
+            else if (Keyboard.FocusedElement is TextBox focused && IsAncestorOf(focused)) Focus();
+            // Keep the entire entry (including quota/upgrade state) inside the viewport.
             editor.BringIntoView();
             TaskScrollViewer.UpdateLayout();
             var top = editor.TranslatePoint(new Point(), TaskScrollViewer).Y;
@@ -170,7 +191,13 @@ public partial class FloatingContent
             else if (bottom > TaskScrollViewer.ViewportHeight)
                 TaskScrollViewer.ScrollToVerticalOffset(TaskScrollViewer.VerticalOffset + bottom - TaskScrollViewer.ViewportHeight);
             TaskScrollViewer.UpdateLayout();
+            _creationNeedsFocus = _creationModel.CanCreateSubTask && input?.IsKeyboardFocused != true;
+            return;
         }
+        if (input is null || !input.IsVisible || !input.IsEnabled) return;
+        input.BringIntoView();
+        input.Focus();
+        Keyboard.Focus(input);
         _creationNeedsFocus = !input.IsKeyboardFocused;
         DesktopDiagnostics.RecordAction("Floating.EditorFocusEnd", $"Focused={input.IsKeyboardFocused}");
     }
@@ -186,7 +213,7 @@ public partial class FloatingContent
         DesktopDiagnostics.RecordAction("Floating.EditorState", $"Creating={_creationModel.IsCreatingTask}; Loaded={IsLoaded}; Visible={IsVisible}");
         _creationFromHeight = _creationModel.CreationHeight;
         _creationFromTaskArea = _creationModel.TaskAreaHeight;
-        _creationToHeight = _creationModel.IsCreatingRootTask ? FocusFloatingWindowViewModel.TaskCreationHeight : 0;
+        _creationToHeight = _creationModel.IsCreatingRootTask ? _creationModel.RootTaskCreationHeight : 0;
         var inline = _creationModel.IsCreatingSubTask || _inlineCreationPresentation;
         _inlineCreationPresentation = _creationModel.IsCreatingSubTask;
         StopCreationTimer();
@@ -227,7 +254,7 @@ public partial class FloatingContent
     private void CreationAnimationSettingsChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName != nameof(SystemParameters.ClientAreaAnimation) || SystemParameters.ClientAreaAnimation) return;
-        Dispatcher.Invoke(() => { StopCreationTimer(); _creationModel?.SetCreationPresentation(_creationModel.IsCreatingRootTask ? FocusFloatingWindowViewModel.TaskCreationHeight : 0); });
+        Dispatcher.Invoke(() => { StopCreationTimer(); _creationModel?.SetCreationPresentation(_creationModel.IsCreatingRootTask ? _creationModel.RootTaskCreationHeight : 0); });
     }
 
     private void StopCreationTimer()

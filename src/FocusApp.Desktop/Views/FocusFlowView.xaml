@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:views="clr-namespace:FocusApp.Desktop.Views"
              xmlns:local="clr-namespace:FocusApp.Desktop.Views"
+             xmlns:vm="clr-namespace:FocusApp.Desktop.ViewModels"
              views:FocusThemeScope.IsDark="{Binding IsDarkFocusTheme}"
              Background="{DynamicResource SurfacePrimary}"
              UseLayoutRounding="True"
@@ -641,6 +642,99 @@
                             </Grid>
                         </StackPanel>
                     </StackPanel>
+                    <Border x:Name="CompletionRecordStatusBar" MinWidth="176" Height="34" Margin="0,26,0,0"
+                            Padding="16,0" HorizontalAlignment="Center" CornerRadius="17" BorderThickness="1"
+                            Background="{DynamicResource FocusRecordStatusBackground}"
+                            BorderBrush="{DynamicResource FocusRecordStatusBorder}"
+                            Visibility="{Binding CompletionRecordStatus.IsVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
+                            AutomationProperties.Name="{Binding Text, ElementName=CompletionRecordStatusText}"
+                            AutomationProperties.LiveSetting="Polite">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <Viewbox Width="22" Height="22" Margin="0,0,9,0">
+                                <Viewbox.Style>
+                                    <Style TargetType="Viewbox">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding CompletionRecordStatus.State}" Value="{x:Static vm:CompletionRecordSaveState.Synced}">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Viewbox.Style>
+                                <Canvas Width="24" Height="24">
+                                    <Path Data="M6.5,19 C3.7,19 2,17.1 2,14.6 C2,12.3 3.6,10.4 5.8,10 C6.4,6.7 8.9,4.5 12,4.5 C15.2,4.5 17.8,6.7 18.3,10 C20.5,10.5 22,12.2 22,14.4 C22,17 20.2,19 17.5,19 Z"
+                                          Stroke="{DynamicResource FocusRecordSyncedIcon}" StrokeThickness="1.8" StrokeLineJoin="Round" />
+                                    <Path Data="M8,13.5 L10.8,16 L16.2,10.5" Stroke="{DynamicResource FocusRecordSyncedIcon}"
+                                          StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
+                                </Canvas>
+                            </Viewbox>
+                            <Viewbox x:Name="CompletionSyncIcon" Width="22" Height="22" Margin="0,0,9,0" RenderTransformOrigin="0.5,0.5">
+                                <Viewbox.RenderTransform><RotateTransform /></Viewbox.RenderTransform>
+                                <Viewbox.Style>
+                                    <Style TargetType="Viewbox">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding CompletionRecordStatus.State}" Value="{x:Static vm:CompletionRecordSaveState.Uploading}" />
+                                                    <Condition Binding="{Binding IsCompleted}" Value="True" />
+                                                </MultiDataTrigger.Conditions>
+                                                <Setter Property="Visibility" Value="Visible" />
+                                                <MultiDataTrigger.EnterActions>
+                                                    <BeginStoryboard x:Name="CompletionSyncSpin">
+                                                        <Storyboard>
+                                                            <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)"
+                                                                             From="0" To="360" Duration="0:0:4" RepeatBehavior="Forever" />
+                                                        </Storyboard>
+                                                    </BeginStoryboard>
+                                                </MultiDataTrigger.EnterActions>
+                                                <MultiDataTrigger.ExitActions><StopStoryboard BeginStoryboardName="CompletionSyncSpin" /></MultiDataTrigger.ExitActions>
+                                            </MultiDataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Viewbox.Style>
+                                <Canvas Width="24" Height="24">
+                                    <Path Data="M20,8 C18.5,4.5 15.8,3 12,3 C8.6,3 5.8,4.8 4.2,7.5 M4,3 L4,8 L9,8 M4,16 C5.5,19.5 8.2,21 12,21 C15.4,21 18.2,19.2 19.8,16.5 M20,21 L20,16 L15,16"
+                                          Stroke="{DynamicResource FocusRecordSyncingIcon}" StrokeThickness="1.8"
+                                          StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
+                                </Canvas>
+                            </Viewbox>
+                            <Viewbox Width="22" Height="22" Margin="0,0,9,0">
+                                <Viewbox.Style>
+                                    <Style TargetType="Viewbox">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding CompletionRecordStatus.State}" Value="{x:Static vm:CompletionRecordSaveState.LocalSaved}">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Viewbox.Style>
+                                <Canvas Width="24" Height="24">
+                                    <Path Data="M5.5,3.5 L18.5,3.5 L21.5,14.5 L21.5,21 L2.5,21 L2.5,14.5 Z M2.5,14.5 L21.5,14.5"
+                                          Stroke="{DynamicResource FocusRecordLocalIcon}" StrokeThickness="1.8" StrokeLineJoin="Round" />
+                                    <Ellipse Width="2" Height="2" Canvas.Left="6" Canvas.Top="17" Fill="{DynamicResource FocusRecordLocalIcon}" />
+                                    <Ellipse Width="2" Height="2" Canvas.Left="16" Canvas.Top="17" Fill="{DynamicResource FocusRecordLocalIcon}" />
+                                </Canvas>
+                            </Viewbox>
+                            <TextBlock x:Name="CompletionRecordStatusText" VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource FocusRecordStatusText}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Text" Value="{DynamicResource FocusRecordSavedLocal}" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding CompletionRecordStatus.State}" Value="{x:Static vm:CompletionRecordSaveState.Uploading}">
+                                                <Setter Property="Text" Value="{DynamicResource FocusRecordSyncing}" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding CompletionRecordStatus.State}" Value="{x:Static vm:CompletionRecordSaveState.Synced}">
+                                                <Setter Property="Text" Value="{DynamicResource FocusRecordSynced}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
 
                 <StackPanel x:Name="CompletionFooter" Margin="40,0,40,20" VerticalAlignment="Bottom">

@@ -6,7 +6,7 @@ using FocusApp.Core;
 
 namespace FocusApp.Service;
 
-public sealed class ServiceStateCoordinator : IAsyncDisposable
+public sealed partial class ServiceStateCoordinator : IAsyncDisposable
 {
     private const int MaximumCachedRequests = 1024;
     private readonly ILocalDataStore _store;
@@ -47,9 +47,13 @@ public sealed class ServiceStateCoordinator : IAsyncDisposable
         IAccessControlExecutionHost? accessControlHost = null,
         TimeSpan? agentResponseTimeout = null,
         Func<DateTimeOffset>? utcNowProvider = null,
-        TimeSpan? clockPollInterval = null)
+        TimeSpan? clockPollInterval = null,
+        MembershipAuthority? membershipAuthority = null,
+        IPrivilegeGate? membershipGate = null)
     {
         _store = store ?? throw new ArgumentNullException(nameof(store));
+        membership = membershipAuthority ?? MembershipAuthority.DenyAll();
+        privilegeGate = membershipGate ?? membership;
         _accessControlHost = accessControlHost ?? new AccessControlExecutionHost("S-1-0-0");
         _agentResponseTimeout = agentResponseTimeout ?? TimeSpan.FromSeconds(5);
         _utcNowProvider = utcNowProvider ?? (() => DateTimeOffset.UtcNow);
@@ -100,6 +104,10 @@ public sealed class ServiceStateCoordinator : IAsyncDisposable
         try
         {
             await EnsureInitializedAsync(cancellationToken);
+            if (request.Operation.StartsWith("membership.", StringComparison.Ordinal))
+                return await HandleMembershipAsync(request, cancellationToken);
+            if (request.Operation.StartsWith("cloud.sync.", StringComparison.Ordinal))
+                return await HandleFocusSyncAsync(request, cancellationToken);
             return request.Operation switch
             {
                 IpcOperations.Ping => IpcEnvelope.CreateSuccess(request, ServiceRuntime.PingResponse),
@@ -208,6 +216,7 @@ public sealed class ServiceStateCoordinator : IAsyncDisposable
                 {
                     var command = request.ReadPayload<ReplaceAutomaticRulesCommand>();
                     ValidateAutomaticRules(command.Rules);
+                    if (command.Rules.Any(x => x.IsEnabled)) await DemandMembershipAsync("automatic_blocking", token);
                     await _store.ReplaceAutomaticRulesAsync(
                         command.Rules.Select(LocalDataContractMapper.ToCore).ToArray(),
                         token);
@@ -216,6 +225,9 @@ public sealed class ServiceStateCoordinator : IAsyncDisposable
                 IpcOperations.SaveSettings => await MutateAsync(request, async token =>
                 {
                     var command = request.ReadPayload<SaveSettingsCommand>();
+                    var previous = (await _store.LoadAsync(token)).Settings;
+                    if (command.Settings.ForcedModeRequested && !previous.ForcedModeRequested) await DemandMembershipAsync("forced_mode", token);
+                    if (command.Settings.AutomaticBlockingEnabled && !previous.AutomaticBlockingEnabled) await DemandMembershipAsync("automatic_blocking", token);
                     await _store.SaveSettingsAsync(
                         LocalDataContractMapper.ToCore(command.Settings),
                         command.DurationPresets.Select(LocalDataContractMapper.ToCore).ToArray(),
@@ -336,6 +348,7 @@ public sealed class ServiceStateCoordinator : IAsyncDisposable
     {
         var command = request.ReadPayload<StartNormalFocusCommand>();
         var session = LocalDataContractMapper.ToCore(command.Session);
+        if (session.AutomaticRuleId is not null) await DemandMembershipAsync("automatic_blocking", cancellationToken);
         if (session.IsForcedMode || session.Status != LocalFocusSessionStatus.Focusing || session.FocusStartedAtUtc is null)
         {
             throw new ServiceBusinessException("普通专注启动数据无效。");
@@ -406,7 +419,7 @@ public sealed class ServiceStateCoordinator : IAsyncDisposable
     }
 
     private async Task<LocalDataSnapshotDto> LoadStateAsync(CancellationToken cancellationToken)
-        => LocalDataContractMapper.ToDto(await _store.LoadAsync(cancellationToken), Volatile.Read(ref _revision));
+        => PackFocusHistory(LocalDataContractMapper.ToDto(await _store.LoadAsync(cancellationToken), Volatile.Read(ref _revision)));
 
     private async Task EnsureInitializedAsync(CancellationToken cancellationToken)
     {
@@ -533,6 +546,8 @@ public sealed class ServiceStateCoordinator : IAsyncDisposable
                 GetEffectiveUtcNow(),
                 cancellationToken);
             LogStrong("LoadState", startedAt);
+            await DemandMembershipAsync("forced_mode", cancellationToken);
+            if (command.AutomaticRuleId is not null) await DemandMembershipAsync("automatic_blocking", cancellationToken);
             if (snapshot.FocusSessions.Any(IsActiveSession))
             {
                 throw new ServiceBusinessException("已有进行中的专注会话，不能重复启动强制专注。");
@@ -563,6 +578,7 @@ public sealed class ServiceStateCoordinator : IAsyncDisposable
                 command.AutomaticOccurrenceStartedAtUtc?.ToUniversalTime(),
                 command.CompletedTasks.Select(ToCore).ToArray())
             {
+                CloudBindingId = command.CloudBindingId,
                 WebsiteRuleSnapshots = websiteSnapshots,
                 ApplicationRuleSnapshots = applicationSnapshots
             };
@@ -1089,6 +1105,8 @@ public sealed class ServiceStateCoordinator : IAsyncDisposable
         CancellationToken cancellationToken)
     {
         var snapshot = await _store.LoadAsync(cancellationToken);
+        if (command.AutomaticRuleId is not null || snapshot.FocusSessions.Any(session => IsActiveSession(session) && session.AutomaticRuleId is not null))
+            await DemandMembershipAsync("automatic_blocking", cancellationToken);
         if (snapshot.FocusSessions.Any(session => IsActiveSession(session) && session.IsForcedMode))
         {
             throw new ServiceBusinessException("强制专注进行期间不能覆盖后台访问控制计划。");

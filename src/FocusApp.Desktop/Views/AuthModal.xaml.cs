@@ -17,6 +17,20 @@ public partial class AuthModal : UserControl
     public AuthModal()
     {
         InitializeComponent();
+        DataContextChanged += (_, args) =>
+        {
+            if (args.OldValue is AuthModalViewModel old) old.PasswordsCleared -= ClearPasswordInputs;
+            if (args.NewValue is AuthModalViewModel current) current.PasswordsCleared += ClearPasswordInputs;
+        };
+    }
+
+    private void ClearPasswordInputs(object? sender, EventArgs args)
+    {
+        LoginPasswordBox.Clear();
+        RegisterPasswordBox.Clear();
+        RegisterConfirmPasswordBox.Clear();
+        RecoveryNewPasswordBox.Clear();
+        RecoveryConfirmPasswordBox.Clear();
     }
 
     private void AuthCard_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)

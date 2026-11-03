@@ -29,6 +29,12 @@
     <SolidColorBrush x:Key="FocusCompletionValueBrush" Color="#FFFFFF" />
     <SolidColorBrush x:Key="FocusCompletionIconBrush" Color="#FFFFFF" />
     <SolidColorBrush x:Key="FocusCompletionDividerBrush" Color="#4A638F" />
+    <SolidColorBrush x:Key="FocusRecordStatusBackground" Color="#80203B60" />
+    <SolidColorBrush x:Key="FocusRecordStatusBorder" Color="#334F739E" />
+    <SolidColorBrush x:Key="FocusRecordStatusText" Color="#E5EDF8" />
+    <SolidColorBrush x:Key="FocusRecordSyncedIcon" Color="#8BE5BD" />
+    <SolidColorBrush x:Key="FocusRecordSyncingIcon" Color="#A6DCF4" />
+    <SolidColorBrush x:Key="FocusRecordLocalIcon" Color="#DCE6F3" />
     <SolidColorBrush x:Key="FocusCompletionNightCapsuleBackground" Color="#99132955" />
     <SolidColorBrush x:Key="FocusCountdownBrush" Color="#FCFDFF" />
     <SolidColorBrush x:Key="FocusTargetBrush" Color="#E6F0FF" />
@@ -128,4 +134,14 @@
         <BitmapImage CacheOption="OnLoad" DecodePixelWidth="64" UriSource="/FocusApp.Desktop;component/Assets/Images/focusPage/dark_yezi01.png" />
         <BitmapImage CacheOption="OnLoad" DecodePixelWidth="64" UriSource="/FocusApp.Desktop;component/Assets/Images/focusPage/dark_yezi02.png" />
     </x:Array>
+    <SolidColorBrush x:Key="TaskLimitSurfaceBrush" Color="#2C333D"/>
+    <SolidColorBrush x:Key="TaskLimitBorderBrush" Color="#363F4A"/>
+    <SolidColorBrush x:Key="TaskLimitTitleBrush" Color="#F5F7FA"/>
+    <SolidColorBrush x:Key="TaskLimitBodyBrush" Color="#CCD3DD"/>
+    <SolidColorBrush x:Key="TaskLimitButtonBrush" Color="#475261"/>
+    <SolidColorBrush x:Key="TaskLimitButtonTextBrush" Color="#F7F8FA"/>
+    <SolidColorBrush x:Key="TaskLimitRestrictedBrush" Color="#788493"/>
+    <SolidColorBrush x:Key="TaskLimitLockAccentBackgroundBrush" Color="#5B4934"/>
+    <SolidColorBrush x:Key="TaskLimitLockBackgroundBrush" Color="#46515F"/>
+    <SolidColorBrush x:Key="TaskLimitLockBrush" Color="#B6C1D1"/>
 </ResourceDictionary>

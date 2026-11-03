@@ -125,7 +125,7 @@
             MouseDown="AuthCard_MouseDown">
         <Grid x:Name="CloseButtonHost">
         <Grid Margin="28,0">
-            <Grid x:Name="LoginPanel" TextElement.FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI">
+            <Grid IsEnabled="{Binding IsIdle}" x:Name="LoginPanel" TextElement.FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI">
                 <Grid.Style>
                     <Style TargetType="{x:Type Grid}">
                         <Setter Property="Visibility" Value="Visible" />
@@ -361,7 +361,7 @@
                            Text="{DynamicResource AuthSyncHint}" />
             </Grid>
 
-            <Grid x:Name="PasswordRecoveryPanel">
+            <Grid IsEnabled="{Binding IsIdle}" x:Name="PasswordRecoveryPanel">
                 <Grid.Style>
                     <Style TargetType="{x:Type Grid}">
                         <Setter Property="Visibility" Value="Collapsed" />
@@ -607,7 +607,7 @@
                 </Grid>
             </Grid>
 
-            <Grid x:Name="RegisterPanel" TextElement.FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI">
+            <Grid IsEnabled="{Binding IsIdle}" x:Name="RegisterPanel" TextElement.FontFamily="Segoe UI Variable, Microsoft YaHei UI, Segoe UI">
                 <Grid.Style>
                     <Style TargetType="{x:Type Grid}">
                         <Setter Property="Visibility" Value="Collapsed" />
@@ -774,7 +774,7 @@
                         <Button Grid.Column="2"
                                 HorizontalAlignment="Stretch"
                                 Padding="0"
-                                Style="{StaticResource HomeLinkButtonStyle}">
+                                Style="{StaticResource HomeLinkButtonStyle}" Command="{Binding SendRegisterCodeCommand}" IsEnabled="{Binding IsResendAvailable}">
                             <TextBlock Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
                                        FontSize="13"
                                        FontWeight="Medium"
@@ -915,7 +915,7 @@
                             VerticalAlignment="Top"
                             Orientation="Horizontal"
                             MouseLeftButtonDown="RegisterAgreementRow_MouseLeftButtonDown">
-                    <ToggleButton x:Name="RegisterAgreementCheckBox"
+                    <ToggleButton x:Name="RegisterAgreementCheckBox" IsChecked="{Binding AgreementAccepted, Mode=TwoWay}"
                                   Margin="0,0,4,0"
                                   Style="{StaticResource AuthAgreementCheckBoxStyle}" />
                     <TextBlock FontSize="12"
@@ -947,13 +947,14 @@
                 <Button Height="39"
                         Margin="6,402,-5,0"
                         VerticalAlignment="Top"
-                        AutomationProperties.Name="{DynamicResource AuthRegisterAction}"
+                        Command="{Binding RegisterCommand}" AutomationProperties.Name="{DynamicResource AuthRegisterAction}"
                         Style="{StaticResource PrimaryActionRoundedButtonStyle}">
                         <TextBlock Style="{StaticResource PrimaryActionButtonLabelStyle}"
                                    Text="{DynamicResource AuthRegisterAction}" />
                 </Button>
             </Grid>
         </Grid>
+            <Border VerticalAlignment="Bottom" Margin="20,0,20,6" Background="{DynamicResource SurfacePrimary}" Padding="4"><TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap" Foreground="{DynamicResource TextPrimary}" FontSize="12" /></Border>
             <Button x:Name="ModalCloseButton" AutomationProperties.Name="关闭账号登录弹窗"
                     Command="{Binding CloseCommand}" Style="{DynamicResource ModalCloseButtonStyle}" />
         </Grid>

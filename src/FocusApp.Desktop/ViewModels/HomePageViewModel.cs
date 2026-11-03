@@ -30,6 +30,7 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
     private string _focusStartError = string.Empty;
     private CancellationTokenSource? _pendingFocusStartDelay;
     private Action<Action>? _manualFocusStartPrompt;
+    private bool _isCloudConnectionUnavailable;
 
     public event PropertyChangedEventHandler? PropertyChanged;
     public event EventHandler? DurationOptionsChanged;
@@ -113,6 +114,15 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
     public FocusSessionViewModel FocusSession { get; }
 
     public BlockedContentModalViewModel BlockedContentModal { get; }
+
+    public bool IsCloudConnectionUnavailable => _isCloudConnectionUnavailable;
+
+    public void SetCloudConnectionUnavailable(bool unavailable)
+    {
+        if (_isCloudConnectionUnavailable == unavailable) return;
+        _isCloudConnectionUnavailable = unavailable;
+        OnPropertyChanged(nameof(IsCloudConnectionUnavailable));
+    }
 
     public void ApplyDurationPresets(IEnumerable<LocalDurationPresetDto> presets)
     {
@@ -200,6 +210,7 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
     public void SetUserAccess(bool isLoggedIn, bool isVip)
     {
         FocusTargetModal.SetUserAccess(isLoggedIn);
+        FocusSession.SetMembership(isLoggedIn && isVip);
         if (_isLoggedIn == isLoggedIn && _isVip == isVip)
         {
             return;
@@ -310,6 +321,7 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
         bool isAutomaticBlockingEnabled,
         DateTime? now = null)
     {
+        isAutomaticBlockingEnabled &= VipFeatureAccessPolicy.CanUse(_isLoggedIn, _isVip);
         var current = now ?? DateTime.Now;
         _nextAutomaticRule = null;
         _nextAutomaticStart = default;
@@ -385,6 +397,7 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
         bool isAutomaticBlockingEnabled,
         DateTime? now = null)
     {
+        isAutomaticBlockingEnabled &= VipFeatureAccessPolicy.CanUse(_isLoggedIn, _isVip);
         var current = now ?? DateTime.Now;
         var ruleList = rules.ToList();
         var evaluation = _automaticBlockingScheduler.Evaluate(
@@ -526,7 +539,9 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
         FocusSession.Start(
             focusMinutes,
             target,
-            decision == FocusStartModeDecision.Forced);
+            decision == FocusStartModeDecision.Forced,
+            automaticRuleId,
+            automaticOccurrenceStartedAtUtc);
     }
 
     private void FocusTargetModal_StartFocusRequested(FocusTargetViewModel target)

@@ -4,7 +4,7 @@ using System.Security.Principal;
 
 namespace FocusApp.Contracts;
 
-public sealed class NamedPipeIpcClient : IAsyncDisposable
+public sealed partial class NamedPipeIpcClient : IAsyncDisposable
 {
     private readonly string _pipeName;
     private readonly IpcClientRole _role;
@@ -78,7 +78,8 @@ public sealed class NamedPipeIpcClient : IAsyncDisposable
         TRequest request,
         TimeSpan timeout,
         CancellationToken cancellationToken = default,
-        Guid? requestId = null)
+        Guid? requestId = null,
+        bool expandHistory = true)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         var pipe = _pipe;
@@ -131,7 +132,10 @@ public sealed class NamedPipeIpcClient : IAsyncDisposable
                 throw new IpcRemoteException(response.Error);
             }
 
-            return response.ReadPayload<TResponse>();
+            var value=response.ReadPayload<TResponse>();
+            return expandHistory&&_role==IpcClientRole.Desktop
+                ? await CompleteHistoryResponseAsync(value,timeout,cancellationToken)
+                : value;
         }
         catch (IOException exception)
         {
