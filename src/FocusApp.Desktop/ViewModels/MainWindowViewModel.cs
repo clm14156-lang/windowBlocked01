@@ -14,6 +14,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 {
     private NavigationItemViewModel _currentNavigationItem;
     private bool _isLoggedIn;
+    private bool _isLoggingOut;
     private bool _isAccountPanelOpen;
     private string _currentAccount = string.Empty;
     private MembershipType _membershipType = MembershipType.Normal;
@@ -26,6 +27,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private Guid _normalFocusBindingId;
     public LocalFocusRecordRecovery? RecordRecovery { get; }
     public FocusUploadCoordinator? FocusUploads { get; }
+    internal Func<Task>? FinishAccountWritesAsync { get; set; }
     public ICommand RetryLocalRecordSaveCommand { get; }
     private DateTimeOffset? _normalFocusStartedAtUtc;
     private readonly IAudioService? _audioService;
@@ -81,6 +83,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         {
             ServiceConnection.PropertyChanged += ServiceConnection_PropertyChanged;
             ServiceConnection.StateChanged += ServiceConnection_StateChanged;
+            ServiceConnection.AccountScopeChanged += (_, _) => ClearAccountData();
         }
         SettingsPage.LaunchAtStartupChanged += SettingsPage_LaunchAtStartupChanged;
         SettingsPage.WindowsNotificationsChanged += SettingsPage_WindowsNotificationsChanged;
@@ -119,6 +122,9 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         HomePage.FocusSession.TargetTasksChanged += FocusSession_TargetTasksChanged;
         HomePage.FocusSession.PropertyChanged += FocusSession_PropertyChanged;
         StatisticsPage.GoalChanged += StatisticsPage_GoalChanged;
+        StatisticsPage.RequestAccountAccess = RequestAccountAccess;
+        BlockingPage.RequestAccountAccess = RequestAccountAccess;
+        HomePage.RequestAccountAccess = RequestAccountAccess;
         StatisticsPage.SetGoalDeletionHandler(DeleteStatisticsGoalAsync);
         StatisticsPage.GoalCompletedTasks.MutationHandler = MutateCompletedTaskAsync;
         StateCoordinator = new FocusStateCoordinator(HomePage, SettingsPage, BlockingPage, StatisticsPage);
@@ -158,7 +164,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             _cloudConnectionMonitor = new CloudConnectionMonitor(probe);
             _cloudConnectionMonitor.PropertyChanged += CloudConnection_PropertyChanged;
         }
-        if(accountClient is null && ServiceConnection is not null)
+        if (accountClient is null && ServiceConnection is { UsesAccountIsolation: true })
         {
             RecordRecovery=new LocalFocusRecordRecovery(ServiceConnection,completionStatus:HomePage.FocusSession.CompletionRecordStatus);
             if(accounts is IFocusUploadClient uploader)FocusUploads=new FocusUploadCoordinator(ServiceConnection,uploader,localRecovery:RecordRecovery,
@@ -168,7 +174,11 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         AccountSyncModal = new AccountSyncModalViewModel(accounts as IDeviceSessionClient,FocusUploads);
         AuthModal = new AuthModalViewModel(accounts);
         AuthModal.LoginSucceeded += AuthModal_LoginSucceeded;
-        AuthModal.SessionCleared += (_, _) => ClearAccountSession();
+        AuthModal.SessionCleared += (_, _) =>
+        {
+            FocusUploads?.ConfirmAccount();
+            ClearAccountSession();
+        };
         // Only the real application owns the periodic cloud session maintenance.
         if (accountClient is null && System.Windows.Application.Current is not null)
         {
@@ -480,6 +490,8 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     private void AuthModal_LoginSucceeded(object? sender, LoginSucceededEventArgs e)
     {
+        if (_isLoggingOut) return;
+        FocusUploads?.ConfirmAccount();
         if (IsLoggedIn && _currentAccount == e.Account && MembershipType == e.MembershipType) return;
         AccountSyncModal.ClearDevices();
         _currentAccount = e.Account;
@@ -523,12 +535,12 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     private async void Logout()
     {
-        await AuthModal.LogoutAsync();
+        await LogoutAccountAsync();
     }
 
     private async void AccountSyncModal_AccountDeletionConfirmed(object? sender, EventArgs e)
     {
-        await AuthModal.LogoutAsync();
+        await LogoutAccountAsync();
         ClearAccountSession(clearSimulatedAccountData: true);
         var homeNavigationItem = PrimaryNavigationItems.FirstOrDefault(item => item.Page == NavigationPage.Home)
             ?? PrimaryNavigationItems[0];
@@ -551,6 +563,67 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         MembershipType = MembershipType.Normal;
         OnPropertyChanged(nameof(CurrentUserEmail));
         IsLoggedIn = false;
+    }
+
+    private bool RequestAccountAccess()
+    {
+        if (_isLoggingOut) return false;
+        if (ServiceConnection?.UsesAccountIsolation != true) return true;
+        if (IsLoggedIn) return ServiceConnection.IsAccountReady;
+        OpenAuth();
+        return false;
+    }
+
+    private async Task SaveFocusBeforeLogoutAsync()
+    {
+        HomePage.FocusSession.SaveOrdinaryFocusForAccountChange();
+        await DrainWritesAsync(_targetPersistenceGate);
+        await DrainWritesAsync(_normalFocusPersistenceGate);
+        await DrainWritesAsync(_automaticRulesPersistenceGate);
+        await DrainWritesAsync(_settingsPersistenceGate);
+        if (FinishAccountWritesAsync is not null) await FinishAccountWritesAsync();
+    }
+
+    private static async Task DrainWritesAsync(SemaphoreSlim gate)
+    {
+        await gate.WaitAsync();
+        gate.Release();
+    }
+
+    private async Task LogoutAccountAsync()
+    {
+        if (_isLoggingOut || AuthModal.IsBusy) return;
+        _isLoggingOut = true;
+        try
+        {
+            await SaveFocusBeforeLogoutAsync();
+            FocusUploads?.SuspendForLogout();
+            ClearAccountSession();
+            await AuthModal.LogoutAsync();
+        }
+        finally { _isLoggingOut = false; }
+    }
+
+    private void ClearAccountData()
+    {
+        _pendingServiceState = null;
+        AccountSyncModal.CloseCommand.Execute(null);
+        AccountSyncModal.ClearDevices();
+        HomePage.FocusSession.SaveOrdinaryFocusForAccountChange();
+        _normalFocusSessionId = null;
+        _normalFocusStartedAtUtc = null;
+        _normalFocusBindingId = Guid.Empty;
+        HomePage.FocusSession.ClearAccountData();
+        StateCoordinator.ClearAccountData();
+        HomePage.FocusTargetModal.CloseCommand.Execute(null);
+        HomePage.FocusTargetModal.ApplyState([], [], null, []);
+        BrowserExtensionModal.Close();
+        CloseFocusResultToast();
+        IsCompletionReminderVisible = false;
+        SettingsPage.RuleModal.ApplyTargets([]);
+        SettingsPage.RuleModal.CloseCommand.Execute(null);
+        SettingsPage.ApplyAutomaticRules([]);
+        StatisticsPage.ClearAccountData();
     }
 
     private void Navigate(NavigationItemViewModel? destination)
@@ -710,6 +783,8 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     private void ApplyServiceSnapshot(LocalDataSnapshotDto state)
     {
+        if (ServiceConnection?.UsesAccountIsolation == true && state.AccountSession != ServiceConnection.AccountSession)
+            return;
         SettingsPage.RuleModal.ApplyTargets(state.Targets);
         if (_pendingAutomaticRuleWrites == 0) SettingsPage.ApplyAutomaticRules(state.AutomaticRules);
         SettingsPage.ApplyLaunchAtStartupState(state.Settings.LaunchAtStartup);
@@ -750,6 +825,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         }
 
         var now = DateTimeOffset.UtcNow;
+        var accountSession = ServiceConnection.AccountSession;
         var rules = SettingsPage.AutomaticRules.Select((rule, index) => new LocalAutomaticRuleDto(
             rule.Id,
             rule.IsCustom
@@ -766,13 +842,15 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         await _automaticRulesPersistenceGate.WaitAsync();
         try
         {
+            if (accountSession != ServiceConnection.AccountSession) return;
             try
             {
                 await ServiceConnection.ReplaceAutomaticRulesAsync(new ReplaceAutomaticRulesCommand(rules));
             }
             catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException)
             {
-                if (_pendingAutomaticRuleWrites == 1) SettingsPage.ApplyAutomaticRules(persistedRules);
+                if (_pendingAutomaticRuleWrites == 1 && accountSession == ServiceConnection.AccountSession)
+                    SettingsPage.ApplyAutomaticRules(persistedRules);
             }
         }
         finally
@@ -796,10 +874,12 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             return true;
         }
         if (!ServiceConnection.IsConnected) return false;
+        var accountSession = ServiceConnection.AccountSession;
         _pendingFocusTaskWrites++;
         await _targetPersistenceGate.WaitAsync();
         try
         {
+            if (accountSession != ServiceConnection.AccountSession) return false;
             // Read after queued target saves finish; do not replace a newer task edit with the modal's snapshot.
             var state = ServiceConnection.State;
             var target = state?.Targets.FirstOrDefault(item => item.TargetId == source.TargetId);
@@ -811,6 +891,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             var tasks = state.Tasks.Where(item => item.TargetId == source.TargetId && item.TaskId != source.TaskId)
                 .Concat(delete ? [] : [task with { IsCompleted = false, CompletedAtUtc = null, UpdatedAtUtc = now }]).ToArray();
             var result = await ServiceConnection.SaveTargetAsync(new SaveTargetCommand(target with { UpdatedAtUtc = now }, tasks));
+            if (accountSession != ServiceConnection.AccountSession) return false;
             StatisticsPage.ApplyTaskState(result.State);
             return true;
         }
@@ -1100,6 +1181,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         var now = DateTimeOffset.UtcNow;
         var startId = Guid.NewGuid();
         var startBinding = ServiceConnection.CloudBindingId;
+        var startAccount = ServiceConnection.AccountSession;
         var targetId = HomePage.FocusSession.ActiveTarget?.TargetId;
         var targetName = HomePage.FocusSession.ActiveTarget?.Name;
         var configuredSeconds = HomePage.FocusSession.TotalFocusSeconds;
@@ -1107,6 +1189,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         await _normalFocusPersistenceGate.WaitAsync();
         try
         {
+            if (startAccount != ServiceConnection.AccountSession) return;
 
             var session = new LocalFocusSessionDto(
                 startId, LocalFocusSessionStatusDto.Focusing, false,
@@ -1145,7 +1228,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         var recentIconsJson = TargetIconCatalog.SerializeRecentIconFileNames(StatisticsPage.RecentTargetIconFileNames);
         var shouldSaveRecentIcons = recentIconsJson != state.Settings.RecentTargetIconsJson;
         var persisted = await PersistTargetAsync(new SaveTargetCommand(target, tasks));
-        if (persisted && shouldSaveRecentIcons)
+        if (persisted && shouldSaveRecentIcons && state.AccountSession == ServiceConnection.AccountSession)
         {
             await PersistSettingsAsync(current => new SaveSettingsCommand(
                 current.Settings with
@@ -1172,10 +1255,15 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             return;
         }
         if (!ServiceConnection.IsConnected) throw new InvalidOperationException("本地服务未连接，请稍后重试。");
+        var accountSession = ServiceConnection.AccountSession;
         await _targetPersistenceGate.WaitAsync();
         try
         {
+            if (accountSession != ServiceConnection.AccountSession)
+                throw new InvalidOperationException("账号已切换，请重新操作。");
             var result = await ServiceConnection.DeleteTargetAsync(new DeleteTargetCommand(targetId));
+            if (accountSession != ServiceConnection.AccountSession)
+                throw new InvalidOperationException("账号已切换，请重新操作。");
             ApplyServiceSnapshot(ServiceConnection.State ?? result.State);
         }
         finally { _targetPersistenceGate.Release(); }
@@ -1184,13 +1272,15 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private async Task<bool> PersistTargetAsync(SaveTargetCommand command)
     {
         if (ServiceConnection is null || !ServiceConnection.IsConnected) return false;
+        var accountSession = ServiceConnection.AccountSession;
         await _targetPersistenceGate.WaitAsync();
         try
         {
+            if (accountSession != ServiceConnection.AccountSession) return false;
             try
             {
                 await ServiceConnection.SaveTargetAsync(command);
-                return true;
+                return accountSession == ServiceConnection.AccountSession;
             }
             catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException)
             {
@@ -1232,10 +1322,12 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private async Task PersistSettingsAsync(Func<LocalDataSnapshotDto, SaveSettingsCommand> createCommand)
     {
         if (ServiceConnection is null || !ServiceConnection.IsConnected) return;
+        var accountSession = ServiceConnection.AccountSession;
         await _settingsPersistenceGate.WaitAsync();
         try
         {
-            if (ServiceConnection.State is not { } state || !ServiceConnection.IsConnected) return;
+            if (ServiceConnection.State is not { } state || !ServiceConnection.IsConnected ||
+                accountSession != ServiceConnection.AccountSession) return;
             try { await ServiceConnection.SaveSettingsAsync(createCommand(state)); }
             catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException) { }
         }
@@ -1250,10 +1342,12 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         }
 
         var presets = HomePage.GetDurationPresets();
+        var accountSession = ServiceConnection.AccountSession;
         _pendingDurationPresetWrites++;
         await _settingsPersistenceGate.WaitAsync();
         try
         {
+            if (accountSession != ServiceConnection.AccountSession) return;
             await ServiceConnection.ReplaceDurationPresetsAsync(new ReplaceDurationPresetsCommand(presets));
         }
         catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException)

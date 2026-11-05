@@ -1096,6 +1096,17 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         FinishCompletedFocus();
     }
 
+    internal void SaveOrdinaryFocusForAccountChange()
+    {
+        if (IsFocusing && !IsForcedModeActive) CompleteFocus();
+    }
+
+    internal void ClearAccountData()
+    {
+        ResetToIdleCore();
+        CompletionRecordStatus.Clear();
+    }
+
 #if DEBUG
     internal bool CompleteForDebug()
     {

@@ -340,36 +340,6 @@ public sealed partial class SqliteLocalDataStore : ILocalDataStore
         }, cancellationToken);
     }
 
-    public Task ReplaceWebsiteRulesAsync(
-        IReadOnlyCollection<LocalWebsiteRule> rules,
-        CancellationToken cancellationToken = default)
-    {
-        ArgumentNullException.ThrowIfNull(rules);
-        EnsureUnique(rules.Select(rule => rule.Id), nameof(rules));
-        foreach (var rule in rules)
-        {
-            ValidateRule(rule.Id, rule.Name, rule.Address, rule.SortOrder, nameof(rules));
-        }
-
-        return ReplaceCollectionAsync(
-            "website_rules",
-            rules.OrderBy(rule => rule.SortOrder),
-            async (connection, transaction, rule) =>
-            {
-                await using var command = CreateCommand(connection, transaction, """
-                    INSERT INTO website_rules (rule_id, name, address, is_enabled, sort_order)
-                    VALUES ($id, $name, $address, $enabled, $sort);
-                    """);
-                command.Parameters.AddWithValue("$id", FormatGuid(rule.Id));
-                command.Parameters.AddWithValue("$name", rule.Name);
-                command.Parameters.AddWithValue("$address", rule.Address);
-                command.Parameters.AddWithValue("$enabled", ToInteger(rule.IsEnabled));
-                command.Parameters.AddWithValue("$sort", rule.SortOrder);
-                await command.ExecuteNonQueryAsync(cancellationToken);
-            },
-            cancellationToken);
-    }
-
     public Task ReplaceApplicationRulesAsync(
         IReadOnlyCollection<LocalApplicationRule> rules,
         CancellationToken cancellationToken = default)
@@ -964,10 +934,12 @@ public sealed partial class SqliteLocalDataStore : ILocalDataStore
 
     private static async Task<IReadOnlyList<LocalWebsiteRule>> LoadWebsiteRulesAsync(
         SqliteConnection connection,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        SqliteTransaction? transaction = null)
     {
         var values = new List<LocalWebsiteRule>();
         await using var command = connection.CreateCommand();
+        command.Transaction = transaction;
         command.CommandText = """
             SELECT rule_id, name, address, is_enabled, sort_order
             FROM website_rules ORDER BY sort_order, rule_id;

@@ -27,6 +27,7 @@ public sealed partial class NamedPipeIpcClient : IAsyncDisposable
     public event EventHandler? Disconnected;
 
     public bool IsConnected => _pipe?.IsConnected == true && _readerTask is { IsCompleted: false };
+    public Guid AccountSession { get; set; }
 
     public async Task ConnectAsync(TimeSpan timeout, CancellationToken cancellationToken = default)
     {
@@ -93,7 +94,8 @@ public sealed partial class NamedPipeIpcClient : IAsyncDisposable
             throw new ArgumentOutOfRangeException(nameof(timeout));
         }
 
-        var envelope = IpcEnvelope.CreateRequest(requestId ?? Guid.NewGuid(), _role, operation, request);
+        var envelope = IpcEnvelope.CreateRequest(requestId ?? Guid.NewGuid(), _role, operation, request)
+            with { AccountSession = AccountSession };
         var completion = new TaskCompletionSource<IpcEnvelope>(TaskCreationOptions.RunContinuationsAsynchronously);
         if (!_pending.TryAdd(envelope.RequestId, completion))
         {

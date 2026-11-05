@@ -1,8 +1,18 @@
 [CmdletBinding()]
 param(
     [ValidateSet('Debug', 'Release')]
-    [string]$Configuration = 'Debug'
+    [string]$Configuration = 'Debug',
+    [string]$ApiBaseUrl = 'http://localhost:5080/'
 )
+
+$apiUri = $null
+if (-not [Uri]::TryCreate($ApiBaseUrl, [UriKind]::Absolute, [ref]$apiUri) -or
+    ($apiUri.Scheme -ne 'https' -and -not ($apiUri.Scheme -eq 'http' -and $apiUri.IsLoopback)) -or
+    $apiUri.UserInfo -or $apiUri.Query -or $apiUri.Fragment)
+{
+    throw 'ApiBaseUrl must use HTTPS or loopback HTTP, without credentials, query, or fragment.'
+}
+$env:FOCUSTIME_API_BASE_URL = $apiUri.AbsoluteUri
 
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
 $runningApplications = Get-CimInstance Win32_Process | Where-Object {
@@ -62,19 +72,14 @@ if ($LASTEXITCODE -ne 0)
     exit $LASTEXITCODE
 }
 
-$components = @(
-    @{ Title = 'FocusApp Service'; Project = 'src\FocusApp.Service\FocusApp.Service.csproj' },
-    @{ Title = 'FocusApp Agent'; Project = 'src\FocusApp.Agent\FocusApp.Agent.csproj' },
-    @{ Title = 'FocusApp Desktop'; Project = 'src\FocusApp.Desktop\FocusApp.Desktop.csproj' }
-)
-
+$components = @('FocusApp.Service', 'FocusApp.Agent', 'FocusApp.Desktop')
 foreach ($component in $components)
 {
-    $command = @"
-`$Host.UI.RawUI.WindowTitle = '$($component.Title)'
-Set-Location -LiteralPath '$repositoryRoot'
-& '$dotnetExecutable' run --no-build --configuration '$Configuration' --project '$($component.Project)'
-"@
-
-    Start-Process -FilePath 'powershell.exe' -ArgumentList @('-NoExit', '-Command', $command)
+    $executable = Join-Path $repositoryRoot "src\$component\bin\$Configuration\net8.0-windows\$component.exe"
+    if (-not (Test-Path -LiteralPath $executable))
+    {
+        throw "Built application was not found: $executable"
+    }
+    $windowStyle = if ($component -eq 'FocusApp.Desktop') { 'Normal' } else { 'Hidden' }
+    Start-Process -FilePath $executable -WorkingDirectory $repositoryRoot -WindowStyle $windowStyle
 }

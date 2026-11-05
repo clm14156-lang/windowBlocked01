@@ -16,6 +16,21 @@ public sealed partial class ServiceStateCoordinator
         {
             switch(request.Operation)
             {
+                case WebsiteSyncIpc.Pending:
+                    var edits = await ((IWebsiteSyncStore)_store).ReadWebsiteChangesAsync(ct);
+                    return IpcEnvelope.CreateSuccess(request, new WebsitePendingChanges(edits.Version, edits.Changes.Select(edit =>
+                        new WebsiteRuleChange(edit.Id, edit.Rule is null ? null : new LocalWebsiteRuleDto(
+                            edit.Rule.Id, edit.Rule.Name, edit.Rule.Address, edit.Rule.IsEnabled, edit.Rule.SortOrder))).ToArray()));
+                case WebsiteSyncIpc.Apply:
+                    var websites = request.ReadPayload<ApplyWebsiteSnapshot>();
+                    if (await ((IWebsiteSyncStore)_store).ApplyWebsiteSnapshotAsync(websites.AcknowledgedVersion,
+                        websites.Rules.Select(LocalDataContractMapper.ToCore).ToArray(), ct))
+                    {
+                        if (IsAccessControlExecuting)
+                            await RefreshActiveExecutorsAsync(await _store.LoadAsync(ct), ct);
+                        await PublishStateChangedAsync(ct);
+                    }
+                    break;
                 case FocusSyncIpc.Bind:
                     var command=request.ReadPayload<CloudSyncBindCommand>();
                     await WithMembershipAsync(async () => { await membership.ObserveAccountAsync(command.UserId, command.ApiScope ?? "", ct); return true; }, ct);
@@ -29,6 +44,8 @@ public sealed partial class ServiceStateCoordinator
                         {Downloaded=status.Downloaded,DownloadConflicts=status.DownloadConflicts,
                          HasMoreChanges=status.HasMoreChanges,LastPulledAtUtc=status.LastPulledAtUtc});
                 case FocusSyncIpc.Import:
+                    if (openAccountStore is not null)
+                        throw new ServiceBusinessException("未归属的历史数据保持独立保存。");
                     var import=request.ReadPayload<CloudSyncImportCommand>();
                     await store.ImportFocusHistoryAsync(import.BindingId,import.RecordIds,ct);Interlocked.Increment(ref _revision);break;
                 case FocusSyncIpc.Batch:

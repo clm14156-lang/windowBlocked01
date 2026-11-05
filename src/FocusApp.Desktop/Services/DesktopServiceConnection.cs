@@ -32,6 +32,25 @@ public sealed class DesktopServiceConnection : INotifyPropertyChanged, IAsyncDis
     private readonly SemaphoreSlim historyRefreshGate=new(1,1);
     private int historyRefreshRequested;
     public Guid CloudBindingId { get; private set; }
+    public Guid AccountSession { get; private set; }
+    public bool UsesAccountIsolation { get; private set; }
+    public bool IsAccountReady => !UsesAccountIsolation || CloudBindingId != Guid.Empty && State?.AccountSession == AccountSession;
+    public event EventHandler? AccountScopeChanged;
+
+    public void EnableAccountIsolation() => UsesAccountIsolation = true;
+
+    public void BeginAccountScope()
+    {
+        AccountSession = Guid.NewGuid();
+        if (_client is { } client) client.AccountSession = AccountSession;
+        CloudBindingId = Guid.Empty;
+        State = null;
+        OnPropertyChanged(nameof(IsAccountReady));
+        FocusRuntimeStatus = null;
+        AccessControlStatus = null;
+        AccountScopeChanged?.Invoke(this, EventArgs.Empty);
+    }
+
     public void ClearCloudBinding()
     {
         CloudBindingId=Guid.Empty;
@@ -43,7 +62,7 @@ public sealed class DesktopServiceConnection : INotifyPropertyChanged, IAsyncDis
         }
     }
 
-    private LocalDataSnapshotDto FilterFocusHistory(LocalDataSnapshotDto state) => state with
+    private LocalDataSnapshotDto FilterFocusHistory(LocalDataSnapshotDto state) => UsesAccountIsolation ? state : state with
     {
         FocusSessions=state.FocusSessions.Where(x=>x.Status!=LocalFocusSessionStatusDto.Completed ||
             state.FocusSyncVersion>=5 && (x.CloudBindingId==Guid.Empty || CloudBindingId!=Guid.Empty&&x.CloudBindingId==CloudBindingId)).ToArray()
@@ -188,12 +207,14 @@ public sealed class DesktopServiceConnection : INotifyPropertyChanged, IAsyncDis
 
     public async Task<LocalDataSnapshotDto> RefreshStateAsync(CancellationToken cancellationToken = default)
     {
+        var account = AccountSession;
         var client = GetConnectedClient();
         var state = await client.SendAsync<EmptyPayload, LocalDataSnapshotDto>(
             IpcOperations.GetState,
             new EmptyPayload(),
             _requestTimeout,
             cancellationToken);
+        if (UsesAccountIsolation && account != AccountSession) throw AccountChanged();
         PublishState(state);
         return state;
     }
@@ -402,11 +423,14 @@ public sealed class DesktopServiceConnection : INotifyPropertyChanged, IAsyncDis
                 }
 
                 _client = client;
+                client.AccountSession = AccountSession;
                 var state = await client.SendAsync<EmptyPayload, LocalDataSnapshotDto>(
                     IpcOperations.GetState,
                     new EmptyPayload(),
                     _requestTimeout,
                     cancellationToken);
+                if (UsesAccountIsolation && state.AccountDataVersion < 1)
+                    throw new IpcRemoteException(new(IpcErrorCode.ProtocolVersionMismatch, "请更新 FocusApp 后台服务以启用账号数据隔离。"));
                 var accessControlStatus = await client.SendAsync<EmptyPayload, AccessControlStatusDto>(
                     IpcOperations.GetAccessControlStatus,
                     new EmptyPayload(),
@@ -487,6 +511,9 @@ public sealed class DesktopServiceConnection : INotifyPropertyChanged, IAsyncDis
         return result;
     }
 
+    private static IpcRemoteException AccountChanged()
+        => new(new IpcErrorResult(IpcErrorCode.BusinessRejected, "账号已切换，请重新操作。"));
+
     private NamedPipeIpcClient GetConnectedClient()
         => _client is { IsConnected: true } client
             ? client
@@ -512,7 +539,11 @@ public sealed class DesktopServiceConnection : INotifyPropertyChanged, IAsyncDis
                     break;
                 case IpcOperations.AccessBlocked:
                     var blocked = envelope.ReadPayload<AccessBlockedEvent>();
-                    SetOnContext(() => AccessBlocked?.Invoke(this, blocked));
+                    SetOnContext(() =>
+                    {
+                        if (!UsesAccountIsolation || blocked.AccountSession == AccountSession)
+                            AccessBlocked?.Invoke(this, blocked);
+                    });
                     break;
             }
         }
@@ -526,6 +557,8 @@ public sealed class DesktopServiceConnection : INotifyPropertyChanged, IAsyncDis
 
     private void PublishState(LocalDataSnapshotDto state)
     {
+        if (UsesAccountIsolation && (state.AccountDataVersion < 1 || state.AccountSession != AccountSession))
+            return;
         // A mutation is delivered both as a response and as a service event.
         // Equal revisions represent the same committed snapshot and must not
         // trigger a second UI refresh.
@@ -537,12 +570,15 @@ public sealed class DesktopServiceConnection : INotifyPropertyChanged, IAsyncDis
         if(state.FocusHistoryToken is not null)
         {Interlocked.Exchange(ref historyRefreshRequested,1);_ = RefreshPagedHistoryAsync();return;}
 
+        var wasReady = IsAccountReady;
         State = FilterFocusHistory(state);
         StateChanged?.Invoke(this, State);
+        if (wasReady != IsAccountReady) OnPropertyChanged(nameof(IsAccountReady));
     }
 
     private void PublishAccessControlStatus(AccessControlStatusDto status)
     {
+        if (UsesAccountIsolation && status.AccountSession != AccountSession) return;
         AccessControlStatus = status;
         AccessControlStateChanged?.Invoke(this, status);
     }
@@ -565,6 +601,7 @@ public sealed class DesktopServiceConnection : INotifyPropertyChanged, IAsyncDis
 
     private void PublishFocusMutation(FocusSessionMutationResult result)
     {
+        if (UsesAccountIsolation && result.State.AccountSession != AccountSession) return;
         PublishState(result.State);
         PublishFocusRuntimeStatus(result.FocusStatus);
         PublishAccessControlStatus(result.AccessControlStatus);
@@ -572,6 +609,7 @@ public sealed class DesktopServiceConnection : INotifyPropertyChanged, IAsyncDis
 
     private void PublishFocusRuntimeStatus(FocusRuntimeStatusDto status)
     {
+        if (UsesAccountIsolation && status.AccountSession != AccountSession) return;
         FocusRuntimeStatus = status;
         FocusRuntimeStateChanged?.Invoke(this, status);
     }
@@ -608,5 +646,11 @@ public sealed class DesktopServiceConnection : INotifyPropertyChanged, IAsyncDis
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     public Task<TResponse> FocusSyncRequestAsync<TRequest,TResponse>(string operation,TRequest command,CancellationToken ct=default)
         => GetConnectedClient().SendAsync<TRequest,TResponse>(operation,command,_requestTimeout,ct);
-    public void UseCloudBinding(Guid bindingId) => CloudBindingId = bindingId;
+    public void UseCloudBinding(Guid bindingId)
+    {
+        if (CloudBindingId == bindingId) return;
+        var wasReady = IsAccountReady;
+        CloudBindingId = bindingId;
+        if (wasReady != IsAccountReady) OnPropertyChanged(nameof(IsAccountReady));
+    }
 }

@@ -78,6 +78,7 @@ public partial class App : Application
             "NavigationAccountIcon");
 
         _serviceConnection = new DesktopServiceConnection();
+        _serviceConnection.EnableAccountIsolation();
         _serviceConnection.AccessBlocked += ServiceConnection_AccessBlocked;
         _focusRecordsExporter = new FocusRecordsExporter(
             _serviceConnection,
@@ -105,6 +106,14 @@ public partial class App : Application
             mainViewModel.HomePage,
             _serviceConnection,
             _accessControlBridge);
+        mainViewModel.FinishAccountWritesAsync = async () =>
+        {
+            await _focusSessionBridge.FinishPendingTasksAsync();
+            if (!_serviceConnection.IsConnected) return;
+            try { await _accessControlBridge.PersistRulesNowAsync(); }
+            catch (Exception error) when (error is IpcConnectionException or IpcRemoteException)
+            { DesktopDiagnostics.RecordException("Account.FinishRuleWrites", error); }
+        };
 
         MainWindow = new MainWindow
         {

@@ -57,18 +57,6 @@ public sealed partial class CloudAccountClient : IAccountClient, IDeviceSessionC
         if(previous!=updated.Tokens?.SessionId)IdentityChanged?.Invoke(this,EventArgs.Empty);
     }
 
-    public Task<EmailChallenge> SendCodeAsync(string email, bool reset) => PostAsync<EmailChallenge>(
-        reset ? "password-reset/code" : "registration-code", new { email });
-    public async Task RegisterAsync(string email, Guid challengeId, string code, string password) =>
-        _ = await PostAsync<JsonElement>("register", new { email, challengeId, code, password });
-    public async Task<ResetTicket> VerifyResetAsync(Guid challengeId, string code)
-    {
-        var result = await PostAsync<JsonElement>("password-reset/verify", new { challengeId, code });
-        return new(result.GetProperty("resetTicket").GetString()!, result.GetProperty("expiresAtUtc").GetDateTimeOffset());
-    }
-    public async Task CompleteResetAsync(string ticket, string password) =>
-        await PostEmptyAsync("password-reset/complete", new { resetTicket = ticket, newPassword = password });
-
     public async Task<CloudAccount> LoginAsync(string email, string password)
     {
         await gate.WaitAsync();
@@ -102,12 +90,27 @@ public sealed partial class CloudAccountClient : IAccountClient, IDeviceSessionC
                 tokens = await EnsureTokensAsync();
                 using var response = await SendAuthorizedAsync(HttpMethod.Get, "api/v1/auth/me");
                 var user = await response.Content.ReadFromJsonAsync<CloudProfile>() ?? throw new JsonException();
+                if (user.Id != tokens.User.Id || user.Id == Guid.Empty)
+                    throw new CloudApiException("invalid_session");
                 return Account(user);
             }
             catch (CloudApiException ex) when (ex.Code is "authentication_required" or "invalid_session" or "refresh_reused")
             { EndSession(); return null; }
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
             { return Account(tokens) with { IsOffline = true, Membership = MembershipType.Normal }; }
+        }
+        finally { gate.Release(); }
+    }
+
+    internal async Task<CloudAccount?> ReadCachedAccountAsync()
+    {
+        await gate.WaitAsync();
+        try
+        {
+            return State.Tokens is { } tokens && tokens.User.Id != Guid.Empty &&
+                tokens.RefreshTokenExpiresAtUtc > DateTimeOffset.UtcNow
+                ? Account(tokens) with { IsOffline = true, Membership = MembershipType.Normal }
+                : null;
         }
         finally { gate.Release(); }
     }
@@ -136,7 +139,7 @@ public sealed partial class CloudAccountClient : IAccountClient, IDeviceSessionC
         if (hadSession) SessionEnded?.Invoke(this, EventArgs.Empty);
     }
 
-    private async Task<CloudTokens> EnsureTokensAsync(bool forceRefresh = false)
+    private async Task<CloudTokens> EnsureTokensAsync(bool forceRefresh = false, CancellationToken token = default)
     {
         var tokens = State.Tokens ?? throw new CloudApiException("authentication_required");
         if (tokens.RefreshTokenExpiresAtUtc <= DateTimeOffset.UtcNow)
@@ -145,12 +148,12 @@ public sealed partial class CloudAccountClient : IAccountClient, IDeviceSessionC
         {
             Save(State with { RefreshRequestId = State.RefreshRequestId ?? Guid.NewGuid() });
             var payload = new { tokens.RefreshToken, requestId = State.RefreshRequestId };
-            try { tokens = await PostAsync<CloudTokens>("refresh", payload); }
-            catch (Exception error) when (error is HttpRequestException or TaskCanceledException)
+            try { tokens = await PostAsync<CloudTokens>("refresh", payload, token); }
+            catch (Exception error) when (!token.IsCancellationRequested && error is HttpRequestException or TaskCanceledException)
             {
                 // Retry once within the server's recovery window, without changing the persisted ID.
-                await Task.Delay(250);
-                tokens = await PostAsync<CloudTokens>("refresh", payload);
+                await Task.Delay(250, token);
+                tokens = await PostAsync<CloudTokens>("refresh", payload, token);
             }
             Save(State with { Tokens = tokens, RefreshRequestId = null });
         }
@@ -183,18 +186,20 @@ public sealed partial class CloudAccountClient : IAccountClient, IDeviceSessionC
         }
         finally { gate.Release(); }
     }
-    private async Task<HttpResponseMessage> SendAuthorizedAsync(HttpMethod method, string path, object? body=null, Guid? expectedUser=null)
+    private async Task<HttpResponseMessage> SendAuthorizedAsync(HttpMethod method, string path, object? body=null,
+        Guid? expectedUser=null, CancellationToken cancellationToken=default)
     {
         try
         {
             for (var attempt = 0; attempt < 2; attempt++)
             {
-                var tokens = await EnsureTokensAsync(forceRefresh: attempt == 1);
+                cancellationToken.ThrowIfCancellationRequested();
+                var tokens = await EnsureTokensAsync(forceRefresh: attempt == 1, token: cancellationToken);
                 if(expectedUser is not null && tokens.User.Id!=expectedUser)throw new CloudApiException("account_changed");
                 using var request = new HttpRequestMessage(method, path);
                 if(body is not null)request.Content=JsonContent.Create(body);
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", tokens.AccessToken);
-                var response = await http.SendAsync(request);
+                var response = await http.SendAsync(request, cancellationToken);
                 if (response.StatusCode == HttpStatusCode.Unauthorized && attempt == 0)
                 { response.Dispose(); continue; }
                 try { await EnsureAsync(response); return response; }
@@ -209,14 +214,22 @@ public sealed partial class CloudAccountClient : IAccountClient, IDeviceSessionC
     public async Task<FocusUploadIdentity?> GetUploadIdentityAsync()
     {
         await gate.WaitAsync();
-        try {return State.Tokens is { } t ? new(t.User.Id,t.User.Email,
-            Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(http.BaseAddress!.AbsoluteUri)))) : null;}
+        try { _ = State; return CurrentUploadIdentity; }
         finally {gate.Release();}
     }
-    public async Task<IReadOnlyList<CloudSyncAck>> PushFocusRecordsAsync(FocusUploadIdentity identity,IReadOnlyList<CloudSyncItem> items)
+    internal FocusUploadIdentity? CurrentUploadIdentity => state?.Tokens is { } tokens &&
+        tokens.User.Id != Guid.Empty && tokens.RefreshTokenExpiresAtUtc > DateTimeOffset.UtcNow
+        ? new(tokens.User.Id, tokens.User.Email,
+            Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(http.BaseAddress!.AbsoluteUri))))
+        : null;
+    public Task<IReadOnlyList<CloudSyncAck>> PushFocusRecordsAsync(FocusUploadIdentity identity,IReadOnlyList<CloudSyncItem> items)
+        => PushFocusRecordsAsync(identity, items, CancellationToken.None);
+
+    internal async Task<IReadOnlyList<CloudSyncAck>> PushFocusRecordsAsync(FocusUploadIdentity identity,
+        IReadOnlyList<CloudSyncItem> items, CancellationToken token)
     {
         if(items.Count is <1 or >50)throw new ArgumentException("Upload batch size is invalid.");
-        await gate.WaitAsync();
+        await gate.WaitAsync(token);
         try
         {
             var scope=Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(http.BaseAddress!.AbsoluteUri)));
@@ -224,7 +237,7 @@ public sealed partial class CloudAccountClient : IAccountClient, IDeviceSessionC
             if(items.Any(x=>x.Kind is not ("upsert" or "delete")))throw new ArgumentException("Unknown synchronization operation.");
             var operations=items.Select(x=>new {x.OperationId,x.RecordId,kind=x.Kind,
                 record=x.Kind=="delete"?(JsonElement?)null:JsonSerializer.Deserialize<JsonElement>(x.PayloadJson),baseRevision=x.BaseRevision}).ToArray();
-            using var response=await SendAuthorizedAsync(HttpMethod.Post,"api/v1/sync/focus-records/push",new{operations},identity.UserId);
+            using var response=await SendAuthorizedAsync(HttpMethod.Post,"api/v1/sync/focus-records/push",new{operations},identity.UserId,token);
             try
             {
                 var result=await response.Content.ReadFromJsonAsync<UploadResponse>()??throw new JsonException();
@@ -238,9 +251,12 @@ public sealed partial class CloudAccountClient : IAccountClient, IDeviceSessionC
         }
         finally{gate.Release();}
     }
-    public async Task<CloudSyncChanges> PullFocusRecordsAsync(FocusUploadIdentity identity,string? cursor)
+    public Task<CloudSyncChanges> PullFocusRecordsAsync(FocusUploadIdentity identity,string? cursor)
+        => PullFocusRecordsAsync(identity, cursor, CancellationToken.None);
+
+    internal async Task<CloudSyncChanges> PullFocusRecordsAsync(FocusUploadIdentity identity, string? cursor, CancellationToken token)
     {
-        await gate.WaitAsync();
+        await gate.WaitAsync(token);
         try
         {
             var scope=Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(http.BaseAddress!.AbsoluteUri)));
@@ -248,7 +264,7 @@ public sealed partial class CloudAccountClient : IAccountClient, IDeviceSessionC
             for(var limit=50;;limit=Math.Max(1,limit/2))
             {
                 var path="api/v1/sync/focus-records/changes?limit="+limit+(cursor is null?"":"&cursor="+Uri.EscapeDataString(cursor));
-                using var response=await SendAuthorizedAsync(HttpMethod.Get,path,expectedUser:identity.UserId);
+                using var response=await SendAuthorizedAsync(HttpMethod.Get,path,expectedUser:identity.UserId,cancellationToken:token);
                 try
                 {
                     var page=await response.Content.ReadFromJsonAsync<DownloadResponse>()??throw new JsonException();
@@ -296,11 +312,11 @@ public sealed partial class CloudAccountClient : IAccountClient, IDeviceSessionC
         "lifetime" => MembershipType.Lifetime,
         _ => MembershipType.Normal
     });
-    private async Task<T> PostAsync<T>(string path, object payload)
+    private async Task<T> PostAsync<T>(string path, object payload, CancellationToken token = default)
     {
-        using var response = await http.PostAsJsonAsync("api/v1/auth/" + path, payload);
+        using var response = await http.PostAsJsonAsync("api/v1/auth/" + path, payload, token);
         await EnsureAsync(response);
-        return await response.Content.ReadFromJsonAsync<T>() ?? throw new JsonException("Empty API response.");
+        return await response.Content.ReadFromJsonAsync<T>(cancellationToken: token) ?? throw new JsonException("Empty API response.");
     }
     private async Task PostEmptyAsync(string path, object payload)
     {

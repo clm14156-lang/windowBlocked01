@@ -111,8 +111,8 @@ internal sealed class AgentWorker : BackgroundService
                     RequestTimeout,
                     stoppingToken);
                 await ReconcileStartupRegistrationAsync(state.Settings.LaunchAtStartup);
-                if (_isAutostart && state.FocusSessions.Any(session =>
-                    session.IsForcedMode && session.Status is LocalFocusSessionStatusDto.Preparing or LocalFocusSessionStatusDto.Focusing))
+                if (_isAutostart && (state.HasPendingAccountFocusRecovery || state.FocusSessions.Any(session =>
+                    session.IsForcedMode && session.Status is LocalFocusSessionStatusDto.Preparing or LocalFocusSessionStatusDto.Focusing)))
                 {
                     TryWakeDesktop();
                 }

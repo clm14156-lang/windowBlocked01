@@ -9,11 +9,11 @@ namespace FocusApp.Service;
 public sealed partial class ServiceStateCoordinator : IAsyncDisposable
 {
     private const int MaximumCachedRequests = 1024;
-    private readonly ILocalDataStore _store;
+    private ILocalDataStore _store;
     private readonly SemaphoreSlim _mutationGate = new(1, 1);
     private readonly SemaphoreSlim _initializationGate = new(1, 1);
-    private readonly ConcurrentDictionary<Guid, Lazy<Task<IpcEnvelope>>> _requestCache = new();
-    private readonly ConcurrentQueue<Guid> _requestOrder = new();
+    private readonly ConcurrentDictionary<(Guid Session, Guid Request), Lazy<Task<IpcEnvelope>>> _requestCache = new();
+    private readonly ConcurrentQueue<(Guid Session, Guid Request)> _requestOrder = new();
     private readonly ConcurrentDictionary<Guid, TaskCompletionSource<AgentProxyActionResultCommand>> _agentActions = new();
     private readonly ConcurrentDictionary<Guid, TaskCompletionSource<AgentStartupRegistrationActionResultCommand>> _startupActions = new();
     private readonly IAccessControlExecutionHost _accessControlHost;
@@ -49,9 +49,14 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
         Func<DateTimeOffset>? utcNowProvider = null,
         TimeSpan? clockPollInterval = null,
         MembershipAuthority? membershipAuthority = null,
-        IPrivilegeGate? membershipGate = null)
+        IPrivilegeGate? membershipGate = null,
+        Func<Guid, string, CancellationToken, Task<ILocalDataStore>>? openAccountStore = null,
+        Func<CancellationToken, Task>? initializeDeviceSettings = null)
     {
         _store = store ?? throw new ArgumentNullException(nameof(store));
+        guestStore = store;
+        this.openAccountStore = openAccountStore;
+        this.initializeDeviceSettings = initializeDeviceSettings;
         membership = membershipAuthority ?? MembershipAuthority.DenyAll();
         privilegeGate = membershipGate ?? membership;
         _accessControlHost = accessControlHost ?? new AccessControlExecutionHost("S-1-0-0");
@@ -88,9 +93,13 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
                 new IpcErrorResult(IpcErrorCode.InvalidRequest, "请求关联 ID 不能为空。")));
         }
 
-        var lazyResponse = _requestCache.GetOrAdd(request.RequestId, _ =>
+        var key = (request.AccountSession, request.RequestId);
+        if (openAccountStore is not null && request.ClientRole == IpcClientRole.Desktop &&
+            request.AccountSession != accountSession && request.Operation != FocusSyncIpc.Bind)
+            return HandleCoreAsync(request, cancellationToken);
+        var lazyResponse = _requestCache.GetOrAdd(key, _ =>
         {
-            _requestOrder.Enqueue(request.RequestId);
+            _requestOrder.Enqueue(key);
             TrimRequestCache();
             return new Lazy<Task<IpcEnvelope>>(
                 () => HandleCoreAsync(request, cancellationToken),
@@ -101,9 +110,25 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
 
     private async Task<IpcEnvelope> HandleCoreAsync(IpcEnvelope request, CancellationToken cancellationToken)
     {
+        var accountGateHeld = false;
         try
         {
             await EnsureInitializedAsync(cancellationToken);
+            var desktopAccountRequest = request.ClientRole == IpcClientRole.Desktop && request.Operation != IpcOperations.Ping;
+            if (openAccountStore is not null && (desktopAccountRequest || request.Operation == IpcOperations.GetState))
+            {
+                await accountRequests.WaitAsync(cancellationToken);
+                accountGateHeld = true;
+            }
+            if (openAccountStore is not null && desktopAccountRequest)
+            {
+                if (request.Operation == FocusSyncIpc.Bind)
+                    return await SwitchAccountAsync(request, cancellationToken);
+                if (request.AccountSession != accountSession)
+                    return await RejectInactiveAccountAsync(request, cancellationToken);
+                if (accountUserId is null && RequiresAccount(request.Operation))
+                    throw new ServiceBusinessException("请先登录账号。");
+            }
             if (request.Operation.StartsWith("membership.", StringComparison.Ordinal))
                 return await HandleMembershipAsync(request, cancellationToken);
             if (request.Operation.StartsWith("cloud.sync.", StringComparison.Ordinal))
@@ -111,7 +136,7 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
             return request.Operation switch
             {
                 IpcOperations.Ping => IpcEnvelope.CreateSuccess(request, ServiceRuntime.PingResponse),
-                IpcOperations.GetState => IpcEnvelope.CreateSuccess(request, await LoadStateAsync(cancellationToken)),
+                IpcOperations.GetState => IpcEnvelope.CreateSuccess(request, await ReadStateForClientAsync(request.ClientRole, cancellationToken)),
                 IpcOperations.GetAccessControlStatus => IpcEnvelope.CreateSuccess(
                     request,
                     await GetAccessControlStatusAsync(request.ClientRole, cancellationToken)),
@@ -201,9 +226,19 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
                 IpcOperations.ReplaceWebsiteRules => await MutateAsync(request, async token =>
                 {
                     var command = request.ReadPayload<ReplaceWebsiteRulesCommand>();
-                    await _store.ReplaceWebsiteRulesAsync(
-                        command.Rules.Select(LocalDataContractMapper.ToCore).ToArray(),
-                        token);
+                    if (command.Changes is not { } changes)
+                    {
+                        await _store.ReplaceWebsiteRulesAsync(command.Rules.Select(LocalDataContractMapper.ToCore).ToArray(), token);
+                        return;
+                    }
+                    var rules = (await _store.LoadAsync(token)).WebsiteRules.ToDictionary(rule => rule.Id);
+                    foreach (var change in changes)
+                    {
+                        if (change.Rule is null) rules.Remove(change.Id);
+                        else if (change.Rule.Id == change.Id) rules[change.Id] = LocalDataContractMapper.ToCore(change.Rule);
+                        else throw new ArgumentException("网站配置 ID 不匹配。");
+                    }
+                    await _store.ReplaceWebsiteRulesAsync(rules.Values, token);
                 }, cancellationToken),
                 IpcOperations.ReplaceApplicationRules => await MutateAsync(request, async token =>
                 {
@@ -228,11 +263,7 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
                     var previous = (await _store.LoadAsync(token)).Settings;
                     if (command.Settings.ForcedModeRequested && !previous.ForcedModeRequested) await DemandMembershipAsync("forced_mode", token);
                     if (command.Settings.AutomaticBlockingEnabled && !previous.AutomaticBlockingEnabled) await DemandMembershipAsync("automatic_blocking", token);
-                    await _store.SaveSettingsAsync(
-                        LocalDataContractMapper.ToCore(command.Settings),
-                        command.DurationPresets.Select(LocalDataContractMapper.ToCore).ToArray(),
-                        command.MonthlyFocusTargets.Select(LocalDataContractMapper.ToCore).ToArray(),
-                        token);
+                    await SaveSettingsAsync(command, token);
                 }, cancellationToken),
                 _ => IpcEnvelope.CreateFailure(
                     request,
@@ -268,6 +299,10 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
             return IpcEnvelope.CreateFailure(
                 request,
                 new IpcErrorResult(IpcErrorCode.InternalError, "后台服务处理请求时发生内部错误。", true));
+        }
+        finally
+        {
+            if (accountGateHeld) accountRequests.Release();
         }
     }
 
@@ -329,9 +364,21 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
         await _mutationGate.WaitAsync(cancellationToken);
         try
         {
+            if (openAccountStore is not null)
+            {
+                if (session.CloudBindingId != focusSyncBinding)
+                    throw new ServiceBusinessException("该专注记录不属于当前账号。");
+            }
+            var taskIds = session.CompletedTasks.Select(task => task.TaskId).ToArray();
+            if (openAccountStore is not null)
+            {
+                var data = await _store.LoadAsync(cancellationToken);
+                taskIds = data.Tasks.Where(task => task.TargetId == session.TargetId && taskIds.Contains(task.TaskId))
+                    .Select(task => task.TaskId).ToArray();
+            }
             await _store.SaveFocusSessionAsync(
                 session,
-                session.CompletedTasks.Select(task => task.TaskId).ToArray(),
+                taskIds,
                 cancellationToken);
             var revision = Interlocked.Increment(ref _revision);
             var state = await LoadStateAsync(cancellationToken);
@@ -360,6 +407,11 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
             if (snapshot.FocusSessions.Any(IsActiveSession))
             {
                 throw new ServiceBusinessException("已有进行中的专注会话，不能重复启动普通专注。");
+            }
+            if (openAccountStore is not null)
+            {
+                await ValidateTargetAsync(session.TargetId, session.CompletedTasks.Select(task => task.TaskId), token);
+                session = session with { CloudBindingId = focusSyncBinding };
             }
 
             await _store.SaveFocusSessionAsync(session, cancellationToken: token);
@@ -411,6 +463,8 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
             {
                 CompletedTasks = command.CompletedTasks.Select(ToCore).ToArray()
             };
+            if (openAccountStore is not null)
+                await ValidateTargetAsync(session.TargetId, command.CompletedTasks.Select(task => task.TaskId), token);
             await _store.SaveFocusSessionAsync(
                 updated,
                 command.CompletedTasks.Select(item => item.TaskId).ToArray(),
@@ -419,7 +473,18 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
     }
 
     private async Task<LocalDataSnapshotDto> LoadStateAsync(CancellationToken cancellationToken)
-        => PackFocusHistory(LocalDataContractMapper.ToDto(await _store.LoadAsync(cancellationToken), Volatile.Read(ref _revision)));
+    {
+        var store = _store;
+        var session = accountSession;
+        var revision = Volatile.Read(ref _revision);
+        var data = await store.LoadAsync(cancellationToken);
+        if (!ReferenceEquals(store, guestStore))
+        {
+            var device = await guestStore.LoadAsync(cancellationToken);
+            data = data with { Settings = WithDeviceSettings(data.Settings, device.Settings), DurationPresets = device.DurationPresets };
+        }
+        return PackFocusHistory(ToAccountSnapshot(data, revision, session));
+    }
 
     private async Task EnsureInitializedAsync(CancellationToken cancellationToken)
     {
@@ -437,6 +502,7 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
             }
 
             await _store.InitializeAsync(cancellationToken);
+            if (initializeDeviceSettings is not null) await initializeDeviceSettings(cancellationToken);
             var snapshot = await _store.LoadAsync(cancellationToken);
             if (snapshot.DurationPresets.Count == 0)
             {
@@ -474,8 +540,8 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
         await _mutationGate.WaitAsync(cancellationToken);
         try
         {
-            var snapshot = await _store.LoadAsync(cancellationToken);
-            await _store.SaveSettingsAsync(
+            var snapshot = await guestStore.LoadAsync(cancellationToken);
+            await guestStore.SaveSettingsAsync(
                 snapshot.Settings with { UpdatedAtUtc = GetEffectiveUtcNow() },
                 command.Presets.Select(LocalDataContractMapper.ToCore).ToArray(),
                 snapshot.MonthlyFocusTargets,
@@ -521,6 +587,7 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
         _accessControlGate.Dispose();
         _mutationGate.Dispose();
         _initializationGate.Dispose();
+        accountRequests.Dispose();
     }
 
     private async Task<FocusSessionMutationResult> StartForcedFocusAsync(
@@ -547,6 +614,8 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
                 cancellationToken);
             LogStrong("LoadState", startedAt);
             await DemandMembershipAsync("forced_mode", cancellationToken);
+            if (openAccountStore is not null)
+                await ValidateTargetAsync(command.TargetId, command.CompletedTasks.Select(task => task.TaskId), cancellationToken);
             if (command.AutomaticRuleId is not null) await DemandMembershipAsync("automatic_blocking", cancellationToken);
             if (snapshot.FocusSessions.Any(IsActiveSession))
             {
@@ -583,6 +652,8 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
                 ApplicationRuleSnapshots = applicationSnapshots
             };
 
+            if (openAccountStore is not null) session = session with { CloudBindingId = focusSyncBinding };
+            await SetPendingFocusRecoveryAsync(true, cancellationToken);
             await _store.SaveFocusSessionAsync(session, cancellationToken: cancellationToken);
             LogStrong("SaveSession", startedAt);
             state = await PublishStateChangedAsync(cancellationToken);
@@ -632,6 +703,7 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
 
             // A cancelled Starting phase must never become a persisted focus record.
             await _store.DeleteFocusSessionAsync(preparing.SessionId, cancellationToken);
+            await SetPendingFocusRecoveryAsync(false, cancellationToken);
             state = await PublishStateChangedAsync(cancellationToken);
         }
         finally
@@ -682,6 +754,7 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
                 completed,
                 completed.CompletedTasks.Select(task => task.TaskId).ToArray(),
                 cancellationToken);
+            await SetPendingFocusRecoveryAsync(false, cancellationToken);
             state = await PublishStateChangedAsync(cancellationToken);
         }
         finally
@@ -938,6 +1011,7 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
                     completed,
                     completed.CompletedTasks.Select(task => task.TaskId).ToArray(),
                     cancellationToken);
+                await SetPendingFocusRecoveryAsync(false, cancellationToken);
                 await PublishStateChangedAsync(cancellationToken);
             }
         }
@@ -1044,8 +1118,8 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
 
     private void PublishFocusRuntimeStatus(FocusRuntimeStatusDto status)
     {
-        _focusRuntimeStatus = status;
-        FocusRuntimeStateChanged?.Invoke(this, new FocusRuntimeStateChangedEvent(status));
+        _focusRuntimeStatus = status with { AccountSession = accountSession };
+        FocusRuntimeStateChanged?.Invoke(this, new FocusRuntimeStateChangedEvent(_focusRuntimeStatus));
     }
 
     private static void LogStrong(string stage, long startedTimestamp)
@@ -1391,7 +1465,7 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
                     registration.ErrorMessage ?? "无法更新开机自启动设置。");
             }
 
-            var snapshot = await _store.LoadAsync(cancellationToken);
+            var snapshot = await guestStore.LoadAsync(cancellationToken);
             var settings = snapshot.Settings with
             {
                 LaunchAtStartup = command.Enabled,
@@ -1399,7 +1473,7 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
             };
             try
             {
-                await _store.SaveSettingsAsync(
+                await guestStore.SaveSettingsAsync(
                     settings,
                     snapshot.DurationPresets,
                     snapshot.MonthlyFocusTargets,
@@ -1437,13 +1511,13 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
         await _mutationGate.WaitAsync(cancellationToken);
         try
         {
-            var snapshot = await _store.LoadAsync(cancellationToken);
+            var snapshot = await guestStore.LoadAsync(cancellationToken);
             var settings = snapshot.Settings with
             {
                 WindowsNotificationsEnabled = command.Enabled,
                 UpdatedAtUtc = GetEffectiveUtcNow()
             };
-            await _store.SaveSettingsAsync(settings, snapshot.DurationPresets, snapshot.MonthlyFocusTargets, cancellationToken);
+            await guestStore.SaveSettingsAsync(settings, snapshot.DurationPresets, snapshot.MonthlyFocusTargets, cancellationToken);
             var revision = Interlocked.Increment(ref _revision);
             var state = await LoadStateAsync(cancellationToken);
             StateChanged?.Invoke(this, new StateChangedEvent(revision, state));
@@ -1621,12 +1695,12 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
 
     private void PublishAccessControlStatus(AccessControlStatusDto status)
     {
-        _accessControlStatus = status;
-        AccessControlStateChanged?.Invoke(this, new AccessControlStateChangedEvent(status));
+        _accessControlStatus = status with { AccountSession = accountSession };
+        AccessControlStateChanged?.Invoke(this, new AccessControlStateChangedEvent(_accessControlStatus));
     }
 
     private void AccessControlHost_AccessBlocked(object? sender, AccessBlockedEvent e)
-        => AccessBlocked?.Invoke(this, e);
+        => AccessBlocked?.Invoke(this, e with { AccountSession = accountSession });
 
     private void AccessControlHost_ExecutionFailed(object? sender, string error)
     {

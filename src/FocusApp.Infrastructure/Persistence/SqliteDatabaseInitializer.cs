@@ -7,7 +7,7 @@ internal sealed class SqliteDatabaseInitializer(
     string databasePath,
     SqliteLocalDataStoreOptions options)
 {
-    public const int CurrentSchemaVersion = 17;
+    public const int CurrentSchemaVersion = 18;
 
     private const string MigrationV1 = """
         CREATE TABLE focus_sessions (
@@ -326,6 +326,7 @@ internal sealed class SqliteDatabaseInitializer(
             15 => SqliteLocalDataStore.FocusSyncMigration,
             16 => SqliteLocalDataStore.FocusDownloadMigration,
             17 => SqliteLocalDataStore.MembershipMigration,
+            18 => SqliteLocalDataStore.AccountDataMigration,
             _ => throw new InvalidOperationException($"缺少数据库版本 {targetVersion} 的迁移。")
         };
 

@@ -282,7 +282,7 @@
                                     <TextBlock FontSize="12" Margin="0,6,0,0" TextWrapping="Wrap" Text="{Binding FocusUploads.DeleteSummary}" />
                                     <StackPanel Orientation="Horizontal" Margin="0,8,0,0" IsEnabled="{Binding FocusUploads.IsIdle}">
                                         <Button Content="立即同步 / 重试" Padding="8,5" Command="{Binding FocusUploads.SyncNowCommand}" Style="{StaticResource AccountSyncPlainButton}" />
-                                        <Button Content="确认导入未归属历史" Margin="8,0,0,0" Padding="8,5" IsEnabled="{Binding FocusUploads.CanPrepareImport}" Command="{Binding FocusUploads.PrepareImportCommand}" Style="{StaticResource AccountSyncPlainButton}" />
+                                        <Button Content="确认导入未归属历史" Margin="8,0,0,0" Padding="8,5" Visibility="{Binding FocusUploads.CanPrepareImport, Converter={StaticResource BooleanToVisibilityConverter}}" Command="{Binding FocusUploads.PrepareImportCommand}" Style="{StaticResource AccountSyncPlainButton}" />
                                     </StackPanel>
                                 </StackPanel>
                             </Border>

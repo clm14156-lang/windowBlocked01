@@ -349,6 +349,19 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     }
 
     public bool IsLoggedIn => _isLoggedIn;
+    internal Func<bool>? RequestAccountAccess { get; set; }
+
+    internal void ClearAccountData()
+    {
+        CloseCreateGoalDialog();
+        IsCalendarCompletedTasksOpen = false;
+        IsDailyFocusRecordVipGuideOpen = false;
+        IsGoalInvestmentDetailsVipGuideOpen = false;
+        GoalCompletedTasks.CloseCommand.Execute(null);
+        GoalInvestmentTrend.Close();
+        ApplyState(new LocalDataSnapshotDto(0, [], [], [], [], [], [],
+            new(false, true, true, true, false, false, null, DateTimeOffset.UnixEpoch), [], []));
+    }
 
     public bool IsVip => _isVip;
 
@@ -1059,6 +1072,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
     private void OpenCreateGoalDialog()
     {
+        if (RequestAccountAccess?.Invoke() == false) return;
         if (IsCreateGoalDialogOpen)
         {
             return;

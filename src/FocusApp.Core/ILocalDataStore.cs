@@ -38,3 +38,9 @@ public interface ILocalDataStore
         IReadOnlyCollection<LocalMonthlyFocusTarget> monthlyFocusTargets,
         CancellationToken cancellationToken = default);
 }
+
+public interface IAccountFocusRecoveryStore
+{
+    Task<bool> HasPendingFocusRecoveryAsync(CancellationToken token);
+    Task SetPendingFocusRecoveryAsync(bool pending, CancellationToken token);
+}

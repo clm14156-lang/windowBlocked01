@@ -126,7 +126,7 @@ public sealed class MembershipAuthority(IMembershipCache? cache, Func<string, st
         var active = !rollback && verified is { Kind: not "normal" } v && v.Expires > EffectiveNow();
         await Persist(ct);
         return new(active ? verified!.Kind : "normal", active, verified?.GrantExpires, verified?.Expires, verified?.Version ?? 0,
-            rollback ? "本机时间或会员缓存异常，请联网重新验证会员。" : verified is null ? "请联网校验会员，并安装受信任的服务器公钥。" :
+            rollback ? "本机时间或会员缓存异常，请联网重新验证会员。" : verified is null ? "请联网校验会员。" :
                 verified.Expires <= EffectiveNow() ? "离线会员凭证已过期，请联网校验。" : null);
     }
     public async Task DemandAsync(string right, CancellationToken ct)
@@ -143,7 +143,7 @@ public sealed class MembershipAuthority(IMembershipCache? cache, Func<string, st
         var h = header.RootElement;
         if (h.EnumerateObject().Count() != 3 || h.GetProperty("alg").GetString() != "RS256" || h.GetProperty("typ").GetString() != "JWT") throw new ArgumentException("会员签名算法无效。");
         var kid = h.GetProperty("kid").GetString() ?? "";
-        var key = trustedKey(context.ApiScope, kid) ?? throw new InvalidOperationException("尚未安装此服务器的受信任会员公钥。");
+        var key = trustedKey(context.ApiScope, kid) ?? throw new InvalidOperationException("会员验证失败，请更新客户端后重试。");
         var bytes = Convert.FromBase64String(key);
         if (Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant() != kid) throw new CryptographicException();
         using var rsa = RSA.Create(); rsa.ImportSubjectPublicKeyInfo(bytes, out var consumed);

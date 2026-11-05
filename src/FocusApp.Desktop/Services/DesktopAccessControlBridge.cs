@@ -18,6 +18,7 @@ public sealed class DesktopAccessControlBridge : IDisposable
     private bool _applyingServiceState;
     private LocalDataSnapshotDto? _pendingServiceState;
     private bool _stateApplyScheduled;
+    private IReadOnlyList<LocalWebsiteRuleDto> _displayedWebsiteRules = [];
 
     public DesktopAccessControlBridge(
         FocusSessionViewModel focusSession,
@@ -31,6 +32,7 @@ public sealed class DesktopAccessControlBridge : IDisposable
         _blockingPage.BlockingChanged += BlockingPage_BlockingChanged;
         _connection.PropertyChanged += Connection_PropertyChanged;
         _connection.StateChanged += Connection_StateChanged;
+        _connection.AccountScopeChanged += Connection_AccountScopeChanged;
     }
 
     public event EventHandler<string>? ExecutionFailed;
@@ -50,6 +52,7 @@ public sealed class DesktopAccessControlBridge : IDisposable
         _blockingPage.BlockingChanged -= BlockingPage_BlockingChanged;
         _connection.PropertyChanged -= Connection_PropertyChanged;
         _connection.StateChanged -= Connection_StateChanged;
+        _connection.AccountScopeChanged -= Connection_AccountScopeChanged;
         _lifetimeCancellation.Cancel();
         _lifetimeCancellation.Dispose();
     }
@@ -81,6 +84,11 @@ public sealed class DesktopAccessControlBridge : IDisposable
     private void Connection_StateChanged(object? sender, LocalDataSnapshotDto state)
     {
         _pendingServiceState = state;
+        ScheduleServiceStateApply();
+    }
+
+    private void ScheduleServiceStateApply()
+    {
         if (_stateApplyScheduled)
         {
             return;
@@ -97,13 +105,33 @@ public sealed class DesktopAccessControlBridge : IDisposable
         dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(ApplyPendingServiceState));
     }
 
+    private void Connection_AccountScopeChanged(object? sender, EventArgs e)
+    {
+        _pendingServiceState = null;
+        _displayedWebsiteRules = [];
+        _applyingServiceState = true;
+        try
+        {
+            _blockingPage.WebsiteModal.CloseCommand.Execute(null);
+            _blockingPage.ProgramModal.CloseCommand.Execute(null);
+            _blockingPage.ReplaceRules([], []);
+        }
+        finally { _applyingServiceState = false; }
+    }
+
     private void ApplyPendingServiceState()
     {
         _stateApplyScheduled = false;
+        if (_ruleSaveGate.CurrentCount == 0) return;
         var state = _pendingServiceState;
         _pendingServiceState = null;
-        if (state is null || RulesEqual(state))
+        if (state is null || (_connection.UsesAccountIsolation && state.AccountSession != _connection.AccountSession))
         {
+            return;
+        }
+        if (RulesEqual(state))
+        {
+            _displayedWebsiteRules = CaptureWebsiteRules();
             return;
         }
 
@@ -125,6 +153,7 @@ public sealed class DesktopAccessControlBridge : IDisposable
                         rule.Name,
                         rule.Path,
                         rule.IsEnabled)));
+            _displayedWebsiteRules = CaptureWebsiteRules();
         }
         finally
         {
@@ -154,10 +183,11 @@ public sealed class DesktopAccessControlBridge : IDisposable
             return;
         }
 
+        var account = _connection.AccountSession;
         await _reconcileGate.WaitAsync(cancellationToken);
         try
         {
-            if (_focusSession.IsServiceOwnedForcedSession)
+            if (account != _connection.AccountSession || _focusSession.IsServiceOwnedForcedSession)
             {
                 return;
             }
@@ -165,6 +195,7 @@ public sealed class DesktopAccessControlBridge : IDisposable
             if (_focusSession.Stage == FocusFlowStage.Focusing)
             {
                 await PersistRulesAsync(cancellationToken);
+                if (account != _connection.AccountSession) return;
                 var expiresAt = DateTimeOffset.UtcNow.AddSeconds(Math.Max(1, _focusSession.RemainingFocusSeconds));
                 await _connection.ActivateAccessControlAsync(expiresAt, cancellationToken, automaticRuleId: _focusSession.AutomaticRuleId);
             }
@@ -201,6 +232,8 @@ public sealed class DesktopAccessControlBridge : IDisposable
 
     private async Task PersistRulesAsync(CancellationToken cancellationToken)
     {
+        if (!_connection.IsAccountReady) return;
+        var account = _connection.AccountSession;
         if (!_connection.IsConnected)
         {
             throw new IpcConnectionException("后台服务不可用，屏蔽规则未保存。");
@@ -209,8 +242,12 @@ public sealed class DesktopAccessControlBridge : IDisposable
         await _ruleSaveGate.WaitAsync(cancellationToken);
         try
         {
+            if (account != _connection.AccountSession || !_connection.IsAccountReady) return;
             var persistedState = _connection.State;
-            var websitesChanged = persistedState is null || !WebsiteRulesEqual(persistedState);
+            var websites = CaptureWebsiteRules();
+            var websitesChanged = _connection.UsesAccountIsolation
+                ? !_displayedWebsiteRules.SequenceEqual(websites)
+                : persistedState is null || !WebsiteRulesEqual(persistedState);
             var applicationsChanged = persistedState is null || !ApplicationRulesEqual(persistedState);
             if (!websitesChanged && !applicationsChanged)
             {
@@ -223,14 +260,15 @@ public sealed class DesktopAccessControlBridge : IDisposable
             // application rows and makes their toggles visibly bounce.
             if (websitesChanged)
             {
-                var websites = _blockingPage.Websites.Select((item, index) =>
-                    new LocalWebsiteRuleDto(item.Id, item.Name, item.Address, item.IsEnabled, index)).ToArray();
-                await _connection.ReplaceWebsiteRulesAsync(
-                    new ReplaceWebsiteRulesCommand(websites),
-                    cancellationToken);
+                var command = _connection.UsesAccountIsolation
+                    ? new ReplaceWebsiteRulesCommand([]) { Changes = GetWebsiteEdits(_displayedWebsiteRules, websites) }
+                    : new ReplaceWebsiteRulesCommand(websites);
+                await _connection.ReplaceWebsiteRulesAsync(command, cancellationToken);
+                if (account != _connection.AccountSession) return;
+                _displayedWebsiteRules = websites;
             }
 
-            if (applicationsChanged)
+            if (applicationsChanged && account == _connection.AccountSession)
             {
                 var applications = _blockingPage.Applications.Select((item, index) =>
                     new LocalApplicationRuleDto(item.Id, item.Name, item.Path, item.IsEnabled, index)).ToArray();
@@ -242,7 +280,20 @@ public sealed class DesktopAccessControlBridge : IDisposable
         finally
         {
             _ruleSaveGate.Release();
+            if (_pendingServiceState is not null) ScheduleServiceStateApply();
         }
+    }
+
+    private LocalWebsiteRuleDto[] CaptureWebsiteRules()
+        => _blockingPage.Websites.Select((item, index) =>
+            new LocalWebsiteRuleDto(item.Id, item.Name, item.Address, item.IsEnabled, index)).ToArray();
+
+    private static WebsiteRuleChange[] GetWebsiteEdits(IReadOnlyList<LocalWebsiteRuleDto> before, IReadOnlyList<LocalWebsiteRuleDto> after)
+    {
+        var previous = before.ToDictionary(rule => rule.Id);
+        var current = after.ToDictionary(rule => rule.Id);
+        return previous.Keys.Union(current.Keys).Where(id => previous.GetValueOrDefault(id) != current.GetValueOrDefault(id))
+            .Select(id => new WebsiteRuleChange(id, current.GetValueOrDefault(id))).ToArray();
     }
 
     private bool RulesEqual(LocalDataSnapshotDto state)

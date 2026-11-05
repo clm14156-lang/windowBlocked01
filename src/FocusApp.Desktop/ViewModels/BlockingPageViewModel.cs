@@ -50,8 +50,8 @@ public sealed class BlockingPageViewModel : INotifyPropertyChanged
 
         SelectWebsitesCommand = new RelayCommand<object>(_ => SelectedTab = BlockingTab.Websites);
         SelectApplicationsCommand = new RelayCommand<object>(_ => SelectedTab = BlockingTab.Applications);
-        OpenWebsiteModalCommand = new RelayCommand<object>(_ => WebsiteModal.Open());
-        OpenProgramModalCommand = new RelayCommand<object>(_ => ProgramModal.Open());
+        OpenWebsiteModalCommand = new RelayCommand<object>(_ => { if (RequestAccountAccess?.Invoke() != false) WebsiteModal.Open(); });
+        OpenProgramModalCommand = new RelayCommand<object>(_ => { if (RequestAccountAccess?.Invoke() != false) ProgramModal.Open(); });
         DeleteWebsiteCommand = new RelayCommand<BlockingWebsiteItemViewModel>(DeleteWebsite);
         DeleteApplicationCommand = new RelayCommand<BlockingApplicationItemViewModel>(DeleteApplication);
         EditWebsiteCommand = new RelayCommand<BlockingWebsiteItemViewModel>(EditWebsite);
@@ -74,6 +74,7 @@ public sealed class BlockingPageViewModel : INotifyPropertyChanged
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public event EventHandler? BlockingChanged;
+    internal Func<bool>? RequestAccountAccess { get; set; }
 
     public ObservableCollection<BlockingWebsiteItemViewModel> Websites { get; }
 

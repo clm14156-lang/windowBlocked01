@@ -29,9 +29,12 @@ public sealed class DesktopFocusSessionBridge : IDisposable
         _homePage.SetForcedFocusStartCanceller(CancelStartingAsync);
         _homePage.FocusSession.AuthoritativeTasksChanged += FocusSession_AuthoritativeTasksChanged;
         _connection.StateChanged += Connection_StateChanged;
+        _connection.AccountScopeChanged += Connection_AccountScopeChanged;
     }
 
     public event EventHandler<string>? SynchronizationFailed;
+
+    internal Task FinishPendingTasksAsync() => _pendingTaskUpdate;
 
 #if DEBUG
     public Task<FocusSessionMutationResult> EndForcedFocusForDebugAsync(
@@ -49,6 +52,7 @@ public sealed class DesktopFocusSessionBridge : IDisposable
         _disposed = true;
         _homePage.FocusSession.AuthoritativeTasksChanged -= FocusSession_AuthoritativeTasksChanged;
         _connection.StateChanged -= Connection_StateChanged;
+        _connection.AccountScopeChanged -= Connection_AccountScopeChanged;
         try
         {
             _pendingTaskUpdate.GetAwaiter().GetResult();
@@ -72,12 +76,15 @@ public sealed class DesktopFocusSessionBridge : IDisposable
             throw new IpcConnectionException("后台服务不可用，强制专注未启动。");
         }
 
+        var account = _connection.AccountSession;
         using var startCancellation = CancellationTokenSource.CreateLinkedTokenSource(_lifetimeCancellation.Token);
         _pendingStartCancellation = startCancellation;
-        await _accessControlBridge.PersistRulesNowAsync(startCancellation.Token);
-        _pendingStartTarget = target;
         try
         {
+            await _accessControlBridge.PersistRulesNowAsync(startCancellation.Token);
+            startCancellation.Token.ThrowIfCancellationRequested();
+            if (account != _connection.AccountSession) return false;
+            _pendingStartTarget = target;
             var result = await _connection.StartForcedFocusAsync(
                 new StartForcedFocusCommand(
                     checked(minutes * 60),
@@ -87,6 +94,7 @@ public sealed class DesktopFocusSessionBridge : IDisposable
                     automaticRuleId,
                     automaticOccurrenceStartedAtUtc),
                 startCancellation.Token);
+            if (account != _connection.AccountSession) return false;
             _pendingStartingSessionId = result.State.FocusSessions
                 .SingleOrDefault(session => session.IsForcedMode &&
                     session.Status is LocalFocusSessionStatusDto.Preparing or LocalFocusSessionStatusDto.Focusing)?.SessionId;
@@ -96,7 +104,7 @@ public sealed class DesktopFocusSessionBridge : IDisposable
         }
         catch
         {
-            _pendingStartTarget = null;
+            if (account == _connection.AccountSession) _pendingStartTarget = null;
             throw;
         }
         finally
@@ -106,6 +114,14 @@ public sealed class DesktopFocusSessionBridge : IDisposable
                 _pendingStartCancellation = null;
             }
         }
+    }
+
+    private void Connection_AccountScopeChanged(object? sender, EventArgs e)
+    {
+        _pendingStartCancellation?.Cancel();
+        _pendingStartTarget = null;
+        _pendingStartingSessionId = null;
+        Interlocked.Exchange(ref _cancelRequested, 0);
     }
 
     private async Task CancelStartingAsync()
@@ -221,10 +237,11 @@ public sealed class DesktopFocusSessionBridge : IDisposable
                 };
             })
             .ToArray();
-        _pendingTaskUpdate = UpdateTasksSafeAsync(sessionId, snapshots);
+        _pendingTaskUpdate = UpdateTasksSafeAsync(_connection.AccountSession, sessionId, snapshots);
     }
 
     private async Task UpdateTasksSafeAsync(
+        Guid accountSession,
         Guid sessionId,
         IReadOnlyList<LocalFocusSessionTaskSnapshotDto> snapshots)
     {
@@ -233,7 +250,7 @@ public sealed class DesktopFocusSessionBridge : IDisposable
             await _taskUpdateGate.WaitAsync(_lifetimeCancellation.Token).ConfigureAwait(false);
             try
             {
-                if (!_connection.IsConnected)
+                if (!_connection.IsConnected || accountSession != _connection.AccountSession)
                 {
                     return;
                 }

@@ -22,10 +22,19 @@ public sealed class MembershipCoordinator : IDisposable
     }
     public void Start() { loop ??= RunAsync(); }
     private void ConnectionChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args)
-    { if (args.PropertyName == nameof(DesktopServiceConnection.IsConnected)) _ = RefreshAsync(); }
+    {
+        if (args.PropertyName == nameof(DesktopServiceConnection.IsConnected) ||
+            args.PropertyName == nameof(DesktopServiceConnection.IsAccountReady) && connection.IsAccountReady)
+            _ = RefreshAsync();
+    }
     private void Publish(MembershipStatus status)
     {
-        void Apply() { Status = status; Changed?.Invoke(this, status); }
+        void Apply()
+        {
+            if (status.IsActive && connection.UsesAccountIsolation && !connection.IsAccountReady) return;
+            Status = status;
+            Changed?.Invoke(this, status);
+        }
         var epoch = generation;
         if (ui is null || ui == SynchronizationContext.Current) Apply(); else ui.Post(_ => { if (epoch == generation) Apply(); }, null);
     }
@@ -42,6 +51,7 @@ public sealed class MembershipCoordinator : IDisposable
             try
             {
                 if (!connection.IsConnected) { Publish(new("normal", false, null, null, 0, "本地服务未连接，无法验证会员。")); return; }
+                if (connection.UsesAccountIsolation && !connection.IsAccountReady) return;
                 var epoch = generation;
                 if (clearPending)
                 {

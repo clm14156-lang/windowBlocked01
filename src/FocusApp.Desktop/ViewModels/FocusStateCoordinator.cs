@@ -88,6 +88,8 @@ public sealed class FocusStateCoordinator : IDisposable
         }
     }
 
+    internal void ClearAccountData() => _recordedCompletions.Clear();
+
     private void SettingsPage_RulesChanged(object? sender, EventArgs e)
         => EvaluateAutomaticBlocking();
 

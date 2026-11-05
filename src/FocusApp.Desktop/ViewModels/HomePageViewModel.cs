@@ -98,6 +98,7 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
     public ICommand SelectDurationCommand { get; }
 
     public ICommand StartFocusCommand { get; }
+    internal Func<bool>? RequestAccountAccess { get; set; }
 
     public ICommand StartFocusWithDelayCommand { get; }
 
@@ -495,6 +496,7 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
         FocusTargetViewModel? automaticTarget = null,
         bool showBrowserExtensionPrompt = true)
     {
+        if (RequestAccountAccess?.Invoke() == false) return;
         var decision = ForcedModeAccessPolicy.EvaluateStart(
             _isLoggedIn,
             _isVip,

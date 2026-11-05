@@ -62,8 +62,6 @@
     <SolidColorBrush x:Key="OverlayBorder" Color="#EFEFF1" />
     <SolidColorBrush x:Key="WhiteText" Color="#FFFFFF" />
     <SolidColorBrush x:Key="ModalScrim" Color="#99000000" />
-    <SolidColorBrush x:Key="AuthInputPlaceholder" Color="#8A8A8F" />
-    <SolidColorBrush x:Key="AuthError" Color="#FF6A00" />
     <SolidColorBrush x:Key="Success" Color="#2E9B62" />
     <SolidColorBrush x:Key="SuccessPositive" Color="#34C759" />
     <SolidColorBrush x:Key="Warning" Color="#C47A00" />

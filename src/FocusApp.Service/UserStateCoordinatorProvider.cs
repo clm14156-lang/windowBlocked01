@@ -35,9 +35,18 @@ public sealed class UserStateCoordinatorProvider : IUserStateCoordinatorProvider
             windowsIdentity,
             identity =>
             {
-                var store = new SqliteLocalDataStore(_pathProvider.GetDatabasePath(identity));
+                var legacyPath = _pathProvider.GetDatabasePath(identity);
+                var accountRoot = Path.Combine(Path.GetDirectoryName(legacyPath)!, "accounts");
+                var store = new SqliteLocalDataStore(Path.Combine(accountRoot, "guest.db"));
                 return new ServiceStateCoordinator(store, _accessControlFactory.Create(identity),
-                    membershipAuthority: new MembershipAuthority(store, MembershipTrust.Resolve, MembershipTrust.MachineBinding(identity)));
+                    membershipAuthority: new MembershipAuthority(store, MembershipTrust.Resolve, MembershipTrust.MachineBinding(identity)),
+                    initializeDeviceSettings: token => store.CopyDeviceSettingsAsync(legacyPath, token),
+                    openAccountStore: async (userId, apiScope, token) =>
+                    {
+                        var accountStore = new SqliteLocalDataStore(Path.Combine(accountRoot, apiScope, userId.ToString("N") + ".db"));
+                        await accountStore.CopyOwnedHistoryAsync(legacyPath, userId, apiScope, token);
+                        return accountStore;
+                    });
             });
     }
 

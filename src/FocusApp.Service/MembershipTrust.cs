@@ -8,27 +8,47 @@ namespace FocusApp.Service;
 
 public static class MembershipTrust
 {
+    private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
+    private static readonly Lazy<TrustFile?> BundledTrust = new(() =>
+    {
+        using var stream = typeof(MembershipTrust).Assembly.GetManifestResourceStream("FocusApp.Service.Config.MembershipTrust.json");
+        return stream is null ? null : JsonSerializer.Deserialize<TrustFile>(stream, JsonOptions);
+    });
+
     public static string MachineBinding(string windowsIdentity)
     {
         using var key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Cryptography");
         var machine = key?.GetValue("MachineGuid") as string ?? throw new InvalidOperationException("无法读取设备标识。");
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(machine + "\n" + windowsIdentity))).ToLowerInvariant();
     }
-    // This public-key allowlist must be installed by an administrator. IPC cannot add trust.
-    public static string? Resolve(string scope, string kid)
+    // Releases include the server's public verification key; login still supplies the signed membership proof.
+    // An administrator-managed directory overrides bundled trust, including empty or invalid configuration.
+    public static string? Resolve(string scope, string kid) => ResolveAtRoot(
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "FocusTime.ServerTrust"), scope, kid);
+
+    internal static string? ResolveAtRoot(string root, string scope, string kid)
     {
         try
         {
-            var root = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "FocusTime.ServerTrust");
+            FileAttributes attributes;
+            try { attributes = File.GetAttributes(root); }
+            catch (FileNotFoundException) { return FindKey(BundledTrust.Value, scope, kid); }
+            catch (DirectoryNotFoundException) { return FindKey(BundledTrust.Value, scope, kid); }
+            if ((attributes & FileAttributes.Directory) == 0 || (attributes & FileAttributes.ReparsePoint) != 0) return null;
             var file = Path.Combine(root, "entitlement-trust.json");
-            if (!Directory.Exists(root) || !File.Exists(file) || (File.GetAttributes(root) & FileAttributes.ReparsePoint) != 0 ||
+            if (!File.Exists(file) ||
                 (File.GetAttributes(file) & FileAttributes.ReparsePoint) != 0 || new FileInfo(file).Length > 262144) return null;
             if (!Protected(new DirectoryInfo(root).GetAccessControl()) || !Protected(new FileInfo(file).GetAccessControl())) return null;
-            var config = JsonSerializer.Deserialize<TrustFile>(File.ReadAllText(file), new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-            return config?.Keys.SingleOrDefault(x => x.ApiScope == scope && x.KeyId == kid && x.Algorithm == "RS256")?.SubjectPublicKeyInfo;
+            return FindKey(JsonSerializer.Deserialize<TrustFile>(File.ReadAllText(file), JsonOptions), scope, kid);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or InvalidOperationException) { return null; }
     }
+
+    private static string? FindKey(TrustFile? config, string scope, string kid) =>
+        config?.Keys is { Length: <= 128 } keys
+            ? keys.SingleOrDefault(x => x is not null && x.ApiScope == scope && x.KeyId == kid && x.Algorithm == "RS256")?.SubjectPublicKeyInfo
+            : null;
+
     private static bool Protected(FileSystemSecurity security)
     {
         var administrators = new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null);

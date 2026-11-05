@@ -33,6 +33,16 @@ public sealed class CompletionRecordStatusViewModel : INotifyPropertyChanged
         Notify();
     }
 
+    internal void Clear()
+    {
+        lock (sync)
+        {
+            records.Clear();
+            currentRecordId = null;
+        }
+        Notify();
+    }
+
     public void LocalSaved(Guid recordId)
     {
         bool notify;

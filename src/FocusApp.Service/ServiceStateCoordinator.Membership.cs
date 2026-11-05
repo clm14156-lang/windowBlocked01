@@ -25,7 +25,11 @@ public sealed partial class ServiceStateCoordinator
             switch (request.Operation)
             {
                 case MembershipIpc.Begin:
-                    return IpcEnvelope.CreateSuccess(request, await WithMembershipAsync(() => membership.BeginAsync(request.ReadPayload<MembershipContext>(), ct), ct));
+                    var context = request.ReadPayload<MembershipContext>();
+                    if (openAccountStore is not null && (context.UserId != accountUserId ||
+                        !string.Equals(context.ApiScope, accountApiScope, StringComparison.OrdinalIgnoreCase)))
+                        throw new ServiceBusinessException("会员凭证与当前账号不匹配。");
+                    return IpcEnvelope.CreateSuccess(request, await WithMembershipAsync(() => membership.BeginAsync(context, ct), ct));
                 case MembershipIpc.Apply:
                     return IpcEnvelope.CreateSuccess(request, await WithMembershipAsync(() => membership.ApplyAsync(request.ReadPayload<MembershipApplyCommand>().Token, ct), ct));
                 case MembershipIpc.Clear:

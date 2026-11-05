@@ -54,7 +54,10 @@ public sealed record SaveTargetCommand(LocalTargetDto Target, IReadOnlyList<Loca
 public sealed record DeleteTargetCommand(string TargetId);
 public sealed record DeleteFocusRecordCommand(Guid SessionId);
 
-public sealed record ReplaceWebsiteRulesCommand(IReadOnlyList<LocalWebsiteRuleDto> Rules);
+public sealed record ReplaceWebsiteRulesCommand(IReadOnlyList<LocalWebsiteRuleDto> Rules)
+{
+    public IReadOnlyList<WebsiteRuleChange>? Changes { get; init; }
+}
 
 public sealed record ReplaceApplicationRulesCommand(IReadOnlyList<LocalApplicationRuleDto> Rules);
 
@@ -124,7 +127,10 @@ public sealed record FocusRuntimeStatusDto(
     FocusRuntimeState State,
     Guid? SessionId,
     DateTimeOffset? PlannedEndAtUtc,
-    string? LastError);
+    string? LastError)
+{
+    public Guid AccountSession { get; init; }
+}
 
 public sealed record FocusRuntimeStateChangedEvent(FocusRuntimeStatusDto Status);
 
@@ -151,7 +157,10 @@ public sealed record AccessControlStatusDto(
     bool ApplicationProtectionActive,
     int? LocalProxyPort,
     DateTimeOffset? ExpiresAtUtc,
-    string? LastError);
+    string? LastError)
+{
+    public Guid AccountSession { get; init; }
+}
 
 public sealed record AccessControlStateChangedEvent(AccessControlStatusDto Status);
 
@@ -166,7 +175,10 @@ public sealed record AccessBlockedEvent(
     Guid RuleId,
     string RuleName,
     string Target,
-    DateTimeOffset ObservedAtUtc);
+    DateTimeOffset ObservedAtUtc)
+{
+    public Guid AccountSession { get; init; }
+}
 
 public enum AgentProxyActionKind
 {
@@ -224,6 +236,9 @@ public sealed record LocalDataSnapshotDto(
     IReadOnlyList<LocalMonthlyFocusTargetDto> MonthlyFocusTargets)
 {
     public int FocusSyncVersion { get; init; }
+    public int AccountDataVersion { get; init; }
+    public Guid AccountSession { get; init; }
+    public bool HasPendingAccountFocusRecovery { get; init; }
     public Guid? FocusHistoryToken { get; init; }
     public int FocusHistoryCount { get; init; }
 }

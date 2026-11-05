@@ -63,6 +63,8 @@ public sealed record IpcEnvelope(
     IpcErrorResult? Error,
     long Sequence = 0)
 {
+    public Guid AccountSession { get; init; }
+
     public static IpcEnvelope CreateRequest<T>(Guid requestId, IpcClientRole role, string operation, T payload)
         => new(
             IpcMessageKind.Request,
