@@ -5,6 +5,7 @@ public sealed record CloudSession(Guid Id, DateTimeOffset CreatedAtUtc, DateTime
 {
     public string Label => IsCurrentSession ? "当前会话" : "其他登录会话";
     public string Activity => $"最近活动：{LastSeenAtUtc.ToLocalTime():yyyy-MM-dd HH:mm}";
+    public string Details => $"创建：{CreatedAtUtc.ToLocalTime():MM-dd HH:mm} · 到期：{ExpiresAtUtc.ToLocalTime():MM-dd HH:mm}";
 }
 public sealed record CloudDevice(Guid Id, string Name, string OperatingSystem, string ClientVersion,
     DateTimeOffset FirstSeenAtUtc, DateTimeOffset LastSeenAtUtc, bool IsCurrentDevice,
@@ -12,6 +13,8 @@ public sealed record CloudDevice(Guid Id, string Name, string OperatingSystem, s
 {
     public string Metadata => $"{OperatingSystem} · {ClientVersion} · 最近活动 {LastSeenAtUtc.ToLocalTime():yyyy-MM-dd HH:mm}";
     public string SessionCount => $"登录会话（{Sessions.Count}）";
+    public bool IsWebDevice => OperatingSystem.StartsWith("Web", StringComparison.OrdinalIgnoreCase) ||
+        OperatingSystem.Contains("Browser", StringComparison.OrdinalIgnoreCase);
 }
 public interface IDeviceSessionClient
 {

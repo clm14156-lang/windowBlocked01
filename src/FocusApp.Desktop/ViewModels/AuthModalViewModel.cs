@@ -1,19 +1,26 @@
 using System.ComponentModel;
 using FocusApp.Desktop.Services.Cloud;
+using System.IO;
 using System.Net.Http;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
+using System.Windows.Media.Imaging;
 
 namespace FocusApp.Desktop.ViewModels;
 
 public sealed class AuthModalViewModel : INotifyPropertyChanged
 {
+    private static readonly TimeSpan MinimumLoginTime = TimeSpan.FromMilliseconds(500);
     private bool _isOpen;
     private string _loginAccount = string.Empty;
     private string _loginPassword = string.Empty;
     private readonly IAccountClient _accounts;
     private bool _hasLoginError;
     private bool _isBusy;
+    private bool _isLoggingIn;
+    private Guid? _captchaChallengeId;
+    private BitmapSource? _captchaImage;
+    private string _captchaText = "";
     private string _statusMessage = "";
     private string _sessionStatus = "";
     private bool _initialSessionLoaded;
@@ -30,6 +37,7 @@ public sealed class AuthModalViewModel : INotifyPropertyChanged
             };
         CloseCommand = new RelayCommand<object>(_ => Close());
         LoginCommand = new AsyncCommand(() => RunAsync(LoginAsync));
+        RefreshCaptchaCommand = new AsyncCommand(() => RunAsync(RefreshCaptchaAsync));
         OpenRegistrationWebsiteCommand = new RelayCommand<object>(_ => OpenWebsite(AccountWebsiteLinks.Registration));
         OpenRecoveryWebsiteCommand = new RelayCommand<object>(_ => OpenWebsite(AccountWebsiteLinks.PasswordRecovery));
     }
@@ -41,6 +49,7 @@ public sealed class AuthModalViewModel : INotifyPropertyChanged
     public ICommand CloseCommand { get; }
 
     public ICommand LoginCommand { get; }
+    public ICommand RefreshCaptchaCommand { get; }
     public ICommand OpenRegistrationWebsiteCommand { get; }
     public ICommand OpenRecoveryWebsiteCommand { get; }
 
@@ -64,7 +73,10 @@ public sealed class AuthModalViewModel : INotifyPropertyChanged
         get => _loginAccount;
         set
         {
-            if (SetField(ref _loginAccount, value) && HasLoginError) ResetFeedback();
+            var emailChanged = !string.Equals(_loginAccount.Trim(), value.Trim(), StringComparison.OrdinalIgnoreCase);
+            if (!SetField(ref _loginAccount, value)) return;
+            if (emailChanged) ClearCaptcha();
+            if (HasLoginError) ResetFeedback();
         }
     }
 
@@ -83,24 +95,26 @@ public sealed class AuthModalViewModel : INotifyPropertyChanged
         private set => SetField(ref _hasLoginError, value);
     }
 
+    public bool IsLoggingIn { get => _isLoggingIn; private set => SetField(ref _isLoggingIn, value); }
+    public bool RequiresCaptcha => _captchaChallengeId is not null;
+    public BitmapSource? CaptchaImage { get => _captchaImage; private set => SetField(ref _captchaImage, value); }
+    public string CaptchaText
+    {
+        get => _captchaText;
+        set { if (SetField(ref _captchaText, value) && HasLoginError) ResetFeedback(); }
+    }
+
     public void OpenLogin()
     {
         if (!IsOpen) ResetFeedback();
         IsOpen = true;
     }
 
-    public void ClearAccountForm()
-    {
-        ClearPasswords();
-        IsOpen = false;
-        LoginAccount = string.Empty;
-        ResetFeedback();
-    }
-
     private void Close()
     {
         if (IsBusy) return;
         ClearPasswords();
+        ClearCaptcha();
         ResetFeedback();
         IsOpen = false;
     }
@@ -128,11 +142,62 @@ public sealed class AuthModalViewModel : INotifyPropertyChanged
 
     private async Task LoginAsync()
     {
-        var account = await _accounts.LoginAsync(LoginAccount.Trim(), LoginPassword);
-        HasLoginError = false;
-        ClearPasswords();
-        IsOpen = false;
-        LoginSucceeded?.Invoke(this, new LoginSucceededEventArgs(account.Email, account.Membership));
+        IsLoggingIn = true;
+        try
+        {
+            var minimumTime = Task.Delay(MinimumLoginTime);
+            var request = RequestLoginAsync();
+            await Task.WhenAll(request, minimumTime);
+            var account = await request;
+            ClearPasswords();
+            ClearCaptcha();
+            IsOpen = false;
+            LoginSucceeded?.Invoke(this, new LoginSucceededEventArgs(account.Email, account.Membership));
+        }
+        finally { IsLoggingIn = false; }
+    }
+
+    private async Task<CloudAccount> RequestLoginAsync()
+    {
+        var email = LoginAccount.Trim();
+        var answer = _captchaChallengeId is { } id ? new LoginCaptchaAnswer(id, CaptchaText.Trim()) : null;
+        return _accounts is ILoginCaptchaClient client
+            ? await client.LoginAsync(email, LoginPassword, answer)
+            : await _accounts.LoginAsync(email, LoginPassword);
+    }
+
+    private async Task RefreshCaptchaAsync()
+    {
+        if (!RequiresCaptcha || _accounts is not ILoginCaptchaClient client) return;
+        var challenge = await client.RefreshLoginCaptchaAsync(LoginAccount.Trim());
+        if (!TryApplyCaptcha(challenge)) throw new CloudApiException("captcha_image_unavailable");
+    }
+
+    private bool TryApplyCaptcha(LoginCaptchaChallenge challenge)
+    {
+        if (challenge.ChallengeId == Guid.Empty || challenge.Image is not { Length: > 54 and <= 65536 }) return false;
+        try
+        {
+            using var stream = new MemoryStream(challenge.Image, writable: false);
+            var bitmap = new BmpBitmapDecoder(stream, BitmapCreateOptions.None, BitmapCacheOption.OnLoad).Frames[0];
+            bitmap.Freeze();
+            _captchaChallengeId = challenge.ChallengeId;
+            CaptchaImage = bitmap;
+            CaptchaText = "";
+            OnPropertyChanged(nameof(RequiresCaptcha));
+            return true;
+        }
+        catch (Exception error) when (error is IOException or FileFormatException or NotSupportedException or ArgumentException)
+        { return false; }
+    }
+
+    private void ClearCaptcha()
+    {
+        if (!RequiresCaptcha) return;
+        _captchaChallengeId = null;
+        CaptchaImage = null;
+        CaptchaText = "";
+        OnPropertyChanged(nameof(RequiresCaptcha));
     }
 
     public async Task RestoreSessionAsync()
@@ -176,10 +241,17 @@ public sealed class AuthModalViewModel : INotifyPropertyChanged
         try { await action(); if (StatusMessage == "正在处理，请稍候…") StatusMessage = ""; }
         catch (CloudApiException ex)
         {
+            if (ex.Code == "captcha_not_required") ClearCaptcha();
+            var imageUnavailable = ex.Captcha is { } captcha && !TryApplyCaptcha(captcha);
             HasLoginError = true;
-            StatusMessage = ex.Code switch
+            StatusMessage = (imageUnavailable ? "captcha_image_unavailable" : ex.Code) switch
             {
-                "invalid_credentials" => "邮箱或密码不正确。",
+                "invalid_credentials" => "邮箱或密码错误，请重试。",
+                "captcha_required" => "请输入图片中的验证码。",
+                "captcha_invalid" => "验证码错误或已失效，请重试。",
+                "captcha_not_required" => "安全验证已重置，请重新登录。",
+                "captcha_image_unavailable" => "验证码图片加载失败，请重试。",
+                "account_disabled" => "此账号已停用。",
                 "account_locked" => "登录失败次数过多，请在 15 分钟后重试。",
                 "rate_limit_exceeded" => "操作过于频繁，请稍后再试。",
                 "session_limit_reached" => "登录会话已达上限，请先退出已有设备或会话。",
@@ -192,7 +264,7 @@ public sealed class AuthModalViewModel : INotifyPropertyChanged
         { HasLoginError = true; StatusMessage = "无法连接服务器，请检查网络后重试。"; }
         catch (Exception ex) when (ex is System.IO.IOException or System.UnauthorizedAccessException or
             System.Security.Cryptography.CryptographicException or System.Text.Json.JsonException)
-        { StatusMessage = "无法安全保存或读取账号状态，请稍后重试。"; }
+        { HasLoginError = true; StatusMessage = "无法安全保存或读取账号状态，请稍后重试。"; }
         finally { IsBusy = false; }
     }
 

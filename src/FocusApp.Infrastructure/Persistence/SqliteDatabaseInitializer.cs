@@ -7,7 +7,7 @@ internal sealed class SqliteDatabaseInitializer(
     string databasePath,
     SqliteLocalDataStoreOptions options)
 {
-    public const int CurrentSchemaVersion = 18;
+    public const int CurrentSchemaVersion = 20;
 
     private const string MigrationV1 = """
         CREATE TABLE focus_sessions (
@@ -327,6 +327,11 @@ internal sealed class SqliteDatabaseInitializer(
             16 => SqliteLocalDataStore.FocusDownloadMigration,
             17 => SqliteLocalDataStore.MembershipMigration,
             18 => SqliteLocalDataStore.AccountDataMigration,
+            19 => "ALTER TABLE focus_sessions ADD COLUMN activity_intervals_json TEXT NULL;",
+            20 => """
+                ALTER TABLE focus_sessions ADD COLUMN recovery_checkpoint_utc TEXT NULL;
+                ALTER TABLE focus_sessions ADD COLUMN recovery_abandoned INTEGER NOT NULL DEFAULT 0;
+                """,
             _ => throw new InvalidOperationException($"缺少数据库版本 {targetVersion} 的迁移。")
         };
 

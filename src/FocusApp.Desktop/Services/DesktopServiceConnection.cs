@@ -327,6 +327,16 @@ public sealed class DesktopServiceConnection : INotifyPropertyChanged, IAsyncDis
             cancellationToken,
             requestId);
 
+    public Task<EmptyPayload> CheckpointNormalFocusAsync(CheckpointNormalFocusCommand checkpoint)
+        => GetConnectedClient().SendAsync<CheckpointNormalFocusCommand, EmptyPayload>(
+            IpcOperations.CheckpointNormalFocus, checkpoint, _requestTimeout);
+
+    public Task<MutationResult> ResolveInterruptedFocusAsync(Guid sessionId, bool resume)
+        => SendMutationAsync(
+            resume ? IpcOperations.ResumeInterruptedFocus : IpcOperations.AbandonInterruptedFocus,
+            new InterruptedFocusCommand(sessionId),
+            CancellationToken.None, null);
+
     public Task<MutationResult> DiscardNormalFocusAsync(
         Guid sessionId,
         CancellationToken cancellationToken = default,
@@ -422,6 +432,8 @@ public sealed class DesktopServiceConnection : INotifyPropertyChanged, IAsyncDis
                     continue;
                 }
 
+                // The new pipe may belong to a restarted service with revisions starting at zero.
+                SetOnContext(() => State = null);
                 _client = client;
                 client.AccountSession = AccountSession;
                 var state = await client.SendAsync<EmptyPayload, LocalDataSnapshotDto>(

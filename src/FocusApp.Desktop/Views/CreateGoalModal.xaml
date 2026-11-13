@@ -57,14 +57,15 @@
         </DataTemplate>
         <Style x:Key="CreateGoalSecondaryButtonStyle" TargetType="Button">
             <Setter Property="Height" Value="38"/><Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderBrush" Value="#E3E5EA"/><Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/><Setter Property="FontSize" Value="{DynamicResource ButtonFontSize}"/>
             <Setter Property="FontWeight" Value="{DynamicResource ButtonFontWeight}"/><Setter Property="Cursor" Value="Hand"/>
             <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
                 <Border x:Name="ButtonChrome" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
                         BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8">
-                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" TextElement.Foreground="{TemplateBinding Foreground}"/>
+                    <TextBlock Text="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}" FontFamily="{TemplateBinding FontFamily}"
+                               FontSize="{TemplateBinding FontSize}" FontWeight="{TemplateBinding FontWeight}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 </Border>
                 <ControlTemplate.Triggers>
                     <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ButtonChrome" Property="Background" Value="#F5F6F8"/></Trigger>
@@ -73,11 +74,12 @@
             </ControlTemplate></Setter.Value></Setter>
         </Style>
         <Style x:Key="CreateGoalPrimaryButtonStyle" TargetType="Button" BasedOn="{StaticResource CreateGoalSecondaryButtonStyle}">
-            <Setter Property="Background" Value="#FF762A"/><Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Foreground" Value="{DynamicResource WhiteText}"/><Setter Property="FontWeight" Value="{DynamicResource FontWeightSemiBold}"/>
+            <Setter Property="Background" Value="#FF7A00"/><Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Foreground" Value="#FFFFFF"/><Setter Property="FontWeight" Value="{DynamicResource FontWeightSemiBold}"/>
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
                 <Border x:Name="PrimaryButtonChrome" Background="{TemplateBinding Background}" CornerRadius="8">
-                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" TextElement.Foreground="{TemplateBinding Foreground}"/>
+                    <TextBlock Text="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}" FontFamily="{TemplateBinding FontFamily}"
+                               FontSize="{TemplateBinding FontSize}" FontWeight="{TemplateBinding FontWeight}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 </Border>
                 <ControlTemplate.Triggers>
                     <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="PrimaryButtonChrome" Property="Opacity" Value="0.9"/></Trigger>
@@ -92,7 +94,7 @@
               TextElement.FontFamily="{DynamicResource FontFamilyPrimary}"
               Visibility="{Binding IsCreateGoalDialogOpen, Converter={StaticResource BooleanToVisibilityConverter}}">
             <Border x:Name="DialogCard" Width="400" Height="300" HorizontalAlignment="Center" VerticalAlignment="Center"
-                    Background="{DynamicResource SurfacePrimary}" BorderBrush="#E3E3E8" BorderThickness="1" CornerRadius="14">
+                    Background="#FFFFFF" BorderBrush="#EEEEEF" BorderThickness="1" CornerRadius="14">
                 <Border.Effect><DropShadowEffect BlurRadius="24" Direction="270" Opacity="0.16" ShadowDepth="5"/></Border.Effect>
                 <Grid x:Name="CloseButtonHost">
                     <Grid x:Name="DialogContentGrid" Margin="22,18,22,20">
@@ -105,13 +107,17 @@
                         <Grid Grid.Row="2" x:Name="GoalInformationInputs">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="58"/><ColumnDefinition Width="10"/><ColumnDefinition/></Grid.ColumnDefinitions>
                             <Button x:Name="GoalIconLibraryButton" AutomationProperties.Name="选择目标图标" Command="{Binding ToggleGoalIconLibraryCommand}"
-                                    Background="#FFF6EF" BorderBrush="#FFE0CB" BorderThickness="1" Padding="0" Cursor="Hand" FocusVisualStyle="{x:Null}">
+                                    Background="Transparent" BorderBrush="Transparent" BorderThickness="0" Padding="0" Cursor="Hand" FocusVisualStyle="{x:Null}">
                                 <Button.Template><ControlTemplate TargetType="Button">
                                     <Border x:Name="IconSelectorChrome" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
                                             BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8">
                                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                     </Border>
-                                    <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="IconSelectorChrome" Property="BorderBrush" Value="#FFB37D"/></Trigger></ControlTemplate.Triggers>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="IconSelectorChrome" Property="Opacity" Value="0.82"/></Trigger>
+                                        <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="IconSelectorChrome" Property="Opacity" Value="0.82"/></Trigger>
+                                        <Trigger Property="IsPressed" Value="True"><Setter TargetName="IconSelectorChrome" Property="Opacity" Value="0.65"/></Trigger>
+                                    </ControlTemplate.Triggers>
                                 </ControlTemplate></Button.Template>
                                 <StackPanel Orientation="Horizontal">
                                     <Image x:Name="SelectedGoalIcon" Width="26" Height="26" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"
@@ -120,7 +126,7 @@
                                           Stroke="#FF841F" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
                                 </StackPanel>
                             </Button>
-                            <Border Grid.Column="2" x:Name="GoalNameInputSurface" Background="#F8F9FB" BorderBrush="#E5E7EC" BorderThickness="1" CornerRadius="8" Padding="10,0">
+                            <Border Grid.Column="2" x:Name="GoalNameInputSurface" Background="#F5F5F6" BorderThickness="0" CornerRadius="8" Padding="11,1">
                                 <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="40"/></Grid.ColumnDefinitions>
                                     <TextBox x:Name="NewGoalNameTextBox" AutomationProperties.Name="目标名称" MaxLength="50"
                                              IsVisibleChanged="NewGoalNameTextBox_IsVisibleChanged" PreviewKeyDown="NewGoalNameTextBox_PreviewKeyDown"
@@ -133,7 +139,7 @@
                                 </Grid>
                             </Border>
                         </Grid>
-                        <Border Grid.Row="4" x:Name="GoalRemarkContainer" Background="#F8F9FB" BorderBrush="#E5E7EC" BorderThickness="1" CornerRadius="8" Padding="10">
+                        <Border Grid.Row="4" x:Name="GoalRemarkContainer" Background="#F5F5F6" BorderThickness="0" CornerRadius="8" Padding="11">
                             <Grid><Grid.RowDefinitions><RowDefinition Height="60"/><RowDefinition Height="18"/></Grid.RowDefinitions>
                                 <TextBox x:Name="NewGoalRemarkTextBox" AutomationProperties.Name="备注" MaxLength="150" AcceptsReturn="True" TextWrapping="Wrap"
                                          Height="60" VerticalContentAlignment="Top" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"

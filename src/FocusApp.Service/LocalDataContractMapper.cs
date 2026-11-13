@@ -100,7 +100,14 @@ internal static class LocalDataContractMapper
                 CompletedAtUtc = task.CompletedAtUtc,
                 Details = task.Details is null ? null : new LocalTaskDetailsSnapshot(task.Details.Description,
                     task.Details.SubTasks.Select(child => new LocalSubTaskSnapshot(child.Title, child.IsCompleted)).ToArray())
-            }).ToArray()) { CloudBindingId = source.CloudBindingId };
+            }).ToArray())
+        {
+            CloudBindingId = source.CloudBindingId,
+            RecoveryCheckpointAtUtc = source.RecoveryCheckpointAtUtc,
+            WasRecoveryAbandoned = source.WasRecoveryAbandoned,
+            ActivityIntervals = source.ActivityIntervals.Select(interval => new FocusActivityInterval(
+                interval.StartedAtUtc, interval.EndedAtUtc, interval.IsPaused)).ToArray()
+        };
 
     internal static LocalFocusSessionDto ToDto(LocalFocusSession source)
         => new LocalFocusSessionDto(
@@ -130,6 +137,10 @@ internal static class LocalDataContractMapper
             }).ToArray())
         {
             CloudBindingId = source.CloudBindingId ?? Guid.Empty,
+            RecoveryCheckpointAtUtc = source.RecoveryCheckpointAtUtc,
+            WasRecoveryAbandoned = source.WasRecoveryAbandoned,
+            ActivityIntervals = source.ActivityIntervals.Select(interval => new FocusActivityIntervalDto(
+                interval.StartedAtUtc, interval.EndedAtUtc, interval.IsPaused)).ToArray(),
             WebsiteRuleSnapshots = source.Status == LocalFocusSessionStatus.Completed
                 ? []
                 : source.WebsiteRuleSnapshots.Select(ToDto).ToArray(),

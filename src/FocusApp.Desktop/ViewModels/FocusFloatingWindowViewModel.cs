@@ -225,6 +225,13 @@ public sealed partial class FocusFloatingWindowViewModel : INotifyPropertyChange
         }
     }
 
+    internal void FinishSubTaskCreation()
+    {
+        if (_isSubmittingTask || !IsCreatingSubTask) return;
+        SubmitTaskCreation();
+        CancelTaskCreation();
+    }
+
     public void CancelTaskCreation()
     {
         if (!IsCreatingTask) return;

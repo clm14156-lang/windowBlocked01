@@ -27,6 +27,12 @@ public sealed record LocalFocusSession(
 {
     public Guid? CloudBindingId { get; init; }
 
+    public DateTimeOffset? RecoveryCheckpointAtUtc { get; init; }
+
+    public bool WasRecoveryAbandoned { get; init; }
+
+    public IReadOnlyList<FocusActivityInterval> ActivityIntervals { get; init; } = [];
+
     public IReadOnlyList<LocalWebsiteRule> WebsiteRuleSnapshots { get; init; } = [];
 
     public IReadOnlyList<LocalApplicationRule> ApplicationRuleSnapshots { get; init; } = [];

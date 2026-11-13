@@ -78,7 +78,7 @@ internal sealed class FocusTaskMenu : IDisposable
         var heading = new TextBlock { Text = "选择标记", FontSize = 12, FontWeight = FontWeights.SemiBold, Margin = new Thickness(5, 2, 0, 5) };
         heading.SetResourceReference(TextBlock.ForegroundProperty, "DrawerTaskMenuEdit");
         palette.Children.Add(heading);
-        var grid = new UniformGrid { Rows = 4, Columns = 5 };
+        var grid = new UniformGrid { Rows = 4, Columns = 6 };
         foreach (var marker in TaskMarkerCatalog.All)
         {
             grid.Children.Add(CreateMarkerChoice(marker, SelectedColor(), () =>

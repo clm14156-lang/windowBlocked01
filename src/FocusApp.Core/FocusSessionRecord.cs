@@ -8,7 +8,11 @@ public sealed record FocusSessionRecord(
     FocusCompletionKind CompletionKind,
     bool IsForcedMode)
 {
+    public const int MinimumSavedSeconds = 5 * 60;
+
     public string? TargetId { get; init; }
+
+    public IReadOnlyList<FocusActivityInterval> ActivityIntervals { get; init; } = [];
 
     public string? TargetName { get; init; }
 

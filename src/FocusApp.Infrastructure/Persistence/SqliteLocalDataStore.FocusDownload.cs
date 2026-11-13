@@ -23,7 +23,8 @@ public sealed partial class SqliteLocalDataStore
     private sealed record RemotePayload(int ConfiguredSeconds,int ActualSeconds,DateTimeOffset PreparationStartedAtUtc,
         DateTimeOffset? FocusStartedAtUtc,DateTimeOffset? PlannedEndAtUtc,DateTimeOffset CompletedAtUtc,string CompletionKind,
         bool IsForcedMode,string? TargetId,string? TargetNameSnapshot,bool BlockingEnabled,Guid? AutomaticRuleId,
-        DateTimeOffset? AutomaticOccurrenceStartedAtUtc,IReadOnlyList<LocalFocusSessionTaskSnapshot> CompletedTasks);
+        DateTimeOffset? AutomaticOccurrenceStartedAtUtc,IReadOnlyList<LocalFocusSessionTaskSnapshot> CompletedTasks,
+        bool WasRecoveryAbandoned = false);
 
     private static LocalFocusSession RemoteSession(Guid id,Guid binding,string json)
     {
@@ -41,7 +42,7 @@ public sealed partial class SqliteLocalDataStore
             p.PreparationStartedAtUtc,p.FocusStartedAtUtc,p.PlannedEndAtUtc,p.CompletedAtUtc,
             p.CompletionKind=="natural"?FocusCompletionKind.Natural:FocusCompletionKind.EarlyEnd,
             p.TargetId,p.TargetNameSnapshot,p.BlockingEnabled,p.AutomaticRuleId,p.AutomaticOccurrenceStartedAtUtc,p.CompletedTasks)
-        {CloudBindingId=binding};
+        { CloudBindingId = binding, WasRecoveryAbandoned = p.WasRecoveryAbandoned && p.CompletionKind == "earlyEnd" };
     }
 
     private static async Task<FocusSyncBinding?> CurrentFocusBinding(SqliteConnection c,SqliteTransaction? t,CancellationToken ct)

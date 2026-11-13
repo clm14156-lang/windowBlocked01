@@ -182,7 +182,7 @@
                                     <ContentControl Style="{StaticResource VipBenefitItemStyle}" Content="{DynamicResource VipFreeBlocking}" />
                                     <ContentControl Style="{StaticResource VipBenefitItemStyle}" Content="{DynamicResource VipFreeStatistics}" />
                                     <ContentControl Style="{StaticResource VipBenefitItemStyle}" Tag="Unavailable" Content="{DynamicResource VipBenefitGoalDetails}" />
-                                    <ContentControl Style="{StaticResource VipBenefitItemStyle}" Tag="Unavailable" Content="{DynamicResource VipBenefitExport}" />
+                                    <ContentControl Style="{StaticResource VipBenefitItemStyle}" Tag="Unavailable" Content="{DynamicResource VipBenefitCharacter}" />
                                     <ContentControl Style="{StaticResource VipBenefitItemStyle}" Tag="Unavailable" Content="{DynamicResource VipBenefitSync}" />
                                 </StackPanel>
                             </Border>
@@ -207,7 +207,7 @@
                                     <ContentControl Style="{StaticResource VipBenefitItemStyle}" Tag="Vip" Content="{DynamicResource VipBenefitAutoBlocking}" />
                                     <ContentControl Style="{StaticResource VipBenefitItemStyle}" Tag="Vip" Content="{DynamicResource VipComparisonGoalDetails}" />
                                     <ContentControl Style="{StaticResource VipBenefitItemStyle}" Tag="Vip" Content="{DynamicResource VipBenefitStatistics}" />
-                                    <ContentControl Style="{StaticResource VipBenefitItemStyle}" Tag="Vip" Content="{DynamicResource VipBenefitExport}" />
+                                    <ContentControl Style="{StaticResource VipBenefitItemStyle}" Tag="Vip" Content="{DynamicResource VipBenefitCharacter}" />
                                     <ContentControl Style="{StaticResource VipBenefitItemStyle}" Tag="Vip" Content="{DynamicResource VipBenefitSync}" />
                                 </StackPanel>
                             </Border>

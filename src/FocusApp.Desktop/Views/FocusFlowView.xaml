@@ -643,9 +643,7 @@
                         </StackPanel>
                     </StackPanel>
                     <Border x:Name="CompletionRecordStatusBar" MinWidth="176" Height="34" Margin="0,26,0,0"
-                            Padding="16,0" HorizontalAlignment="Center" CornerRadius="17" BorderThickness="1"
-                            Background="{DynamicResource FocusRecordStatusBackground}"
-                            BorderBrush="{DynamicResource FocusRecordStatusBorder}"
+                            Padding="0" HorizontalAlignment="Center" BorderThickness="0" Background="Transparent" Effect="{x:Null}"
                             Visibility="{Binding CompletionRecordStatus.IsVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
                             AutomationProperties.Name="{Binding Text, ElementName=CompletionRecordStatusText}"
                             AutomationProperties.LiveSetting="Polite">
@@ -717,7 +715,7 @@
                                     <Ellipse Width="2" Height="2" Canvas.Left="16" Canvas.Top="17" Fill="{DynamicResource FocusRecordLocalIcon}" />
                                 </Canvas>
                             </Viewbox>
-                            <TextBlock x:Name="CompletionRecordStatusText" VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold"
+                            <TextBlock x:Name="CompletionRecordStatusText" VerticalAlignment="Center" FontSize="13" FontWeight="Medium"
                                        Foreground="{DynamicResource FocusRecordStatusText}">
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock">

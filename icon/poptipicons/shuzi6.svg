@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 100 100">
+  <defs>
+    <radialGradient id="coin" cx="35%" cy="28%" r="82%">
+      <stop offset="0" stop-color="#a2acbd"/>
+      <stop offset="0.58" stop-color="#909aaf"/>
+      <stop offset="1" stop-color="#7f8ba0"/>
+    </radialGradient>
+    <linearGradient id="mark" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#fff"/>
+      <stop offset="1" stop-color="#f8f8f8"/>
+    </linearGradient>
+  </defs>
+  <circle cx="49.5" cy="50.2" r="30.5" fill="url(#coin)"/>
+  <path fill="url(#mark)" fill-rule="evenodd" transform="translate(37.85 64.49) scale(0.02013 -0.02013)" d="M1039 1107 767 1077Q757 1161 715 1201T606 1241Q517 1241 455.5 1161T378 828Q483 952 639 952Q815 952 940.5 818T1066 472Q1066 247 934 111T595 -25Q373 -25 230 147.5T87 713Q87 1116 236 1294T623 1472Q790 1472 899.5 1378.5T1039 1107ZM402 494Q402 357 465 282.5T609 208Q687 208 739 269T791 469Q791 612 735 678.5T595 745Q514 745 458 681.5T402 494Z"/>
+</svg>

@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -13,14 +14,30 @@ public partial class AuthModal : UserControl
         InitializeComponent();
         DataContextChanged += (_, args) =>
         {
-            if (args.OldValue is AuthModalViewModel previous) previous.PasswordsCleared -= ClearPasswordInputs;
+            if (args.OldValue is AuthModalViewModel previous)
+            {
+                previous.PasswordsCleared -= ClearPasswordInputs;
+                previous.PropertyChanged -= LoginPropertyChanged;
+            }
             ClearPasswordInputs(this, EventArgs.Empty);
             if (args.NewValue is AuthModalViewModel current)
             {
                 current.PasswordsCleared += ClearPasswordInputs;
+                current.PropertyChanged += LoginPropertyChanged;
                 LoginPasswordBox.Password = current.LoginPassword;
             }
         };
+    }
+
+    private void LoginPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(AuthModalViewModel.RequiresCaptcha) ||
+            sender is not AuthModalViewModel { RequiresCaptcha: true } model) return;
+        Dispatcher.InvokeAsync(() =>
+        {
+            if (ReferenceEquals(DataContext, model) && LoginCaptchaTextBox.IsVisible && LoginCaptchaTextBox.IsEnabled)
+                LoginCaptchaTextBox.Focus();
+        }, DispatcherPriority.Input);
     }
 
     private void ClearPasswordInputs(object? sender, EventArgs args)
@@ -28,7 +45,6 @@ public partial class AuthModal : UserControl
         LoginPasswordBox.Visibility = Visibility.Collapsed;
         LoginPasswordBox.Clear();
         LoginPasswordBox.Visibility = Visibility.Visible;
-        LoginPasswordTextBox.Visibility = Visibility.Collapsed;
     }
 
     private void AuthModal_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
@@ -48,21 +64,12 @@ public partial class AuthModal : UserControl
             model.LoginPassword = passwordBox.Password;
     }
 
-    private void ToggleLoginPasswordVisibility_Click(object sender, RoutedEventArgs e)
+    private void ClearLoginPassword_Click(object sender, RoutedEventArgs e)
     {
-        if (LoginPasswordTextBox.Visibility == Visibility.Collapsed)
-        {
-            LoginPasswordBox.Visibility = Visibility.Collapsed;
-            LoginPasswordTextBox.Visibility = Visibility.Visible;
-            LoginPasswordTextBox.Focus();
-            LoginPasswordTextBox.CaretIndex = LoginPasswordTextBox.Text.Length;
-        }
-        else
-        {
-            LoginPasswordBox.Password = LoginPasswordTextBox.Text;
-            LoginPasswordTextBox.Visibility = Visibility.Collapsed;
-            LoginPasswordBox.Visibility = Visibility.Visible;
-            LoginPasswordBox.Focus();
-        }
+        if (DataContext is not AuthModalViewModel model || !model.IsIdle) return;
+        model.LoginPassword = string.Empty;
+        LoginPasswordBox.Clear();
+        LoginPasswordBox.Focus();
     }
+
 }

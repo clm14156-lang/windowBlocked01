@@ -186,6 +186,12 @@ public sealed class DesktopFocusSessionBridge : IDisposable
         var active = state.FocusSessions.SingleOrDefault(session =>
             session.IsForcedMode &&
             session.Status is LocalFocusSessionStatusDto.Preparing or LocalFocusSessionStatusDto.Focusing);
+        if (active is not null && state.InterruptedFocusSessionId == active.SessionId)
+        {
+            if (_homePage.FocusSession.AuthoritativeSessionId == active.SessionId)
+                _homePage.FocusSession.ShowInterruptedFocusHome();
+            return;
+        }
         if (active is not null && Volatile.Read(ref _cancelRequested) == 0)
         {
             if (_homePage.IsStartingForcedFocus)
@@ -194,7 +200,7 @@ public sealed class DesktopFocusSessionBridge : IDisposable
             }
             var target = _homePage.FocusSession.AuthoritativeSessionId == active.SessionId
                 ? _homePage.FocusSession.ActiveTarget
-                : _pendingStartTarget;
+                : _pendingStartTarget ?? _homePage.FocusTargetModal.Targets.FirstOrDefault(item => item.TargetId == active.TargetId);
             _homePage.FocusSession.ApplyAuthoritativeSession(active, target);
             _pendingStartTarget = null;
             return;

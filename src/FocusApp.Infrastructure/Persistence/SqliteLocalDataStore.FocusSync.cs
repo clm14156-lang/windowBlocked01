@@ -39,20 +39,28 @@ public sealed partial class SqliteLocalDataStore : IFocusSyncStore
         if(!await row.ReadAsync(ct)) throw new LocalDataException("同步账号未就绪，请重新连接本地服务。");
         return new(id,Guid.Parse(row.GetString(0)),row.GetString(1));
     }
-    private static string RecordPayload(LocalFocusSession s) => JsonSerializer.Serialize(new
+    private static string RecordPayload(LocalFocusSession s)
     {
-        s.ConfiguredSeconds,s.ActualSeconds,preparationStartedAtUtc=s.PreparationStartedAtUtc.ToUniversalTime(),
-        focusStartedAtUtc=s.FocusStartedAtUtc?.ToUniversalTime(),plannedEndAtUtc=s.PlannedEndAtUtc?.ToUniversalTime(),
-        completedAtUtc=s.CompletedAtUtc!.Value.ToUniversalTime(),
-        completionKind=s.CompletionKind == FocusCompletionKind.Natural ? "natural" : "earlyEnd",s.IsForcedMode,
-        s.TargetId,s.TargetNameSnapshot,s.BlockingEnabled,s.AutomaticRuleId,
-        automaticOccurrenceStartedAtUtc=s.AutomaticOccurrenceStartedAtUtc?.ToUniversalTime(),
-        completedTasks=s.CompletedTasks.OrderBy(x=>x.SortOrder).ThenBy(x=>x.TaskId,StringComparer.Ordinal).Select(x=>new
+        var payload = new
         {
-            x.TaskId,x.TaskNameSnapshot,x.SortOrder,completedAtUtc=(x.CompletedAtUtc??s.CompletedAtUtc)?.ToUniversalTime(),
-            details=x.Details is null ? null : new { x.Details.Description,subTasks=x.Details.SubTasks.Select(y=>new{y.Title,y.IsCompleted}) }
-        })
-    },SyncJson);
+            s.ConfiguredSeconds,s.ActualSeconds,preparationStartedAtUtc=s.PreparationStartedAtUtc.ToUniversalTime(),
+            focusStartedAtUtc=s.FocusStartedAtUtc?.ToUniversalTime(),plannedEndAtUtc=s.PlannedEndAtUtc?.ToUniversalTime(),
+            completedAtUtc=s.CompletedAtUtc!.Value.ToUniversalTime(),
+            completionKind=s.CompletionKind == FocusCompletionKind.Natural ? "natural" : "earlyEnd",s.IsForcedMode,
+            s.TargetId,s.TargetNameSnapshot,s.BlockingEnabled,s.AutomaticRuleId,
+            automaticOccurrenceStartedAtUtc=s.AutomaticOccurrenceStartedAtUtc?.ToUniversalTime(),
+            completedTasks=s.CompletedTasks.OrderBy(x=>x.SortOrder).ThenBy(x=>x.TaskId,StringComparer.Ordinal).Select(x=>new
+            {
+                x.TaskId,x.TaskNameSnapshot,x.SortOrder,completedAtUtc=(x.CompletedAtUtc??s.CompletedAtUtc)?.ToUniversalTime(),
+                details=x.Details is null ? null : new { x.Details.Description,subTasks=x.Details.SubTasks.Select(y=>new{y.Title,y.IsCompleted}) }
+            })
+        };
+        if (!s.WasRecoveryAbandoned) return JsonSerializer.Serialize(payload, SyncJson);
+        var interrupted = JsonSerializer.SerializeToNode(payload, SyncJson)!.AsObject();
+        // Keep the existing wire completion kind so older sync services can accept the record.
+        interrupted["wasRecoveryAbandoned"] = true;
+        return interrupted.ToJsonString(SyncJson);
+    }
 
     private static async Task<bool> FocusWasDeleted(SqliteConnection c,SqliteTransaction t,Guid id,CancellationToken ct)
     {

@@ -53,6 +53,8 @@ public partial class FocusTaskDrawer
         }
     }
 
+    private void InlineSubTaskInput_EditingEnded(object sender, EventArgs e) => _creationModel?.FinishInlineSubTaskCreation();
+
     private void TaskRow_CreationMouseEnter(object sender, MouseEventArgs e)
     {
         if (sender is FrameworkElement { DataContext: FocusTaskViewModel task }) _hoveredCreationTask = task;

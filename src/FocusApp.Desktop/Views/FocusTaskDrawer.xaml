@@ -61,6 +61,21 @@
                     <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="CreateSurface" Property="Background" Value="{DynamicResource PrimaryActionHoverBackground}"/></Trigger>
                     <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="CreateSurface" Property="Background" Value="{DynamicResource PrimaryActionHoverBackground}"/></Trigger>
                     <Trigger Property="IsPressed" Value="True"><Setter TargetName="CreateSurface" Property="Background" Value="{DynamicResource PrimaryActionPressedBackground}"/><Setter TargetName="CreateSurface" Property="RenderTransform"><Setter.Value><ScaleTransform ScaleX="0.94" ScaleY="0.94"/></Setter.Value></Setter></Trigger>
+                    <DataTrigger Binding="{Binding Session.IsDarkFocusTheme}" Value="True">
+                        <Setter TargetName="CreateSurface" Property="Background" Value="{DynamicResource FocusTaskDrawerAddBackground}"/>
+                    </DataTrigger>
+                    <MultiDataTrigger><MultiDataTrigger.Conditions>
+                        <Condition Binding="{Binding Session.IsDarkFocusTheme}" Value="True"/>
+                        <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource Self}}" Value="True"/>
+                    </MultiDataTrigger.Conditions><Setter TargetName="CreateSurface" Property="Background" Value="{DynamicResource FocusTaskDrawerAddHover}"/></MultiDataTrigger>
+                    <MultiDataTrigger><MultiDataTrigger.Conditions>
+                        <Condition Binding="{Binding Session.IsDarkFocusTheme}" Value="True"/>
+                        <Condition Binding="{Binding IsKeyboardFocused, RelativeSource={RelativeSource Self}}" Value="True"/>
+                    </MultiDataTrigger.Conditions><Setter TargetName="CreateSurface" Property="Background" Value="{DynamicResource FocusTaskDrawerAddHover}"/></MultiDataTrigger>
+                    <MultiDataTrigger><MultiDataTrigger.Conditions>
+                        <Condition Binding="{Binding Session.IsDarkFocusTheme}" Value="True"/>
+                        <Condition Binding="{Binding IsPressed, RelativeSource={RelativeSource Self}}" Value="True"/>
+                    </MultiDataTrigger.Conditions><Setter TargetName="CreateSurface" Property="Background" Value="{DynamicResource FocusTaskDrawerAddPressed}"/></MultiDataTrigger>
                     <DataTrigger Binding="{Binding IsRootTaskLimitReached}" Value="True">
                         <Setter TargetName="CreateSurface" Property="Background" Value="{DynamicResource TaskLimitRestrictedBrush}"/>
                         <Setter TargetName="CreateSurface" Property="BorderBrush" Value="Transparent"/>
@@ -102,7 +117,30 @@
         <Style x:Key="DraftCreateButton" TargetType="Button" BasedOn="{StaticResource SheetButton}">
             <Setter Property="Background" Value="{DynamicResource FocusTaskCreateAccent}"/><Setter Property="Foreground" Value="{DynamicResource FocusTaskTickWhite}"/>
             <Setter Property="FontWeight" Value="Medium"/>
-            <Style.Triggers><Trigger Property="IsEnabled" Value="False"><Setter Property="Background" Value="{DynamicResource FocusTaskDisabledSurface}"/><Setter Property="Foreground" Value="{DynamicResource FocusTaskDisabledText}"/></Trigger></Style.Triggers>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Session.IsDarkFocusTheme}" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource FocusTaskDraftCreateBackground}"/>
+                    <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+                        <Border x:Name="CreateChrome" Background="{TemplateBinding Background}" CornerRadius="8">
+                            <TextBlock Text="{TemplateBinding Content}" FontSize="{TemplateBinding FontSize}" FontWeight="{TemplateBinding FontWeight}"
+                                       Foreground="{TemplateBinding Foreground}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="CreateChrome" Property="BorderBrush" Value="#75A5FF"/><Setter TargetName="CreateChrome" Property="BorderThickness" Value="1"/></Trigger>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="CreateChrome" Property="Background" Value="{DynamicResource FocusTaskDraftCreateHover}"/></Trigger>
+                            <Trigger Property="IsPressed" Value="True"><Setter TargetName="CreateChrome" Property="Background" Value="{DynamicResource FocusTaskDraftCreatePressed}"/></Trigger>
+                            <Trigger Property="IsEnabled" Value="False"><Setter TargetName="CreateChrome" Property="Background" Value="{DynamicResource FocusTaskDraftCreateDisabled}"/></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate></Setter.Value></Setter>
+                </DataTrigger>
+                <Trigger Property="IsEnabled" Value="False"><Setter Property="Background" Value="{DynamicResource FocusTaskDisabledSurface}"/><Setter Property="Foreground" Value="{DynamicResource FocusTaskDisabledText}"/></Trigger>
+                <MultiDataTrigger><MultiDataTrigger.Conditions>
+                    <Condition Binding="{Binding Session.IsDarkFocusTheme}" Value="True"/>
+                    <Condition Binding="{Binding IsEnabled, RelativeSource={RelativeSource Self}}" Value="False"/>
+                </MultiDataTrigger.Conditions>
+                    <Setter Property="Background" Value="{DynamicResource FocusTaskDraftCreateDisabled}"/><Setter Property="Foreground" Value="{DynamicResource FocusTaskDraftCreateDisabledText}"/>
+                </MultiDataTrigger>
+            </Style.Triggers>
         </Style>
         <DataTemplate x:Key="TaskRow">
             <Grid x:Name="TaskRowSurface" Background="{DynamicResource FocusTaskCard}" PreviewMouseLeftButtonDown="TaskRow_PreviewMouseLeftButtonDown"
@@ -130,7 +168,7 @@
                                        FontFamily="{DynamicResource FontFamilyNumeric}" Foreground="{DynamicResource FocusTaskDescriptionText}"
                                        Text="{Binding SubTaskProgress, Converter={StaticResource CompactTaskProgress}}"
                                        Visibility="{Binding HasSubTasks, Converter={StaticResource BoolVisibility}}"/>
-                        <views:HoverScrollText VerticalAlignment="Center" UseOverflowToolTip="True" IsHovered="{Binding IsMouseOver, ElementName=TaskHeader}">
+                        <views:HoverScrollText VerticalAlignment="Center" IsHovered="{Binding IsMouseOver, RelativeSource={RelativeSource Self}}">
                             <TextBlock x:Name="TaskTitle" VerticalAlignment="Center" Text="{Binding Name}" FontSize="13" FontWeight="{DynamicResource FocusTaskNameFontWeight}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" Style="{StaticResource CompletedTitle}" />
                         </views:HoverScrollText>
                         </DockPanel>
@@ -160,7 +198,7 @@
                                       Stroke="{DynamicResource FocusTaskRowDivider}" StrokeThickness="1" StrokeLineJoin="Round" IsHitTestVisible="False"/>
                                 <CheckBox x:Name="SubTaskCompletionCheck" Grid.Column="1" IsChecked="{Binding IsCompleted, Mode=TwoWay}"
                                           Style="{StaticResource CircleCheck}" HorizontalAlignment="Left" VerticalAlignment="Center" AutomationProperties.Name="切换子任务完成状态"/>
-                                <views:HoverScrollText Grid.Column="2" VerticalAlignment="Center" UseOverflowToolTip="True" IsHovered="{Binding IsMouseOver, ElementName=SubTaskRow}">
+                                <views:HoverScrollText Grid.Column="2" VerticalAlignment="Center" IsHovered="{Binding IsMouseOver, RelativeSource={RelativeSource Self}}">
                                     <TextBlock x:Name="SubTaskTitle" VerticalAlignment="Center" Text="{Binding Title}" TextWrapping="NoWrap"
                                                TextTrimming="CharacterEllipsis" FontSize="12" Style="{StaticResource CompletedTitle}"/>
                                 </views:HoverScrollText>
@@ -187,14 +225,15 @@
                             </Style.Triggers></Style></Grid.Style>
                             <Grid.ColumnDefinitions><ColumnDefinition Width="18"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                             <TextBlock Text="+" FontSize="16" Foreground="{DynamicResource FocusTaskPlaceholder}" VerticalAlignment="Center"/>
-                            <TextBox x:Name="InlineSubTaskTitleInput" Grid.Column="1" FontSize="11.5" VerticalContentAlignment="Center"
+                            <views:SubTaskTitleInput x:Name="InlineSubTaskTitleInput" Grid.Column="1" FontSize="11.5" VerticalContentAlignment="Center"
+                                     EditingEnded="InlineSubTaskInput_EditingEnded"
                                      Text="{Binding DataContext.InlineSubTaskTitle, RelativeSource={RelativeSource AncestorType=UserControl}, UpdateSourceTrigger=PropertyChanged}"
                                      IsEnabled="{Binding DataContext.CanCreateInlineSubTask, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                      AcceptsReturn="False" AcceptsTab="False" InputMethod.IsInputMethodEnabled="True" AutomationProperties.Name="输入子任务，回车保存并继续，Esc取消">
                                 <TextBox.Style><Style TargetType="TextBox" BasedOn="{StaticResource BorderlessInput}"><Style.Triggers>
                                     <DataTrigger Binding="{Binding DataContext.IsInlineSubTaskLimitReached, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True"><Setter Property="Visibility" Value="Hidden"/></DataTrigger>
                                 </Style.Triggers></Style></TextBox.Style>
-                            </TextBox>
+                            </views:SubTaskTitleInput>
                             <TextBlock Grid.Column="1" Text="添加子任务" FontSize="11.5" Foreground="{DynamicResource FocusTaskPlaceholder}" VerticalAlignment="Center" IsHitTestVisible="False">
                                 <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers>
                                     <DataTrigger Binding="{Binding DataContext.InlineSubTaskTitle, RelativeSource={RelativeSource AncestorType=UserControl}}" Value=""><Setter Property="Visibility" Value="Visible"/></DataTrigger>
@@ -304,10 +343,20 @@
                     Visibility="{Binding IsCreating, Converter={StaticResource BoolVisibility}}"
                     MouseLeftButtonDown="TaskEditorScrim_MouseLeftButtonDown" />
             <Grid Grid.RowSpan="3" Panel.ZIndex="2" VerticalAlignment="Bottom">
-                <Border x:Name="TaskEditorPanel" Background="{DynamicResource FocusTaskSurface}" BorderBrush="{DynamicResource FocusTaskBorder}" BorderThickness="0,1,0,0" CornerRadius="14,14,0,0"
-                        MaxHeight="500" MinHeight="150" VerticalAlignment="Bottom" Padding="18,14,18,16"
+                <Border x:Name="TaskEditorPanel"
+                        MaxHeight="500" MinHeight="150" VerticalAlignment="Bottom"
                         Visibility="{Binding IsCreating, Converter={StaticResource BoolVisibility}}" IsVisibleChanged="TaskEditorPanel_IsVisibleChanged">
                     <Border.RenderTransform><TranslateTransform /></Border.RenderTransform>
+                    <Border.Style><Style TargetType="Border">
+                        <Setter Property="Background" Value="{DynamicResource FocusTaskSurface}"/>
+                        <Setter Property="BorderBrush" Value="{DynamicResource FocusTaskBorder}"/><Setter Property="BorderThickness" Value="0,1,0,0"/>
+                        <Setter Property="CornerRadius" Value="14,14,0,0"/><Setter Property="Padding" Value="18,14,18,16"/>
+                        <Style.Triggers><DataTrigger Binding="{Binding Session.IsDarkFocusTheme}" Value="True">
+                            <Setter Property="Background" Value="{DynamicResource FocusTaskDraftSurface}"/>
+                            <Setter Property="BorderBrush" Value="{DynamicResource FocusTaskDraftBorder}"/><Setter Property="BorderThickness" Value="1"/>
+                            <Setter Property="CornerRadius" Value="14"/><Setter Property="Padding" Value="17,14,17,15"/>
+                        </DataTrigger></Style.Triggers>
+                    </Style></Border.Style>
                     <Grid>
                         <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                         <Button x:Name="DraftCloseButton" HorizontalAlignment="Right" Width="26" Height="26" Margin="0,-6,-8,0"
@@ -315,20 +364,41 @@
                         <ScrollViewer x:Name="DraftContentScroll" Grid.Row="1" MaxHeight="380" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                             <StackPanel Margin="4,6,4,0">
                                 <Grid>
-                                    <TextBox x:Name="DraftTaskTitleInput" Height="34" FontSize="15" FontWeight="Medium" Style="{StaticResource BorderlessInput}"
-                                             Text="{Binding DraftTitle, UpdateSourceTrigger=PropertyChanged}" KeyDown="DraftTaskTitleInput_KeyDown" AutomationProperties.Name="任务名称" />
+                                    <TextBox x:Name="DraftTaskTitleInput" Height="34" FontSize="15" FontWeight="Medium"
+                                             Text="{Binding DraftTitle, UpdateSourceTrigger=PropertyChanged}" KeyDown="DraftTaskTitleInput_KeyDown" AutomationProperties.Name="任务名称">
+                                        <TextBox.Style><Style TargetType="TextBox" BasedOn="{StaticResource BorderlessInput}"><Style.Triggers>
+                                            <DataTrigger Binding="{Binding Session.IsDarkFocusTheme}" Value="True"><Setter Property="Foreground" Value="{DynamicResource FocusTaskDraftTitleText}"/></DataTrigger>
+                                        </Style.Triggers></Style></TextBox.Style>
+                                    </TextBox>
                                     <TextBlock VerticalAlignment="Center" Text="要做什么？" FontSize="18" Foreground="{DynamicResource FocusTaskDraftActionText}" IsHitTestVisible="False">
                                         <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding DraftTitle}" Value=""><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
                                     </TextBlock>
                                 </Grid>
-                                <Border x:Name="DraftDescriptionArea" CornerRadius="7" Background="{DynamicResource FocusTaskKeycapSurface}" Padding="8,8,8,6" Margin="0,10,0,0"
+                                <Border x:Name="DraftDescriptionArea" CornerRadius="7" Margin="0,10,0,0"
                                         Visibility="{Binding IsDescriptionExpanded, Converter={StaticResource BoolVisibility}}">
+                                    <Border.Style><Style TargetType="Border">
+                                        <Setter Property="Background" Value="{DynamicResource FocusTaskKeycapSurface}"/><Setter Property="Padding" Value="8,8,8,6"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Session.IsDarkFocusTheme}" Value="True">
+                                                <Setter Property="Background" Value="{DynamicResource FocusTaskDraftDescriptionSurface}"/>
+                                                <Setter Property="BorderBrush" Value="{DynamicResource FocusTaskDraftDescriptionBorder}"/>
+                                                <Setter Property="BorderThickness" Value="1"/><Setter Property="Padding" Value="7,7,7,5"/>
+                                            </DataTrigger>
+                                            <MultiDataTrigger><MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding Session.IsDarkFocusTheme}" Value="True"/>
+                                                <Condition Binding="{Binding IsKeyboardFocusWithin, RelativeSource={RelativeSource Self}}" Value="True"/>
+                                            </MultiDataTrigger.Conditions><Setter Property="BorderBrush" Value="{DynamicResource FocusTaskDraftDescriptionFocusBorder}"/></MultiDataTrigger>
+                                        </Style.Triggers>
+                                    </Style></Border.Style>
                                     <StackPanel>
                                         <Grid>
                                             <TextBox x:Name="DraftTaskDescriptionInput" MinHeight="42" MaxHeight="90" MaxLength="200" VerticalContentAlignment="Top" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
                                                      FontSize="12" Foreground="{DynamicResource FocusTaskDraftText}" Style="{StaticResource BorderlessInput}" Text="{Binding DraftDescription, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="任务描述，最多200字"/>
-                                            <TextBlock Text="添加描述…" FontSize="12" Foreground="{DynamicResource FocusTaskSecondaryText}" IsHitTestVisible="False">
-                                                <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding DraftDescription}" Value=""><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                                            <TextBlock Text="添加描述…" FontSize="12" IsHitTestVisible="False">
+                                                <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Setter Property="Foreground" Value="{DynamicResource FocusTaskSecondaryText}"/>
+                                                    <Style.Triggers><DataTrigger Binding="{Binding DraftDescription}" Value=""><Setter Property="Visibility" Value="Visible"/></DataTrigger>
+                                                        <DataTrigger Binding="{Binding Session.IsDarkFocusTheme}" Value="True"><Setter Property="Foreground" Value="{DynamicResource FocusTaskDraftPlaceholder}"/></DataTrigger>
+                                                    </Style.Triggers></Style></TextBlock.Style>
                                             </TextBlock>
                                         </Grid>
                                         <TextBlock x:Name="DraftDescriptionCount" Text="{Binding DescriptionCountDisplay}" FontSize="12" Foreground="{DynamicResource FocusTaskDraftCounter}" HorizontalAlignment="Right" Margin="0,4,0,0"/>
@@ -352,7 +422,9 @@
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="25"/><ColumnDefinition Width="*"/><ColumnDefinition Width="24"/></Grid.ColumnDefinitions>
                                         <Border Width="16" Height="16" CornerRadius="4" BorderBrush="{DynamicResource FocusTaskNewSubTaskBorder}" BorderThickness="1" VerticalAlignment="Center" HorizontalAlignment="Left"/>
                                         <Grid Grid.Column="1">
-                                            <TextBox x:Name="DraftSubTaskInput" Style="{StaticResource BorderlessInput}" FontSize="11.5" Text="{Binding SubTaskInput, UpdateSourceTrigger=PropertyChanged}" KeyDown="DraftSubTaskInput_KeyDown" AutomationProperties.Name="输入子任务，按回车添加"/>
+                                            <views:SubTaskTitleInput x:Name="DraftSubTaskInput" Style="{StaticResource BorderlessInput}" FontSize="11.5"
+                                                                   Text="{Binding SubTaskInput, UpdateSourceTrigger=PropertyChanged}" KeyDown="DraftSubTaskInput_KeyDown"
+                                                                   EditingEnded="DraftSubTaskInput_EditingEnded" AutomationProperties.Name="输入子任务，按回车添加"/>
                                             <TextBlock Text="子任务名称" Foreground="{DynamicResource FocusTaskPlaceholder}" FontSize="11.5" VerticalAlignment="Center" IsHitTestVisible="False">
                                                 <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding SubTaskInput}" Value=""><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
                                             </TextBlock>

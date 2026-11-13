@@ -6,9 +6,39 @@
              UseLayoutRounding="True"
              SnapsToDevicePixels="True">
     <UserControl.Resources>
-        <SolidColorBrush x:Key="HomeCloudNoticeBackground" Color="#FFF7EF" />
-        <SolidColorBrush x:Key="HomeCloudNoticeBorder" Color="#FFE8D5" />
-        <Color x:Key="HomeCloudNoticeShadow">#493A2D</Color>
+        <!-- Paint the accent inside the rounded border itself, so it cannot overflow. -->
+        <LinearGradientBrush x:Key="HomeCloudNoticeBackground" MappingMode="Absolute"
+                             StartPoint="0,0" EndPoint="3,0">
+            <GradientStop Offset="0" Color="#FF7A00" />
+            <GradientStop Offset="1" Color="#FF7A00" />
+            <GradientStop Offset="1" Color="#FFFFFF" />
+        </LinearGradientBrush>
+        <SolidColorBrush x:Key="HomeCloudNoticeBorder" Color="#E5E5EA" />
+        <Color x:Key="HomeCloudNoticeShadow">#263244</Color>
+        <Style x:Key="FocusRecoveryButton" TargetType="{x:Type Button}">
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border x:Name="ButtonSurface" Background="{TemplateBinding Background}" CornerRadius="10">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ButtonSurface" Property="Background" Value="{DynamicResource HomeNoticeNeutralButtonBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="ButtonSurface" Property="Background" Value="{DynamicResource HomeNoticeProgressTrackBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="ButtonSurface" Property="Opacity" Value="0.45" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </UserControl.Resources>
     <Grid>
         <!-- Fits in the existing 62-DIP top gap, preserving every home control's position. -->
@@ -17,19 +47,23 @@
                 Margin="40,0,40,0"
                 VerticalAlignment="Top"
                 IsHitTestVisible="False"
-                AutomationProperties.Name="{DynamicResource HomeCloudDisconnectedTitle}"
+                AutomationProperties.Name="{DynamicResource HomeCloudDisconnectedDescription}"
                 AutomationProperties.LiveSetting="Polite"
                 Background="{StaticResource HomeCloudNoticeBackground}"
                 BorderBrush="{StaticResource HomeCloudNoticeBorder}"
                 BorderThickness="1"
-                CornerRadius="16">
+                CornerRadius="10">
             <Border.Style>
                 <Style TargetType="{x:Type Border}">
                     <Setter Property="Visibility" Value="Collapsed" />
                     <Style.Triggers>
-                        <DataTrigger Binding="{Binding IsCloudConnectionUnavailable}" Value="True">
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding IsCloudConnectionUnavailable}" Value="True" />
+                                <Condition Binding="{Binding HasInterruptedFocus}" Value="False" />
+                            </MultiDataTrigger.Conditions>
                             <Setter Property="Visibility" Value="Visible" />
-                        </DataTrigger>
+                        </MultiDataTrigger>
                     </Style.Triggers>
                 </Style>
             </Border.Style>
@@ -38,8 +72,6 @@
                                   ShadowDepth="4" Color="{StaticResource HomeCloudNoticeShadow}" />
             </Border.Effect>
             <Grid>
-                <Border Width="4" Margin="-1" HorizontalAlignment="Left"
-                        Background="{DynamicResource AccentPrimary}" CornerRadius="16,0,0,16" />
                 <Grid Margin="20,7,18,7">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="28" />
@@ -50,23 +82,102 @@
                     </Grid.ColumnDefinitions>
                     <Viewbox Width="28" Height="28" VerticalAlignment="Center">
                         <Canvas Width="24" Height="24">
-                            <Path Data="M6.5,18 C3.7,18 2,16.1 2,13.6 C2,11.3 3.6,9.4 5.8,9 M8,5.3 C9.1,4.4 10.5,4 12,4 C15.1,4 17.7,6.1 18.3,9 C20.5,9.5 22,11.2 22,13.4 C22,14.7 21.4,15.9 20.5,16.7 M10,18 L15.5,18"
+                            <Path Data="M3,8 C8,3 16,3 21,8 M6.5,11.5 C9.5,9 14.5,9 17.5,11.5 M10,15 C11.2,14 12.8,14 14,15"
                                   Stroke="{DynamicResource AccentPrimary}" StrokeThickness="1.8"
                                   StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
                             <Path Data="M3,3 L21,21" Stroke="{DynamicResource AccentPrimary}"
                                   StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                            <Ellipse Width="3.4" Height="3.4" Canvas.Left="10.3" Canvas.Top="18"
+                                     Fill="{DynamicResource AccentPrimary}" />
                         </Canvas>
                     </Viewbox>
                     <Border Grid.Column="2" Height="28" Background="{StaticResource HomeCloudNoticeBorder}" />
-                    <StackPanel Grid.Column="4" VerticalAlignment="Center">
-                        <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}"
-                                   LineHeight="18" LineStackingStrategy="BlockLineHeight"
-                                   Text="{DynamicResource HomeCloudDisconnectedTitle}" />
-                        <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondary}"
-                                   LineHeight="17" LineStackingStrategy="BlockLineHeight"
-                                   Text="{DynamicResource HomeCloudDisconnectedDescription}" />
-                    </StackPanel>
+                    <TextBlock Grid.Column="4" VerticalAlignment="Center"
+                               FontSize="{DynamicResource BodyFontSize}" Foreground="{DynamicResource TextPrimary}"
+                               Text="{DynamicResource HomeCloudDisconnectedDescription}" />
                 </Grid>
+            </Grid>
+        </Border>
+        <Border x:Name="FocusRecoveryToast"
+                Height="56" Margin="40,0,40,0" VerticalAlignment="Top"
+                views:FocusThemeScope.ResourcePrefix="ToastTheme"
+                views:FocusThemeScope.IsDark="{Binding FocusSession.IsDarkFocusTheme}"
+                Background="{DynamicResource HomeNoticeSurfaceBrush}" CornerRadius="14"
+                BorderBrush="{DynamicResource HomeNoticeBorderBrush}" BorderThickness="1"
+                AutomationProperties.Name="{DynamicResource HomePausedFocusTitle}" AutomationProperties.LiveSetting="Polite">
+            <Border.Style>
+                <Style TargetType="{x:Type Border}">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding HasInterruptedFocus}" Value="True">
+                            <Setter Property="Visibility" Value="Visible" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="16" Direction="270" Opacity="0.13"
+                                  ShadowDepth="4" Color="{DynamicResource ToastShadowColor}" />
+            </Border.Effect>
+            <Grid Margin="11,0,8,0" IsEnabled="{Binding CanResolveInterruptedFocus}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="36" />
+                    <ColumnDefinition Width="5*" />
+                    <ColumnDefinition Width="2*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Border Height="36" CornerRadius="8" Background="{DynamicResource HomeNoticeIconBackgroundBrush}">
+                    <Viewbox Width="25" Height="25">
+                        <Canvas Width="24" Height="24">
+                            <Path Data="M3,13 A9,9 0 1 1 6,19 M1,11 L3,14 L6,11 M12,6 L12,12 L16,15"
+                                  Stroke="{DynamicResource AccentPrimary}" StrokeThickness="1.9" StrokeLineJoin="Round"
+                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                        </Canvas>
+                    </Viewbox>
+                </Border>
+                <StackPanel Grid.Column="1" Margin="14,0,0,0" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{DynamicResource HomePausedFocusTitle}" FontSize="16" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource ToastTitleBrush}" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding InterruptedFocusDescription}" Margin="16,0,0,0" FontSize="13"
+                                   Foreground="{DynamicResource ToastSecondaryBrush}" VerticalAlignment="Center"
+                                   Typography.NumeralAlignment="Tabular" />
+                    </StackPanel>
+                    <ProgressBar Height="7" Margin="0,7,0,0" Maximum="1" Value="{Binding InterruptedFocusProgress, Mode=OneWay}"
+                                 Background="{DynamicResource HomeNoticeProgressTrackBrush}" Foreground="{DynamicResource AccentPrimary}"
+                                 AutomationProperties.Name="{DynamicResource HomePausedFocusProgress}">
+                        <ProgressBar.Template>
+                            <ControlTemplate TargetType="{x:Type ProgressBar}">
+                                <Grid>
+                                    <Border x:Name="PART_Track" CornerRadius="4" Background="{TemplateBinding Background}" />
+                                    <Border x:Name="PART_Indicator" CornerRadius="4" Background="{TemplateBinding Foreground}"
+                                            HorizontalAlignment="Left" />
+                                </Grid>
+                            </ControlTemplate>
+                        </ProgressBar.Template>
+                    </ProgressBar>
+                </StackPanel>
+                <Button Grid.Column="3" Width="86" Height="32" Foreground="{DynamicResource AccentPrimary}"
+                        Content="{DynamicResource FocusContinueAction}" FontSize="14" FontWeight="SemiBold"
+                        Style="{StaticResource FocusRecoveryButton}"
+                        Command="{Binding ResumeInterruptedFocusCommand}" />
+                <Button Grid.Column="4" Width="32" Height="32" Margin="6,0,0,0"
+                        ToolTip="{DynamicResource HomeAbandonInterruptedFocus}" AutomationProperties.Name="{DynamicResource HomeAbandonInterruptedFocus}"
+                        Command="{Binding AbandonInterruptedFocusCommand}">
+                    <Button.Style>
+                        <Style TargetType="{x:Type Button}" BasedOn="{StaticResource FocusRecoveryButton}">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding CanAbandonInterruptedFocus}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                    <Path Data="M1,1 L11,11 M11,1 L1,11" Stroke="{DynamicResource ToastControlBrush}" StrokeThickness="1.8"
+                          StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                </Button>
             </Grid>
         </Border>
         <StackPanel Margin="0,62,24,0"
@@ -87,6 +198,10 @@
                      VerticalAlignment="Center"
                      Fill="{DynamicResource AccentPrimary}" />
         </StackPanel>
+
+        <TextBlock Margin="28,91,52,0" VerticalAlignment="Top" TextAlignment="Center" FontSize="12"
+                   Foreground="#B44C19" Text="{Binding FocusStartError}" TextTrimming="CharacterEllipsis"
+                   AutomationProperties.LiveSetting="Polite" IsHitTestVisible="False" />
 
         <StackPanel x:Name="ForcedModeStatus"
                     Margin="0,507,4,0"
@@ -131,6 +246,7 @@
                     views:RippleEffect.IsCircular="True"
                     views:RippleEffect.OverlayTarget="{Binding ElementName=HomeFocusArea}"
                     AutomationProperties.Name="{DynamicResource HomeStartFocus}"
+                    IsEnabled="{Binding CanStartFocusFromHome}"
                     Command="{Binding StartFocusWithDelayCommand}">
                 <Button.Style>
                     <Style TargetType="{x:Type Button}" BasedOn="{StaticResource HomeFocusButtonStyle}">
@@ -641,9 +757,9 @@
                                 <Border Width="28" Height="28" Margin="0,0,6,0" Background="{DynamicResource TransparentBrush}" CornerRadius="14">
                                     <Grid>
                                         <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{DynamicResource AccentPrimary}" Text="{Binding IconGlyph}">
-                                            <TextBlock.Style><Style TargetType="{x:Type TextBlock}"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding Favicon}" Value="{x:Null}"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                                            <TextBlock.Style><Style TargetType="{x:Type TextBlock}"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding HasPreviewIcon}" Value="False"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></TextBlock.Style>
                                         </TextBlock>
-                                        <Image Width="22" Height="22" Source="{Binding Favicon}" Stretch="Uniform" />
+                                        <Image Width="22" Height="22" Source="{Binding PreviewIcon}" Stretch="Uniform" />
                                     </Grid>
                                 </Border>
                             </DataTemplate>

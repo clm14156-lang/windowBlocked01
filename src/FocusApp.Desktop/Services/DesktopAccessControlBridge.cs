@@ -187,7 +187,9 @@ public sealed class DesktopAccessControlBridge : IDisposable
         await _reconcileGate.WaitAsync(cancellationToken);
         try
         {
-            if (account != _connection.AccountSession || _focusSession.IsServiceOwnedForcedSession)
+            if (account != _connection.AccountSession || _focusSession.IsServiceOwnedForcedSession ||
+                _connection.State is { InterruptedFocusSessionId: { } pendingId } state &&
+                state.FocusSessions.Any(session => session.SessionId == pendingId && session.IsForcedMode))
             {
                 return;
             }

@@ -51,7 +51,9 @@ public sealed class HoverScrollText : Decorator
         Child.Measure(new Size(double.PositiveInfinity, constraint.Height));
         _naturalWidth = Child.DesiredSize.Width;
         Child.Measure(constraint);
-        return new Size(Math.Min(constraint.Width, Child.DesiredSize.Width), Child.DesiredSize.Height);
+        // Ellipsis measures to the last fitting glyph; use the natural width so toggling
+        // trimming during motion cannot resize the viewport or move the adjacent progress.
+        return new Size(Math.Min(constraint.Width, _naturalWidth), Child.DesiredSize.Height);
     }
 
     protected override Size ArrangeOverride(Size arrangeSize)

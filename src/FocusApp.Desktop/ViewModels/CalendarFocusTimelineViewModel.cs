@@ -5,7 +5,12 @@ public sealed record CalendarFocusTimelineSegment(
     DateTime StartTime,
     DateTime EndTime,
     double StartRatio,
-    double WidthRatio);
+    double WidthRatio)
+{
+    public IReadOnlyList<CalendarFocusTimelinePart> Parts { get; init; } = [];
+}
+
+public sealed record CalendarFocusTimelinePart(double StartRatio, double WidthRatio, bool IsPaused);
 
 public sealed record CalendarFocusTimelineViewModel(
     int StartHour,
@@ -34,6 +39,16 @@ public sealed record CalendarFocusTimelineViewModel(
         return new CalendarFocusTimelineViewModel(startHour, intervals.Select(interval =>
             new CalendarFocusTimelineSegment(interval.Record, interval.Start, interval.End,
                 (interval.Start - axisStart).Ticks / (double)axisTicks,
-                (interval.End - interval.Start).Ticks / (double)axisTicks)).ToArray()) { Date = dayStart };
+                (interval.End - interval.Start).Ticks / (double)axisTicks)
+            {
+                Parts = interval.Record.ActivityIntervals.Select(part => new
+                    {
+                        Start = part.StartedAtUtc.LocalDateTime < interval.Start ? interval.Start : part.StartedAtUtc.LocalDateTime,
+                        End = part.EndedAtUtc.LocalDateTime > interval.End ? interval.End : part.EndedAtUtc.LocalDateTime,
+                        part.IsPaused
+                    }).Where(part => part.End > part.Start)
+                    .Select(part => new CalendarFocusTimelinePart((part.Start - axisStart).Ticks / (double)axisTicks,
+                        (part.End - part.Start).Ticks / (double)axisTicks, part.IsPaused)).ToArray()
+            }).ToArray()) { Date = dayStart };
     }
 }

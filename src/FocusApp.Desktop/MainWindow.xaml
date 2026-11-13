@@ -18,6 +18,25 @@
         <WindowChrome CaptionHeight="0" CornerRadius="12" GlassFrameThickness="0"
                       ResizeBorderThickness="0" UseAeroCaptionButtons="False" />
     </WindowChrome.WindowChrome>
+    <Window.Resources>
+        <Geometry x:Key="HomeDownloadIcon">M10,2 V13 M5,8 L10,13 15,8 M2,13 V17 Q2,18 3,18 H17 Q18,18 18,17 V13</Geometry>
+        <Style x:Key="HomeUpdateButtonStyle" TargetType="Button" BasedOn="{StaticResource PrimaryActionRoundedButtonStyle}">
+            <Setter Property="Height" Value="36" />
+            <Setter Property="ContentTemplate" Value="{StaticResource ThemedButtonTextContentTemplate}" />
+            <Setter Property="Background" Value="{DynamicResource AccentPrimary}" />
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource AccentHover}" />
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource AccentPressed}" />
+                </Trigger>
+                <Trigger Property="IsKeyboardFocused" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource AccentPressed}" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
     <Grid Width="{Binding HomePage.FocusSession.FocusWindowWidth, FallbackValue=800}">
     <Border Width="800" HorizontalAlignment="Left" BorderBrush="{DynamicResource BorderPrimary}"
             Background="{DynamicResource BackgroundPrimary}" CornerRadius="12">
@@ -285,6 +304,28 @@
                     <StackPanel Margin="0,4,8,4"
                                 HorizontalAlignment="Right"
                                 Orientation="Horizontal">
+                        <Button x:Name="HomeDownloadButton"
+                                AutomationProperties.Name="{DynamicResource HomeDownloadButton}"
+                                MouseEnter="HomeDownloadButton_MouseEnter" MouseLeave="UpdatePoptip_MouseLeave"
+                                Click="HomeDownloadButton_Click" PreviewKeyDown="UpdatePoptip_PreviewKeyDown">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource WindowChromeButtonStyle}">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding CurrentPage}" Value="{x:Static vm:NavigationPage.Home}" />
+                                                <Condition Binding="{Binding HomePage.FocusSession.IsFullScreenVisible}" Value="False" />
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </MultiDataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                            <Path Width="19" Height="19" Stretch="Uniform" Data="{StaticResource HomeDownloadIcon}"
+                                  Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                  StrokeThickness="1.6" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
+                        </Button>
                         <Button AutomationProperties.Name="{DynamicResource HomeMinimizeButton}"
                                 Click="MinimizeButton_Click"
                                 Style="{StaticResource WindowChromeButtonStyle}"
@@ -338,6 +379,70 @@
                         </TextBlock.Style>
                     </TextBlock>
                 </Grid>
+
+                <views:PoptipChrome x:Name="HomeUpdatePoptip" Grid.RowSpan="2" Panel.ZIndex="1"
+                                    Width="288" MaxWidth="296" Margin="0,39,5,0"
+                                    HorizontalAlignment="Right" VerticalAlignment="Top" Visibility="Collapsed"
+                                    PointerOnTop="True" PointerSize="14,7" PointerLeft="168"
+                                    Background="{DynamicResource HomeNoticeSurfaceBrush}"
+                                    BorderBrush="{DynamicResource HomeNoticeBorderBrush}"
+                                    MouseEnter="UpdatePoptip_MouseEnter" MouseLeave="UpdatePoptip_MouseLeave"
+                                    PreviewKeyDown="UpdatePoptip_PreviewKeyDown">
+                    <views:PoptipChrome.Resources>
+                        <ResourceDictionary Source="Resources/ToastTheme.Light.xaml" />
+                    </views:PoptipChrome.Resources>
+                    <views:PoptipChrome.Effect>
+                        <DropShadowEffect BlurRadius="16" ShadowDepth="4" Direction="270" Opacity="0.14"
+                                          Color="{DynamicResource ToastShadowColor}" />
+                    </views:PoptipChrome.Effect>
+                    <StackPanel Margin="0,7,0,3">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="42" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border Height="42" CornerRadius="10" Background="{DynamicResource HomeNoticeIconBackgroundBrush}">
+                                <Path Width="21" Height="21" Stretch="Uniform" Data="{StaticResource HomeDownloadIcon}"
+                                      Stroke="{DynamicResource AccentPrimary}" StrokeThickness="2.4"
+                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
+                            </Border>
+                            <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                                <TextBlock Text="{DynamicResource HomeUpdateTitle}" FontSize="16" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource ToastTitleBrush}" />
+                                <TextBlock Text="{DynamicResource HomeUpdateDescription}" Margin="0,4,0,0" FontSize="13"
+                                           Foreground="{DynamicResource ToastSecondaryBrush}" />
+                            </StackPanel>
+                        </Grid>
+                        <Grid Margin="0,18,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Button x:Name="HomeUpdateLaterButton" Content="{DynamicResource HomeUpdateLater}" Click="UpdateAction_Click">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource HomeUpdateButtonStyle}">
+                                        <Setter Property="Background" Value="{DynamicResource HomeNoticeNeutralButtonBrush}" />
+                                        <Setter Property="Foreground" Value="{DynamicResource ToastSecondaryBrush}" />
+                                        <Style.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Background" Value="{DynamicResource HomeNoticeProgressTrackBrush}" />
+                                            </Trigger>
+                                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                                <Setter Property="Background" Value="{DynamicResource HomeNoticeProgressTrackBrush}" />
+                                            </Trigger>
+                                            <Trigger Property="IsPressed" Value="True">
+                                                <Setter Property="Opacity" Value="0.8" />
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                            <Button Grid.Column="2" Content="{DynamicResource HomeUpdateNow}" Click="UpdateAction_Click"
+                                    Style="{StaticResource HomeUpdateButtonStyle}" />
+                        </Grid>
+                    </StackPanel>
+                </views:PoptipChrome>
             </Grid>
 
             </Grid>
@@ -377,7 +482,8 @@
                 </Grid.Style>
                 <Border Background="{DynamicResource ModalScrim}"
                         MouseDown="AuthScrim_MouseDown">
-                    <views:AuthModal DataContext="{Binding AuthModal}" />
+                    <views:AuthModal DataContext="{Binding AuthModal}"
+                                     views:FocusThemeScope.IsDark="{Binding DataContext.HomePage.FocusSession.IsDarkFocusTheme, RelativeSource={RelativeSource AncestorType=Window}}" />
                 </Border>
             </Grid>
 
@@ -972,9 +1078,5 @@
                                      DataContext="{Binding BrowserExtensionModal}"/>
         <views:AboutAppModal x:Name="AboutAppModalControl" Panel.ZIndex="31" DataContext="{Binding AboutAppModal}"/>
         <views:DeleteGoalModal x:Name="DeleteGoalModalControl" Panel.ZIndex="32" DataContext="{Binding StatisticsPage.GoalDeletion}"/>
-        <Border Panel.ZIndex="200" Grid.ColumnSpan="2" Margin="80,50,24,0" Padding="12" VerticalAlignment="Top" Background="{DynamicResource SurfacePrimary}" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="1" CornerRadius="8">
-            <Border.Style><Style TargetType="Border"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding RecordRecovery.HasWarning}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Border.Style>
-            <StackPanel><TextBlock FontSize="13" TextWrapping="Wrap" Text="{Binding RecordRecovery.Message}" /><Button Content="重试保存" HorizontalAlignment="Right" Command="{Binding RetryLocalRecordSaveCommand}" /></StackPanel>
-        </Border>
     </Grid>
 </Window>

@@ -35,5 +35,10 @@
     <SolidColorBrush x:Key="ToastAutomaticControlBrush" Color="#D4D9DF" />
     <SolidColorBrush x:Key="ToastAutomaticCloseHoverBrush" Color="#505761" />
     <SolidColorBrush x:Key="ToastAccentBrush" Color="#FF9448" />
+    <SolidColorBrush x:Key="HomeNoticeSurfaceBrush" Color="#282D35" />
+    <SolidColorBrush x:Key="HomeNoticeBorderBrush" Color="#434A55" />
+    <SolidColorBrush x:Key="HomeNoticeIconBackgroundBrush" Color="#49372B" />
+    <SolidColorBrush x:Key="HomeNoticeNeutralButtonBrush" Color="#393F49" />
+    <SolidColorBrush x:Key="HomeNoticeProgressTrackBrush" Color="#4C5360" />
     <Color x:Key="ToastShadowColor">#000000</Color>
 </ResourceDictionary>

@@ -12,6 +12,8 @@
         </Style>
     </UserControl.Style>
     <UserControl.Resources>
+        <SolidColorBrush x:Key="CharacterSelectionAccent" Color="#FD7E05"/>
+        <SolidColorBrush x:Key="CharacterSelectionBackground" Color="#FFF5EA"/>
         <Style TargetType="ScrollBar">
             <Setter Property="Width" Value="5"/><Setter Property="MinWidth" Value="5"/>
             <Setter Property="Template">
@@ -36,7 +38,7 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="Card" Background="#FAFAFC" BorderBrush="#EEF0F4" BorderThickness="1" CornerRadius="10">
+                        <Border x:Name="Card" Background="White" BorderBrush="#EEF0F4" BorderThickness="1" CornerRadius="10">
                             <Grid>
                                 <views:FocusCharacterImage x:Name="CharacterImage" CharacterId="{Binding Id}" IsNight="False" DecodePixelWidth="320"
                                                            Width="116" Height="116" Margin="8,9,8,0" VerticalAlignment="Top"
@@ -44,7 +46,7 @@
                                 <TextBlock x:Name="CharacterName" Text="{Binding Name}" FontSize="{DynamicResource BodyFontSize}" FontWeight="{DynamicResource BodyFontWeight}"
                                            Foreground="#1D2738" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="4,0,4,11"/>
                                 <Grid x:Name="SelectionMark" Width="19" Height="19" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,8,8,0" Visibility="Collapsed">
-                                    <Ellipse Fill="#8F95A3"/>
+                                    <Ellipse Fill="{StaticResource CharacterSelectionAccent}"/>
                                     <Path Data="M 5,9.5 L 8,12.5 L 14,6.5" Stroke="White" StrokeThickness="1.6" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
                                 </Grid>
                                 <Border x:Name="VipLockBadge" Width="44" Height="20"
@@ -70,10 +72,10 @@
                                 <MultiTrigger.Conditions><Condition Property="IsMouseOver" Value="True"/><Condition Property="IsEnabled" Value="True"/></MultiTrigger.Conditions>
                                 <Setter TargetName="Card" Property="Background" Value="#F4F5F8"/>
                             </MultiTrigger>
-                            <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Card" Property="BorderBrush" Value="#9DA4B2"/></Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Card" Property="BorderBrush" Value="{StaticResource CharacterSelectionAccent}"/></Trigger>
                             <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                <Setter TargetName="Card" Property="Background" Value="#EFF0F4"/>
-                                <Setter TargetName="Card" Property="BorderBrush" Value="#CFD3DE"/>
+                                <Setter TargetName="Card" Property="Background" Value="{StaticResource CharacterSelectionBackground}"/>
+                                <Setter TargetName="Card" Property="BorderBrush" Value="{StaticResource CharacterSelectionAccent}"/>
                                 <Setter TargetName="SelectionMark" Property="Visibility" Value="Visible"/>
                             </DataTrigger>
                             <DataTrigger Binding="{Binding IsLocked}" Value="True">

@@ -28,7 +28,7 @@
     <SolidColorBrush x:Key="FocusCompletionDividerBrush" Color="#D5DAE2" />
     <SolidColorBrush x:Key="FocusRecordStatusBackground" Color="#D9FFFFFF" />
     <SolidColorBrush x:Key="FocusRecordStatusBorder" Color="#B8D7E1EA" />
-    <SolidColorBrush x:Key="FocusRecordStatusText" Color="#4D6276" />
+    <SolidColorBrush x:Key="FocusRecordStatusText" Color="#1F2937" />
     <SolidColorBrush x:Key="FocusRecordSyncedIcon" Color="#379A74" />
     <SolidColorBrush x:Key="FocusRecordSyncingIcon" Color="#448FAC" />
     <SolidColorBrush x:Key="FocusRecordLocalIcon" Color="#74859A" />

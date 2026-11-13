@@ -326,6 +326,31 @@ public sealed partial class SqliteLocalDataStore : ILocalDataStore
         }, cancellationToken);
     }
 
+    public Task SaveFocusProgressAsync(LocalFocusSession session, CancellationToken cancellationToken = default)
+    {
+        ValidateSession(session);
+        return ExecuteWriteAsync(async (connection, transaction) =>
+        {
+            await using var command = CreateCommand(connection, transaction, """
+                UPDATE focus_sessions
+                SET status = $status, actual_seconds = $actual, focus_started_utc = $focusStarted,
+                    planned_end_utc = $plannedEnd, recovery_checkpoint_utc = $checkpoint,
+                    activity_intervals_json = $intervals, updated_utc = $updated
+                WHERE session_id = $id AND status IN (0, 1);
+                """);
+            command.Parameters.AddWithValue("$id", FormatGuid(session.SessionId));
+            command.Parameters.AddWithValue("$status", (int)session.Status);
+            command.Parameters.AddWithValue("$actual", session.ActualSeconds);
+            command.Parameters.AddWithValue("$focusStarted", FormatNullableDateTime(session.FocusStartedAtUtc));
+            command.Parameters.AddWithValue("$plannedEnd", FormatNullableDateTime(session.PlannedEndAtUtc));
+            command.Parameters.AddWithValue("$checkpoint", FormatNullableDateTime(session.RecoveryCheckpointAtUtc));
+            command.Parameters.AddWithValue("$intervals", session.ActivityIntervals.Count == 0
+                ? DBNull.Value : JsonSerializer.Serialize(session.ActivityIntervals));
+            command.Parameters.AddWithValue("$updated", FormatDateTime(DateTimeOffset.UtcNow));
+            await command.ExecuteNonQueryAsync(cancellationToken);
+        }, cancellationToken);
+    }
+
     public async Task DeleteFocusSessionAsync(Guid sessionId, CancellationToken cancellationToken = default)
     {
         await ExecuteWriteAsync(async (connection, transaction) =>
@@ -608,11 +633,12 @@ public sealed partial class SqliteLocalDataStore : ILocalDataStore
                 session_id, status, is_forced_mode, configured_seconds, actual_seconds,
                 preparation_started_utc, focus_started_utc, planned_end_utc, completed_utc,
                 completion_kind, target_id, target_name_snapshot, blocking_enabled,
-                automatic_rule_id, automatic_occurrence_started_utc, created_utc, updated_utc)
+                automatic_rule_id, automatic_occurrence_started_utc, created_utc, updated_utc, activity_intervals_json,
+                recovery_checkpoint_utc, recovery_abandoned)
             VALUES (
                 $id, $status, $forced, $configured, $actual, $preparation, $focusStarted,
                 $plannedEnd, $completed, $completionKind, $targetId, $targetName, $blocking,
-                $ruleId, $occurrence, $created, $updated)
+                $ruleId, $occurrence, $created, $updated, $activityIntervals, $checkpoint, $abandoned)
             ON CONFLICT(session_id) DO UPDATE SET
                 status = excluded.status,
                 is_forced_mode = excluded.is_forced_mode,
@@ -628,13 +654,20 @@ public sealed partial class SqliteLocalDataStore : ILocalDataStore
                 blocking_enabled = excluded.blocking_enabled,
                 automatic_rule_id = excluded.automatic_rule_id,
                 automatic_occurrence_started_utc = excluded.automatic_occurrence_started_utc,
-                updated_utc = excluded.updated_utc;
+                updated_utc = excluded.updated_utc,
+                activity_intervals_json = excluded.activity_intervals_json,
+                recovery_checkpoint_utc = excluded.recovery_checkpoint_utc,
+                recovery_abandoned = excluded.recovery_abandoned;
             """);
         command.Parameters.AddWithValue("$id", FormatGuid(session.SessionId));
         command.Parameters.AddWithValue("$status", (int)session.Status);
         command.Parameters.AddWithValue("$forced", ToInteger(session.IsForcedMode));
         command.Parameters.AddWithValue("$configured", session.ConfiguredSeconds);
         command.Parameters.AddWithValue("$actual", session.ActualSeconds);
+        command.Parameters.AddWithValue("$activityIntervals", session.ActivityIntervals.Count == 0
+            ? DBNull.Value : JsonSerializer.Serialize(session.ActivityIntervals));
+        command.Parameters.AddWithValue("$checkpoint", FormatNullableDateTime(session.RecoveryCheckpointAtUtc));
+        command.Parameters.AddWithValue("$abandoned", ToInteger(session.WasRecoveryAbandoned));
         command.Parameters.AddWithValue("$preparation", FormatDateTime(session.PreparationStartedAtUtc));
         command.Parameters.AddWithValue("$focusStarted", FormatNullableDateTime(session.FocusStartedAtUtc));
         command.Parameters.AddWithValue("$plannedEnd", FormatNullableDateTime(session.PlannedEndAtUtc));
@@ -744,7 +777,7 @@ public sealed partial class SqliteLocalDataStore : ILocalDataStore
             SELECT session_id, status, is_forced_mode, configured_seconds, actual_seconds,
                    preparation_started_utc, focus_started_utc, planned_end_utc, completed_utc,
                    completion_kind, target_id, target_name_snapshot, blocking_enabled,
-                   automatic_rule_id, automatic_occurrence_started_utc
+                   automatic_rule_id, automatic_occurrence_started_utc, activity_intervals_json, recovery_checkpoint_utc, recovery_abandoned
             FROM focus_sessions
             ORDER BY preparation_started_utc, session_id;
             """;
@@ -770,6 +803,10 @@ public sealed partial class SqliteLocalDataStore : ILocalDataStore
                 ReadNullableDateTime(reader, 14),
                 sessionTasks.TryGetValue(sessionId, out var snapshots) ? snapshots : [])
             {
+                RecoveryCheckpointAtUtc = ReadNullableDateTime(reader, 16),
+                WasRecoveryAbandoned = reader.GetBoolean(17),
+                ActivityIntervals = reader.IsDBNull(15) ? []
+                    : JsonSerializer.Deserialize<FocusActivityInterval[]>(reader.GetString(15)) ?? [],
                 WebsiteRuleSnapshots = sessionWebsiteRules.TryGetValue(sessionId, out var websiteRules)
                     ? websiteRules
                     : [],
@@ -1169,6 +1206,14 @@ public sealed partial class SqliteLocalDataStore : ILocalDataStore
         }
 
         EnsureUnique(session.CompletedTasks.Select(task => task.TaskId), nameof(session));
+        var previousEnd = session.FocusStartedAtUtc ?? session.PreparationStartedAtUtc;
+        foreach (var interval in session.ActivityIntervals)
+        {
+            if (interval.StartedAtUtc < previousEnd || interval.EndedAtUtc <= interval.StartedAtUtc ||
+                session.CompletedAtUtc is { } end && interval.EndedAtUtc > end)
+                throw new ArgumentException("专注时间区间无效。", nameof(session));
+            previousEnd = interval.EndedAtUtc;
+        }
         if (session.CompletedTasks.Any(task =>
                 string.IsNullOrWhiteSpace(task.TaskId) ||
                 string.IsNullOrWhiteSpace(task.TaskNameSnapshot) ||

@@ -9,12 +9,27 @@ namespace FocusApp.Desktop.Views;
 
 public partial class SettingsPage : UserControl
 {
+    private readonly DispatcherTimer _extensionRefresh = new() { Interval = TimeSpan.FromSeconds(3) };
     public SettingsPage()
     {
         InitializeComponent();
         DataContextChanged += SettingsPage_DataContextChanged;
-        Unloaded += (_, _) => CloseVipFeatureHint();
+        _extensionRefresh.Tick += async (_, _) => await RefreshExtensionAsync();
+        Loaded += (_, _) => UpdateExtensionMonitoring();
+        IsVisibleChanged += (_, _) => UpdateExtensionMonitoring();
+        Unloaded += (_, _) => { _extensionRefresh.Stop(); CloseVipFeatureHint(); };
     }
+
+    private void UpdateExtensionMonitoring()
+    {
+        if (!IsLoaded || !IsVisible) { _extensionRefresh.Stop(); return; }
+        _extensionRefresh.Start();
+        _ = RefreshExtensionAsync();
+    }
+
+    private Task RefreshExtensionAsync()
+        => IsVisible && DataContext is SettingsPageViewModel { BrowserExtension: { } extension }
+            ? extension.RefreshInstallationAsync() : Task.CompletedTask;
 
     private void SettingsPage_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
@@ -28,6 +43,7 @@ public partial class SettingsPage : UserControl
         {
             newViewModel.AutomaticRuleFocusRequested += SettingsViewModel_AutomaticRuleFocusRequested;
         }
+        UpdateExtensionMonitoring();
     }
 
     private void FocusThemeOption_Click(object sender, RoutedEventArgs e) =>

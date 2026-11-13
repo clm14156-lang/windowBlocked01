@@ -3,6 +3,12 @@
     <ResourceDictionary.MergedDictionaries><ResourceDictionary Source="FocusTaskResources.xaml"/></ResourceDictionary.MergedDictionaries>
         <Style x:Key="DrawerContextMenuItemStyle" TargetType="MenuItem">
             <Setter Property="Foreground" Value="{DynamicResource DrawerTaskMenuEdit}"/>
+            <Setter Property="HeaderTemplate">
+                <Setter.Value><DataTemplate>
+                    <TextBlock Text="{Binding}" FontSize="{DynamicResource BodyFontSize}"
+                               Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=MenuItem}}"/>
+                </DataTemplate></Setter.Value>
+            </Setter>
             <Setter Property="Padding" Value="10,9"/>
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="MenuItem">
                 <Grid>

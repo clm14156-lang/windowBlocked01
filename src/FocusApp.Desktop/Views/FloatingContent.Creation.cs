@@ -65,6 +65,8 @@ public partial class FloatingContent
 
     private void Content_PreviewKeyDown(object sender, KeyEventArgs e) => HandleCreationKey(e);
 
+    private void InlineSubTaskInput_EditingEnded(object sender, EventArgs e) => _creationModel?.FinishSubTaskCreation();
+
     private void TaskRow_CreationMouseEnter(object sender, MouseEventArgs e)
     {
         if (sender is FrameworkElement { DataContext: FocusTaskViewModel task }) _hoveredCreationTask = task;

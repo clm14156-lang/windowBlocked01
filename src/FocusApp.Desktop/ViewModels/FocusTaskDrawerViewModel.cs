@@ -182,6 +182,13 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
         finally { _isSubmittingInlineSubTask = false; }
     }
 
+    internal void FinishInlineSubTaskCreation()
+    {
+        if (_isSubmittingInlineSubTask || !IsCreatingInlineSubTask) return;
+        SubmitInlineSubTask();
+        CancelInlineSubTaskCreation();
+    }
+
     public void CancelInlineSubTaskCreation()
     {
         if (!IsCreatingInlineSubTask) return;
@@ -419,6 +426,14 @@ public sealed class FocusTaskDrawerViewModel : INotifyPropertyChanged
             _draft.TaskId, SubTaskInput.Trim(), false, _draft.SubTasks.Count, now, now)));
         SubTaskInput = string.Empty;
         IsSubTasksExpanded = true;
+        IsSubTaskInputVisible = false;
+    }
+
+    internal void FinishDraftSubTaskInput()
+    {
+        if (!IsSubTaskInputVisible) return;
+        AddSubTask();
+        SubTaskInput = string.Empty;
         IsSubTaskInputVisible = false;
     }
 

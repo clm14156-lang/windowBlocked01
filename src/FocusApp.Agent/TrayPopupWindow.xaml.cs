@@ -30,7 +30,8 @@ public partial class TrayPopupWindow : Window
         var active = snapshot?.FocusSessions.FirstOrDefault(IsActiveSession);
         var isForced = active?.IsForcedMode == true;
         var isFocusing = active is not null;
-        StatusText.Text = isForced ? "强制专注中" : isFocusing ? "专注中" : "当前未在专注";
+        var interrupted = active is not null && snapshot?.InterruptedFocusSessionId == active.SessionId;
+        StatusText.Text = interrupted ? "专注待恢复" : isForced ? "强制专注中" : isFocusing ? "专注中" : "当前未在专注";
         StatusPill.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(isForced ? "#FFF2E8" : isFocusing ? "#EAF8F0" : "#FFFFFF"));
         StatusText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(isForced ? "#E87516" : isFocusing ? "#22A968" : "#1D1D1F"));
         TimerText.Visibility = isFocusing ? Visibility.Visible : Visibility.Collapsed;
@@ -42,7 +43,12 @@ public partial class TrayPopupWindow : Window
         ExitHint.Visibility = isForced ? Visibility.Visible : Visibility.Collapsed;
         TodayText.Text = FormatToday(snapshot);
         if (isFocusing) _timer.Start(); else _timer.Stop();
-        UpdateTimer(active);
+        if (interrupted)
+        {
+            var remaining = active!.ConfiguredSeconds - active.ActualSeconds;
+            TimerText.Text = $"{remaining / 60:00}:{remaining % 60:00}";
+        }
+        else UpdateTimer(active);
     }
 
     private void UpdateTimer(LocalFocusSessionDto? active)

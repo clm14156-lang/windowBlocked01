@@ -13,7 +13,7 @@ namespace FocusApp.Desktop.ViewModels;
 public sealed class FocusSessionViewModel : INotifyPropertyChanged
 {
     private const int PreparationDurationSeconds = 5;
-    private const int MinimumSavedFocusSeconds = 5 * 60;
+    private const int MinimumSavedFocusSeconds = FocusSessionRecord.MinimumSavedSeconds;
     private readonly DispatcherTimer _timer;
     private readonly Func<DateTime> _nowProvider;
     private readonly FocusSessionEngine _engine;
@@ -764,6 +764,49 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         ResetToIdleCore();
     }
 
+    internal DateTimeOffset? FocusPreparationStartedAtUtc => ToUtc(_engine.StartedAt);
+    internal FocusTargetViewModel? SessionTarget => _sessionTarget;
+
+    private static DateTimeOffset? ToUtc(DateTime? time)
+        => time is { } value ? new DateTimeOffset(value).ToUniversalTime() : null;
+
+    internal CheckpointNormalFocusCommand? CaptureCheckpoint(Guid sessionId)
+        => _engine.FocusStartedAt is { } startedAt
+            ? new CheckpointNormalFocusCommand(sessionId, _engine.ElapsedFocusSeconds,
+                new DateTimeOffset(startedAt).ToUniversalTime(),
+                _engine.CaptureActivityIntervals().Select(interval => new FocusActivityIntervalDto(
+                    interval.StartedAtUtc, interval.EndedAtUtc, interval.IsPaused)).ToArray())
+            : null;
+
+    internal void ResumeOrdinarySession(LocalFocusSessionDto session, FocusTargetViewModel? target)
+    {
+        ResetToIdleCore();
+        AutomaticRuleId = session.AutomaticRuleId;
+        AutomaticOccurrenceStartedAtUtc = session.AutomaticOccurrenceStartedAtUtc;
+        _sessionTarget = target;
+        ActiveTarget = target;
+        _applyingAuthoritativeSession = true;
+        try { SynchronizeAuthoritativeCompletedTasks(session); }
+        finally { _applyingAuthoritativeSession = false; }
+        _engine.Resume(session.ConfiguredSeconds, session.ActualSeconds, session.PreparationStartedAtUtc.LocalDateTime,
+            (session.FocusStartedAtUtc ?? session.PreparationStartedAtUtc).LocalDateTime,
+            session.TargetId is { } targetId ? new FocusSessionTargetContext(targetId, session.TargetNameSnapshot ?? target?.Name ?? string.Empty) : null,
+            session.ActivityIntervals.Select(interval =>
+                new FocusActivityInterval(interval.StartedAtUtc, interval.EndedAtUtc, interval.IsPaused)).ToArray());
+        SyncCompletedTaskIdsToEngine();
+        SyncFromEngine();
+        RefreshGreeting();
+        if (RunTimer)
+        {
+            _focusStopwatch.Restart();
+            _lastFocusElapsed = TimeSpan.Zero;
+            _timer.Interval = TimeSpan.FromMilliseconds(250);
+            _timer.Start();
+        }
+    }
+
+    internal void ShowInterruptedFocusHome() => ResetToIdleCore();
+
     public Guid? AutomaticRuleId { get; private set; }
     public DateTimeOffset? AutomaticOccurrenceStartedAtUtc { get; private set; }
     public bool Start(int minutes, FocusTargetViewModel? target = null, bool forcedMode = false,
@@ -1025,6 +1068,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         _preparationStopwatch.Reset();
         _focusStopwatch.Reset();
         _engine.CancelPreparation();
+        FocusDiscarded?.Invoke(this, EventArgs.Empty);
         SyncFromEngine();
     }
 

@@ -184,7 +184,7 @@
                                            Foreground="{DynamicResource TextSecondary}"
                                            Text="{Binding Icon}" />
                                 <Border x:Name="BrowserExtensionEntryIcon" Width="20" Height="20" Visibility="Collapsed"
-                                        Background="{DynamicResource AccentPrimary}" RenderOptions.BitmapScalingMode="HighQuality">
+                                        Background="{DynamicResource TextSecondary}" RenderOptions.BitmapScalingMode="HighQuality">
                                     <Border.OpacityMask><ImageBrush ImageSource="/FocusApp.Desktop;component/Assets/Icons/TargetColor/puzzle-piece.png" Stretch="Uniform"/></Border.OpacityMask>
                                 </Border>
                                 </Grid>
@@ -218,10 +218,17 @@
                         </Grid>
                         <ControlTemplate.Triggers>
                             <DataTrigger Binding="{Binding Key}" Value="BrowserExtension">
-                                <Setter TargetName="EntryIconCircle" Property="Background" Value="{DynamicResource AccentTint}"/>
                                 <Setter TargetName="EntryIcon" Property="Visibility" Value="Collapsed"/>
                                 <Setter TargetName="BrowserExtensionEntryIcon" Property="Visibility" Value="Visible"/>
                             </DataTrigger>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding Key}" Value="BrowserExtension"/>
+                                    <Condition Binding="{Binding DataContext.BrowserExtension.HasInstalledExtension, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True"/>
+                                </MultiDataTrigger.Conditions>
+                                <Setter TargetName="EntryIconCircle" Property="Background" Value="{DynamicResource AccentTint}"/>
+                                <Setter TargetName="BrowserExtensionEntryIcon" Property="Background" Value="#FD7E05"/>
+                            </MultiDataTrigger>
                             <EventTrigger RoutedEvent="MouseEnter">
                                 <BeginStoryboard>
                                     <Storyboard>

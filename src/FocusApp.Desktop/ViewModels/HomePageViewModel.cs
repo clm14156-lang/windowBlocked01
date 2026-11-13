@@ -82,7 +82,9 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
             FocusStartModeDecision.Forced);
         BlockedContentModal = new BlockedContentModalViewModel();
         SelectDurationCommand = new RelayCommand<HomeDurationOptionViewModel>(SelectDuration);
-        StartFocusCommand = new RelayCommand<object>(_ => StartFocus());
+        ResumeInterruptedFocusCommand = new RelayCommand<object>(_ => ResolveInterruptedFocus?.Invoke(true));
+        AbandonInterruptedFocusCommand = new RelayCommand<object>(_ => ResolveInterruptedFocus?.Invoke(false));
+        StartFocusCommand = new RelayCommand<object>(_ => _ = StartFocusAsync(replaceInterruptedFocus: true));
         StartFocusWithDelayCommand = new RelayCommand<object>(_ => _ = StartFocusWithDelayAsync());
         OpenFocusTargetCommand = new RelayCommand<object>(_ => FocusTargetModal.Open());
         OpenBlockedContentCommand = new RelayCommand<object>(_ => OpenBlockedContent());
@@ -96,6 +98,65 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
     public HomeDurationOptionViewModel CurrentDurationOption => _currentDurationOption;
 
     public ICommand SelectDurationCommand { get; }
+
+    private LocalFocusSessionDto? _interruptedFocus;
+    private bool _isResolvingInterruptedFocus;
+    private bool _isRecoveryServiceConnected;
+    internal Func<bool, Task<bool>>? ResolveInterruptedFocus { get; set; }
+
+    internal LocalFocusSessionDto? InterruptedFocus
+    {
+        get => _interruptedFocus;
+        set
+        {
+            if (_interruptedFocus == value) return;
+            _interruptedFocus = value;
+            OnPropertyChanged(nameof(HasInterruptedFocus));
+            OnPropertyChanged(nameof(CanAbandonInterruptedFocus));
+            OnPropertyChanged(nameof(InterruptedFocusDescription));
+            OnPropertyChanged(nameof(InterruptedFocusProgress));
+            OnPropertyChanged(nameof(CanStartFocusFromHome));
+        }
+    }
+
+    public bool HasInterruptedFocus => InterruptedFocus is not null;
+    public bool CanAbandonInterruptedFocus => InterruptedFocus is { IsForcedMode: false };
+    public string InterruptedFocusDescription => InterruptedFocus is { } session
+        ? $"{FormatFocusTime(session.ActualSeconds)} / {FormatFocusTime(session.ConfiguredSeconds)}"
+        : string.Empty;
+    public double InterruptedFocusProgress => InterruptedFocus is { ConfiguredSeconds: > 0 } session
+        ? Math.Clamp((double)session.ActualSeconds / session.ConfiguredSeconds, 0, 1)
+        : 0;
+
+    public bool CanResolveInterruptedFocus => _isRecoveryServiceConnected && !_isResolvingInterruptedFocus;
+    public bool CanStartFocusFromHome => !IsResolvingInterruptedFocus && (!HasInterruptedFocus || CanAbandonInterruptedFocus);
+
+    internal bool IsRecoveryServiceConnected
+    {
+        set
+        {
+            if (_isRecoveryServiceConnected == value) return;
+            _isRecoveryServiceConnected = value;
+            OnPropertyChanged(nameof(CanResolveInterruptedFocus));
+        }
+    }
+
+    public bool IsResolvingInterruptedFocus
+    {
+        get => _isResolvingInterruptedFocus;
+        internal set
+        {
+            if (_isResolvingInterruptedFocus == value) return;
+            _isResolvingInterruptedFocus = value;
+            OnPropertyChanged(nameof(CanResolveInterruptedFocus));
+            OnPropertyChanged(nameof(CanStartFocusFromHome));
+        }
+    }
+
+    public ICommand ResumeInterruptedFocusCommand { get; }
+    public ICommand AbandonInterruptedFocusCommand { get; }
+
+    private static string FormatFocusTime(int seconds) => $"{seconds / 60:00}:{seconds % 60:00}";
 
     public ICommand StartFocusCommand { get; }
     internal Func<bool>? RequestAccountAccess { get; set; }
@@ -191,7 +252,7 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
     public string FocusStartError
     {
         get => _focusStartError;
-        private set
+        internal set
         {
             if (_focusStartError == value) return;
             _focusStartError = value;
@@ -407,9 +468,9 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
             current);
 
         UpdateAutomaticRules(ruleList, isAutomaticBlockingEnabled, current);
-        if (evaluation.StartRequest is not null && !FocusSession.IsActive)
+        if (evaluation.StartRequest is not null && !FocusSession.IsActive && !HasInterruptedFocus && !IsResolvingInterruptedFocus)
         {
-            StartFocus(
+            _ = StartFocusAsync(
                 evaluation.StartRequest.FocusMinutes,
                 evaluation.StartRequest.RuleId,
                 new DateTimeOffset(evaluation.StartRequest.OccurrenceStartsAt).ToUniversalTime(),
@@ -470,7 +531,8 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
 
     private async Task StartFocusWithDelayAsync()
     {
-        if (_pendingFocusStartDelay is not null || FocusSession.IsPreparing || FocusSession.IsFocusing || IsStartingForcedFocus) return;
+        if (_pendingFocusStartDelay is not null || !CanStartFocusFromHome ||
+            FocusSession.IsPreparing || FocusSession.IsFocusing || IsStartingForcedFocus) return;
 
         using var pending = new CancellationTokenSource();
         _pendingFocusStartDelay = pending;
@@ -489,14 +551,16 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
         }
     }
 
-    private void StartFocus(
+    private async Task StartFocusAsync(
         int? minutes = null,
         Guid? automaticRuleId = null,
         DateTimeOffset? automaticOccurrenceStartedAtUtc = null,
         FocusTargetViewModel? automaticTarget = null,
-        bool showBrowserExtensionPrompt = true)
+        bool showBrowserExtensionPrompt = true,
+        bool replaceInterruptedFocus = false)
     {
-        if (RequestAccountAccess?.Invoke() == false) return;
+        if (IsResolvingInterruptedFocus || (HasInterruptedFocus && (!replaceInterruptedFocus || !CanAbandonInterruptedFocus)) ||
+            RequestAccountAccess?.Invoke() == false) return;
         var decision = ForcedModeAccessPolicy.EvaluateStart(
             _isLoggedIn,
             _isVip,
@@ -513,13 +577,23 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
         if (automaticRuleId is null && showBrowserExtensionPrompt && _manualFocusStartPrompt is not null &&
             !IsStartingForcedFocus && !FocusSession.IsPreparing && !FocusSession.IsFocusing)
         {
+            var interruptedSessionId = InterruptedFocus?.SessionId;
             _manualFocusStartPrompt(() =>
             {
-                if (!IsStartingForcedFocus && !FocusSession.IsPreparing && !FocusSession.IsFocusing)
-                    StartFocus(focusMinutes, automaticTarget: target, showBrowserExtensionPrompt: false);
+                if (InterruptedFocus?.SessionId == interruptedSessionId &&
+                    !IsStartingForcedFocus && !FocusSession.IsPreparing && !FocusSession.IsFocusing)
+                    _ = StartFocusAsync(focusMinutes, automaticTarget: target, showBrowserExtensionPrompt: false,
+                        replaceInterruptedFocus: replaceInterruptedFocus);
             });
             return;
         }
+
+        if (HasInterruptedFocus)
+        {
+            if (ResolveInterruptedFocus is not { } resolve || !await resolve(false)) return;
+            if (HasInterruptedFocus || FocusSession.IsActive || IsStartingForcedFocus) return;
+        }
+
         if (decision == FocusStartModeDecision.Forced && _forcedFocusStarter is not null)
         {
             if (IsStartingForcedFocus ||
@@ -547,7 +621,7 @@ public sealed class HomePageViewModel : INotifyPropertyChanged
     }
 
     private void FocusTargetModal_StartFocusRequested(FocusTargetViewModel target)
-        => StartFocus(automaticTarget: target);
+        => _ = StartFocusAsync(automaticTarget: target);
 
     private async Task StartForcedFocusAsync(
         int minutes,

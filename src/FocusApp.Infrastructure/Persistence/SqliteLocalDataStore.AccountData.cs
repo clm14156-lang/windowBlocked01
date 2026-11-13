@@ -51,13 +51,26 @@ public sealed partial class SqliteLocalDataStore : IAccountFocusRecoveryStore
         => CopyFromLegacyAsync(legacyPath, async (connection, transaction, version) =>
         {
             if (version < 15) return;
-            await SyncSql(connection, transaction, """
+            var activityIntervals = version >= 19 ? "s.activity_intervals_json" : "NULL";
+            var checkpoint = version >= 20 ? "s.recovery_checkpoint_utc" : "NULL";
+            var abandoned = version >= 20 ? "s.recovery_abandoned" : "0";
+            await SyncSql(connection, transaction, $"""
                 INSERT OR IGNORE INTO focus_sync_bindings
                     SELECT * FROM legacy.focus_sync_bindings WHERE user_id=$user AND api_scope=$scope;
                 INSERT OR IGNORE INTO focus_sync_owners
                     SELECT * FROM legacy.focus_sync_owners WHERE user_id=$user AND api_scope=$scope;
-                INSERT OR IGNORE INTO focus_sessions
-                    SELECT s.* FROM legacy.focus_sessions s JOIN focus_sync_owners o ON o.record_id=s.session_id;
+                INSERT OR IGNORE INTO focus_sessions (
+                    session_id, status, is_forced_mode, configured_seconds, actual_seconds,
+                    preparation_started_utc, focus_started_utc, planned_end_utc, completed_utc,
+                    completion_kind, target_id, target_name_snapshot, blocking_enabled,
+                    automatic_rule_id, automatic_occurrence_started_utc, created_utc, updated_utc, activity_intervals_json,
+                    recovery_checkpoint_utc, recovery_abandoned)
+                    SELECT s.session_id, s.status, s.is_forced_mode, s.configured_seconds, s.actual_seconds,
+                           s.preparation_started_utc, s.focus_started_utc, s.planned_end_utc, s.completed_utc,
+                           s.completion_kind, s.target_id, s.target_name_snapshot, s.blocking_enabled,
+                           s.automatic_rule_id, s.automatic_occurrence_started_utc, s.created_utc, s.updated_utc,
+                           {activityIntervals}, {checkpoint}, {abandoned}
+                    FROM legacy.focus_sessions s JOIN focus_sync_owners o ON o.record_id=s.session_id;
                 INSERT OR IGNORE INTO focus_session_tasks
                     SELECT t.* FROM legacy.focus_session_tasks t JOIN focus_sessions s ON s.session_id=t.session_id;
                 INSERT OR IGNORE INTO focus_session_website_rules

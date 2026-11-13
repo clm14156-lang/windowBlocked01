@@ -18,6 +18,9 @@ public interface ILocalDataStore
         IReadOnlyCollection<string>? completedTaskIdsToMark = null,
         CancellationToken cancellationToken = default);
 
+    Task SaveFocusProgressAsync(LocalFocusSession session, CancellationToken cancellationToken = default)
+        => SaveFocusSessionAsync(session, cancellationToken: cancellationToken);
+
     Task DeleteFocusSessionAsync(Guid sessionId, CancellationToken cancellationToken = default);
 
     Task ReplaceWebsiteRulesAsync(

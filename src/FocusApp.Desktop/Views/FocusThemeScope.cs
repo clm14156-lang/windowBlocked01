@@ -10,7 +10,7 @@ public static class FocusThemeScope
 
     public static readonly DependencyProperty ResourcePrefixProperty = DependencyProperty.RegisterAttached(
         "ResourcePrefix", typeof(string), typeof(FocusThemeScope), new PropertyMetadata("FocusTheme", ThemeChanged),
-        value => value is "FocusTheme" or "FocusFloatingTheme" or "ToastTheme");
+        value => value is "FocusTheme" or "FocusFloatingTheme" or "ToastTheme" or "AccountSyncTheme" or "AuthTheme");
 
     public static bool GetIsDark(DependencyObject element) => (bool)element.GetValue(IsDarkProperty);
     public static void SetIsDark(DependencyObject element, bool value) => element.SetValue(IsDarkProperty, value);
@@ -30,7 +30,9 @@ public static class FocusThemeScope
             var source = resources[index].Source?.OriginalString;
             if (source?.Contains("/FocusTheme.", StringComparison.Ordinal) != true &&
                 source?.Contains("/FocusFloatingTheme.", StringComparison.Ordinal) != true &&
-                source?.Contains("/ToastTheme.", StringComparison.Ordinal) != true) continue;
+                source?.Contains("/ToastTheme.", StringComparison.Ordinal) != true &&
+                source?.Contains("/AccountSyncTheme.", StringComparison.Ordinal) != true &&
+                source?.Contains("/AuthTheme.", StringComparison.Ordinal) != true) continue;
             resources[index] = theme;
             return;
         }

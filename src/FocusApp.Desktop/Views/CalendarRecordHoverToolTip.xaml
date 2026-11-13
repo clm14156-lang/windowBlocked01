@@ -53,7 +53,18 @@
                         </DataTrigger></Style.Triggers>
                     </Style></Ellipse.Style>
                 </Ellipse>
-                <TextBlock Grid.Column="2" Text="专注时长" Style="{StaticResource RecordPoptipLabel}" />
+                <TextBlock Grid.Column="2">
+                    <TextBlock.Style>
+                        <Style TargetType="{x:Type TextBlock}" BasedOn="{StaticResource RecordPoptipLabel}">
+                            <Setter Property="Text" Value="专注时长" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding WasRecoveryAbandoned}" Value="True">
+                                    <Setter Property="Text" Value="中断后放弃" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
                 <StackPanel Grid.Column="4" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                     <TextBlock x:Name="ActualDuration" Style="{StaticResource RecordPoptipDuration}">
                         <Run Text="{Binding PoptipActualMinutesDisplay, Mode=OneWay}" FontFamily="{DynamicResource FontFamilyNumeric}" /><Run Text="分钟" FontFamily="{DynamicResource FontFamilyPrimary}" />

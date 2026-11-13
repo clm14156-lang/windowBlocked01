@@ -22,6 +22,9 @@ public static class IpcOperations
 #if DEBUG
     public const string EndForcedFocusForDebug = "focus.forced.end-debug";
 #endif
+    public const string CheckpointNormalFocus = "focus.normal.checkpoint";
+    public const string ResumeInterruptedFocus = "focus.recovery.resume";
+    public const string AbandonInterruptedFocus = "focus.recovery.abandon";
     public const string StartNormalFocus = "focus.normal.start";
     public const string DiscardNormalFocus = "focus.normal.discard";
     public const string UpdateFocusTasks = "focus.tasks.update";
@@ -100,6 +103,14 @@ public sealed record StartForcedFocusCommand(
 
 public sealed record CancelForcedFocusStartingCommand(Guid SessionId);
 
+public sealed record CheckpointNormalFocusCommand(
+    Guid SessionId,
+    int ActualSeconds,
+    DateTimeOffset FocusStartedAtUtc,
+    IReadOnlyList<FocusActivityIntervalDto> ActivityIntervals);
+
+public sealed record InterruptedFocusCommand(Guid SessionId);
+
 public sealed record StartNormalFocusCommand(LocalFocusSessionDto Session);
 
 public sealed record DiscardNormalFocusCommand(Guid SessionId);
@@ -120,7 +131,8 @@ public enum FocusRuntimeState
     Preparing,
     Focusing,
     Completing,
-    Faulted
+    Faulted,
+    Interrupted
 }
 
 public sealed record FocusRuntimeStatusDto(
@@ -238,6 +250,7 @@ public sealed record LocalDataSnapshotDto(
     public int FocusSyncVersion { get; init; }
     public int AccountDataVersion { get; init; }
     public Guid AccountSession { get; init; }
+    public Guid? InterruptedFocusSessionId { get; init; }
     public bool HasPendingAccountFocusRecovery { get; init; }
     public Guid? FocusHistoryToken { get; init; }
     public int FocusHistoryCount { get; init; }
@@ -276,10 +289,18 @@ public sealed record LocalFocusSessionDto(
 {
     public Guid? CloudBindingId { get; init; }
 
+    public DateTimeOffset? RecoveryCheckpointAtUtc { get; init; }
+
+    public bool WasRecoveryAbandoned { get; init; }
+
+    public IReadOnlyList<FocusActivityIntervalDto> ActivityIntervals { get; init; } = [];
+
     public IReadOnlyList<LocalWebsiteRuleDto> WebsiteRuleSnapshots { get; init; } = [];
 
     public IReadOnlyList<LocalApplicationRuleDto> ApplicationRuleSnapshots { get; init; } = [];
 }
+
+public sealed record FocusActivityIntervalDto(DateTimeOffset StartedAtUtc, DateTimeOffset EndedAtUtc, bool IsPaused);
 
 public sealed record LocalFocusSessionTaskSnapshotDto(string TaskId, string TaskNameSnapshot, int SortOrder)
 {

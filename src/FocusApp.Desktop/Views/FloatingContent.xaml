@@ -152,7 +152,7 @@
                                                    FontFamily="{DynamicResource FontFamilyNumeric}" Foreground="{DynamicResource FloatingSecondaryBrush}"
                                                    Text="{Binding SubTaskProgress, Converter={StaticResource CompactSubTaskProgress}}"
                                                    Visibility="{Binding HasSubTasks, Converter={StaticResource TaskVisibility}}"/>
-                                    <views:HoverScrollText VerticalAlignment="Center" UseOverflowToolTip="True" IsHovered="{Binding IsMouseOver, ElementName=FloatingTaskHeader}">
+                                    <views:HoverScrollText VerticalAlignment="Center" IsHovered="{Binding IsMouseOver, RelativeSource={RelativeSource Self}}">
                                     <TextBlock x:Name="ParentTaskTitle" Text="{Binding Name}" FontSize="13" FontWeight="Medium" VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
                                         <TextBlock.Style><Style TargetType="TextBlock">
                                             <Setter Property="Foreground" Value="{DynamicResource FloatingTaskTextBrush}"/>
@@ -185,7 +185,7 @@
                                                   Stroke="{DynamicResource FloatingConnectorBrush}" StrokeThickness="1" StrokeDashArray="3,2" IsHitTestVisible="False"/>
                                             <CheckBox x:Name="SubTaskCheck" Style="{StaticResource CircleCheck}" VerticalAlignment="Center"
                                                       IsChecked="{Binding IsCompleted, Mode=TwoWay}" AutomationProperties.Name="{Binding Title}" ToolTip="切换子任务完成状态"/>
-                                            <views:HoverScrollText Grid.Column="2" VerticalAlignment="Center" UseOverflowToolTip="True" IsHovered="{Binding IsMouseOver, ElementName=FloatingChildRow}">
+                                            <views:HoverScrollText Grid.Column="2" VerticalAlignment="Center" IsHovered="{Binding IsMouseOver, RelativeSource={RelativeSource Self}}">
                                                 <TextBlock x:Name="SubTaskTitle" Text="{Binding Title}" Style="{StaticResource FloatingSubTaskTitle}"/>
                                             </views:HoverScrollText>
                                             <TextBox x:Name="ChildTaskEditInput" Grid.Column="2" Margin="0,2" Style="{StaticResource FloatingTaskEditInput}"
@@ -216,7 +216,8 @@
                                         </Style.Triggers></Style></Grid.Style>
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="11"/><ColumnDefinition Width="9"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                         <Path Data="M 5,0 L 5,10 M 0,5 L 10,5" Width="10" Height="10" Stroke="{DynamicResource FloatingSubTaskEntryTextBrush}" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" VerticalAlignment="Center" IsHitTestVisible="False"/>
-                                        <TextBox x:Name="InlineSubTaskTitleInput" Grid.Column="2" Text="{Binding DataContext.TaskTitle, RelativeSource={RelativeSource AncestorType=UserControl}, UpdateSourceTrigger=PropertyChanged}"
+                                        <views:SubTaskTitleInput x:Name="InlineSubTaskTitleInput" Grid.Column="2" EditingEnded="InlineSubTaskInput_EditingEnded"
+                                                 Text="{Binding DataContext.TaskTitle, RelativeSource={RelativeSource AncestorType=UserControl}, UpdateSourceTrigger=PropertyChanged}"
                                                  IsEnabled="{Binding DataContext.CanCreateSubTask, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                  FontFamily="{DynamicResource FontFamilyPrimary}" FontSize="13" FontWeight="Normal"
                                                  Foreground="{DynamicResource FloatingTaskTextBrush}" CaretBrush="{DynamicResource AccentPrimary}" Background="Transparent" BorderThickness="0"
@@ -225,7 +226,7 @@
                                             <TextBox.Style><Style TargetType="TextBox"><Style.Triggers>
                                                 <DataTrigger Binding="{Binding DataContext.IsSubTaskLimitReached, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True"><Setter Property="Visibility" Value="Hidden"/></DataTrigger>
                                             </Style.Triggers></Style></TextBox.Style>
-                                        </TextBox>
+                                        </views:SubTaskTitleInput>
                                         <TextBlock Grid.Column="2" Text="添加子任务" FontFamily="{DynamicResource FontFamilyPrimary}" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource FloatingSubTaskEntryTextBrush}" VerticalAlignment="Center" IsHitTestVisible="False">
                                             <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers>
                                                 <DataTrigger Binding="{Binding DataContext.TaskTitle, RelativeSource={RelativeSource AncestorType=UserControl}}" Value=""><Setter Property="Visibility" Value="Visible"/></DataTrigger>

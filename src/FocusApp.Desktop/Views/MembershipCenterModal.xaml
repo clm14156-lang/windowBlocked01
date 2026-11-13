@@ -30,6 +30,12 @@
             <Setter Property="CornerRadius" Value="22" />
         </Style>
 
+        <Style x:Key="MembershipCharacterAvatar" TargetType="Path">
+            <Setter Property="Width" Value="24"/><Setter Property="Height" Value="24"/><Setter Property="Stretch" Value="Uniform"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/><Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Data" Value="M 12,2 A 4.5,4.5 0 1 1 11.99,2 M 3,23 A 9,9 0 0 1 21,23"/>
+            <Setter Property="Stroke" Value="#FF7A00"/><Setter Property="StrokeThickness" Value="1.8"/><Setter Property="StrokeStartLineCap" Value="Round"/><Setter Property="StrokeEndLineCap" Value="Round"/>
+        </Style>
         <Style x:Key="MembershipBenefitGlyph" TargetType="{x:Type TextBlock}">
             <Setter Property="HorizontalAlignment" Value="Center" />
             <Setter Property="VerticalAlignment" Value="Center" />
@@ -207,10 +213,10 @@
                 <Border Style="{StaticResource MembershipBenefitCard}">
                     <Grid Margin="13,8">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="54" /><ColumnDefinition /></Grid.ColumnDefinitions>
-                        <Border Style="{StaticResource MembershipBenefitIcon}"><TextBlock Style="{StaticResource MembershipBenefitGlyph}" Text="&#xE8A5;" /></Border>
+                        <Border Style="{StaticResource MembershipBenefitIcon}"><Path Style="{StaticResource MembershipCharacterAvatar}"/></Border>
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                            <TextBlock Style="{StaticResource MembershipBenefitTitle}" Text="{DynamicResource MembershipBenefitExport}" />
-                            <TextBlock Style="{StaticResource MembershipBenefitHint}" Text="{DynamicResource MembershipBenefitExportHint}" />
+                            <TextBlock Style="{StaticResource MembershipBenefitTitle}" Text="{DynamicResource MembershipBenefitCharacter}" />
+                            <TextBlock Style="{StaticResource MembershipBenefitHint}" Text="{DynamicResource MembershipBenefitCharacterHint}" TextWrapping="Wrap" Margin="0,2,0,0" LineHeight="14" LineStackingStrategy="BlockLineHeight"/>
                         </StackPanel>
                     </Grid>
                 </Border>
@@ -423,10 +429,10 @@
                 <Border Style="{StaticResource AnnualMembershipBenefitCard}">
                     <Grid Margin="13,8">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="54" /><ColumnDefinition /></Grid.ColumnDefinitions>
-                        <Border Style="{StaticResource MembershipBenefitIcon}"><TextBlock Style="{StaticResource MembershipBenefitGlyph}" Text="&#xE8A5;" /></Border>
+                        <Border Style="{StaticResource MembershipBenefitIcon}"><Path Style="{StaticResource MembershipCharacterAvatar}"/></Border>
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                            <TextBlock Style="{StaticResource MembershipBenefitTitle}" Text="{DynamicResource MembershipBenefitExport}" />
-                            <TextBlock Style="{StaticResource MembershipBenefitHint}" Text="{DynamicResource MembershipBenefitExportHint}" />
+                            <TextBlock Style="{StaticResource MembershipBenefitTitle}" Text="{DynamicResource MembershipBenefitCharacter}" />
+                            <TextBlock Style="{StaticResource MembershipBenefitHint}" Text="{DynamicResource MembershipBenefitCharacterHint}" TextWrapping="Wrap" Margin="0,2,0,0" LineHeight="14" LineStackingStrategy="BlockLineHeight"/>
                         </StackPanel>
                     </Grid>
                 </Border>

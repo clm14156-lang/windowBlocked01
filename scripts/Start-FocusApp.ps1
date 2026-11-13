@@ -2,7 +2,7 @@
 param(
     [ValidateSet('Debug', 'Release')]
     [string]$Configuration = 'Debug',
-    [string]$ApiBaseUrl = 'http://localhost:5080/'
+    [string]$ApiBaseUrl = 'http://localhost:5082/'
 )
 
 $apiUri = $null

@@ -11,6 +11,8 @@ public sealed class FocusSessionEngine
     private DateTime _focusStartedAt;
     private FocusSessionTargetContext? _targetContext;
     private readonly List<string> _completedTaskIds = [];
+    private readonly List<FocusActivityInterval> _activityIntervals = [];
+    private DateTimeOffset _intervalStartedAtUtc;
 
     public FocusSessionEngine(Func<DateTime>? nowProvider = null)
     {
@@ -70,6 +72,7 @@ public sealed class FocusSessionEngine
         IsForcedMode = forcedMode;
         _targetContext = target;
         _completedTaskIds.Clear();
+        _activityIntervals.Clear();
         IsEndConfirmationOpen = false;
         _preparationElapsed = TimeSpan.Zero;
         _focusElapsed = TimeSpan.Zero;
@@ -83,6 +86,40 @@ public sealed class FocusSessionEngine
     public void Start(int minutes, FocusSessionTargetContext targetContext, bool forcedMode = false)
     {
         Start(minutes, forcedMode, targetContext);
+    }
+
+    public void Resume(
+        int configuredSeconds,
+        int elapsedSeconds,
+        DateTime startedAt,
+        DateTime focusStartedAt,
+        FocusSessionTargetContext? target,
+        IReadOnlyList<FocusActivityInterval> activityIntervals)
+    {
+        ConfiguredSeconds = configuredSeconds;
+        IsForcedMode = false;
+        _targetContext = target;
+        _completedTaskIds.Clear();
+        _activityIntervals.Clear();
+        _activityIntervals.AddRange(activityIntervals);
+        _preparationElapsed = PreparationDuration;
+        _focusElapsed = TimeSpan.FromSeconds(elapsedSeconds);
+        _startedAt = startedAt;
+        _focusStartedAt = focusStartedAt;
+        var now = new DateTimeOffset(_nowProvider()).ToUniversalTime();
+        _intervalStartedAtUtc = activityIntervals.LastOrDefault()?.EndedAtUtc is { } end && end > now ? end : now;
+        IsEndConfirmationOpen = false;
+        CompletedAt = null;
+        Completion = null;
+        State = FocusSessionState.Focusing;
+    }
+
+    public IReadOnlyList<FocusActivityInterval> CaptureActivityIntervals()
+    {
+        var now = new DateTimeOffset(_nowProvider()).ToUniversalTime();
+        return State == FocusSessionState.Focusing && !IsEndConfirmationOpen && now > _intervalStartedAtUtc
+            ? [.. _activityIntervals, new(_intervalStartedAtUtc, now, false)]
+            : _activityIntervals.ToArray();
     }
 
     public void UpdateCompletedTaskIds(IEnumerable<string>? taskIds)
@@ -167,6 +204,7 @@ public sealed class FocusSessionEngine
             return false;
         }
 
+        CloseActivityInterval(_nowProvider(), isPaused: false);
         IsEndConfirmationOpen = true;
         return true;
     }
@@ -178,6 +216,7 @@ public sealed class FocusSessionEngine
             return false;
         }
 
+        CloseActivityInterval(_nowProvider(), isPaused: true);
         IsEndConfirmationOpen = false;
         return true;
     }
@@ -212,6 +251,7 @@ public sealed class FocusSessionEngine
         _preparationElapsed = PreparationDuration;
         _focusElapsed = TimeSpan.Zero;
         _focusStartedAt = _nowProvider();
+        _intervalStartedAtUtc = new DateTimeOffset(_focusStartedAt).ToUniversalTime();
         State = FocusSessionState.Focusing;
     }
 
@@ -223,6 +263,7 @@ public sealed class FocusSessionEngine
         }
 
         var completedAt = _nowProvider();
+        CloseActivityInterval(completedAt, IsEndConfirmationOpen);
         CompletedAt = completedAt;
         IsEndConfirmationOpen = false;
         Completion = new FocusSessionRecord(
@@ -234,10 +275,19 @@ public sealed class FocusSessionEngine
             IsForcedMode)
         {
             TargetId = _targetContext?.TargetId,
+            ActivityIntervals = _activityIntervals.ToArray(),
             TargetName = _targetContext?.TargetName,
             CompletedTaskIds = _completedTaskIds.ToArray()
         };
         State = FocusSessionState.Completed;
+    }
+
+    private void CloseActivityInterval(DateTime endedAt, bool isPaused)
+    {
+        var end = new DateTimeOffset(endedAt).ToUniversalTime();
+        if (end <= _intervalStartedAtUtc) return;
+        _activityIntervals.Add(new FocusActivityInterval(_intervalStartedAtUtc, end, isPaused));
+        _intervalStartedAtUtc = end;
     }
 
     private void Reset()
@@ -249,6 +299,7 @@ public sealed class FocusSessionEngine
         _focusElapsed = TimeSpan.Zero;
         _targetContext = null;
         _completedTaskIds.Clear();
+        _activityIntervals.Clear();
         CompletedAt = null;
         Completion = null;
     }

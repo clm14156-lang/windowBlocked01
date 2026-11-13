@@ -10,6 +10,7 @@ namespace FocusApp.Desktop.ViewModels;
 
 public sealed class SettingsPageViewModel : INotifyPropertyChanged
 {
+    public BrowserExtensionModalViewModel? BrowserExtension { get; internal set; }
     private SettingsEntryItemViewModel? _activeEntry;
     private AutomaticRuleItemViewModel? _editingRule;
     private bool _isLoggedIn;

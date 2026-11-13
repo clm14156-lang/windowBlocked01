@@ -31,6 +31,8 @@ public partial class FocusTaskDrawer : UserControl
         Dispatcher.BeginInvoke(DispatcherPriority.Input, () => DraftSubTaskInput.Focus());
     }
 
+    private void DraftSubTaskInput_EditingEnded(object sender, EventArgs e) => ViewModel?.FinishDraftSubTaskInput();
+
     private void DraftSubTaskInput_KeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key != Key.Enter || ViewModel is not { } vm) return;

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 616 614">
+  <defs>
+    <linearGradient id="coin" x1="0" y1="0" x2="0.8" y2="1">
+      <stop stop-color="#9fa9bd"/>
+      <stop offset="1" stop-color="#8490a6"/>
+    </linearGradient>
+  </defs>
+  <circle cx="308.5" cy="307" r="270.5" fill="url(#coin)"/>
+  <path fill="#fff" transform="translate(9.27 -5.36) scale(1.24942)" d="M125.5 135C125.5 125 131 119.5 141 119.5C147 119.5 151 121 154.5 124C177 114 197 113 219 117C252 122 278 130 309.5 125L342 141.5L310 217L342 282C310 288 277 281 246 276C212 270 186 271 158 281L158 380C158 391 152 396.5 141.5 396.5C131 396.5 125.5 391 125.5 380Z"/>
+</svg>

@@ -12,7 +12,17 @@ public interface IAccountClient
     Task LogoutAsync();
 }
 
-public sealed class CloudApiException(string code) : Exception(code)
+public sealed record LoginCaptchaChallenge(Guid ChallengeId, byte[] Image, DateTimeOffset ExpiresAtUtc);
+public sealed record LoginCaptchaAnswer(Guid ChallengeId, string Code);
+
+public interface ILoginCaptchaClient : IAccountClient
+{
+    Task<CloudAccount> LoginAsync(string email, string password, LoginCaptchaAnswer? captcha);
+    Task<LoginCaptchaChallenge> RefreshLoginCaptchaAsync(string email);
+}
+
+public sealed class CloudApiException(string code, LoginCaptchaChallenge? captcha = null) : Exception(code)
 {
     public string Code { get; } = code;
+    public LoginCaptchaChallenge? Captcha { get; } = captcha;
 }

@@ -38,6 +38,7 @@ public partial class MainWindow : Window
     private bool _debugForcedExitInProgress;
 #endif
     private readonly DispatcherTimer _guestLoginHintCloseTimer;
+    private readonly DispatcherTimer _homeUpdateCloseTimer;
 
     public MainWindow() : this(new FocusFloatingPositionStore()) { }
 
@@ -51,6 +52,18 @@ public partial class MainWindow : Window
             Interval = TimeSpan.FromMilliseconds(280)
         };
         _guestLoginHintCloseTimer.Tick += GuestLoginHintCloseTimer_Tick;
+        _homeUpdateCloseTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(180) };
+        _homeUpdateCloseTimer.Tick += (_, _) =>
+        {
+            _homeUpdateCloseTimer.Stop();
+            if (!HomeDownloadButton.IsMouseOver && !HomeUpdatePoptip.IsMouseOver && !HomeUpdatePoptip.IsKeyboardFocusWithin)
+                CloseHomeUpdatePoptip();
+        };
+        HomeDownloadButton.IsVisibleChanged += (_, _) =>
+        {
+            if (!HomeDownloadButton.IsVisible) CloseHomeUpdatePoptip();
+        };
+        Deactivated += (_, _) => CloseHomeUpdatePoptip();
         DataContextChanged += MainWindow_DataContextChanged;
         Closed += MainWindow_Closed;
         SizeChanged += MainWindow_SizeChanged;
@@ -176,6 +189,42 @@ public partial class MainWindow : Window
         }
 
         return false;
+    }
+
+    private void HomeDownloadButton_MouseEnter(object sender, MouseEventArgs e)
+    {
+        _homeUpdateCloseTimer.Stop();
+        HomeUpdatePoptip.Visibility = Visibility.Visible;
+    }
+
+    private void HomeDownloadButton_Click(object sender, RoutedEventArgs e)
+    {
+        _homeUpdateCloseTimer.Stop();
+        HomeUpdatePoptip.Visibility = Visibility.Visible;
+        if (!HomeDownloadButton.IsMouseOver) HomeUpdateLaterButton.Focus();
+    }
+
+    private void UpdatePoptip_MouseEnter(object sender, MouseEventArgs e) => _homeUpdateCloseTimer.Stop();
+
+    private void UpdatePoptip_MouseLeave(object sender, MouseEventArgs e)
+    {
+        if (HomeUpdatePoptip.IsVisible) _homeUpdateCloseTimer.Start();
+    }
+
+    private void UpdatePoptip_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Escape || !HomeUpdatePoptip.IsVisible) return;
+        CloseHomeUpdatePoptip(restoreFocus: true);
+        e.Handled = true;
+    }
+
+    private void UpdateAction_Click(object sender, RoutedEventArgs e) => CloseHomeUpdatePoptip(restoreFocus: true);
+
+    private void CloseHomeUpdatePoptip(bool restoreFocus = false)
+    {
+        _homeUpdateCloseTimer.Stop();
+        if (restoreFocus && HomeUpdatePoptip.IsKeyboardFocusWithin) HomeDownloadButton.Focus();
+        HomeUpdatePoptip.Visibility = Visibility.Collapsed;
     }
 
     private void MinimizeButton_Click(object sender, RoutedEventArgs e)
@@ -369,6 +418,7 @@ public partial class MainWindow : Window
         }
         _isClosing = true;
         _guestLoginHintCloseTimer.Stop();
+        CloseHomeUpdatePoptip();
         var floatingWindow = _focusFloatingWindow;
         _focusFloatingWindow = null;
         _focusFloatingViewModel?.Dispose();
@@ -650,6 +700,9 @@ public partial class MainWindow : Window
 
     private void Window_PreviewMouseDown(object sender, MouseButtonEventArgs e)
     {
+        if (HomeUpdatePoptip.IsVisible && !HomeUpdatePoptip.IsMouseOver && !HomeDownloadButton.IsMouseOver)
+            CloseHomeUpdatePoptip();
+
         if (DataContext is not ViewModels.MainWindowViewModel viewModel)
         {
             return;

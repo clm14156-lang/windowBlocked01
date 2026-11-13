@@ -10,7 +10,7 @@ using System.Text.Json;
 
 namespace FocusApp.Desktop.Services.Cloud;
 
-public sealed partial class CloudAccountClient : IAccountClient, IDeviceSessionClient, IFocusUploadClient, IFocusDownloadClient, ICloudConnectionProbe
+public sealed partial class CloudAccountClient : ILoginCaptchaClient, IDeviceSessionClient, IFocusUploadClient, IFocusDownloadClient, ICloudConnectionProbe
 {
     private readonly HttpClient http;
     private readonly ICredentialStore store;
@@ -23,7 +23,7 @@ public sealed partial class CloudAccountClient : IAccountClient, IDeviceSessionC
     { this.http = http; this.store = store; }
     public static CloudAccountClient CreateDefault()
     {
-        var configured = Environment.GetEnvironmentVariable("FOCUSTIME_API_BASE_URL") ?? "http://localhost:5080/";
+        var configured = Environment.GetEnvironmentVariable("FOCUSTIME_API_BASE_URL") ?? "http://localhost:5082/";
         if (!Uri.TryCreate(configured, UriKind.Absolute, out var uri) ||
             (uri.Scheme != "https" && !(uri.Scheme == "http" && uri.IsLoopback)) ||
             !string.IsNullOrEmpty(uri.UserInfo) || uri.Query.Length > 0 || uri.Fragment.Length > 0)
@@ -57,7 +57,9 @@ public sealed partial class CloudAccountClient : IAccountClient, IDeviceSessionC
         if(previous!=updated.Tokens?.SessionId)IdentityChanged?.Invoke(this,EventArgs.Empty);
     }
 
-    public async Task<CloudAccount> LoginAsync(string email, string password)
+    public Task<CloudAccount> LoginAsync(string email, string password) => LoginAsync(email, password, null);
+
+    public async Task<CloudAccount> LoginAsync(string email, string password, LoginCaptchaAnswer? captcha)
     {
         await gate.WaitAsync();
         try
@@ -66,6 +68,7 @@ public sealed partial class CloudAccountClient : IAccountClient, IDeviceSessionC
             Save(State);
             await DrainLogoutsAsync();
             var tokens = await PostAsync<CloudTokens>("login", new { email, password,
+                captchaChallengeId = captcha?.ChallengeId, captchaCode = captcha?.Code,
                 device = new { State.InstallationId, name = Environment.MachineName,
                     operatingSystem = "Windows", clientVersion = typeof(CloudAccountClient).Assembly.GetName().Version?.ToString() ?? "1.0" } });
             var pending = new List<string>(State.PendingLogouts);
@@ -74,6 +77,13 @@ public sealed partial class CloudAccountClient : IAccountClient, IDeviceSessionC
             await DrainLogoutsAsync();
             return Account(tokens);
         }
+        finally { gate.Release(); }
+    }
+
+    public async Task<LoginCaptchaChallenge> RefreshLoginCaptchaAsync(string email)
+    {
+        await gate.WaitAsync();
+        try { return await PostAsync<LoginCaptchaChallenge>("login/captcha", new { email, State.InstallationId }); }
         finally { gate.Release(); }
     }
 
@@ -326,13 +336,20 @@ public sealed partial class CloudAccountClient : IAccountClient, IDeviceSessionC
     private static async Task EnsureAsync(HttpResponseMessage response)
     {
         if (response.IsSuccessStatusCode) return;
-        var code = response.StatusCode == HttpStatusCode.Unauthorized ? "authentication_required" : "server_error";
+        var code = response.StatusCode switch
+        {
+            HttpStatusCode.Unauthorized => "authentication_required",
+            HttpStatusCode.TooManyRequests => "rate_limit_exceeded",
+            _ => "server_error"
+        };
+        CloudProblem? problem = null;
         try
         {
-            var body = await response.Content.ReadFromJsonAsync<JsonElement>();
-            if (body.TryGetProperty("code", out var value)) code = value.GetString() ?? code;
+            problem = await response.Content.ReadFromJsonAsync<CloudProblem>();
         }
         catch (JsonException) { }
-        throw new CloudApiException(code);
+        throw new CloudApiException(problem?.Code ?? code, problem?.Captcha);
     }
+
+    private sealed record CloudProblem(string? Code, LoginCaptchaChallenge? Captcha);
 }

@@ -197,9 +197,7 @@ public sealed class CalendarFocusTimeline : FrameworkElement
         var labelBrush = TickLabelForeground ?? TryFindResource("TextWeak") as Brush ?? Brushes.Gray;
         var trackBrush = FullDayStyle ? new SolidColorBrush(Color.FromRgb(246, 247, 249))
             : TryFindResource("SurfaceTertiary") as Brush ?? new SolidColorBrush(Color.FromRgb(239, 240, 243));
-        var accentBrush = GoalHistoryStyle ? new SolidColorBrush(Color.FromRgb(255, 151, 57))
-            : FullDayStyle ? new SolidColorBrush(Color.FromRgb(255, 186, 132))
-            : TryFindResource("AccentPrimary") as Brush ?? Brushes.DarkOrange;
+        var accentBrush = TryFindResource("AccentPrimary") as Brush ?? new SolidColorBrush(Color.FromRgb(255, 122, 0));
         var tickPen = new Pen(FullDayStyle ? new SolidColorBrush(Color.FromRgb(232, 235, 240)) : trackBrush, 1);
         var trackTop = TrackTop;
         var trackHeight = TrackHeight;
@@ -231,8 +229,7 @@ public sealed class CalendarFocusTimeline : FrameworkElement
             if (FullDayStyle && !GoalHistoryStyle && InteractionState is { } activeState &&
                 ReferenceEquals(segment.Record, activeState.HoveredTimelineRecord)) continue;
             // Never impose a minimum width: position and duration remain proportional to real timestamps.
-            drawingContext.DrawRoundedRectangle(accentBrush, GoalHistoryStyle ? new Pen(Brushes.White, 0.6) : null,
-                SegmentBounds(segment), GoalHistoryStyle ? 3 : 1.5, GoalHistoryStyle ? 3 : 1.5);
+            DrawSessionBar(drawingContext, segment, SegmentBounds(segment), accentBrush);
         }
         if (FullDayStyle && !GoalHistoryStyle && InteractionState is { } state)
         {
@@ -244,12 +241,28 @@ public sealed class CalendarFocusTimeline : FrameworkElement
                 var haloWidth = Math.Max(20, bounds.Width + 12);
                 var halo = new Rect(center - haloWidth / 2, bounds.Top - 6, haloWidth, bounds.Height + 10);
                 drawingContext.DrawRoundedRectangle(new SolidColorBrush(Color.FromRgb(247, 247, 248)), null, halo, 6, 6);
-                // The original duration width stays unchanged; the active mark gets only a subtle lift.
-                var active = new Rect(center - bounds.Width * 1.12 / 2, bounds.Top - 2, bounds.Width * 1.12, bounds.Height + 2);
-                drawingContext.DrawRoundedRectangle(new SolidColorBrush(Color.FromRgb(255, 158, 75)), null, active, 2, 2);
+                var active = new Rect(bounds.Left, bounds.Top - 2, bounds.Width, bounds.Height + 2);
+                DrawSessionBar(drawingContext, segment, active, accentBrush);
             }
         }
         DrawCurrentTimeMarker(drawingContext);
+    }
+
+    private void DrawSessionBar(DrawingContext context, CalendarFocusTimelineSegment segment, Rect bounds, Brush focusBrush)
+    {
+        var radius = GoalHistoryStyle ? 3 : 1.5;
+        var unknownBrush = new SolidColorBrush(Color.FromRgb(218, 222, 229));
+        var pauseBrush = new SolidColorBrush(Color.FromRgb(255, 226, 200));
+        if (segment.Parts.Count == 0)
+        {
+            context.DrawRoundedRectangle(segment.Record.HasUnmappedTime ? unknownBrush : focusBrush, null, bounds, radius, radius);
+            return;
+        }
+        context.PushClip(new RectangleGeometry(bounds, radius, radius));
+        foreach (var part in segment.Parts)
+            context.DrawRectangle(part.IsPaused ? pauseBrush : focusBrush, null,
+                new Rect(AxisLeft + part.StartRatio * AxisWidth, bounds.Top, part.WidthRatio * AxisWidth, bounds.Height));
+        context.Pop();
     }
 
     private void DrawCurrentTimeMarker(DrawingContext drawingContext)
@@ -325,15 +338,14 @@ public sealed class CalendarFocusTimeline : FrameworkElement
         if (InlineRecordDetails)
         {
             InteractionState?.HoverTimeline(segment.Record);
+            var content = new GoalFocusTimelineToolTip { DataContext = segment.Record };
             _sessionToolTip ??= new ToolTip
             {
-                Style = TryFindResource("CalendarToolTipStyle") as Style,
+                Style = (Style)content.Resources["SessionToolTipStyle"],
                 PlacementTarget = this, Placement = PlacementMode.Top,
-                StaysOpen = true, IsHitTestVisible = false,
-                Padding = new Thickness(10, 6, 10, 6), Background = Brushes.White,
-                BorderBrush = new SolidColorBrush(Color.FromRgb(232, 235, 240)), BorderThickness = new Thickness(1)
+                StaysOpen = true, IsHitTestVisible = false
             };
-            _sessionToolTip.Content = segment.Record.CalendarPoptipSummaryDisplay;
+            _sessionToolTip.Content = content;
             _sessionToolTip.PlacementRectangle = SegmentBounds(segment);
             _sessionToolTip.IsOpen = true;
             return;

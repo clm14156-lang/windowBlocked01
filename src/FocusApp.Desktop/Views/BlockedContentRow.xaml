@@ -32,6 +32,10 @@
             <Image Width="24" Height="24" HorizontalAlignment="Center" VerticalAlignment="Center"
                    Source="{Binding Favicon}" Stretch="Uniform" />
         </DataTemplate>
+        <DataTemplate x:Key="BlockedApplicationIconTemplate">
+            <Image Width="24" Height="24" HorizontalAlignment="Center" VerticalAlignment="Center"
+                   Source="{Binding ApplicationIcon}" Stretch="Uniform" />
+        </DataTemplate>
         <Style x:Key="BlockedRowIconButtonStyle" TargetType="{x:Type Button}">
             <Setter Property="Width" Value="34" />
             <Setter Property="Height" Value="34" />
@@ -105,6 +109,9 @@
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding HasFavicon}" Value="True">
                                     <Setter Property="ContentTemplate" Value="{StaticResource BlockedSiteIconTemplate}" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding HasApplicationIcon}" Value="True">
+                                    <Setter Property="ContentTemplate" Value="{StaticResource BlockedApplicationIconTemplate}" />
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>

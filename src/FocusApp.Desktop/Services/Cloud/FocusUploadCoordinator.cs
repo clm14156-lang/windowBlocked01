@@ -7,7 +7,7 @@ using FocusApp.Desktop.ViewModels;
 
 namespace FocusApp.Desktop.Services.Cloud;
 
-public sealed class FocusUploadCoordinator : INotifyPropertyChanged
+public sealed partial class FocusUploadCoordinator : INotifyPropertyChanged
 {
     private readonly DesktopServiceConnection service;
     private readonly IFocusUploadClient cloud;
@@ -76,6 +76,7 @@ public sealed class FocusUploadCoordinator : INotifyPropertyChanged
         binding = null;
         identity = null;
         snapshot = null;
+        ResetPresentation();
         websiteStatus = "";
         importing = null;
         Status = "同步账号正在更新…";
@@ -130,7 +131,7 @@ public sealed class FocusUploadCoordinator : INotifyPropertyChanged
     public string HistorySummary=>snapshot is null || service.UsesAccountIsolation ? "" : $"本批未归属记录：{snapshot.UnassignedRecordIds.Count} 条（每次最多确认 200 条）";
     public string DeleteSummary=>snapshot?.DeferredDeletes>0 ? $"待同步删除：{snapshot.DeferredDeletes} 条，其他设备将在同步后移除记录。" : "";
     private void Changed([CallerMemberName]string? name=null)
-    {PropertyChanged?.Invoke(this,new(name));foreach(var n in new[]{nameof(Status),nameof(IsBusy),nameof(IsIdle),nameof(HasImportConfirmation),nameof(CanPrepareImport),nameof(ImportQuestion),nameof(Summary),nameof(HistorySummary),nameof(DeleteSummary)}) if(n!=name)PropertyChanged?.Invoke(this,new(n));}
+    {PropertyChanged?.Invoke(this,new(name));foreach(var n in new[]{nameof(Status),nameof(IsBusy),nameof(IsIdle),nameof(HasImportConfirmation),nameof(CanPrepareImport),nameof(ImportQuestion),nameof(Summary),nameof(HistorySummary),nameof(DeleteSummary),nameof(Presentation)}) if(n!=name)PropertyChanged?.Invoke(this,new(n));}
     private void PrepareImport()
     {
         if(!CanPrepareImport||binding is null||snapshot is null)return;
@@ -148,10 +149,10 @@ public sealed class FocusUploadCoordinator : INotifyPropertyChanged
     }
     public async Task TickAsync()
     {
-        if(!await gate.WaitAsync(0))return;busy=true;Changed();var version=generation;var token=accountLifetime.Token;
+        if(!await gate.WaitAsync(0))return;busy=true;BeginPresentationAttempt();Changed();var version=generation;var token=accountLifetime.Token;
         try
         {
-            if(!service.IsConnected){Status="本地服务未连接；记录将在本地保存恢复后继续上传。";return;}
+            if(!service.IsConnected){recordDisplayError="本地服务未连接，记录仍保留在本机。";Status="本地服务未连接；记录将在本地保存恢复后继续上传。";return;}
             if (!await EnsureAccountBoundAsync() || version != generation) return;
             var account = accountClient is null ? await cloud.GetUploadIdentityAsync() : identity;
             var bound = accountClient is null
@@ -159,7 +160,7 @@ public sealed class FocusUploadCoordinator : INotifyPropertyChanged
                 : binding;
             if(version!=generation)return;
             identity=account;
-            if(account is null){service.ClearCloudBinding();binding=null;snapshot=null;Status="登录后可双向同步已完成的专注记录。";return;}
+            if(account is null){service.ClearCloudBinding();binding=null;snapshot=null;ResetPresentation();Status="登录后可双向同步已完成的专注记录。";return;}
             if (bound is null) return;
             binding=bound;service.UseCloudBinding(bound.BindingId);
             if (accountClient is not null)
@@ -171,11 +172,13 @@ public sealed class FocusUploadCoordinator : INotifyPropertyChanged
                     if (version != generation) return;
                     await service.FocusSyncRequestAsync<ApplyWebsiteSnapshot, EmptyPayload>(
                         WebsiteSyncIpc.Apply, new(pending.Version, websites.Rules), token);
-                    if (version == generation) websiteStatus = "";
+                    if (version != generation) return;
+                    var remaining = await service.FocusSyncRequestAsync<EmptyPayload, WebsitePendingChanges>(WebsiteSyncIpc.Pending, new(), token);
+                    if (version == generation) { websiteStatus = ""; websiteServerConfirmed = remaining.Changes.Count == 0; contactedCloud = true; websiteDisplayError = null; }
                 }
                 catch (Exception error) when (IsExpected(error))
                 {
-                    if (version == generation) websiteStatus = " 网站规则暂未同步，将自动重试。";
+                    if (version == generation) { websiteStatus = " 网站规则暂未同步，将自动重试。"; websiteServerConfirmed = false; websiteDisplayError = "网站规则同步失败，将在网络可用时自动重试。"; }
                 }
             if (version != generation) return;
             var batch=await service.FocusSyncRequestAsync<CloudSyncBatchCommand,CloudSyncBatch>(FocusSyncIpc.Batch,new(bound.BindingId,50));
@@ -200,6 +203,9 @@ public sealed class FocusUploadCoordinator : INotifyPropertyChanged
                     if(version!=generation)return;
                     await service.FocusSyncRequestAsync<CloudSyncAckCommand,EmptyPayload>(FocusSyncIpc.Ack,new(bound.BindingId,results));
                     if(version!=generation)return;
+                    var acknowledged = results.Any(result => result.ServerRevision > 0 && result.Status is "applied" or "duplicate");
+                    contactedCloud |= acknowledged;
+                    recordServerConfirmed |= acknowledged;
                     foreach(var item in uploading)
                     {
                         var receipt=results.FirstOrDefault(x=>x.RecordId==item.RecordId&&x.OperationId==item.OperationId);
@@ -228,6 +234,7 @@ public sealed class FocusUploadCoordinator : INotifyPropertyChanged
                         reset=true;pageNumber--;Status="游标已失效，正在重新拉取历史；本地记录和待同步操作已保留。";continue;
                     }
                     if(version!=generation)return;
+                    recordServerConfirmed = contactedCloud = true;
                     await service.FocusSyncRequestAsync<CloudSyncApplyCommand,EmptyPayload>(FocusSyncIpc.Apply,
                         new(bound.BindingId,cursor.Cursor,page.NextCursor,page.HasMore,page.Changes));
                     if(!page.HasMore)break;
@@ -242,12 +249,12 @@ public sealed class FocusUploadCoordinator : INotifyPropertyChanged
                 cloud is IFocusDownloadClient&&snapshot.HasMoreChanges ? "正在分批下载云端历史，下次同步将继续。" :
                 cloud is IFocusDownloadClient ? "当前账号的专注记录已同步。" : "当前账号已归属的记录已获云端确认。";
         }
-        catch(Exception error) when(IsExpected(error)){if(version==generation)Status="同步暂不可用，请检查网络、登录状态及本地服务版本后重试。";}
+        catch(Exception error) when(IsExpected(error)){if(version==generation){recordDisplayError="同步暂不可用，请检查网络、登录状态及本地服务后重试。";Status="同步暂不可用，请检查网络、登录状态及本地服务版本后重试。";}}
         finally
         {
             if(version==generation&&service.IsConnected)
-                try{await service.RefreshStateAsync();}catch(Exception error)when(IsExpected(error)){Status="本地同步状态尚未刷新，请重连后重试。";}
-            busy=false;Changed();gate.Release();
+                try{await service.RefreshStateAsync();}catch(Exception error)when(IsExpected(error)){recordDisplayError="本地同步状态尚未刷新，请重连后重试。";Status="本地同步状态尚未刷新，请重连后重试。";}
+            busy=false;if(version==generation)CompletePresentationAttempt();Changed();gate.Release();
         }
     }
     private async Task RunSafeAsync(Func<Task> action, int? version = null)

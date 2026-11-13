@@ -32,6 +32,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     private readonly HashSet<GoalOverviewItemViewModel> _observedGoals = [];
     private bool _isLoggedIn;
     private bool _isVip;
+    private bool _isMembershipLoaded = true;
     private bool _isDailyFocusRecordVipGuideOpen;
     private bool _isGoalInvestmentDetailsVipGuideOpen;
     private bool _isCalendarCompletedTasksOpen;
@@ -284,7 +285,10 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
                     SessionId = session.SessionId,
                     CompletionKind = session.CompletionKind == FocusCompletionKindDto.EarlyEnd
                         ? FocusCompletionKind.EarlyEnd : FocusCompletionKind.Natural,
+                    WasRecoveryAbandoned = session.WasRecoveryAbandoned,
                     RecordedFocusDuration = TimeSpan.FromSeconds(Math.Max(0, session.ActualSeconds)),
+                    ActivityIntervals = session.ActivityIntervals.Select(interval => new FocusActivityInterval(
+                        interval.StartedAtUtc, interval.EndedAtUtc, interval.IsPaused)).ToArray(),
                     ConfiguredDuration = TimeSpan.FromSeconds(Math.Max(0, session.ConfiguredSeconds)),
                     CompletedTaskSnapshots = session.CompletedTasks,
                     CompletedTaskIds = session.CompletedTasks.OrderBy(task => task.SortOrder)
@@ -401,19 +405,23 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         }
     }
 
-    public void SetUserAccess(bool isLoggedIn, bool isVip)
+    public void SetUserAccess(bool isLoggedIn, bool isVip, bool isMembershipLoaded = true)
     {
         var couldViewDetails = CanViewDailyFocusRecord;
+        var loggedInChanged = _isLoggedIn != isLoggedIn;
+        var vipChanged = _isVip != isVip;
+        // Apply one access snapshot before notifying bindings, including account switches.
+        _isLoggedIn = isLoggedIn;
+        _isVip = isVip;
+        _isMembershipLoaded = isMembershipLoaded;
 
-        if (_isLoggedIn != isLoggedIn)
+        if (loggedInChanged)
         {
-            _isLoggedIn = isLoggedIn;
             OnPropertyChanged(nameof(IsLoggedIn));
         }
 
-        if (_isVip != isVip)
+        if (vipChanged)
         {
-            _isVip = isVip;
             OnPropertyChanged(nameof(IsVip));
         }
 
@@ -428,6 +436,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
                 IsGoalInvestmentDetailsVipGuideOpen = false;
             }
         }
+        NotifyGoalGuideVisibility();
     }
 
     public StatisticsDashboardViewModel Overview { get; }
@@ -520,7 +529,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         }
         foreach (var goal in Goals)
             if (_observedGoals.Add(goal)) goal.PropertyChanged += ActiveGoal_PropertyChanged;
-        OnPropertyChanged(nameof(IsGoalCreationGuideVisible));
+        NotifyGoalGuideVisibility();
         if (_isInitialized && !_isApplyingState) RefreshOverview();
     }
 
@@ -528,10 +537,21 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
     {
         if (e.PropertyName == nameof(GoalOverviewItemViewModel.Name) && _isInitialized && !_isApplyingState) RefreshOverview();
         if (e.PropertyName != nameof(GoalOverviewItemViewModel.IsArchived)) return;
-        OnPropertyChanged(nameof(IsGoalCreationGuideVisible));
+        NotifyGoalGuideVisibility();
     }
 
     public bool IsGoalCreationGuideVisible => IsCurrentGoalList && !Goals.Any(goal => !goal.IsArchived);
+    public bool IsGoalMembershipReady => !IsLoggedIn || _isMembershipLoaded;
+    public bool IsGoalFirstCreationGuideVisible => IsGoalMembershipReady && CanViewGoalInvestmentDetails && IsGoalCreationGuideVisible;
+    public bool IsGoalExistingContentVisible => IsGoalMembershipReady && !IsGoalFirstCreationGuideVisible;
+
+    private void NotifyGoalGuideVisibility()
+    {
+        OnPropertyChanged(nameof(IsGoalCreationGuideVisible));
+        OnPropertyChanged(nameof(IsGoalMembershipReady));
+        OnPropertyChanged(nameof(IsGoalFirstCreationGuideVisible));
+        OnPropertyChanged(nameof(IsGoalExistingContentVisible));
+    }
 
     public ObservableCollection<TargetIconOptionViewModel> AllTargetIcons { get; }
     public IReadOnlyList<TargetIconOptionViewModel> GoalPickerIcons { get; }
@@ -653,7 +673,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
             _showArchivedGoals = value;
             OnPropertyChanged();
             OnPropertyChanged(nameof(VisibleGoals));
-            OnPropertyChanged(nameof(IsGoalCreationGuideVisible));
+            NotifyGoalGuideVisibility();
             OnPropertyChanged(nameof(GoalListTitle));
             OnPropertyChanged(nameof(IsCurrentGoalList));
             OnPropertyChanged(nameof(IsArchivedGoalList));
@@ -1295,7 +1315,7 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         goal.SetArchivedState(archived, archivedAtUtc);
         if (ReferenceEquals(SelectedGoal, goal)) SelectFirstVisibleGoal();
         OnPropertyChanged(nameof(VisibleGoals));
-        OnPropertyChanged(nameof(IsGoalCreationGuideVisible));
+        NotifyGoalGuideVisibility();
         GoalChanged?.Invoke(this, goal);
     }
 
@@ -1756,10 +1776,20 @@ public sealed record CalendarCompletedTaskViewModel(
 
 public sealed class FocusSessionRecordViewModel : INotifyPropertyChanged
 {
+    public IReadOnlyList<FocusActivityInterval> ActivityIntervals { get; init; } = [];
+    public bool HasRecordedPauses => ActivityIntervals.Any(interval => interval.IsPaused && interval.EndedAtUtc > interval.StartedAtUtc);
+    public bool HasUnmappedTime => ActivityIntervals.Count == 0 && EndTime - StartTime - FocusDuration > TimeSpan.FromSeconds(2);
+    public string TimelineFocusLabel => HasRecordedPauses ? "实际专注" : "专注";
+    public string TimelineTimeRangeDisplay => $"{StartTime:HH:mm} – {EndTime:HH:mm}";
+    public double TimelineFocusRatio => EndTime > StartTime ? Math.Clamp(FocusDuration.TotalSeconds / (EndTime - StartTime).TotalSeconds, 0, 1) : 0;
+    public string TimelineFocusPercentage => $"{Math.Round(TimelineFocusRatio * 100):0}%";
+    public System.Windows.GridLength TimelineFocusWidth => new(TimelineFocusRatio, System.Windows.GridUnitType.Star);
+    public System.Windows.GridLength TimelinePauseWidth => new(1 - TimelineFocusRatio, System.Windows.GridUnitType.Star);
     public Guid? SessionId { get; init; }
     public FocusCompletionKind CompletionKind { get; init; } = FocusCompletionKind.Natural;
     public TimeSpan? ConfiguredDuration { get; init; }
     public bool IsInterrupted => CompletionKind == FocusCompletionKind.EarlyEnd;
+    public bool WasRecoveryAbandoned { get; init; }
     public bool HasPoptipGoal => HasGoal && !string.IsNullOrWhiteSpace(GoalName);
     public bool ShowPoptipPlan => IsInterrupted && ConfiguredDuration is { } duration && duration > TimeSpan.Zero;
     public string PoptipActualMinutesDisplay => DurationMinutes < 1 ? "<1" : DurationMinutes.ToString();
@@ -1884,6 +1914,12 @@ public sealed class FocusSessionRecordViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(StartTime));
         OnPropertyChanged(nameof(EndTime));
         OnPropertyChanged(nameof(TimeRangeDisplay));
+        OnPropertyChanged(nameof(TimelineTimeRangeDisplay));
+        OnPropertyChanged(nameof(HasUnmappedTime));
+        OnPropertyChanged(nameof(TimelineFocusRatio));
+        OnPropertyChanged(nameof(TimelineFocusPercentage));
+        OnPropertyChanged(nameof(TimelineFocusWidth));
+        OnPropertyChanged(nameof(TimelinePauseWidth));
         OnPropertyChanged(nameof(DurationMinutes));
         OnPropertyChanged(nameof(CompactDurationDisplay));
         OnPropertyChanged(nameof(CalendarDurationDisplay));

@@ -126,6 +126,7 @@ public sealed class NamedPipeServiceWorker : BackgroundService
 
     private async Task HandleConnectionAsync(NamedPipeServerStream pipe, CancellationToken stoppingToken)
     {
+        var focusConnectionId = Guid.NewGuid();
         ServiceStateCoordinator? coordinator = null;
         EventHandler<StateChangedEvent>? stateChangedHandler = null;
         EventHandler<FocusRuntimeStateChangedEvent>? focusRuntimeStateChangedHandler = null;
@@ -134,7 +135,7 @@ public sealed class NamedPipeServiceWorker : BackgroundService
         EventHandler<AgentProxyActionRequestedEvent>? agentProxyActionHandler = null;
         EventHandler<AgentStartupRegistrationActionRequestedEvent>? agentStartupRegistrationActionHandler = null;
         var writeGate = new SemaphoreSlim(1, 1);
-        var requestTasks = new ConcurrentBag<Task>();
+        var requestTasks = new ConcurrentDictionary<Task, byte>();
         using var connectionCancellation = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
         try
         {
@@ -224,16 +225,18 @@ public sealed class NamedPipeServiceWorker : BackgroundService
                     break;
                 }
 
-                requestTasks.Add(HandleRequestAsync(
-                    coordinator,
-                    pipe,
-                    writeGate,
-                    request,
-                    connectionCancellation.Token));
+                var requestTask = HandleRequestAsync(
+                    coordinator, pipe, writeGate, request, focusConnectionId, connectionCancellation.Token);
+                requestTasks.TryAdd(requestTask, 0);
+                _ = requestTask.ContinueWith(
+                    completed => requestTasks.TryRemove(completed, out _),
+                    CancellationToken.None,
+                    TaskContinuationOptions.OnlyOnRanToCompletion | TaskContinuationOptions.ExecuteSynchronously,
+                    TaskScheduler.Default);
             }
 
             connectionCancellation.Cancel();
-            await Task.WhenAll(requestTasks);
+            await Task.WhenAll(requestTasks.Keys);
         }
         finally
         {
@@ -269,6 +272,14 @@ public sealed class NamedPipeServiceWorker : BackgroundService
 
             writeGate.Dispose();
             await pipe.DisposeAsync();
+            if (coordinator is not null && !stoppingToken.IsCancellationRequested)
+            {
+                try { await coordinator.ReleaseFocusConnectionAsync(focusConnectionId, stoppingToken); }
+                catch (Exception exception)
+                {
+                    _logger.LogWarning(exception, "无法发布专注连接断开状态。");
+                }
+            }
         }
     }
 
@@ -311,11 +322,12 @@ public sealed class NamedPipeServiceWorker : BackgroundService
         NamedPipeServerStream pipe,
         SemaphoreSlim writeGate,
         IpcEnvelope request,
+        Guid focusConnectionId,
         CancellationToken stoppingToken)
     {
         var validationError = ValidateRequest(request);
         var response = validationError is null
-            ? await coordinator.HandleAsync(request, stoppingToken)
+            ? await coordinator.HandleAsync(request, stoppingToken, focusConnectionId)
             : IpcEnvelope.CreateFailure(request, validationError);
         await WriteSafeAsync(pipe, writeGate, response, stoppingToken);
     }

@@ -48,6 +48,15 @@ public sealed class BlockingContentItemViewModel : INotifyPropertyChanged, IDisp
 
     public bool HasFavicon => Favicon is not null;
 
+    // Share the source row's asynchronously loaded/cached image instead of extracting it again.
+    public ImageSource? ApplicationIcon => _application?.Icon;
+
+    public bool HasApplicationIcon => ApplicationIcon is not null;
+
+    public ImageSource? PreviewIcon => Favicon ?? ApplicationIcon;
+
+    public bool HasPreviewIcon => PreviewIcon is not null;
+
     public void Disable()
     {
         if (_website is not null)
@@ -77,6 +86,16 @@ public sealed class BlockingContentItemViewModel : INotifyPropertyChanged, IDisp
         {
             OnPropertyChanged(nameof(Favicon));
             OnPropertyChanged(nameof(HasFavicon));
+            OnPropertyChanged(nameof(PreviewIcon));
+            OnPropertyChanged(nameof(HasPreviewIcon));
+        }
+
+        if (e.PropertyName == nameof(BlockingApplicationItemViewModel.Icon))
+        {
+            OnPropertyChanged(nameof(ApplicationIcon));
+            OnPropertyChanged(nameof(HasApplicationIcon));
+            OnPropertyChanged(nameof(PreviewIcon));
+            OnPropertyChanged(nameof(HasPreviewIcon));
         }
     }
 

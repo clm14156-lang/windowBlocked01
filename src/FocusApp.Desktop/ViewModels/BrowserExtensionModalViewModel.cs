@@ -39,7 +39,7 @@ public sealed class BrowserExtensionModalViewModel : INotifyPropertyChanged
     public ICommand InstallCommand { get; }
     public bool IsChromeInstalled => _chromeStatus == BrowserExtensionInstallationStatus.Installed;
     public bool IsEdgeInstalled => _edgeStatus == BrowserExtensionInstallationStatus.Installed;
-    private bool HasInstalledExtension => IsChromeInstalled || IsEdgeInstalled;
+    public bool HasInstalledExtension => IsChromeInstalled || IsEdgeInstalled;
     public string ChromeInstallButtonText => IsChromeInstalled ? "已安装 Chrome 插件" : "安装 Chrome 插件";
     public string EdgeInstallButtonText => IsEdgeInstalled ? "已安装 Edge 插件" : "安装 Edge 插件";
     public string Description => _installError ?? (IsChromeInstalled && IsEdgeInstalled
@@ -101,6 +101,7 @@ public sealed class BrowserExtensionModalViewModel : INotifyPropertyChanged
             _hasCheckedInstallation = true;
             PropertyChanged?.Invoke(this, new(nameof(IsChromeInstalled)));
             PropertyChanged?.Invoke(this, new(nameof(IsEdgeInstalled)));
+            PropertyChanged?.Invoke(this, new(nameof(HasInstalledExtension)));
             PropertyChanged?.Invoke(this, new(nameof(ChromeInstallButtonText)));
             PropertyChanged?.Invoke(this, new(nameof(EdgeInstallButtonText)));
             PropertyChanged?.Invoke(this, new(nameof(Description)));

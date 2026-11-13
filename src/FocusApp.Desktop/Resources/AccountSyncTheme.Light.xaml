@@ -1,0 +1,14 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <SolidColorBrush x:Key="AccountSyncSurface" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="AccountSyncBorder" Color="#E3E6ED" />
+    <SolidColorBrush x:Key="AccountSyncText" Color="#172232" />
+    <SolidColorBrush x:Key="AccountSyncSecondaryText" Color="#606A7A" />
+    <SolidColorBrush x:Key="AccountSyncWaitingBackground" Color="#F4F5F7" />
+    <SolidColorBrush x:Key="AccountSyncSuccessBackground" Color="#EDF7F0" />
+    <SolidColorBrush x:Key="AccountSyncSuccess" Color="#188744" />
+    <SolidColorBrush x:Key="AccountSyncFailedBackground" Color="#FFF1F1" />
+    <SolidColorBrush x:Key="AccountSyncDanger" Color="#C53232" />
+    <SolidColorBrush x:Key="AccountSyncHover" Color="#F4F5F7" />
+    <SolidColorBrush x:Key="AccountSyncPressed" Color="#ECEEF2" />
+</ResourceDictionary>
