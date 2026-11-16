@@ -31,6 +31,7 @@
     <SolidColorBrush x:Key="FocusRecordStatusText" Color="#1F2937" />
     <SolidColorBrush x:Key="FocusRecordSyncedIcon" Color="#379A74" />
     <SolidColorBrush x:Key="FocusRecordSyncingIcon" Color="#448FAC" />
+    <SolidColorBrush x:Key="FocusRecordOfflineIcon" Color="#A55A12" />
     <SolidColorBrush x:Key="FocusRecordLocalIcon" Color="#74859A" />
     <SolidColorBrush x:Key="FocusCountdownBrush" Color="#18212F" />
     <SolidColorBrush x:Key="FocusTargetBrush" Color="#374151" />

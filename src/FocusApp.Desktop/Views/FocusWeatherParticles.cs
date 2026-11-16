@@ -133,9 +133,10 @@ internal sealed class FocusWeatherParticles(Random random)
             drop.X += weather.Wind * 0.12 * dt;
             if (drop.HasGround && _rainHasGround) drop.X = Math.Clamp(drop.X, _rainLeft, viewport.Width - _rainLeft);
             drop.Y += drop.Speed * dt;
-            var hasGround = drop.HasGround && viewport.TryRippleGround(drop.X, out _, out _);
+            double top = 0, bottom = 0;
+            var hasGround = drop.HasGround && viewport.TryRippleGround(drop.X, out top, out bottom);
             var landing = viewport.ClipHeight + drop.Length;
-            if (hasGround && viewport.TryRippleGround(drop.X, out var top, out var bottom))
+            if (hasGround)
                 landing = top + (bottom - top) * drop.GroundFraction;
             if (drop.Y >= landing || drop.X < 0 || drop.X > viewport.Width)
             {

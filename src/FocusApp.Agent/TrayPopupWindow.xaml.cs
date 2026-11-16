@@ -1,5 +1,6 @@
+using System.Diagnostics;
 using System.Windows;
-using System.Windows.Media;
+using System.Windows.Controls.Primitives;
 using System.Windows.Threading;
 using FocusApp.Contracts;
 
@@ -7,70 +8,88 @@ namespace FocusApp.Agent;
 
 public partial class TrayPopupWindow : Window
 {
+    private const string MemberOnlyHint = "高级会员专属功能";
     private readonly TrayStateClient _stateClient;
     private readonly Action _openDesktop;
     private readonly Action _exit;
-    private readonly DispatcherTimer _timer;
-    private LocalDataSnapshotDto? _snapshot;
-    private FocusRuntimeStatusDto? _runtime;
+    private readonly DispatcherTimer _accessTimer;
+    private bool _saving;
 
     public TrayPopupWindow(TrayStateClient stateClient, Action openDesktop, Action exit)
     {
         InitializeComponent();
-        _stateClient = stateClient; _openDesktop = openDesktop; _exit = exit;
+        _stateClient = stateClient;
+        _openDesktop = openDesktop;
+        _exit = exit;
         Deactivated += (_, _) => Close();
-        _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
-        _timer.Tick += (_, _) => ApplyState(_snapshot, _runtime);
-        Closed += (_, _) => _timer.Stop();
-    }
 
-    public void ApplyState(LocalDataSnapshotDto? snapshot, FocusRuntimeStatusDto? runtime)
-    {
-        _snapshot = snapshot; _runtime = runtime;
-        var active = snapshot?.FocusSessions.FirstOrDefault(IsActiveSession);
-        var isForced = active?.IsForcedMode == true;
-        var isFocusing = active is not null;
-        var interrupted = active is not null && snapshot?.InterruptedFocusSessionId == active.SessionId;
-        StatusText.Text = interrupted ? "专注待恢复" : isForced ? "强制专注中" : isFocusing ? "专注中" : "当前未在专注";
-        StatusPill.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(isForced ? "#FFF2E8" : isFocusing ? "#EAF8F0" : "#FFFFFF"));
-        StatusText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(isForced ? "#E87516" : isFocusing ? "#22A968" : "#1D1D1F"));
-        TimerText.Visibility = isFocusing ? Visibility.Visible : Visibility.Collapsed;
-        IdleHint.Visibility = isFocusing ? Visibility.Collapsed : Visibility.Visible;
-        BlockingButton.Visibility = isFocusing ? Visibility.Visible : Visibility.Visible;
-        ExitButton.IsEnabled = !isForced;
-        ExitIcon.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(isForced ? "#AEAEB2" : "#F04444"));
-        ExitText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(isForced ? "#AEAEB2" : "#1D1D1F"));
-        ExitHint.Visibility = isForced ? Visibility.Visible : Visibility.Collapsed;
-        TodayText.Text = FormatToday(snapshot);
-        if (isFocusing) _timer.Start(); else _timer.Stop();
-        if (interrupted)
+        _accessTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
+        _accessTimer.Tick += async (_, _) =>
         {
-            var remaining = active!.ConfiguredSeconds - active.ActualSeconds;
-            TimerText.Text = $"{remaining / 60:00}:{remaining % 60:00}";
-        }
-        else UpdateTimer(active);
+            _accessTimer.Stop();
+            await _stateClient.RefreshPopupAccessAsync();
+            if (IsVisible) _accessTimer.Start();
+        };
+        Loaded += (_, _) => _accessTimer.Start();
+        Closed += (_, _) => _accessTimer.Stop();
     }
 
-    private void UpdateTimer(LocalFocusSessionDto? active)
+    public void ApplyState()
     {
-        if (active is null || active.PlannedEndAtUtc is not { } end) return;
-        var remaining = Math.Max(0, (int)Math.Ceiling((end - DateTimeOffset.UtcNow).TotalSeconds));
-        TimerText.Text = $"{remaining / 60:00}:{remaining % 60:00}";
-    }
+        var snapshot = _stateClient.Snapshot;
+        var canUse = _stateClient.CanUseFocusFeatures;
+        var lockVisibility = canUse ? Visibility.Collapsed : Visibility.Visible;
+        AutomaticBlockingLock.Visibility = ForcedModeLock.Visibility = lockVisibility;
+        AutomaticBlockingSwitch.IsEnabled = ForcedModeSwitch.IsEnabled = canUse && !_saving;
+        AutomaticBlockingSwitch.ToolTip = ForcedModeSwitch.ToolTip = canUse ? null : MemberOnlyHint;
+        AutomaticBlockingSwitch.IsChecked = canUse && snapshot?.Settings.AutomaticBlockingEnabled == true;
+        ForcedModeSwitch.IsChecked = canUse && snapshot?.Settings.ForcedModeRequested == true;
 
-    private static bool IsActiveSession(LocalFocusSessionDto session)
-        => session.Status is LocalFocusSessionStatusDto.Preparing or LocalFocusSessionStatusDto.Focusing;
+        var isForced = _stateClient.IsForcedActive;
+        ExitButton.IsEnabled = !isForced;
+        ExitButton.ToolTip = isForced ? "强制专注期间暂无法退出" : null;
+        TodayText.Text = FormatToday(snapshot);
+    }
 
     private static string FormatToday(LocalDataSnapshotDto? snapshot)
     {
         if (snapshot is null) return "0分钟";
+
         var today = DateOnly.FromDateTime(DateTime.Now);
-        var seconds = snapshot.FocusSessions.Where(session => session.Status == LocalFocusSessionStatusDto.Completed && session.CompletedAtUtc is not null && DateOnly.FromDateTime(session.CompletedAtUtc.Value.ToLocalTime().DateTime) == today).Sum(session => session.ActualSeconds);
+        var seconds = snapshot.TodayFocusSeconds ?? snapshot.FocusSessions
+            .Where(session => session.Status == LocalFocusSessionStatusDto.Completed &&
+                session.CompletedAtUtc is { } end && DateOnly.FromDateTime(end.LocalDateTime) == today)
+            .Sum(session => session.ActualSeconds);
         var minutes = Math.Max(0, (int)Math.Round(seconds / 60d, MidpointRounding.AwayFromZero));
         return minutes >= 60 ? $"{minutes / 60}小时{minutes % 60}分钟" : $"{minutes}分钟";
     }
 
+    private async void FocusFeatureSwitch_Click(object sender, RoutedEventArgs e)
+    {
+        var toggle = (ToggleButton)sender;
+        var feature = toggle == AutomaticBlockingSwitch ? FocusFeature.AutomaticBlocking : FocusFeature.ForcedMode;
+        var enabled = toggle.IsChecked == true;
+        _saving = true;
+        ApplyState();
+        try
+        {
+            await _stateClient.SetFocusFeatureAsync(feature, enabled);
+        }
+        catch (Exception error) when (error is IpcConnectionException or IpcRemoteException or OperationCanceledException or ObjectDisposedException)
+        {
+            Trace.TraceWarning(error.Message);
+            await _stateClient.RefreshAsync();
+        }
+        finally
+        {
+            _saving = false;
+            ApplyState();
+        }
+    }
+
     private void OpenDesktopButton_Click(object sender, RoutedEventArgs e) => _openDesktop();
-    private void ExitButton_Click(object sender, RoutedEventArgs e) { if (ExitButton.IsEnabled) _exit(); }
-    private void BlockingButton_Click(object sender, RoutedEventArgs e) { }
+    private void ExitButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (ExitButton.IsEnabled) _exit();
+    }
 }

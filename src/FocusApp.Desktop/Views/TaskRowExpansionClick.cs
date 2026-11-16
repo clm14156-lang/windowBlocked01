@@ -46,7 +46,7 @@ internal sealed class TaskRowExpansionClick
         Math.Abs(point.X - _origin.X) >= SystemParameters.MinimumHorizontalDragDistance ||
         Math.Abs(point.Y - _origin.Y) >= SystemParameters.MinimumVerticalDragDistance;
 
-    private static bool IsRowSource(DependencyObject? source, FrameworkElement header)
+    internal static bool IsRowSource(DependencyObject? source, FrameworkElement header)
     {
         while (source is not null && source != header)
         {

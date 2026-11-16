@@ -15,7 +15,7 @@ public sealed record FocusUploadItem(Guid OperationId, Guid RecordId, string Pay
     public long? BaseRevision { get; init; }
 }
 public sealed record FocusUploadAck(Guid OperationId, Guid RecordId, string Status, long? ServerRevision, string? Code);
-public sealed record FocusDownloadState(string? Cursor, long LastRevision);
+public sealed record FocusDownloadState(string? Cursor, long LastRevision, bool HasMoreChanges = true);
 public sealed record FocusRemoteChange(Guid RecordId, Guid SourceDeviceId, long ServerRevision, bool IsDeleted, string? PayloadJson);
 public interface IFocusSyncStore
 {
@@ -24,7 +24,7 @@ public interface IFocusSyncStore
     Task ImportFocusHistoryAsync(Guid bindingId, IReadOnlyList<Guid> recordIds, CancellationToken ct = default);
     Task<IReadOnlyList<FocusUploadItem>> ReadFocusUploadBatchAsync(Guid bindingId, int limit, CancellationToken ct = default);
     Task ApplyFocusUploadResultsAsync(Guid bindingId, IReadOnlyList<FocusUploadAck> results, CancellationToken ct = default);
-    Task RetryFocusUploadsAsync(Guid bindingId, CancellationToken ct = default);
+    Task RetryFocusUploadsAsync(Guid bindingId, CancellationToken ct = default, bool includeRejected = false);
     Task<FocusDownloadState> GetFocusDownloadStateAsync(Guid bindingId, CancellationToken ct = default);
     Task ResetFocusDownloadCursorAsync(Guid bindingId, CancellationToken ct = default);
     Task ApplyFocusChangesAsync(Guid bindingId, string? expectedCursor, string nextCursor, bool hasMore,

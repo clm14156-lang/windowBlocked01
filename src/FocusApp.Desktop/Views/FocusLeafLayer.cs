@@ -23,12 +23,14 @@ public sealed class FocusLeafLayer : FrameworkElement
     private readonly DispatcherTimer _scheduleTimer;
     private readonly DispatcherTimer _frameTimer;
     private readonly Stopwatch _visibleClock = new();
+    private readonly DrawingVisual _particleVisual = new();
     private readonly MatrixTransform[] _leafTransforms = new MatrixTransform[FocusWeatherParticles.MaximumLeaves];
     private Window? _window;
     private Image? _background;
     private FrameworkElement? _rule, _footer;
-    private Geometry? _sceneClip;
     private Pen _rainPen = null!, _ripplePen = null!;
+    private Pen[] _rainFades = [], _rippleFades = [];
+    private const int FadeSteps = 32;
     private bool _sessionStarted, _running;
     private double _lastFrameTime;
 
@@ -51,13 +53,14 @@ public sealed class FocusLeafLayer : FrameworkElement
         IsHitTestVisible = false;
         Focusable = false;
         ClipToBounds = true;
+        AddVisualChild(_particleVisual);
         var random = new Random();
         Controller = new FocusWeatherController(random);
         Particles = new FocusWeatherParticles(random);
         for (var i = 0; i < _leafTransforms.Length; i++) _leafTransforms[i] = new MatrixTransform();
         _scheduleTimer = new DispatcherTimer(DispatcherPriority.Background, Dispatcher);
         _scheduleTimer.Tick += ScheduleTick;
-        _frameTimer = new DispatcherTimer(DispatcherPriority.Render, Dispatcher) { Interval = TimeSpan.FromSeconds(1d / 30) };
+        _frameTimer = new DispatcherTimer(DispatcherPriority.Background, Dispatcher) { Interval = TimeSpan.FromSeconds(1d / 30) };
         _frameTimer.Tick += FrameTick;
         UpdatePens();
         Loaded += LayerLoaded;
@@ -124,14 +127,14 @@ public sealed class FocusLeafLayer : FrameworkElement
         if (layer.Sources is { } sources)
             foreach (var source in sources) if (source.CanFreeze && !source.IsFrozen) source.Freeze();
         // Draw the new shared palette without resetting the weather, timers or individual ages.
-        if (layer.Particles.HasParticles) layer.InvalidateVisual();
+        if (layer.Particles.HasParticles) layer.DrawParticles();
     }
 
     private static void BrushChanged(DependencyObject target, DependencyPropertyChangedEventArgs args)
     {
         var layer = (FocusLeafLayer)target;
         layer.UpdatePens();
-        if (layer.Particles.HasParticles) layer.InvalidateVisual();
+        if (layer.Particles.HasParticles) layer.DrawParticles();
     }
 
     private void UpdatePens()
@@ -144,7 +147,25 @@ public sealed class FocusLeafLayer : FrameworkElement
         rippleBrush.Freeze();
         _rainPen = new Pen(rainBrush, 1); _rainPen.Freeze();
         _ripplePen = new Pen(rippleBrush, 0.8); _ripplePen.Freeze();
+        _rainFades = CreateFadePens(_rainPen);
+        _rippleFades = CreateFadePens(_ripplePen);
     }
+
+    private static Pen[] CreateFadePens(Pen fullOpacity)
+    {
+        var pens = new Pen[FadeSteps + 1];
+        pens[FadeSteps] = fullOpacity;
+        for (var step = 0; step < FadeSteps; step++)
+        {
+            var pen = fullOpacity.Clone();
+            pen.Brush.Opacity *= (double)step / FadeSteps;
+            pen.Freeze();
+            pens[step] = pen;
+        }
+        return pens;
+    }
+
+    private static int FadeIndex(double opacity) => (int)Math.Round(Math.Clamp(opacity, 0, 1) * FadeSteps);
 
     private void UpdateActivity()
     {
@@ -203,10 +224,11 @@ public sealed class FocusLeafLayer : FrameworkElement
     {
         if (!CanRun) { UpdateActivity(); return; }
         var now = Now;
+        var hadParticles = Particles.HasParticles;
         Particles.Update(now - _lastFrameTime, now, Controller, Viewport, Sources?.Length ?? 0);
         _lastFrameTime = now;
         FrameCount++;
-        InvalidateVisual();
+        if (hadParticles || Particles.HasParticles) DrawParticles();
         // The final empty draw clears the visual, then only the one-shot state timer remains.
         UpdateRendering();
     }
@@ -215,7 +237,7 @@ public sealed class FocusLeafLayer : FrameworkElement
     {
         _running = false;
         _scheduleTimer.Stop(); _frameTimer.Stop(); _visibleClock.Stop();
-        if (Particles.HasParticles) { Particles.Clear(); InvalidateVisual(); }
+        if (Particles.HasParticles) { Particles.Clear(); DrawParticles(); }
     }
 
     private void StopSession()
@@ -240,23 +262,24 @@ public sealed class FocusLeafLayer : FrameworkElement
         var clipHeight = Math.Clamp(!rule.IsEmpty ? rule.Top : !footer.IsEmpty ? footer.Top : ActualHeight, 0, ActualHeight);
         var image = _background?.Source;
         var viewport = new WeatherViewport(ActualWidth, ActualHeight, clipHeight, image?.Width ?? ActualWidth, image?.Height ?? ActualHeight);
-        if (viewport == Viewport && _sceneClip is not null) return;
-        var resized = viewport != Viewport;
+        if (viewport == Viewport) return;
         Viewport = viewport;
         var clip = new RectangleGeometry(new Rect(0, 0, ActualWidth, clipHeight));
         clip.Freeze();
-        _sceneClip = clip;
-        if (resized) Particles.Clear();
-        InvalidateVisual();
+        _particleVisual.Clip = clip;
+        if (Particles.HasParticles) { Particles.Clear(); DrawParticles(); }
         UpdateRendering();
     }
 
-    protected override void OnRender(DrawingContext drawing)
+    protected override int VisualChildrenCount => 1;
+    protected override Visual GetVisualChild(int index) =>
+        index == 0 ? _particleVisual : throw new ArgumentOutOfRangeException(nameof(index));
+
+    internal void DrawParticles()
     {
-        base.OnRender(drawing);
-        if (!_running || _sceneClip is null || !Particles.HasParticles) return;
-        // All weather moves continuously behind the UI; only the page/footer boundary clips it.
-        drawing.PushClip(_sceneClip);
+        // Updating a drawing visual skips the layout pass triggered by InvalidateVisual.
+        using var drawing = _particleVisual.RenderOpen();
+        if (!_running || !Particles.HasParticles) return;
         if (Sources is { Length: > 0 } sources)
         {
             for (var i = 0; i < Particles.Leaves.Length; i++)
@@ -277,22 +300,19 @@ public sealed class FocusLeafLayer : FrameworkElement
                 drawing.Pop(); drawing.Pop();
             }
         }
+        var wind = Controller.Wind * 0.002;
         foreach (var drop in Particles.Drops)
         {
             if (!drop.Active) continue;
-            drawing.PushOpacity(Math.Min(1, drop.Age / 0.15));
-            drawing.DrawLine(_rainPen, new Point(drop.X, drop.Y),
-                new Point(drop.X - Controller.Wind * 0.002 * drop.Length, drop.Y - drop.Length));
-            drawing.Pop();
+            drawing.DrawLine(_rainFades[FadeIndex(drop.Age / 0.15)], new Point(drop.X, drop.Y),
+                new Point(drop.X - wind * drop.Length, drop.Y - drop.Length));
         }
         foreach (var ripple in Particles.Ripples)
         {
             if (!ripple.Active) continue;
             var radius = ripple.Radius;
-            drawing.PushOpacity(ripple.Opacity);
-            drawing.DrawEllipse(null, _ripplePen, new Point(ripple.X, ripple.Y), radius, radius * FocusWeatherParticles.RippleAspectRatio);
-            drawing.Pop();
+            drawing.DrawEllipse(null, _rippleFades[FadeIndex(ripple.Opacity)], new Point(ripple.X, ripple.Y),
+                radius, radius * FocusWeatherParticles.RippleAspectRatio);
         }
-        drawing.Pop();
     }
 }

@@ -40,6 +40,27 @@ public sealed class DesktopAccessControlBridge : IDisposable
     public Task PersistRulesNowAsync(CancellationToken cancellationToken = default)
         => PersistRulesAsync(cancellationToken);
 
+    internal async Task PersistNewWebsiteAsync(LocalWebsiteRuleDto rule)
+    {
+        var account = _connection.AccountSession;
+        var token = _lifetimeCancellation.Token;
+        await _ruleSaveGate.WaitAsync(token);
+        try
+        {
+            if (!_connection.IsAccountReady || account != _connection.AccountSession)
+                throw new IpcConnectionException("本地账号尚未就绪，请重新保存网站。");
+            var result = await _connection.ReplaceWebsiteRulesAsync(new([]) { Changes = [new(rule.Id, rule)], ExpectedAccountSession = account },
+                token, requestId: rule.Id);
+            if (account != _connection.AccountSession || result.State.AccountSession != account)
+                throw new OperationCanceledException();
+        }
+        finally
+        {
+            _ruleSaveGate.Release();
+            ApplyPendingServiceState();
+        }
+    }
+
     public void Dispose()
     {
         if (_disposed)
@@ -113,6 +134,7 @@ public sealed class DesktopAccessControlBridge : IDisposable
         try
         {
             _blockingPage.WebsiteModal.CloseCommand.Execute(null);
+            _blockingPage.CloseWebsiteLimitCommand.Execute(null);
             _blockingPage.ProgramModal.CloseCommand.Execute(null);
             _blockingPage.ReplaceRules([], []);
         }
@@ -263,7 +285,7 @@ public sealed class DesktopAccessControlBridge : IDisposable
             if (websitesChanged)
             {
                 var command = _connection.UsesAccountIsolation
-                    ? new ReplaceWebsiteRulesCommand([]) { Changes = GetWebsiteEdits(_displayedWebsiteRules, websites) }
+                    ? new ReplaceWebsiteRulesCommand([]) { Changes = GetWebsiteEdits(_displayedWebsiteRules, websites), ExpectedAccountSession = account }
                     : new ReplaceWebsiteRulesCommand(websites);
                 await _connection.ReplaceWebsiteRulesAsync(command, cancellationToken);
                 if (account != _connection.AccountSession) return;

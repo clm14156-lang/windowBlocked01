@@ -15,7 +15,7 @@ public sealed partial class ServiceStateCoordinator
 
     private static bool RequiresAccount(string operation) =>
         operation.StartsWith("cloud.sync.", StringComparison.Ordinal) ||
-        operation is IpcOperations.SaveTarget or IpcOperations.DeleteTarget or IpcOperations.DeleteFocusRecord
+        operation is IpcOperations.SaveTarget or IpcOperations.DeleteTarget or IpcOperations.DeleteFocusRecord or IpcOperations.UpdateFocusRecord
             or IpcOperations.ReplaceWebsiteRules or IpcOperations.ReplaceApplicationRules or IpcOperations.ReplaceAutomaticRules
             or IpcOperations.StartNormalFocus or IpcOperations.RecordCompletedFocus or IpcOperations.DiscardNormalFocus
             or IpcOperations.CheckpointNormalFocus or IpcOperations.ResumeInterruptedFocus or IpcOperations.AbandonInterruptedFocus
@@ -31,15 +31,41 @@ public sealed partial class ServiceStateCoordinator
 
     private async Task<LocalDataSnapshotDto> ReadStateForClientAsync(IpcClientRole? role, CancellationToken token)
     {
-        var snapshot = await LoadStateAsync(token);
+        var snapshot = role == IpcClientRole.Agent && accountUserId is not null && accountSession == Guid.Empty
+            ? ToAccountSnapshot(await guestStore.LoadAsync(token), Volatile.Read(ref _revision), Guid.Empty)
+            : await LoadStateAsync(token);
         if (role == IpcClientRole.Agent && openAccountStore is not null && guestStore is IAccountFocusRecoveryStore recovery)
             snapshot = snapshot with { HasPendingAccountFocusRecovery = await recovery.HasPendingFocusRecoveryAsync(token) };
         return snapshot;
     }
 
-    private Task SetPendingFocusRecoveryAsync(bool pending, CancellationToken token)
+    private Task SetPendingFocusRecoveryAsync(Guid? sessionId, CancellationToken token)
         => openAccountStore is not null && guestStore is IAccountFocusRecoveryStore recovery
-            ? recovery.SetPendingFocusRecoveryAsync(pending, token) : Task.CompletedTask;
+            ? recovery.SetForcedFocusRecoveryAsync(sessionId is { } id && accountUserId is { } user
+                ? new ForcedFocusRecovery(id, user, accountApiScope) : null, token)
+            : Task.CompletedTask;
+
+    private async Task<LocalDataSnapshot?> OpenPendingForcedFocusAccountAsync(CancellationToken token)
+    {
+        if (openAccountStore is null || guestStore is not IAccountFocusRecoveryStore recovery ||
+            await recovery.GetForcedFocusRecoveryAsync(token) is not { } pending) return null;
+
+        var store = await openAccountStore(pending.UserId, pending.ApiScope, token);
+        var snapshot = await store.LoadAsync(token);
+        if (!snapshot.FocusSessions.Any(session => session.SessionId == pending.SessionId &&
+            session.IsForcedMode && IsActiveSession(session)))
+        {
+            await recovery.SetForcedFocusRecoveryAsync(null, token);
+            return null;
+        }
+
+        var binding = await ((IFocusSyncStore)store).BindFocusAccountAsync(pending.UserId, pending.ApiScope, token);
+        _store = store;
+        accountUserId = pending.UserId;
+        accountApiScope = pending.ApiScope;
+        focusSyncBinding = binding.BindingId;
+        return snapshot;
+    }
 
     private async Task<IpcEnvelope> RejectInactiveAccountAsync(IpcEnvelope request, CancellationToken token)
     {
@@ -67,8 +93,8 @@ public sealed partial class ServiceStateCoordinator
             return IpcEnvelope.CreateSuccess(request, new CloudSyncBinding(focusSyncBinding, accountUserId, accountApiScope));
 
         if (!sameAccount && accountUserId is not null &&
-            (await _store.LoadAsync(token)).FocusSessions.Any(session => session.IsForcedMode && IsRecoveryPending(session)))
-            throw new ServiceBusinessException("请先继续并完成强制专注，再切换账号。");
+            (await _store.LoadAsync(token)).FocusSessions.Any(session => session.IsForcedMode && IsActiveSession(session)))
+            throw new ServiceBusinessException("请先完成强制专注，再切换账号。");
 
         var next = sameAccount ? _store : command.UserId is { } userId
             ? await openAccountStore!(userId, scope, token) : guestStore;
@@ -103,9 +129,13 @@ public sealed partial class ServiceStateCoordinator
         accountSession = request.AccountSession;
         focusSyncBinding = binding.BindingId;
         focusHistoryPages.Clear();
-        if (nextSnapshot is not null || command.UserId is null)
-            await SetPendingFocusRecoveryAsync(nextSnapshot?.FocusSessions.Any(session => session.IsForcedMode && IsActiveSession(session)) == true,
-                CancellationToken.None);
+        if (nextSnapshot is not null)
+        {
+            var forced = nextSnapshot.FocusSessions.SingleOrDefault(session => session.IsForcedMode && IsActiveSession(session));
+            // An older database only contains a wake-up flag. Preserve it until its account is opened.
+            if (forced is not null)
+                await SetPendingFocusRecoveryAsync(forced.SessionId, CancellationToken.None);
+        }
         PublishAccessControlStatus(_accessControlStatus);
         if (nextSnapshot is not null) await RestoreInterruptedFocusAsync(nextSnapshot, CancellationToken.None);
         else PublishFocusRuntimeStatus(_focusRuntimeStatus);
@@ -118,22 +148,18 @@ public sealed partial class ServiceStateCoordinator
         if (accountUserId is null) return;
         var current = await _store.LoadAsync();
         var active = current.FocusSessions.SingleOrDefault(IsActiveSession);
-        if (active is null || IsRecoveryPending(active)) return;
+        if (active is null || active.IsForcedMode || IsRecoveryPending(active)) return;
         var now = GetEffectiveUtcNow();
         var end = active.PlannedEndAtUtc is { } planned && planned < now ? planned : now;
-        if (!active.IsForcedMode && active.RecoveryCheckpointAtUtc is not null)
+        if (active.RecoveryCheckpointAtUtc is not null)
         {
             // Ordinary focus normally settles on the desktop before an account switch.
             // Leave any unsettled checkpoint intact for the next sign-in.
             return;
         }
-        var progress = active.IsForcedMode && active.Status == LocalFocusSessionStatus.Focusing
-            ? WithForcedProgress(active, end) : active;
-        var elapsed = progress.RecoveryCheckpointAtUtc is not null
-            ? progress.ActualSeconds
-            : active.FocusStartedAtUtc is { } started
-                ? Math.Clamp((int)(end - started).TotalSeconds, 0, active.ConfiguredSeconds) : 0;
-        var completed = progress with
+        var elapsed = active.FocusStartedAtUtc is { } started
+            ? Math.Clamp((int)(end - started).TotalSeconds, 0, active.ConfiguredSeconds) : 0;
+        var completed = active with
         {
             Status = LocalFocusSessionStatus.Completed,
             ActualSeconds = elapsed,

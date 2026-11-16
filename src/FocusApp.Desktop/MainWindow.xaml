@@ -461,29 +461,24 @@
                 </Border>
             </Grid>
 
+            <Border Grid.ColumnSpan="2" Panel.ZIndex="103" Background="{DynamicResource ModalScrim}">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Visibility" Value="Visible" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding BlockingPage.WebsiteLimit}" Value="{x:Null}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <views:WebsiteLimitModal DataContext="{Binding BlockingPage}" />
+            </Border>
+
             <Grid Grid.ColumnSpan="2" Panel.ZIndex="104">
                 <Grid.Style><Style TargetType="{x:Type Grid}"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding HomePage.BlockedContentModal.IsOpen}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></Grid.Style>
                 <Border Background="{DynamicResource ModalScrim}" MouseDown="BlockedContentScrim_MouseDown">
                     <views:BlockedContentModal DataContext="{Binding HomePage.BlockedContentModal}" />
-                </Border>
-            </Grid>
-
-            <Grid Grid.ColumnSpan="2"
-                  Panel.ZIndex="100">
-                <Grid.Style>
-                    <Style TargetType="{x:Type Grid}">
-                        <Setter Property="Visibility" Value="Collapsed" />
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding AuthModal.IsOpen}" Value="True">
-                                <Setter Property="Visibility" Value="Visible" />
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </Grid.Style>
-                <Border Background="{DynamicResource ModalScrim}"
-                        MouseDown="AuthScrim_MouseDown">
-                    <views:AuthModal DataContext="{Binding AuthModal}"
-                                     views:FocusThemeScope.IsDark="{Binding DataContext.HomePage.FocusSession.IsDarkFocusTheme, RelativeSource={RelativeSource AncestorType=Window}}" />
                 </Border>
             </Grid>
 
@@ -1033,6 +1028,9 @@
                             <DataTrigger Binding="{Binding IsFullScreenVisible}" Value="True">
                                 <Setter Property="Visibility" Value="Visible" />
                             </DataTrigger>
+                            <DataTrigger Binding="{Binding DataContext.AuthModal.IsOpen, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
                         </Style.Triggers>
                     </Style>
                 </views:FocusFlowView.Style>
@@ -1054,6 +1052,9 @@
             <views:GoalCompletedTasksModal Grid.ColumnSpan="2" Panel.ZIndex="207" Margin="-1"
                                             HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
                                             DataContext="{Binding StatisticsPage.GoalCompletedTasks}" />
+            <views:GoalFocusCalendarModal Grid.ColumnSpan="2" Panel.ZIndex="207" Margin="-1"
+                                           HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                                           DataContext="{Binding StatisticsPage.GoalFocusHistory.Calendar}" />
             <views:FocusCharacterPickerModal Grid.ColumnSpan="2" Panel.ZIndex="211" Margin="-1"
                                             HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
                                             DataContext="{Binding SettingsPage.FocusCharacterPicker}" />
@@ -1070,7 +1071,12 @@
             <views:FocusTaskDrawer.Style>
                 <Style TargetType="{x:Type views:FocusTaskDrawer}">
                     <Setter Property="Visibility" Value="Collapsed" />
-                    <Style.Triggers><DataTrigger Binding="{Binding IsOpen}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsOpen}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger>
+                        <DataTrigger Binding="{Binding DataContext.AuthModal.IsOpen, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                        </DataTrigger>
+                    </Style.Triggers>
                 </Style>
             </views:FocusTaskDrawer.Style>
         </views:FocusTaskDrawer>
@@ -1078,5 +1084,18 @@
                                      DataContext="{Binding BrowserExtensionModal}"/>
         <views:AboutAppModal x:Name="AboutAppModalControl" Panel.ZIndex="31" DataContext="{Binding AboutAppModal}"/>
         <views:DeleteGoalModal x:Name="DeleteGoalModalControl" Panel.ZIndex="32" DataContext="{Binding StatisticsPage.GoalDeletion}"/>
+        <Border Panel.ZIndex="40" Background="{DynamicResource ModalScrim}" MouseDown="AuthScrim_MouseDown">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding AuthModal.IsOpen}" Value="True">
+                            <Setter Property="Visibility" Value="Visible" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <views:AuthModal DataContext="{Binding AuthModal}" />
+        </Border>
     </Grid>
 </Window>

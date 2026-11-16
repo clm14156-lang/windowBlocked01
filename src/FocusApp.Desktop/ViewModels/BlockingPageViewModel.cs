@@ -4,6 +4,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using System.Windows.Media;
+using FocusApp.Contracts;
 using FocusApp.Core;
 using FocusApp.Desktop.Services;
 
@@ -25,6 +26,9 @@ public sealed class BlockingPageViewModel : INotifyPropertyChanged
     private readonly AccessControlService _accessControlService;
     private BlockingTab _selectedTab = BlockingTab.Websites;
     private bool _isUpdatingWebsiteDetails;
+    private WebsiteRuleQuota? _websiteLimit;
+    private (WebsiteDraft Draft, LocalWebsiteRuleDto Rule)? _pendingWebsite;
+    private Func<bool>? _isVip;
 
     public BlockingPageViewModel(
         IEnumerable<BlockingWebsiteItemViewModel> websites,
@@ -50,14 +54,29 @@ public sealed class BlockingPageViewModel : INotifyPropertyChanged
 
         SelectWebsitesCommand = new RelayCommand<object>(_ => SelectedTab = BlockingTab.Websites);
         SelectApplicationsCommand = new RelayCommand<object>(_ => SelectedTab = BlockingTab.Applications);
-        OpenWebsiteModalCommand = new RelayCommand<object>(_ => { if (RequestAccountAccess?.Invoke() != false) WebsiteModal.Open(); });
+        OpenWebsiteModalCommand = new AsyncCommand(OpenWebsiteModalAsync);
         OpenProgramModalCommand = new RelayCommand<object>(_ => { if (RequestAccountAccess?.Invoke() != false) ProgramModal.Open(); });
         DeleteWebsiteCommand = new RelayCommand<BlockingWebsiteItemViewModel>(DeleteWebsite);
         DeleteApplicationCommand = new RelayCommand<BlockingApplicationItemViewModel>(DeleteApplication);
         EditWebsiteCommand = new RelayCommand<BlockingWebsiteItemViewModel>(EditWebsite);
+        CloseWebsiteLimitCommand = new RelayCommand<object>(_ => WebsiteLimit = null);
+        UpgradeWebsiteLimitCommand = new RelayCommand<object>(_ =>
+        {
+            if (WebsiteLimit is not { IsVip: false }) return;
+            WebsiteLimit = null;
+            RequestMembership?.Invoke();
+        });
 
         WebsiteModal.WebsiteCreated += WebsiteModal_WebsiteCreated;
         WebsiteModal.WebsiteUpdated += WebsiteModal_WebsiteUpdated;
+        WebsiteModal.CanUpdateWebsite = edit =>
+        {
+            var original = Websites.FirstOrDefault(item => item.Id == edit.WebsiteId);
+            if (AccessControlService.NormalizeWebsiteHost(original?.Address) == edit.Draft.Address) return true;
+            if (!HasWebsiteAddress(edit.Draft.Address, edit.WebsiteId)) return true;
+            WebsiteSaveFailed?.Invoke("该网站已添加。");
+            return false;
+        };
         ProgramModal.ProgramSelected += ProgramModal_ProgramSelected;
         foreach (var website in Websites)
         {
@@ -75,6 +94,8 @@ public sealed class BlockingPageViewModel : INotifyPropertyChanged
 
     public event EventHandler? BlockingChanged;
     internal Func<bool>? RequestAccountAccess { get; set; }
+    internal Action? RequestMembership { get; set; }
+    internal event Action<string>? WebsiteSaveFailed;
 
     public ObservableCollection<BlockingWebsiteItemViewModel> Websites { get; }
 
@@ -97,6 +118,19 @@ public sealed class BlockingPageViewModel : INotifyPropertyChanged
     public ICommand DeleteApplicationCommand { get; }
 
     public ICommand EditWebsiteCommand { get; }
+
+    public ICommand CloseWebsiteLimitCommand { get; }
+    public ICommand UpgradeWebsiteLimitCommand { get; }
+
+    public WebsiteRuleQuota? WebsiteLimit
+    {
+        get => _websiteLimit;
+        private set
+        {
+            _websiteLimit = value;
+            OnPropertyChanged();
+        }
+    }
 
     public BlockingTab SelectedTab
     {
@@ -182,6 +216,75 @@ public sealed class BlockingPageViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(ApplicationCountText));
         BlockingChanged?.Invoke(this, EventArgs.Empty);
     }
+
+    internal void UseLocalWebsiteCreation(Func<bool> isVip, Func<LocalWebsiteRuleDto, Task> persist)
+    {
+        _isVip = isVip;
+        WebsiteModal.CreateWebsiteAsync = draft => SaveNewWebsiteAsync(draft, persist);
+    }
+
+    private Task OpenWebsiteModalAsync()
+    {
+        if (RequestAccountAccess?.Invoke() == false || WebsiteModal.IsOpen || WebsiteLimit is not null || ShowWebsiteLimit())
+            return Task.CompletedTask;
+        _pendingWebsite = null;
+        WebsiteModal.Open();
+        return Task.CompletedTask;
+    }
+
+    private bool ShowWebsiteLimit()
+    {
+        if (_isVip is null) return false;
+        var isVip = _isVip();
+        var quota = new WebsiteRuleQuota(Websites.Count, isVip ? 100 : 10, isVip);
+        if (!quota.IsFull) return false;
+        WebsiteLimit = quota;
+        return true;
+    }
+
+    private async Task<bool> SaveNewWebsiteAsync(WebsiteDraft draft, Func<LocalWebsiteRuleDto, Task> persist)
+    {
+        if (RequestAccountAccess?.Invoke() == false) return false;
+        if (_pendingWebsite is not { } pending || pending.Draft != draft)
+        {
+            var name = draft.Name.Length == 0 ? draft.Address : draft.Name;
+            pending = (draft, new(Guid.NewGuid(), name, draft.Address, true, Websites.Count));
+            _pendingWebsite = pending;
+        }
+        try
+        {
+            var item = Websites.FirstOrDefault(item => item.Id == pending.Rule.Id);
+            if (item is null)
+            {
+                if (HasWebsiteAddress(draft.Address))
+                {
+                    WebsiteSaveFailed?.Invoke("该网站已添加。");
+                    return false;
+                }
+                if (ShowWebsiteLimit())
+                {
+                    WebsiteModal.CloseCommand.Execute(null);
+                    return false;
+                }
+                await persist(pending.Rule);
+                item = Websites.FirstOrDefault(item => item.Id == pending.Rule.Id);
+            }
+            _pendingWebsite = null;
+            if (item is not null) _ = LoadWebsiteMetadataAsync(item, pending.Rule.Name, draft.Name.Length == 0);
+            return true;
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception error) when (error is IpcConnectionException or IpcRemoteException or IpcProtocolException)
+        {
+            WebsiteSaveFailed?.Invoke("本地服务未能确认保存网站，请稍后重试。");
+        }
+        return false;
+    }
+
+    private bool HasWebsiteAddress(string address, Guid? except = null)
+        => Websites.Any(website => website.Id != except && AccessControlService.NormalizeWebsiteHost(website.Address) == address);
 
     private void WebsiteModal_WebsiteCreated(object? sender, WebsiteDraft draft)
     {

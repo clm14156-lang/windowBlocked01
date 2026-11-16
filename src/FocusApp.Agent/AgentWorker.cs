@@ -16,57 +16,35 @@ internal sealed class AgentWorker : BackgroundService
     private readonly ILogger<AgentWorker> _logger;
     private readonly IUserProxyManager _proxyManager;
     private readonly StartupRegistrationService _startupRegistration;
-    private readonly IHostApplicationLifetime _applicationLifetime;
-    private readonly bool _isAutostart;
-    private Mutex? _singleInstanceMutex;
+    private readonly IDesktopProcessLauncher _desktopLauncher;
+    private readonly string? _pipeName;
+    private readonly object _startupGate = new();
+    private long? _lastDesktopLaunchAttempt;
+    private TimeSpan _desktopLaunchDelay = TimeSpan.FromSeconds(2);
+    private bool _startupEnabled;
+    private bool _recoveryStartupRegistered;
+    private long? _recoveryRegistrationRequestedAt;
 
     public AgentWorker(
         ILogger<AgentWorker> logger,
         IUserProxyManager proxyManager,
         StartupRegistrationService startupRegistration,
-        IHostApplicationLifetime applicationLifetime,
-        bool isAutostart = false)
+        IDesktopProcessLauncher desktopLauncher,
+        string? pipeName = null)
     {
         _logger = logger;
         _proxyManager = proxyManager;
         _startupRegistration = startupRegistration;
-        _applicationLifetime = applicationLifetime;
-        _isAutostart = isAutostart;
+        _desktopLauncher = desktopLauncher;
+        _pipeName = pipeName;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _singleInstanceMutex = new Mutex(true, @"Local\FocusApp.Agent", out var acquired);
-        if (!acquired)
-        {
-            _logger.LogInformation("FocusApp Agent 已在运行，忽略重复启动。");
-            _singleInstanceMutex.Dispose();
-            _singleInstanceMutex = null;
-            _applicationLifetime.StopApplication();
-            return;
-        }
-
-        try
-        {
-            await ExecuteCoreAsync(stoppingToken);
-        }
-        finally
-        {
-            // Named Mutex ownership is thread-affine; ExecuteCoreAsync may resume on another thread.
-            // Disposing is sufficient because the OS releases the abandoned mutex when the process exits.
-            try { _singleInstanceMutex.ReleaseMutex(); }
-            catch (ApplicationException) { }
-            _singleInstanceMutex.Dispose();
-            _singleInstanceMutex = null;
-        }
-    }
-
-    private async Task ExecuteCoreAsync(CancellationToken stoppingToken)
-    {
         var retryDelay = TimeSpan.FromSeconds(1);
         while (!stoppingToken.IsCancellationRequested)
         {
-            await using var client = new NamedPipeIpcClient(IpcClientRole.Agent);
+            await using var client = new NamedPipeIpcClient(IpcClientRole.Agent, _pipeName);
             var disconnected = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             client.Disconnected += (_, _) => disconnected.TrySetResult();
             EventHandler<IpcEnvelope>? eventHandler = null;
@@ -110,12 +88,9 @@ internal sealed class AgentWorker : BackgroundService
                     new EmptyPayload(),
                     RequestTimeout,
                     stoppingToken);
-                await ReconcileStartupRegistrationAsync(state.Settings.LaunchAtStartup);
-                if (_isAutostart && (state.HasPendingAccountFocusRecovery || state.FocusSessions.Any(session =>
-                    session.IsForcedMode && session.Status is LocalFocusSessionStatusDto.Preparing or LocalFocusSessionStatusDto.Focusing)))
-                {
-                    TryWakeDesktop();
-                }
+                lock (_startupGate) _startupEnabled = state.Settings.LaunchAtStartup;
+                var checkLegacyRecovery = await CheckDesktopAsync(client, state.HasPendingAccountFocusRecovery,
+                    stoppingToken, reconcileStartup: true);
                 var accessControl = await client.SendAsync<EmptyPayload, AccessControlStatusDto>(
                     IpcOperations.GetAccessControlStatus,
                     new EmptyPayload(),
@@ -128,7 +103,7 @@ internal sealed class AgentWorker : BackgroundService
                     ping.ProtocolVersion,
                     state.Revision);
                 retryDelay = TimeSpan.FromSeconds(1);
-                await MonitorProxyOwnershipAsync(client, disconnected.Task, stoppingToken);
+                await MonitorProxyOwnershipAsync(client, disconnected.Task, checkLegacyRecovery, stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -164,9 +139,17 @@ internal sealed class AgentWorker : BackgroundService
     {
         try
         {
-            var result = action.Enabled
-                ? _startupRegistration.EnableStartup()
-                : _startupRegistration.DisableStartup();
+            StartupRegistrationResult result;
+            lock (_startupGate)
+            {
+                result = UpdateStartupRegistration(action.Enabled || _recoveryStartupRegistered);
+                if (result.Succeeded && action.IsFocusRecovery)
+                {
+                    _recoveryStartupRegistered = true;
+                    _recoveryRegistrationRequestedAt = Stopwatch.GetTimestamp();
+                }
+                else if (result.Succeeded) _startupEnabled = action.Enabled;
+            }
             await client.SendAsync<AgentStartupRegistrationActionResultCommand, AgentStartupRegistrationActionResultCommand>(
                 IpcOperations.AgentStartupRegistrationActionResult,
                 new AgentStartupRegistrationActionResultCommand(
@@ -182,55 +165,67 @@ internal sealed class AgentWorker : BackgroundService
         }
     }
 
-    private Task ReconcileStartupRegistrationAsync(bool enabled)
+    private StartupRegistrationResult UpdateStartupRegistration(bool enabled)
+        => enabled ? _startupRegistration.RepairStartupEntry() : _startupRegistration.DisableStartup();
+
+    private async Task<bool> CheckDesktopAsync(NamedPipeIpcClient client, bool checkLegacyRecovery, CancellationToken token,
+        bool reconcileStartup = false)
     {
-        var result = enabled
-            ? _startupRegistration.RepairStartupEntry()
-            : _startupRegistration.DisableStartup();
-        if (!result.Succeeded)
+        var status = await client.SendAsync<EmptyPayload, FocusRuntimeStatusDto>(
+            IpcOperations.GetFocusRuntimeStatus, new EmptyPayload(), RequestTimeout, token);
+        var hasForcedFocus = status.IsForcedMode && status.SessionId is not null && status.State != FocusRuntimeState.Idle;
+        var legacyRecoveryPending = false;
+        if (!hasForcedFocus && checkLegacyRecovery)
         {
-            _logger.LogWarning("开机自启动项校准失败：{Error}", result.ErrorMessage);
+            var state = await client.SendAsync<EmptyPayload, LocalDataSnapshotDto>(
+                IpcOperations.GetState, new EmptyPayload(), RequestTimeout, token);
+            legacyRecoveryPending = state.HasPendingAccountFocusRecovery;
         }
-
-        return Task.CompletedTask;
-    }
-
-    private void TryWakeDesktop()
-    {
-        var desktopPath = Path.Combine(AppContext.BaseDirectory, "FocusApp.Desktop.exe");
-        if (!File.Exists(desktopPath))
+        hasForcedFocus |= legacyRecoveryPending;
+        lock (_startupGate)
         {
-            var configuration = new DirectoryInfo(AppContext.BaseDirectory).Parent?.Name;
-            if (configuration is not ("Debug" or "Release"))
+            if (hasForcedFocus) _recoveryRegistrationRequestedAt = null;
+            // Registration may have been requested just before the service commits the session.
+            var keepRegistration = hasForcedFocus || _recoveryRegistrationRequestedAt is { } requested &&
+                Stopwatch.GetElapsedTime(requested) < TimeSpan.FromSeconds(10);
+            if (reconcileStartup || keepRegistration != _recoveryStartupRegistered)
             {
-                configuration = "Debug";
+                var registration = UpdateStartupRegistration(_startupEnabled || keepRegistration);
+                if (registration.Succeeded) _recoveryStartupRegistered = keepRegistration;
+                else _logger.LogWarning("强制专注自启动项校准失败：{Error}", registration.ErrorMessage);
             }
-            var repositoryDesktopPath = Path.GetFullPath(Path.Combine(
-                AppContext.BaseDirectory,
-                "..", "..", "..", "..", "FocusApp.Desktop", "bin", configuration, "net8.0-windows", "FocusApp.Desktop.exe"));
-            desktopPath = repositoryDesktopPath;
         }
-        if (!File.Exists(desktopPath))
+        if (!hasForcedFocus)
         {
-            _logger.LogWarning("需要恢复强制专注，但找不到 Desktop 程序：{Path}", desktopPath);
-            return;
+            _lastDesktopLaunchAttempt = null;
+            _desktopLaunchDelay = TimeSpan.FromSeconds(2);
+            return legacyRecoveryPending;
         }
 
+        if (_desktopLauncher.IsRunning)
+        {
+            if (_lastDesktopLaunchAttempt is { } started && Stopwatch.GetElapsedTime(started) >= TimeSpan.FromSeconds(30))
+            {
+                _lastDesktopLaunchAttempt = null;
+                _desktopLaunchDelay = TimeSpan.FromSeconds(2);
+            }
+            return legacyRecoveryPending;
+        }
+        if (_lastDesktopLaunchAttempt is { } last && Stopwatch.GetElapsedTime(last) < _desktopLaunchDelay)
+            return legacyRecoveryPending;
+
+        token.ThrowIfCancellationRequested();
+        _lastDesktopLaunchAttempt = Stopwatch.GetTimestamp();
+        _desktopLaunchDelay = TimeSpan.FromSeconds(Math.Min(_desktopLaunchDelay.TotalSeconds * 2, 30));
         try
         {
-            if (Process.GetProcessesByName("FocusApp.Desktop").Length == 0)
-            {
-                Process.Start(new ProcessStartInfo(desktopPath)
-                {
-                    UseShellExecute = true,
-                    WorkingDirectory = Path.GetDirectoryName(desktopPath) ?? AppContext.BaseDirectory
-                });
-            }
+            _desktopLauncher.StartDesktop();
         }
         catch (Exception exception) when (exception is InvalidOperationException or System.ComponentModel.Win32Exception)
         {
             _logger.LogWarning(exception, "无法唤醒 Desktop 以恢复强制专注界面。");
         }
+        return legacyRecoveryPending;
     }
 
     private async Task ReconcileProxyAsync(
@@ -272,6 +267,7 @@ internal sealed class AgentWorker : BackgroundService
     private async Task MonitorProxyOwnershipAsync(
         NamedPipeIpcClient client,
         Task disconnected,
+        bool checkLegacyRecovery,
         CancellationToken cancellationToken)
     {
         while (!disconnected.IsCompleted)
@@ -281,6 +277,8 @@ internal sealed class AgentWorker : BackgroundService
             {
                 return;
             }
+
+            checkLegacyRecovery = await CheckDesktopAsync(client, checkLegacyRecovery, cancellationToken);
 
             var status = await client.SendAsync<EmptyPayload, AccessControlStatusDto>(
                 IpcOperations.GetAccessControlStatus,

@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
+using FocusApp.Desktop.Services.Cloud;
 
 namespace FocusApp.Desktop.ViewModels;
 
@@ -11,14 +12,14 @@ public sealed class VipModalViewModel : INotifyPropertyChanged
     public const string LifetimePlan = "Lifetime";
 
     private bool _isOpen;
-    private bool _hasUpgradeFeedback;
+    private string _upgradeFeedback = string.Empty;
     private string _selectedPlanKey = YearlyPlan;
 
     public VipModalViewModel()
     {
         CloseCommand = new RelayCommand<object>(_ => Close());
         LaterCommand = new RelayCommand<object>(_ => Close());
-        UpgradeCommand = new RelayCommand<object>(_ => HasUpgradeFeedback = true);
+        UpgradeCommand = new RelayCommand<object>(_ => OpenOfficialWebsite());
         SelectPlanCommand = new RelayCommand<string>(SelectPlan);
     }
 
@@ -38,10 +39,16 @@ public sealed class VipModalViewModel : INotifyPropertyChanged
         private set => SetField(ref _isOpen, value);
     }
 
-    public bool HasUpgradeFeedback
+    public bool HasUpgradeFeedback => UpgradeFeedback.Length > 0;
+
+    public string UpgradeFeedback
     {
-        get => _hasUpgradeFeedback;
-        private set => SetField(ref _hasUpgradeFeedback, value);
+        get => _upgradeFeedback;
+        private set
+        {
+            if (SetField(ref _upgradeFeedback, value))
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasUpgradeFeedback)));
+        }
     }
 
     public string SelectedPlanKey
@@ -52,7 +59,7 @@ public sealed class VipModalViewModel : INotifyPropertyChanged
 
     public void Open()
     {
-        HasUpgradeFeedback = false;
+        UpgradeFeedback = string.Empty;
         IsOpen = true;
     }
 
@@ -66,7 +73,26 @@ public sealed class VipModalViewModel : INotifyPropertyChanged
         if (planKey is MonthlyPlan or YearlyPlan or LifetimePlan)
         {
             SelectedPlanKey = planKey;
-            HasUpgradeFeedback = false;
+            UpgradeFeedback = string.Empty;
+        }
+    }
+
+    private void OpenOfficialWebsite()
+    {
+        if (AccountWebsiteLinks.OfficialWebsite is not { } address)
+        {
+            UpgradeFeedback = "功能暂未开放";
+            return;
+        }
+
+        try
+        {
+            AccountWebsiteLinks.Open(address);
+            UpgradeFeedback = string.Empty;
+        }
+        catch (Exception error) when (error is Win32Exception or InvalidOperationException)
+        {
+            UpgradeFeedback = "暂时无法打开官网，请稍后重试。";
         }
     }
 

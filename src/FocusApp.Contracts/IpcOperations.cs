@@ -7,11 +7,14 @@ public static class IpcOperations
     public const string SaveTarget = "targets.save";
     public const string DeleteTarget = "targets.delete";
     public const string DeleteFocusRecord = "focus-records.delete";
+    public const string UpdateFocusRecord = "focus-records.update";
     public const string ReplaceWebsiteRules = "rules.websites.replace";
     public const string ReplaceApplicationRules = "rules.applications.replace";
     public const string ReplaceAutomaticRules = "rules.automatic.replace";
     public const string ReplaceDurationPresets = "duration-presets.replace";
     public const string SaveSettings = "settings.save";
+    public const string SetFocusFeature = "settings.focus-feature.set";
+    public const string GetFocusFeatureAccess = "settings.focus-feature.access";
     public const string SetLaunchAtStartup = "settings.launch-at-startup.set";
     public const string SetWindowsNotifications = "settings.windows-notifications.set";
     public const string ActivateAccessControl = "access-control.activate";
@@ -50,7 +53,12 @@ public sealed record PingResponse(
     DateTimeOffset ServiceStartedAtUtc,
     int ProtocolVersion);
 
-public sealed record StateChangedEvent(long Revision, LocalDataSnapshotDto State);
+public sealed record StateChangedEvent(long Revision, LocalDataSnapshotDto State)
+{
+    public bool HasLocalSyncChanges { get; init; }
+    public bool HasWebsiteSyncChanges { get; init; }
+    public bool HasFocusSyncChanges { get; init; }
+}
 
 public sealed record SaveTargetCommand(LocalTargetDto Target, IReadOnlyList<LocalTaskDto> Tasks);
 
@@ -60,6 +68,7 @@ public sealed record DeleteFocusRecordCommand(Guid SessionId);
 public sealed record ReplaceWebsiteRulesCommand(IReadOnlyList<LocalWebsiteRuleDto> Rules)
 {
     public IReadOnlyList<WebsiteRuleChange>? Changes { get; init; }
+    public Guid ExpectedAccountSession { get; init; }
 }
 
 public sealed record ReplaceApplicationRulesCommand(IReadOnlyList<LocalApplicationRuleDto> Rules);
@@ -71,7 +80,16 @@ public sealed record ReplaceDurationPresetsCommand(IReadOnlyList<LocalDurationPr
 public sealed record SaveSettingsCommand(
     LocalAppSettingsDto Settings,
     IReadOnlyList<LocalDurationPresetDto> DurationPresets,
-    IReadOnlyList<LocalMonthlyFocusTargetDto> MonthlyFocusTargets);
+    IReadOnlyList<LocalMonthlyFocusTargetDto> MonthlyFocusTargets)
+{
+    public bool PreserveFocusFeatures { get; init; }
+}
+
+public enum FocusFeature { AutomaticBlocking, ForcedMode }
+
+public sealed record SetFocusFeatureCommand(FocusFeature Feature, bool Enabled, Guid ExpectedAccountSession = default);
+
+public sealed record FocusFeatureAccess(bool CanUse, Guid AccountSession);
 
 public sealed record MutationResult(long Revision, LocalDataSnapshotDto State);
 
@@ -81,7 +99,10 @@ public sealed record SetWindowsNotificationsCommand(bool Enabled);
 
 public sealed record AgentStartupRegistrationActionRequestedEvent(
     Guid ActionId,
-    bool Enabled);
+    bool Enabled)
+{
+    public bool IsFocusRecovery { get; init; }
+}
 
 public sealed record AgentStartupRegistrationActionResultCommand(
     Guid ActionId,
@@ -124,6 +145,7 @@ public sealed record UpdateForcedFocusTasksCommand(
     IReadOnlyList<LocalFocusSessionTaskSnapshotDto> CompletedTasks);
 
 public sealed record RecordCompletedFocusCommand(LocalFocusSessionDto Session);
+public sealed record UpdateFocusRecordCommand(LocalFocusSessionDto Session);
 
 public enum FocusRuntimeState
 {
@@ -142,6 +164,7 @@ public sealed record FocusRuntimeStatusDto(
     string? LastError)
 {
     public Guid AccountSession { get; init; }
+    public bool IsForcedMode { get; init; }
 }
 
 public sealed record FocusRuntimeStateChangedEvent(FocusRuntimeStatusDto Status);
@@ -254,6 +277,7 @@ public sealed record LocalDataSnapshotDto(
     public bool HasPendingAccountFocusRecovery { get; init; }
     public Guid? FocusHistoryToken { get; init; }
     public int FocusHistoryCount { get; init; }
+    public int? TodayFocusSeconds { get; init; }
 }
 
 public enum LocalFocusSessionStatusDto

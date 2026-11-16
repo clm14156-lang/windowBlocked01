@@ -1,11 +1,10 @@
 using System.Diagnostics;
-using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Threading;
 using FocusApp.Contracts;
-using Microsoft.Extensions.DependencyInjection;
+using FocusApp.Agent.Services;
 
 namespace FocusApp.Agent;
 
@@ -15,12 +14,14 @@ internal sealed class TrayApplication : IDisposable
     private readonly TrayIconHost _iconHost;
     private readonly Dispatcher _dispatcher;
     private readonly System.Windows.Application _application;
+    private readonly DesktopProcessLauncher _desktopLauncher;
     private TrayPopupWindow? _popup;
     private bool _popupOpening;
     private bool _disposed;
 
-    public TrayApplication(IServiceProvider services, Dispatcher dispatcher)
+    public TrayApplication(DesktopProcessLauncher desktopLauncher, Dispatcher dispatcher)
     {
+        _desktopLauncher = desktopLauncher;
         _dispatcher = dispatcher;
         _application = System.Windows.Application.Current;
         _stateClient = new TrayStateClient();
@@ -110,26 +111,16 @@ internal sealed class TrayApplication : IDisposable
             NativeMethods.SwpNoSize | NativeMethods.SwpNoZOrder | NativeMethods.SwpNoActivate);
     }
 
-    private void UpdatePopup() => _popup?.ApplyState(_stateClient.Snapshot, _stateClient.RuntimeStatus);
+    private void UpdatePopup() => _popup?.ApplyState();
 
     private void OpenDesktop()
     {
-        var process = Process.GetProcessesByName("FocusApp.Desktop").FirstOrDefault();
+        using var process = _desktopLauncher.FindRunningDesktop();
         if (process is null)
         {
-            var path = Path.Combine(AppContext.BaseDirectory, "FocusApp.Desktop.exe");
-            if (!File.Exists(path))
-            {
-                var configuration = new DirectoryInfo(AppContext.BaseDirectory).Parent?.Name;
-                if (configuration is not ("Debug" or "Release"))
-                {
-                    configuration = "Debug";
-                }
-                path = Path.GetFullPath(Path.Combine(
-                    AppContext.BaseDirectory,
-                    "..", "..", "..", "..", "FocusApp.Desktop", "bin", configuration, "net8.0-windows", "FocusApp.Desktop.exe"));
-            }
-            if (File.Exists(path)) Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
+            try { _desktopLauncher.StartDesktop(); }
+            catch (Exception error) when (error is InvalidOperationException or System.ComponentModel.Win32Exception)
+            { Trace.TraceWarning(error.Message); }
         }
         else
         {
@@ -169,10 +160,9 @@ internal sealed class TrayApplication : IDisposable
     private void ExitApplication()
     {
         if (_stateClient.IsForcedActive) return;
-        foreach (var process in Process.GetProcessesByName("FocusApp.Desktop"))
-        {
-            try { process.CloseMainWindow(); } catch { }
-        }
+        using var process = _desktopLauncher.FindRunningDesktop();
+        try { process?.CloseMainWindow(); }
+        catch (InvalidOperationException) { }
         _popup?.Close();
         _application.Shutdown();
     }
@@ -222,62 +212,90 @@ internal readonly record struct TrayScreenRect(int Left, int Top, int Right, int
 
 public sealed class TrayStateClient : IAsyncDisposable
 {
+    private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(3);
     private readonly NamedPipeIpcClient _client = new(IpcClientRole.Agent);
     private readonly CancellationTokenSource _cts = new();
     private LocalDataSnapshotDto? _snapshot;
     private FocusRuntimeStatusDto? _runtime;
-    private bool _subscribed;
+    private FocusFeatureAccess? _focusFeatureAccess;
+
+    public TrayStateClient()
+    {
+        _client.EventReceived += Client_EventReceived;
+        _client.Disconnected += (_, _) =>
+        {
+            Interlocked.Exchange(ref _snapshot, null);
+            _focusFeatureAccess = null;
+            StateChanged?.Invoke(this, EventArgs.Empty);
+        };
+    }
+
     public event EventHandler? StateChanged;
     public event EventHandler? RuntimeChanged;
     public LocalDataSnapshotDto? Snapshot => _snapshot;
-    public FocusRuntimeStatusDto? RuntimeStatus => _runtime;
-    public bool IsForcedActive => _snapshot?.FocusSessions.Any(IsActiveForced) == true;
+    public bool CanUseFocusFeatures => _client.IsConnected && _focusFeatureAccess is { CanUse: true } access &&
+        Snapshot?.AccountSession == access.AccountSession;
+    public bool IsForcedActive => _runtime is { IsForcedMode: true, SessionId: not null, State: not FocusRuntimeState.Idle } ||
+        _snapshot?.FocusSessions.Any(IsActiveForced) == true;
 
-    public async Task StartAsync()
-    {
-        try
-        {
-            await _client.ConnectAsync(TimeSpan.FromSeconds(3), _cts.Token);
-            SubscribeEvents();
-            await RefreshAsync();
-        }
-        catch { }
-    }
+    public Task StartAsync() => RefreshAsync();
 
     public async Task RefreshAsync()
     {
-        if (!_client.IsConnected)
-        {
-            try
-            {
-                await _client.ConnectAsync(TimeSpan.FromSeconds(3), _cts.Token);
-                SubscribeEvents();
-            }
-            catch { return; }
-        }
         try
         {
-            _snapshot = await _client.SendAsync<EmptyPayload, LocalDataSnapshotDto>(IpcOperations.GetState, new EmptyPayload(), TimeSpan.FromSeconds(3), _cts.Token);
-            _runtime = await _client.SendAsync<EmptyPayload, FocusRuntimeStatusDto>(IpcOperations.GetFocusRuntimeStatus, new EmptyPayload(), TimeSpan.FromSeconds(3), _cts.Token);
-            StateChanged?.Invoke(this, EventArgs.Empty);
+            await _client.ConnectAsync(RequestTimeout, _cts.Token);
+            PublishSnapshot(await _client.SendAsync<EmptyPayload, LocalDataSnapshotDto>(
+                IpcOperations.GetState, new EmptyPayload(), RequestTimeout, _cts.Token));
+            _runtime = await _client.SendAsync<EmptyPayload, FocusRuntimeStatusDto>(
+                IpcOperations.GetFocusRuntimeStatus, new EmptyPayload(), RequestTimeout, _cts.Token);
             RuntimeChanged?.Invoke(this, EventArgs.Empty);
+            await RefreshFocusFeatureAccessAsync();
         }
-        catch { }
+        catch (Exception error) when (error is IpcConnectionException or IpcRemoteException or OperationCanceledException or ObjectDisposedException) { }
     }
 
-    private void SubscribeEvents()
+    private async Task RefreshFocusFeatureAccessAsync()
     {
-        if (_subscribed) return;
-        _client.EventReceived += Client_EventReceived;
-        _subscribed = true;
+        try
+        {
+            _focusFeatureAccess = await _client.SendAsync<EmptyPayload, FocusFeatureAccess>(
+                IpcOperations.GetFocusFeatureAccess, new EmptyPayload(), RequestTimeout, _cts.Token);
+        }
+        catch (Exception error) when (error is IpcConnectionException or IpcRemoteException or OperationCanceledException or ObjectDisposedException)
+        {
+            _focusFeatureAccess = null;
+        }
+        StateChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    internal Task RefreshPopupAccessAsync() => _client.IsConnected ? RefreshFocusFeatureAccessAsync() : RefreshAsync();
+
+    internal async Task SetFocusFeatureAsync(FocusFeature feature, bool enabled)
+    {
+        if (!CanUseFocusFeatures || _focusFeatureAccess is not { } access) return;
+        var result = await _client.SendAsync<SetFocusFeatureCommand, MutationResult>(
+            IpcOperations.SetFocusFeature, new SetFocusFeatureCommand(feature, enabled, access.AccountSession),
+            RequestTimeout, _cts.Token);
+        PublishSnapshot(result.State);
+    }
+
+    private void PublishSnapshot(LocalDataSnapshotDto snapshot)
+    {
+        LocalDataSnapshotDto? previous;
+        do
+        {
+            previous = _snapshot;
+            if (previous is not null && previous.Revision > snapshot.Revision) return;
+        } while (!ReferenceEquals(Interlocked.CompareExchange(ref _snapshot, snapshot, previous), previous));
+        StateChanged?.Invoke(this, EventArgs.Empty);
     }
 
     private void Client_EventReceived(object? sender, IpcEnvelope envelope)
     {
         if (envelope.Operation == IpcOperations.StateChanged)
         {
-            _snapshot = envelope.ReadPayload<StateChangedEvent>().State;
-            StateChanged?.Invoke(this, EventArgs.Empty);
+            PublishSnapshot(envelope.ReadPayload<StateChangedEvent>().State);
         }
         else if (envelope.Operation == IpcOperations.FocusRuntimeStateChanged)
         {

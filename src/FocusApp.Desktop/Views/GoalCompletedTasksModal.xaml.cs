@@ -91,6 +91,14 @@ public partial class GoalCompletedTasksModal : UserControl
         menu.IsOpen = true;
         e.Handled = true;
     }
+
+    private void CompletedTaskRow_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is not FrameworkElement { DataContext: GoalCompletedTaskEntryViewModel entry } row ||
+            entry.SubTasks.Count == 0 || !TaskRowExpansionClick.IsRowSource(e.OriginalSource as DependencyObject, row)) return;
+        entry.IsExpanded = !entry.IsExpanded;
+        e.Handled = true;
+    }
     private static ListBoxItem? FindTaskRow(DependencyObject? element)
     {
         while (element is not null)

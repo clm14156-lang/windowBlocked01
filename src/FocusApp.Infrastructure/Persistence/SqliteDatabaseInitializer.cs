@@ -7,7 +7,7 @@ internal sealed class SqliteDatabaseInitializer(
     string databasePath,
     SqliteLocalDataStoreOptions options)
 {
-    public const int CurrentSchemaVersion = 20;
+    public const int CurrentSchemaVersion = 23;
 
     private const string MigrationV1 = """
         CREATE TABLE focus_sessions (
@@ -332,6 +332,13 @@ internal sealed class SqliteDatabaseInitializer(
                 ALTER TABLE focus_sessions ADD COLUMN recovery_checkpoint_utc TEXT NULL;
                 ALTER TABLE focus_sessions ADD COLUMN recovery_abandoned INTEGER NOT NULL DEFAULT 0;
                 """,
+            21 => """
+                CREATE TABLE IF NOT EXISTS forced_focus_recovery(
+                    id INTEGER PRIMARY KEY CHECK(id=1), session_id TEXT NOT NULL,
+                    user_id TEXT NOT NULL, api_scope TEXT NOT NULL);
+                """,
+            22 => SqliteLocalDataStore.SyncDeltaMigration,
+            23 => "ALTER TABLE website_sync_state ADD COLUMN batch_started_utc TEXT NULL;",
             _ => throw new InvalidOperationException($"缺少数据库版本 {targetVersion} 的迁移。")
         };
 

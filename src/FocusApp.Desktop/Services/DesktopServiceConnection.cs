@@ -89,6 +89,7 @@ public sealed class DesktopServiceConnection : INotifyPropertyChanged, IAsyncDis
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public event EventHandler<LocalDataSnapshotDto>? StateChanged;
+    public event EventHandler<StateChangedEvent>? LocalSyncChangesCommitted;
 
     public event EventHandler<AccessControlStatusDto>? AccessControlStateChanged;
 
@@ -166,6 +167,9 @@ public sealed class DesktopServiceConnection : INotifyPropertyChanged, IAsyncDis
     public Task<MutationResult> SetWindowsNotificationsAsync(bool enabled, CancellationToken cancellationToken = default, Guid? requestId = null)
         => SendMutationAsync(IpcOperations.SetWindowsNotifications, new SetWindowsNotificationsCommand(enabled), cancellationToken, requestId);
 
+    public Task<MutationResult> SetFocusFeatureAsync(SetFocusFeatureCommand command)
+        => SendMutationAsync(IpcOperations.SetFocusFeature, command, CancellationToken.None, null);
+
     public Task<MutationResult> DeleteTargetAsync(
         DeleteTargetCommand command,
         CancellationToken cancellationToken = default,
@@ -174,6 +178,9 @@ public sealed class DesktopServiceConnection : INotifyPropertyChanged, IAsyncDis
 
     public Task<MutationResult> DeleteFocusRecordAsync(Guid sessionId)
         => SendMutationAsync(IpcOperations.DeleteFocusRecord, new DeleteFocusRecordCommand(sessionId), CancellationToken.None, null);
+
+    public Task<MutationResult> UpdateFocusRecordAsync(UpdateFocusRecordCommand command, CancellationToken cancellationToken = default)
+        => SendMutationAsync(IpcOperations.UpdateFocusRecord, command, cancellationToken, null);
 
     public Task<MutationResult> ReplaceWebsiteRulesAsync(
         ReplaceWebsiteRulesCommand command,
@@ -539,7 +546,13 @@ public sealed class DesktopServiceConnection : INotifyPropertyChanged, IAsyncDis
             {
                 case IpcOperations.StateChanged:
                     var stateChanged = envelope.ReadPayload<StateChangedEvent>();
-                    SetOnContext(() => PublishState(stateChanged.State));
+                    SetOnContext(() =>
+                    {
+                        PublishState(stateChanged.State);
+                        if (stateChanged.HasLocalSyncChanges && (!UsesAccountIsolation ||
+                            stateChanged.State.AccountSession == AccountSession))
+                            LocalSyncChangesCommitted?.Invoke(this, stateChanged);
+                    });
                     break;
                 case IpcOperations.AccessControlStateChanged:
                     var accessControlChanged = envelope.ReadPayload<AccessControlStateChangedEvent>();

@@ -11,6 +11,7 @@ public sealed class CompletionRecordStatusViewModel : INotifyPropertyChanged
     private readonly object sync = new();
     private readonly Dictionary<Guid, Entry> records = new();
     private Guid? currentRecordId;
+    private bool isOffline;
 
     public event PropertyChangedEventHandler? PropertyChanged;
     public Guid? CurrentRecordId { get { lock (sync) return currentRecordId; } }
@@ -20,6 +21,17 @@ public sealed class CompletionRecordStatusViewModel : INotifyPropertyChanged
             ? entry.State : CompletionRecordSaveState.Saving; }
     }
     public bool IsVisible => CurrentRecordId is not null && State != CompletionRecordSaveState.Saving;
+    public bool IsOffline { get { lock (sync) return isOffline; } }
+
+    internal void SetOffline(bool value)
+    {
+        lock (sync)
+        {
+            if (isOffline == value) return;
+            isOffline = value;
+        }
+        PropertyChanged?.Invoke(this, new(nameof(IsOffline)));
+    }
 
     public void Track(Guid recordId, bool isSaved = false)
     {

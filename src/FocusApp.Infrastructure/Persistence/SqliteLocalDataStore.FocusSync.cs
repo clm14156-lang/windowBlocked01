@@ -89,12 +89,16 @@ public sealed partial class SqliteLocalDataStore : IFocusSyncStore
         if(s.Status!=LocalFocusSessionStatus.Completed) return;
         var payload=RecordPayload(s);var hash=Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(payload)));
         await SyncSql(c,t,"""
-            UPDATE focus_sync_outbox SET state=3 WHERE record_id=$id AND kind='upsert' AND state IN (0,2) AND payload_hash<>$hash;
-            INSERT OR IGNORE INTO focus_sync_outbox(operation_id,record_id,user_id,api_scope,kind,payload_json,payload_hash)
-              SELECT $op,$id,user_id,api_scope,'upsert',$payload,$hash FROM focus_sync_owners
-              WHERE record_id=$id AND user_id IS NOT NULL AND is_deleted=0;
-            UPDATE focus_sync_outbox SET state=0,next_attempt_utc=NULL,last_error=NULL WHERE record_id=$id AND kind='upsert' AND payload_hash=$hash AND state=3
-              AND EXISTS(SELECT 1 FROM focus_sync_owners WHERE record_id=$id AND is_deleted=0);
+            UPDATE focus_sync_outbox SET state=3 WHERE record_id=$id AND kind='upsert'
+              AND (state=2 OR state=0 AND sent=0) AND payload_hash<>$hash;
+            INSERT INTO focus_sync_outbox(operation_id,record_id,user_id,api_scope,kind,payload_json,payload_hash,base_revision)
+              SELECT $op,$id,user_id,api_scope,'upsert',$payload,$hash,
+                COALESCE(server_revision,(SELECT r.server_revision FROM focus_sync_remote r
+                  JOIN focus_sync_bindings b ON b.binding_id=r.binding_id
+                  WHERE r.record_id=$id AND b.user_id=o.user_id AND b.api_scope=o.api_scope))
+              FROM focus_sync_owners o
+              WHERE record_id=$id AND user_id IS NOT NULL AND is_deleted=0
+                AND (payload_hash IS NOT $hash OR NOT EXISTS(SELECT 1 FROM focus_sync_outbox WHERE record_id=$id AND kind='upsert' AND state IN(0,1,2)));
             UPDATE focus_sync_owners SET payload_hash=$hash WHERE record_id=$id AND is_deleted=0;
             """,ct,("$id",FormatGuid(s.SessionId)),("$op",FormatGuid(Guid.NewGuid())),("$payload",payload),("$hash",hash));
     }
@@ -102,9 +106,9 @@ public sealed partial class SqliteLocalDataStore : IFocusSyncStore
     {
         await SyncSql(c,t,"""
             UPDATE focus_sync_outbox SET state=3 WHERE record_id=$id AND kind='upsert' AND state IN(0,2);
-            INSERT OR IGNORE INTO focus_sync_outbox(operation_id,record_id,user_id,api_scope,kind,payload_json,payload_hash,state)
+            INSERT INTO focus_sync_outbox(operation_id,record_id,user_id,api_scope,kind,payload_json,payload_hash,state)
               SELECT $op,$id,user_id,api_scope,'delete','null','delete',0 FROM focus_sync_owners
-              WHERE record_id=$id AND user_id IS NOT NULL AND payload_hash IS NOT NULL;
+              WHERE record_id=$id AND user_id IS NOT NULL AND payload_hash IS NOT NULL AND is_deleted=0;
             UPDATE focus_sync_owners SET is_deleted=1 WHERE record_id=$id;
             """,ct,("$id",FormatGuid(id)),("$op",FormatGuid(Guid.NewGuid())));
     }
@@ -187,22 +191,24 @@ public sealed partial class SqliteLocalDataStore : IFocusSyncStore
             await SyncSql(c,t,"UPDATE focus_sync_outbox SET state=2,last_error='local_snapshot_too_large' WHERE user_id=$user AND api_scope=$scope AND state=0 AND length(CAST(payload_json AS BLOB))>262144",ct,
                 ("$user",FormatGuid(b.UserId!.Value)),("$scope",b.ApiScope));
             await using var cmd=CreateCommand(c,t,"""
-                SELECT q.operation_id,q.record_id,q.payload_json,q.kind,COALESCE(o.server_revision,r.server_revision) FROM focus_sync_outbox q
+                SELECT q.operation_id,q.record_id,q.payload_json,q.kind,q.base_revision FROM focus_sync_outbox q
                 LEFT JOIN focus_sync_owners o ON o.record_id=q.record_id AND o.user_id=q.user_id AND o.api_scope=q.api_scope
-                LEFT JOIN focus_sync_bindings b ON b.user_id=q.user_id AND b.api_scope=q.api_scope
-                LEFT JOIN focus_sync_remote r ON r.binding_id=b.binding_id AND r.record_id=q.record_id
                 WHERE q.user_id=$user AND q.api_scope=$scope AND q.state=0
-                  AND (q.kind='delete' OR q.kind='upsert' AND o.is_deleted=0 AND q.payload_hash=o.payload_hash)
+                  AND (q.kind='delete' OR q.kind='upsert' AND o.is_deleted=0)
+                  AND NOT EXISTS(SELECT 1 FROM focus_sync_outbox earlier WHERE earlier.record_id=q.record_id
+                    AND earlier.user_id=q.user_id AND earlier.api_scope=q.api_scope AND earlier.state=0 AND earlier.rowid<q.rowid)
                   AND (q.next_attempt_utc IS NULL OR q.next_attempt_utc<=$now)
                 ORDER BY CASE WHEN q.kind='delete' THEN 0 ELSE 1 END,q.rowid LIMIT $limit
                 """);
             cmd.Parameters.AddWithValue("$user",FormatGuid(b.UserId!.Value));cmd.Parameters.AddWithValue("$scope",b.ApiScope);
             cmd.Parameters.AddWithValue("$now",FormatDateTime(DateTimeOffset.UtcNow));cmd.Parameters.AddWithValue("$limit",Math.Clamp(limit,1,50));
-            await using var reader=await cmd.ExecuteReaderAsync(ct);
-            while(await reader.ReadAsync(ct))
-            {var json=reader.GetString(2);var size=Encoding.UTF8.GetByteCount(json);if(rows.Count>0&&bytes+size>350000)break;
-             rows.Add(new(Guid.Parse(reader.GetString(0)),Guid.Parse(reader.GetString(1)),json)
-                {Kind=reader.GetString(3),BaseRevision=null});bytes+=size;}
+            await using(var reader=await cmd.ExecuteReaderAsync(ct))
+                while(await reader.ReadAsync(ct))
+                {var json=reader.GetString(2);var size=Encoding.UTF8.GetByteCount(json);if(rows.Count>0&&bytes+size>350000)break;
+                 rows.Add(new(Guid.Parse(reader.GetString(0)),Guid.Parse(reader.GetString(1)),json)
+                    {Kind=reader.GetString(3),BaseRevision=reader.IsDBNull(4)?null:reader.GetInt64(4)});bytes+=size;}
+            foreach(var row in rows)
+                await SyncSql(c,t,"UPDATE focus_sync_outbox SET sent=1 WHERE operation_id=$id",ct,("$id",FormatGuid(row.OperationId)));
         },ct);return rows;
     }
     public async Task ApplyFocusUploadResultsAsync(Guid bindingId,IReadOnlyList<FocusUploadAck> results,CancellationToken ct=default)
@@ -226,6 +232,9 @@ public sealed partial class SqliteLocalDataStore : IFocusSyncStore
                     UPDATE focus_sync_owners SET server_revision=max(COALESCE(server_revision,0),$rev)
                     WHERE record_id=$id AND user_id=$user AND api_scope=$scope AND $success=1
                       AND EXISTS(SELECT 1 FROM focus_sync_outbox WHERE operation_id=$op AND record_id=$id AND user_id=$user AND api_scope=$scope);
+                    UPDATE focus_sync_outbox SET base_revision=$rev WHERE record_id=$id AND user_id=$user AND api_scope=$scope
+                      AND state=0 AND sent=0 AND kind='upsert' AND $success=1
+                      AND rowid>(SELECT rowid FROM focus_sync_outbox WHERE operation_id=$op);
                     """,ct,("$state",success?1:r.Status=="retry"?0:2),("$error",r.Code is {Length:>128}?r.Code[..128]:r.Code),
                     ("$rev",r.ServerRevision),("$retry",r.Status=="retry"?1:0),("$success",success?1:0),
                     ("$op",FormatGuid(r.OperationId)),("$id",FormatGuid(r.RecordId)),("$user",FormatGuid(b.UserId!.Value)),("$scope",b.ApiScope));
@@ -239,7 +248,18 @@ public sealed partial class SqliteLocalDataStore : IFocusSyncStore
             }
         },ct);
     }
-    public Task RetryFocusUploadsAsync(Guid bindingId,CancellationToken ct=default) => ExecuteWriteAsync(async(c,t)=>
-    {var b=await SyncBinding(c,t,bindingId,ct);await SyncSql(c,t,"UPDATE focus_sync_outbox SET next_attempt_utc=NULL WHERE user_id=$user AND api_scope=$scope AND state=0",ct,
-        ("$user",FormatGuid(b.UserId!.Value)),("$scope",b.ApiScope));},ct);
+    public Task RetryFocusUploadsAsync(Guid bindingId, CancellationToken ct = default, bool includeRejected = false)
+        => ExecuteWriteAsync(async (connection, transaction) =>
+        {
+            var binding = await SyncBinding(connection, transaction, bindingId, ct);
+            // Keep the original operation ID and payload so the server can replay its saved receipt.
+            await SyncSql(connection, transaction, """
+                UPDATE focus_sync_outbox AS q SET state=0,next_attempt_utc=NULL
+                WHERE q.user_id=$user AND q.api_scope=$scope AND (q.state=0 OR
+                    ($includeRejected=1 AND q.state=2 AND q.sent=1 AND NOT EXISTS (
+                        SELECT 1 FROM focus_sync_outbox newer WHERE newer.record_id=q.record_id
+                        AND newer.user_id=q.user_id AND newer.api_scope=q.api_scope AND newer.rowid>q.rowid)));
+                """, ct, ("$user", FormatGuid(binding.UserId!.Value)), ("$scope", binding.ApiScope),
+                ("$includeRejected", includeRejected ? 1 : 0));
+        }, ct);
 }

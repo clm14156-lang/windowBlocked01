@@ -18,6 +18,7 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
     private bool _isApplyingLaunchAtStartup;
     private bool _isApplyingWindowsNotifications;
     private bool _isApplyingFocusSound;
+    private bool _isApplyingFocusFeatures;
     private bool _isApplyingRuleEditorSave;
     private DispatcherTimer? _ruleMergeToastTimer;
     private bool _isRuleMergeToastVisible;
@@ -545,18 +546,33 @@ public sealed class SettingsPageViewModel : INotifyPropertyChanged
     private void AutomaticBlockingItem_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(SettingsToggleItemViewModel.IsEnabled))
-        {
             OnPropertyChanged(nameof(IsAutomaticBlockingEnabled));
-            RulesChanged?.Invoke(this, EventArgs.Empty);
-        }
+        PublishFocusFeatureChange(sender, e, FocusFeature.AutomaticBlocking);
     }
 
     private void ForcedModeItem_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(SettingsToggleItemViewModel.IsEnabled))
+        PublishFocusFeatureChange(sender, e, FocusFeature.ForcedMode);
+    }
+
+    internal event EventHandler<SetFocusFeatureCommand>? FocusFeatureChanged;
+
+    private void PublishFocusFeatureChange(object? sender, PropertyChangedEventArgs e, FocusFeature feature)
+    {
+        if (!_isApplyingFocusFeatures && e.PropertyName == nameof(SettingsToggleItemViewModel.IsConfiguredEnabled) &&
+            sender is SettingsToggleItemViewModel item)
+            FocusFeatureChanged?.Invoke(this, new SetFocusFeatureCommand(feature, item.IsConfiguredEnabled));
+    }
+
+    internal void ApplyFocusFeatureSettings(LocalAppSettingsDto? settings)
+    {
+        _isApplyingFocusFeatures = true;
+        try
         {
-            EnsureVipFeatureAccessState();
+            AutomaticBlockingItem?.ApplyConfiguredEnabled(settings?.AutomaticBlockingEnabled == true);
+            ForcedModeItem?.ApplyConfiguredEnabled(settings?.ForcedModeRequested == true);
         }
+        finally { _isApplyingFocusFeatures = false; }
     }
 
     private void LaunchAtStartupItem_PropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -907,15 +923,18 @@ public sealed class SettingsToggleItemViewModel : INotifyPropertyChanged
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsEnabled)));
                 return;
             }
-            if (_isEnabled == value)
-            {
-                return;
-            }
-
-            _isEnabled = value;
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsConfiguredEnabled)));
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsEnabled)));
+            ApplyConfiguredEnabled(value);
         }
+    }
+
+    internal void ApplyConfiguredEnabled(bool value)
+    {
+        if (_isEnabled == value) return;
+
+        var previous = IsEnabled;
+        _isEnabled = value;
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsConfiguredEnabled)));
+        if (previous != IsEnabled) PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsEnabled)));
     }
 }
 

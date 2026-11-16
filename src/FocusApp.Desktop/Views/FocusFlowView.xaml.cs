@@ -12,6 +12,7 @@ public partial class FocusFlowView : UserControl
     {
         InitializeComponent();
         FocusLeaves.SetScene(FocusBackground, FocusFooterRule, FocusFooter);
+        InitializeMeteor();
         Unloaded += (_, _) => FinishEntrance();
         IsVisibleChanged += (_, _) => { if (!IsVisible) FinishEntrance(); };
     }

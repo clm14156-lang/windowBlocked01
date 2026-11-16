@@ -4,7 +4,8 @@
     <SolidColorBrush x:Key="AccountSyncBorder" Color="#384252" />
     <SolidColorBrush x:Key="AccountSyncText" Color="#F4F6FA" />
     <SolidColorBrush x:Key="AccountSyncSecondaryText" Color="#B6C0CF" />
-    <SolidColorBrush x:Key="AccountSyncWaitingBackground" Color="#272F3C" />
+    <SolidColorBrush x:Key="AccountSyncWaitingBackground" Color="#22334E" />
+    <SolidColorBrush x:Key="AccountSyncProgress" Color="#82B6FF" />
     <SolidColorBrush x:Key="AccountSyncSuccessBackground" Color="#1E352C" />
     <SolidColorBrush x:Key="AccountSyncSuccess" Color="#6DE1A0" />
     <SolidColorBrush x:Key="AccountSyncFailedBackground" Color="#3A282D" />

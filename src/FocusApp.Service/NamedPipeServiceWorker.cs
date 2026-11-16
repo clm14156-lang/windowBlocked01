@@ -301,6 +301,8 @@ public sealed class NamedPipeServiceWorker : BackgroundService
             request.Operation is not (
                 IpcOperations.Ping or
                 IpcOperations.GetState or
+                IpcOperations.GetFocusFeatureAccess or
+                IpcOperations.SetFocusFeature or
                 IpcOperations.GetAccessControlStatus or
                 IpcOperations.GetFocusRuntimeStatus or
 #if DEBUG

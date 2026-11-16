@@ -572,77 +572,57 @@
                             <TextBlock x:Name="CompletionTime" Text="{Binding CompletedTimeDisplay, Mode=OneWay}"
                                        Style="{StaticResource FocusCountdownTextStyle}" />
                         </Viewbox>
-                        <StackPanel Margin="0,-4,0,0" HorizontalAlignment="Center">
-                            <Grid x:Name="CompletionTarget" HorizontalAlignment="Center" MaxWidth="440" Height="26" Margin="0,0,0,6"
-                                  Visibility="{Binding HasTarget, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="23" />
-                                    <ColumnDefinition Width="10" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <Image x:Name="CompletionTargetIcon" Width="22" Height="22" VerticalAlignment="Center" Stretch="Uniform"
-                                       RenderOptions.BitmapScalingMode="HighQuality">
-                                    <Image.Source><MultiBinding Converter="{x:Static views:TargetIconSourceConverter.Instance}">
-                                        <Binding Source="/FocusApp.Desktop;component/Assets/Icons/targetSelected_Svg/internet.svg" />
-                                        <Binding ElementName="CompletionTargetName" Path="Foreground" />
-                                    </MultiBinding></Image.Source>
-                                </Image>
-                                <TextBlock x:Name="CompletionTargetName" Grid.Column="2" MaxWidth="407" VerticalAlignment="Center"
-                                           Text="{Binding TargetName, Mode=OneWay}" FontSize="{DynamicResource SectionTitleFontSize}" FontWeight="{DynamicResource SectionTitleFontWeight}" Foreground="{DynamicResource FocusTargetBrush}"
-                                           TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" ToolTip="{Binding TargetName}" />
+                        <Grid x:Name="CompletionStatistics" Width="304" Height="60" Margin="0,30,0,0" HorizontalAlignment="Center">
+                            <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="1"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                            <Border x:Name="CompletionStatisticsCapsule" Grid.ColumnSpan="3" Margin="-20,-10"
+                                    CornerRadius="40" IsHitTestVisible="False">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Background" Value="{StaticResource FocusCompletionCapsuleBackground}" />
+                                        <Setter Property="Effect" Value="{StaticResource FocusCompletionCapsuleShadow}" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsDarkFocusTheme}" Value="True">
+                                                <Setter Property="Background" Value="{DynamicResource FocusCompletionNightCapsuleBackground}" />
+                                                <Setter Property="Effect" Value="{x:Null}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                            </Border>
+                            <Grid x:Name="CompletionTodayColumn" Margin="4,0,12,0" HorizontalAlignment="Left">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="24"/><ColumnDefinition Width="14"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions><RowDefinition Height="26"/><RowDefinition Height="34"/></Grid.RowDefinitions>
+                                <Viewbox x:Name="CompletionTodayIcon" Width="24" Height="24" VerticalAlignment="Center">
+                                    <Canvas Width="24" Height="24">
+                                        <Rectangle Width="4" Height="9" Canvas.Left="2" Canvas.Top="13" RadiusX="1" RadiusY="1" Fill="{DynamicResource FocusCompletionIconBrush}" />
+                                        <Rectangle Width="4" Height="14" Canvas.Left="10" Canvas.Top="8" RadiusX="1" RadiusY="1" Fill="{DynamicResource FocusCompletionIconBrush}" />
+                                        <Rectangle Width="4" Height="20" Canvas.Left="18" Canvas.Top="2" RadiusX="1" RadiusY="1" Fill="{DynamicResource FocusCompletionIconBrush}" />
+                                    </Canvas>
+                                </Viewbox>
+                                <TextBlock x:Name="CompletionTodayLabel" Grid.Column="2" VerticalAlignment="Center" Text="{DynamicResource FocusTodayTotalShort}" Style="{StaticResource FocusCompletionStatisticLabelTextStyle}" />
+                                <Viewbox Grid.Row="1" Grid.Column="2" Height="34" MaxWidth="104" HorizontalAlignment="Left" Stretch="Uniform" StretchDirection="DownOnly">
+                                    <TextBlock x:Name="CompletionTodayValue" Style="{StaticResource FocusCompletionMetricTextStyle}" AutomationProperties.Name="{Binding CompletionTodayDurationDisplay, Mode=OneWay}">
+                                        <Run Text="{Binding CompletionTodayPrimaryValue, Mode=OneWay}"/><Run Text="{Binding CompletionTodayPrimaryUnit, Mode=OneWay, StringFormat=' {0}'}" Style="{StaticResource FocusCompletionUnitRunStyle}"/><Run Text="{Binding CompletionTodaySecondaryValue, Mode=OneWay}"/><Run Text="{Binding CompletionTodaySecondaryUnit, Mode=OneWay}" Style="{StaticResource FocusCompletionUnitRunStyle}"/>
+                                    </TextBlock>
+                                </Viewbox>
                             </Grid>
-                            <Grid x:Name="CompletionStatistics" Width="304" Height="60" Margin="0,40,0,0" HorizontalAlignment="Center">
-                                <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="1"/><ColumnDefinition/></Grid.ColumnDefinitions>
-                                <Border x:Name="CompletionStatisticsCapsule" Grid.ColumnSpan="3" Margin="-20,-10"
-                                        CornerRadius="40" IsHitTestVisible="False">
-                                    <Border.Style>
-                                        <Style TargetType="Border">
-                                            <Setter Property="Background" Value="{StaticResource FocusCompletionCapsuleBackground}" />
-                                            <Setter Property="Effect" Value="{StaticResource FocusCompletionCapsuleShadow}" />
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsDarkFocusTheme}" Value="True">
-                                                    <Setter Property="Background" Value="{DynamicResource FocusCompletionNightCapsuleBackground}" />
-                                                    <Setter Property="Effect" Value="{x:Null}" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Border.Style>
-                                </Border>
-                                <Grid x:Name="CompletionTodayColumn" Margin="4,0,12,0" HorizontalAlignment="Left">
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="24"/><ColumnDefinition Width="14"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                    <Grid.RowDefinitions><RowDefinition Height="26"/><RowDefinition Height="34"/></Grid.RowDefinitions>
-                                    <Viewbox x:Name="CompletionTodayIcon" Width="24" Height="24" VerticalAlignment="Center">
-                                        <Canvas Width="24" Height="24">
-                                            <Rectangle Width="4" Height="9" Canvas.Left="2" Canvas.Top="13" RadiusX="1" RadiusY="1" Fill="{DynamicResource FocusCompletionIconBrush}" />
-                                            <Rectangle Width="4" Height="14" Canvas.Left="10" Canvas.Top="8" RadiusX="1" RadiusY="1" Fill="{DynamicResource FocusCompletionIconBrush}" />
-                                            <Rectangle Width="4" Height="20" Canvas.Left="18" Canvas.Top="2" RadiusX="1" RadiusY="1" Fill="{DynamicResource FocusCompletionIconBrush}" />
-                                        </Canvas>
-                                    </Viewbox>
-                                    <TextBlock x:Name="CompletionTodayLabel" Grid.Column="2" VerticalAlignment="Center" Text="{DynamicResource FocusTodayTotalShort}" Style="{StaticResource FocusCompletionStatisticLabelTextStyle}" />
-                                    <Viewbox Grid.Row="1" Grid.Column="2" Height="34" MaxWidth="104" HorizontalAlignment="Left" Stretch="Uniform" StretchDirection="DownOnly">
-                                        <TextBlock x:Name="CompletionTodayValue" Style="{StaticResource FocusCompletionMetricTextStyle}" AutomationProperties.Name="{Binding CompletionTodayDurationDisplay, Mode=OneWay}">
-                                            <Run Text="{Binding CompletionTodayPrimaryValue, Mode=OneWay}"/><Run Text="{Binding CompletionTodayPrimaryUnit, Mode=OneWay, StringFormat=' {0}'}" Style="{StaticResource FocusCompletionUnitRunStyle}"/><Run Text="{Binding CompletionTodaySecondaryValue, Mode=OneWay}"/><Run Text="{Binding CompletionTodaySecondaryUnit, Mode=OneWay}" Style="{StaticResource FocusCompletionUnitRunStyle}"/>
-                                        </TextBlock>
-                                    </Viewbox>
-                                </Grid>
-                                <Border x:Name="CompletionStatisticsDivider" Grid.Column="1" Width="1" Height="56" VerticalAlignment="Center" Background="{DynamicResource FocusCompletionDividerBrush}" />
-                                <Grid x:Name="CompletionClockColumn" Grid.Column="2" Margin="34,0,0,0" HorizontalAlignment="Left">
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="24"/><ColumnDefinition Width="14"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                    <Grid.RowDefinitions><RowDefinition Height="26"/><RowDefinition Height="34"/></Grid.RowDefinitions>
-                                    <Viewbox x:Name="CompletionClockIcon" Width="24" Height="24" VerticalAlignment="Center">
-                                        <Canvas Width="24" Height="24">
-                                            <Ellipse Width="21" Height="21" Canvas.Left="1.5" Canvas.Top="1.5" Stroke="{DynamicResource FocusCompletionIconBrush}" StrokeThickness="2" />
-                                            <Path Data="M12,6 L12,12 L17,15" Stroke="{DynamicResource FocusCompletionIconBrush}" StrokeThickness="2"
-                                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
-                                        </Canvas>
-                                    </Viewbox>
-                                    <TextBlock x:Name="CompletionClockLabel" Grid.Column="2" VerticalAlignment="Center" Text="{DynamicResource FocusCompletedAt}" Style="{StaticResource FocusCompletionStatisticLabelTextStyle}" />
-                                    <TextBlock x:Name="CompletionClockValue" Grid.Row="1" Grid.Column="2" Text="{Binding CompletionClockDisplay, Mode=OneWay}" Style="{StaticResource FocusCompletionMetricTextStyle}" Height="34" />
-                                </Grid>
+                            <Border x:Name="CompletionStatisticsDivider" Grid.Column="1" Width="1" Height="56" VerticalAlignment="Center" Background="{DynamicResource FocusCompletionDividerBrush}" />
+                            <Grid x:Name="CompletionClockColumn" Grid.Column="2" Margin="34,0,0,0" HorizontalAlignment="Left">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="24"/><ColumnDefinition Width="14"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions><RowDefinition Height="26"/><RowDefinition Height="34"/></Grid.RowDefinitions>
+                                <Viewbox x:Name="CompletionClockIcon" Width="24" Height="24" VerticalAlignment="Center">
+                                    <Canvas Width="24" Height="24">
+                                        <Ellipse Width="21" Height="21" Canvas.Left="1.5" Canvas.Top="1.5" Stroke="{DynamicResource FocusCompletionIconBrush}" StrokeThickness="2" />
+                                        <Path Data="M12,6 L12,12 L17,15" Stroke="{DynamicResource FocusCompletionIconBrush}" StrokeThickness="2"
+                                              StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
+                                    </Canvas>
+                                </Viewbox>
+                                <TextBlock x:Name="CompletionClockLabel" Grid.Column="2" VerticalAlignment="Center" Text="{DynamicResource FocusCompletedAt}" Style="{StaticResource FocusCompletionStatisticLabelTextStyle}" />
+                                <TextBlock x:Name="CompletionClockValue" Grid.Row="1" Grid.Column="2" Text="{Binding CompletionClockDisplay, Mode=OneWay}" Style="{StaticResource FocusCompletionMetricTextStyle}" Height="34" />
                             </Grid>
-                        </StackPanel>
+                        </Grid>
                     </StackPanel>
-                    <Border x:Name="CompletionRecordStatusBar" MinWidth="176" Height="34" Margin="0,26,0,0"
+                    <Border x:Name="CompletionRecordStatusBar" MinWidth="176" Height="34" Margin="0,20,0,0"
                             Padding="0" HorizontalAlignment="Center" BorderThickness="0" Background="Transparent" Effect="{x:Null}"
                             Visibility="{Binding CompletionRecordStatus.IsVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
                             AutomationProperties.Name="{Binding Text, ElementName=CompletionRecordStatusText}"
@@ -705,6 +685,9 @@
                                             <DataTrigger Binding="{Binding CompletionRecordStatus.State}" Value="{x:Static vm:CompletionRecordSaveState.LocalSaved}">
                                                 <Setter Property="Visibility" Value="Visible" />
                                             </DataTrigger>
+                                            <DataTrigger Binding="{Binding CompletionRecordStatus.IsOffline}" Value="True">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                            </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
                                 </Viewbox.Style>
@@ -713,6 +696,28 @@
                                           Stroke="{DynamicResource FocusRecordLocalIcon}" StrokeThickness="1.8" StrokeLineJoin="Round" />
                                     <Ellipse Width="2" Height="2" Canvas.Left="6" Canvas.Top="17" Fill="{DynamicResource FocusRecordLocalIcon}" />
                                     <Ellipse Width="2" Height="2" Canvas.Left="16" Canvas.Top="17" Fill="{DynamicResource FocusRecordLocalIcon}" />
+                                </Canvas>
+                            </Viewbox>
+                            <Viewbox Width="22" Height="22" Margin="0,0,9,0">
+                                <Viewbox.Style>
+                                    <Style TargetType="Viewbox">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding CompletionRecordStatus.State}" Value="{x:Static vm:CompletionRecordSaveState.LocalSaved}" />
+                                                    <Condition Binding="{Binding CompletionRecordStatus.IsOffline}" Value="True" />
+                                                </MultiDataTrigger.Conditions>
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </MultiDataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Viewbox.Style>
+                                <Canvas Width="24" Height="24">
+                                    <Path Data="M2,10 A15,15 0 0 1 22,10 M5,13 A10.5,10.5 0 0 1 19,13 M8.5,16 A5.4,5.4 0 0 1 15.5,16 M3,3 L21,21"
+                                          Stroke="{DynamicResource FocusRecordOfflineIcon}" StrokeThickness="1.8"
+                                          StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                                    <Ellipse Width="2.4" Height="2.4" Canvas.Left="10.8" Canvas.Top="18" Fill="{DynamicResource FocusRecordOfflineIcon}" />
                                 </Canvas>
                             </Viewbox>
                             <TextBlock x:Name="CompletionRecordStatusText" VerticalAlignment="Center" FontSize="13" FontWeight="Medium"
@@ -784,6 +789,8 @@
                              TotalFocusSeconds="{Binding TotalFocusSeconds}" RemainingFocusSeconds="{Binding RemainingFocusSeconds}"
                              WeatherBrush="{DynamicResource FocusWeatherBrush}"
                              IsHitTestVisible="False" ClipToBounds="True"/>
+        <views:FocusMeteorLayer x:Name="FocusMeteor" IsHitTestVisible="False" ClipToBounds="True"
+                               Visibility="Collapsed" />
         <Grid Height="48" Panel.ZIndex="1"
               VerticalAlignment="Top"
               MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">

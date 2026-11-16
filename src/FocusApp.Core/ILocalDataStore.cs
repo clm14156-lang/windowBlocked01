@@ -45,5 +45,8 @@ public interface ILocalDataStore
 public interface IAccountFocusRecoveryStore
 {
     Task<bool> HasPendingFocusRecoveryAsync(CancellationToken token);
-    Task SetPendingFocusRecoveryAsync(bool pending, CancellationToken token);
+    Task<ForcedFocusRecovery?> GetForcedFocusRecoveryAsync(CancellationToken token);
+    Task SetForcedFocusRecoveryAsync(ForcedFocusRecovery? recovery, CancellationToken token);
 }
+
+public sealed record ForcedFocusRecovery(Guid SessionId, Guid UserId, string ApiScope);

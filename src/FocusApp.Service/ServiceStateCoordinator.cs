@@ -93,11 +93,12 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
                 new IpcErrorResult(IpcErrorCode.InvalidRequest, "请求关联 ID 不能为空。")));
         }
 
-        var ownerConnection = request.Operation is IpcOperations.StartNormalFocus or IpcOperations.StartForcedFocus
-            or IpcOperations.ResumeInterruptedFocus or IpcOperations.CheckpointNormalFocus ? focusConnectionId : null;
+        var ownerConnection = request.Operation is IpcOperations.StartNormalFocus or IpcOperations.ResumeInterruptedFocus
+            or IpcOperations.CheckpointNormalFocus ? focusConnectionId : null;
         var key = (request.AccountSession, request.RequestId, ownerConnection);
         if (openAccountStore is not null && request.ClientRole == IpcClientRole.Desktop &&
-            request.AccountSession != accountSession && request.Operation != FocusSyncIpc.Bind)
+            (request.AccountSession != accountSession || accountUserId is not null && accountSession == Guid.Empty) &&
+            request.Operation != FocusSyncIpc.Bind)
             return HandleCoreAsync(request, cancellationToken, focusConnectionId);
         var lazyResponse = _requestCache.GetOrAdd(key, _ =>
         {
@@ -115,9 +116,16 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
         var accountGateHeld = false;
         try
         {
-            await EnsureInitializedAsync(cancellationToken);
+            if (request.Operation == IpcOperations.AgentProxyActionResult)
+                return IpcEnvelope.CreateSuccess(request, CompleteAgentProxyAction(request.ReadPayload<AgentProxyActionResultCommand>()));
+            if (request.Operation == IpcOperations.UpdateAccessControlUpstream)
+                return IpcEnvelope.CreateSuccess(request, UpdateAccessControlUpstream(request.ReadPayload<UpdateAccessControlUpstreamCommand>()));
+
+            // Once a request starts recovery, the lifetime of that recovery belongs to the service.
+            await EnsureInitializedAsync(CancellationToken.None);
             var desktopAccountRequest = request.ClientRole == IpcClientRole.Desktop && request.Operation != IpcOperations.Ping;
-            if (openAccountStore is not null && (desktopAccountRequest || request.Operation == IpcOperations.GetState))
+            if (openAccountStore is not null && (desktopAccountRequest || request.Operation is
+                IpcOperations.GetState or IpcOperations.GetFocusFeatureAccess or IpcOperations.SetFocusFeature))
             {
                 await accountRequests.WaitAsync(cancellationToken);
                 accountGateHeld = true;
@@ -126,7 +134,7 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
             {
                 if (request.Operation == FocusSyncIpc.Bind)
                     return await SwitchAccountAsync(request, cancellationToken);
-                if (request.AccountSession != accountSession)
+                if (request.AccountSession != accountSession || accountUserId is not null && accountSession == Guid.Empty)
                     return await RejectInactiveAccountAsync(request, cancellationToken);
                 if (accountUserId is null && RequiresAccount(request.Operation))
                     throw new ServiceBusinessException("请先登录账号。");
@@ -139,6 +147,9 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
             {
                 IpcOperations.Ping => IpcEnvelope.CreateSuccess(request, ServiceRuntime.PingResponse),
                 IpcOperations.GetState => IpcEnvelope.CreateSuccess(request, await ReadStateForClientAsync(request.ClientRole, cancellationToken)),
+                IpcOperations.GetFocusFeatureAccess => IpcEnvelope.CreateSuccess(request, await ReadFocusFeatureAccessAsync(cancellationToken)),
+                IpcOperations.SetFocusFeature => await MutateAsync(request,
+                    token => SetFocusFeatureAsync(request, token), cancellationToken),
                 IpcOperations.GetAccessControlStatus => IpcEnvelope.CreateSuccess(
                     request,
                     await GetAccessControlStatusAsync(request.ClientRole, cancellationToken)),
@@ -147,12 +158,12 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
                     request,
                     await StartForcedFocusAsync(
                         request.ReadPayload<StartForcedFocusCommand>(),
-                        focusConnectionId, cancellationToken)),
+                        cancellationToken)),
                 IpcOperations.CancelForcedFocusStarting => IpcEnvelope.CreateSuccess(
                     request,
                     await CancelForcedFocusStartingAsync(
                         request.ReadPayload<CancelForcedFocusStartingCommand>(),
-                        focusConnectionId, cancellationToken)),
+                        cancellationToken)),
 #if DEBUG
                 IpcOperations.EndForcedFocusForDebug => IpcEnvelope.CreateSuccess(
                     request,
@@ -178,9 +189,6 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
                 IpcOperations.DeactivateAccessControl => IpcEnvelope.CreateSuccess(
                     request,
                     await DeactivateAccessControlAsync(cancellationToken)),
-                IpcOperations.AgentProxyActionResult => IpcEnvelope.CreateSuccess(
-                    request,
-                    CompleteAgentProxyAction(request.ReadPayload<AgentProxyActionResultCommand>())),
                 IpcOperations.AgentStartupRegistrationActionResult => IpcEnvelope.CreateSuccess(
                     request,
                     CompleteAgentStartupRegistrationAction(
@@ -200,10 +208,6 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
                     await ApplyAgentProxyReconciliationResultAsync(
                         request.ReadPayload<AgentProxyReconciliationResultCommand>(),
                         cancellationToken)),
-                IpcOperations.UpdateAccessControlUpstream => IpcEnvelope.CreateSuccess(
-                    request,
-                    UpdateAccessControlUpstream(
-                        request.ReadPayload<UpdateAccessControlUpstreamCommand>())),
                 IpcOperations.SaveTarget => await MutateAsync(request, async token =>
                 {
                     var command = request.ReadPayload<SaveTargetCommand>();
@@ -228,9 +232,27 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
                         session.Status == LocalFocusSessionStatus.Completed))
                         await _store.DeleteFocusSessionAsync(command.SessionId, token);
                 }, cancellationToken),
+                IpcOperations.UpdateFocusRecord => await MutateAsync(request, async token =>
+                {
+                    var edit = LocalDataContractMapper.ToCore(request.ReadPayload<UpdateFocusRecordCommand>().Session);
+                    var existing = (await _store.LoadAsync(token)).FocusSessions.SingleOrDefault(session =>
+                        session.SessionId == edit.SessionId && session.Status == LocalFocusSessionStatus.Completed)
+                        ?? throw new ServiceBusinessException("该专注记录不存在或已删除。");
+                    if (edit.Status != LocalFocusSessionStatus.Completed || edit.IsForcedMode != existing.IsForcedMode)
+                        throw new ServiceBusinessException("只能更新已完成的专注记录。");
+                    await _store.SaveFocusSessionAsync(edit with
+                    {
+                        CloudBindingId = existing.CloudBindingId,
+                        RecoveryCheckpointAtUtc = existing.RecoveryCheckpointAtUtc,
+                        ActivityIntervals = existing.ActivityIntervals,
+                        WebsiteRuleSnapshots = existing.WebsiteRuleSnapshots,
+                        ApplicationRuleSnapshots = existing.ApplicationRuleSnapshots
+                    }, cancellationToken: token);
+                }, cancellationToken),
                 IpcOperations.ReplaceWebsiteRules => await MutateAsync(request, async token =>
                 {
                     var command = request.ReadPayload<ReplaceWebsiteRulesCommand>();
+                    EnsureWebsiteAccountScope(command.ExpectedAccountSession);
                     if (command.Changes is not { } changes)
                     {
                         await _store.ReplaceWebsiteRulesAsync(command.Rules.Select(LocalDataContractMapper.ToCore).ToArray(), token);
@@ -266,6 +288,14 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
                 {
                     var command = request.ReadPayload<SaveSettingsCommand>();
                     var previous = (await _store.LoadAsync(token)).Settings;
+                    if (command.PreserveFocusFeatures)
+                    {
+                        command = command with { Settings = command.Settings with
+                        {
+                            ForcedModeRequested = previous.ForcedModeRequested,
+                            AutomaticBlockingEnabled = previous.AutomaticBlockingEnabled
+                        } };
+                    }
                     if (command.Settings.ForcedModeRequested && !previous.ForcedModeRequested) await DemandMembershipAsync("forced_mode", token);
                     if (command.Settings.AutomaticBlockingEnabled && !previous.AutomaticBlockingEnabled) await DemandMembershipAsync("automatic_blocking", token);
                     await SaveSettingsAsync(command, token);
@@ -347,7 +377,14 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
             }
             var revision = Interlocked.Increment(ref _revision);
             var state = await LoadStateAsync(cancellationToken);
-            var stateChanged = new StateChangedEvent(revision, state);
+            var stateChanged = new StateChangedEvent(revision, state)
+            {
+                HasLocalSyncChanges = request.Operation is IpcOperations.ReplaceWebsiteRules or IpcOperations.DeleteFocusRecord
+                    or IpcOperations.UpdateFocusRecord or IpcOperations.DeleteTarget or IpcOperations.AbandonInterruptedFocus,
+                HasWebsiteSyncChanges = request.Operation == IpcOperations.ReplaceWebsiteRules,
+                HasFocusSyncChanges = request.Operation is IpcOperations.DeleteFocusRecord or IpcOperations.UpdateFocusRecord
+                    or IpcOperations.DeleteTarget or IpcOperations.AbandonInterruptedFocus
+            };
             StateChanged?.Invoke(this, stateChanged);
             return IpcEnvelope.CreateSuccess(request, new MutationResult(revision, state));
         }
@@ -402,7 +439,7 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
                 cancellationToken);
             ClearFocusOwner(session.SessionId);
             ClearInterruptedFocusRuntime(session.SessionId);
-            var state = await PublishStateChangedAsync(cancellationToken);
+            var state = await PublishStateChangedAsync(CancellationToken.None, hasLocalSyncChanges: true);
             return IpcEnvelope.CreateSuccess(request, new MutationResult(state.Revision, state));
         }
         finally
@@ -548,16 +585,9 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
                     snapshot.MonthlyFocusTargets,
                     cancellationToken);
             }
+            var recoverySnapshot = await OpenPendingForcedFocusAccountAsync(cancellationToken) ?? snapshot;
+            await RestoreInterruptedFocusAsync(recoverySnapshot, cancellationToken);
             _initialized = true;
-            try
-            {
-                await RestoreInterruptedFocusAsync(snapshot, cancellationToken);
-            }
-            catch
-            {
-                _initialized = false;
-                throw;
-            }
         }
         finally
         {
@@ -612,6 +642,8 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
             }
         }
         _focusLifecycleCancellation?.Dispose();
+        if (_focusRuntimeStatus is { IsForcedMode: true, SessionId: { } sessionId })
+            await CheckpointForcedFocusAsync(sessionId, CancellationToken.None);
         _accessControlHost.AccessBlocked -= AccessControlHost_AccessBlocked;
         _accessControlHost.ExecutionFailed -= AccessControlHost_ExecutionFailed;
         await _accessControlHost.DisposeAsync();
@@ -623,7 +655,6 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
 
     private async Task<FocusSessionMutationResult> StartForcedFocusAsync(
         StartForcedFocusCommand command,
-        Guid? connectionId,
         CancellationToken cancellationToken)
     {
         if (command.ConfiguredSeconds is <= 0 or > 24 * 60 * 60)
@@ -648,6 +679,13 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
             if (snapshot.FocusSessions.Any(IsActiveSession))
             {
                 throw new ServiceBusinessException("已有进行中的专注会话，不能重复启动强制专注。");
+            }
+
+            if (openAccountStore is not null)
+            {
+                var registration = await RequestAgentStartupRegistrationAsync(true, cancellationToken, focusRecovery: true);
+                if (!registration.Succeeded)
+                    throw new ServiceBusinessException(registration.ErrorMessage ?? "无法配置强制专注的登录后恢复。");
             }
 
             var now = GetEffectiveUtcNow();
@@ -682,23 +720,19 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
             };
 
             if (openAccountStore is not null) session = session with { CloudBindingId = focusSyncBinding };
-            await SetPendingFocusRecoveryAsync(true, cancellationToken);
-            await _store.SaveFocusSessionAsync(session, cancellationToken: cancellationToken);
-            _focusOwner = new(session.SessionId, connectionId, cancellationToken);
+            await SetPendingFocusRecoveryAsync(session.SessionId, cancellationToken);
+            await _store.SaveFocusSessionAsync(session, cancellationToken: CancellationToken.None);
             LogStrong("SaveSession", startedAt);
-            state = await PublishStateChangedAsync(cancellationToken);
+            PublishFocusRuntimeStatus(new FocusRuntimeStatusDto(FocusRuntimeState.Preparing,
+                session.SessionId, session.PlannedEndAtUtc, null) { IsForcedMode = true });
+            ScheduleForcedFocusLifecycle(session.SessionId);
+            state = await PublishStateChangedAsync(CancellationToken.None);
         }
         finally
         {
             _mutationGate.Release();
         }
 
-        PublishFocusRuntimeStatus(new FocusRuntimeStatusDto(
-            FocusRuntimeState.Preparing,
-            session.SessionId,
-            session.PlannedEndAtUtc,
-            null));
-        ScheduleForcedFocusLifecycle(session.SessionId);
         LogStrong("StartMonitor", startedAt);
         return new FocusSessionMutationResult(
             state.Revision,
@@ -709,7 +743,6 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
 
     private async Task<FocusSessionMutationResult> CancelForcedFocusStartingAsync(
         CancelForcedFocusStartingCommand command,
-        Guid? connectionId,
         CancellationToken cancellationToken)
     {
         await _mutationGate.WaitAsync(cancellationToken);
@@ -732,21 +765,18 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
             }
 
             // A cancelled Starting phase must never become a persisted focus record.
-            if (!IsOwnedFocus(preparing.SessionId, connectionId))
-                throw new ServiceBusinessException("中断的强制专注只能继续恢复。");
-            _focusLifecycleCancellation?.Cancel();
             await _store.DeleteFocusSessionAsync(preparing.SessionId, cancellationToken);
-            ClearFocusOwner(preparing.SessionId);
-            await SetPendingFocusRecoveryAsync(false, cancellationToken);
-            state = await PublishStateChangedAsync(cancellationToken);
+            _focusLifecycleCancellation?.Cancel();
+            await SetPendingFocusRecoveryAsync(null, CancellationToken.None);
+            var accessStatus = await DeactivateAccessControlCoreAsync(CancellationToken.None);
+            PublishFocusRuntimeStatus(new FocusRuntimeStatusDto(FocusRuntimeState.Idle, null, null, accessStatus.LastError));
+            state = await PublishStateChangedAsync(CancellationToken.None);
         }
         finally
         {
             _mutationGate.Release();
         }
 
-        await DeactivateAccessControlCoreAsync(CancellationToken.None);
-        PublishFocusRuntimeStatus(new FocusRuntimeStatusDto(FocusRuntimeState.Idle, null, null, null));
         return new FocusSessionMutationResult(state.Revision, state, _focusRuntimeStatus, _accessControlStatus);
     }
 
@@ -754,26 +784,20 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
     private async Task<FocusSessionMutationResult> EndForcedFocusForDebugAsync(
         CancellationToken cancellationToken)
     {
-        PublishFocusRuntimeStatus(new FocusRuntimeStatusDto(
-            FocusRuntimeState.Completing,
-            _focusRuntimeStatus.SessionId,
-            _focusRuntimeStatus.PlannedEndAtUtc,
-            null));
-
-        LocalFocusSession? completed = null;
         LocalDataSnapshotDto state;
+        AccessControlStatusDto accessStatus;
         await _mutationGate.WaitAsync(cancellationToken);
         try
         {
             var snapshot = await _store.LoadAsync(cancellationToken);
             var active = snapshot.FocusSessions.SingleOrDefault(item =>
                 IsActiveSession(item) && item.IsForcedMode);
-            if (active is null || IsRecoveryPending(active))
+            if (active is null)
                 throw new ServiceBusinessException("当前没有正在进行的强制专注。");
 
             var now = GetEffectiveUtcNow();
             var progress = active.Status == LocalFocusSessionStatus.Focusing ? WithForcedProgress(active, now) : active;
-            completed = progress with
+            var completed = progress with
             {
                 Status = LocalFocusSessionStatus.Completed,
                 CompletedAtUtc = now,
@@ -783,21 +807,17 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
                 completed,
                 completed.CompletedTasks.Select(task => task.TaskId).ToArray(),
                 cancellationToken);
-            ClearFocusOwner(completed.SessionId);
-            await SetPendingFocusRecoveryAsync(false, cancellationToken);
-            state = await PublishStateChangedAsync(cancellationToken);
+            _focusLifecycleCancellation?.Cancel();
+            await SetPendingFocusRecoveryAsync(null, CancellationToken.None);
+            accessStatus = await DeactivateAccessControlCoreAsync(CancellationToken.None);
+            PublishFocusRuntimeStatus(new FocusRuntimeStatusDto(FocusRuntimeState.Idle, null, null, accessStatus.LastError));
+            state = await PublishStateChangedAsync(CancellationToken.None, hasLocalSyncChanges: true);
         }
         finally
         {
             _mutationGate.Release();
         }
 
-        var accessStatus = await DeactivateAccessControlCoreAsync(CancellationToken.None);
-        PublishFocusRuntimeStatus(new FocusRuntimeStatusDto(
-            FocusRuntimeState.Idle,
-            null,
-            null,
-            accessStatus.State == AccessControlRuntimeState.Inactive ? null : accessStatus.LastError));
         return new FocusSessionMutationResult(
             state.Revision,
             state,
@@ -845,13 +865,14 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
 
     private async Task RestoreInterruptedFocusAsync(LocalDataSnapshot snapshot, CancellationToken cancellationToken)
     {
-        var pending = snapshot.FocusSessions.SingleOrDefault(IsRecoveryPending);
-        if (pending?.IsForcedMode == true)
+        var forced = snapshot.FocusSessions.SingleOrDefault(session => session.IsForcedMode && IsActiveSession(session));
+        if (forced is not null)
         {
-            await KeepInterruptedForcedProtectionAsync(pending, cancellationToken);
+            await RestoreForcedFocusAsync(forced, cancellationToken);
             return;
         }
 
+        var pending = snapshot.FocusSessions.SingleOrDefault(IsRecoveryPending);
         PublishFocusRuntimeStatus(new FocusRuntimeStatusDto(
             pending is null ? FocusRuntimeState.Idle : FocusRuntimeState.Interrupted, pending?.SessionId, null, null));
     }
@@ -859,9 +880,7 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
     private void ScheduleForcedFocusLifecycle(Guid sessionId)
     {
         var previous = _focusLifecycleCancellation;
-        var cancellation = _focusOwner is { } owner && owner.SessionId == sessionId
-            ? CancellationTokenSource.CreateLinkedTokenSource(owner.ConnectionClosed)
-            : new CancellationTokenSource();
+        var cancellation = new CancellationTokenSource();
         _focusLifecycleCancellation = cancellation;
         previous?.Cancel();
         previous?.Dispose();
@@ -877,7 +896,7 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
                 var snapshot = await _store.LoadAsync(cancellationToken);
                 var session = snapshot.FocusSessions.SingleOrDefault(item =>
                     item.SessionId == sessionId && IsActiveSession(item) && item.IsForcedMode);
-                if (session is null || IsRecoveryPending(session))
+                if (session is null)
                 {
                     return;
                 }
@@ -888,7 +907,7 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
                         FocusRuntimeState.Faulted,
                         session.SessionId,
                         session.PlannedEndAtUtc,
-                        "强制专注恢复信息不完整，后台无法继续计时。"));
+                        "强制专注恢复信息不完整，后台无法继续计时。") { IsForcedMode = true });
                     return;
                 }
 
@@ -904,12 +923,6 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
                 {
                     session = await PromoteForcedFocusAsync(session.SessionId, cancellationToken);
                     if (session is null) return;
-                    await EnsureForcedAccessControlAsync(session, cancellationToken);
-                    if (_focusRuntimeStatus.State != FocusRuntimeState.Faulted ||
-                        _focusRuntimeStatus.SessionId != session.SessionId)
-                    {
-                        PublishFocusingStatus(session);
-                    }
                     continue;
                 }
 
@@ -939,7 +952,7 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
                 FocusRuntimeState.Faulted,
                 sessionId,
                 _focusRuntimeStatus.PlannedEndAtUtc,
-                exception.Message));
+                exception.Message) { IsForcedMode = true });
         }
     }
 
@@ -953,11 +966,14 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
             var snapshot = await _store.LoadAsync(cancellationToken);
             var session = snapshot.FocusSessions.SingleOrDefault(item =>
                 item.SessionId == sessionId && IsActiveSession(item) && item.IsForcedMode);
-            if (session is null || IsRecoveryPending(session)) return null;
+            if (session is null) return null;
             if (session.Status == LocalFocusSessionStatus.Focusing) return session;
 
             var focusing = session with { Status = LocalFocusSessionStatus.Focusing };
             await _store.SaveFocusSessionAsync(focusing, cancellationToken: cancellationToken);
+            await EnsureForcedAccessControlAsync(focusing, cancellationToken);
+            if (_focusRuntimeStatus.State != FocusRuntimeState.Faulted || _focusRuntimeStatus.SessionId != focusing.SessionId)
+                PublishFocusingStatus(focusing);
             await PublishStateChangedAsync(cancellationToken);
             return focusing;
         }
@@ -975,7 +991,7 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
             var snapshot = await _store.LoadAsync(cancellationToken);
             var active = snapshot.FocusSessions.SingleOrDefault(item =>
                 item.SessionId == sessionId && IsActiveSession(item) && item.IsForcedMode);
-            if (active is null || IsRecoveryPending(active)) return;
+            if (active is null) return;
             if (active.PlannedEndAtUtc is not { } end)
                 throw new InvalidOperationException("强制专注缺少计划结束时间，无法完成收尾。");
 
@@ -990,17 +1006,15 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
                 completed,
                 completed.CompletedTasks.Select(task => task.TaskId).ToArray(),
                 cancellationToken);
-            ClearFocusOwner(sessionId);
-
             // The settlement is durable. Finish the service-side cleanup even if the client disconnects now.
-            await SetPendingFocusRecoveryAsync(false, CancellationToken.None);
-            await PublishStateChangedAsync(CancellationToken.None);
+            await SetPendingFocusRecoveryAsync(null, CancellationToken.None);
             var accessStatus = await DeactivateAccessControlCoreAsync(CancellationToken.None);
             PublishFocusRuntimeStatus(new FocusRuntimeStatusDto(
                 FocusRuntimeState.Idle,
                 null,
                 null,
                 accessStatus.State == AccessControlRuntimeState.Inactive ? null : accessStatus.LastError));
+            await PublishStateChangedAsync(CancellationToken.None, hasLocalSyncChanges: true);
         }
         finally { _mutationGate.Release(); }
     }
@@ -1015,6 +1029,8 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
             return;
         }
 
+        if (session.PlannedEndAtUtc is { } end && end <= GetEffectiveUtcNow()) return;
+
         if (!session.WebsiteRuleSnapshots.Any(rule => rule.IsEnabled) &&
             !session.ApplicationRuleSnapshots.Any(rule => rule.IsEnabled))
         {
@@ -1022,7 +1038,7 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
                 FocusRuntimeState.Faulted,
                 session.SessionId,
                 session.PlannedEndAtUtc,
-                "强制专注标记为启用屏蔽，但持久化规则快照缺失。"));
+                "强制专注标记为启用屏蔽，但持久化规则快照缺失。") { IsForcedMode = true });
             return;
         }
 
@@ -1045,7 +1061,7 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
             accessError is null ? FocusRuntimeState.Focusing : FocusRuntimeState.Faulted,
             session.SessionId,
             session.PlannedEndAtUtc,
-            accessError));
+            accessError) { IsForcedMode = true });
     }
 
     private DateTimeOffset GetEffectiveUtcNow()
@@ -1085,11 +1101,16 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
         }
     }
 
-    private async Task<LocalDataSnapshotDto> PublishStateChangedAsync(CancellationToken cancellationToken)
+    private async Task<LocalDataSnapshotDto> PublishStateChangedAsync(CancellationToken cancellationToken, bool hasLocalSyncChanges = false)
     {
         var revision = Interlocked.Increment(ref _revision);
         var state = await LoadStateAsync(cancellationToken);
-        StateChanged?.Invoke(this, new StateChangedEvent(revision, state));
+        if (accountUserId is null || state.AccountSession != Guid.Empty)
+            StateChanged?.Invoke(this, new StateChangedEvent(revision, state)
+            {
+                HasLocalSyncChanges = hasLocalSyncChanges,
+                HasFocusSyncChanges = hasLocalSyncChanges
+            });
         return state;
     }
 
@@ -1484,7 +1505,8 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
 
     private async Task<AgentStartupRegistrationActionResultCommand> RequestAgentStartupRegistrationAsync(
         bool enabled,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool focusRecovery = false)
     {
         var actionId = Guid.NewGuid();
         var completion = new TaskCompletionSource<AgentStartupRegistrationActionResultCommand>(
@@ -1498,7 +1520,7 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
         {
             AgentStartupRegistrationActionRequested?.Invoke(
                 this,
-                new AgentStartupRegistrationActionRequestedEvent(actionId, enabled));
+                new AgentStartupRegistrationActionRequestedEvent(actionId, enabled) { IsFocusRecovery = focusRecovery });
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeout.CancelAfter(_agentResponseTimeout);
             try
@@ -1537,29 +1559,26 @@ public sealed partial class ServiceStateCoordinator : IAsyncDisposable
         if (clientRole == IpcClientRole.Agent &&
             _accessControlStatus.State is AccessControlRuntimeState.Inactive or AccessControlRuntimeState.Faulted)
         {
-            var snapshot = await _store.LoadAsync(cancellationToken);
-            var activeForced = snapshot.FocusSessions.SingleOrDefault(session =>
-                IsActiveSession(session) && session.IsForcedMode);
-            if (activeForced is not null && IsRecoveryPending(activeForced))
+            await _mutationGate.WaitAsync(cancellationToken);
+            try
             {
-                await KeepInterruptedForcedProtectionAsync(activeForced, cancellationToken);
-            }
-            else if (activeForced is
+                var snapshot = await _store.LoadAsync(cancellationToken);
+                var activeForced = snapshot.FocusSessions.SingleOrDefault(session =>
+                    IsActiveSession(session) && session.IsForcedMode);
+                if (_accessControlStatus.State is (AccessControlRuntimeState.Inactive or AccessControlRuntimeState.Faulted) && activeForced is
                 {
                     Status: LocalFocusSessionStatus.Focusing,
                     BlockingEnabled: true,
                     PlannedEndAtUtc: not null
                 } && activeForced.PlannedEndAtUtc > GetEffectiveUtcNow())
-            {
-                await EnsureForcedAccessControlAsync(activeForced, cancellationToken);
-                if (_accessControlStatus.State is
-                        AccessControlRuntimeState.Active or AccessControlRuntimeState.PartiallyActive ||
-                    _focusRuntimeStatus.State != FocusRuntimeState.Faulted ||
-                    _focusRuntimeStatus.SessionId != activeForced.SessionId)
                 {
-                    PublishFocusingStatus(activeForced);
+                    await EnsureForcedAccessControlAsync(activeForced, cancellationToken);
+                    if (_accessControlStatus.State is AccessControlRuntimeState.Active or AccessControlRuntimeState.PartiallyActive ||
+                        _focusRuntimeStatus.State != FocusRuntimeState.Faulted || _focusRuntimeStatus.SessionId != activeForced.SessionId)
+                        PublishFocusingStatus(activeForced);
                 }
             }
+            finally { _mutationGate.Release(); }
         }
 
         return _accessControlStatus;

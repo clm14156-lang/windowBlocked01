@@ -5,6 +5,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
 using System.Windows.Interop;
+using FocusApp.Contracts;
 using FocusApp.Desktop.Services;
 using FocusApp.Desktop.ViewModels;
 using FocusApp.Desktop.Views;
@@ -31,6 +32,9 @@ public partial class MainWindow : Window
     private BlockingPage? _blockingPageView;
     private StatisticsPage? _statisticsPageView;
     private bool _isClosing;
+    private bool _waitingForLocalRules;
+    private bool _finishedLocalRules;
+    internal Func<Task>? FinishLocalRuleWritesAsync { get; set; }
     private bool _ruleScrimPressed;
     private FocusFlowStage _lastFocusStage;
     private bool _entranceFromHome;
@@ -70,6 +74,7 @@ public partial class MainWindow : Window
         StateChanged += (_, _) => { if (WindowState == WindowState.Minimized) FocusScene.FinishEntrance(); };
         PreviewKeyDown += FocusTaskCreation_PreviewKeyDown;
 #if DEBUG
+        PreviewKeyDown += MeteorDebug_PreviewKeyDown;
         var completeFocusForDebug = new RoutedCommand(nameof(MainWindowViewModel.CompleteFocusForDebugAsync), typeof(MainWindow));
         InputBindings.Add(new KeyBinding(completeFocusForDebug, Key.W, ModifierKeys.Control));
         CommandBindings.Add(new CommandBinding(completeFocusForDebug, DebugCompleteFocus_Executed,
@@ -105,6 +110,20 @@ public partial class MainWindow : Window
 
         FocusTaskDrawerPanel.TryHandleCreationKey(e, allowOpening: true);
     }
+
+#if DEBUG
+    private void MeteorDebug_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Handled || e.IsRepeat || e.Key != Key.X || Keyboard.Modifiers != ModifierKeys.Control ||
+            DataContext is not MainWindowViewModel { CurrentPage: NavigationPage.Home }) return;
+
+        var source = Keyboard.FocusedElement as DependencyObject;
+        if (FindVisualAncestor<TextBoxBase>(source) is not null || FindVisualAncestor<PasswordBox>(source) is not null ||
+            FindVisualAncestor<ComboBox>(source) is { IsEditable: true }) return;
+
+        e.Handled = FocusScene.TryPlayMeteorForDebug();
+    }
+#endif
 
     private void MainWindow_SizeChanged(object sender, SizeChangedEventArgs e)
     {
@@ -250,10 +269,35 @@ public partial class MainWindow : Window
         WindowState = WindowState.Minimized;
     }
 
-    private void CloseButton_Click(object sender, RoutedEventArgs e)
+    private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();
+
+    protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
     {
-        _isClosing = true;
-        Close();
+        base.OnClosing(e);
+        if (DataContext is MainWindowViewModel model &&
+            model.HomePage.FocusSession is { IsForcedModeActive: true, IsFocusing: true })
+        {
+            e.Cancel = true;
+        }
+        if (!e.Cancel && !_finishedLocalRules && FinishLocalRuleWritesAsync is { } finish)
+        {
+            e.Cancel = true;
+            if (!_waitingForLocalRules) _ = CloseAfterLocalRulesAsync(finish);
+        }
+        _isClosing = !e.Cancel;
+    }
+
+    private async Task CloseAfterLocalRulesAsync(Func<Task> finish)
+    {
+        _waitingForLocalRules = true;
+        try { await finish(); }
+        catch (Exception error) when (error is IpcConnectionException or IpcRemoteException or IpcProtocolException)
+        { DesktopDiagnostics.RecordException("AccessControl.ShutdownRuleWrites", error); }
+        // Leave the current Closing event before requesting the final close.
+        await System.Windows.Threading.Dispatcher.Yield();
+        _finishedLocalRules = true;
+        try { Close(); }
+        finally { _waitingForLocalRules = _finishedLocalRules = false; }
     }
 
     private void ShowFocusFloatingWindow(FocusSessionViewModel session)
@@ -479,6 +523,7 @@ public partial class MainWindow : Window
         PageHost.Content = page;
         if (viewModel.CurrentPage == NavigationPage.Statistics)
         {
+            viewModel.FocusUploads?.ObserveStatisticsOpened();
             // Let the navigation and first layout complete before building
             // the chart/calendar collections for the first time.
             Dispatcher.BeginInvoke(

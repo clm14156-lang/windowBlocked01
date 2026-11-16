@@ -18,6 +18,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private bool _isAccountPanelOpen;
     private string _currentAccount = string.Empty;
     private MembershipType _membershipType = MembershipType.Normal;
+    private readonly bool _usesSignedMembership;
     private readonly DispatcherTimer _automaticBlockingTimer;
     private readonly SemaphoreSlim _targetPersistenceGate = new(1, 1);
     private readonly SemaphoreSlim _settingsPersistenceGate = new(1, 1);
@@ -38,6 +39,9 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private string _completionReminderDetail = string.Empty;
     private readonly DispatcherTimer _focusResultToastTimer;
     private readonly CloudConnectionMonitor? _cloudConnectionMonitor;
+    private readonly DispatcherTimer? _accountCheckTimer;
+    private long? _lastAccountCheckAt;
+    private bool _accountCheckInProgress;
     private bool _isFocusResultToastVisible;
     private string _focusResultToastTitle = string.Empty;
     private string _focusResultToastSubtitle = string.Empty;
@@ -50,6 +54,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private int _pendingDurationPresetWrites;
     private int _pendingFocusThemeWrites;
     private int _pendingFocusCharacterWrites;
+    private int _pendingFocusFeatureWrites;
 
     public MainWindowViewModel(
         IEnumerable<NavigationItemViewModel> primaryNavigationItems,
@@ -95,6 +100,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         SettingsPage.FocusSoundChanged += SettingsPage_FocusSoundChanged;
         SettingsPage.FocusThemeChanged += SettingsPage_FocusThemeChanged;
         SettingsPage.FocusCharacterChanged += SettingsPage_FocusCharacterChanged;
+        SettingsPage.FocusFeatureChanged += SettingsPage_FocusFeatureChanged;
         SettingsPage.BrowserExtensionRequested += (_, _) => BrowserExtensionModal.OpenFromSettings();
         SettingsPage.AboutAppRequested += (_, _) => AboutAppModal.Open();
         SettingsPage.MembershipRequested += (_, _) => OpenVip();
@@ -109,6 +115,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             ApplyInterruptedFocusState(initialState);
             SettingsPage.ApplyFocusThemeState(ParseFocusTheme(initialState.Settings.FocusTheme));
             SettingsPage.ApplyFocusCharacterState(initialState.Settings.FocusCharacterId);
+            SettingsPage.ApplyFocusFeatureSettings(initialState.Settings);
         }
         HomePage.FocusSession.ApplyFocusTheme(SettingsPage.FocusTheme);
         HomePage.FocusSession.ApplyFocusCharacter(SettingsPage.FocusCharacterId);
@@ -130,6 +137,14 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         StatisticsPage.GoalChanged += StatisticsPage_GoalChanged;
         StatisticsPage.RequestAccountAccess = RequestAccountAccess;
         BlockingPage.RequestAccountAccess = RequestAccountAccess;
+        BlockingPage.RequestMembership = OpenMembershipUpgrade;
+        MembershipCenter.RenewalRequested += (_, _) =>
+        {
+            VipModal.SelectPlanCommand.Execute(MembershipCenter.IsMonthly ? VipModalViewModel.MonthlyPlan : VipModalViewModel.YearlyPlan);
+            OpenMembershipUpgrade();
+        };
+        BlockingPage.WebsiteSaveFailed += message =>
+            SettingsPage.ShowRuleCreationFailureToast("网站添加或编辑失败", message);
         HomePage.RequestAccountAccess = RequestAccountAccess;
         StatisticsPage.SetGoalDeletionHandler(DeleteStatisticsGoalAsync);
         StatisticsPage.GoalCompletedTasks.MutationHandler = MutateCompletedTaskAsync;
@@ -155,6 +170,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         };
         _focusResultToastTimer.Tick += (_, _) => CloseFocusResultToast();
         var accounts = accountClient ?? CloudAccountClient.CreateDefault();
+        _usesSignedMembership = accounts is CloudAccountClient;
         if (ServiceConnection is not null && accounts is CloudAccountClient membershipCloud)
         {
             Membership = new MembershipCoordinator(ServiceConnection, membershipCloud);
@@ -163,7 +179,11 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
                 MembershipType = status.IsActive ? status.Kind == "lifetime" ? MembershipType.Lifetime : MembershipType.Annual : MembershipType.Normal;
                 StatisticsPage.SetUserAccess(IsLoggedIn, IsVipMember, Membership?.HasResolvedStatus ?? false);
                 MembershipCenter.ApplyStatus(status);
-                OnPropertyChanged(nameof(MembershipStatusText));
+                if (!status.IsActive) MembershipCenter.CloseCommand.Execute(null);
+                OnPropertyChanged(nameof(AccountMembershipStatus));
+                OnPropertyChanged(nameof(AccountMembershipDetails));
+                OnPropertyChanged(nameof(AccountMembershipDescription));
+                OnPropertyChanged(nameof(CanVerifyAccountMembership));
             };
         }
         if (accounts is ICloudConnectionProbe probe)
@@ -175,7 +195,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         {
             RecordRecovery=new LocalFocusRecordRecovery(ServiceConnection,completionStatus:HomePage.FocusSession.CompletionRecordStatus);
             if(accounts is IFocusUploadClient uploader)FocusUploads=new FocusUploadCoordinator(ServiceConnection,uploader,localRecovery:RecordRecovery,
-                completionStatus:HomePage.FocusSession.CompletionRecordStatus);
+                completionStatus:HomePage.FocusSession.CompletionRecordStatus, connectionMonitor:_cloudConnectionMonitor);
         }
         AccountSyncModal = new AccountSyncModalViewModel(FocusUploads);
         AuthModal = new AuthModalViewModel(accounts);
@@ -185,13 +205,11 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             FocusUploads?.ConfirmAccount();
             ClearAccountSession();
         };
-        // Only the real application owns the periodic cloud session maintenance.
+        // Only the real application owns cloud session maintenance.
         if (accountClient is null && System.Windows.Application.Current is not null)
         {
-            var accountTimer = new DispatcherTimer { Interval = TimeSpan.FromMinutes(1) };
-            accountTimer.Tick += async (_, _) => await AuthModal.RestoreSessionAsync();
-            accountTimer.Start();
-            Dispatcher.CurrentDispatcher.BeginInvoke(new Action(async () => await AuthModal.RestoreSessionAsync()));
+            _accountCheckTimer = new DispatcherTimer { Interval = TimeSpan.FromMinutes(30) };
+            _accountCheckTimer.Tick += async (_, _) => await CheckAccountSessionAsync();
         }
         _currentNavigationItem = PrimaryNavigationItems[0];
         _currentNavigationItem.IsSelected = true;
@@ -203,11 +221,66 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     }
 
     public MembershipCoordinator? Membership { get; }
-    public string MembershipStatusText => Membership?.Status.Error ?? string.Empty;
-    public void StartCloudConnectionMonitoring() { _cloudConnectionMonitor?.Start(); Membership?.Start(); }
+    public bool IsAccountServerConnected => _cloudConnectionMonitor?.IsReachable == true;
+    public string AccountServerConnectionDescription => IsAccountServerConnected ? "服务器已连接" : "服务器未连接";
+    public MembershipVerification AccountMembershipStatus => Membership?.Status.Verification ??
+        (_usesSignedMembership ? MembershipVerification.Pending :
+            IsVipMember ? MembershipVerification.Active : MembershipVerification.Normal);
+    public string AccountMembershipDetails => AccountMembershipStatus switch
+    {
+        MembershipVerification.Active when IsLifetimeMember => "永久有效",
+        MembershipVerification.Active when Membership?.Status.GrantExpiresAtUtc is { } expiry => $"截止：{expiry.LocalDateTime:yyyy-MM-dd}",
+        MembershipVerification.Expired => "会员已到期",
+        MembershipVerification.Pending => "会员待验证",
+        _ => ""
+    };
+    public string AccountMembershipDescription => Membership?.Status.Error ?? AccountMembershipDetails;
+    public bool CanVerifyAccountMembership => IsLoggedIn && Membership is not null &&
+        AccountMembershipStatus == MembershipVerification.Pending;
+    public void StartCloudConnectionMonitoring()
+    {
+        if (_accountCheckTimer is { IsEnabled: false } && System.Windows.Application.Current is { } application)
+        {
+            application.Activated += AccountApplication_Activated;
+            _accountCheckTimer.Start();
+            _ = CheckAccountSessionAsync();
+        }
+        _cloudConnectionMonitor?.Start();
+        Membership?.Start();
+    }
+
+    private async void AccountApplication_Activated(object? sender, EventArgs e)
+    {
+        if (_lastAccountCheckAt is { } lastCheck && Environment.TickCount64 - lastCheck < TimeSpan.FromMinutes(5).TotalMilliseconds)
+            return;
+
+        await CheckAccountSessionAsync();
+    }
+
+    private async Task CheckAccountSessionAsync()
+    {
+        if (_accountCheckTimer is not { IsEnabled: true } || _accountCheckInProgress ||
+            _isLoggingOut || AuthModal.IsBusy)
+            return;
+
+        _accountCheckInProgress = true;
+        _lastAccountCheckAt = Environment.TickCount64;
+        // Restart the fallback interval whenever an event already triggered a check.
+        _accountCheckTimer.Stop();
+        _accountCheckTimer.Start();
+        try { await AuthModal.RestoreSessionAsync(); }
+        finally { _accountCheckInProgress = false; }
+    }
 
     public void StopCloudConnectionMonitoring()
     {
+        if (_accountCheckTimer is not null)
+        {
+            _accountCheckTimer.Stop();
+            if (System.Windows.Application.Current is { } application)
+                application.Activated -= AccountApplication_Activated;
+        }
+        FocusUploads?.Dispose();
         Membership?.Dispose();
         if (_cloudConnectionMonitor is null) return;
         _cloudConnectionMonitor.PropertyChanged -= CloudConnection_PropertyChanged;
@@ -216,8 +289,20 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     private void CloudConnection_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+        // IsOffline only changes back to false after a failure, so startup does not trigger a second check.
+        if (e.PropertyName == nameof(CloudConnectionMonitor.IsOffline) && _cloudConnectionMonitor?.IsOffline == false)
+            _ = CheckAccountSessionAsync();
+
         if (e.PropertyName == nameof(CloudConnectionMonitor.IsUnavailable) && _cloudConnectionMonitor is not null)
+        {
             HomePage.SetCloudConnectionUnavailable(_cloudConnectionMonitor.IsUnavailable);
+        }
+        if (e.PropertyName == nameof(CloudConnectionMonitor.IsReachable))
+        {
+            OnPropertyChanged(nameof(IsAccountServerConnected));
+            OnPropertyChanged(nameof(AccountServerConnectionDescription));
+            Membership?.ObserveCloudConnection(IsAccountServerConnected);
+        }
     }
 
     private void WebsiteModal_WebsiteAddressValidationFailed(object? sender, EventArgs e)
@@ -429,6 +514,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
             _isLoggedIn = value;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(CanVerifyAccountMembership));
             StatisticsPage.SetUserAccess(IsLoggedIn, IsVipMember, Membership?.HasResolvedStatus ?? true);
             SettingsPage.SetUserAccess(IsLoggedIn, IsVipMember);
             HomePage.SetUserAccess(IsLoggedIn, IsVipMember);
@@ -465,6 +551,9 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(IsVipMember));
             OnPropertyChanged(nameof(IsAnnualMember));
             OnPropertyChanged(nameof(IsLifetimeMember));
+            OnPropertyChanged(nameof(AccountMembershipStatus));
+            OnPropertyChanged(nameof(AccountMembershipDetails));
+            OnPropertyChanged(nameof(AccountMembershipDescription));
             StatisticsPage.SetUserAccess(IsLoggedIn, IsVipMember, Membership?.HasResolvedStatus ?? true);
             SettingsPage.SetUserAccess(IsLoggedIn, IsVipMember);
             HomePage.SetUserAccess(IsLoggedIn, IsVipMember);
@@ -497,12 +586,12 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     {
         if (_isLoggingOut) return;
         FocusUploads?.ConfirmAccount();
-        if (IsLoggedIn && _currentAccount == e.Account && MembershipType == e.MembershipType) return;
+        if (IsLoggedIn && _currentAccount == e.Account && (_usesSignedMembership || MembershipType == e.MembershipType)) return;
         if (_currentAccount != e.Account) AccountSyncModal.CloseCommand.Execute(null);
         _currentAccount = e.Account;
-        MembershipType = Membership is null ? e.MembershipType : Membership.Status.IsActive
+        MembershipType = !_usesSignedMembership ? e.MembershipType : Membership?.Status.IsActive == true
             ? Membership.Status.Kind == "lifetime" ? MembershipType.Lifetime : MembershipType.Annual : MembershipType.Normal;
-        if (Membership is not null) _ = Membership.RefreshAsync();
+        if (Membership is not null) _ = Membership.RefreshAsync(forceOnline: false);
         OnPropertyChanged(nameof(CurrentUserEmail));
         IsLoggedIn = true;
         // A saved VIP role cannot be restored until the account has unlocked it.
@@ -521,6 +610,11 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     private void OpenVip()
     {
+        if (CanVerifyAccountMembership)
+        {
+            _ = Membership!.RefreshAsync();
+            return;
+        }
         IsAccountPanelOpen = false;
         if (IsVipMember)
         {
@@ -528,8 +622,14 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         }
         else
         {
-            VipModal.Open();
+            OpenMembershipUpgrade();
         }
+    }
+
+    private void OpenMembershipUpgrade()
+    {
+        IsAccountPanelOpen = false;
+        VipModal.Open();
     }
 
     private void OpenAccountSync()
@@ -583,9 +683,10 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private async Task LogoutAccountAsync()
     {
         if (_isLoggingOut || AuthModal.IsBusy) return;
-        if (HomePage.InterruptedFocus?.IsForcedMode == true)
+        if (HomePage.FocusSession is { IsForcedModeActive: true, IsActive: true, IsCompleted: false } ||
+            HomePage.InterruptedFocus?.IsForcedMode == true)
         {
-            HomePage.FocusStartError = "请先继续并完成强制专注。";
+            HomePage.FocusStartError = "请先完成强制专注。";
             Navigate(PrimaryNavigationItems.FirstOrDefault(item => item.Page == NavigationPage.Home));
             return;
         }
@@ -617,6 +718,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         SettingsPage.RuleModal.ApplyTargets([]);
         SettingsPage.RuleModal.CloseCommand.Execute(null);
         SettingsPage.ApplyAutomaticRules([]);
+        SettingsPage.ApplyFocusFeatureSettings(null);
         StatisticsPage.ClearAccountData();
     }
 
@@ -786,6 +888,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         SettingsPage.ApplyLaunchAtStartupState(state.Settings.LaunchAtStartup);
         SettingsPage.ApplyWindowsNotificationsState(state.Settings.WindowsNotificationsEnabled);
         SettingsPage.ApplyFocusSoundState(state.Settings.FocusSoundEnabled);
+        if (_pendingFocusFeatureWrites == 0) SettingsPage.ApplyFocusFeatureSettings(state.Settings);
         if (_pendingFocusThemeWrites == 0)
         {
             SettingsPage.ApplyFocusThemeState(ParseFocusTheme(state.Settings.FocusTheme));
@@ -861,38 +964,44 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private static DayOfWeek? ParseDayKey(string key)
         => Enum.TryParse<DayOfWeek>(key, out var day) ? day : null;
 
-    private async Task<bool> MutateCompletedTaskAsync(LocalTaskDto source, bool delete)
+    private async Task<CompletedTaskChangeResult?> MutateCompletedTaskAsync(
+        LocalTaskDto source, CompletedTaskChange change, DateTimeOffset? expectedUpdatedAt)
     {
         if (ServiceConnection is null)
         {
-            ApplyCompletedTaskToFocus(source, delete);
-            StatisticsPage.ApplyCompletedTaskMutation(source, delete);
-            return true;
+            var current = StatisticsPage.FindGoalTask(source.TargetId, source.TaskId);
+            if (current is null || !CanChangeCompletedTask(current, change, expectedUpdatedAt)) return null;
+            var replacement = ChangeCompletedTask(current, source, change, DateTimeOffset.UtcNow);
+            ApplyCompletedTaskToFocus(current, replacement);
+            StatisticsPage.ApplyCompletedTaskMutation(current, replacement);
+            return new(current, replacement);
         }
-        if (!ServiceConnection.IsConnected) return false;
+        if (!ServiceConnection.IsConnected) return null;
         var accountSession = ServiceConnection.AccountSession;
         _pendingFocusTaskWrites++;
         await _targetPersistenceGate.WaitAsync();
         try
         {
-            if (accountSession != ServiceConnection.AccountSession) return false;
+            if (accountSession != ServiceConnection.AccountSession) return null;
             // Read after queued target saves finish; do not replace a newer task edit with the modal's snapshot.
             var state = ServiceConnection.State;
             var target = state?.Targets.FirstOrDefault(item => item.TargetId == source.TargetId);
             var task = state?.Tasks.FirstOrDefault(item => item.TaskId == source.TaskId && item.TargetId == source.TargetId);
             if (state is null || target is null || task is null ||
-                !TaskCompletionPolicy.IsCompleted(task.IsCompleted, task.SubTasks.Select(child => child.IsCompleted))) return false;
-            ApplyCompletedTaskToFocus(task, delete);
+                !CanChangeCompletedTask(task, change, expectedUpdatedAt)) return null;
             var now = DateTimeOffset.UtcNow;
+            var replacement = ChangeCompletedTask(task, source, change, now);
             var tasks = state.Tasks.Where(item => item.TargetId == source.TargetId && item.TaskId != source.TaskId)
-                .Concat(delete ? [] : [task with { IsCompleted = false, CompletedAtUtc = null, UpdatedAtUtc = now }]).ToArray();
+                .Concat(replacement is null ? [] : [replacement]).ToArray();
             var result = await ServiceConnection.SaveTargetAsync(new SaveTargetCommand(target with { UpdatedAtUtc = now }, tasks));
-            if (accountSession != ServiceConnection.AccountSession) return false;
+            if (accountSession != ServiceConnection.AccountSession) return null;
             StatisticsPage.ApplyTaskState(result.State);
-            return true;
+            var saved = result.State.Tasks.FirstOrDefault(item => item.TargetId == source.TargetId && item.TaskId == source.TaskId);
+            if (saved?.IsCompleted != replacement?.IsCompleted) return null;
+            return new(task, saved);
         }
         catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException)
-        { return false; }
+        { return null; }
         finally
         {
             _targetPersistenceGate.Release();
@@ -905,7 +1014,23 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         }
     }
 
-    private void ApplyCompletedTaskToFocus(LocalTaskDto source, bool delete)
+    private static bool CanChangeCompletedTask(LocalTaskDto task, CompletedTaskChange change, DateTimeOffset? expectedUpdatedAt) =>
+        change == CompletedTaskChange.UndoReopen
+            ? !task.IsCompleted && task.UpdatedAtUtc == expectedUpdatedAt && task.SubTasks.All(child => child.IsCompleted)
+            : TaskCompletionPolicy.IsCompleted(task.IsCompleted, task.SubTasks.Select(child => child.IsCompleted));
+
+    private static LocalTaskDto? ChangeCompletedTask(LocalTaskDto current, LocalTaskDto original,
+        CompletedTaskChange change, DateTimeOffset now) => change switch
+    {
+        CompletedTaskChange.Delete => null,
+        CompletedTaskChange.UndoReopen => current with
+        {
+            IsCompleted = true, CompletedAtUtc = original.CompletedAtUtc, UpdatedAtUtc = now
+        },
+        _ => current with { IsCompleted = false, CompletedAtUtc = null, UpdatedAtUtc = now }
+    };
+
+    private void ApplyCompletedTaskToFocus(LocalTaskDto source, LocalTaskDto? replacement)
     {
         var session = HomePage.FocusSession;
         var target = session.ActiveTarget?.TargetId == source.TargetId ? session.ActiveTarget
@@ -914,7 +1039,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         if (target is null || task is null) return;
         session.ApplyTaskSnapshot(() =>
         {
-            if (!delete) task.ApplyCompletion(false, null);
+            if (replacement is not null) task.ApplyCompletion(replacement.IsCompleted, replacement.CompletedAtUtc);
             else if (ReferenceEquals(target, session.ActiveTarget)) session.DeleteTaskCommand.Execute(task);
             else target.RemoveTask(task);
         });
@@ -1093,6 +1218,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     private async void FocusSession_FocusDiscarded(object? sender, EventArgs e)
     {
+        FocusUploads?.ObserveFocusEnded();
         if (_normalFocusSessionId is not { } sessionId || ServiceConnection is not { } connection) return;
         var account = connection.AccountSession;
         ClearNormalFocusTracking();
@@ -1409,7 +1535,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         {
             if (ServiceConnection.State is not { } state || !ServiceConnection.IsConnected ||
                 accountSession != ServiceConnection.AccountSession) return;
-            try { await ServiceConnection.SaveSettingsAsync(createCommand(state)); }
+            try { await ServiceConnection.SaveSettingsAsync(createCommand(state) with { PreserveFocusFeatures = true }); }
             catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException) { }
         }
         finally { _settingsPersistenceGate.Release(); }
@@ -1475,13 +1601,41 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             await ServiceConnection.SaveSettingsAsync(new SaveSettingsCommand(
                 state.Settings with { FocusSoundEnabled = enabled, UpdatedAtUtc = DateTimeOffset.UtcNow },
                 state.DurationPresets,
-                state.MonthlyFocusTargets));
+                state.MonthlyFocusTargets) { PreserveFocusFeatures = true });
         }
         catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException)
         {
             SettingsPage.ApplyFocusSoundState(previous);
         }
         finally { _settingsPersistenceGate.Release(); }
+    }
+
+    private async void SettingsPage_FocusFeatureChanged(object? sender, SetFocusFeatureCommand command)
+    {
+        if (ServiceConnection is not { } connection) return;
+
+        var account = connection.AccountSession;
+        LocalDataSnapshotDto? saved = null;
+        _pendingFocusFeatureWrites++;
+        await _settingsPersistenceGate.WaitAsync();
+        try
+        {
+            if (connection.IsConnected && connection.IsAccountReady && connection.AccountSession == account)
+                saved = (await connection.SetFocusFeatureAsync(command)).State;
+        }
+        catch (Exception exception) when (exception is IpcConnectionException or IpcRemoteException or InvalidOperationException) { }
+        finally
+        {
+            _settingsPersistenceGate.Release();
+            if (--_pendingFocusFeatureWrites == 0)
+            {
+                var current = connection.State;
+                if (connection.AccountSession == account && saved is not null &&
+                    (current is null || current.Revision < saved.Revision))
+                    current = saved;
+                SettingsPage.ApplyFocusFeatureSettings(current?.Settings);
+            }
+        }
     }
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null)

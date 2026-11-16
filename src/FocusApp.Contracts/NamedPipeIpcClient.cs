@@ -46,31 +46,41 @@ public sealed partial class NamedPipeIpcClient : IAsyncDisposable
             }
 
             await DisconnectCoreAsync();
-            var pipe = new NamedPipeClientStream(
-                ".",
-                _pipeName,
-                PipeDirection.InOut,
-                PipeOptions.Asynchronous,
-                TokenImpersonationLevel.Identification);
             using var timeoutCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeoutCancellation.CancelAfter(timeout);
             try
             {
-                await pipe.ConnectAsync(timeoutCancellation.Token);
+                _pipe = OperatingSystem.IsWindows()
+                    ? await ConnectWindowsPipeAsync(timeoutCancellation.Token)
+                    : await ConnectDefaultPipeAsync(timeoutCancellation.Token);
             }
-            catch (Exception exception) when (exception is IOException or OperationCanceledException or TimeoutException)
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or OperationCanceledException or TimeoutException)
             {
-                pipe.Dispose();
                 throw new IpcConnectionException("无法连接 FocusApp 后台服务。", exception);
             }
 
-            _pipe = pipe;
             _readerCancellation = new CancellationTokenSource();
-            _readerTask = ReadLoopAsync(pipe, _readerCancellation.Token);
+            _readerTask = ReadLoopAsync(_pipe, _readerCancellation.Token);
         }
         finally
         {
             _connectionGate.Release();
+        }
+    }
+
+    private async Task<NamedPipeClientStream> ConnectDefaultPipeAsync(CancellationToken cancellationToken)
+    {
+        var pipe = new NamedPipeClientStream(".", _pipeName, PipeDirection.InOut,
+            PipeOptions.Asynchronous, TokenImpersonationLevel.Identification);
+        try
+        {
+            await pipe.ConnectAsync(cancellationToken);
+            return pipe;
+        }
+        catch
+        {
+            pipe.Dispose();
+            throw;
         }
     }
 

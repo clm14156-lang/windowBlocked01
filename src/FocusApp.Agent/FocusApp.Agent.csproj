@@ -9,15 +9,11 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
+    <InternalsVisibleTo Include="FocusApp.Tests" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\FocusApp.Contracts\FocusApp.Contracts.csproj" />
     <ProjectReference Include="..\FocusApp.Infrastructure\FocusApp.Infrastructure.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Resource Include="..\FocusApp.Desktop\Assets\Themes\Solid\Orange\sidebar-logo.png"
-              Link="Assets\Themes\Solid\Orange\sidebar-logo.png" />
   </ItemGroup>
 </Project>

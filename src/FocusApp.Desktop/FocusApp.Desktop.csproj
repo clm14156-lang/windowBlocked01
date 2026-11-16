@@ -112,5 +112,6 @@
     <Resource Include="Assets\font\SourceHanSerifCN-Light-Subset.otf" />
     <Resource Include="Assets\font\SourceHanSerifCN-Regular-Subset.otf" />
     <Resource Include="Assets\font\SourceHanSerifCN-Medium-Subset.otf" />
+    <Resource Include="Assets\font\WenKai-T1-Medium.ttf" />
   </ItemGroup>
 </Project>

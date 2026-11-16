@@ -318,7 +318,7 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
             NotifyDetailsChanged();
     }
 
-    private void NotifyDetailsChanged()
+    private void NotifyDetailsChanged(DateTimeOffset? completeAt = null)
     {
         // Publish child edits and any resulting parent completion as one details update.
         IsUpdatingDetails = true;
@@ -327,7 +327,7 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
         {
             foreach (var child in SubTasks) child.IsLastSibling = ReferenceEquals(child, SubTasks.Last());
             if (!_applyingDetails)
-                ApplyCompletion(_isCompleted, _completedAtUtc);
+                ApplyCompletion(completeAt.HasValue || _isCompleted, completeAt ?? _completedAtUtc);
             if (!HasSubTasks) IsExpanded = false;
             OnPropertyChanged(nameof(SortedSubTasks));
             OnPropertyChanged(nameof(SubTaskProgress));
@@ -345,7 +345,7 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
         }
     }
 
-    internal void CompleteSubTasks()
+    internal void CompleteSubTasks(DateTimeOffset completedAtUtc)
     {
         // Batch the child checks so the session publishes one completion and one save.
         var wasApplying = _applyingDetails;
@@ -355,7 +355,7 @@ public sealed class FocusTaskViewModel : INotifyPropertyChanged
             foreach (var child in SubTasks) child.IsCompleted = true;
         }
         finally { _applyingDetails = wasApplying; }
-        NotifyDetailsChanged();
+        NotifyDetailsChanged(completedAtUtc);
     }
 
     internal void ApplyDetails(LocalTaskDto source)

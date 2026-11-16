@@ -12,12 +12,13 @@ public sealed class AddWebsiteModalViewModel : INotifyPropertyChanged
     private string _websiteName = string.Empty;
     private string _websiteAddress = string.Empty;
     private bool _isWebsiteNameExpanded;
-    private readonly RelayCommand<object> _saveCommand;
+    private readonly AsyncCommand _saveCommand;
+    private int _formVersion;
 
     public AddWebsiteModalViewModel()
     {
         CloseCommand = new RelayCommand<object>(_ => Close());
-        _saveCommand = new RelayCommand<object>(_ => Save(), _ => CanSave);
+        _saveCommand = new AsyncCommand(SaveAsync, () => CanSave);
         SaveCommand = _saveCommand;
         ToggleWebsiteNameCommand = new RelayCommand<object>(_ => IsWebsiteNameExpanded = !IsWebsiteNameExpanded);
     }
@@ -29,6 +30,9 @@ public sealed class AddWebsiteModalViewModel : INotifyPropertyChanged
     public event EventHandler<WebsiteEdit>? WebsiteUpdated;
 
     public event EventHandler? WebsiteAddressValidationFailed;
+
+    internal Func<WebsiteDraft, Task<bool>>? CreateWebsiteAsync { get; set; }
+    internal Func<WebsiteEdit, bool>? CanUpdateWebsite { get; set; }
 
     public ICommand CloseCommand { get; }
 
@@ -106,6 +110,7 @@ public sealed class AddWebsiteModalViewModel : INotifyPropertyChanged
 
     public void Open()
     {
+        _formVersion++;
         _editingWebsiteId = null;
         OnPropertyChanged(nameof(IsEditMode));
         WebsiteName = string.Empty;
@@ -116,6 +121,7 @@ public sealed class AddWebsiteModalViewModel : INotifyPropertyChanged
 
     public void OpenForEdit(Guid websiteId, string name, string address)
     {
+        _formVersion++;
         _editingWebsiteId = websiteId;
         OnPropertyChanged(nameof(IsEditMode));
         WebsiteName = name;
@@ -124,7 +130,7 @@ public sealed class AddWebsiteModalViewModel : INotifyPropertyChanged
         IsOpen = true;
     }
 
-    private void Save()
+    private async Task SaveAsync()
     {
         var name = WebsiteName.Trim();
         var address = WebsiteAddress.Trim();
@@ -143,7 +149,14 @@ public sealed class AddWebsiteModalViewModel : INotifyPropertyChanged
         var draft = new WebsiteDraft(name, normalizedDomain!);
         if (_editingWebsiteId is Guid websiteId)
         {
-            WebsiteUpdated?.Invoke(this, new WebsiteEdit(websiteId, draft));
+            var edit = new WebsiteEdit(websiteId, draft);
+            if (CanUpdateWebsite?.Invoke(edit) == false) return;
+            WebsiteUpdated?.Invoke(this, edit);
+        }
+        else if (CreateWebsiteAsync is { } create)
+        {
+            var version = _formVersion;
+            if (!await create(draft) || version != _formVersion) return;
         }
         else
         {
@@ -155,6 +168,7 @@ public sealed class AddWebsiteModalViewModel : INotifyPropertyChanged
 
     private void Close()
     {
+        _formVersion++;
         IsOpen = false;
     }
 

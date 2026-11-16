@@ -6,6 +6,13 @@ namespace FocusApp.Service;
 public sealed partial class ServiceStateCoordinator
 {
     private Guid focusSyncBinding;
+
+    private void EnsureWebsiteAccountScope(Guid expectedSession)
+    {
+        if (expectedSession != Guid.Empty && expectedSession != accountSession)
+            throw new ServiceBusinessException("账号已切换，请重新操作。");
+    }
+
     private async Task<IpcEnvelope> HandleFocusSyncAsync(IpcEnvelope request,CancellationToken ct)
     {
         if(request.ClientRole!=IpcClientRole.Desktop)
@@ -16,6 +23,36 @@ public sealed partial class ServiceStateCoordinator
         {
             switch(request.Operation)
             {
+                case WebsiteSyncIpc.ReadDelta:
+                    var deltaRequest = request.ReadPayload<ReadWebsiteDelta>();
+                    EnsureWebsiteAccountScope(deltaRequest.ExpectedAccountSession);
+                    var delta = await ((IWebsiteSyncStore)_store).ReadWebsiteDeltaAsync(ct, deltaRequest.RetryConflicts, deltaRequest.UploadThroughUtc);
+                    return IpcEnvelope.CreateSuccess(request, new WebsiteDeltaState(delta.Cursor, delta.Edits.Select(edit =>
+                        new WebsiteEdit(edit.Id, edit.LocalVersion, edit.BaseRevision, edit.Rule is null ? null :
+                            new LocalWebsiteRuleDto(edit.Rule.Id, edit.Rule.Name, edit.Rule.Address, edit.Rule.IsEnabled, edit.Rule.SortOrder))).ToArray(),
+                        delta.HasConflicts, delta.IsInitialized, delta.BatchStartedAtUtc));
+                case WebsiteSyncIpc.Ack:
+                    var websiteAck = request.ReadPayload<WebsiteDeltaAck>();
+                    EnsureWebsiteAccountScope(websiteAck.ExpectedAccountSession);
+                    await ((IWebsiteSyncStore)_store).AcknowledgeWebsiteEditsAsync(websiteAck.Receipts.Select(receipt =>
+                        new LocalWebsiteReceipt(receipt.Id, receipt.LocalVersion, receipt.Revision, receipt.Accepted)).ToArray(), ct);
+                    break;
+                case WebsiteSyncIpc.ResetDelta:
+                    EnsureWebsiteAccountScope(request.ReadPayload<WebsiteSyncScope>().ExpectedAccountSession);
+                    await ((IWebsiteSyncStore)_store).ResetWebsiteCursorAsync(ct);
+                    break;
+                case WebsiteSyncIpc.ApplyDelta:
+                    var deltaPage = request.ReadPayload<ApplyWebsiteDelta>();
+                    EnsureWebsiteAccountScope(deltaPage.ExpectedAccountSession);
+                    if (await ((IWebsiteSyncStore)_store).ApplyWebsiteDeltaAsync(deltaPage.ExpectedCursor, deltaPage.Page.NextCursor,
+                        deltaPage.Page.HasMore, deltaPage.Page.Changes.Select(change => new LocalWebsiteRemoteChange(change.Id, change.Revision,
+                            change.Rule is null ? null : LocalDataContractMapper.ToCore(change.Rule))).ToArray(), ct))
+                    {
+                        if (IsAccessControlExecuting)
+                            await RefreshActiveExecutorsAsync(await _store.LoadAsync(ct), ct);
+                        await PublishStateChangedAsync(ct);
+                    }
+                    break;
                 case WebsiteSyncIpc.Pending:
                     var edits = await ((IWebsiteSyncStore)_store).ReadWebsiteChangesAsync(ct);
                     return IpcEnvelope.CreateSuccess(request, new WebsitePendingChanges(edits.Version, edits.Changes.Select(edit =>
@@ -57,10 +94,12 @@ public sealed partial class ServiceStateCoordinator
                     var ack=request.ReadPayload<CloudSyncAckCommand>();
                     await store.ApplyFocusUploadResultsAsync(ack.BindingId,ack.Results.Select(x=>new FocusUploadAck(x.OperationId,x.RecordId,x.Status,x.ServerRevision,x.Code)).ToArray(),ct);break;
                 case FocusSyncIpc.Retry:
-                    await store.RetryFocusUploadsAsync(request.ReadPayload<CloudSyncBindingCommand>().BindingId,ct);break;
+                    var retry = request.ReadPayload<CloudSyncRetryCommand>();
+                    await store.RetryFocusUploadsAsync(retry.BindingId, ct, retry.IncludeRejected);
+                    break;
                 case FocusSyncIpc.Cursor:
                     var cursor=await store.GetFocusDownloadStateAsync(request.ReadPayload<CloudSyncBindingCommand>().BindingId,ct);
-                    return IpcEnvelope.CreateSuccess(request,new CloudSyncCursor(cursor.Cursor,cursor.LastRevision));
+                    return IpcEnvelope.CreateSuccess(request,new CloudSyncCursor(cursor.Cursor,cursor.LastRevision,cursor.HasMoreChanges));
                 case FocusSyncIpc.Apply:
                     var page=request.ReadPayload<CloudSyncApplyCommand>();
                     await store.ApplyFocusChangesAsync(page.BindingId,page.ExpectedCursor,page.NextCursor,page.HasMore,

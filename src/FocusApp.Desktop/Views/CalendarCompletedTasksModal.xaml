@@ -12,6 +12,7 @@
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="/FocusApp.Desktop;component/Resources/CalendarTypography.xaml"/>
                 <ResourceDictionary Source="/FocusApp.Desktop;component/Resources/StatisticsScrollStyles.xaml"/>
+                <ResourceDictionary Source="/FocusApp.Desktop;component/Resources/CompletedTaskRowStyles.xaml"/>
             </ResourceDictionary.MergedDictionaries>
             <BooleanToVisibilityConverter x:Key="VisibleIf"/>
         </ResourceDictionary>
@@ -40,16 +41,19 @@
                                     </Grid>
                                     <ItemsControl x:Name="CompletedGroupTasks" ItemsSource="{Binding Tasks}" Margin="28,0,0,0">
                                         <ItemsControl.ItemTemplate><DataTemplate>
-                                            <Border BorderBrush="#F0F2F5" BorderThickness="0,0,0,1" MinHeight="40" Padding="0,8,0,8">
-                                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="20"/><ColumnDefinition Width="10"/><ColumnDefinition/><ColumnDefinition Width="12"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                                    <Grid Width="20" Height="20" VerticalAlignment="Top">
-                                                        <Ellipse Fill="#19C363"/>
-                                                        <Path Data="M 5,10 L 8.5,13.5 L 15,6.5" Stroke="White" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/>
+                                            <Border BorderBrush="#F0F2F5" BorderThickness="0,0,0,1">
+                                                <StackPanel>
+                                                    <Grid MinHeight="23" Margin="0,8,0,8">
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="20"/><ColumnDefinition Width="10"/><ColumnDefinition Width="Auto"/><ColumnDefinition/><ColumnDefinition Width="12"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                        <ContentControl x:Name="CompletedParentMark" Style="{StaticResource CompletedTaskMarkStyle}"/>
+                                                        <ToggleButton x:Name="SubTaskToggle" Grid.Column="2" Style="{StaticResource CompletedTaskExpandStyle}" IsChecked="{Binding IsExpanded, Mode=TwoWay}"/>
+                                                        <TextBlock x:Name="CompletedTaskName" Grid.Column="3" Text="{Binding Name}" Style="{StaticResource CalendarBodyTextStyle}" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                                                        <TextBlock x:Name="CompletedTaskTime" Grid.Column="5" Text="{Binding TimeDisplay}" Style="{StaticResource CalendarSecondaryTextStyle}"
+                                                                   FontFamily="{DynamicResource FontFamilyEnglish}" Typography.NumeralAlignment="Tabular" VerticalAlignment="Center" Margin="0,0,1,0"/>
                                                     </Grid>
-                                                    <TextBlock x:Name="CompletedTaskName" Grid.Column="2" Text="{Binding Name}" Style="{StaticResource CalendarBodyTextStyle}" TextWrapping="Wrap" VerticalAlignment="Center"/>
-                                                    <TextBlock x:Name="CompletedTaskTime" Grid.Column="4" Text="{Binding TimeDisplay}" Style="{StaticResource CalendarSecondaryTextStyle}"
-                                                               FontFamily="{DynamicResource FontFamilyEnglish}" Typography.NumeralAlignment="Tabular" VerticalAlignment="Top" Margin="0,1,1,0"/>
-                                                </Grid>
+                                                    <ItemsControl x:Name="CompletedSubTasks" ItemsSource="{Binding SubTasks}" Style="{StaticResource CompletedSubTasksStyle}"
+                                                                  Visibility="{Binding IsChecked, ElementName=SubTaskToggle, Converter={StaticResource VisibleIf}}"/>
+                                                </StackPanel>
                                             </Border>
                                         </DataTemplate></ItemsControl.ItemTemplate>
                                     </ItemsControl>

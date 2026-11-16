@@ -18,6 +18,7 @@ public sealed record CredentialState(Guid InstallationId, CloudTokens? Tokens, G
 public sealed record CloudProfile(Guid Id, string Email, bool EmailConfirmed)
 {
     public string? Membership { get; init; }
+    public long? MembershipVersion { get; init; }
 }
 public sealed record CloudTokens(string TokenType, string AccessToken, DateTimeOffset AccessTokenExpiresAtUtc,
     string RefreshToken, DateTimeOffset RefreshTokenExpiresAtUtc, Guid SessionId, Guid DeviceId, CloudProfile User);

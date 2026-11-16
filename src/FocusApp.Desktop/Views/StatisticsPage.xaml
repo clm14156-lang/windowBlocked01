@@ -67,6 +67,19 @@
             </ControlTemplate></Setter.Value></Setter>
         </Style>
 
+        <Style x:Key="GoalMetricChevronStyle" TargetType="Path">
+            <Setter Property="Width" Value="6"/>
+            <Setter Property="Height" Value="10"/>
+            <Setter Property="Margin" Value="8,0,0,0"/>
+            <Setter Property="Data" Value="M 1,1 L 5,5 L 1,9"/>
+            <Setter Property="Stroke" Value="#A5AEBC"/>
+            <Setter Property="StrokeThickness" Value="1.5"/>
+            <Setter Property="StrokeStartLineCap" Value="Round"/>
+            <Setter Property="StrokeEndLineCap" Value="Round"/>
+            <Setter Property="StrokeLineJoin" Value="Round"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="IsHitTestVisible" Value="False"/>
+        </Style>
         <Style x:Key="CalendarMetricButtonStyle" TargetType="Button" BasedOn="{StaticResource GoalMetricCardButtonStyle}">
             <Setter Property="VerticalContentAlignment" Value="Stretch"/>
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
@@ -783,7 +796,7 @@
                                                     <Border Width="32" Height="32" CornerRadius="16" Background="#FFF0E4" HorizontalAlignment="Left"><Grid Width="18" Height="18"><Ellipse Stroke="#FF861C" StrokeThickness="1.8"/><Path Data="M 9,4 L 9,9 L 14,12" Stroke="#FF861C" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/></Grid></Border>
                                                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="3,0,0,0">
                                                         <TextBlock Text="累计投入" Style="{StaticResource StatisticsMetricLabelStyle}"/>
-                                                        <Path x:Name="GoalInvestmentDetailChevron" Width="6" Height="10" Margin="8,0,0,0" Data="M 1,1 L 5,5 L 1,9" Stroke="#A5AEBC" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" VerticalAlignment="Center" IsHitTestVisible="False"/>
+                                                        <Path x:Name="GoalInvestmentDetailChevron" Style="{StaticResource GoalMetricChevronStyle}"/>
                                                     </StackPanel>
                                                     <Viewbox Grid.Row="1" Grid.ColumnSpan="2" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,7,0,0"><TextBlock x:Name="GoalTotalInvestmentText" Style="{StaticResource StatisticsBodyTextStyle}"><Run Style="{StaticResource StatisticsValueRunStyle}" Text="{Binding GoalFocusHistory.TotalInvestment.HoursValue, Mode=OneWay}"/><Run Style="{StaticResource StatisticsUnitRunStyle}" Text="{Binding GoalFocusHistory.TotalInvestment.HoursUnitWithLeadingSpace, Mode=OneWay}"/><Run Style="{StaticResource StatisticsValueRunStyle}" Text="{Binding GoalFocusHistory.TotalInvestment.MinutesValueWithLeadingSpace, Mode=OneWay}"/><Run Style="{StaticResource StatisticsUnitRunStyle}" Text="{Binding GoalFocusHistory.TotalInvestment.MinutesUnitWithLeadingSpace, Mode=OneWay}"/></TextBlock></Viewbox>
                                                 </Grid>
@@ -794,19 +807,23 @@
                                                     <Border Width="32" Height="32" CornerRadius="16" Background="#E4F8EB" HorizontalAlignment="Left"><Grid Width="18" Height="18"><Ellipse Fill="#19BF73"/><Path Data="M 4,9 L 8,13 L 14,6" Stroke="White" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/></Grid></Border>
                                                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="3,0,0,0">
                                                         <TextBlock Text="完成任务数" Style="{StaticResource StatisticsMetricLabelStyle}"/>
-                                                        <Path x:Name="GoalCompletedDetailChevron" Width="6" Height="10" Margin="8,0,0,0" Data="M 1,1 L 5,5 L 1,9" Stroke="#A5AEBC" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" VerticalAlignment="Center" IsHitTestVisible="False"/>
+                                                        <Path x:Name="GoalCompletedDetailChevron" Style="{StaticResource GoalMetricChevronStyle}"/>
                                                     </StackPanel>
-                                                    <Viewbox Grid.Row="1" Grid.ColumnSpan="2" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,7,0,0"><TextBlock x:Name="GoalCompletedTaskCountText" Style="{StaticResource StatisticsBodyTextStyle}"><Run Style="{StaticResource StatisticsValueRunStyle}" Text="{Binding GoalFocusHistory.CompletedTaskCount, Mode=OneWay}"/><Run Style="{StaticResource StatisticsUnitRunStyle}" Text=" 个"/></TextBlock></Viewbox>
+                                                    <Viewbox Grid.Row="1" Grid.ColumnSpan="2" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,7,0,0"><TextBlock x:Name="GoalCompletedTaskCountText" Style="{StaticResource StatisticsBodyTextStyle}"><Run Style="{StaticResource StatisticsValueRunStyle}" Text="{Binding GoalCompletedTasks.TotalCount, Mode=OneWay}"/><Run Style="{StaticResource StatisticsUnitRunStyle}" Text=" 个"/></TextBlock></Viewbox>
                                                 </Grid>
                                             </Button>
                                             <Border x:Name="GoalCompletionDivider" Grid.Column="3" Width="1" Background="#E8EBF0" Margin="0,5,0,3"/>
-                                            <Border x:Name="GoalFocusDaysCard" Grid.Column="4" Padding="4,3" Background="Transparent" VerticalAlignment="Center" AutomationProperties.Name="专注天数">
+                                            <Button x:Name="GoalFocusDaysCard" Grid.Column="4" Style="{StaticResource GoalMetricCardButtonStyle}"
+                                                    Command="{Binding GoalFocusHistory.Calendar.OpenCommand}" AutomationProperties.Name="查看专注日历">
                                                 <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="36"/><ColumnDefinition/></Grid.ColumnDefinitions><Grid.RowDefinitions><RowDefinition Height="32"/><RowDefinition/></Grid.RowDefinitions>
                                                     <Border Width="32" Height="32" CornerRadius="16" Background="#E6F2FF" HorizontalAlignment="Left"><Grid Width="18" Height="18"><Path Data="M 3,4 L 15,4 Q 17,4 17,6 L 17,15 Q 17,17 15,17 L 3,17 Q 1,17 1,15 L 1,6 Q 1,4 3,4 M 1,8 L 17,8 M 5,1 L 5,6 M 13,1 L 13,6 M 5,11 L 7,11 M 11,11 L 13,11" Stroke="#1888FA" StrokeThickness="1.6" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/></Grid></Border>
-                                                    <TextBlock Grid.Column="1" Text="专注天数" Style="{StaticResource StatisticsMetricLabelStyle}" Margin="3,0,0,0"/>
+                                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="3,0,0,0">
+                                                        <TextBlock Text="专注天数" Style="{StaticResource StatisticsMetricLabelStyle}"/>
+                                                        <Path x:Name="GoalFocusDaysChevron" Style="{StaticResource GoalMetricChevronStyle}"/>
+                                                    </StackPanel>
                                                     <Viewbox Grid.Row="1" Grid.ColumnSpan="2" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,7,0,0"><TextBlock x:Name="GoalFocusDaysText" Style="{StaticResource StatisticsBodyTextStyle}"><Run Style="{StaticResource StatisticsValueRunStyle}" Text="{Binding GoalFocusHistory.FocusDayCount, Mode=OneWay}"/><Run Style="{StaticResource StatisticsUnitRunStyle}" Text=" 天"/></TextBlock></Viewbox>
                                                 </Grid>
-                                            </Border>
+                                            </Button>
                                         </Grid>
                                       </Grid>
                                     </Border>

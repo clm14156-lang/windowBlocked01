@@ -21,6 +21,7 @@ public sealed class GoalFocusHistoryViewModel : INotifyPropertyChanged
     public GoalFocusHistoryViewModel(Func<DateTime> now)
     {
         _now = now;
+        Calendar = new GoalFocusCalendarViewModel(now);
         _selectedMonth = new DateTime(now().Year, now().Month, 1);
         ToggleRangeMenuCommand = new RelayCommand<object>(_ =>
         {
@@ -45,6 +46,7 @@ public sealed class GoalFocusHistoryViewModel : INotifyPropertyChanged
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
+    public GoalFocusCalendarViewModel Calendar { get; }
     public ICommand ToggleRangeMenuCommand { get; }
     public ICommand SelectRangeCommand { get; }
     public ICommand OpenMonthPickerCommand { get; }
@@ -98,8 +100,8 @@ public sealed class GoalFocusHistoryViewModel : INotifyPropertyChanged
     public int CompletedTaskCount => Days.Sum(day => day.Sessions.Sum(session => session.Tasks.Count));
     // The summary and history use the same session cohort. Cross-midnight sessions
     // stay whole under their start date, matching the existing history grouping.
-    public GoalInvestmentDurationViewModel TotalInvestment => new((int)(Days
-        .Sum(day => day.Sessions.Sum(session => session.Record.FocusDuration.Ticks)) / TimeSpan.TicksPerMinute));
+    public GoalInvestmentDurationViewModel TotalInvestment =>
+        new((int)(Days.Sum(day => day.TotalDuration.Ticks) / TimeSpan.TicksPerMinute));
     public int FocusDayCount => Days.Count;
     public bool HasCompletedTasks => CompletedTaskCount > 0;
     public string CompletedTaskSummaryDisplay => $"已完成 {CompletedTaskCount} 项";
@@ -169,6 +171,7 @@ public sealed class GoalFocusHistoryViewModel : INotifyPropertyChanged
         }
         Notify(nameof(Months));
         Notify(nameof(HasMonths));
+        Calendar.ApplyDays(_goalId, _allDays);
         RefreshVisibleDays();
     }
 
@@ -230,8 +233,8 @@ public sealed class GoalFocusDayViewModel : INotifyPropertyChanged
         Sessions = sessions;
         _isExpanded = expanded;
         DateDisplay = date == today ? $"今天 · {date:M月d日}" : date == today.AddDays(-1) ? $"昨天 · {date:M月d日}" : $"{date:M月d日}";
-        var minutes = (int)TimeSpan.FromTicks(sessions.Sum(session => session.Record.FocusDuration.Ticks)).TotalMinutes;
-        SummaryDisplay = new GoalInvestmentDurationViewModel(minutes).Display;
+        TotalDuration = TimeSpan.FromTicks(sessions.Sum(session => session.Record.FocusDuration.Ticks));
+        SummaryDisplay = new GoalInvestmentDurationViewModel((int)TotalDuration.TotalMinutes).Display;
         ToggleCommand = new RelayCommand<object>(_ => IsExpanded = !IsExpanded);
     }
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -241,6 +244,7 @@ public sealed class GoalFocusDayViewModel : INotifyPropertyChanged
     public string HeaderDateDisplay { get; }
     public string WeekdayDisplay => "周" + "日一二三四五六"[(int)Date.DayOfWeek];
     public string SummaryDisplay { get; }
+    public TimeSpan TotalDuration { get; }
     public IReadOnlyList<GoalFocusSessionViewModel> Sessions { get; }
     public ICommand ToggleCommand { get; }
     public bool IsExpanded

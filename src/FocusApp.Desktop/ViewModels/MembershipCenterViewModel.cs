@@ -1,31 +1,31 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
+using FocusApp.Core;
 
 namespace FocusApp.Desktop.ViewModels;
 
 public sealed class MembershipCenterViewModel : INotifyPropertyChanged
 {
-    private FocusApp.Core.MembershipStatus? status;
-    public string ExpiryText => status?.Kind == "lifetime" && status.IsActive ? "永久有效" : status?.GrantExpiresAtUtc?.ToLocalTime().ToString("yyyy-MM-dd HH:mm") ?? "尚未验证";
-    public string DaysRemaining => status?.GrantExpiresAtUtc is { } end ? Math.Max(0, (int)Math.Ceiling((end - DateTimeOffset.UtcNow).TotalDays)).ToString() : "—";
-    public string VerificationText => status?.Error ?? (status?.LeaseExpiresAtUtc is { } expiry ? "离线凭证有效至 " + expiry.ToLocalTime().ToString("yyyy-MM-dd HH:mm") : "请联网验证会员");
-    public void ApplyStatus(FocusApp.Core.MembershipStatus value)
-    {
-        status = value; MembershipType = value.IsActive ? value.Kind == "lifetime" ? MembershipType.Lifetime : MembershipType.Annual : MembershipType.Normal;
-        OnPropertyChanged(nameof(ExpiryText)); OnPropertyChanged(nameof(DaysRemaining)); OnPropertyChanged(nameof(VerificationText));
-    }
+    private readonly Func<DateTimeOffset> _utcNow;
+    private MembershipStatus? _status;
     private bool _isOpen;
-    private bool _hasRenewFeedback;
-    private MembershipType _membershipType = MembershipType.Annual;
+    private MembershipType _membershipType;
 
-    public MembershipCenterViewModel()
+    public MembershipCenterViewModel(Func<DateTimeOffset>? utcNow = null)
     {
+        _utcNow = utcNow ?? (() => DateTimeOffset.UtcNow);
         CloseCommand = new RelayCommand<object>(_ => Close());
-        RenewCommand = new RelayCommand<object>(_ => HasRenewFeedback = true);
+        RenewCommand = new RelayCommand<object>(_ =>
+        {
+            if (!CanRenew) return;
+            Close();
+            RenewalRequested?.Invoke(this, EventArgs.Empty);
+        });
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
+    public event EventHandler? RenewalRequested;
 
     public ICommand CloseCommand { get; }
 
@@ -44,20 +44,24 @@ public sealed class MembershipCenterViewModel : INotifyPropertyChanged
         {
             if (SetField(ref _membershipType, value))
             {
-                OnPropertyChanged(nameof(IsAnnual));
-                OnPropertyChanged(nameof(IsLifetime));
+                OnPropertyChanged(nameof(CanRenew));
             }
         }
     }
 
-    public bool IsAnnual => MembershipType == MembershipType.Annual;
+    public bool CanRenew => MembershipType == MembershipType.Annual;
+    internal bool IsMonthly => CanRenew && _status?.Plan == "monthly";
+    public string ExpiryText => MembershipType == MembershipType.Lifetime ? "永久有效" :
+        _status?.GrantExpiresAtUtc is { } expiry ? $"有效期至 {expiry.LocalDateTime:yyyy年M月d日}" : "有效期尚未验证";
+    public string DaysRemaining => _status?.GrantExpiresAtUtc is { } expiry
+        ? Math.Max(0, (int)Math.Ceiling((expiry - _utcNow()).TotalDays)).ToString()
+        : "—";
 
-    public bool IsLifetime => MembershipType == MembershipType.Lifetime;
-
-    public bool HasRenewFeedback
+    public void ApplyStatus(MembershipStatus value)
     {
-        get => _hasRenewFeedback;
-        private set => SetField(ref _hasRenewFeedback, value);
+        _status = value;
+        MembershipType = value.IsActive ? value.Kind == "lifetime" ? MembershipType.Lifetime : MembershipType.Annual : MembershipType.Normal;
+        RefreshExpiry();
     }
 
     public void Open(MembershipType membershipType)
@@ -68,8 +72,14 @@ public sealed class MembershipCenterViewModel : INotifyPropertyChanged
         }
 
         MembershipType = membershipType;
-        HasRenewFeedback = false;
+        RefreshExpiry();
         IsOpen = true;
+    }
+
+    private void RefreshExpiry()
+    {
+        OnPropertyChanged(nameof(ExpiryText));
+        OnPropertyChanged(nameof(DaysRemaining));
     }
 
     private void Close()

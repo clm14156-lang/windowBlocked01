@@ -11,7 +11,7 @@ internal static class Program
         var builder = Host.CreateApplicationBuilder(args);
         builder.Services.AddWindowsService(options =>
         {
-            options.ServiceName = "FocusApp Service";
+            options.ServiceName = "FocusAppService";
         });
         builder.Services.AddSingleton<ILocalDataPathProvider, LocalDataPathProvider>();
         builder.Services.AddSingleton<IAccessControlExecutionHostFactory, AccessControlExecutionHostFactory>();
@@ -19,7 +19,7 @@ internal static class Program
         builder.Services.AddSingleton<IClientIdentityResolver, NamedPipeClientIdentityResolver>();
         builder.Services.AddHostedService<NamedPipeServiceWorker>();
 
-        using var host = builder.Build();
+        var host = builder.Build();
         await host.RunAsync();
     }
 }

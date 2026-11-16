@@ -9,33 +9,16 @@
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ToolTip"><ContentPresenter /></ControlTemplate></Setter.Value></Setter>
         </Style>
     </UserControl.Resources>
-    <Border Width="224" Margin="8" Padding="16,14" Background="White" BorderBrush="#E5E7EB"
+    <Border Width="180" Margin="8" Padding="14,13" Background="White" BorderBrush="#E5E7EB"
             BorderThickness="1" CornerRadius="12">
         <Border.Effect><DropShadowEffect Color="#243047" Opacity="0.10" BlurRadius="12" ShadowDepth="3" /></Border.Effect>
         <StackPanel>
-            <TextBlock Text="{Binding TimelineTimeRangeDisplay}" FontSize="16" FontWeight="SemiBold" Foreground="#111827" />
-            <Border Height="1" Background="#F0F1F4" Margin="0,13,0,12">
-                <Border.Style><Style TargetType="Border"><Style.Triggers>
-                    <DataTrigger Binding="{Binding HasRecordedPauses}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger>
-                </Style.Triggers></Style></Border.Style>
-            </Border>
-            <Grid Margin="0,13,0,13">
-                <Grid.Style><Style TargetType="Grid"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers>
-                    <DataTrigger Binding="{Binding HasRecordedPauses}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger>
-                </Style.Triggers></Style></Grid.Style>
+            <TextBlock Text="{Binding TimelineTimeRangeDisplay}" FontSize="13" FontWeight="SemiBold" Foreground="#111827" />
+            <Grid Margin="0,13,0,0">
                 <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                <Border Height="7" CornerRadius="3.5" Background="#FFF0E4" VerticalAlignment="Center">
-                    <Grid><Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="{Binding TimelineFocusWidth}" /><ColumnDefinition Width="{Binding TimelinePauseWidth}" />
-                    </Grid.ColumnDefinitions>
-                        <Border Background="#FF7A00" CornerRadius="3.5" />
-                    </Grid>
-                </Border>
-                <TextBlock Grid.Column="1" Margin="9,0,0,0" Text="{Binding TimelineFocusPercentage}" FontSize="12" Foreground="#6B7280" VerticalAlignment="Center" />
-            </Grid>
-            <Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                <TextBlock Text="{Binding TimelineFocusLabel}" FontSize="13" Foreground="#6B7280" VerticalAlignment="Center" />
-                <TextBlock Grid.Column="1" FontSize="13" FontWeight="SemiBold" Foreground="#111827" VerticalAlignment="Center"><Run Text="{Binding PoptipActualMinutesDisplay, Mode=OneWay}" /><Run Text="分钟" /></TextBlock>
+                <TextBlock Text="实际专注" FontSize="13" Foreground="#8A919F" VerticalAlignment="Center" />
+                <TextBlock x:Name="ActualDuration" Grid.Column="1" FontSize="13" FontWeight="Normal"
+                           Foreground="#FF7A00" VerticalAlignment="Center"><Run Text="{Binding PoptipActualMinutesDisplay, Mode=OneWay}" /><Run Text="分钟" /></TextBlock>
             </Grid>
         </StackPanel>
     </Border>

@@ -333,7 +333,8 @@ public sealed partial class SqliteLocalDataStore : ILocalDataStore
         {
             await using var command = CreateCommand(connection, transaction, """
                 UPDATE focus_sessions
-                SET status = $status, actual_seconds = $actual, focus_started_utc = $focusStarted,
+                SET status = $status, actual_seconds = $actual, preparation_started_utc = $preparationStarted,
+                    focus_started_utc = $focusStarted,
                     planned_end_utc = $plannedEnd, recovery_checkpoint_utc = $checkpoint,
                     activity_intervals_json = $intervals, updated_utc = $updated
                 WHERE session_id = $id AND status IN (0, 1);
@@ -341,6 +342,7 @@ public sealed partial class SqliteLocalDataStore : ILocalDataStore
             command.Parameters.AddWithValue("$id", FormatGuid(session.SessionId));
             command.Parameters.AddWithValue("$status", (int)session.Status);
             command.Parameters.AddWithValue("$actual", session.ActualSeconds);
+            command.Parameters.AddWithValue("$preparationStarted", FormatDateTime(session.PreparationStartedAtUtc));
             command.Parameters.AddWithValue("$focusStarted", FormatNullableDateTime(session.FocusStartedAtUtc));
             command.Parameters.AddWithValue("$plannedEnd", FormatNullableDateTime(session.PlannedEndAtUtc));
             command.Parameters.AddWithValue("$checkpoint", FormatNullableDateTime(session.RecoveryCheckpointAtUtc));

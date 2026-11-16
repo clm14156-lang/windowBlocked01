@@ -154,10 +154,13 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         RefreshSelectedDayCompletedTasks();
     }
 
-    internal void ApplyCompletedTaskMutation(LocalTaskDto source, bool delete)
+    internal LocalTaskDto? FindGoalTask(string targetId, string taskId) =>
+        _goalTaskSnapshot.FirstOrDefault(task => task.TargetId == targetId && task.TaskId == taskId);
+
+    internal void ApplyCompletedTaskMutation(LocalTaskDto source, LocalTaskDto? replacement)
     {
         _goalTaskSnapshot = _goalTaskSnapshot.Where(task => task.TaskId != source.TaskId)
-            .Concat(delete ? [] : [source with { IsCompleted = false, CompletedAtUtc = null, UpdatedAtUtc = DateTimeOffset.UtcNow }]).ToArray();
+            .Concat(replacement is null ? [] : [replacement]).ToArray();
         GoalCompletedTasks.ApplyState(SelectedGoal, _goalTaskSnapshot);
         GoalFocusHistory.ApplyState(SelectedGoal, FocusSessionRecords, _goalTaskSnapshot);
         RefreshSelectedDayCompletedTasks();
@@ -949,7 +952,11 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
 
             _selectedTab = value;
             if (_selectedTab != StatisticsTab.Calendar) IsCalendarCompletedTasksOpen = false;
-            if (_selectedTab != StatisticsTab.Goals) GoalCompletedTasks.CloseCommand.Execute(null);
+            if (_selectedTab != StatisticsTab.Goals)
+            {
+                GoalCompletedTasks.CloseCommand.Execute(null);
+                GoalFocusHistory.Calendar.Close();
+            }
             if (_selectedTab == StatisticsTab.Goals) GoalFocusHistory.ApplyState(SelectedGoal, FocusSessionRecords, _goalTaskSnapshot);
             Overview.ClearDistributionSelection();
             IsDailyFocusRecordVipGuideOpen = false;
@@ -1607,27 +1614,30 @@ public sealed class StatisticsOverviewViewModel : INotifyPropertyChanged
         // A completed live task without such membership must not inflate this total.
         var items = new List<CalendarCompletedTaskViewModel>();
         var seenSnapshotIds = new HashSet<string>(StringComparer.Ordinal);
+        var localTasks = _goalTaskSnapshot.ToLookup(task => task.TaskId, StringComparer.Ordinal);
         foreach (var record in FocusSessionRecords.Where(record => record.FocusDuration >= TimeSpan.FromMinutes(5))
                      .OrderByDescending(record => record.EndTime))
         {
             var goal = Goals.FirstOrDefault(goal => goal.GoalId == record.GoalId);
-            void Add(string? id, string name, DateTime? completedAt)
+            void Add(string? id, string name, DateTime? completedAt, LocalTaskDetailsSnapshotDto? details = null)
             {
                 if ((completedAt ?? record.EndTime).Date != date.Date) return;
                 if (id is not null && !seenSnapshotIds.Add(id)) return;
+                var subTasks = details is not null
+                    ? CompletedSubTaskViewModel.FromSnapshot(details)
+                    : CompletedSubTaskViewModel.FromTask(id is null ? null : localTasks[id].FirstOrDefault());
                 items.Add(new(name, completedAt, record.GoalId,
                     record.HasGoal ? goal?.Name ?? record.GoalName : string.Empty,
-                    goal?.IconSource ?? record.IconSource, id));
+                    goal?.IconSource ?? record.IconSource, id) { SubTasks = subTasks });
             }
             if (record.CompletedTaskSnapshots.Count > 0)
             {
                 foreach (var task in record.CompletedTaskSnapshots.OrderBy(task => task.SortOrder))
-                    Add(task.TaskId, task.TaskNameSnapshot, task.CompletedAtUtc?.LocalDateTime);
+                    Add(task.TaskId, task.TaskNameSnapshot, task.CompletedAtUtc?.LocalDateTime, task.Details);
             }
             else
             {
-                // Older saved sessions can lack detail snapshots; their explicit stored
-                // task names/IDs remain readable without consulting unrelated live tasks.
+                // Older sessions still use recorded membership. Only matching IDs can supply missing details.
                 for (var index = 0; index < record.CompletedTaskNames.Count; index++)
                     Add(record.CompletedTaskIds.ElementAtOrDefault(index), record.CompletedTaskNames[index],
                         record.CompletedTaskTimes.ElementAtOrDefault(index));
@@ -1770,6 +1780,8 @@ public sealed class CalendarDayViewModel : INotifyPropertyChanged
 public sealed record CalendarCompletedTaskViewModel(
     string Name, DateTime? CompletedAt, string GoalId, string GoalName, string GoalIconSource, string? TaskId = null)
 {
+    public IReadOnlyList<CompletedSubTaskViewModel> SubTasks { get; init; } = [];
+    public bool IsExpanded { get; set; } = true;
     public string TimeDisplay => CompletedAt?.ToString("HH:mm") ?? "—";
     public bool HasGoal => !string.IsNullOrWhiteSpace(GoalName) && GoalId != "goal-unassigned";
 }

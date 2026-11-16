@@ -25,4 +25,5 @@ public sealed class CloudApiException(string code, LoginCaptchaChallenge? captch
 {
     public string Code { get; } = code;
     public LoginCaptchaChallenge? Captcha { get; } = captcha;
+    internal System.Net.HttpStatusCode? StatusCode { get; init; }
 }

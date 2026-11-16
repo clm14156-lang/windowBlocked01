@@ -1,6 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using FocusApp.Infrastructure.AccessControl;
 using FocusApp.Agent.Services;
 
@@ -11,17 +10,15 @@ internal static class Program
     [STAThread]
     private static void Main(string[] args)
     {
+        using var instance = new Mutex(true, @"Local\FocusApp.Agent", out var acquired);
+        if (!acquired) return;
+
         var builder = Host.CreateApplicationBuilder(args);
         builder.Services.AddSingleton<IUserProxyManager, UserProxyManager>();
         builder.Services.AddSingleton<StartupRegistrationService>();
-        var isAutostart = args.Any(argument => string.Equals(argument, StartupRegistrationService.AutostartArgument, StringComparison.OrdinalIgnoreCase));
-        builder.Services.AddSingleton<AgentWorker>(provider => new AgentWorker(
-            provider.GetRequiredService<ILogger<AgentWorker>>(),
-            provider.GetRequiredService<IUserProxyManager>(),
-            provider.GetRequiredService<StartupRegistrationService>(),
-            provider.GetRequiredService<IHostApplicationLifetime>(),
-            isAutostart));
-        builder.Services.AddHostedService(provider => provider.GetRequiredService<AgentWorker>());
+        builder.Services.AddSingleton<DesktopProcessLauncher>();
+        builder.Services.AddSingleton<IDesktopProcessLauncher>(services => services.GetRequiredService<DesktopProcessLauncher>());
+        builder.Services.AddHostedService<AgentWorker>();
 
         using var host = builder.Build();
         host.StartAsync().GetAwaiter().GetResult();
@@ -29,9 +26,9 @@ internal static class Program
         {
             ShutdownMode = System.Windows.ShutdownMode.OnExplicitShutdown
         };
-        var tray = new TrayApplication(host.Services, application.Dispatcher);
+        using var tray = new TrayApplication(host.Services.GetRequiredService<DesktopProcessLauncher>(), application.Dispatcher);
         application.Exit += (_, _) => host.StopAsync().GetAwaiter().GetResult();
         application.Run();
-        tray.Dispose();
+        instance.ReleaseMutex();
     }
 }

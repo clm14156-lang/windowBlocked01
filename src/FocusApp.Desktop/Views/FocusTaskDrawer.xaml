@@ -17,6 +17,18 @@
                 <ResourceDictionary Source="../Resources/FocusTheme.Light.xaml" />
             </ResourceDictionary.MergedDictionaries>
         <views:CustomTimeSelectionConverter x:Key="SameTask"/>
+        <Style x:Key="InlineSubTaskHint" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11.5"/>
+            <Setter Property="Foreground" Value="{DynamicResource FocusTaskPlaceholder}"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding DataContext.Session.IsDarkFocusTheme, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+                    <Setter Property="FontSize" Value="13"/>
+                    <Setter Property="FontWeight" Value="Normal"/>
+                    <Setter Property="Foreground" Value="{DynamicResource FocusTaskInlineSubTaskHint}"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
         <Style x:Key="SubTaskMembershipLink" TargetType="Button">
             <Setter Property="Foreground" Value="#FD7E05"/><Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/><Setter Property="Padding" Value="0"/>
@@ -217,30 +229,69 @@
                                 <Binding/><Binding Path="DataContext.InlineSubTaskParent" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
                             </MultiBinding></DataTrigger.Binding><Setter Property="Visibility" Value="Visible"/></DataTrigger>
                         </Style.Triggers></Style></Border.Style>
-                        <Grid Margin="8,0">
+                        <Grid>
+                        <Grid.Style><Style TargetType="Grid">
+                            <Setter Property="Margin" Value="8,0"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding DataContext.Session.IsDarkFocusTheme, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+                                    <Setter Property="Margin" Value="10,0"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style></Grid.Style>
                         <Grid x:Name="InlineSubTaskInputGroup">
                             <Grid.Style><Style TargetType="Grid"><Style.Triggers>
                                 <DataTrigger Binding="{Binding DataContext.ShowInlineSubTaskUpgrade, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
                                 <DataTrigger Binding="{Binding DataContext.IsInlineSubTaskLimitReached, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True"><Setter Property="Opacity" Value="0.55"/></DataTrigger>
                             </Style.Triggers></Style></Grid.Style>
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="18"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                            <TextBlock Text="+" FontSize="16" Foreground="{DynamicResource FocusTaskPlaceholder}" VerticalAlignment="Center"/>
-                            <views:SubTaskTitleInput x:Name="InlineSubTaskTitleInput" Grid.Column="1" FontSize="11.5" VerticalContentAlignment="Center"
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <Grid IsHitTestVisible="False">
+                                <TextBlock Text="+" FontSize="16" Foreground="{DynamicResource FocusTaskPlaceholder}" VerticalAlignment="Center" Width="18">
+                                    <TextBlock.Style><Style TargetType="TextBlock"><Style.Triggers>
+                                        <DataTrigger Binding="{Binding DataContext.Session.IsDarkFocusTheme, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
+                                    </Style.Triggers></Style></TextBlock.Style>
+                                </TextBlock>
+                                <Path Data="M 5,0 L 5,10 M 0,5 L 10,5" Width="10" Height="10" Margin="0,0,10,0"
+                                      Stroke="{DynamicResource FocusTaskInlineSubTaskHint}" StrokeThickness="1.5"
+                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" VerticalAlignment="Center">
+                                    <Path.Style><Style TargetType="Path"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers>
+                                        <DataTrigger Binding="{Binding DataContext.Session.IsDarkFocusTheme, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger>
+                                    </Style.Triggers></Style></Path.Style>
+                                </Path>
+                            </Grid>
+                            <views:SubTaskTitleInput x:Name="InlineSubTaskTitleInput" Grid.Column="1" VerticalContentAlignment="Center"
                                      EditingEnded="InlineSubTaskInput_EditingEnded"
                                      Text="{Binding DataContext.InlineSubTaskTitle, RelativeSource={RelativeSource AncestorType=UserControl}, UpdateSourceTrigger=PropertyChanged}"
                                      IsEnabled="{Binding DataContext.CanCreateInlineSubTask, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                      AcceptsReturn="False" AcceptsTab="False" InputMethod.IsInputMethodEnabled="True" AutomationProperties.Name="输入子任务，回车保存并继续，Esc取消">
-                                <TextBox.Style><Style TargetType="TextBox" BasedOn="{StaticResource BorderlessInput}"><Style.Triggers>
+                                <TextBox.Style><Style TargetType="TextBox" BasedOn="{StaticResource BorderlessInput}">
+                                    <Setter Property="FontSize" Value="11.5"/>
+                                    <Style.Triggers>
                                     <DataTrigger Binding="{Binding DataContext.IsInlineSubTaskLimitReached, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True"><Setter Property="Visibility" Value="Hidden"/></DataTrigger>
+                                    <DataTrigger Binding="{Binding DataContext.Session.IsDarkFocusTheme, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+                                        <Setter Property="FontFamily" Value="{DynamicResource FontFamilyPrimary}"/>
+                                        <Setter Property="FontSize" Value="13"/>
+                                        <Setter Property="FontWeight" Value="Normal"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource FocusTaskBodyText}"/>
+                                        <Setter Property="CaretBrush" Value="{DynamicResource AccentPrimary}"/>
+                                        <Setter Property="Template">
+                                            <Setter.Value><ControlTemplate TargetType="TextBox">
+                                                <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled"/>
+                                            </ControlTemplate></Setter.Value>
+                                        </Setter>
+                                    </DataTrigger>
                                 </Style.Triggers></Style></TextBox.Style>
                             </views:SubTaskTitleInput>
-                            <TextBlock Grid.Column="1" Text="添加子任务" FontSize="11.5" Foreground="{DynamicResource FocusTaskPlaceholder}" VerticalAlignment="Center" IsHitTestVisible="False">
-                                <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers>
+                            <TextBlock Grid.Column="1" Text="添加子任务" FontFamily="{DynamicResource FontFamilyPrimary}" IsHitTestVisible="False">
+                                <TextBlock.Style><Style TargetType="TextBlock" BasedOn="{StaticResource InlineSubTaskHint}"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers>
                                     <DataTrigger Binding="{Binding DataContext.InlineSubTaskTitle, RelativeSource={RelativeSource AncestorType=UserControl}}" Value=""><Setter Property="Visibility" Value="Visible"/></DataTrigger>
                                     <DataTrigger Binding="{Binding DataContext.IsInlineSubTaskLimitReached, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger>
                                 </Style.Triggers></Style></TextBlock.Style>
                             </TextBlock>
-                            <TextBlock x:Name="InlineSubTaskQuota" Grid.Column="2" Margin="8,0,0,0" Text="{Binding DataContext.InlineSubTaskCountDisplay, RelativeSource={RelativeSource AncestorType=UserControl}}" FontSize="11.5" Foreground="{DynamicResource FocusTaskPlaceholder}" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="InlineSubTaskQuota" Grid.Column="2" Margin="8,0,0,0" Text="{Binding DataContext.InlineSubTaskCountDisplay, RelativeSource={RelativeSource AncestorType=UserControl}}">
+                                <TextBlock.Style><Style TargetType="TextBlock" BasedOn="{StaticResource InlineSubTaskHint}"><Style.Triggers>
+                                    <DataTrigger Binding="{Binding DataContext.Session.IsDarkFocusTheme, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True"><Setter Property="FontFamily" Value="{DynamicResource FontFamilyEnglish}"/></DataTrigger>
+                                </Style.Triggers></Style></TextBlock.Style>
+                            </TextBlock>
                         </Grid>
                         <StackPanel x:Name="InlineSubTaskUpgrade" Orientation="Horizontal" VerticalAlignment="Center" Visibility="{Binding DataContext.ShowInlineSubTaskUpgrade, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolVisibility}}">
                             <TextBlock Text="+ 已达上限，" FontSize="11.5" Foreground="{DynamicResource FocusTaskPlaceholder}" VerticalAlignment="Center"/>

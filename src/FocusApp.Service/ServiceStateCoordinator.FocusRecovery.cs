@@ -14,7 +14,7 @@ public sealed partial class ServiceStateCoordinator
            !owner.ConnectionClosed.IsCancellationRequested;
 
     private bool IsRecoveryPending(LocalFocusSession session)
-        => IsActiveSession(session) && (_focusOwner is not { } owner ||
+        => !session.IsForcedMode && IsActiveSession(session) && (_focusOwner is not { } owner ||
            owner.SessionId != session.SessionId || owner.ConnectionClosed.IsCancellationRequested);
 
     private void ClearFocusOwner(Guid sessionId)
@@ -38,15 +38,7 @@ public sealed partial class ServiceStateCoordinator
                 var interrupted = data.FocusSessions.SingleOrDefault(session => session.SessionId == sessionId && IsRecoveryPending(session));
                 if (interrupted is null) return;
 
-                if (interrupted.IsForcedMode)
-                {
-                    _focusLifecycleCancellation?.Cancel();
-                    await KeepInterruptedForcedProtectionAsync(interrupted, token);
-                }
-                else
-                {
-                    PublishFocusRuntimeStatus(new FocusRuntimeStatusDto(FocusRuntimeState.Interrupted, sessionId, null, null));
-                }
+                PublishFocusRuntimeStatus(new FocusRuntimeStatusDto(FocusRuntimeState.Interrupted, sessionId, null, null));
                 await PublishStateChangedAsync(token);
             }
             finally { _mutationGate.Release(); }
@@ -110,15 +102,7 @@ public sealed partial class ServiceStateCoordinator
             };
             await _store.SaveFocusProgressAsync(resumed, token);
             _focusOwner = new(session.SessionId, connectionId, token);
-            if (resumed.IsForcedMode)
-            {
-                await EnsureForcedAccessControlAsync(resumed, token);
-                if (_focusRuntimeStatus.State != FocusRuntimeState.Faulted ||
-                    _focusRuntimeStatus.SessionId != resumed.SessionId)
-                    PublishFocusingStatus(resumed);
-                ScheduleForcedFocusLifecycle(resumed.SessionId);
-            }
-            else ClearInterruptedFocusRuntime(session.SessionId);
+            ClearInterruptedFocusRuntime(session.SessionId);
             var state = await PublishStateChangedAsync(token);
             return IpcEnvelope.CreateSuccess(request, new MutationResult(state.Revision, state));
         }
@@ -133,7 +117,7 @@ public sealed partial class ServiceStateCoordinator
             var data = await _store.LoadAsync(cancellationToken);
             var session = data.FocusSessions.SingleOrDefault(item => item.SessionId == command.SessionId);
             if (session is null || session.WasRecoveryAbandoned) return;
-            if (!IsRecoveryPending(session) || session.IsForcedMode)
+            if (!IsRecoveryPending(session))
                 throw new ServiceBusinessException("只能放弃等待恢复的普通专注。");
 
             if (session.ActualSeconds < FocusSessionRecord.MinimumSavedSeconds)
@@ -170,11 +154,10 @@ public sealed partial class ServiceStateCoordinator
         {
             var data = await _store.LoadAsync(token);
             var session = data.FocusSessions.SingleOrDefault(item => item.SessionId == sessionId &&
-                item.IsForcedMode && item.Status == LocalFocusSessionStatus.Focusing && !IsRecoveryPending(item));
+                item.IsForcedMode && item.Status == LocalFocusSessionStatus.Focusing);
             if (session?.PlannedEndAtUtc is not { } end || session.RecoveryCheckpointAtUtc is null) return;
             var now = GetEffectiveUtcNow();
-            if (now < end)
-                await _store.SaveFocusProgressAsync(WithForcedProgress(session, now), token);
+            await _store.SaveFocusProgressAsync(WithForcedProgress(session, now < end ? now : end), token);
         }
         finally { _mutationGate.Release(); }
     }
@@ -197,14 +180,32 @@ public sealed partial class ServiceStateCoordinator
         return session with { ActualSeconds = elapsed, RecoveryCheckpointAtUtc = now, ActivityIntervals = intervals };
     }
 
-    private async Task KeepInterruptedForcedProtectionAsync(LocalFocusSession session, CancellationToken token)
+    private async Task RestoreForcedFocusAsync(LocalFocusSession session, CancellationToken token)
     {
-        if (session.Status == LocalFocusSessionStatus.Focusing)
+        var now = GetEffectiveUtcNow();
+        var preparing = session.Status == LocalFocusSessionStatus.Preparing;
+        var startsAt = preparing ? now.Add(FocusSessionEngine.PreparationDuration) : session.FocusStartedAtUtc ?? now;
+        var remaining = Math.Clamp(session.ConfiguredSeconds - session.ActualSeconds, 0, session.ConfiguredSeconds);
+        var restored = session with
         {
-            // The focus lifecycle owns expiry. Keep the original rules active while the timer is paused.
-            await EnsureForcedAccessControlAsync(session with { PlannedEndAtUtc = null }, token);
+            PreparationStartedAtUtc = preparing ? now : session.PreparationStartedAtUtc,
+            FocusStartedAtUtc = startsAt,
+            PlannedEndAtUtc = (preparing ? startsAt : now).AddSeconds(remaining),
+            RecoveryCheckpointAtUtc = now
+        };
+        await _store.SaveFocusProgressAsync(restored, token);
+
+        if (preparing)
+        {
+            PublishFocusRuntimeStatus(new FocusRuntimeStatusDto(FocusRuntimeState.Preparing,
+                restored.SessionId, restored.PlannedEndAtUtc, null) { IsForcedMode = true });
         }
-        if (_focusRuntimeStatus.State != FocusRuntimeState.Faulted || _focusRuntimeStatus.SessionId != session.SessionId)
-            PublishFocusRuntimeStatus(new FocusRuntimeStatusDto(FocusRuntimeState.Interrupted, session.SessionId, null, _accessControlStatus.LastError));
+        else if (remaining > 0)
+        {
+            await EnsureForcedAccessControlAsync(restored, token);
+            if (_focusRuntimeStatus.State != FocusRuntimeState.Faulted || _focusRuntimeStatus.SessionId != restored.SessionId)
+                PublishFocusingStatus(restored);
+        }
+        ScheduleForcedFocusLifecycle(restored.SessionId);
     }
 }

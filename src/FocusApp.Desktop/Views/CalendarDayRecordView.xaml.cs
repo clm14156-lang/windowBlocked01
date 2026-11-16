@@ -1,9 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
-using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Threading;
 using FocusApp.Desktop.ViewModels;
 
 namespace FocusApp.Desktop.Views;
@@ -11,21 +9,10 @@ namespace FocusApp.Desktop.Views;
 public partial class CalendarDayRecordView : UserControl
 {
     private ScrollViewer? _scroll;
-    private Window? _owner;
     private Window? _hoverOwner;
-    private readonly DispatcherTimer _taskOpenTimer = new() { Interval = TimeSpan.FromMilliseconds(180) };
-    private readonly DispatcherTimer _taskCloseTimer = new() { Interval = TimeSpan.FromMilliseconds(160) };
     public CalendarDayRecordView()
     {
         InitializeComponent();
-        _taskOpenTimer.Tick += (_, _) =>
-        {
-            _taskOpenTimer.Stop();
-            if (!IsVisible || DataContext is not CalendarDayRecordViewModel { HasTasks: true }) return;
-            RecordHoverTip.IsOpen = false;
-            TaskPopup.IsOpen = true;
-        };
-        _taskCloseTimer.Tick += (_, _) => CloseTaskPreview();
         RecordHoverTip.PlacementTarget = this;
         Loaded += (_, _) =>
         {
@@ -34,27 +21,22 @@ public partial class CalendarDayRecordView : UserControl
         };
         Unloaded += (_, _) =>
         {
-            ClosePreviews();
+            CloseRecordHoverTip();
             if (_scroll is not null) _scroll.ScrollChanged -= ScrollChanged;
             _scroll = null;
         };
-        DataContextChanged += (_, _) => ClosePreviews();
-        IsVisibleChanged += (_, _) => { if (!IsVisible) ClosePreviews(); };
+        DataContextChanged += (_, _) => CloseRecordHoverTip();
+        IsVisibleChanged += (_, _) => { if (!IsVisible) CloseRecordHoverTip(); };
     }
 
-    public void CloseTaskPreview()
-    {
-        _taskOpenTimer.Stop();
-        _taskCloseTimer.Stop();
-        TaskPopup.IsOpen = false;
-    }
-    private void ClosePreviews() { CloseTaskPreview(); RecordHoverTip.IsOpen = false; }
+    private void CloseRecordHoverTip() => RecordHoverTip.IsOpen = false;
+
     private void ScrollChanged(object sender, ScrollChangedEventArgs e)
-    { if (ReferenceEquals(e.OriginalSource, _scroll) && (e.VerticalChange != 0 || e.HorizontalChange != 0)) ClosePreviews(); }
+    { if (ReferenceEquals(e.OriginalSource, _scroll) && (e.VerticalChange != 0 || e.HorizontalChange != 0)) CloseRecordHoverTip(); }
 
     private void RecordHoverTip_Opening(object sender, ToolTipEventArgs e)
     {
-        if (TaskPopup.IsOpen || _taskOpenTimer.IsEnabled || DataContext is not CalendarDayRecordViewModel) { e.Handled = true; return; }
+        if (DataContext is not CalendarDayRecordViewModel) { e.Handled = true; return; }
         RecordHoverTip.PlacementTarget = this;
         if (Window.GetWindow(this)?.Content is FrameworkElement root)
             RecordHoverContent.MaxWidth = Math.Min(CalendarRecordHoverToolTip.MaximumWidth, Math.Max(1, root.ActualWidth - 16));
@@ -94,57 +76,7 @@ public partial class CalendarDayRecordView : UserControl
         _hoverOwner = null;
     }
 
-    private void HoverOwner_Changed(object? sender, EventArgs e) => RecordHoverTip.IsOpen = false;
-
-    private void TaskCountAnchor_MouseEnter(object sender, MouseEventArgs e)
-    {
-        _taskCloseTimer.Stop();
-        if (!TaskPopup.IsOpen) _taskOpenTimer.Start();
-    }
-
-    private void TaskPreview_MouseEnter(object sender, MouseEventArgs e) => _taskCloseTimer.Stop();
-
-    private void TaskPreview_MouseLeave(object sender, MouseEventArgs e)
-    {
-        _taskOpenTimer.Stop();
-        _taskCloseTimer.Start();
-    }
-
-    private CustomPopupPlacement[] TaskPopup_Placement(Size popupSize, Size targetSize, Point offset)
-        => [new(new Point(targetSize.Width - popupSize.Width + 4, -popupSize.Height - 2), PopupPrimaryAxis.Vertical),
-            new(new Point(targetSize.Width - popupSize.Width + 4, targetSize.Height + 2), PopupPrimaryAxis.Vertical)];
-
-    private void TaskPopup_Opened(object? sender, EventArgs e)
-    {
-        _owner = Window.GetWindow(this);
-        if (_owner is not null)
-        {
-            _owner.PreviewKeyDown += Owner_KeyDown;
-            _owner.SizeChanged += TaskOwner_Changed;
-            _owner.LocationChanged += TaskOwner_Changed;
-            _owner.Deactivated += TaskOwner_Changed;
-        }
-        TaskPoptipSurface.PointerOnTop = TaskPoptipSurface.PointToScreen(new Point()).Y >= TaskCountAnchor.PointToScreen(new Point()).Y;
-        var anchor = TaskCountAnchor.PointToScreen(new Point(TaskCountAnchor.ActualWidth / 2, 0));
-        var local = TaskPoptipSurface.PointFromScreen(anchor);
-        TaskPoptipSurface.PointerLeft = PoptipChrome.PointerLeftForAnchor(local.X, TaskPoptipSurface.ActualWidth);
-    }
-    private void TaskPopup_Closed(object? sender, EventArgs e)
-    {
-        _taskOpenTimer.Stop();
-        _taskCloseTimer.Stop();
-        if (_owner is not null)
-        {
-            _owner.PreviewKeyDown -= Owner_KeyDown;
-            _owner.SizeChanged -= TaskOwner_Changed;
-            _owner.LocationChanged -= TaskOwner_Changed;
-            _owner.Deactivated -= TaskOwner_Changed;
-        }
-        _owner = null;
-    }
-    private void TaskOwner_Changed(object? sender, EventArgs e) => CloseTaskPreview();
-    private void Owner_KeyDown(object sender, KeyEventArgs e)
-    { if (e.Key == Key.Escape) { CloseTaskPreview(); e.Handled = true; } }
+    private void HoverOwner_Changed(object? sender, EventArgs e) => CloseRecordHoverTip();
 
     private static T? Ancestor<T>(DependencyObject child) where T : DependencyObject
     {

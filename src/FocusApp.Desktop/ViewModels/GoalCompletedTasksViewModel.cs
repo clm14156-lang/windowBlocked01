@@ -2,12 +2,15 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
+using System.Windows.Threading;
 using FocusApp.Contracts;
 using FocusApp.Core;
 
 namespace FocusApp.Desktop.ViewModels;
 
 public enum CompletedTaskTimeRange { All, Today, Week, Month }
+internal enum CompletedTaskChange { Reopen, Delete, UndoReopen }
+internal sealed record CompletedTaskChangeResult(LocalTaskDto Before, LocalTaskDto? After);
 
 public sealed class GoalCompletedTasksViewModel : INotifyPropertyChanged
 {
@@ -20,17 +23,22 @@ public sealed class GoalCompletedTasksViewModel : INotifyPropertyChanged
     private string _errorText = string.Empty;
     private string _searchQuery = string.Empty;
     private readonly RelayCommand<object> _open;
+    private readonly RelayCommand<object> _undo;
     private readonly RelayCommand<GoalCompletedTaskEntryViewModel> _restore, _delete;
+    private readonly DispatcherTimer _undoTimer = new() { Interval = TimeSpan.FromSeconds(6) };
+    private CompletedTaskChangeResult? _undoChange;
 
     public GoalCompletedTasksViewModel(Func<DateTime>? localNowProvider = null)
     {
         _localNowProvider = localNowProvider ?? (() => DateTime.Now);
         _open = new(_ => Open(), _ => _goalId is not null);
         OpenCommand = _open;
-        CloseCommand = new RelayCommand<object>(_ => IsOpen = false);
+        CloseCommand = new RelayCommand<object>(_ => { IsOpen = false; ClearUndo(); });
         ToggleSortCommand = new RelayCommand<object>(_ => IsSortDescending = !IsSortDescending);
         _restore = new(async entry => { if (entry is not null) await MutateAsync(entry, false); }, entry => entry is not null && !IsBusy);
         _delete = new(async entry => { if (entry is not null) await MutateAsync(entry, true); }, entry => entry is not null && !IsBusy);
+        _undo = new(async _ => await UndoAsync(), _ => HasUndo && !IsBusy);
+        _undoTimer.Tick += (_, _) => ClearUndo();
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -38,12 +46,14 @@ public sealed class GoalCompletedTasksViewModel : INotifyPropertyChanged
     public ICommand OpenCommand { get; }
     public ICommand CloseCommand { get; }
     public ICommand ToggleSortCommand { get; }
-    public Func<LocalTaskDto, bool, Task<bool>>? MutationHandler { get; set; }
+    public ICommand UndoCommand => _undo;
+    public bool HasUndo => _undoChange is not null;
+    internal Func<LocalTaskDto, CompletedTaskChange, DateTimeOffset?, Task<CompletedTaskChangeResult?>>? MutationHandler { get; set; }
     public bool IsOpen { get => _isOpen; private set => Set(ref _isOpen, value); }
     public bool IsBusy
     {
         get => _isBusy;
-        private set { if (Set(ref _isBusy, value)) { _restore.NotifyCanExecuteChanged(); _delete.NotifyCanExecuteChanged(); } }
+        private set { if (Set(ref _isBusy, value)) { _restore.NotifyCanExecuteChanged(); _delete.NotifyCanExecuteChanged(); _undo.NotifyCanExecuteChanged(); } }
     }
     public CompletedTaskTimeRange SelectedRange
     {
@@ -97,7 +107,7 @@ public sealed class GoalCompletedTasksViewModel : INotifyPropertyChanged
             .GroupBy(task => task.TaskId).Select(group => group.First()).ToArray();
         if (changedGoal)
         {
-            IsOpen = false;
+            CloseCommand.Execute(null);
             ResetFilters();
             ErrorText = string.Empty;
         }
@@ -169,14 +179,61 @@ public sealed class GoalCompletedTasksViewModel : INotifyPropertyChanged
         IsBusy = true; ErrorText = string.Empty;
         try
         {
-            if (MutationHandler is null || !await MutationHandler(entry.Source, delete))
-            { ErrorText = delete ? "删除失败，请稍后重试" : "恢复失败，请稍后重试"; return false; }
-            _tasks = _tasks.Where(task => task.TaskId != entry.Source.TaskId).ToArray();
-            Refresh(); NotifyTotal();
+            var change = delete ? CompletedTaskChange.Delete : CompletedTaskChange.Reopen;
+            var result = MutationHandler is null ? null : await MutationHandler(entry.Source, change, null);
+            if (result is null)
+            { ErrorText = delete ? "删除失败，请稍后重试" : "设为未完成失败，请稍后重试"; return false; }
+            if (_goalId != entry.Source.TargetId) return true;
+            ReplaceCompletedTask(entry.Source.TaskId, null);
+            if (!delete && IsOpen)
+            {
+                _undoTimer.Stop();
+                _undoChange = result;
+                Changed(nameof(HasUndo));
+                _undo.NotifyCanExecuteChanged();
+                _undoTimer.Start();
+            }
             return true;
         }
         catch (Exception) { ErrorText = "操作未保存，请稍后重试"; return false; }
         finally { IsBusy = false; }
+    }
+
+    internal async Task<bool> UndoAsync()
+    {
+        if (IsBusy || _undoChange is not { After: { } reopened } change || MutationHandler is null) return false;
+        IsBusy = true;
+        ErrorText = string.Empty;
+        try
+        {
+            var result = await MutationHandler(change.Before, CompletedTaskChange.UndoReopen, reopened.UpdatedAtUtc);
+            if (result?.After is not { } restored)
+            {
+                ErrorText = "撤销失败，任务可能已更改";
+                return false;
+            }
+            ClearUndo();
+            if (_goalId == restored.TargetId) ReplaceCompletedTask(restored.TaskId, restored);
+            return true;
+        }
+        catch (Exception) { ErrorText = "撤销未保存，请稍后重试"; return false; }
+        finally { IsBusy = false; }
+    }
+
+    private void ReplaceCompletedTask(string taskId, LocalTaskDto? replacement)
+    {
+        _tasks = _tasks.Where(task => task.TaskId != taskId).Concat(replacement is null ? [] : [replacement]).ToArray();
+        Refresh();
+        NotifyTotal();
+    }
+
+    private void ClearUndo()
+    {
+        _undoTimer.Stop();
+        if (_undoChange is null) return;
+        _undoChange = null;
+        Changed(nameof(HasUndo));
+        _undo.NotifyCanExecuteChanged();
     }
     private bool Set<T>(ref T field, T value, [CallerMemberName] string? name = null)
     { if (EqualityComparer<T>.Default.Equals(field, value)) return false; field = value; Changed(name); return true; }
@@ -184,7 +241,21 @@ public sealed class GoalCompletedTasksViewModel : INotifyPropertyChanged
 }
 
 public sealed record GoalCompletedTaskEntryViewModel(LocalTaskDto Source, ICommand RestoreCommand, ICommand DeleteCommand)
+    : INotifyPropertyChanged
 {
+    private bool _isExpanded = true;
+    public event PropertyChangedEventHandler? PropertyChanged;
     public string Name => Source.Name;
+    public IReadOnlyList<CompletedSubTaskViewModel> SubTasks { get; } = CompletedSubTaskViewModel.FromTask(Source);
+    public bool IsExpanded
+    {
+        get => _isExpanded;
+        set
+        {
+            if (_isExpanded == value) return;
+            _isExpanded = value;
+            PropertyChanged?.Invoke(this, new(nameof(IsExpanded)));
+        }
+    }
     public string TimeDisplay => GoalCompletedTasksViewModel.CompletionTime(Source)?.ToString("M月d日") ?? "—";
 }

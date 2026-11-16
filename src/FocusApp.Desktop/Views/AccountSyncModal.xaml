@@ -2,7 +2,7 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="clr-namespace:FocusApp.Desktop.ViewModels"
-             Width="520" Height="330" Margin="16" IsVisibleChanged="OnVisibilityChanged"
+             Width="480" Height="314" Margin="16" IsVisibleChanged="OnVisibilityChanged"
              FontFamily="{DynamicResource FontFamilyPrimary}" FontSize="{DynamicResource BodyFontSize}"
              Foreground="{DynamicResource AccountSyncText}" UseLayoutRounding="True"
              KeyboardNavigation.TabNavigation="Cycle">
@@ -85,17 +85,8 @@
             <Setter Property="BorderBrush" Value="{DynamicResource AccountSyncBorder}" />
             <Setter Property="Padding" Value="9,0" />
             <Setter Property="MinHeight" Value="28" />
-            <Setter Property="FontSize" Value="{DynamicResource SecondaryFontSize}" />
-        </Style>
-        <Style x:Key="UnsettledSyncDetails" TargetType="TextBlock" BasedOn="{StaticResource AccountSecondaryText}">
-            <Setter Property="Margin" Value="0,3,0,0" />
-            <Setter Property="TextWrapping" Value="Wrap" />
-            <Style.Triggers>
-                <DataTrigger Binding="{Binding SyncPresentation.State}" Value="{x:Static vm:SyncDisplayState.Synced}">
-                    <Setter Property="Visibility" Value="Collapsed" />
-                </DataTrigger>
-                <Trigger Property="Text" Value=""><Setter Property="Visibility" Value="Collapsed" /></Trigger>
-            </Style.Triggers>
+            <Setter Property="FontSize" Value="{DynamicResource BodyFontSize}" />
+            <Setter Property="FontWeight" Value="{DynamicResource FontWeightMedium}" />
         </Style>
         <DataTemplate x:Key="SyncCategoryTemplate" DataType="{x:Type vm:SyncCategoryPresentation}">
             <Border ToolTip="{Binding Status}">
@@ -110,12 +101,12 @@
                         </Style.Triggers>
                     </Style>
                 </Border.Style>
-                <DockPanel MinHeight="38" Margin="6,0">
+                <DockPanel MinHeight="39" Margin="6,0">
                     <Path DockPanel.Dock="Left" Data="{Binding Icon}" Style="{StaticResource AccountIcon}"
                           Width="18" Height="18" Margin="0,0,14,0" />
                     <TextBlock DockPanel.Dock="Right" Text="{Binding StorageLabel}" Style="{StaticResource AccountSecondaryText}"
                                VerticalAlignment="Center" Margin="12,0,0,0" />
-                    <TextBlock Text="{Binding Name}" Foreground="{DynamicResource AccountSyncText}" FontWeight="{DynamicResource BodyMediumFontWeight}" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding Name}" Foreground="{DynamicResource AccountSyncText}" FontWeight="{DynamicResource FontWeightRegular}" VerticalAlignment="Center" />
                 </DockPanel>
             </Border>
         </DataTemplate>
@@ -134,7 +125,7 @@
                     <Button DockPanel.Dock="Right" Style="{DynamicResource ModalCloseButtonStyle}" Margin="0"
                             Foreground="{DynamicResource AccountSyncSecondaryText}" Command="{Binding CloseCommand}"
                             AutomationProperties.Name="{DynamicResource AccountSyncClose}" />
-                    <TextBlock Text="{DynamicResource AccountSyncTitle}" Style="{DynamicResource PageTitleTextStyle}" Foreground="{DynamicResource AccountSyncText}" VerticalAlignment="Center" />
+                    <TextBlock Text="{DynamicResource AccountSyncTitle}" Style="{DynamicResource PageTitleTextStyle}" FontSize="18" Foreground="{DynamicResource AccountSyncText}" VerticalAlignment="Center" />
                 </DockPanel>
             </Border>
 
@@ -148,10 +139,8 @@
                         <Style TargetType="ScrollBar" BasedOn="{StaticResource StatisticsThinScrollBarStyle}" />
                     </ResourceDictionary>
                 </ScrollViewer.Resources>
-                <StackPanel Margin="22,15,22,22">
-                    <TextBlock Text="数据与同步" Style="{StaticResource AccountSectionTitle}" />
-
-                    <Border x:Name="SyncStatusPanel" CornerRadius="10" Padding="15,11" Margin="0,0,0,10">
+                <StackPanel Margin="19,17,19,23">
+                    <Border x:Name="SyncStatusPanel" CornerRadius="12" MinHeight="65" Padding="15,11" Margin="0,0,0,14">
                         <Border.Style>
                             <Style TargetType="Border">
                                 <Setter Property="Background" Value="{DynamicResource AccountSyncWaitingBackground}" />
@@ -166,42 +155,82 @@
                             </Style>
                         </Border.Style>
                         <DockPanel>
-                            <Path DockPanel.Dock="Left" Width="33" Height="29" Margin="3,0,15,0" StrokeThickness="1.8">
-                                <Path.Style>
-                                    <Style TargetType="Path" BasedOn="{StaticResource AccountIcon}">
-                                        <Setter Property="Data" Value="M 8,23 H 6 C -1,23 -1,13 5,12 C 3,1 20,-1 23,10 C 33,9 36,23 27,23 H 8 M 16,20 V 11 M 12,15 L 16,11 L 20,15" />
+                            <Grid DockPanel.Dock="Left" Width="57" Height="37" Margin="1,0,15,0" VerticalAlignment="Center">
+                                <Border Width="1" HorizontalAlignment="Right" Background="{DynamicResource AccountSyncBorder}" />
+                                <Path Width="35" Height="29" Margin="0,0,10,0" HorizontalAlignment="Center" StrokeThickness="1.8">
+                                    <Path.Style>
+                                        <Style TargetType="Path" BasedOn="{StaticResource AccountIcon}">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding SyncPresentation.State}" Value="{x:Static vm:SyncDisplayState.Synced}">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                    <Setter Property="Stroke" Value="{DynamicResource AccountSyncSuccess}" />
+                                                    <Setter Property="Data" Value="M 8,23 H 6 C -1,23 -1,13 5,12 C 3,1 20,-1 23,10 C 33,9 36,23 27,23 H 8 M 11,15 L 15,19 L 21,12" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding SyncPresentation.State}" Value="{x:Static vm:SyncDisplayState.Failed}">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                    <Setter Property="Stroke" Value="{DynamicResource AccountSyncDanger}" />
+                                                    <Setter Property="Data" Value="M 12,2 A 10,10 0 1 1 11.99,2 M 12,6 V 13 M 12,17 V 17.3" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Path.Style>
+                                </Path>
+                                <Grid Width="29" Height="29" Margin="0,0,10,0" RenderTransformOrigin="0.5,0.5">
+                                    <Grid.RenderTransform><RotateTransform /></Grid.RenderTransform>
+                                    <Grid.Style>
+                                        <Style TargetType="Grid">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding SyncPresentation.State}" Value="{x:Static vm:SyncDisplayState.Waiting}">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                                <Trigger Property="IsVisible" Value="True">
+                                                    <Trigger.EnterActions>
+                                                        <BeginStoryboard Name="SyncSpinner">
+                                                            <Storyboard RepeatBehavior="Forever">
+                                                                <DoubleAnimation Storyboard.TargetProperty="RenderTransform.Angle" From="0" To="360" Duration="0:0:0.85" />
+                                                            </Storyboard>
+                                                        </BeginStoryboard>
+                                                    </Trigger.EnterActions>
+                                                    <Trigger.ExitActions><RemoveStoryboard BeginStoryboardName="SyncSpinner" /></Trigger.ExitActions>
+                                                </Trigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Grid.Style>
+                                    <Ellipse Stroke="{DynamicResource AccountSyncProgress}" Opacity="0.25" StrokeThickness="2.5" />
+                                    <Path Data="M 14.5,1.25 A 13.25,13.25 0 0 1 27.75,14.5" Stroke="{DynamicResource AccountSyncProgress}"
+                                          StrokeThickness="2.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                                </Grid>
+                            </Grid>
+                            <Button x:Name="SyncNowButton" DockPanel.Dock="Right" VerticalAlignment="Center" Margin="10,0,0,0"
+                                    Content="{Binding SyncPresentation.ActionLabel}" Command="{Binding FocusUploads.SyncNowCommand}">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource AccountSyncAction}">
+                                        <Setter Property="Visibility" Value="Collapsed" />
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding SyncPresentation.State}" Value="{x:Static vm:SyncDisplayState.Synced}">
-                                                <Setter Property="Stroke" Value="{DynamicResource AccountSyncSuccess}" />
-                                                <Setter Property="Data" Value="M 8,23 H 6 C -1,23 -1,13 5,12 C 3,1 20,-1 23,10 C 33,9 36,23 27,23 H 8 M 11,15 L 15,19 L 21,12" />
-                                            </DataTrigger>
-                                            <DataTrigger Binding="{Binding SyncPresentation.State}" Value="{x:Static vm:SyncDisplayState.Failed}">
-                                                <Setter Property="Stroke" Value="{DynamicResource AccountSyncDanger}" />
-                                                <Setter Property="Data" Value="M 25,23 H 6 C -1,23 -1,13 5,12 M 8,5 C 14,-1 22,2 23,10 C 32,9 36,20 29,23 M 3,1 L 30,28" />
+                                            <DataTrigger Binding="{Binding SyncPresentation.ShowRetry}" Value="True">
+                                                <Setter Property="Visibility" Value="Visible" />
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
-                                </Path.Style>
-                            </Path>
-                            <Button x:Name="SyncNowButton" DockPanel.Dock="Right" VerticalAlignment="Center" Margin="10,0,0,0"
-                                    Style="{StaticResource AccountSyncAction}" Content="{Binding SyncPresentation.ActionLabel}"
-                                    Command="{Binding FocusUploads.SyncNowCommand}" IsEnabled="{Binding FocusUploads.IsIdle, FallbackValue=False}" />
-                            <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="{Binding SyncPresentation.Title}" Style="{DynamicResource SectionTitleTextStyle}" Foreground="{DynamicResource AccountSyncText}"
-                                           FontWeight="{DynamicResource FontWeightSemiBold}" />
-                                <TextBlock Text="{Binding SyncPresentation.RecentSync}" Style="{StaticResource AccountSecondaryText}" Margin="0,4,0,0" />
-                                <TextBlock Text="{Binding SyncPresentation.Description}" Style="{StaticResource UnsettledSyncDetails}" />
-                                <TextBlock Text="{Binding SyncPresentation.PendingRecords}" Style="{StaticResource UnsettledSyncDetails}" />
-                                <TextBlock Text="{Binding FocusUploads.DeleteSummary, FallbackValue=''}" TextWrapping="Wrap">
+                                </Button.Style>
+                            </Button>
+                            <StackPanel VerticalAlignment="Center" AutomationProperties.LiveSetting="Polite">
+                                <TextBlock Text="{Binding SyncPresentation.Title}" FontSize="{DynamicResource SectionTitleFontSize}" FontWeight="SemiBold">
                                     <TextBlock.Style>
-                                        <Style TargetType="TextBlock" BasedOn="{StaticResource AccountSecondaryText}">
-                                            <Setter Property="Margin" Value="0,3,0,0" />
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="{DynamicResource AccountSyncText}" />
                                             <Style.Triggers>
-                                                <Trigger Property="Text" Value=""><Setter Property="Visibility" Value="Collapsed" /></Trigger>
+                                                <DataTrigger Binding="{Binding SyncPresentation.State}" Value="{x:Static vm:SyncDisplayState.Failed}">
+                                                    <Setter Property="Foreground" Value="{DynamicResource AccountSyncDanger}" />
+                                                </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
                                     </TextBlock.Style>
                                 </TextBlock>
+                                <TextBlock Text="{Binding SyncPresentation.StatusDetail}" Style="{StaticResource AccountSecondaryText}"
+                                           Margin="0,4,0,0" TextWrapping="Wrap" />
                             </StackPanel>
                         </DockPanel>
                     </Border>

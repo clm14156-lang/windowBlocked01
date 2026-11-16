@@ -1,0 +1,85 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <SolidColorBrush x:Key="CompletedTaskAccent" Color="#FD7E05" />
+    <SolidColorBrush x:Key="CompletedTaskBranchBrush" Color="#E5E8EC" />
+
+    <Style x:Key="CompletedTaskMarkStyle" TargetType="ContentControl">
+        <Setter Property="Width" Value="20" />
+        <Setter Property="Height" Value="20" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="IsHitTestVisible" Value="False" />
+        <Setter Property="Template"><Setter.Value>
+            <ControlTemplate TargetType="ContentControl">
+                <Border x:Name="Mark" Background="{StaticResource CompletedTaskAccent}"
+                        BorderBrush="{StaticResource CompletedTaskAccent}" BorderThickness="1" CornerRadius="4">
+                    <Path x:Name="Tick" Data="M 0,5 L 4,9 L 12,1" Stroke="White" StrokeThickness="1.7"
+                          StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Stretch="Uniform"
+                          HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Margin="2" />
+                </Border>
+                <ControlTemplate.Triggers>
+                    <DataTrigger Binding="{Binding IsCompleted}" Value="False">
+                        <Setter TargetName="Mark" Property="Background" Value="Transparent" />
+                        <Setter TargetName="Tick" Property="Visibility" Value="Collapsed" />
+                    </DataTrigger>
+                </ControlTemplate.Triggers>
+            </ControlTemplate>
+        </Setter.Value></Setter>
+    </Style>
+
+    <Style x:Key="CompletedTaskExpandStyle" TargetType="ToggleButton">
+        <Setter Property="Width" Value="20" />
+        <Setter Property="Height" Value="24" />
+        <Setter Property="Margin" Value="-4,0,2,0" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Foreground" Value="{DynamicResource StatisticsSecondaryBrush}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="AutomationProperties.Name" Value="展开或收起子任务" />
+        <Setter Property="Template"><Setter.Value>
+            <ControlTemplate TargetType="ToggleButton">
+                <Border x:Name="ExpandSurface" Background="Transparent" CornerRadius="4">
+                    <Path x:Name="Chevron" Width="8" Height="5" Data="M 0,0 L 4,4 L 8,0" Stretch="Uniform"
+                          Stroke="{TemplateBinding Foreground}" StrokeThickness="1.5" StrokeLineJoin="Round"
+                          StrokeStartLineCap="Round" StrokeEndLineCap="Round" HorizontalAlignment="Center" VerticalAlignment="Center"
+                          RenderTransformOrigin="0.5,0.5">
+                        <Path.RenderTransform><RotateTransform Angle="-90" /></Path.RenderTransform>
+                    </Path>
+                </Border>
+                <ControlTemplate.Triggers>
+                    <Trigger Property="IsChecked" Value="True"><Setter TargetName="Chevron" Property="RenderTransform" Value="{x:Null}" /></Trigger>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ExpandSurface" Property="Background" Value="#EDEFF2" /></Trigger>
+                </ControlTemplate.Triggers>
+            </ControlTemplate>
+        </Setter.Value></Setter>
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding SubTasks.Count}" Value="0"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <DataTemplate x:Key="CompletedSubTaskTemplate">
+        <Grid x:Name="CompletedSubTaskRow" MinHeight="24">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="28" /><ColumnDefinition Width="26" /><ColumnDefinition /></Grid.ColumnDefinitions>
+            <Grid.RowDefinitions><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
+            <Border Width="1" Background="{StaticResource CompletedTaskBranchBrush}" HorizontalAlignment="Left" Margin="9,0,0,0" />
+            <Border x:Name="LowerBranch" Grid.Row="1" Width="1" Background="{StaticResource CompletedTaskBranchBrush}" HorizontalAlignment="Left" Margin="9,0,0,0" />
+            <Border Grid.RowSpan="2" Height="1" Width="10" Background="{StaticResource CompletedTaskBranchBrush}" HorizontalAlignment="Left" Margin="9,0,0,0" />
+            <ContentControl x:Name="CompletedSubTaskMark" Grid.Column="1" Grid.RowSpan="2" Width="16" Height="16"
+                            Style="{StaticResource CompletedTaskMarkStyle}" />
+            <TextBlock x:Name="CompletedSubTaskName" Grid.Column="2" Grid.RowSpan="2" Text="{Binding Title}" ToolTip="{Binding Title}"
+                       FontSize="{DynamicResource SecondaryFontSize}" FontWeight="{DynamicResource SecondaryFontWeight}"
+                       Foreground="{DynamicResource StatisticsBodyBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+        </Grid>
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding IsLast}" Value="True"><Setter TargetName="LowerBranch" Property="Visibility" Value="Hidden" /></DataTrigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+
+    <Style x:Key="CompletedSubTasksStyle" TargetType="ItemsControl">
+        <Setter Property="ItemTemplate" Value="{StaticResource CompletedSubTaskTemplate}" />
+        <Setter Property="Margin" Value="0,0,0,10" />
+        <Style.Triggers>
+            <Trigger Property="HasItems" Value="False"><Setter Property="Margin" Value="0" /></Trigger>
+        </Style.Triggers>
+    </Style>
+</ResourceDictionary>

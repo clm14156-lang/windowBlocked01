@@ -18,6 +18,8 @@ public sealed partial class CloudAccountClient : ILoginCaptchaClient, IDeviceSes
     private CredentialState? state;
     public event EventHandler? SessionEnded;
     public event EventHandler? IdentityChanged;
+    internal event EventHandler? ServerResponded;
+    internal event EventHandler? ServerConnectionFailed;
 
     public CloudAccountClient(HttpClient http, ICredentialStore store)
     { this.http = http; this.store = store; }
@@ -39,7 +41,7 @@ public sealed partial class CloudAccountClient : ILoginCaptchaClient, IDeviceSes
         timeout.CancelAfter(TimeSpan.FromSeconds(4));
         try
         {
-            using var request = new HttpRequestMessage(HttpMethod.Get, "health/ready");
+            using var request = new HttpRequestMessage(HttpMethod.Get, "health/live");
             request.Headers.CacheControl = new CacheControlHeaderValue { NoCache = true, NoStore = true };
             using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token).ConfigureAwait(false);
             if (response.StatusCode != HttpStatusCode.OK) return false;
@@ -102,9 +104,10 @@ public sealed partial class CloudAccountClient : ILoginCaptchaClient, IDeviceSes
                 var user = await response.Content.ReadFromJsonAsync<CloudProfile>() ?? throw new JsonException();
                 if (user.Id != tokens.User.Id || user.Id == Guid.Empty)
                     throw new CloudApiException("invalid_session");
+                MembershipProfileObserved?.Invoke(this, user);
                 return Account(user);
             }
-            catch (CloudApiException ex) when (ex.Code is "authentication_required" or "invalid_session" or "refresh_reused")
+            catch (CloudApiException ex) when (IsInvalidSession(ex))
             { EndSession(); return null; }
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
             { return Account(tokens) with { IsOffline = true, Membership = MembershipType.Normal }; }
@@ -140,7 +143,8 @@ public sealed partial class CloudAccountClient : ILoginCaptchaClient, IDeviceSes
     }
 
     private static bool IsInvalidSession(CloudApiException error) =>
-        error.Code is "authentication_required" or "invalid_session" or "refresh_reused";
+        error.StatusCode is null or HttpStatusCode.Unauthorized &&
+        error.Code is "authentication_required" or "invalid_session" or "session_expired" or "refresh_reused";
 
     private void EndSession()
     {
@@ -197,19 +201,30 @@ public sealed partial class CloudAccountClient : ILoginCaptchaClient, IDeviceSes
         finally { gate.Release(); }
     }
     private async Task<HttpResponseMessage> SendAuthorizedAsync(HttpMethod method, string path, object? body=null,
-        Guid? expectedUser=null, CancellationToken cancellationToken=default)
+        Guid? expectedUser=null, CancellationToken cancellationToken=default, FocusUploadIdentity? syncAccount = null)
     {
+        CloudTokens? tokens = null;
         try
         {
             for (var attempt = 0; attempt < 2; attempt++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var tokens = await EnsureTokensAsync(forceRefresh: attempt == 1, token: cancellationToken);
+                tokens = syncAccount is null
+                    ? await EnsureTokensAsync(forceRefresh: attempt == 1, token: cancellationToken)
+                    : await GetSyncRequestTokensAsync(syncAccount, tokens, cancellationToken);
                 if(expectedUser is not null && tokens.User.Id!=expectedUser)throw new CloudApiException("account_changed");
                 using var request = new HttpRequestMessage(method, path);
                 if(body is not null)request.Content=JsonContent.Create(body);
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", tokens.AccessToken);
-                var response = await http.SendAsync(request, cancellationToken);
+                HttpResponseMessage response;
+                try { response = await http.SendAsync(request, cancellationToken); }
+                catch (Exception error) when (!cancellationToken.IsCancellationRequested &&
+                    error is HttpRequestException or OperationCanceledException)
+                {
+                    ServerConnectionFailed?.Invoke(this, EventArgs.Empty);
+                    throw;
+                }
+                ServerResponded?.Invoke(this, EventArgs.Empty);
                 if (response.StatusCode == HttpStatusCode.Unauthorized && attempt == 0)
                 { response.Dispose(); continue; }
                 try { await EnsureAsync(response); return response; }
@@ -218,7 +233,42 @@ public sealed partial class CloudAccountClient : ILoginCaptchaClient, IDeviceSes
             throw new CloudApiException("invalid_session");
         }
         catch (CloudApiException error) when (IsInvalidSession(error))
-        { EndSession(); throw; }
+        {
+            if (syncAccount is null) EndSession();
+            else if (tokens is not null)
+            {
+                await gate.WaitAsync(cancellationToken);
+                try
+                {
+                    if (State.Tokens?.SessionId == tokens.SessionId && State.Tokens.AccessToken == tokens.AccessToken)
+                        EndSession();
+                }
+                finally { gate.Release(); }
+            }
+            throw;
+        }
+    }
+
+    private async Task<CloudTokens> GetSyncRequestTokensAsync(FocusUploadIdentity account, CloudTokens? previous,
+        CancellationToken token)
+    {
+        // Serialize credential refreshes while allowing the two synchronization requests to run independently.
+        await gate.WaitAsync(token);
+        try
+        {
+            _ = State;
+            VerifySyncAccount(account);
+            if (previous is not null && State.Tokens?.SessionId != previous.SessionId)
+                throw new CloudApiException("account_changed");
+            try
+            {
+                return await EnsureTokensAsync(forceRefresh: previous is not null && State.Tokens?.AccessToken == previous.AccessToken,
+                    token: token);
+            }
+            catch (CloudApiException error) when (IsInvalidSession(error))
+            { EndSession(); throw; }
+        }
+        finally { gate.Release(); }
     }
 
     public async Task<FocusUploadIdentity?> GetUploadIdentityAsync()
@@ -239,63 +289,50 @@ public sealed partial class CloudAccountClient : ILoginCaptchaClient, IDeviceSes
         IReadOnlyList<CloudSyncItem> items, CancellationToken token)
     {
         if(items.Count is <1 or >50)throw new ArgumentException("Upload batch size is invalid.");
-        await gate.WaitAsync(token);
+        if(items.Any(x=>x.Kind is not ("upsert" or "delete")))throw new ArgumentException("Unknown synchronization operation.");
+        var operations=items.Select(x=>new {x.OperationId,x.RecordId,kind=x.Kind,
+            record=x.Kind=="delete"?(JsonElement?)null:JsonSerializer.Deserialize<JsonElement>(x.PayloadJson),baseRevision=x.BaseRevision}).ToArray();
+        using var response=await SendAuthorizedAsync(HttpMethod.Post,"api/v1/sync/focus-records/push",new{operations},cancellationToken:token,syncAccount:identity);
         try
         {
-            var scope=Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(http.BaseAddress!.AbsoluteUri)));
-            if(identity.ApiScope!=scope||State.Tokens?.User.Id!=identity.UserId)throw new CloudApiException("account_changed");
-            if(items.Any(x=>x.Kind is not ("upsert" or "delete")))throw new ArgumentException("Unknown synchronization operation.");
-            var operations=items.Select(x=>new {x.OperationId,x.RecordId,kind=x.Kind,
-                record=x.Kind=="delete"?(JsonElement?)null:JsonSerializer.Deserialize<JsonElement>(x.PayloadJson),baseRevision=x.BaseRevision}).ToArray();
-            using var response=await SendAuthorizedAsync(HttpMethod.Post,"api/v1/sync/focus-records/push",new{operations},identity.UserId,token);
-            try
-            {
-                var result=await response.Content.ReadFromJsonAsync<UploadResponse>()??throw new JsonException();
-                if(result.Results is null || result.Results.Count!=items.Count||result.Results.Select(x=>x.OperationId).Distinct().Count()!=items.Count||
-                    result.Results.Any(x=>x is null || !items.Any(i=>i.OperationId==x.OperationId&&i.RecordId==x.RecordId)||
-                        x.Status is not ("applied" or "duplicate" or "conflict" or "rejected")||
-                        x.Status is "applied" or "duplicate" && x.ServerRevision is not >0))throw new JsonException();
-                return result.Results;
-            }
-            catch(JsonException){throw new CloudApiException("invalid_sync_response");}
+            var result=await response.Content.ReadFromJsonAsync<UploadResponse>(cancellationToken: token)??throw new JsonException();
+            if(result.Results is null || result.Results.Count!=items.Count||
+                result.Results.Any(x=>x is null || !items.Any(i=>i.OperationId==x.OperationId&&i.RecordId==x.RecordId)||
+                    x.Status is not ("applied" or "duplicate" or "conflict" or "rejected")||
+                    x.Status is "applied" or "duplicate" && x.ServerRevision is not >0)||
+                result.Results.Select(x=>x.OperationId).Distinct().Count()!=items.Count)throw new JsonException();
+            return result.Results;
         }
-        finally{gate.Release();}
+        catch(JsonException){throw new CloudApiException("invalid_sync_response");}
     }
     public Task<CloudSyncChanges> PullFocusRecordsAsync(FocusUploadIdentity identity,string? cursor)
         => PullFocusRecordsAsync(identity, cursor, CancellationToken.None);
 
     internal async Task<CloudSyncChanges> PullFocusRecordsAsync(FocusUploadIdentity identity, string? cursor, CancellationToken token)
     {
-        await gate.WaitAsync(token);
-        try
+        for(var limit=50;;limit=Math.Max(1,limit/2))
         {
-            var scope=Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(http.BaseAddress!.AbsoluteUri)));
-            if(identity.ApiScope!=scope||State.Tokens?.User.Id!=identity.UserId)throw new CloudApiException("account_changed");
-            for(var limit=50;;limit=Math.Max(1,limit/2))
+            var path="api/v1/sync/focus-records/changes?limit="+limit+(cursor is null?"":"&cursor="+Uri.EscapeDataString(cursor));
+            using var response=await SendAuthorizedAsync(HttpMethod.Get,path,cancellationToken:token,syncAccount:identity);
+            try
             {
-                var path="api/v1/sync/focus-records/changes?limit="+limit+(cursor is null?"":"&cursor="+Uri.EscapeDataString(cursor));
-                using var response=await SendAuthorizedAsync(HttpMethod.Get,path,expectedUser:identity.UserId,cancellationToken:token);
-                try
+                var page=await response.Content.ReadFromJsonAsync<DownloadResponse>(cancellationToken: token)??throw new JsonException();
+                if(page.Changes is null||page.Changes.Count>200||string.IsNullOrEmpty(page.NextCursor)||page.NextCursor.Length>2048||
+                    page.HasMore&&(page.Changes.Count==0||page.NextCursor==cursor))throw new JsonException();
+                long previous=0;var changes=new List<CloudSyncChange>();
+                foreach(var change in page.Changes)
                 {
-                    var page=await response.Content.ReadFromJsonAsync<DownloadResponse>()??throw new JsonException();
-                    if(page.Changes is null||page.Changes.Count>200||string.IsNullOrEmpty(page.NextCursor)||page.NextCursor.Length>2048||
-                        page.HasMore&&(page.Changes.Count==0||page.NextCursor==cursor))throw new JsonException();
-                    long previous=0;var changes=new List<CloudSyncChange>();
-                    foreach(var change in page.Changes)
-                    {
-                        if(change is null||change.RecordId==Guid.Empty||change.SourceDeviceId==Guid.Empty||change.ServerRevision<=previous||
-                            change.IsDeleted&&change.Record is not null||!change.IsDeleted&&change.Record?.ValueKind!=JsonValueKind.Object)throw new JsonException();
-                        previous=change.ServerRevision;
-                        changes.Add(new(change.RecordId,change.SourceDeviceId,change.ServerRevision,change.IsDeleted,change.Record?.GetRawText()));
-                    }
-                    var result=new CloudSyncChanges(changes,page.NextCursor,page.HasMore);
-                    if(JsonSerializer.SerializeToUtf8Bytes(result).Length<=800000)return result;
-                    if(limit==1)throw new JsonException();
+                    if(change is null||change.RecordId==Guid.Empty||change.SourceDeviceId==Guid.Empty||change.ServerRevision<=previous||
+                        change.IsDeleted&&change.Record is not null||!change.IsDeleted&&change.Record?.ValueKind!=JsonValueKind.Object)throw new JsonException();
+                    previous=change.ServerRevision;
+                    changes.Add(new(change.RecordId,change.SourceDeviceId,change.ServerRevision,change.IsDeleted,change.Record?.GetRawText()));
                 }
-                catch(JsonException){throw new CloudApiException("invalid_sync_response");}
+                var result=new CloudSyncChanges(changes,page.NextCursor,page.HasMore);
+                if(JsonSerializer.SerializeToUtf8Bytes(result).Length<=800000)return result;
+                if(limit==1)throw new JsonException();
             }
+            catch(JsonException){throw new CloudApiException("invalid_sync_response");}
         }
-        finally{gate.Release();}
     }
     private sealed record DownloadChange(Guid RecordId,Guid SourceDeviceId,long ServerRevision,bool IsDeleted,JsonElement? Record);
     private sealed record DownloadResponse(IReadOnlyList<DownloadChange> Changes,string NextCursor,bool HasMore);
@@ -348,7 +385,7 @@ public sealed partial class CloudAccountClient : ILoginCaptchaClient, IDeviceSes
             problem = await response.Content.ReadFromJsonAsync<CloudProblem>();
         }
         catch (JsonException) { }
-        throw new CloudApiException(problem?.Code ?? code, problem?.Captcha);
+        throw new CloudApiException(problem?.Code ?? code, problem?.Captcha) { StatusCode = response.StatusCode };
     }
 
     private sealed record CloudProblem(string? Code, LoginCaptchaChallenge? Captcha);

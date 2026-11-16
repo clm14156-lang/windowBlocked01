@@ -47,17 +47,15 @@
                 <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button"><Border x:Name="DateButtonSurface" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" CornerRadius="16"><ContentPresenter VerticalAlignment="Center"/></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="DateButtonSurface" Property="Background" Value="#F0F3F7"/></Trigger><Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="DateButtonSurface" Property="Background" Value="#F0F3F7"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
             </Style>
             <Style x:Key="AnnualChartGroupingButton" TargetType="RadioButton">
-                <Setter Property="Width" Value="58"/><Setter Property="Height" Value="20"/>
-                <Setter Property="FontSize" Value="{DynamicResource SecondaryFontSize}"/><Setter Property="FontWeight" Value="Normal"/>
+                <Setter Property="Width" Value="46"/><Setter Property="Height" Value="22"/>
+                <Setter Property="FontSize" Value="{DynamicResource BodyFontSize}"/><Setter Property="FontWeight" Value="Normal"/>
                 <Setter Property="Foreground" Value="{DynamicResource StatisticsSecondaryBrush}"/><Setter Property="Cursor" Value="Hand"/><Setter Property="FocusVisualStyle" Value="{x:Null}"/>
                 <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="RadioButton">
-                    <Border x:Name="GroupingSurface" Background="Transparent" BorderBrush="Transparent" BorderThickness="1" CornerRadius="9">
-                        <TextBlock Text="{TemplateBinding Content}" FontSize="{TemplateBinding FontSize}" FontWeight="{TemplateBinding FontWeight}" Foreground="{TemplateBinding Foreground}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Border>
+                    <Grid Background="Transparent">
+                        <TextBlock x:Name="GroupingLabel" Text="{TemplateBinding Content}" FontSize="{TemplateBinding FontSize}" FontWeight="{TemplateBinding FontWeight}" Foreground="{TemplateBinding Foreground}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Grid>
                     <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="GroupingSurface" Property="Background" Value="#FFF4E9"/></Trigger>
-                        <Trigger Property="IsChecked" Value="True"><Setter Property="Foreground" Value="#FF8A25"/><Setter Property="FontWeight" Value="Medium"/></Trigger>
-                        <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="GroupingSurface" Property="BorderBrush" Value="#FFD3B0"/></Trigger>
+                        <Trigger Property="IsChecked" Value="True"><Setter Property="Foreground" Value="#FD7E05"/></Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate></Setter.Value></Setter>
             </Style>
@@ -137,13 +135,12 @@
                         <Grid>
                             <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                             <TextBlock x:Name="OverviewChartTitle" Text="{Binding ChartTitle}" Style="{StaticResource OverviewHeading}" TextTrimming="CharacterEllipsis"/>
-                            <Border x:Name="AnnualChartGroupingControl" Grid.Column="1" HorizontalAlignment="Right" Height="22" BorderBrush="#EAF0F6" BorderThickness="1" CornerRadius="11" Visibility="{Binding IsYear, Converter={StaticResource VisibleWhenTrue}}">
-                                <StackPanel Orientation="Horizontal">
-                                    <RadioButton x:Name="AnnualMonthGroupingButton" Content="按月" GroupName="AnnualChartGrouping" Style="{StaticResource AnnualChartGroupingButton}" IsChecked="{Binding IsAnnualMonthly, Mode=TwoWay}" AutomationProperties.Name="全年专注时长按月展示"/>
-                                    <Border Width="1" Height="10" Background="#EAF0F6" VerticalAlignment="Center"/>
-                                    <RadioButton x:Name="AnnualWeekGroupingButton" Content="按周" GroupName="AnnualChartGrouping" Style="{StaticResource AnnualChartGroupingButton}" IsChecked="{Binding IsAnnualWeekly, Mode=TwoWay}" AutomationProperties.Name="全年专注时长按周展示"/>
-                                </StackPanel>
-                            </Border>
+                            <StackPanel x:Name="AnnualChartGroupingControl" Grid.Column="1" HorizontalAlignment="Right" Orientation="Horizontal"
+                                        Visibility="{Binding IsYear, Converter={StaticResource VisibleWhenTrue}}">
+                                <RadioButton x:Name="AnnualMonthGroupingButton" Content="按月" GroupName="AnnualChartGrouping" Style="{StaticResource AnnualChartGroupingButton}" IsChecked="{Binding IsAnnualMonthly, Mode=TwoWay}" AutomationProperties.Name="全年专注时长按月展示"/>
+                                <Border Width="1" Height="10" Background="#DFE5ED" VerticalAlignment="Center" />
+                                <RadioButton x:Name="AnnualWeekGroupingButton" Content="按周" GroupName="AnnualChartGrouping" Style="{StaticResource AnnualChartGroupingButton}" IsChecked="{Binding IsAnnualWeekly, Mode=TwoWay}" AutomationProperties.Name="全年专注时长按周展示"/>
+                            </StackPanel>
                         </Grid>
                         <views:OverviewFocusChart x:Name="FocusChart" Grid.Row="2" Model="{Binding}" AutomationProperties.Name="周期专注时长柱状图"/>
                     </Grid>

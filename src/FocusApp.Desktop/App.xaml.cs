@@ -102,6 +102,8 @@ public partial class App : Application
             mainViewModel.HomePage.FocusSession,
             mainViewModel.BlockingPage,
             _serviceConnection);
+        mainViewModel.BlockingPage.UseLocalWebsiteCreation(() => mainViewModel.IsVipMember,
+            _accessControlBridge.PersistNewWebsiteAsync);
         _focusSessionBridge = new DesktopFocusSessionBridge(
             mainViewModel.HomePage,
             _serviceConnection,
@@ -117,7 +119,8 @@ public partial class App : Application
 
         MainWindow = new MainWindow
         {
-            DataContext = mainViewModel
+            DataContext = mainViewModel,
+            FinishLocalRuleWritesAsync = () => _accessControlBridge.PersistRulesNowAsync()
         };
         MainWindow.Show();
 

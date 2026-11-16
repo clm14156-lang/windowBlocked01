@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -7,8 +6,18 @@ namespace FocusApp.Core;
 
 public sealed record MembershipContext(Guid UserId, Guid DeviceId, Guid SessionId, Guid InstallationId, string ApiScope);
 public sealed record MembershipChallenge(string ApiScope, string MachineBinding, string Nonce);
+public enum MembershipVerification { Pending, Normal, Active, Expired }
+
 public sealed record MembershipStatus(string Kind, bool IsActive, DateTimeOffset? GrantExpiresAtUtc,
-    DateTimeOffset? LeaseExpiresAtUtc, long Version, string? Error);
+    DateTimeOffset? LeaseExpiresAtUtc, long Version, string? Error)
+{
+    public MembershipVerification Verification { get; init; }
+    public string Plan { get; init; } = "normal";
+    public TimeSpan? NextVerificationIn { get; init; }
+
+    public static MembershipStatus Pending(string? error = null) =>
+        new("normal", false, null, null, 0, error);
+}
 public interface IMembershipCache
 {
     Task<string?> LoadMembershipAsync(CancellationToken ct);
@@ -23,18 +32,23 @@ public interface IPrivilegeGate
 public sealed class MembershipAuthority(IMembershipCache? cache, Func<string, string, string?> trustedKey,
     string machineBinding, TimeProvider? time = null) : IPrivilegeGate
 {
+    private static readonly TimeSpan MaximumLease = TimeSpan.FromDays(7);
+    private static readonly TimeSpan VerificationInterval = TimeSpan.FromHours(24);
+    private static readonly TimeSpan RenewWhenRemaining = TimeSpan.FromHours(48);
+    private static readonly TimeSpan RollbackTolerance = TimeSpan.FromMinutes(5);
     private readonly TimeProvider clock = time ?? TimeProvider.System;
     private CacheState saved = new(null, null, DateTimeOffset.MinValue, DateTimeOffset.MinValue, new());
     private bool loaded, rollback;
     private DateTimeOffset anchor;
-    private DateTimeOffset anchorWall, highWater;
+    private DateTimeOffset anchorWall, highWater, wallHighWater;
     private long timestamp;
     private MembershipChallenge? pending;
     private long challengedAt;
     private Claims? verified;
     private sealed record CacheState(MembershipContext? Context, string? Token, DateTimeOffset EffectiveUtc,
         DateTimeOffset WallUtc, Dictionary<string, long> Versions, bool RequiresOnline = false);
-    private sealed record Claims(string Kind, string[] Rights, long Version, DateTimeOffset Issued, DateTimeOffset Expires, DateTimeOffset? GrantExpires);
+    private sealed record Claims(string Kind, string Plan, string[] Rights, long Version, DateTimeOffset Issued,
+        DateTimeOffset Expires, DateTimeOffset? GrantExpires, DateTimeOffset? LastExpiredAt);
 
     public static MembershipAuthority DenyAll() => new(null, (_, _) => null, "");
     private static bool Hex(string value) => value.Length == 64 && value.All(c => c is >= '0' and <= '9' or >= 'a' and <= 'f');
@@ -42,7 +56,10 @@ public sealed class MembershipAuthority(IMembershipCache? cache, Func<string, st
     private DateTimeOffset EffectiveNow()
     {
         var now = anchor + clock.GetElapsedTime(timestamp);
-        var wallDelta = clock.GetUtcNow() - anchorWall;
+        var utc = clock.GetUtcNow();
+        if (wallHighWater - utc > RollbackTolerance) rollback = true;
+        if (utc > wallHighWater) wallHighWater = utc;
+        var wallDelta = utc - anchorWall;
         var wall = anchor + (wallDelta > TimeSpan.Zero ? wallDelta : TimeSpan.Zero);
         // Count suspend time too; neither clock rollback nor undoing a forward jump can extend a proof.
         if (wall > now) now = wall;
@@ -52,30 +69,46 @@ public sealed class MembershipAuthority(IMembershipCache? cache, Func<string, st
     private async Task Load(CancellationToken ct)
     {
         if (loaded) return;
-        loaded = true; timestamp = clock.GetTimestamp(); anchor = anchorWall = highWater = clock.GetUtcNow();
+        timestamp = clock.GetTimestamp();
+        anchor = anchorWall = highWater = wallHighWater = clock.GetUtcNow();
         try
         {
             var json = cache is null ? null : await cache.LoadMembershipAsync(ct);
-            if (json is null) return;
+            if (json is null) { loaded = true; return; }
             saved = JsonSerializer.Deserialize<CacheState>(json) ?? throw new JsonException();
             if (saved.Versions is null || saved.Versions.Count > 512) throw new JsonException();
-            var delta = clock.GetUtcNow() - saved.WallUtc;
-            rollback = saved.RequiresOnline || delta < TimeSpan.FromMinutes(-5);
+            var delta = anchorWall - saved.WallUtc;
+            rollback = saved.RequiresOnline || delta < -RollbackTolerance;
+            if (saved.WallUtc > wallHighWater) wallHighWater = saved.WallUtc;
             anchor = saved.EffectiveUtc + (delta > TimeSpan.Zero ? delta : TimeSpan.Zero);
             highWater = anchor;
             if (saved.Token is not null && saved.Context is not null) verified = Verify(saved.Token, saved.Context, null);
         }
         catch (Exception ex) when (ex is JsonException or CryptographicException or ArgumentException or IOException or InvalidOperationException or FormatException or KeyNotFoundException)
         { rollback = true; verified = null; saved = new(null, null, DateTimeOffset.MinValue, DateTimeOffset.MinValue, new()); }
+        loaded = true;
     }
     private async Task Persist(CancellationToken ct)
     {
-        saved = saved with { EffectiveUtc = EffectiveNow(), WallUtc = clock.GetUtcNow(), RequiresOnline = rollback };
+        saved = saved with { EffectiveUtc = EffectiveNow(), WallUtc = wallHighWater, RequiresOnline = rollback };
         if (cache is null) return;
         try { await cache.SaveMembershipAsync(JsonSerializer.Serialize(saved), ct); }
         catch { verified = null; throw; }
     }
     public async Task<MembershipChallenge> BeginAsync(MembershipContext context, CancellationToken ct)
+    {
+        await BindAsync(context, ct);
+        challengedAt = clock.GetTimestamp();
+        return pending = new(context.ApiScope, machineBinding, Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant());
+    }
+
+    public async Task<MembershipStatus> StatusForAsync(MembershipContext context, CancellationToken ct)
+    {
+        await BindAsync(context, ct);
+        return await StatusAsync(ct);
+    }
+
+    private async Task BindAsync(MembershipContext context, CancellationToken ct)
     {
         if (context.UserId == Guid.Empty || context.DeviceId == Guid.Empty || context.SessionId == Guid.Empty ||
             context.InstallationId == Guid.Empty || !Hex(context.ApiScope) || !Hex(machineBinding))
@@ -83,11 +116,10 @@ public sealed class MembershipAuthority(IMembershipCache? cache, Func<string, st
         await Load(ct);
         if (saved.Context != context)
         {
+            pending = null;
             saved = saved with { Context = context, Token = null }; verified = null;
             await Persist(ct);
         }
-        challengedAt = clock.GetTimestamp();
-        return pending = new(context.ApiScope, machineBinding, Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant());
     }
     public async Task<MembershipStatus> ApplyAsync(string token, CancellationToken ct)
     {
@@ -100,9 +132,9 @@ public sealed class MembershipAuthority(IMembershipCache? cache, Func<string, st
         if (claims.Version < saved.Versions.GetValueOrDefault(key)) throw new InvalidOperationException("会员凭证版本已失效。");
         saved.Versions[key] = claims.Version;
         anchor = claims.Issued + clock.GetElapsedTime(challengedAt); timestamp = clock.GetTimestamp(); rollback = false;
-        anchorWall = clock.GetUtcNow(); highWater = anchor;
+        anchorWall = wallHighWater = clock.GetUtcNow(); highWater = anchor;
         verified = claims; saved = saved with { Token = token };
-        await Persist(ct); return await StatusAsync(ct);
+        return await StatusAsync(ct);
     }
     public async Task ClearAsync(CancellationToken ct)
     {
@@ -120,14 +152,27 @@ public sealed class MembershipAuthority(IMembershipCache? cache, Func<string, st
         if (saved.Token is not null && saved.Context is not null && verified is not null)
         {
             try { verified = Verify(saved.Token, saved.Context, null); }
-            catch (Exception error) when (error is ArgumentException or InvalidOperationException or CryptographicException or JsonException)
+            catch (Exception error) when (error is ArgumentException or InvalidOperationException or CryptographicException or JsonException or FormatException or KeyNotFoundException)
             { verified = null; }
         }
-        var active = !rollback && verified is { Kind: not "normal" } v && v.Expires > EffectiveNow();
         await Persist(ct);
-        return new(active ? verified!.Kind : "normal", active, verified?.GrantExpires, verified?.Expires, verified?.Version ?? 0,
-            rollback ? "本机时间或会员缓存异常，请联网重新验证会员。" : verified is null ? "请联网校验会员。" :
-                verified.Expires <= EffectiveNow() ? "离线会员凭证已过期，请联网校验。" : null);
+        if (rollback) return MembershipStatus.Pending("本机时间或会员缓存异常，请联网重新验证会员。");
+        if (verified is not { } claims) return MembershipStatus.Pending("请联网校验会员。");
+        var now = saved.EffectiveUtc;
+        var grantExpired = claims.LastExpiredAt.HasValue || claims.GrantExpires <= now;
+        var active = claims.Kind != "normal" && claims.Expires > now;
+        var verification = grantExpired ? MembershipVerification.Expired : active ? MembershipVerification.Active :
+            claims.Kind == "normal" ? MembershipVerification.Normal : MembershipVerification.Pending;
+        var due = claims.Issued + VerificationInterval;
+        if (active && claims.Expires - claims.Issued > RenewWhenRemaining && claims.Expires - RenewWhenRemaining < due)
+            due = claims.Expires - RenewWhenRemaining;
+        return new(claims.Kind, active, claims.GrantExpires ?? claims.LastExpiredAt, claims.Expires, claims.Version,
+            grantExpired ? "会员已到期。" : verification == MembershipVerification.Pending ? "离线会员凭证已过期，请联网校验。" : null)
+        {
+            Verification = verification,
+            Plan = claims.Plan,
+            NextVerificationIn = verification == MembershipVerification.Pending ? TimeSpan.Zero : due - now
+        };
     }
     public async Task DemandAsync(string right, CancellationToken ct)
     {
@@ -160,14 +205,21 @@ public sealed class MembershipAuthority(IMembershipCache? cache, Func<string, st
         var expires = DateTimeOffset.FromUnixTimeSeconds(p.GetProperty("exp").GetInt64());
         var grant = p.GetProperty("grantExp").ValueKind == JsonValueKind.Null ? (DateTimeOffset?)null : DateTimeOffset.FromUnixTimeSeconds(p.GetProperty("grantExp").GetInt64());
         var kind = Text("kind"); var rights = p.GetProperty("rights").EnumerateArray().Select(x => x.GetString() ?? "").ToArray();
+        var plan = p.TryGetProperty("plan", out var planValue) ? planValue.GetString() : kind;
+        var state = p.TryGetProperty("state", out var stateValue) ? stateValue.GetString() : kind == "normal" ? "normal" : "active";
+        var lastExpiredAt = p.TryGetProperty("lastExpiredAt", out var expiredValue) && expiredValue.ValueKind != JsonValueKind.Null
+            ? DateTimeOffset.FromUnixTimeSeconds(expiredValue.GetInt64()) : (DateTimeOffset?)null;
         var version = p.GetProperty("version").GetInt64();
         if (version < 0 || kind is not ("normal" or "annual" or "lifetime") || rights.Length > 2 || rights.Distinct().Count() != rights.Length ||
             rights.Any(x => x is not ("forced_mode" or "automatic_blocking")) || kind == "normal" && rights.Length != 0 ||
             kind != "normal" && rights.Length != 2 || kind == "annual" && grant is null || kind == "lifetime" && grant is not null ||
-            expires <= issued || expires - issued > TimeSpan.FromHours(72) || expires.ToUnixTimeSeconds() > p.GetProperty("sessionExp").GetInt64() ||
+            (kind == "annual" ? plan is not ("monthly" or "annual") : plan != kind) ||
+            (kind == "normal" ? state is not ("normal" or "expired") || grant is not null : state != "active") ||
+            (state == "expired" ? lastExpiredAt is null || lastExpiredAt > issued : lastExpiredAt is not null) ||
+            expires < issued || expires - issued > MaximumLease || expires.ToUnixTimeSeconds() > p.GetProperty("sessionExp").GetInt64() ||
             grant is not null && expires > grant || version < saved.Versions.GetValueOrDefault(VersionKey(context)))
             throw new ArgumentException("会员凭证权益或有效期无效。");
-        return new(kind, rights, version, issued, expires, grant);
+        return new(kind, plan!, rights, version, issued, expires, grant, lastExpiredAt);
     }
     private static byte[] Decode(string value)
     {

@@ -19,8 +19,6 @@ public sealed class CalendarDayRecordViewModel : INotifyPropertyChanged
     public string DurationDisplay => FormatDuration(DisplayFocusDuration);
     public string FocusDurationDisplay => $"时长 {DurationDisplay}";
     public string TaskCountDisplay => $"{Record.CalendarCompletedTaskCount}个任务";
-    public string TasksTitle => $"本次专注关联的任务（{Record.CalendarCompletedTaskCount}）";
-    public IReadOnlyList<CalendarDayTaskRow> PreviewTasks { get; }
     public TimeSpan Gap { get; }
     public bool HasGap => FocusRecordTimelineRules.ShowGap(Gap);
     public bool ConnectsFromPrevious { get; }
@@ -76,7 +74,6 @@ public sealed class CalendarDayRecordViewModel : INotifyPropertyChanged
             }
         }
         Tasks = tasks;
-        PreviewTasks = tasks.Where(task => !task.IsSubTask).ToArray();
     }
 
     public static IReadOnlyList<CalendarDayRecordViewModel> Create(IEnumerable<FocusSessionRecordViewModel> records)

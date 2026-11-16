@@ -18,10 +18,13 @@ public sealed partial class ServiceStateCoordinator
         while(focusHistoryPageOrder.Count>4&&focusHistoryPageOrder.TryDequeue(out var expired))focusHistoryPages.TryRemove(expired,out _);
         // Keep the newest completion available to existing completion/result flows.
         var newest=history.OrderByDescending(x=>x.CompletedAtUtc).First();
+        var today = DateOnly.FromDateTime(DateTime.Now);
         return state with
         {
             FocusSessions=state.FocusSessions.Where(x=>x.Status!=LocalFocusSessionStatusDto.Completed).Append(newest).ToArray(),
-            FocusHistoryToken=token,FocusHistoryCount=history.Length
+            FocusHistoryToken=token,FocusHistoryCount=history.Length,
+            TodayFocusSeconds = history.Where(session => session.CompletedAtUtc is { } end &&
+                DateOnly.FromDateTime(end.LocalDateTime) == today).Sum(session => session.ActualSeconds)
         };
     }
 

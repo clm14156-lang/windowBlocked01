@@ -34,6 +34,7 @@
     <SolidColorBrush x:Key="FocusRecordStatusText" Color="#FFFFFF" />
     <SolidColorBrush x:Key="FocusRecordSyncedIcon" Color="#8BE5BD" />
     <SolidColorBrush x:Key="FocusRecordSyncingIcon" Color="#A6DCF4" />
+    <SolidColorBrush x:Key="FocusRecordOfflineIcon" Color="#FFC58E" />
     <SolidColorBrush x:Key="FocusRecordLocalIcon" Color="#DCE6F3" />
     <SolidColorBrush x:Key="FocusCompletionNightCapsuleBackground" Color="#99132955" />
     <SolidColorBrush x:Key="FocusCountdownBrush" Color="#FCFDFF" />
@@ -105,7 +106,8 @@
     <SolidColorBrush x:Key="FocusTaskDisabledSurface" Color="#263A5B" />
     <SolidColorBrush x:Key="FocusTaskRowDivider" Color="#2C333D" />
     <SolidColorBrush x:Key="FocusTaskDivider" Color="#2C333D" />
-    <SolidColorBrush x:Key="FocusTaskSubTaskSurface" Color="#222F44" />
+    <SolidColorBrush x:Key="FocusTaskSubTaskSurface" Color="#272E38" />
+    <SolidColorBrush x:Key="FocusTaskInlineSubTaskHint" Color="#98A4B3" />
     <SolidColorBrush x:Key="FocusTaskProgressTrack" Color="#2B323D" />
     <SolidColorBrush x:Key="FocusTaskCloseHover" Color="#252C36" />
     <SolidColorBrush x:Key="FocusTaskKeycapSurface" Color="#182D4D" />

@@ -79,13 +79,29 @@ public sealed partial class SqliteLocalDataStore
         }
         if(binding is not null)
         {
-            await using var cmd=CreateCommand(c,null,"SELECT record_id,payload_json FROM focus_sync_remote WHERE binding_id=$binding AND is_deleted=0 AND local_deleted=0");
+            await using var cmd=CreateCommand(c,null,"""
+                SELECT r.record_id,r.payload_json,r.conflict,COALESCE(o.server_revision,0),r.server_revision,
+                    EXISTS(SELECT 1 FROM focus_sync_outbox q JOIN focus_sync_bindings b
+                        ON b.user_id=q.user_id AND b.api_scope=q.api_scope
+                        WHERE b.binding_id=r.binding_id AND q.record_id=r.record_id AND q.state IN(0,2))
+                FROM focus_sync_remote r LEFT JOIN focus_sync_owners o ON o.record_id=r.record_id
+                WHERE r.binding_id=$binding AND r.is_deleted=0 AND r.local_deleted=0
+                """);
             cmd.Parameters.AddWithValue("$binding",FormatGuid(binding.BindingId));
             await using var rows=await cmd.ExecuteReaderAsync(ct);
             while(await rows.ReadAsync(ct))
             {
                 var id=Guid.Parse(rows.GetString(0));
-                if(!visible.ContainsKey(id)) visible[id]=RemoteSession(id,binding.BindingId,rows.GetString(1));
+                if(!visible.TryGetValue(id,out var current))
+                    visible[id]=RemoteSession(id,binding.BindingId,rows.GetString(1));
+                else if(current.Status==LocalFocusSessionStatus.Completed && current.CloudBindingId==binding.BindingId &&
+                    !rows.GetBoolean(2) && !rows.GetBoolean(5) && rows.GetInt64(4)>=rows.GetInt64(3))
+                    visible[id]=RemoteSession(id,binding.BindingId,rows.GetString(1)) with
+                    {
+                        ActivityIntervals=current.ActivityIntervals,
+                        WebsiteRuleSnapshots=current.WebsiteRuleSnapshots,
+                        ApplicationRuleSnapshots=current.ApplicationRuleSnapshots
+                    };
             }
         }
         return visible.Values.OrderBy(x=>x.PreparationStartedAtUtc).ThenBy(x=>x.SessionId).ToArray();
@@ -97,9 +113,9 @@ public sealed partial class SqliteLocalDataStore
         await ExecuteWriteAsync(async(c,t)=>
         {
             await SyncBinding(c,t,bindingId,ct);
-            await using var cmd=CreateCommand(c,t,"SELECT cursor,last_revision FROM focus_sync_progress WHERE binding_id=$binding");
+            await using var cmd=CreateCommand(c,t,"SELECT cursor,last_revision,has_more FROM focus_sync_progress WHERE binding_id=$binding");
             cmd.Parameters.AddWithValue("$binding",FormatGuid(bindingId));await using var row=await cmd.ExecuteReaderAsync(ct);
-            if(await row.ReadAsync(ct)) result=new(row.IsDBNull(0)?null:row.GetString(0),row.GetInt64(1));
+            if(await row.ReadAsync(ct)) result=new(row.IsDBNull(0)?null:row.GetString(0),row.GetInt64(1),row.GetBoolean(2));
         },ct);return result;
     }
 
@@ -147,9 +163,14 @@ public sealed partial class SqliteLocalDataStore
                     }
                 }
                 var localDeleted=false;var conflict=false;
-                await using(var command=CreateCommand(c,t,"SELECT payload_hash,is_deleted FROM focus_sync_owners WHERE record_id=$id AND (user_id=$user AND api_scope=$scope OR user_id IS NULL AND is_deleted=0)"))
+                await using(var command=CreateCommand(c,t,"""
+                    SELECT o.payload_hash,o.is_deleted,EXISTS(SELECT 1 FROM focus_sync_outbox q
+                        WHERE q.record_id=o.record_id AND q.user_id=$user AND q.api_scope=$scope AND q.state IN(0,2))
+                    FROM focus_sync_owners o WHERE o.record_id=$id
+                        AND (o.user_id=$user AND o.api_scope=$scope OR o.user_id IS NULL AND o.is_deleted=0)
+                    """))
                 {command.Parameters.AddWithValue("$id",FormatGuid(change.RecordId));command.Parameters.AddWithValue("$user",FormatGuid(b.UserId!.Value));command.Parameters.AddWithValue("$scope",b.ApiScope);
-                 await using var row=await command.ExecuteReaderAsync(ct);if(await row.ReadAsync(ct)){localDeleted=row.GetBoolean(1);conflict=!change.IsDeleted&&!localDeleted&&!row.IsDBNull(0)&&row.GetString(0)!=hash;}}
+                 await using var row=await command.ExecuteReaderAsync(ct);if(await row.ReadAsync(ct)){localDeleted=row.GetBoolean(1);conflict=!change.IsDeleted&&!localDeleted&&row.GetBoolean(2)&&!row.IsDBNull(0)&&row.GetString(0)!=hash;}}
                 await SyncSql(c,t,"""
                     INSERT INTO focus_sync_remote(binding_id,record_id,source_device_id,server_revision,is_deleted,payload_json,target_id,local_deleted,conflict)
                     VALUES($binding,$id,$device,$rev,$deleted,$payload,$target,$localDeleted,$conflict)
@@ -161,7 +182,7 @@ public sealed partial class SqliteLocalDataStore
                     ("$rev",change.ServerRevision),("$deleted",change.IsDeleted?1:0),("$payload",change.PayloadJson),
                     ("$target",change.IsDeleted?null:sessions[change.ServerRevision].TargetId),("$localDeleted",localDeleted?1:0),("$conflict",conflict?1:0));
                 if(change.IsDeleted)await ApplyRemoteTombstone(c,t,b,change.RecordId,change.ServerRevision,ct);
-                else await SyncSql(c,t,"UPDATE focus_sync_owners SET server_revision=max(COALESCE(server_revision,0),$rev) WHERE record_id=$id AND user_id=$user AND api_scope=$scope",ct,
+                else if (!conflict) await SyncSql(c,t,"UPDATE focus_sync_owners SET server_revision=max(COALESCE(server_revision,0),$rev) WHERE record_id=$id AND user_id=$user AND api_scope=$scope",ct,
                     ("$id",FormatGuid(change.RecordId)),("$rev",change.ServerRevision),("$user",FormatGuid(b.UserId!.Value)),("$scope",b.ApiScope));
             }
             await SyncSql(c,t,"""
@@ -213,7 +234,9 @@ public sealed partial class SqliteLocalDataStore
             await SyncSql(c,t,"""
                 INSERT OR IGNORE INTO focus_sync_outbox(operation_id,record_id,user_id,api_scope,kind,payload_json,payload_hash,state)
                   SELECT $op,$id,$user,$scope,'delete','null','delete',0 FROM focus_sync_remote
-                  WHERE binding_id=$binding AND record_id=$id AND is_deleted=0;
+                  WHERE binding_id=$binding AND record_id=$id AND is_deleted=0 AND local_deleted=0
+                    AND NOT EXISTS(SELECT 1 FROM focus_sync_outbox q WHERE q.record_id=$id AND q.user_id=$user
+                      AND q.api_scope=$scope AND q.kind='delete' AND q.state IN(0,1,2));
                 UPDATE focus_sync_remote SET local_deleted=1 WHERE binding_id=$binding AND record_id=$id;
                 """,ct,("$op",FormatGuid(Guid.NewGuid())),("$id",FormatGuid(id)),("$user",FormatGuid(binding.UserId!.Value)),
                 ("$scope",binding.ApiScope),("$binding",FormatGuid(binding.BindingId)));

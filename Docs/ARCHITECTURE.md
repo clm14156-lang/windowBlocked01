@@ -99,6 +99,14 @@ FocusApp
 
 Desktop 关闭不得影响 Service 的运行。
 
+#### 强制专注恢复
+
+正式计时阶段，Desktop 拦截关闭按钮和 Alt+F4。用户仍可最小化窗口或正常关闭 Windows。Desktop 意外退出时，Service 继续计时和执行屏蔽，Agent 检测到当前 Windows 会话中缺少 Desktop 后会重新启动它。
+
+Service 每 3 秒持久化一次实际进度，正常停止时会补存一次。重新登录 Windows 后，Agent 连接 Service，Service 从本地恢复同一会话并恢复屏蔽。关机期间不计入专注时间。Desktop 通过原有账号会话重新绑定后显示倒计时。启用强制专注时，Agent 会临时保留当前用户的登录启动项，专注结束后按原有开机自启动设置清理。
+
+部署时，将 Release 版 Service、Agent 和 Desktop 的发布文件安装到同一个由管理员维护的 `Program Files` 目录，以管理员身份运行 `scripts/Install-FocusAppService.ps1` 注册自动启动及故障恢复，再以日常 Windows 用户身份启动 Agent 和 Desktop。使用自定义云端地址时，将 `FOCUSTIME_API_BASE_URL` 配置为用户或系统环境变量，使下次 Windows 登录后的 Desktop 能读取同一地址。`scripts/Start-FocusApp.ps1` 供开发环境启动三个进程。
+
 ---
 
 ### FocusApp.Core

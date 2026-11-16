@@ -57,6 +57,8 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     private Func<bool> _canStartForcedMode = static () => true;
     private Guid? _authoritativeSessionId;
     private LocalFocusSessionDto? _authoritativeSession;
+    private DateTimeOffset _authoritativeClockUtc;
+    private long _authoritativeClockTimestamp;
     private Guid? _lastAuthoritativeCompletionSessionId;
     private bool _applyingAuthoritativeSession;
     private bool _isExternalStarting;
@@ -765,6 +767,8 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     }
 
     internal DateTimeOffset? FocusPreparationStartedAtUtc => ToUtc(_engine.StartedAt);
+    internal string? MeteorSessionKey => _authoritativeSessionId is { } id ? $"forced:{id:N}" :
+        !_isExternalStarting && FocusPreparationStartedAtUtc is { } started ? $"local:{started.UtcTicks}" : null;
     internal FocusTargetViewModel? SessionTarget => _sessionTarget;
 
     private static DateTimeOffset? ToUtc(DateTime? time)
@@ -793,16 +797,15 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             session.TargetId is { } targetId ? new FocusSessionTargetContext(targetId, session.TargetNameSnapshot ?? target?.Name ?? string.Empty) : null,
             session.ActivityIntervals.Select(interval =>
                 new FocusActivityInterval(interval.StartedAtUtc, interval.EndedAtUtc, interval.IsPaused)).ToArray());
-        SyncCompletedTaskIdsToEngine();
-        SyncFromEngine();
-        RefreshGreeting();
         if (RunTimer)
         {
             _focusStopwatch.Restart();
             _lastFocusElapsed = TimeSpan.Zero;
-            _timer.Interval = TimeSpan.FromMilliseconds(250);
-            _timer.Start();
         }
+        SyncCompletedTaskIdsToEngine();
+        SyncFromEngine();
+        RefreshGreeting();
+        if (RunTimer) _timer.Start();
     }
 
     internal void ShowInterruptedFocusHome() => ResetToIdleCore();
@@ -921,7 +924,9 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         {
             _applyingAuthoritativeSession = false;
         }
-        RefreshAuthoritativeTime(nowUtc ?? DateTimeOffset.UtcNow);
+        _authoritativeClockUtc = nowUtc ?? DateTimeOffset.UtcNow;
+        _authoritativeClockTimestamp = Stopwatch.GetTimestamp();
+        RefreshAuthoritativeTime(_authoritativeClockUtc);
         if (IsFocusing) RefreshGreeting();
 
         if (session.Status == LocalFocusSessionStatusDto.Completed)
@@ -931,11 +936,6 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
         }
         else if (RunTimer)
         {
-            // Preparation progress is a visual animation and needs a render-rate
-            // cadence. The authoritative clock still comes from the service.
-            _timer.Interval = IsPreparing
-                ? TimeSpan.FromMilliseconds(16)
-                : TimeSpan.FromMilliseconds(250);
             _timer.Start();
         }
     }
@@ -974,13 +974,12 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
 
         SyncCompletedTaskIdsToEngine();
         _engine.AdvancePreparationBy(elapsed);
-        SyncFromEngine();
         if (_engine.State == FocusSessionState.Focusing)
         {
             _preparationStopwatch.Stop();
-            _focusStopwatch.Start();
-            _lastFocusElapsed = TimeSpan.Zero;
+            _focusStopwatch.Restart();
         }
+        SyncFromEngine();
     }
 
     public bool MovePendingTask(FocusTaskViewModel task, FocusTaskViewModel target, bool insertAfter)
@@ -1014,37 +1013,39 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
 
     private void OnTimerTick()
     {
+        UpdateCountdown();
         if (IsFocusing) RefreshGreeting();
         RefreshTaskGroupsIfLocalDateChanged();
-        if (_isExternalStarting && _authoritativeSession is null)
-        {
-            return;
-        }
+    }
 
-        if (_authoritativeSession is not null &&
-            _authoritativeSession.Status != LocalFocusSessionStatusDto.Completed)
+    private void UpdateCountdown()
+    {
+        if (_isExternalStarting && _authoritativeSession is null) return;
+
+        // Timer ticks only publish the current state. Delayed or skipped ticks
+        // are covered by the next monotonic time sample.
+        if (_authoritativeSession is { Status: not LocalFocusSessionStatusDto.Completed })
         {
-            RefreshAuthoritativeTime(DateTimeOffset.UtcNow);
+            RefreshAuthoritativeTime(_authoritativeClockUtc + Stopwatch.GetElapsedTime(_authoritativeClockTimestamp));
             return;
         }
 
         if (Stage == FocusFlowStage.Preparing)
         {
-            var preparationElapsed = _preparationStopwatch.Elapsed - _lastPreparationElapsed;
-            _lastPreparationElapsed = _preparationStopwatch.Elapsed;
-            AdvancePreparationBy(preparationElapsed);
+            var elapsed = _preparationStopwatch.Elapsed;
+            var delta = elapsed - _lastPreparationElapsed;
+            _lastPreparationElapsed = elapsed;
+            AdvancePreparationBy(delta);
             return;
         }
 
-        if (Stage != FocusFlowStage.Focusing)
-        {
-            return;
-        }
+        if (Stage != FocusFlowStage.Focusing) return;
 
-        var focusElapsed = _focusStopwatch.Elapsed - _lastFocusElapsed;
-        _lastFocusElapsed = _focusStopwatch.Elapsed;
+        var focusElapsed = _focusStopwatch.Elapsed;
+        var focusDelta = focusElapsed - _lastFocusElapsed;
+        _lastFocusElapsed = focusElapsed;
         SyncCompletedTaskIdsToEngine();
-        _engine.AdvanceFocusBy(focusElapsed);
+        _engine.AdvanceFocusBy(focusDelta);
         SyncFromEngine();
     }
 
@@ -1078,7 +1079,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
 
         // Commit the time since the last tick before freezing both clocks.
         _focusStopwatch.Stop();
-        if (RunTimer) OnTimerTick();
+        if (RunTimer) UpdateCountdown();
         if (_engine.RequestEnd())
         {
             OnPropertyChanged(nameof(ElapsedFocusSeconds));
@@ -1102,13 +1103,12 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             return;
         }
 
-        IsEndConfirmationOpen = false;
         if (RunTimer)
         {
-            _lastFocusElapsed = _focusStopwatch.Elapsed;
             _focusStopwatch.Start();
             _timer.Start();
         }
+        IsEndConfirmationOpen = false;
     }
 
     private void DiscardShortFocus()
@@ -1288,12 +1288,7 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
     {
         if (!IsFocusing || _applyingAuthoritativeSession || task is null || task.IsCompleted ||
             ActiveTarget is not { } target || !target.Tasks.Contains(task)) return;
-        if (task.HasSubTasks)
-        {
-            CloseTaskMenus();
-            task.CompleteSubTasks();
-        }
-        else ToggleTaskCompleted(task);
+        ToggleTaskCompleted(task);
     }
 
     private void ToggleTaskCompleted(FocusTaskViewModel? task)
@@ -1303,9 +1298,10 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             return;
         }
 
-        task.ApplyCompletion(
-            !task.IsCompleted,
-            task.IsCompleted ? null : GetCurrentUtc());
+        if (!task.IsCompleted && task.HasSubTasks)
+            task.CompleteSubTasks(GetCurrentUtc());
+        else
+            task.ApplyCompletion(!task.IsCompleted, task.IsCompleted ? null : GetCurrentUtc());
         CloseTaskMenus();
         RefreshTaskGroups();
     }
@@ -1607,6 +1603,9 @@ public sealed class FocusSessionViewModel : INotifyPropertyChanged
             _engine.Completion is not null &&
             !ReferenceEquals(_lastRecordedCompletion, _engine.Completion))
         {
+            _timer.Stop();
+            _preparationStopwatch.Reset();
+            _focusStopwatch.Stop();
             _lastRecordedCompletion = _engine.Completion;
             _completedFocusSeconds = _engine.ElapsedFocusSeconds;
             _todayTotalSeconds += _completedFocusSeconds;

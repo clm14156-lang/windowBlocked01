@@ -18,16 +18,34 @@ public sealed partial class SqliteLocalDataStore : IAccountFocusRecoveryStore
     {
         await InitializeAsync(token);
         await using var connection = await OpenConnectionAsync(token);
-        await using var command = CreateCommand(connection, null, "SELECT count(*) FROM pending_account_focus_recovery");
+        await using var command = CreateCommand(connection, null,
+            "SELECT EXISTS(SELECT id FROM forced_focus_recovery UNION ALL SELECT id FROM pending_account_focus_recovery)");
         return Convert.ToInt32(await command.ExecuteScalarAsync(token)) != 0;
     }
 
-    public Task SetPendingFocusRecoveryAsync(bool pending, CancellationToken token)
+    public async Task<ForcedFocusRecovery?> GetForcedFocusRecoveryAsync(CancellationToken token)
+    {
+        await InitializeAsync(token);
+        await using var connection = await OpenConnectionAsync(token);
+        await using var command = CreateCommand(connection, null,
+            "SELECT session_id, user_id, api_scope FROM forced_focus_recovery WHERE id=1");
+        await using var reader = await command.ExecuteReaderAsync(token);
+        return await reader.ReadAsync(token)
+            ? new ForcedFocusRecovery(Guid.Parse(reader.GetString(0)), Guid.Parse(reader.GetString(1)), reader.GetString(2))
+            : null;
+    }
+
+    public Task SetForcedFocusRecoveryAsync(ForcedFocusRecovery? recovery, CancellationToken token)
         => ExecuteWriteAsync(async (connection, transaction) =>
         {
-            var sql = pending ? "INSERT OR IGNORE INTO pending_account_focus_recovery VALUES(1)"
-                : "DELETE FROM pending_account_focus_recovery";
-            await SyncSql(connection, transaction, sql, token);
+            await SyncSql(connection, transaction, "DELETE FROM pending_account_focus_recovery", token);
+            if (recovery is null)
+                await SyncSql(connection, transaction, "DELETE FROM forced_focus_recovery", token);
+            else
+                await SyncSql(connection, transaction, """
+                    INSERT INTO forced_focus_recovery(id,session_id,user_id,api_scope) VALUES(1,$session,$user,$scope)
+                    ON CONFLICT(id) DO UPDATE SET session_id=excluded.session_id,user_id=excluded.user_id,api_scope=excluded.api_scope
+                    """, token, ("$session", FormatGuid(recovery.SessionId)), ("$user", FormatGuid(recovery.UserId)), ("$scope", recovery.ApiScope));
         }, token);
 
     public Task CopyDeviceSettingsAsync(string legacyPath, CancellationToken token)
@@ -54,6 +72,7 @@ public sealed partial class SqliteLocalDataStore : IAccountFocusRecoveryStore
             var activityIntervals = version >= 19 ? "s.activity_intervals_json" : "NULL";
             var checkpoint = version >= 20 ? "s.recovery_checkpoint_utc" : "NULL";
             var abandoned = version >= 20 ? "s.recovery_abandoned" : "0";
+            var outboxRevision = version >= 22 ? "base_revision,sent" : "NULL,0";
             await SyncSql(connection, transaction, $"""
                 INSERT OR IGNORE INTO focus_sync_bindings
                     SELECT * FROM legacy.focus_sync_bindings WHERE user_id=$user AND api_scope=$scope;
@@ -78,7 +97,9 @@ public sealed partial class SqliteLocalDataStore : IAccountFocusRecoveryStore
                 INSERT OR IGNORE INTO focus_session_application_rules
                     SELECT r.* FROM legacy.focus_session_application_rules r JOIN focus_sessions s ON s.session_id=r.session_id;
                 INSERT OR IGNORE INTO focus_sync_outbox
-                    SELECT * FROM legacy.focus_sync_outbox WHERE user_id=$user AND api_scope=$scope;
+                    SELECT operation_id,record_id,user_id,api_scope,kind,payload_json,payload_hash,state,
+                        attempts,next_attempt_utc,last_error,server_revision,{outboxRevision}
+                    FROM legacy.focus_sync_outbox WHERE user_id=$user AND api_scope=$scope;
                 UPDATE focus_sync_outbox SET state=0 WHERE kind='delete' AND state=4;
                 """, token, ("$user", FormatGuid(userId)), ("$scope", apiScope));
             if (version >= 16)
