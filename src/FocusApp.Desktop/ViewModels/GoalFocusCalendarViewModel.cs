@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Globalization;
 using System.Windows.Input;
 
 namespace FocusApp.Desktop.ViewModels;
@@ -106,8 +107,8 @@ public sealed record GoalFocusCalendarDay(DateOnly? Date, TimeSpan Duration)
             var minutes = (int)Duration.TotalMinutes;
             if (minutes == 0) return "<1m";
             if (minutes < 60) return $"{minutes}m";
-            var hours = minutes / 60;
-            return minutes % 60 == 0 ? $"{hours}h" : $"{hours}h{minutes % 60}m";
+            var hours = Math.Round(Duration.TotalHours, 1, MidpointRounding.AwayFromZero);
+            return hours.ToString("0.#", CultureInfo.InvariantCulture) + "h";
         }
     }
 }
