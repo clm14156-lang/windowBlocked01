@@ -25,7 +25,9 @@ public sealed partial class CloudAccountClient : ILoginCaptchaClient, IDeviceSes
     { this.http = http; this.store = store; }
     public static CloudAccountClient CreateDefault()
     {
-        var configured = Environment.GetEnvironmentVariable("FOCUSTIME_API_BASE_URL") ?? "http://localhost:5082/";
+        var installedApiAddress = System.IO.Path.Combine(AppContext.BaseDirectory, "FocusTime.ApiBaseUrl.txt");
+        var configured = Environment.GetEnvironmentVariable("FOCUSTIME_API_BASE_URL") ??
+            (System.IO.File.Exists(installedApiAddress) ? System.IO.File.ReadAllText(installedApiAddress).Trim() : "http://localhost:5082/");
         if (!Uri.TryCreate(configured, UriKind.Absolute, out var uri) ||
             (uri.Scheme != "https" && !(uri.Scheme == "http" && uri.IsLoopback)) ||
             !string.IsNullOrEmpty(uri.UserInfo) || uri.Query.Length > 0 || uri.Fragment.Length > 0)

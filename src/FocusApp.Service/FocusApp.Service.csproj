@@ -16,6 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <FrameworkReference Include="Microsoft.WindowsDesktop.App" Condition="'$(InstallerBuild)' == 'true'" />
     <ProjectReference Include="..\FocusApp.Contracts\FocusApp.Contracts.csproj" />
     <ProjectReference Include="..\FocusApp.Core\FocusApp.Core.csproj" />
     <ProjectReference Include="..\FocusApp.Infrastructure\FocusApp.Infrastructure.csproj" />

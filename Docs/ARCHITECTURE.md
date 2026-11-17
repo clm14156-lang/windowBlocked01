@@ -105,7 +105,7 @@ Desktop 关闭不得影响 Service 的运行。
 
 Service 每 3 秒持久化一次实际进度，正常停止时会补存一次。重新登录 Windows 后，Agent 连接 Service，Service 从本地恢复同一会话并恢复屏蔽。关机期间不计入专注时间。Desktop 通过原有账号会话重新绑定后显示倒计时。启用强制专注时，Agent 会临时保留当前用户的登录启动项，专注结束后按原有开机自启动设置清理。
 
-部署时，将 Release 版 Service、Agent 和 Desktop 的发布文件安装到同一个由管理员维护的 `Program Files` 目录，以管理员身份运行 `scripts/Install-FocusAppService.ps1` 注册自动启动及故障恢复，再以日常 Windows 用户身份启动 Agent 和 Desktop。使用自定义云端地址时，将 `FOCUSTIME_API_BASE_URL` 配置为用户或系统环境变量，使下次 Windows 登录后的 Desktop 能读取同一地址。`scripts/Start-FocusApp.ps1` 供开发环境启动三个进程。
+Windows 安装程序将 Service 及其运行依赖安装到系统 `Program Files` 下受保护的 `FocusApp Service` 目录，将 Agent 和 Desktop 安装到用户选择的本地卷。管理员权限仅用于安装、维护和注册服务，Agent 和 Desktop 以日常 Windows 用户身份启动。使用自定义云端地址时，将 `FOCUSTIME_API_BASE_URL` 配置为用户或系统环境变量，使下次 Windows 登录后的 Desktop 能读取同一地址。`scripts/Start-FocusApp.ps1` 供开发环境启动三个进程。
 
 ---
 
